@@ -1,8 +1,25 @@
 import { Outlet } from "react-router-dom";
 import { AdminSidebar } from "./AdminSidebar";
 import { AdminHeader } from "./AdminHeader";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
+import { Play } from "lucide-react";
 
 export function AdminLayout() {
+  const { isAdmin, loading } = useAdminAuth();
+
+  if (loading || !isAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0505]">
+        <div className="flex items-center gap-2">
+          <div className="w-10 h-10 rounded bg-gradient-to-br from-primary to-red-900 flex items-center justify-center animate-pulse">
+            <Play className="text-white size-5" />
+          </div>
+          <span className="text-xl font-bold text-white">Carregando...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen w-full relative bg-[#0a0505] text-white font-display overflow-hidden selection:bg-primary selection:text-white">
       {/* Background Effects */}

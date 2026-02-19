@@ -18,7 +18,7 @@ export default function AdminLogin() {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -28,7 +28,16 @@ export default function AdminLogin() {
         return;
       }
 
-      // TODO: Check if user is admin
+      // Check if user has admin role
+      const { data: roleData, error: roleError } = await supabase
+        .rpc('has_role', { _user_id: data.user.id, _role: 'admin' });
+
+      if (roleError || !roleData) {
+        await supabase.auth.signOut();
+        toast.error("Acesso negado. Você não tem permissão de administrador.");
+        return;
+      }
+
       toast.success("Login realizado com sucesso!");
       navigate("/admin");
     } catch (error) {
