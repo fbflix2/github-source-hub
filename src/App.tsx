@@ -1,27 +1,194 @@
+import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { User, Session } from "@supabase/supabase-js";
+import { ThemeProvider } from "next-themes";
+import { useTickets } from "@/hooks/useTickets";
+// Pages
+import Auth from "./pages/Auth";
+import Loja from "./pages/Loja";
+import Checkout from "./pages/Checkout";
+import Subscriptions from "./pages/Subscriptions";
+import Orders from "./pages/Orders";
+import ItemDetails from "./pages/ItemDetails";
+import ItemDetailsHashRedirect from "./pages/ItemDetailsHashRedirect";
+import Tutorials from "./pages/Tutorials";
+import Wallet from "./pages/Wallet";
+import Advertise from "./pages/Advertise";
+import Profile from "./pages/Profile";
+import GanheAqui from "./pages/GanheAqui";
+import ComoFunciona from "./pages/ComoFunciona";
+import Suporte from "./pages/Suporte";
+import Tickets from "./pages/Tickets";
 import NotFound from "./pages/NotFound";
+
+// Admin Pages
+import AdminLogin from "./pages/admin/AdminLogin";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminProducts from "./pages/admin/AdminProducts";
+import AdminEstoque from "./pages/admin/AdminEstoque";
+import AdminBlocagem from "./pages/admin/AdminBlocagem";
+import AdminSuporte from "./pages/admin/AdminSuporte";
+import AdminAuditoria from "./pages/admin/AdminAuditoria";
+import AdminNovaCompra from "./pages/admin/AdminNovaCompra";
+import AdminBalanco from "./pages/admin/AdminBalanco";
+import AdminClientes from "./pages/admin/AdminClientes";
+import AdminAfiliados from "./pages/admin/AdminAfiliados";
+import AdminCupons from "./pages/admin/AdminCupons";
+import AdminTutoriais from "./pages/admin/AdminTutoriais";
+import AdminBanners from "./pages/admin/AdminBanners";
+import AdminNotificacoes from "./pages/admin/AdminNotificacoes";
+import AdminTermos from "./pages/admin/AdminTermos";
+import AdminConfiguracoes from "./pages/admin/AdminConfiguracoes";
+import AdminApi from "./pages/admin/AdminApi";
+import AdminAssinaturas from "./pages/admin/AdminAssinaturas";
+import AdminPagamentos from "./pages/admin/AdminPagamentos";
+import { AdminLayout } from "./components/admin/AdminLayout";
+
+// Layout
+import { MainLayout } from "./components/layout/MainLayout";
+
+// Cart
+import { CartProvider } from "./contexts/CartContext";
+import { FloatingCart } from "./components/FloatingCart";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+function AuthenticatedApp({ user, onLogout }: { user: User; onLogout: () => void }) {
+  const { totalUnread } = useTickets();
+  const userName = user.user_metadata?.full_name || user.email?.split("@")[0] || "Usuário";
+  const userEmail = user.email || "";
+
+  return (
+    <Routes>
+      <Route
+        element={
+          <MainLayout
+            userName={userName}
+            userEmail={userEmail}
+            onLogout={onLogout}
+            unreadTickets={totalUnread}
+          />
+        }
+      >
+        <Route path="/loja" element={<Loja />} />
+        <Route path="/checkout" element={<Checkout />} />
+        <Route path="/subscriptions" element={<Subscriptions />} />
+        <Route path="/orders" element={<Orders />} />
+        <Route path="/item-details" element={<ItemDetailsHashRedirect />} />
+        <Route path="/item-details/:orderId/:itemId" element={<ItemDetails />} />
+        <Route path="/tutorials" element={<Tutorials />} />
+        <Route path="/wallet" element={<Wallet />} />
+        <Route path="/advertise" element={<Advertise />} />
+        <Route path="/ganhe-aqui" element={<GanheAqui />} />
+        <Route path="/como-funciona" element={<ComoFunciona />} />
+        <Route path="/suporte" element={<Suporte />} />
+        <Route path="/tickets" element={<Tickets />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/" element={<Navigate to="/loja" replace />} />
+      </Route>
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+}
+
+const App = () => {
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        setLoading(false);
+      }
+    );
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex items-center gap-2">
+          <div className="w-10 h-10 rounded bg-gradient-to-br from-red-500 to-red-800 flex items-center justify-center animate-pulse">
+            <span className="material-symbols-outlined text-primary-foreground text-[24px]">play_arrow</span>
+          </div>
+          <span className="text-xl font-bold text-foreground">FBFLIX</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+      <QueryClientProvider client={queryClient}>
+        <CartProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                <Route
+                  path="/auth"
+                  element={user ? <Navigate to="/loja" replace /> : <Auth />}
+                />
+
+                {/* Admin routes */}
+                <Route path="/admin/login" element={<AdminLogin />} />
+                <Route path="/admin" element={<AdminLayout />}>
+                  <Route index element={<AdminDashboard />} />
+                  <Route path="produtos" element={<AdminProducts />} />
+                  <Route path="estoque" element={<AdminEstoque />} />
+                  <Route path="blocagem" element={<AdminBlocagem />} />
+                  <Route path="suporte" element={<AdminSuporte />} />
+                  <Route path="auditoria" element={<AdminAuditoria />} />
+                  <Route path="auditoria/nova-compra" element={<AdminNovaCompra />} />
+                  <Route path="auditoria/balanco" element={<AdminBalanco />} />
+                  <Route path="pedidos" element={<AdminDashboard />} />
+                  <Route path="pagamentos" element={<AdminPagamentos />} />
+                  <Route path="assinaturas" element={<AdminAssinaturas />} />
+                  <Route path="clientes" element={<AdminClientes />} />
+                  <Route path="afiliados" element={<AdminAfiliados />} />
+                  <Route path="cupons" element={<AdminCupons />} />
+                  <Route path="tutoriais" element={<AdminTutoriais />} />
+                  <Route path="banners" element={<AdminBanners />} />
+                  <Route path="notificacoes" element={<AdminNotificacoes />} />
+                  <Route path="termos" element={<AdminTermos />} />
+                  <Route path="configuracoes" element={<AdminConfiguracoes />} />
+                  <Route path="api" element={<AdminApi />} />
+                </Route>
+
+                {/* Protected routes */}
+                {user ? (
+                  <Route path="/*" element={<AuthenticatedApp user={user} onLogout={handleLogout} />} />
+                ) : (
+                  <Route path="*" element={<Navigate to="/auth" replace />} />
+                )}
+              </Routes>
+              <FloatingCart />
+            </BrowserRouter>
+          </TooltipProvider>
+        </CartProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
+  );
+};
 
 export default App;
