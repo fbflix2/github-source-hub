@@ -23,7 +23,7 @@ export default function Auth() {
     e.preventDefault();
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: loginEmail,
       password: loginPassword,
     });
@@ -35,11 +35,17 @@ export default function Auth() {
         variant: "destructive",
       });
     } else {
+      // Check if user has admin role
+      const { data: isAdmin } = await supabase.rpc('has_role', {
+        _user_id: data.user.id,
+        _role: 'admin' as const,
+      });
+
       toast({
         title: "Bem-vindo!",
         description: "Login realizado com sucesso.",
       });
-      navigate("/dashboard");
+      navigate(isAdmin ? "/admin" : "/loja");
     }
 
     setLoading(false);
