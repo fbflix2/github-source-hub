@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { EditStockItemModal } from "@/components/admin/EditStockItemModal";
 
 interface Folder {
   id: string;
@@ -344,6 +345,7 @@ function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => voi
 // ─── Folder Items View ───
 function FolderItemsView({ folder, onBack }: { folder: Folder; onBack: () => void }) {
   const [items, setItems] = useState<StockItem[]>([]);
+  const [editingItem, setEditingItem] = useState<StockItem | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchItems = async () => {
@@ -403,6 +405,9 @@ function FolderItemsView({ folder, onBack }: { folder: Folder; onBack: () => voi
               <div className="flex items-center gap-3">
                 <Badge className={`text-xs ${statusStyles[item.status] || statusStyles.aguardando}`}>{item.status}</Badge>
                 <span className="text-xs text-zinc-500">{new Date(item.created_at).toLocaleDateString("pt-BR")}</span>
+                <button onClick={() => setEditingItem(item)} className="text-zinc-500 hover:text-white transition-colors">
+                  <Pencil className="h-4 w-4" />
+                </button>
                 <button onClick={() => handleDelete(item.id)} className="text-zinc-500 hover:text-red-400 transition-colors">
                   <Trash2 className="h-4 w-4" />
                 </button>
@@ -411,6 +416,13 @@ function FolderItemsView({ folder, onBack }: { folder: Folder; onBack: () => voi
           ))}
         </div>
       )}
+
+      <EditStockItemModal
+        item={editingItem}
+        open={!!editingItem}
+        onOpenChange={(open) => { if (!open) setEditingItem(null); }}
+        onSaved={fetchItems}
+      />
     </div>
   );
 }
