@@ -99,8 +99,14 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
     const { error } = await supabase.from("stock_items").insert(insertData);
     setSaving(false);
     if (error) { toast.error("Erro ao salvar: " + error.message); return; }
-    toast.success("Perfil adicionado à pasta!");
-    onSaved();
+    toast.success("Perfil adicionado à pasta! Formulário pronto para novo cadastro.");
+    setFormData({
+      linkPerfil: "", idPerfil: "", emailAcesso: "", emailAlternativo: "",
+      senha: "", token2fa: "", tempoPlataforma: "3-meses", statusAtual: "aquecido",
+      cookies: "", descricao: "", nomePerfil: "", dataNascimento: "", genero: "masculino",
+      linkDocumento: "", fotoUrl: "", preco: "", categoryId: "", tags: [] as string[], nomeProduto: ""
+    });
+    setTagInput("");
   };
 
   return (
@@ -384,8 +390,14 @@ function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => voi
     const { error } = await supabase.from("stock_items").insert(items);
     setSaving(false);
     if (error) { toast.error("Erro: " + error.message); return; }
-    toast.success(`${urlLines.length} BM(s) adicionados!`);
-    onSaved();
+    toast.success(`${urlLines.length} BM(s) adicionados! Formulário pronto para novo cadastro.`);
+    setUrls("");
+    setNotes("");
+    setPreco("");
+    setCategoryId("");
+    setTags([]);
+    setTagInput("");
+    setSelectedImageUrl("");
   };
 
   return (
