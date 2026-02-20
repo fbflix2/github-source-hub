@@ -504,6 +504,8 @@ export type Database = {
           provider_name: string
           purchase_date: string
           quantity: number
+          sale_price: number
+          tax_rate: number
           total_value: number
           unit_value: number
           updated_at: string
@@ -516,6 +518,8 @@ export type Database = {
           provider_name: string
           purchase_date: string
           quantity?: number
+          sale_price?: number
+          tax_rate?: number
           total_value?: number
           unit_value?: number
           updated_at?: string
@@ -528,6 +532,8 @@ export type Database = {
           provider_name?: string
           purchase_date?: string
           quantity?: number
+          sale_price?: number
+          tax_rate?: number
           total_value?: number
           unit_value?: number
           updated_at?: string
