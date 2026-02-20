@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { ImageIcon } from "lucide-react";
 import { 
   Building2, CircleUser, PackageOpen, FolderOpen, FolderPlus, Pencil,
   ChevronRight, ChevronDown, Shield, ArrowLeft, Link, FileText, Info,
@@ -48,6 +49,8 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
   const [fetchingPhoto, setFetchingPhoto] = useState(false);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [tagInput, setTagInput] = useState("");
+  const [productImages, setProductImages] = useState<{ id: string; name: string; url: string }[]>([]);
+  const [showImagePicker, setShowImagePicker] = useState(false);
 
   const handleFetchPhoto = async () => {
     if (!formData.linkPerfil) {
@@ -87,6 +90,7 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
 
   useEffect(() => {
     supabase.from("product_categories").select("id, name").then(({ data }) => setCategories(data ?? []));
+    supabase.from("product_images").select("id, name, url").order("created_at", { ascending: false }).then(({ data }) => setProductImages(data ?? []));
   }, []);
 
   const handleSave = async () => {
@@ -309,6 +313,41 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
                   </div>
                 )}
               </div>
+              {/* Product Image Picker */}
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><ImageIcon className="h-3 w-3" />Foto do Produto</label>
+                {formData.fotoUrl ? (
+                  <div className="flex items-center gap-2">
+                    <img src={formData.fotoUrl} alt="Produto" className="w-12 h-12 rounded-lg object-cover border border-white/10" />
+                    <Button type="button" variant="ghost" size="sm" className="text-xs text-zinc-400" onClick={() => setFormData({ ...formData, fotoUrl: "" })}>
+                      <X className="h-3 w-3 mr-1" /> Remover
+                    </Button>
+                  </div>
+                ) : (
+                  <Button type="button" variant="outline" size="sm" className="w-full bg-black/30 border-white/5 text-zinc-400 hover:text-white" onClick={() => setShowImagePicker(true)}>
+                    <ImageIcon className="h-3.5 w-3.5 mr-2" /> Selecionar imagem
+                  </Button>
+                )}
+                {showImagePicker && (
+                  <div className="mt-2 p-3 rounded-lg bg-black/40 border border-white/10 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-zinc-400">Imagens cadastradas</span>
+                      <button type="button" onClick={() => setShowImagePicker(false)} className="text-zinc-500 hover:text-white"><X className="h-3.5 w-3.5" /></button>
+                    </div>
+                    {productImages.length === 0 ? (
+                      <p className="text-xs text-zinc-500 text-center py-4">Nenhuma imagem cadastrada. Vá em Plataforma → Imagens para adicionar.</p>
+                    ) : (
+                      <div className="grid grid-cols-4 gap-2 max-h-40 overflow-y-auto">
+                        {productImages.map(img => (
+                          <button key={img.id} type="button" onClick={() => { setFormData({ ...formData, fotoUrl: img.url }); setShowImagePicker(false); }} className="aspect-square rounded-lg overflow-hidden border border-white/10 hover:border-primary/50 transition-all">
+                            <img src={img.url} alt={img.name} className="w-full h-full object-cover" />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
               <div className="bg-primary/10 border border-primary/20 rounded-lg p-2 flex items-start gap-2 mt-auto">
                 <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                 <p className="text-[11px] text-primary/80 leading-relaxed">
@@ -353,9 +392,13 @@ function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => voi
   const [categoryId, setCategoryId] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
+  const [productImages, setProductImages] = useState<{ id: string; name: string; url: string }[]>([]);
+  const [showImagePicker, setShowImagePicker] = useState(false);
+  const [selectedImageUrl, setSelectedImageUrl] = useState("");
 
   useEffect(() => {
     supabase.from("product_categories").select("id, name").then(({ data }) => setCategories(data ?? []));
+    supabase.from("product_images").select("id, name, url").order("created_at", { ascending: false }).then(({ data }) => setProductImages(data ?? []));
   }, []);
 
   const urlLines = useMemo(() => urls.split("\n").filter(l => l.trim()), [urls]);
@@ -374,6 +417,7 @@ function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => voi
         preco: preco ? parseFloat(preco) : undefined,
         categoryId: categoryId || undefined,
         tags: tags.length > 0 ? tags : undefined,
+        foto_url: selectedImageUrl || undefined,
       },
     }));
     const { error } = await supabase.from("stock_items").insert(items);
@@ -455,6 +499,41 @@ function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => voi
                         <button onClick={() => setTags(tags.filter(t => t !== tag))}><X className="h-3 w-3" /></button>
                       </Badge>
                     ))}
+                  </div>
+                )}
+              </div>
+              {/* Product Image Picker */}
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><ImageIcon className="h-3 w-3" />Foto do Produto</label>
+                {selectedImageUrl ? (
+                  <div className="flex items-center gap-2">
+                    <img src={selectedImageUrl} alt="Produto" className="w-12 h-12 rounded-lg object-cover border border-white/10" />
+                    <Button type="button" variant="ghost" size="sm" className="text-xs text-zinc-400" onClick={() => setSelectedImageUrl("")}>
+                      <X className="h-3 w-3 mr-1" /> Remover
+                    </Button>
+                  </div>
+                ) : (
+                  <Button type="button" variant="outline" size="sm" className="w-full bg-zinc-900/50 border-zinc-700 text-zinc-400 hover:text-white" onClick={() => setShowImagePicker(true)}>
+                    <ImageIcon className="h-3.5 w-3.5 mr-2" /> Selecionar imagem
+                  </Button>
+                )}
+                {showImagePicker && (
+                  <div className="mt-2 p-3 rounded-lg bg-black/40 border border-white/10 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-zinc-400">Imagens cadastradas</span>
+                      <button type="button" onClick={() => setShowImagePicker(false)} className="text-zinc-500 hover:text-white"><X className="h-3.5 w-3.5" /></button>
+                    </div>
+                    {productImages.length === 0 ? (
+                      <p className="text-xs text-zinc-500 text-center py-4">Nenhuma imagem cadastrada. Vá em Plataforma → Imagens para adicionar.</p>
+                    ) : (
+                      <div className="grid grid-cols-4 gap-2 max-h-40 overflow-y-auto">
+                        {productImages.map(img => (
+                          <button key={img.id} type="button" onClick={() => { setSelectedImageUrl(img.url); setShowImagePicker(false); }} className="aspect-square rounded-lg overflow-hidden border border-white/10 hover:border-primary/50 transition-all">
+                            <img src={img.url} alt={img.name} className="w-full h-full object-cover" />
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
