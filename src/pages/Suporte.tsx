@@ -37,6 +37,8 @@ export default function Suporte() {
   const [tickets, setTickets] = useState<TicketListItem[]>([]);
   const [loadingTickets, setLoadingTickets] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchTickets = async () => {
@@ -70,6 +72,36 @@ export default function Suporte() {
 
   useEffect(() => { fetchTickets(); }, []);
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    const validFiles = Array.from(files).filter(f => f.size <= 20 * 1024 * 1024);
+    if (validFiles.length < files.length) toast.error("Alguns arquivos excedem 20MB e foram ignorados.");
+    setAttachedFiles(prev => [...prev, ...validFiles]);
+  };
+
+  const removeFile = (index: number) => {
+    setAttachedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const uploadFiles = async (userId: string, ticketId: string): Promise<string[]> => {
+    const urls: string[] = [];
+    for (const file of attachedFiles) {
+      const ext = file.name.split('.').pop();
+      const path = `${userId}/${ticketId}/${Date.now()}_${crypto.randomUUID()}.${ext}`;
+      const { error } = await supabase.storage
+        .from("support-attachments")
+        .upload(path, file, { contentType: file.type, cacheControl: "3600" });
+      if (error) {
+        console.error("Upload error:", error);
+        continue;
+      }
+      const { data } = supabase.storage.from("support-attachments").getPublicUrl(path);
+      urls.push(data.publicUrl);
+    }
+    return urls;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !description.trim()) return;
@@ -93,10 +125,30 @@ export default function Suporte() {
       return;
     }
 
-    // Insert initial message
+    // Upload attachments
+    let attachmentUrls: string[] = [];
+    if (attachedFiles.length > 0) {
+      setUploading(true);
+      attachmentUrls = await uploadFiles(user.id, ticketData.id);
+      setUploading(false);
+    }
+
+    // Build message content with attachment links
+    let messageContent = description.trim();
+    if (attachmentUrls.length > 0) {
+      messageContent += "\n\n📎 Anexos:\n" + attachmentUrls.map((url, i) => `[Arquivo ${i + 1}](${url})`).join("\n");
+    }
+
+    // Insert initial message (use first attachment URL in the attachment_url field)
     await supabase
       .from("ticket_messages")
-      .insert({ ticket_id: ticketData.id, content: description.trim(), sender: "user", read: true });
+      .insert({
+        ticket_id: ticketData.id,
+        content: messageContent,
+        sender: "user",
+        read: true,
+        attachment_url: attachmentUrls[0] || null,
+      });
 
     setCreatedCode(code);
     setShowModal(true);
@@ -104,6 +156,7 @@ export default function Suporte() {
     setUrgency("medium");
     setLink("");
     setDescription("");
+    setAttachedFiles([]);
     setSubmitting(false);
     fetchTickets();
   };
@@ -233,8 +286,28 @@ export default function Suporte() {
                   Arraste ou <span className="text-primary font-semibold">clique para buscar</span>
                 </span>
                 <span className="text-[10px] text-muted-foreground/50 mt-0.5">PNG, JPG, MP4 até 20MB</span>
-                <input className="hidden" multiple type="file" ref={fileInputRef} />
+                <input
+                  className="hidden"
+                  multiple
+                  type="file"
+                  accept="image/*,video/*"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                />
               </label>
+              {attachedFiles.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {attachedFiles.map((file, i) => (
+                    <div key={i} className="flex items-center gap-2 bg-muted rounded-lg px-3 py-1.5 text-xs border border-border">
+                      <span className="text-foreground truncate max-w-[150px]">{file.name}</span>
+                      <span className="text-muted-foreground">({(file.size / 1024 / 1024).toFixed(1)}MB)</span>
+                      <button type="button" onClick={() => removeFile(i)} className="text-muted-foreground hover:text-destructive transition-colors">
+                        <X className="size-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             
             <div className="flex justify-end">
