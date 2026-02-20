@@ -362,9 +362,15 @@ export default function AdminProducts() {
                 return (
                   <TableRow key={product.id} className="border-zinc-800 hover:bg-zinc-800/30">
                     <TableCell>
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${iconColors[iconKey] || "bg-zinc-700"}`}>
-                        {productIcons[iconKey] || <ImageIcon className="h-5 w-5" />}
-                      </div>
+                      {product.image_url ? (
+                        <div className="w-10 h-10 rounded-lg overflow-hidden bg-zinc-800">
+                          <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                        </div>
+                      ) : (
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${iconColors[iconKey] || "bg-zinc-700"}`}>
+                          {productIcons[iconKey] || <ImageIcon className="h-5 w-5" />}
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell className="text-white text-sm font-medium max-w-[180px] truncate">{product.name}</TableCell>
                     <TableCell className="text-zinc-400 text-sm">{getCategoryName(product.category_id)}</TableCell>
