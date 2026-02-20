@@ -1,25 +1,34 @@
 
 
-## Exibir Foto do Perfil do Facebook no Estoque
+## Solucao: Campo de Foto do Perfil Manual
 
-### Como funciona
-O Facebook disponibiliza fotos de perfil publicas atraves da URL `https://graph.facebook.com/{ID}/picture?type=normal`. Usando o ID do perfil que ja esta salvo no campo `identification` dos itens do tipo "perfil", podemos exibir a foto real no lugar do icone generico.
+### Problema
+O Facebook nao permite mais acessar fotos de perfil via `graph.facebook.com/{id}/picture` sem um token de aplicativo (App Access Token). A API retorna uma silhueta generica em vez da foto real, e como a imagem carrega sem erro, o fallback nunca e acionado.
+
+### Solucao
+Adicionar um campo `foto_url` no formulario de cadastro/edicao do perfil, onde o admin pode colar a URL direta da foto do perfil do Facebook (copiada manualmente do navegador). Essa URL sera salva no campo `data` (JSON) do item e usada como avatar no estoque.
 
 ### Alteracoes
 
-**Arquivo: `src/pages/admin/AdminEstoque.tsx`**
-- Na coluna "TIPO / NOME", para itens do tipo `perfil` que possuem um `identification` (ID numerico do Facebook):
-  - Substituir o icone generico por uma tag `<img>` com a URL `https://graph.facebook.com/{ID}/picture?type=normal`
-  - Manter o icone como fallback caso a imagem nao carregue (usando `onError` para esconder a imagem)
-  - Estilizar como avatar circular (arredondado) no mesmo tamanho do icone atual (40x40px)
-- Para itens que nao sao do tipo `perfil` ou que nao possuem ID, manter o icone padrao
+**1. `src/pages/admin/AdminBlocagem.tsx`**
+- Adicionar campo "URL da Foto do Perfil" (opcional) no formulario de perfil
+- Salvar o valor em `data.foto_url`
+
+**2. `src/components/admin/EditStockItemModal.tsx`**
+- Adicionar campo "URL da Foto do Perfil" no modal de edicao
+- Carregar e salvar `data.foto_url`
+
+**3. `src/pages/admin/AdminEstoque.tsx`**
+- Na coluna TIPO/NOME, para itens do tipo `perfil`:
+  - Verificar se `item.data?.foto_url` existe
+  - Se sim, usar essa URL como `src` da imagem (com fallback para icone)
+  - Remover a tentativa de usar `graph.facebook.com` (nao funciona mais sem token)
+  - Manter o fallback com icone `UserRound` caso a foto nao carregue
+
+### Como o admin obtem a URL da foto
+O admin pode clicar com botao direito na foto do perfil no Facebook e copiar o endereco da imagem. Essa URL direta funciona como `src` de uma tag `<img>`.
 
 ### Detalhes tecnicos
-- A URL `https://graph.facebook.com/{id}/picture` redireciona para a foto publica do perfil. Funciona sem autenticacao para perfis publicos
-- Adicionar estado local ou tratamento `onError` na tag `<img>` para exibir o fallback (icone `UserRound`) caso a foto nao esteja disponivel
-- Nenhuma dependencia nova necessaria, nenhuma alteracao no banco de dados
-
-### Limitacoes
-- So funciona para perfis com foto publica
-- Se o Facebook bloquear o acesso, o fallback com icone sera exibido automaticamente
-
+- O campo `foto_url` e armazenado no JSONB `data` existente, sem necessidade de alterar o schema do banco
+- Fallback com `onError` continua funcionando caso a URL expire ou fique invalida
+- Campo e opcional, nao impacta perfis ja cadastrados
