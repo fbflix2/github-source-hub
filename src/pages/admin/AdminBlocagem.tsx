@@ -229,6 +229,36 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
                   </Select>
                 </div>
               </div>
+              {/* Product fields inline */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><DollarSign className="h-3 w-3" />Preço (R$)</label>
+                  <Input type="number" step="0.01" min="0" placeholder="0.00" value={formData.preco} onChange={e => setFormData({ ...formData, preco: e.target.value })} className="bg-black/30 border-white/5 text-white" />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><FolderOpen className="h-3 w-3" />Categoria</label>
+                  <Select value={formData.categoryId} onValueChange={v => setFormData({ ...formData, categoryId: v })}>
+                    <SelectTrigger className="bg-black/30 border-white/5 text-white"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                    <SelectContent>
+                      {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><Tag className="h-3 w-3" />Tags</label>
+                <Input placeholder="Adicionar tag + Enter" value={tagInput} onChange={e => setTagInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) { setFormData({ ...formData, tags: [...formData.tags, tagInput.trim()] }); setTagInput(""); } } }} className="bg-black/30 border-white/5 text-white" />
+                {formData.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {formData.tags.map(tag => (
+                      <Badge key={tag} className="bg-primary/20 text-primary text-xs gap-1">
+                        {tag}
+                        <button type="button" onClick={() => setFormData({ ...formData, tags: formData.tags.filter(t => t !== tag) })}><X className="h-3 w-3" /></button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
               <div className="bg-primary/10 border border-primary/20 rounded-lg p-2 flex items-start gap-2 mt-auto">
                 <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                 <p className="text-[11px] text-primary/80 leading-relaxed">
@@ -247,39 +277,6 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
             <div className="flex-1 flex flex-col gap-1">
               <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><FileText className="h-3 w-3" />Descrição</label>
               <Textarea placeholder="Notas sobre aquecimento, proxy..." value={formData.descricao} onChange={e => setFormData({ ...formData, descricao: e.target.value })} className="h-20 bg-black/30 border-white/5 text-white resize-none" />
-            </div>
-          </div>
-
-          {/* Product Info */}
-          <div className="flex flex-col md:flex-row gap-4 pt-3 border-t border-white/5">
-            <div className="flex-1 flex flex-col gap-1">
-              <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><DollarSign className="h-3 w-3" />Preço (R$)</label>
-              <Input type="number" step="0.01" min="0" placeholder="0.00" value={formData.preco} onChange={e => setFormData({ ...formData, preco: e.target.value })} className="bg-black/30 border-white/5 text-white" />
-            </div>
-            <div className="flex-1 flex flex-col gap-1">
-              <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><FolderOpen className="h-3 w-3" />Categoria</label>
-              <Select value={formData.categoryId} onValueChange={v => setFormData({ ...formData, categoryId: v })}>
-                <SelectTrigger className="bg-black/30 border-white/5 text-white"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                <SelectContent>
-                  {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex-1 flex flex-col gap-1">
-              <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><Tag className="h-3 w-3" />Tags</label>
-              <div className="flex items-center gap-2">
-                <Input placeholder="Adicionar tag..." value={tagInput} onChange={e => setTagInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) { setFormData({ ...formData, tags: [...formData.tags, tagInput.trim()] }); setTagInput(""); } } }} className="bg-black/30 border-white/5 text-white flex-1" />
-              </div>
-              {formData.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {formData.tags.map(tag => (
-                    <Badge key={tag} className="bg-primary/20 text-primary text-xs gap-1">
-                      {tag}
-                      <button type="button" onClick={() => setFormData({ ...formData, tags: formData.tags.filter(t => t !== tag) })}><X className="h-3 w-3" /></button>
-                    </Badge>
-                  ))}
-                </div>
-              )}
             </div>
           </div>
 
