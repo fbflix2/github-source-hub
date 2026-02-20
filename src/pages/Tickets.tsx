@@ -15,17 +15,22 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useTickets, TicketData } from "@/hooks/useTickets";
 
-type TicketStatus = "open" | "answered" | "closed";
+type TicketStatus = "open" | "answered" | "closed" | "in_progress" | "resolved";
 type TicketPriority = "low" | "medium" | "high" | "urgent";
 
-const getStatusConfig = (status: TicketStatus) => {
+const getStatusConfig = (status: TicketStatus | string) => {
   switch (status) {
     case "open":
       return { label: "Aguardando", color: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20", icon: Clock };
     case "answered":
-      return { label: "Respondido", color: "bg-green-500/10 text-green-500 border-green-500/20", icon: MessageCircle };
+    case "in_progress":
+      return { label: "Em Andamento", color: "bg-blue-500/10 text-blue-500 border-blue-500/20", icon: MessageCircle };
+    case "resolved":
+      return { label: "Respondido", color: "bg-green-500/10 text-green-500 border-green-500/20", icon: CheckCircle2 };
     case "closed":
       return { label: "Fechado", color: "bg-muted text-muted-foreground border-border", icon: CheckCircle2 };
+    default:
+      return { label: status, color: "bg-muted text-muted-foreground border-border", icon: Clock };
   }
 };
 
@@ -58,7 +63,7 @@ export default function Tickets() {
   const [selectedTicket, setSelectedTicket] = useState<TicketData | null>(null);
   const [replyMessage, setReplyMessage] = useState("");
   const [sending, setSending] = useState(false);
-  const [filter, setFilter] = useState<"all" | "open" | "answered" | "closed">("all");
+  const [filter, setFilter] = useState<"all" | "open" | "answered" | "closed" | "in_progress" | "resolved">("all");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Keep selectedTicket in sync with fetched data
@@ -91,6 +96,7 @@ export default function Tickets() {
 
   const filteredTickets = tickets.filter(ticket => {
     if (filter === "all") return true;
+    if (filter === "answered") return ticket.status === "answered" || ticket.status === "in_progress" || ticket.status === "resolved";
     return ticket.status === filter;
   });
 
