@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import AdminTicketModal from "@/components/admin/AdminTicketModal";
 
 type Filter = "todos" | "novos" | "andamento" | "prioridade";
-type ModalMode = "history" | "respond" | null;
+type ModalMode = "history" | "respond" | "preview" | null;
 
 interface TicketRow {
   id: string;
@@ -219,6 +219,12 @@ export default function AdminSuporte() {
 
                     <div className="flex gap-2 mt-2">
                       <button 
+                        onClick={(e) => { e.stopPropagation(); setSelectedTicket(ticket); setModalMode("preview"); }}
+                        className="flex-1 text-xs font-medium py-2.5 rounded-lg bg-white/5 hover:bg-white/10 text-white border border-white/10 transition-colors"
+                      >
+                        Ver Ticket
+                      </button>
+                      <button 
                         onClick={(e) => { e.stopPropagation(); setSelectedTicket(ticket); setModalMode("history"); }}
                         className="flex-1 text-xs font-medium py-2.5 rounded-lg bg-white/5 hover:bg-white/10 text-white border border-white/10 transition-colors"
                       >
@@ -244,9 +250,10 @@ export default function AdminSuporte() {
         <AdminTicketModal
           ticket={selectedTicket}
           profileName={profiles[selectedTicket.user_id]?.full_name || "Usuário"}
-          mode={modalMode}
+          mode={modalMode as "history" | "respond" | "preview"}
           onClose={() => { setSelectedTicket(null); setModalMode(null); }}
           onStatusChange={fetchTickets}
+          onOpenSupport={() => setModalMode("respond")}
         />
       )}
     </div>
