@@ -171,9 +171,27 @@ export default function AdminEstoque() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${typeConfig.color}`}>
-                          <TypeIcon className="h-5 w-5" />
-                        </div>
+                        {item.type === "perfil" && item.identification ? (
+                          <div className="w-10 h-10 rounded-full overflow-hidden bg-cyan-500/20 flex items-center justify-center">
+                            <img
+                              src={`https://graph.facebook.com/${item.identification}/picture?type=normal`}
+                              alt={item.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                const target = e.currentTarget;
+                                target.style.display = "none";
+                                target.parentElement!.classList.add("rounded-lg");
+                                const icon = document.createElement("span");
+                                icon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-cyan-400"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>`;
+                                target.parentElement!.appendChild(icon);
+                              }}
+                            />
+                          </div>
+                        ) : (
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${typeConfig.color}`}>
+                            <TypeIcon className="h-5 w-5" />
+                          </div>
+                        )}
                         <div>
                           <p className="text-white font-medium">{item.name}</p>
                           <p className="text-xs text-zinc-500">{typeConfig.label}</p>
