@@ -17,15 +17,19 @@ const WHATSAPP_MESSAGE = encodeURIComponent("oi tenho uma dúvida rápida");
 
 export function MainLayout({ userName, userEmail, onLogout, unreadTickets = 0 }: MainLayoutProps) {
   const [balance, setBalance] = useState(0);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    async function fetchBalance() {
+    async function fetchProfile() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const { data } = await supabase.from("profiles").select("balance").eq("user_id", user.id).maybeSingle();
-      if (data) setBalance(data.balance);
+      const { data } = await supabase.from("profiles").select("balance, avatar_url").eq("user_id", user.id).maybeSingle();
+      if (data) {
+        setBalance(data.balance);
+        setAvatarUrl(data.avatar_url);
+      }
     }
-    fetchBalance();
+    fetchProfile();
   }, []);
   const [showSupportMenu, setShowSupportMenu] = useState(false);
   const supportMenuRef = useRef<HTMLDivElement>(null);
@@ -58,6 +62,7 @@ export function MainLayout({ userName, userEmail, onLogout, unreadTickets = 0 }:
         userName={userName}
         userEmail={userEmail}
         balance={balance}
+        avatarUrl={avatarUrl || undefined}
         onLogout={onLogout}
         unreadTickets={unreadTickets}
       />
