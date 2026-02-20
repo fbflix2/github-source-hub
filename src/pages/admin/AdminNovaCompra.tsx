@@ -33,6 +33,7 @@ export default function AdminNovaCompra() {
     providerName: "",
     purchaseDate: "",
     itemType: "",
+    description: "",
     quantity: "",
     unitValue: "",
     salePrice: "",
@@ -59,6 +60,7 @@ export default function AdminNovaCompra() {
       providerName: "",
       purchaseDate: "",
       itemType: "",
+      description: "",
       quantity: "",
       unitValue: "",
       salePrice: "",
@@ -83,6 +85,7 @@ export default function AdminNovaCompra() {
       provider_link: formData.providerLink || null,
       purchase_date: formData.purchaseDate,
       item_type: formData.itemType,
+      description: formData.description || null,
       quantity: qty,
       unit_value: unit,
       total_value: total,
@@ -239,6 +242,22 @@ export default function AdminNovaCompra() {
                       <ChevronDown className="size-5 text-gray-500" />
                     </div>
                   </div>
+                </div>
+
+                {/* Descrição */}
+                <div className="md:col-span-2 space-y-2">
+                  <label className="text-sm text-gray-400 font-medium ml-1" htmlFor="description">
+                    Descrição / Condições da Compra
+                  </label>
+                  <textarea
+                    id="description"
+                    name="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Ex: Perfis aquecidos 30 dias, com 2FA ativo, cookies inclusos..."
+                    rows={3}
+                    className="w-full rounded-lg py-3 px-4 text-sm placeholder-gray-600 bg-black/20 border border-white/10 text-white focus:bg-black/40 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all resize-none"
+                  />
                 </div>
 
                 {/* Quantidade Total */}

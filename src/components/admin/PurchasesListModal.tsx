@@ -9,6 +9,7 @@ interface Purchase {
   provider_link: string | null;
   purchase_date: string;
   item_type: string;
+  description: string | null;
   quantity: number;
   unit_value: number;
   total_value: number;
@@ -40,7 +41,7 @@ export default function PurchasesListModal({ open, onClose, onUpdate }: Props) {
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editData, setEditData] = useState({ provider_name: "", provider_link: "", purchase_date: "", quantity: 0, unit_value: 0, item_type: "", sale_price: 0, tax_rate: 0 });
+  const [editData, setEditData] = useState({ provider_name: "", provider_link: "", purchase_date: "", quantity: 0, unit_value: 0, item_type: "", description: "", sale_price: 0, tax_rate: 0 });
   const [saving, setSaving] = useState(false);
 
   const fetchPurchases = async () => {
@@ -59,7 +60,7 @@ export default function PurchasesListModal({ open, onClose, onUpdate }: Props) {
 
   const startEdit = (p: Purchase) => {
     setEditingId(p.id);
-    setEditData({ provider_name: p.provider_name, provider_link: p.provider_link || "", purchase_date: p.purchase_date, quantity: p.quantity, unit_value: p.unit_value, item_type: p.item_type, sale_price: p.sale_price || 0, tax_rate: p.tax_rate || 0 });
+    setEditData({ provider_name: p.provider_name, provider_link: p.provider_link || "", purchase_date: p.purchase_date, quantity: p.quantity, unit_value: p.unit_value, item_type: p.item_type, description: p.description || "", sale_price: p.sale_price || 0, tax_rate: p.tax_rate || 0 });
   };
 
   const handleSave = async (id: string) => {
@@ -73,6 +74,7 @@ export default function PurchasesListModal({ open, onClose, onUpdate }: Props) {
       unit_value: editData.unit_value,
       total_value: total,
       item_type: editData.item_type,
+      description: editData.description || null,
       sale_price: editData.sale_price,
       tax_rate: editData.tax_rate,
     }).eq("id", id);
@@ -184,6 +186,16 @@ export default function PurchasesListModal({ open, onClose, onUpdate }: Props) {
                             ))}
                           </select>
                           <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none"><ChevronDown className="size-4 text-white/30" /></div>
+                        </div>
+                        {/* Descrição */}
+                        <div className="col-span-2">
+                          <textarea
+                            value={editData.description}
+                            onChange={(e) => setEditData(d => ({ ...d, description: e.target.value }))}
+                            placeholder="Descrição / Condições da compra..."
+                            rows={2}
+                            className="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder-white/30 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all resize-none"
+                          />
                         </div>
                         {/* Quantidade */}
                         <div className="relative">
