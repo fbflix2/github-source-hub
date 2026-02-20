@@ -84,8 +84,8 @@ export default function AdminEstoque() {
         icon_type: item.type === "bm" ? "bm" : item.type === "perfil" ? "perfil" : "page",
         tags: data.tags && data.tags.length > 0 ? data.tags : null,
         image_url: data.foto_url || null,
-        status: "active",
-        available: true,
+        status: "estoque_interno",
+        available: false,
       };
     });
 
