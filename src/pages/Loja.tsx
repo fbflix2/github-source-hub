@@ -250,6 +250,20 @@ export default function Dashboard() {
                       </div>
                     </div>
 
+                    {/* Tags */}
+                    {product.tags && product.tags.length > 0 && (
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {product.tags.map((tag) => (
+                          <span
+                            key={tag}
+                            className="text-[10px] px-2 py-0.5 rounded-full bg-secondary text-muted-foreground border border-border"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
                     {/* Availability Bar */}
                     <div className="space-y-1.5">
                       <div className="flex justify-between text-xs font-medium">
