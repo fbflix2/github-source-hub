@@ -82,7 +82,7 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
     linkPerfil: "", idPerfil: "", emailAcesso: "", emailAlternativo: "",
     senha: "", token2fa: "", tempoPlataforma: "3-meses", statusAtual: "aquecido",
     cookies: "", descricao: "", nomePerfil: "", dataNascimento: "", genero: "masculino",
-    linkDocumento: "", fotoUrl: "", preco: "", categoryId: "", tags: [] as string[]
+    linkDocumento: "", fotoUrl: "", preco: "", categoryId: "", tags: [] as string[], nomeProduto: ""
   });
 
   useEffect(() => {
@@ -119,6 +119,7 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
         preco: formData.preco ? parseFloat(formData.preco) : undefined,
         categoryId: formData.categoryId || undefined,
         tags: formData.tags.length > 0 ? formData.tags : undefined,
+        nomeProduto: formData.nomeProduto || undefined,
       },
     };
     if (formData.categoryId) insertData.product_id = null; // keep clean
@@ -246,13 +247,13 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
                   <Input type="text" placeholder="JBSWY3DPEHPK3PXP" value={formData.token2fa} onChange={e => setFormData({ ...formData, token2fa: e.target.value })} className="pl-10 bg-black/30 border-white/5 text-white font-mono" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 <div className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-zinc-400">Tempo de Plataforma</label>
+                  <label className="text-xs font-medium text-zinc-400">Tempo Plataforma</label>
                   <Select value={formData.tempoPlataforma} onValueChange={v => setFormData({ ...formData, tempoPlataforma: v })}>
-                    <SelectTrigger className="bg-black/30 border-white/5 text-white"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="bg-black/30 border-white/5 text-white text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="0-1-mes">Novo (0-1 mês)</SelectItem>
+                      <SelectItem value="0-1-mes">0-1 mês</SelectItem>
                       <SelectItem value="3-meses">3 meses</SelectItem>
                       <SelectItem value="6-meses">6 meses</SelectItem>
                       <SelectItem value="1-ano">1 ano+</SelectItem>
@@ -263,7 +264,7 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-medium text-zinc-400">Status Atual</label>
                   <Select value={formData.statusAtual} onValueChange={v => setFormData({ ...formData, statusAtual: v })}>
-                    <SelectTrigger className="bg-black/30 border-white/5 text-white"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="bg-black/30 border-white/5 text-white text-xs"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="novo">Novo</SelectItem>
                       <SelectItem value="antigo">Antigo</SelectItem>
@@ -272,6 +273,10 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
                       <SelectItem value="restrito">Restrito</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-zinc-400">Nome do Produto</label>
+                  <Input placeholder="Ex: BM Premium" value={formData.nomeProduto} onChange={e => setFormData({ ...formData, nomeProduto: e.target.value })} className="bg-black/30 border-white/5 text-white text-xs" />
                 </div>
               </div>
               {/* Product fields inline */}

@@ -75,7 +75,7 @@ export default function AdminEstoque() {
     const productsToCreate = selectedStockItems.map(item => {
       const data = item.data || {};
       return {
-        name: item.name,
+        name: data.nomeProduto || item.name,
         price: data.preco ? parseFloat(data.preco) : 0,
         stock: 1,
         description: data.descricao || null,
