@@ -4,6 +4,7 @@ import {
   MessageSquare, Loader2, Inbox
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import AdminTicketModal from "@/components/admin/AdminTicketModal";
 
 type Filter = "todos" | "novos" | "andamento" | "prioridade";
@@ -217,7 +218,7 @@ export default function AdminSuporte() {
                       <span className="text-sm font-semibold text-white">{profile?.full_name || "Usuário"}</span>
                     </div>
 
-                    <div className="flex gap-2 mt-2">
+                    <div className="flex flex-wrap gap-2 mt-2">
                       <button 
                         onClick={(e) => { e.stopPropagation(); setSelectedTicket(ticket); setModalMode("preview"); }}
                         className="flex-1 text-xs font-medium py-2.5 rounded-lg bg-white/5 hover:bg-white/10 text-white border border-white/10 transition-colors"
@@ -236,6 +237,19 @@ export default function AdminSuporte() {
                       >
                         Responder
                       </button>
+                      {ticket.status !== "resolved" && ticket.status !== "closed" && (
+                        <button 
+                          onClick={async (e) => { 
+                            e.stopPropagation(); 
+                            await supabase.from("tickets").update({ status: "resolved" }).eq("id", ticket.id);
+                            fetchTickets();
+                            toast.success("Ticket marcado como resolvido!");
+                          }}
+                          className="w-full text-xs font-medium py-2.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 transition-colors"
+                        >
+                          ✓ Marcar como Resolvido
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
