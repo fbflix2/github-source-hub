@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   Search, Download, Send, ArrowLeft, Briefcase, UserRound, Flag, Copy,
@@ -43,7 +43,7 @@ export default function AdminEstoque() {
   const [items, setItems] = useState<StockItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingItem, setEditingItem] = useState<StockItem | null>(null);
-
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
   const fetchItems = async () => {
     const { data } = await supabase
       .from("stock_items")
@@ -171,24 +171,18 @@ export default function AdminEstoque() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        {item.type === "perfil" && item.identification ? (
-                          <div className="w-10 h-10 rounded-full overflow-hidden bg-cyan-500/20 flex items-center justify-center">
+                        {item.type === "perfil" && item.identification && !failedImages.has(item.id) ? (
+                          <div className="w-10 h-10 rounded-full overflow-hidden bg-cyan-500/20 flex items-center justify-center shrink-0">
                             <img
                               src={`https://graph.facebook.com/${item.identification}/picture?type=normal`}
                               alt={item.name}
                               className="w-full h-full object-cover"
-                              onError={(e) => {
-                                const target = e.currentTarget;
-                                target.style.display = "none";
-                                target.parentElement!.classList.add("rounded-lg");
-                                const icon = document.createElement("span");
-                                icon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-cyan-400"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>`;
-                                target.parentElement!.appendChild(icon);
-                              }}
+                              referrerPolicy="no-referrer"
+                              onError={() => setFailedImages(prev => new Set(prev).add(item.id))}
                             />
                           </div>
                         ) : (
-                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${typeConfig.color}`}>
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${typeConfig.color}`}>
                             <TypeIcon className="h-5 w-5" />
                           </div>
                         )}
