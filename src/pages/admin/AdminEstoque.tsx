@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   Search, Download, Send, ArrowLeft, Briefcase, UserRound, Flag, Copy,
-  ChevronLeft, ChevronRight, ClipboardList, Archive, Loader2
+  ChevronLeft, ChevronRight, ClipboardList, Archive, Loader2, Pencil
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
+import { EditStockItemModal } from "@/components/admin/EditStockItemModal";
 
 interface StockItem {
   id: string;
@@ -19,6 +20,7 @@ interface StockItem {
   identification: string | null;
   identification_link: string | null;
   status: string;
+  data: any;
   created_at: string;
 }
 
@@ -40,18 +42,18 @@ export default function AdminEstoque() {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [items, setItems] = useState<StockItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingItem, setEditingItem] = useState<StockItem | null>(null);
 
-  useEffect(() => {
-    async function fetchItems() {
-      const { data } = await supabase
-        .from("stock_items")
-        .select("*")
-        .order("created_at", { ascending: false });
-      setItems(data ?? []);
-      setLoading(false);
-    }
-    fetchItems();
-  }, []);
+  const fetchItems = async () => {
+    const { data } = await supabase
+      .from("stock_items")
+      .select("*")
+      .order("created_at", { ascending: false });
+    setItems(data ?? []);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchItems(); }, []);
 
   const toggleItem = (id: string) => {
     setSelectedItems(prev =>
@@ -198,7 +200,11 @@ export default function AdminEstoque() {
                     <TableCell className="text-zinc-400 text-sm">
                       {new Date(item.created_at).toLocaleDateString("pt-BR")}
                     </TableCell>
-                    <TableCell></TableCell>
+                    <TableCell>
+                      <Button variant="ghost" size="icon" className="text-zinc-400 hover:text-white hover:bg-zinc-700" onClick={() => setEditingItem(item)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 );
               })
@@ -212,6 +218,13 @@ export default function AdminEstoque() {
           </p>
         </div>
       </div>
+
+      <EditStockItemModal
+        item={editingItem}
+        open={!!editingItem}
+        onOpenChange={(open) => { if (!open) setEditingItem(null); }}
+        onSaved={fetchItems}
+      />
     </div>
   );
 }
