@@ -3,6 +3,7 @@ import { Users, Wallet, CheckCircle, Search, LogIn, KeyRound, Pencil, MoreVertic
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 type ClientStatus = "active" | "inactive" | "blocked";
 
@@ -29,6 +30,7 @@ export default function AdminClientes() {
   const [currentPage, setCurrentPage] = useState(1);
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
+  const [impersonating, setImpersonating] = useState<string | null>(null);
 
   // Stats
   const [totalClients, setTotalClients] = useState(0);
@@ -75,6 +77,33 @@ export default function AdminClientes() {
 
   const formatCurrency = (value: number) => {
     return value.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
+  };
+
+  const handleImpersonate = async (userId: string) => {
+    setImpersonating(userId);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/impersonate-user`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ target_user_id: userId }),
+        }
+      );
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || "Erro ao acessar conta");
+      window.open(result.url, "_blank");
+      toast.success("Link de acesso aberto em nova aba");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao acessar conta do cliente");
+    } finally {
+      setImpersonating(null);
+    }
   };
 
   const getInitials = (name: string | null) => {
@@ -310,8 +339,13 @@ export default function AdminClientes() {
                   </p>
                 </div>
                 <div className="flex gap-2">
-                  <button className="size-9 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 text-white/70 hover:text-primary border border-white/5 transition-all" title="Acessar Conta">
-                    <LogIn className="w-4 h-4" />
+                  <button
+                    onClick={() => handleImpersonate(client.user_id)}
+                    disabled={impersonating === client.user_id}
+                    className="size-9 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 text-white/70 hover:text-primary border border-white/5 transition-all disabled:opacity-50"
+                    title="Acessar Conta"
+                  >
+                    {impersonating === client.user_id ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogIn className="w-4 h-4" />}
                   </button>
                   <button className="size-9 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 text-white/70 hover:text-primary border border-white/5 transition-all" title="Resetar Senha">
                     <KeyRound className="w-4 h-4" />
