@@ -495,6 +495,45 @@ export type Database = {
         }
         Relationships: []
       }
+      purchases: {
+        Row: {
+          created_at: string
+          id: string
+          item_type: string
+          provider_link: string | null
+          provider_name: string
+          purchase_date: string
+          quantity: number
+          total_value: number
+          unit_value: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_type: string
+          provider_link?: string | null
+          provider_name: string
+          purchase_date: string
+          quantity?: number
+          total_value?: number
+          unit_value?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_type?: string
+          provider_link?: string | null
+          provider_name?: string
+          purchase_date?: string
+          quantity?: number
+          total_value?: number
+          unit_value?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       site_settings: {
         Row: {
           id: string

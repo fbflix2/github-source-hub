@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   Link as LinkIcon, 
   User, 
@@ -61,7 +62,7 @@ export default function AdminNovaCompra() {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.providerName || !formData.purchaseDate || !formData.itemType || !formData.quantity || !formData.unitValue) {
@@ -69,8 +70,27 @@ export default function AdminNovaCompra() {
       return;
     }
 
+    const qty = parseFloat(formData.quantity) || 0;
+    const unit = parseFloat(formData.unitValue) || 0;
+    const total = qty * unit;
+
+    const { error } = await supabase.from("purchases").insert({
+      provider_name: formData.providerName,
+      provider_link: formData.providerLink || null,
+      purchase_date: formData.purchaseDate,
+      item_type: formData.itemType,
+      quantity: qty,
+      unit_value: unit,
+      total_value: total,
+    });
+
+    if (error) {
+      console.error(error);
+      toast.error("Erro ao registrar compra");
+      return;
+    }
+
     toast.success("Compra registrada com sucesso!");
-    console.log("Compra:", formData, "Total:", totalValue);
     navigate("/admin/auditoria");
   };
 
