@@ -1,96 +1,34 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
-  Search, 
-  Download, 
-  Send, 
-  ArrowLeft,
-  Briefcase,
-  UserRound,
-  Flag,
-  Copy,
-  ChevronLeft,
-  ChevronRight,
-  ExternalLink,
-  LayoutGrid,
-  Archive,
-  ClipboardList
+  Search, Download, Send, ArrowLeft, Briefcase, UserRound, Flag, Copy,
+  ChevronLeft, ChevronRight, ClipboardList, Archive, Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { supabase } from "@/integrations/supabase/client";
 
-// Mock data for stock items
-const mockItems = [
-  {
-    id: 1,
-    type: "bm",
-    name: "BM Principal Q4",
-    subtitle: "Business Manager",
-    identification: "business.facebook.com/...",
-    status: "aguardando",
-    date: "24/10/2023"
-  },
-  {
-    id: 2,
-    type: "perfil",
-    name: "João Silva Marketing",
-    subtitle: "Perfil",
-    identification: "ID: 882910293",
-    identificationLink: "fb.com/joaosilva...",
-    status: "revisado",
-    date: "23/10/2023"
-  },
-  {
-    id: 3,
-    type: "pagina",
-    name: "Ofertas Imperdíveis",
-    subtitle: "Página",
-    identification: "fb.com/pages/ofertas...",
-    status: "aguardando",
-    date: "22/10/2023"
-  },
-  {
-    id: 4,
-    type: "bm",
-    name: "Backup BM 02",
-    subtitle: "Business Manager",
-    identification: "business.facebook.com/...",
-    status: "erro",
-    date: "20/10/2023"
-  },
-];
-
-const stats = [
-  { label: "TOTAL DE ITENS", value: 45, icon: Archive, color: "bg-zinc-800/50 border-zinc-700" },
-  { label: "BUSINESS MANAGERS", value: 10, icon: Briefcase, color: "bg-primary/20 border-primary/30" },
-  { label: "PERFIS", value: 20, icon: UserRound, color: "bg-cyan-500/20 border-cyan-500/30" },
-  { label: "PÁGINAS", value: 15, icon: Flag, color: "bg-purple-500/20 border-purple-500/30" },
-];
+interface StockItem {
+  id: string;
+  type: string;
+  name: string;
+  identification: string | null;
+  identification_link: string | null;
+  status: string;
+  created_at: string;
+}
 
 const typeIcons = {
-  bm: { icon: Briefcase, color: "bg-primary/20 text-primary" },
-  perfil: { icon: UserRound, color: "bg-cyan-500/20 text-cyan-400" },
-  pagina: { icon: Flag, color: "bg-purple-500/20 text-purple-400" },
+  bm: { icon: Briefcase, color: "bg-primary/20 text-primary", label: "Business Manager" },
+  perfil: { icon: UserRound, color: "bg-cyan-500/20 text-cyan-400", label: "Perfil" },
+  pagina: { icon: Flag, color: "bg-purple-500/20 text-purple-400", label: "Página" },
 };
 
-const statusStyles = {
+const statusStyles: Record<string, { label: string; class: string }> = {
   aguardando: { label: "Aguardando Cadastro", class: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
   revisado: { label: "Revisado", class: "bg-green-500/20 text-green-400 border-green-500/30" },
   erro: { label: "Erro", class: "bg-red-500/20 text-red-400 border-red-500/30" },
@@ -99,13 +37,49 @@ const statusStyles = {
 export default function AdminEstoque() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedItems, setSelectedItems] = useState<number[]>([]);
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const [items, setItems] = useState<StockItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const toggleItem = (id: number) => {
-    setSelectedItems(prev => 
+  useEffect(() => {
+    async function fetchItems() {
+      const { data } = await supabase
+        .from("stock_items")
+        .select("*")
+        .order("created_at", { ascending: false });
+      setItems(data ?? []);
+      setLoading(false);
+    }
+    fetchItems();
+  }, []);
+
+  const toggleItem = (id: string) => {
+    setSelectedItems(prev =>
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     );
   };
+
+  const filtered = items.filter(item =>
+    !searchTerm || item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.identification?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const totalByType = (type: string) => items.filter(i => i.type === type).length;
+
+  const stats = [
+    { label: "TOTAL DE ITENS", value: items.length, icon: Archive, color: "bg-zinc-800/50 border-zinc-700" },
+    { label: "BUSINESS MANAGERS", value: totalByType("bm"), icon: Briefcase, color: "bg-primary/20 border-primary/30" },
+    { label: "PERFIS", value: totalByType("perfil"), icon: UserRound, color: "bg-cyan-500/20 border-cyan-500/30" },
+    { label: "PÁGINAS", value: totalByType("pagina"), icon: Flag, color: "bg-purple-500/20 border-purple-500/30" },
+  ];
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="size-8 text-primary animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="py-6 space-y-6">
@@ -115,17 +89,12 @@ export default function AdminEstoque() {
           <Badge className="bg-primary/20 text-primary border border-primary/30 font-medium">
             ESTOQUE INTERNO
           </Badge>
-          <h1 className="text-3xl font-bold text-white">
-            Itens em Blocagem na Pasta:
-            <br />
-            <span className="text-primary">Contingência Q4</span>
-          </h1>
+          <h1 className="text-3xl font-bold text-white">Gestão de Estoque</h1>
           <p className="text-zinc-400 max-w-md">
-            Gerencie, revise e prepare os ativos de contingência antes da 
-            sincronização oficial com a plataforma FBFLIX.
+            Gerencie, revise e prepare os ativos antes da sincronização oficial com a plataforma FBFLIX.
           </p>
         </div>
-        <Button variant="outline" className="bg-zinc-800/50 border-zinc-700 text-white hover:bg-zinc-700 gap-2">
+        <Button variant="outline" className="bg-zinc-800/50 border-zinc-700 text-white hover:bg-zinc-700 gap-2" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-4 w-4" />
           Voltar
         </Button>
@@ -134,10 +103,7 @@ export default function AdminEstoque() {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat, index) => (
-          <div 
-            key={index}
-            className={`glass-panel rounded-xl p-4 border ${stat.color} relative overflow-hidden`}
-          >
+          <div key={index} className={`glass-panel rounded-xl p-4 border ${stat.color} relative overflow-hidden`}>
             <div className="relative z-10">
               <p className="text-xs text-zinc-400 font-medium tracking-wider">{stat.label}</p>
               <p className="text-3xl font-bold text-white mt-1">{stat.value}</p>
@@ -152,50 +118,13 @@ export default function AdminEstoque() {
       <div className="glass-panel rounded-xl p-4">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-3">
-            {/* Search */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-              <Input
-                placeholder="Buscar por nome, ID ou link..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 w-[220px] bg-zinc-900/50 border-zinc-700 text-white placeholder:text-zinc-500"
-              />
+              <Input placeholder="Buscar por nome, ID ou link..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10 w-[220px] bg-zinc-900/50 border-zinc-700 text-white placeholder:text-zinc-500" />
             </div>
-
-            {/* Type Filter */}
-            <Select defaultValue="todos">
-              <SelectTrigger className="w-[150px] bg-zinc-900/50 border-zinc-700 text-white">
-                <SelectValue placeholder="Todos os Tipos" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos os Tipos</SelectItem>
-                <SelectItem value="bm">Business Manager</SelectItem>
-                <SelectItem value="perfil">Perfil</SelectItem>
-                <SelectItem value="pagina">Página</SelectItem>
-              </SelectContent>
-            </Select>
-
-            {/* Status Filter */}
-            <Select defaultValue="todos">
-              <SelectTrigger className="w-[140px] bg-zinc-900/50 border-zinc-700 text-white">
-                <SelectValue placeholder="Todos Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos Status</SelectItem>
-                <SelectItem value="aguardando">Aguardando</SelectItem>
-                <SelectItem value="revisado">Revisado</SelectItem>
-                <SelectItem value="erro">Erro</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
-
           <div className="flex items-center gap-3">
-            <Button 
-              variant="outline" 
-              className="bg-zinc-800/50 border-zinc-700 text-white hover:bg-zinc-700 gap-2"
-              onClick={() => navigate("/admin/blocagem")}
-            >
+            <Button variant="outline" className="bg-zinc-800/50 border-zinc-700 text-white hover:bg-zinc-700 gap-2" onClick={() => navigate("/admin/blocagem")}>
               <ClipboardList className="h-4 w-4" />
               Blocagem
             </Button>
@@ -203,19 +132,6 @@ export default function AdminEstoque() {
               <Send className="h-4 w-4" />
               Enviar para Cadastro
             </Button>
-            <Button variant="outline" className="bg-zinc-800/50 border-zinc-700 text-white hover:bg-zinc-700 gap-2">
-              <Download className="h-4 w-4" />
-              Exportar
-            </Button>
-          </div>
-        </div>
-
-        {/* Info tooltip */}
-        <div className="mt-4 flex justify-end">
-          <div className="bg-zinc-900/50 rounded-lg px-4 py-3 max-w-md text-right">
-            <p className="text-xs text-zinc-400 leading-relaxed">
-              Ao enviar para cadastro, os itens selecionados serão disponibilizados na tela de Gestão de Produtos para serem cadastrados com nome, categoria, tags, preço, etc., e então ficarão disponíveis para venda na plataforma principal.
-            </p>
           </div>
         </div>
       </div>
@@ -234,80 +150,66 @@ export default function AdminEstoque() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {mockItems.map((item) => {
-              const typeConfig = typeIcons[item.type as keyof typeof typeIcons];
-              const statusConfig = statusStyles[item.status as keyof typeof statusStyles];
-              const TypeIcon = typeConfig.icon;
+            {filtered.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center text-zinc-500 py-12">
+                  Nenhum item no estoque ainda. Adicione itens pela tela de Blocagem.
+                </TableCell>
+              </TableRow>
+            ) : (
+              filtered.map((item) => {
+                const typeConfig = typeIcons[item.type as keyof typeof typeIcons] ?? typeIcons.perfil;
+                const statusConfig = statusStyles[item.status] ?? statusStyles.aguardando;
+                const TypeIcon = typeConfig.icon;
 
-              return (
-                <TableRow key={item.id} className="border-zinc-800 hover:bg-zinc-800/30">
-                  <TableCell>
-                    <Checkbox
-                      checked={selectedItems.includes(item.id)}
-                      onCheckedChange={() => toggleItem(item.id)}
-                      className="border-zinc-600"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${typeConfig.color}`}>
-                        <TypeIcon className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <p className="text-white font-medium">{item.name}</p>
-                        <p className="text-xs text-zinc-500">{item.subtitle}</p>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="space-y-1">
-                      {item.identificationLink ? (
-                        <>
-                          <p className="text-zinc-400 text-sm">{item.identification}</p>
-                          <a href="#" className="text-primary text-sm hover:underline flex items-center gap-1">
-                            {item.identificationLink}
-                          </a>
-                        </>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <span className="text-zinc-400 text-sm">{item.identification}</span>
-                          <button className="text-zinc-500 hover:text-white transition-colors">
-                            <Copy className="h-3.5 w-3.5" />
-                          </button>
+                return (
+                  <TableRow key={item.id} className="border-zinc-800 hover:bg-zinc-800/30">
+                    <TableCell>
+                      <Checkbox checked={selectedItems.includes(item.id)} onCheckedChange={() => toggleItem(item.id)} className="border-zinc-600" />
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${typeConfig.color}`}>
+                          <TypeIcon className="h-5 w-5" />
                         </div>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={`text-xs ${statusConfig.class}`}>
-                      {statusConfig.label}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-zinc-400 text-sm">
-                    {item.date}
-                  </TableCell>
-                  <TableCell>
-                    {/* Actions can be added here */}
-                  </TableCell>
-                </TableRow>
-              );
-            })}
+                        <div>
+                          <p className="text-white font-medium">{item.name}</p>
+                          <p className="text-xs text-zinc-500">{typeConfig.label}</p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-1">
+                        {item.identification_link ? (
+                          <>
+                            <p className="text-zinc-400 text-sm">{item.identification}</p>
+                            <a href={item.identification_link} target="_blank" rel="noreferrer" className="text-primary text-sm hover:underline">
+                              {item.identification_link}
+                            </a>
+                          </>
+                        ) : (
+                          <span className="text-zinc-400 text-sm">{item.identification || "—"}</span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={`text-xs ${statusConfig.class}`}>{statusConfig.label}</Badge>
+                    </TableCell>
+                    <TableCell className="text-zinc-400 text-sm">
+                      {new Date(item.created_at).toLocaleDateString("pt-BR")}
+                    </TableCell>
+                    <TableCell></TableCell>
+                  </TableRow>
+                );
+              })
+            )}
           </TableBody>
         </Table>
 
-        {/* Pagination */}
         <div className="flex items-center justify-between p-4 border-t border-zinc-800">
           <p className="text-sm text-zinc-500">
-            Mostrando <span className="text-white font-medium">1-4</span> de <span className="text-white font-medium">45</span> itens
+            Mostrando <span className="text-white font-medium">{filtered.length}</span> itens
           </p>
-          <div className="flex items-center gap-1">
-            <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-zinc-400 hover:text-white">
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-zinc-400 hover:text-white">
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
         </div>
       </div>
     </div>
