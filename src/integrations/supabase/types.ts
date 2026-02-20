@@ -498,6 +498,7 @@ export type Database = {
       purchases: {
         Row: {
           created_at: string
+          description: string | null
           id: string
           item_type: string
           provider_link: string | null
@@ -512,6 +513,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          description?: string | null
           id?: string
           item_type: string
           provider_link?: string | null
@@ -526,6 +528,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          description?: string | null
           id?: string
           item_type?: string
           provider_link?: string | null
