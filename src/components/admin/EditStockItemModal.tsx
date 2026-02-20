@@ -45,7 +45,7 @@ export function EditStockItemModal({ item, open, onOpenChange, onSaved }: EditSt
     linkPerfil: "", idPerfil: "", emailAcesso: "", emailAlternativo: "",
     senha: "", token2fa: "", tempoPlataforma: "3-meses", statusAtual: "aquecido",
     cookies: "", descricao: "", nomePerfil: "", dataNascimento: "", genero: "masculino",
-    linkDocumento: ""
+    linkDocumento: "", fotoUrl: ""
   });
 
   useEffect(() => {
@@ -71,6 +71,7 @@ export function EditStockItemModal({ item, open, onOpenChange, onSaved }: EditSt
         dataNascimento: d.dataNascimento ?? "",
         genero: d.genero ?? "masculino",
         linkDocumento: d.linkDocumento ?? "",
+        fotoUrl: d.foto_url ?? "",
       });
     }
   }, [item]);
@@ -101,6 +102,7 @@ export function EditStockItemModal({ item, open, onOpenChange, onSaved }: EditSt
         statusAtual: formData.statusAtual,
         cookies: formData.cookies,
         descricao: formData.descricao,
+        foto_url: formData.fotoUrl || undefined,
       };
     }
 
@@ -197,6 +199,13 @@ export function EditStockItemModal({ item, open, onOpenChange, onSaved }: EditSt
                     <div className="relative">
                       <Link className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
                       <Input type="url" value={formData.linkDocumento} onChange={e => setFormData({ ...formData, linkDocumento: e.target.value })} placeholder="https://drive.google.com/..." className="pl-10 bg-black/30 border-white/5 text-white placeholder:text-zinc-600" />
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-medium text-zinc-400">URL da Foto do Perfil <span className="text-zinc-600">(opcional)</span></label>
+                    <div className="relative">
+                      <BadgeCheck className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                      <Input type="url" value={formData.fotoUrl} onChange={e => setFormData({ ...formData, fotoUrl: e.target.value })} placeholder="Copie o endereço da imagem do Facebook" className="pl-10 bg-black/30 border-white/5 text-white placeholder:text-zinc-600" />
                     </div>
                   </div>
                 </div>
