@@ -1,9 +1,10 @@
-import { useState } from "react";
-import { Plus, Search, Trash2, SquarePen, Tag, FolderTree, Palette, X, Save, User, Briefcase, Server, Globe, Flag, CircleUser, Building2, PackageOpen, Shield, Wifi, Key, Monitor, Smartphone, CreditCard, Mail, Lock, type LucideIcon } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Plus, Search, Trash2, SquarePen, Tag, FolderTree, Palette, X, Save, User, Briefcase, Server, Globe, Flag, CircleUser, Building2, PackageOpen, Shield, Wifi, Key, Monitor, Smartphone, CreditCard, Mail, Lock, Loader2, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface TagItem {
   id: string;
@@ -73,6 +74,82 @@ export default function AdminPlataforma() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingTag, setEditingTag] = useState<TagItem | null>(null);
   const [tagForm, setTagForm] = useState({ name: "", color: "#ef4444", type: "status" as "status" | "product" });
+
+  // Categories state
+  const [categories, setCategories] = useState<{ id: string; name: string; slug: string; created_at: string }[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<{ id: string; name: string; slug: string } | null>(null);
+  const [categoryForm, setCategoryForm] = useState({ name: "", slug: "" });
+  const [savingCategory, setSavingCategory] = useState(false);
+
+  // Fetch categories
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    setLoadingCategories(true);
+    const { data, error } = await supabase
+      .from("product_categories")
+      .select("*")
+      .order("name");
+    if (data) setCategories(data);
+    if (error) toast.error("Erro ao carregar categorias");
+    setLoadingCategories(false);
+  };
+
+  const generateSlug = (name: string) => {
+    return name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  };
+
+  const handleOpenCreateCategory = () => {
+    setEditingCategory(null);
+    setCategoryForm({ name: "", slug: "" });
+    setCategoryModalOpen(true);
+  };
+
+  const handleOpenEditCategory = (cat: { id: string; name: string; slug: string }) => {
+    setEditingCategory(cat);
+    setCategoryForm({ name: cat.name, slug: cat.slug });
+    setCategoryModalOpen(true);
+  };
+
+  const handleSaveCategory = async () => {
+    if (!categoryForm.name.trim()) {
+      toast.error("Nome da categoria é obrigatório");
+      return;
+    }
+    setSavingCategory(true);
+    const slug = categoryForm.slug || generateSlug(categoryForm.name);
+
+    if (editingCategory) {
+      const { error } = await supabase
+        .from("product_categories")
+        .update({ name: categoryForm.name, slug })
+        .eq("id", editingCategory.id);
+      if (error) toast.error("Erro ao atualizar categoria");
+      else toast.success("Categoria atualizada!");
+    } else {
+      const { error } = await supabase
+        .from("product_categories")
+        .insert({ name: categoryForm.name, slug });
+      if (error) toast.error("Erro ao criar categoria");
+      else toast.success("Categoria criada!");
+    }
+    setSavingCategory(false);
+    setCategoryModalOpen(false);
+    fetchCategories();
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    const { error } = await supabase.from("product_categories").delete().eq("id", id);
+    if (error) toast.error("Erro ao excluir categoria");
+    else {
+      toast.success("Categoria excluída!");
+      fetchCategories();
+    }
+  };
 
   const tabs = [
     { key: "tags" as const, label: "Tags de Status", icon: Tag },
@@ -299,14 +376,61 @@ export default function AdminPlataforma() {
               <FolderTree className="w-5 h-5 text-primary" />
               Categorias da Plataforma
             </h2>
-            <Button className="bg-primary hover:bg-red-700 text-white font-bold py-2.5 px-5 rounded-xl flex items-center gap-2 shadow-lg shadow-primary/20">
+            <Button 
+              onClick={handleOpenCreateCategory}
+              className="bg-primary hover:bg-red-700 text-white font-bold py-2.5 px-5 rounded-xl flex items-center gap-2 shadow-lg shadow-primary/20"
+            >
               <Plus className="w-4 h-4" />
               Nova Categoria
             </Button>
           </div>
-          <p className="text-gray-400 text-sm">
-            As categorias são carregadas da tabela <code className="text-primary/80 bg-white/5 px-1.5 py-0.5 rounded">product_categories</code> do banco de dados. Funcionalidade de CRUD em breve.
-          </p>
+
+          {loadingCategories ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+            </div>
+          ) : categories.length === 0 ? (
+            <div className="text-center py-12">
+              <FolderTree className="w-10 h-10 text-gray-600 mx-auto mb-3" />
+              <p className="text-gray-400 text-sm">Nenhuma categoria cadastrada ainda.</p>
+              <p className="text-gray-500 text-xs mt-1">Crie categorias para organizar os produtos na loja.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {categories
+                .filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                .map((cat) => (
+                <div
+                  key={cat.id}
+                  className="group flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/10 hover:border-white/20 transition-all"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                      <FolderTree className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-white">{cat.name}</p>
+                      <p className="text-xs text-gray-500">{cat.slug}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => handleOpenEditCategory(cat)}
+                      className="p-2 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors"
+                    >
+                      <SquarePen className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteCategory(cat.id)}
+                      className="p-2 hover:bg-red-500/20 rounded-lg text-gray-400 hover:text-red-500 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
       )}
 
@@ -399,6 +523,45 @@ export default function AdminPlataforma() {
             <Button onClick={handleSaveTag} className="bg-primary hover:bg-red-700 text-white">
               <Save className="w-4 h-4 mr-2" />
               {editingTag ? "Salvar" : "Criar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Category Create/Edit Modal */}
+      <Dialog open={categoryModalOpen} onOpenChange={setCategoryModalOpen}>
+        <DialogContent className="bg-[#1a1a1a] border-white/10 text-white max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingCategory ? "Editar Categoria" : "Nova Categoria"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-5 py-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Nome</label>
+              <Input
+                value={categoryForm.name}
+                onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value, slug: generateSlug(e.target.value) })}
+                placeholder="Ex: Perfis Facebook"
+                className="bg-black/30 border-white/10 focus:border-primary"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Slug</label>
+              <Input
+                value={categoryForm.slug}
+                onChange={(e) => setCategoryForm({ ...categoryForm, slug: e.target.value })}
+                placeholder="perfis-facebook"
+                className="bg-black/30 border-white/10 focus:border-primary font-mono text-sm"
+              />
+              <p className="text-xs text-gray-500 mt-1">Gerado automaticamente a partir do nome.</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCategoryModalOpen(false)} className="border-white/10 text-gray-300 hover:bg-white/5">
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveCategory} disabled={savingCategory} className="bg-primary hover:bg-red-700 text-white">
+              {savingCategory ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+              {editingCategory ? "Salvar" : "Criar"}
             </Button>
           </DialogFooter>
         </DialogContent>
