@@ -67,14 +67,47 @@ export default function AdminEstoque() {
       toast.warning("Selecione pelo menos um item para enviar.");
       return;
     }
+
+    // Get full data of selected items
+    const selectedStockItems = items.filter(i => selectedItems.includes(i.id));
+
+    // Create products from stock items
+    const productsToCreate = selectedStockItems.map(item => {
+      const data = item.data || {};
+      return {
+        name: item.name,
+        price: data.preco ? parseFloat(data.preco) : 0,
+        stock: 1,
+        description: data.descricao || null,
+        category_id: data.categoryId || null,
+        icon_type: item.type === "bm" ? "bm" : item.type === "perfil" ? "perfil" : "page",
+        tags: data.tags && data.tags.length > 0 ? data.tags : null,
+        image_url: data.foto_url || null,
+        status: "active",
+        available: true,
+      };
+    });
+
+    // Insert products
+    const { error: productError } = await supabase
+      .from("products")
+      .insert(productsToCreate);
+
+    if (productError) {
+      toast.error("Erro ao criar produtos: " + productError.message);
+      return;
+    }
+
+    // Update stock items status
     const { error } = await supabase
       .from("stock_items")
       .update({ status: "revisado" })
       .in("id", selectedItems);
+
     if (error) {
-      toast.error("Erro ao enviar itens para cadastro.");
+      toast.error("Erro ao atualizar status do estoque.");
     } else {
-      toast.success(`${selectedItems.length} item(ns) enviado(s) para cadastro.`);
+      toast.success(`${selectedItems.length} item(ns) enviado(s) para Produtos!`);
       setSelectedItems([]);
       fetchItems();
     }
