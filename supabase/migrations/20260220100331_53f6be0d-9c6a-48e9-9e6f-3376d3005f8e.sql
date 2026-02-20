@@ -1,0 +1,1 @@
+UPDATE profiles SET balance = 0;
