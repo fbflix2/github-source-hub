@@ -206,7 +206,7 @@ export default function Dashboard() {
                 >
                   {/* Image */}
                   <div
-                    className={`relative h-48 w-full overflow-hidden ${
+                    className={`relative aspect-square w-full overflow-hidden ${
                       !product.available ? "grayscale group-hover:grayscale-0 transition-all duration-500" : ""
                     }`}
                   >
