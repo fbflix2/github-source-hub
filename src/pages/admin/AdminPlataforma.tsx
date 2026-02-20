@@ -84,9 +84,17 @@ export default function AdminPlataforma() {
   const [savingCategory, setSavingCategory] = useState(false);
 
   // Product images state
-  const [productImages, setProductImages] = useState<{ id: string; name: string; url: string; created_at: string }[]>([]);
+  const imageCategories = [
+    { key: "perfil", label: "Perfil", icon: User },
+    { key: "bm", label: "Business Manager", icon: Briefcase },
+    { key: "pagina", label: "Página", icon: Globe },
+    { key: "proxy", label: "Proxy", icon: Server },
+    { key: "combo", label: "Combo / Kit", icon: PackageOpen },
+  ];
+  const [productImages, setProductImages] = useState<{ id: string; name: string; url: string; created_at: string; category: string }[]>([]);
   const [loadingImages, setLoadingImages] = useState(true);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [activeImageCategory, setActiveImageCategory] = useState("perfil");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch categories
@@ -108,11 +116,11 @@ export default function AdminPlataforma() {
     if (!file) return;
     setUploadingImage(true);
     const ext = file.name.split(".").pop();
-    const fileName = `${Date.now()}.${ext}`;
+    const fileName = `${activeImageCategory}/${Date.now()}.${ext}`;
     const { error: uploadError } = await supabase.storage.from("product-images").upload(fileName, file);
     if (uploadError) { toast.error("Erro ao fazer upload"); setUploadingImage(false); return; }
     const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(fileName);
-    const { error: insertError } = await supabase.from("product_images").insert({ name: file.name, url: urlData.publicUrl });
+    const { error: insertError } = await supabase.from("product_images").insert({ name: file.name, url: urlData.publicUrl, category: activeImageCategory });
     if (insertError) { toast.error("Erro ao salvar imagem"); setUploadingImage(false); return; }
     toast.success("Imagem adicionada!");
     setUploadingImage(false);
@@ -495,40 +503,64 @@ export default function AdminPlataforma() {
               </Button>
             </div>
           </div>
-          <p className="text-gray-500 text-sm mb-6">Cadastre imagens para usar como foto dos produtos na blocagem.</p>
+          <p className="text-gray-500 text-sm mb-4">Organize imagens por tipo de produto. Selecione a categoria e envie as imagens.</p>
+
+          {/* Image category sub-tabs */}
+          <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+            {imageCategories.map((cat) => {
+              const count = productImages.filter(img => img.category === cat.key).length;
+              const CatIcon = cat.icon;
+              return (
+                <button
+                  key={cat.key}
+                  onClick={() => setActiveImageCategory(cat.key)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all text-sm font-medium whitespace-nowrap ${
+                    activeImageCategory === cat.key
+                      ? "bg-primary/10 border-primary/30 text-primary"
+                      : "bg-transparent border-white/10 hover:bg-white/5 text-gray-400"
+                  }`}
+                >
+                  <CatIcon className="w-4 h-4" />
+                  {cat.label}
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full ${activeImageCategory === cat.key ? "bg-primary/20 text-primary" : "bg-white/10 text-gray-500"}`}>{count}</span>
+                </button>
+              );
+            })}
+          </div>
 
           {loadingImages ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
             </div>
-          ) : productImages.length === 0 ? (
-            <div className="text-center py-12">
-              <ImageIcon className="w-10 h-10 text-gray-600 mx-auto mb-3" />
-              <p className="text-gray-400 text-sm">Nenhuma imagem cadastrada ainda.</p>
-              <p className="text-gray-500 text-xs mt-1">Envie imagens para associar aos produtos.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {productImages
-                .filter(img => img.name.toLowerCase().includes(searchTerm.toLowerCase()))
-                .map((img) => (
-                <div key={img.id} className="group relative rounded-xl overflow-hidden border border-white/10 hover:border-primary/30 transition-all bg-white/5">
-                  <div className="aspect-square">
-                    <img src={img.url} alt={img.name} className="w-full h-full object-cover" />
+          ) : (() => {
+            const filtered = productImages.filter(img => img.category === activeImageCategory && img.name.toLowerCase().includes(searchTerm.toLowerCase()));
+            return filtered.length === 0 ? (
+              <div className="text-center py-12">
+                <ImageIcon className="w-10 h-10 text-gray-600 mx-auto mb-3" />
+                <p className="text-gray-400 text-sm">Nenhuma imagem cadastrada para "{imageCategories.find(c => c.key === activeImageCategory)?.label}".</p>
+                <p className="text-gray-500 text-xs mt-1">Clique em "Enviar Imagem" para adicionar.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {filtered.map((img) => (
+                  <div key={img.id} className="group relative rounded-xl overflow-hidden border border-white/10 hover:border-primary/30 transition-all bg-white/5">
+                    <div className="aspect-square">
+                      <img src={img.url} alt={img.name} className="w-full h-full object-cover" />
+                    </div>
+                    <div className="p-2">
+                      <p className="text-xs text-gray-400 truncate">{img.name}</p>
+                    </div>
+                    <button
+                      onClick={() => handleDeleteImage(img)}
+                      className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/60 text-gray-400 hover:text-red-500 hover:bg-red-500/20 opacity-0 group-hover:opacity-100 transition-all"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
-                  <div className="p-2">
-                    <p className="text-xs text-gray-400 truncate">{img.name}</p>
-                  </div>
-                  <button
-                    onClick={() => handleDeleteImage(img)}
-                    className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/60 text-gray-400 hover:text-red-500 hover:bg-red-500/20 opacity-0 group-hover:opacity-100 transition-all"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            );
+          })()}
         </section>
       )}
 

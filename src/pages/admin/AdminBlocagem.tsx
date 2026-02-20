@@ -90,7 +90,7 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
 
   useEffect(() => {
     supabase.from("product_categories").select("id, name").then(({ data }) => setCategories(data ?? []));
-    supabase.from("product_images").select("id, name, url").order("created_at", { ascending: false }).then(({ data }) => setProductImages(data ?? []));
+    supabase.from("product_images").select("id, name, url").eq("category", "perfil").order("created_at", { ascending: false }).then(({ data }) => setProductImages(data ?? []));
   }, []);
 
   const handleSave = async () => {
@@ -398,7 +398,7 @@ function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => voi
 
   useEffect(() => {
     supabase.from("product_categories").select("id, name").then(({ data }) => setCategories(data ?? []));
-    supabase.from("product_images").select("id, name, url").order("created_at", { ascending: false }).then(({ data }) => setProductImages(data ?? []));
+    supabase.from("product_images").select("id, name, url").eq("category", "bm").order("created_at", { ascending: false }).then(({ data }) => setProductImages(data ?? []));
   }, []);
 
   const urlLines = useMemo(() => urls.split("\n").filter(l => l.trim()), [urls]);
