@@ -47,7 +47,8 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
   const [formData, setFormData] = useState({
     linkPerfil: "", idPerfil: "", emailAcesso: "", emailAlternativo: "",
     senha: "", token2fa: "", tempoPlataforma: "3-meses", statusAtual: "aquecido",
-    cookies: "", descricao: ""
+    cookies: "", descricao: "", nomePerfil: "", dataNascimento: "", genero: "masculino",
+    linkDocumento: ""
   });
 
   const handleSave = async () => {
@@ -57,13 +58,17 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
     }
     setSaving(true);
     const { error } = await supabase.from("stock_items").insert({
-      name: formData.emailAcesso || `Perfil ${formData.idPerfil}`,
+      name: formData.nomePerfil || formData.emailAcesso || `Perfil ${formData.idPerfil}`,
       type: "perfil",
       identification: formData.idPerfil || null,
       identification_link: formData.linkPerfil || null,
       status: "aguardando",
       folder: folder.id,
       data: {
+        nomePerfil: formData.nomePerfil,
+        dataNascimento: formData.dataNascimento,
+        genero: formData.genero,
+        linkDocumento: formData.linkDocumento,
         emailAcesso: formData.emailAcesso,
         emailAlternativo: formData.emailAlternativo,
         senha: formData.senha,
@@ -105,6 +110,7 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
                 <h2 className="text-lg font-bold text-white">Identificação</h2>
               </div>
               {[
+                { label: "Nome do Perfil", icon: CircleUser, key: "nomePerfil", placeholder: "Nome completo do perfil", type: "text" },
                 { label: "Link do Perfil", icon: Link, key: "linkPerfil", placeholder: "https://facebook.com/profile.php?id=...", type: "url" },
                 { label: "ID do Perfil", icon: Hash, key: "idPerfil", placeholder: "10000843...", type: "text", mono: true },
                 { label: "Email de Acesso", icon: Mail, key: "emailAcesso", placeholder: "exemplo@fbflix.com", type: "email" },
@@ -118,6 +124,37 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
                   </div>
                 </div>
               ))}
+              {/* Data de Nascimento & Gênero */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col gap-2 group">
+                  <label className="text-sm font-medium text-zinc-400">Data de Nascimento</label>
+                  <div className="relative">
+                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                    <Input type="date" value={formData.dataNascimento} onChange={e => setFormData({ ...formData, dataNascimento: e.target.value })} className="pl-10 bg-black/30 border-white/5 text-white" />
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-zinc-400">Gênero</label>
+                  <Select value={formData.genero} onValueChange={v => setFormData({ ...formData, genero: v })}>
+                    <SelectTrigger className="bg-black/30 border-white/5 text-white"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="masculino">Masculino</SelectItem>
+                      <SelectItem value="feminino">Feminino</SelectItem>
+                      <SelectItem value="outro">Outro</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              {/* Link do Documento (opcional) */}
+              <div className="flex flex-col gap-2 group">
+                <label className="text-sm font-medium text-zinc-400 group-focus-within:text-white transition-colors">
+                  Link do Documento <span className="text-zinc-600">(opcional)</span>
+                </label>
+                <div className="relative">
+                  <Link className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                  <Input type="url" placeholder="https://drive.google.com/..." value={formData.linkDocumento} onChange={e => setFormData({ ...formData, linkDocumento: e.target.value })} className="pl-10 bg-black/30 border-white/5 text-white placeholder:text-zinc-600" />
+                </div>
+              </div>
             </div>
 
             {/* Right - Segurança */}

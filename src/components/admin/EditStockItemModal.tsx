@@ -44,7 +44,8 @@ export function EditStockItemModal({ item, open, onOpenChange, onSaved }: EditSt
   const [formData, setFormData] = useState({
     linkPerfil: "", idPerfil: "", emailAcesso: "", emailAlternativo: "",
     senha: "", token2fa: "", tempoPlataforma: "3-meses", statusAtual: "aquecido",
-    cookies: "", descricao: ""
+    cookies: "", descricao: "", nomePerfil: "", dataNascimento: "", genero: "masculino",
+    linkDocumento: ""
   });
 
   useEffect(() => {
@@ -66,6 +67,10 @@ export function EditStockItemModal({ item, open, onOpenChange, onSaved }: EditSt
         statusAtual: d.statusAtual ?? "aquecido",
         cookies: d.cookies ?? "",
         descricao: d.descricao ?? "",
+        nomePerfil: d.nomePerfil ?? "",
+        dataNascimento: d.dataNascimento ?? "",
+        genero: d.genero ?? "masculino",
+        linkDocumento: d.linkDocumento ?? "",
       });
     }
   }, [item]);
@@ -80,10 +85,14 @@ export function EditStockItemModal({ item, open, onOpenChange, onSaved }: EditSt
       updatePayload.identification_link = bmLink;
       updatePayload.data = { notes: bmNotes };
     } else {
-      updatePayload.name = formData.emailAcesso || `Perfil ${formData.idPerfil}`;
+      updatePayload.name = formData.nomePerfil || formData.emailAcesso || `Perfil ${formData.idPerfil}`;
       updatePayload.identification = formData.idPerfil || null;
       updatePayload.identification_link = formData.linkPerfil || null;
       updatePayload.data = {
+        nomePerfil: formData.nomePerfil,
+        dataNascimento: formData.dataNascimento,
+        genero: formData.genero,
+        linkDocumento: formData.linkDocumento,
         emailAcesso: formData.emailAcesso,
         emailAlternativo: formData.emailAlternativo,
         senha: formData.senha,
@@ -152,6 +161,7 @@ export function EditStockItemModal({ item, open, onOpenChange, onSaved }: EditSt
                     <h3 className="text-sm font-bold text-white">Identificação</h3>
                   </div>
                   {[
+                    { label: "Nome do Perfil", icon: BadgeCheck, key: "nomePerfil", placeholder: "Nome completo do perfil" },
                     { label: "Link do Perfil", icon: Link, key: "linkPerfil", placeholder: "https://facebook.com/profile.php?id=..." },
                     { label: "ID do Perfil", icon: Hash, key: "idPerfil", placeholder: "10000843...", mono: true },
                     { label: "Email de Acesso", icon: Mail, key: "emailAcesso", placeholder: "exemplo@fbflix.com" },
@@ -165,6 +175,30 @@ export function EditStockItemModal({ item, open, onOpenChange, onSaved }: EditSt
                       </div>
                     </div>
                   ))}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-medium text-zinc-400">Data de Nascimento</label>
+                      <Input type="date" value={formData.dataNascimento} onChange={e => setFormData({ ...formData, dataNascimento: e.target.value })} className="bg-black/30 border-white/5 text-white" />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-medium text-zinc-400">Gênero</label>
+                      <Select value={formData.genero} onValueChange={v => setFormData({ ...formData, genero: v })}>
+                        <SelectTrigger className="bg-black/30 border-white/5 text-white"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="masculino">Masculino</SelectItem>
+                          <SelectItem value="feminino">Feminino</SelectItem>
+                          <SelectItem value="outro">Outro</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-medium text-zinc-400">Link do Documento <span className="text-zinc-600">(opcional)</span></label>
+                    <div className="relative">
+                      <Link className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                      <Input type="url" value={formData.linkDocumento} onChange={e => setFormData({ ...formData, linkDocumento: e.target.value })} placeholder="https://drive.google.com/..." className="pl-10 bg-black/30 border-white/5 text-white placeholder:text-zinc-600" />
+                    </div>
+                  </div>
                 </div>
 
                 {/* Segurança */}
