@@ -478,7 +478,7 @@ function FolderItemsView({ folder, onBack }: { folder: Folder; onBack: () => voi
 
   const fetchItems = async () => {
     setLoading(true);
-    const { data } = await supabase.from("stock_items").select("*").eq("folder", folder.id).order("created_at", { ascending: false });
+    const { data } = await supabase.from("stock_items").select("*").eq("folder", folder.id).neq("status", "revisado").order("created_at", { ascending: false });
     setItems(data ?? []);
     setLoading(false);
   };
@@ -570,7 +570,7 @@ export default function AdminBlocagem() {
     const { data: foldersData } = await supabase.from("stock_folders").select("*").order("updated_at", { ascending: false });
     if (!foldersData) { setLoading(false); return; }
     // Count items per folder
-    const { data: itemsData } = await supabase.from("stock_items").select("folder");
+    const { data: itemsData } = await supabase.from("stock_items").select("folder").neq("status", "revisado");
     const counts: Record<string, number> = {};
     (itemsData ?? []).forEach(i => { if (i.folder) counts[i.folder] = (counts[i.folder] || 0) + 1; });
     setFolders(foldersData.map(f => ({ ...f, item_count: counts[f.id] || 0 })));
