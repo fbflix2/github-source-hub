@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Search, Trash2, SquarePen, Tag, FolderTree, Palette, X, Save } from "lucide-react";
+import { Plus, Search, Trash2, SquarePen, Tag, FolderTree, Palette, X, Save, User, Briefcase, Server, Globe, Flag, CircleUser, Building2, PackageOpen, Shield, Wifi, Key, Monitor, Smartphone, CreditCard, Mail, Lock, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -33,9 +33,34 @@ const defaultProductTags: TagItem[] = [
   { id: "12", name: "Exclusivo", color: "#8b5cf6", type: "product" },
 ];
 
-const availableIcons = [
-  "monitor", "smartphone", "tv", "gamepad-2", "music", "film", "image", "star",
-  "heart", "zap", "shield", "crown", "gift", "rocket", "globe", "users",
+interface PlatformIcon {
+  key: string;
+  label: string;
+  icon: LucideIcon;
+  color: string;
+  category: string;
+}
+
+const platformIcons: PlatformIcon[] = [
+  // Produtos
+  { key: "perfil", label: "Perfil", icon: User, color: "bg-blue-500/20 text-blue-400", category: "Produtos" },
+  { key: "bm", label: "Business Manager", icon: Briefcase, color: "bg-green-500/20 text-green-400", category: "Produtos" },
+  { key: "proxy", label: "Proxy", icon: Server, color: "bg-purple-500/20 text-purple-400", category: "Produtos" },
+  { key: "page", label: "Página", icon: Globe, color: "bg-cyan-500/20 text-cyan-400", category: "Produtos" },
+  // Estoque
+  { key: "perfil-estoque", label: "Perfil (Estoque)", icon: CircleUser, color: "bg-cyan-500/20 text-cyan-400", category: "Estoque" },
+  { key: "bm-estoque", label: "BM (Estoque)", icon: Building2, color: "bg-primary/20 text-primary", category: "Estoque" },
+  { key: "pagina", label: "Página (Estoque)", icon: Flag, color: "bg-purple-500/20 text-purple-400", category: "Estoque" },
+  { key: "combo", label: "Combo / Kit", icon: PackageOpen, color: "bg-amber-500/20 text-amber-400", category: "Estoque" },
+  // Geral
+  { key: "shield", label: "Segurança", icon: Shield, color: "bg-emerald-500/20 text-emerald-400", category: "Geral" },
+  { key: "wifi", label: "Conexão", icon: Wifi, color: "bg-blue-500/20 text-blue-400", category: "Geral" },
+  { key: "key", label: "Chave / Token", icon: Key, color: "bg-amber-500/20 text-amber-400", category: "Geral" },
+  { key: "monitor", label: "Monitor", icon: Monitor, color: "bg-gray-500/20 text-gray-400", category: "Geral" },
+  { key: "smartphone", label: "Smartphone", icon: Smartphone, color: "bg-indigo-500/20 text-indigo-400", category: "Geral" },
+  { key: "credit-card", label: "Pagamento", icon: CreditCard, color: "bg-emerald-500/20 text-emerald-400", category: "Geral" },
+  { key: "mail", label: "Email", icon: Mail, color: "bg-rose-500/20 text-rose-400", category: "Geral" },
+  { key: "lock", label: "Bloqueio", icon: Lock, color: "bg-red-500/20 text-red-400", category: "Geral" },
 ];
 
 export default function AdminPlataforma() {
@@ -294,22 +319,34 @@ export default function AdminPlataforma() {
               Banco de Ícones
             </h2>
           </div>
-          <p className="text-gray-500 text-sm mb-6">Ícones disponíveis para uso em produtos e categorias da plataforma.</p>
-          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-3">
-            {availableIcons.map((icon) => (
-              <div
-                key={icon}
-                className="flex flex-col items-center gap-2 p-4 rounded-xl bg-white/5 border border-white/10 hover:border-primary/30 hover:bg-primary/5 transition-all cursor-pointer group"
-              >
-                <span className="material-symbols-outlined text-2xl text-gray-400 group-hover:text-primary transition-colors">
-                  {icon}
-                </span>
-                <span className="text-[10px] text-gray-500 group-hover:text-gray-300 truncate w-full text-center">
-                  {icon}
-                </span>
+          <p className="text-gray-500 text-sm mb-6">Ícones utilizados em produtos, estoque e categorias da plataforma FBFLIX.</p>
+          
+          {["Produtos", "Estoque", "Geral"].map((category) => {
+            const icons = platformIcons.filter(i => i.category === category);
+            return (
+              <div key={category} className="mb-8 last:mb-0">
+                <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">{category}</h3>
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+                  {icons.map((item) => {
+                    const IconComp = item.icon;
+                    return (
+                      <div
+                        key={item.key}
+                        className="flex flex-col items-center gap-2.5 p-4 rounded-xl bg-white/5 border border-white/10 hover:border-primary/30 hover:bg-primary/5 transition-all cursor-pointer group"
+                      >
+                        <div className={`p-2.5 rounded-lg ${item.color} transition-colors`}>
+                          <IconComp className="w-5 h-5" />
+                        </div>
+                        <span className="text-[11px] text-gray-500 group-hover:text-gray-300 truncate w-full text-center font-medium">
+                          {item.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            ))}
-          </div>
+            );
+          })}
         </section>
       )}
 
