@@ -88,28 +88,28 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <button onClick={onBack} className="w-10 h-10 rounded-full bg-zinc-800/50 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors">
-          <ArrowLeft className="h-5 w-5" />
+    <div className="space-y-3">
+      <div className="flex items-center gap-3">
+        <button onClick={onBack} className="w-8 h-8 rounded-full bg-zinc-800/50 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors">
+          <ArrowLeft className="h-4 w-4" />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-white">Blocagem de Perfil</h1>
-          <div className="flex items-center gap-2 text-sm text-zinc-400">
-            <FolderOpen className="h-4 w-4" />
+          <h1 className="text-xl font-bold text-white">Blocagem de Perfil</h1>
+          <div className="flex items-center gap-2 text-xs text-zinc-400">
+            <FolderOpen className="h-3 w-3" />
             <span>Pasta: {folder.name}</span>
           </div>
         </div>
       </div>
 
-      <div className="glass-panel rounded-2xl p-6 md:p-8">
-        <form className="flex flex-col gap-8" onSubmit={e => { e.preventDefault(); handleSave(); }}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="glass-panel rounded-xl p-4 md:p-5">
+        <form className="flex flex-col gap-4" onSubmit={e => { e.preventDefault(); handleSave(); }}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Left - Identificação */}
-            <div className="flex flex-col gap-5">
-              <div className="flex items-center gap-2 pb-2 border-b border-white/10">
-                <BadgeCheck className="h-5 w-5 text-primary" />
-                <h2 className="text-lg font-bold text-white">Identificação</h2>
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-2 pb-1 border-b border-white/10">
+                <BadgeCheck className="h-4 w-4 text-primary" />
+                <h2 className="text-sm font-bold text-white">Identificação</h2>
               </div>
               {[
                 { label: "Nome do Perfil", icon: CircleUser, key: "nomePerfil", placeholder: "Nome completo do perfil", type: "text" },
@@ -118,8 +118,8 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
                 { label: "Email de Acesso", icon: Mail, key: "emailAcesso", placeholder: "exemplo@fbflix.com", type: "email" },
                 { label: "Email Alternativo", icon: AtSign, key: "emailAlternativo", placeholder: "recuperacao@email.com", type: "email" },
               ].map(f => (
-                <div key={f.key} className="flex flex-col gap-2 group">
-                  <label className="text-sm font-medium text-zinc-400 group-focus-within:text-white transition-colors">{f.label}</label>
+                <div key={f.key} className="flex flex-col gap-1 group">
+                  <label className="text-xs font-medium text-zinc-400 group-focus-within:text-white transition-colors">{f.label}</label>
                   <div className="relative">
                     <f.icon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
                     <Input type={f.type} placeholder={f.placeholder} value={(formData as any)[f.key]} onChange={e => setFormData({ ...formData, [f.key]: e.target.value })} className={`pl-10 bg-black/30 border-white/5 text-white placeholder:text-zinc-600 ${f.mono ? "font-mono" : ""}`} />
@@ -127,16 +127,16 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
                 </div>
               ))}
               {/* Data de Nascimento & Gênero */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-2 group">
-                  <label className="text-sm font-medium text-zinc-400">Data de Nascimento</label>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1 group">
+                  <label className="text-xs font-medium text-zinc-400">Data de Nascimento</label>
                   <div className="relative">
                     <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
                     <Input type="date" value={formData.dataNascimento} onChange={e => setFormData({ ...formData, dataNascimento: e.target.value })} className="pl-10 bg-black/30 border-white/5 text-white" />
                   </div>
                 </div>
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-zinc-400">Gênero</label>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-zinc-400">Gênero</label>
                   <Select value={formData.genero} onValueChange={v => setFormData({ ...formData, genero: v })}>
                     <SelectTrigger className="bg-black/30 border-white/5 text-white"><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -147,9 +147,8 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
                   </Select>
                 </div>
               </div>
-              {/* Link do Documento (opcional) */}
-              <div className="flex flex-col gap-2 group">
-                <label className="text-sm font-medium text-zinc-400 group-focus-within:text-white transition-colors">
+              <div className="flex flex-col gap-1 group">
+                <label className="text-xs font-medium text-zinc-400 group-focus-within:text-white transition-colors">
                   Link do Documento <span className="text-zinc-600">(opcional)</span>
                 </label>
                 <div className="relative">
@@ -157,26 +156,25 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
                   <Input type="url" placeholder="https://drive.google.com/..." value={formData.linkDocumento} onChange={e => setFormData({ ...formData, linkDocumento: e.target.value })} className="pl-10 bg-black/30 border-white/5 text-white placeholder:text-zinc-600" />
                 </div>
               </div>
-              {/* URL da Foto do Perfil (opcional) */}
-              <div className="flex flex-col gap-2 group">
-                <label className="text-sm font-medium text-zinc-400 group-focus-within:text-white transition-colors">
+              <div className="flex flex-col gap-1 group">
+                <label className="text-xs font-medium text-zinc-400 group-focus-within:text-white transition-colors">
                   URL da Foto do Perfil <span className="text-zinc-600">(opcional)</span>
                 </label>
                 <div className="relative">
                   <CircleUser className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-                  <Input type="url" placeholder="Clique com botão direito na foto do Facebook → Copiar endereço da imagem" value={formData.fotoUrl} onChange={e => setFormData({ ...formData, fotoUrl: e.target.value })} className="pl-10 bg-black/30 border-white/5 text-white placeholder:text-zinc-600" />
+                  <Input type="url" placeholder="Copiar endereço da imagem do Facebook" value={formData.fotoUrl} onChange={e => setFormData({ ...formData, fotoUrl: e.target.value })} className="pl-10 bg-black/30 border-white/5 text-white placeholder:text-zinc-600" />
                 </div>
               </div>
             </div>
 
             {/* Right - Segurança */}
-            <div className="flex flex-col gap-5">
-              <div className="flex items-center gap-2 pb-2 border-b border-white/10">
-                <Shield className="h-5 w-5 text-primary" />
-                <h2 className="text-lg font-bold text-white">Segurança & Status</h2>
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-2 pb-1 border-b border-white/10">
+                <Shield className="h-4 w-4 text-primary" />
+                <h2 className="text-sm font-bold text-white">Segurança & Status</h2>
               </div>
-              <div className="flex flex-col gap-2 group">
-                <label className="text-sm font-medium text-zinc-400">Senha de Acesso</label>
+              <div className="flex flex-col gap-1 group">
+                <label className="text-xs font-medium text-zinc-400">Senha de Acesso</label>
                 <div className="relative">
                   <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
                   <Input type={showPassword ? "text" : "password"} placeholder="••••••••••••" value={formData.senha} onChange={e => setFormData({ ...formData, senha: e.target.value })} className="pl-10 pr-10 bg-black/30 border-white/5 text-white" />
@@ -185,16 +183,16 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
                   </button>
                 </div>
               </div>
-              <div className="flex flex-col gap-2 group">
-                <label className="text-sm font-medium text-zinc-400">Token 2FA</label>
+              <div className="flex flex-col gap-1 group">
+                <label className="text-xs font-medium text-zinc-400">Token 2FA</label>
                 <div className="relative">
                   <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
                   <Input type="text" placeholder="JBSWY3DPEHPK3PXP" value={formData.token2fa} onChange={e => setFormData({ ...formData, token2fa: e.target.value })} className="pl-10 bg-black/30 border-white/5 text-white font-mono" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-zinc-400">Tempo de Plataforma</label>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-zinc-400">Tempo de Plataforma</label>
                   <Select value={formData.tempoPlataforma} onValueChange={v => setFormData({ ...formData, tempoPlataforma: v })}>
                     <SelectTrigger className="bg-black/30 border-white/5 text-white"><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -206,8 +204,8 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-zinc-400">Status Atual</label>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-zinc-400">Status Atual</label>
                   <Select value={formData.statusAtual} onValueChange={v => setFormData({ ...formData, statusAtual: v })}>
                     <SelectTrigger className="bg-black/30 border-white/5 text-white"><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -220,9 +218,9 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
                   </Select>
                 </div>
               </div>
-              <div className="bg-primary/10 border border-primary/20 rounded-lg p-3 flex items-start gap-3 mt-auto">
-                <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                <p className="text-xs text-primary/80 leading-relaxed">
+              <div className="bg-primary/10 border border-primary/20 rounded-lg p-2 flex items-start gap-2 mt-auto">
+                <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                <p className="text-[11px] text-primary/80 leading-relaxed">
                   Certifique-se de que o 2FA está ativo antes de salvar perfis "Aquecidos" ou "Verificados".
                 </p>
               </div>
@@ -230,20 +228,18 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
           </div>
 
           {/* Bottom - Cookies & Description */}
-          <div className="flex flex-col gap-6 pt-4 border-t border-white/5">
-            <div className="flex flex-col md:flex-row gap-6">
-              <div className="flex-1 flex flex-col gap-2">
-                <label className="text-sm font-medium text-zinc-400 flex items-center gap-2"><Cookie className="h-4 w-4" />Cookies JSON/Netscape</label>
-                <Textarea placeholder='[{"domain": ".facebook.com", ...}]' value={formData.cookies} onChange={e => setFormData({ ...formData, cookies: e.target.value })} className="h-32 bg-black/30 border-white/5 text-zinc-300 font-mono text-xs resize-none" />
-              </div>
-              <div className="flex-1 flex flex-col gap-2">
-                <label className="text-sm font-medium text-zinc-400 flex items-center gap-2"><FileText className="h-4 w-4" />Descrição</label>
-                <Textarea placeholder="Notas sobre aquecimento, proxy..." value={formData.descricao} onChange={e => setFormData({ ...formData, descricao: e.target.value })} className="h-32 bg-black/30 border-white/5 text-white resize-none" />
-              </div>
+          <div className="flex flex-col md:flex-row gap-4 pt-3 border-t border-white/5">
+            <div className="flex-1 flex flex-col gap-1">
+              <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><Cookie className="h-3 w-3" />Cookies JSON/Netscape</label>
+              <Textarea placeholder='[{"domain": ".facebook.com", ...}]' value={formData.cookies} onChange={e => setFormData({ ...formData, cookies: e.target.value })} className="h-20 bg-black/30 border-white/5 text-zinc-300 font-mono text-xs resize-none" />
+            </div>
+            <div className="flex-1 flex flex-col gap-1">
+              <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><FileText className="h-3 w-3" />Descrição</label>
+              <Textarea placeholder="Notas sobre aquecimento, proxy..." value={formData.descricao} onChange={e => setFormData({ ...formData, descricao: e.target.value })} className="h-20 bg-black/30 border-white/5 text-white resize-none" />
             </div>
           </div>
 
-          <div className="flex items-center justify-between pt-6 border-t border-white/10">
+          <div className="flex items-center justify-between pt-3 border-t border-white/10">
             <Button type="button" variant="ghost" onClick={onBack} className="text-zinc-400 hover:text-white hover:bg-white/5">Voltar</Button>
             <Button type="submit" disabled={saving} className="bg-primary hover:bg-primary/90 text-white gap-2">
               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
