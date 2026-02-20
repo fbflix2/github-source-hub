@@ -32,6 +32,8 @@ export default function AdminAuditoria() {
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [showPurchases, setShowPurchases] = useState(false);
+  const [projectedProfit, setProjectedProfit] = useState(0);
+  const [projectedMargin, setProjectedMargin] = useState(0);
 
   const fetchData = async () => {
     setLoading(true);
@@ -48,7 +50,7 @@ export default function AdminAuditoria() {
         .gte("created_at", since),
       supabase
         .from("purchases")
-        .select("total_value, updated_at")
+        .select("total_value, quantity, unit_value, sale_price, tax_rate, updated_at")
         .gte("created_at", since),
     ]);
 
@@ -58,8 +60,24 @@ export default function AdminAuditoria() {
     const revenue = orders.reduce((sum, o) => sum + Number(o.total || 0), 0);
     const cost = purchases.reduce((sum, p) => sum + Number(p.total_value || 0), 0);
 
+    // Calcular projeção de lucro baseado em sale_price e tax_rate das compras
+    const projectedRevenue = purchases.reduce((sum, p) => {
+      const qty = Number(p.quantity || 0);
+      const salePrice = Number(p.sale_price || 0);
+      return sum + (qty * salePrice);
+    }, 0);
+    const totalCostWithTax = purchases.reduce((sum, p) => {
+      const qty = Number(p.quantity || 0);
+      const unitCost = Number(p.unit_value || 0);
+      const tax = Number(p.tax_rate || 0);
+      return sum + (qty * unitCost * (1 + tax / 100));
+    }, 0);
+    const projectedProfit = projectedRevenue - totalCostWithTax;
+
     setTotalRevenue(revenue);
     setTotalCost(cost);
+    setProjectedProfit(projectedProfit);
+    setProjectedMargin(projectedRevenue > 0 ? Math.round((projectedProfit / projectedRevenue) * 100) : 0);
 
     const allDates = [
       ...orders.map(o => new Date(o.updated_at)),
@@ -105,16 +123,16 @@ export default function AdminAuditoria() {
       highlighted: false
     },
     {
-      label: "Lucro Bruto",
-      value: loading ? "..." : formatCurrency(profit),
-      badge: profit >= 0 ? "Positivo" : "Negativo",
-      badgeColor: profit >= 0 
+      label: "Projeção de Lucro",
+      value: loading ? "..." : formatCurrency(projectedProfit),
+      badge: projectedProfit >= 0 ? "Positivo" : "Negativo",
+      badgeColor: projectedProfit >= 0 
         ? "text-emerald-400 bg-emerald-400/10 border-emerald-400/20" 
         : "text-red-400 bg-red-400/10 border-red-400/20",
       icon: TrendingUp,
       iconBg: "bg-primary/20 border-primary/30",
       iconColor: "text-primary",
-      subtitle: `Margem líquida estimada: ${margin}%`,
+      subtitle: `Margem estimada: ${projectedMargin}%`,
       highlighted: true
     }
   ];
