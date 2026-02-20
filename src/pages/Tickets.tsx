@@ -264,8 +264,8 @@ export default function Tickets() {
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Reply Input */}
-              {selectedTicket.status !== "closed" && (
+              {/* Reply Input - only show if support has replied at least once */}
+              {selectedTicket.status !== "closed" && selectedTicket.messages.some(m => m.sender === "support") ? (
                 <div className="p-4 border-t border-border bg-muted/30">
                   <div className="flex gap-3">
                     <Textarea
@@ -289,7 +289,13 @@ export default function Tickets() {
                     </Button>
                   </div>
                 </div>
-              )}
+              ) : selectedTicket.status !== "closed" ? (
+                <div className="p-4 border-t border-border bg-muted/30 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    Aguardando resposta do suporte...
+                  </p>
+                </div>
+              ) : null}
             </div>
           ) : (
             <div className="h-[600px] flex items-center justify-center">
