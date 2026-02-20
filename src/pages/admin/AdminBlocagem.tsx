@@ -219,21 +219,6 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
                   <Input type="url" placeholder="https://drive.google.com/..." value={formData.linkDocumento} onChange={e => setFormData({ ...formData, linkDocumento: e.target.value })} className="pl-10 bg-black/30 border-white/5 text-white placeholder:text-zinc-600" />
                 </div>
               </div>
-              <div className="flex flex-col gap-1 group">
-                <label className="text-xs font-medium text-zinc-400 group-focus-within:text-white transition-colors">
-                  URL da Foto do Perfil <span className="text-zinc-600">(opcional)</span>
-                </label>
-                <div className="relative">
-                  <CircleUser className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-                  <Input type="url" placeholder="Cole a URL da imagem do perfil" value={formData.fotoUrl} onChange={e => setFormData({ ...formData, fotoUrl: e.target.value })} className="pl-10 bg-black/30 border-white/5 text-white placeholder:text-zinc-600" />
-                </div>
-                {formData.fotoUrl && (
-                  <div className="mt-1 flex items-center gap-2">
-                    <img src={formData.fotoUrl} alt="Preview" className="h-8 w-8 rounded-full object-cover border border-white/10" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                    <span className="text-[10px] text-zinc-500 truncate max-w-[200px]">{formData.fotoUrl}</span>
-                  </div>
-                )}
-              </div>
             </div>
 
             {/* Right - Segurança */}
