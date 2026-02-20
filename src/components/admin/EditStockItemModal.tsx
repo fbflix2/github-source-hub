@@ -5,10 +5,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Link, Hash, Mail, AtSign, KeyRound, Cookie, FileText, Shield,
-  BadgeCheck, Eye, EyeOff, Save, Loader2, Info
+  BadgeCheck, Eye, EyeOff, Save, Loader2, Info, DollarSign, FolderOpen, Tag, X
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -35,6 +36,13 @@ export function EditStockItemModal({ item, open, onOpenChange, onSaved }: EditSt
   const [saving, setSaving] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [status, setStatus] = useState("aguardando");
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+
+  // Product fields
+  const [preco, setPreco] = useState("");
+  const [categoryId, setCategoryId] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState("");
 
   // BM fields
   const [bmLink, setBmLink] = useState("");
@@ -49,13 +57,21 @@ export function EditStockItemModal({ item, open, onOpenChange, onSaved }: EditSt
   });
 
   useEffect(() => {
+    supabase.from("product_categories").select("id, name").then(({ data }) => setCategories(data ?? []));
+  }, []);
+
+  useEffect(() => {
     if (!item) return;
     setStatus(item.status);
+    const d = item.data ?? {};
+    setPreco(d.preco?.toString() ?? "");
+    setCategoryId(d.categoryId ?? "");
+    setTags(d.tags ?? []);
+    setTagInput("");
     if (item.type === "bm") {
       setBmLink(item.identification_link ?? "");
-      setBmNotes(item.data?.notes ?? "");
+      setBmNotes(d.notes ?? "");
     } else {
-      const d = item.data ?? {};
       setFormData({
         linkPerfil: item.identification_link ?? "",
         idPerfil: item.identification ?? "",
@@ -78,13 +94,19 @@ export function EditStockItemModal({ item, open, onOpenChange, onSaved }: EditSt
 
   if (!item) return null;
 
+  const productMeta = {
+    preco: preco ? parseFloat(preco) : undefined,
+    categoryId: categoryId || undefined,
+    tags: tags.length > 0 ? tags : undefined,
+  };
+
   const handleSave = async () => {
     setSaving(true);
     let updatePayload: any = { status };
 
     if (item.type === "bm") {
       updatePayload.identification_link = bmLink;
-      updatePayload.data = { notes: bmNotes };
+      updatePayload.data = { notes: bmNotes, ...productMeta };
     } else {
       updatePayload.name = formData.nomePerfil || formData.emailAcesso || `Perfil ${formData.idPerfil}`;
       updatePayload.identification = formData.idPerfil || null;
@@ -103,6 +125,7 @@ export function EditStockItemModal({ item, open, onOpenChange, onSaved }: EditSt
         cookies: formData.cookies,
         descricao: formData.descricao,
         foto_url: formData.fotoUrl || undefined,
+        ...productMeta,
       };
     }
 
@@ -113,6 +136,38 @@ export function EditStockItemModal({ item, open, onOpenChange, onSaved }: EditSt
     onSaved();
     onOpenChange(false);
   };
+
+  const ProductFields = () => (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-4 border-t border-white/10">
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><DollarSign className="h-3 w-3" />Preço (R$)</label>
+        <Input type="number" step="0.01" min="0" placeholder="0.00" value={preco} onChange={e => setPreco(e.target.value)} className="bg-black/30 border-white/5 text-white" />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><FolderOpen className="h-3 w-3" />Categoria</label>
+        <Select value={categoryId} onValueChange={setCategoryId}>
+          <SelectTrigger className="bg-black/30 border-white/5 text-white"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+          <SelectContent>
+            {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><Tag className="h-3 w-3" />Tags</label>
+        <Input placeholder="Adicionar tag + Enter" value={tagInput} onChange={e => setTagInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); if (tagInput.trim() && !tags.includes(tagInput.trim())) { setTags([...tags, tagInput.trim()]); setTagInput(""); } } }} className="bg-black/30 border-white/5 text-white" />
+        {tags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-1">
+            {tags.map(tag => (
+              <Badge key={tag} className="bg-primary/20 text-primary text-xs gap-1">
+                {tag}
+                <button type="button" onClick={() => setTags(tags.filter(t => t !== tag))}><X className="h-3 w-3" /></button>
+              </Badge>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -277,6 +332,9 @@ export function EditStockItemModal({ item, open, onOpenChange, onSaved }: EditSt
               </div>
             </div>
           )}
+
+          {/* Product Info - shared for both types */}
+          <ProductFields />
 
           {/* Footer */}
           <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
