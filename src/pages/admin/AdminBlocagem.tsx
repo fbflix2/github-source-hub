@@ -3,7 +3,7 @@ import {
   Building2, CircleUser, PackageOpen, FolderOpen, FolderPlus, Pencil,
   ChevronRight, ChevronDown, Shield, ArrowLeft, Link, FileText, Info,
   AlertTriangle, Save, Copy, Hash, Mail, AtSign, KeyRound, Clock,
-  BadgeCheck, Cookie, Eye, EyeOff, Plus, X, Loader2, Trash2
+  BadgeCheck, Cookie, Eye, EyeOff, Plus, X, Loader2, Trash2, DollarSign, Tag
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -45,12 +45,18 @@ const itemTypes = [
 function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => void; onSaved: () => void }) {
   const [showPassword, setShowPassword] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [tagInput, setTagInput] = useState("");
   const [formData, setFormData] = useState({
     linkPerfil: "", idPerfil: "", emailAcesso: "", emailAlternativo: "",
     senha: "", token2fa: "", tempoPlataforma: "3-meses", statusAtual: "aquecido",
     cookies: "", descricao: "", nomePerfil: "", dataNascimento: "", genero: "masculino",
-    linkDocumento: "", fotoUrl: ""
+    linkDocumento: "", fotoUrl: "", preco: "", categoryId: "", tags: [] as string[]
   });
+
+  useEffect(() => {
+    supabase.from("product_categories").select("id, name").then(({ data }) => setCategories(data ?? []));
+  }, []);
 
   const handleSave = async () => {
     if (!formData.linkPerfil && !formData.idPerfil) {
@@ -58,7 +64,7 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
       return;
     }
     setSaving(true);
-    const { error } = await supabase.from("stock_items").insert({
+    const insertData: any = {
       name: formData.nomePerfil || formData.emailAcesso || `Perfil ${formData.idPerfil}`,
       type: "perfil",
       identification: formData.idPerfil || null,
@@ -79,8 +85,13 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
         cookies: formData.cookies,
         descricao: formData.descricao,
         foto_url: formData.fotoUrl || undefined,
+        preco: formData.preco ? parseFloat(formData.preco) : undefined,
+        categoryId: formData.categoryId || undefined,
+        tags: formData.tags.length > 0 ? formData.tags : undefined,
       },
-    });
+    };
+    if (formData.categoryId) insertData.product_id = null; // keep clean
+    const { error } = await supabase.from("stock_items").insert(insertData);
     setSaving(false);
     if (error) { toast.error("Erro ao salvar: " + error.message); return; }
     toast.success("Perfil adicionado à pasta!");
@@ -239,6 +250,39 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
             </div>
           </div>
 
+          {/* Product Info */}
+          <div className="flex flex-col md:flex-row gap-4 pt-3 border-t border-white/5">
+            <div className="flex-1 flex flex-col gap-1">
+              <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><DollarSign className="h-3 w-3" />Preço (R$)</label>
+              <Input type="number" step="0.01" min="0" placeholder="0.00" value={formData.preco} onChange={e => setFormData({ ...formData, preco: e.target.value })} className="bg-black/30 border-white/5 text-white" />
+            </div>
+            <div className="flex-1 flex flex-col gap-1">
+              <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><FolderOpen className="h-3 w-3" />Categoria</label>
+              <Select value={formData.categoryId} onValueChange={v => setFormData({ ...formData, categoryId: v })}>
+                <SelectTrigger className="bg-black/30 border-white/5 text-white"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                <SelectContent>
+                  {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex-1 flex flex-col gap-1">
+              <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><Tag className="h-3 w-3" />Tags</label>
+              <div className="flex items-center gap-2">
+                <Input placeholder="Adicionar tag..." value={tagInput} onChange={e => setTagInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) { setFormData({ ...formData, tags: [...formData.tags, tagInput.trim()] }); setTagInput(""); } } }} className="bg-black/30 border-white/5 text-white flex-1" />
+              </div>
+              {formData.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {formData.tags.map(tag => (
+                    <Badge key={tag} className="bg-primary/20 text-primary text-xs gap-1">
+                      {tag}
+                      <button type="button" onClick={() => setFormData({ ...formData, tags: formData.tags.filter(t => t !== tag) })}><X className="h-3 w-3" /></button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
           <div className="flex items-center justify-between pt-3 border-t border-white/10">
             <Button type="button" variant="ghost" onClick={onBack} className="text-zinc-400 hover:text-white hover:bg-white/5">Voltar</Button>
             <Button type="submit" disabled={saving} className="bg-primary hover:bg-primary/90 text-white gap-2">
@@ -257,6 +301,15 @@ function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => voi
   const [urls, setUrls] = useState("");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [preco, setPreco] = useState("");
+  const [categoryId, setCategoryId] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState("");
+
+  useEffect(() => {
+    supabase.from("product_categories").select("id, name").then(({ data }) => setCategories(data ?? []));
+  }, []);
 
   const urlLines = useMemo(() => urls.split("\n").filter(l => l.trim()), [urls]);
 
@@ -269,7 +322,12 @@ function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => voi
       identification_link: url.trim(),
       status: "aguardando",
       folder: folder.id,
-      data: { notes },
+      data: {
+        notes,
+        preco: preco ? parseFloat(preco) : undefined,
+        categoryId: categoryId || undefined,
+        tags: tags.length > 0 ? tags : undefined,
+      },
     }));
     const { error } = await supabase.from("stock_items").insert(items);
     setSaving(false);
@@ -326,6 +384,33 @@ function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => voi
               <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Observações sobre origem, fornecedor..." className="min-h-[120px] bg-zinc-900/50 border-zinc-700 text-white resize-none" />
             </div>
             <div className="space-y-3 pt-2">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><DollarSign className="h-3 w-3" />Preço (R$)</label>
+                <Input type="number" step="0.01" min="0" placeholder="0.00" value={preco} onChange={e => setPreco(e.target.value)} className="bg-zinc-900/50 border-zinc-700 text-white" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><FolderOpen className="h-3 w-3" />Categoria</label>
+                <Select value={categoryId} onValueChange={setCategoryId}>
+                  <SelectTrigger className="bg-zinc-900/50 border-zinc-700 text-white"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                  <SelectContent>
+                    {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><Tag className="h-3 w-3" />Tags</label>
+                <Input placeholder="Adicionar tag + Enter" value={tagInput} onChange={e => setTagInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); if (tagInput.trim() && !tags.includes(tagInput.trim())) { setTags([...tags, tagInput.trim()]); setTagInput(""); } } }} className="bg-zinc-900/50 border-zinc-700 text-white" />
+                {tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {tags.map(tag => (
+                      <Badge key={tag} className="bg-primary/20 text-primary text-xs gap-1">
+                        {tag}
+                        <button onClick={() => setTags(tags.filter(t => t !== tag))}><X className="h-3 w-3" /></button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
               <Button onClick={handleSave} disabled={saving} className="w-full bg-primary hover:bg-primary/90 text-white gap-2 h-12">
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 Salvar BMs na Pasta
