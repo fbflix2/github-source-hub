@@ -204,41 +204,36 @@ export default function Dashboard() {
                     !product.available ? "opacity-70 hover:opacity-100" : ""
                   }`}
                 >
-                  {/* Image */}
-                  <div
-                    className={`relative aspect-square w-full overflow-hidden ${
-                      !product.available ? "grayscale group-hover:grayscale-0 transition-all duration-500" : ""
-                    }`}
-                  >
-                    {product.badge_text && (
-                      <div
-                        className={`absolute top-3 left-3 z-10 backdrop-blur-md text-xs font-bold px-3 py-1.5 rounded-full border flex items-center gap-1 ${product.badge_color || "bg-black/60 text-white border-white/10"}`}
-                      >
-                        {product.badge_icon && (
-                          <span className="material-symbols-outlined text-[14px]">{product.badge_icon}</span>
-                        )}
-                        {product.badge_text}
-                      </div>
-                    )}
-                    <div
-                      className="w-full h-full bg-cover bg-center transform group-hover:scale-110 transition-transform duration-700"
-                      style={{ backgroundImage: `url('${product.image_url || "/placeholder.svg"}')` }}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#0B0F14] via-transparent to-transparent opacity-80" />
-                  </div>
-
                   {/* Content */}
                   <div className="p-5 flex flex-col flex-1 gap-4">
                     <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors">
-                          {product.name}
-                        </h3>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {product.description && product.description.length > 150
-                            ? <>{product.description.substring(0, 150)}... <button onClick={() => setDetailProduct(product)} className="text-primary hover:underline font-medium text-xs">ler mais</button></>
-                            : product.description}
-                        </p>
+                      <div className="flex items-start gap-3">
+                        {/* Product image/icon */}
+                        <div className="shrink-0 w-10 h-10 rounded-lg overflow-hidden bg-secondary flex items-center justify-center">
+                          {product.image_url ? (
+                            <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                          ) : (
+                            <span className="material-symbols-outlined text-[20px] text-muted-foreground">inventory_2</span>
+                          )}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors">
+                              {product.name}
+                            </h3>
+                            {product.badge_text && (
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${product.badge_color || "bg-muted text-foreground border-border"}`}>
+                                {product.badge_icon && <span className="material-symbols-outlined text-[11px]">{product.badge_icon}</span>}
+                                {product.badge_text}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            {product.description && product.description.length > 150
+                              ? <>{product.description.substring(0, 150)}... <button onClick={() => setDetailProduct(product)} className="text-primary hover:underline font-medium text-xs">ler mais</button></>
+                              : product.description}
+                          </p>
+                        </div>
                       </div>
                       <div className="text-right">
                         <p className="text-xl font-bold text-foreground">
