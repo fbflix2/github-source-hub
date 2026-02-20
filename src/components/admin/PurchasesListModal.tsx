@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, Loader2, Pencil, Save, Trash2 } from "lucide-react";
+import { X, Loader2, Pencil, Save, Trash2, LinkIcon, User, Calendar, Layers, ShoppingCart, DollarSign, Wallet, ChevronDown, Store } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -21,13 +21,15 @@ interface Props {
   onUpdate: () => void;
 }
 
-const itemTypeLabels: Record<string, string> = {
-  profiles: "Perfis",
-  bms: "BMs",
-  pages: "Páginas",
-  combo: "Combo",
-  kit: "Kit Completo",
-};
+const itemTypes = [
+  { value: "profiles", label: "Perfis" },
+  { value: "bms", label: "BMs (Business Managers)" },
+  { value: "pages", label: "Páginas" },
+  { value: "combo", label: "Combo" },
+  { value: "kit", label: "Kit Completo" },
+];
+
+const itemTypeLabels: Record<string, string> = Object.fromEntries(itemTypes.map(t => [t.value, t.label]));
 
 const formatCurrency = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -36,7 +38,7 @@ export default function PurchasesListModal({ open, onClose, onUpdate }: Props) {
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editData, setEditData] = useState({ provider_name: "", quantity: 0, unit_value: 0, item_type: "" });
+  const [editData, setEditData] = useState({ provider_name: "", provider_link: "", purchase_date: "", quantity: 0, unit_value: 0, item_type: "" });
   const [saving, setSaving] = useState(false);
 
   const fetchPurchases = async () => {
@@ -55,7 +57,7 @@ export default function PurchasesListModal({ open, onClose, onUpdate }: Props) {
 
   const startEdit = (p: Purchase) => {
     setEditingId(p.id);
-    setEditData({ provider_name: p.provider_name, quantity: p.quantity, unit_value: p.unit_value, item_type: p.item_type });
+    setEditData({ provider_name: p.provider_name, provider_link: p.provider_link || "", purchase_date: p.purchase_date, quantity: p.quantity, unit_value: p.unit_value, item_type: p.item_type });
   };
 
   const handleSave = async (id: string) => {
@@ -63,6 +65,8 @@ export default function PurchasesListModal({ open, onClose, onUpdate }: Props) {
     const total = editData.quantity * editData.unit_value;
     const { error } = await supabase.from("purchases").update({
       provider_name: editData.provider_name,
+      provider_link: editData.provider_link || null,
+      purchase_date: editData.purchase_date,
       quantity: editData.quantity,
       unit_value: editData.unit_value,
       total_value: total,
@@ -118,56 +122,114 @@ export default function PurchasesListModal({ open, onClose, onUpdate }: Props) {
               {purchases.map((p) => (
                 <div key={p.id} className="bg-white/5 border border-white/10 rounded-xl p-4">
                   {editingId === p.id ? (
-                    <div className="space-y-3">
-                      <div className="grid grid-cols-2 gap-3">
-                        <input
-                          value={editData.provider_name}
-                          onChange={(e) => setEditData(d => ({ ...d, provider_name: e.target.value }))}
-                          placeholder="Fornecedor"
-                          className="bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
-                        />
-                        <select
-                          value={editData.item_type}
-                          onChange={(e) => setEditData(d => ({ ...d, item_type: e.target.value }))}
-                          className="bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
-                        >
-                          {Object.entries(itemTypeLabels).map(([k, v]) => (
-                            <option key={k} value={k} className="bg-[#1a1a1a]">{v}</option>
-                          ))}
-                        </select>
-                        <input
-                          type="number"
-                          value={editData.quantity}
-                          onChange={(e) => setEditData(d => ({ ...d, quantity: Number(e.target.value) }))}
-                          placeholder="Qtd"
-                          className="bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
-                        />
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={editData.unit_value}
-                          onChange={(e) => setEditData(d => ({ ...d, unit_value: Number(e.target.value) }))}
-                          placeholder="Valor unit."
-                          className="bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
-                        />
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm text-white/50">
-                          Total: {formatCurrency(editData.quantity * editData.unit_value)}
-                        </span>
-                        <div className="flex gap-2">
-                          <button onClick={() => setEditingId(null)} className="px-3 py-1.5 text-xs text-white/50 hover:text-white">
-                            Cancelar
-                          </button>
-                          <button
-                            onClick={() => handleSave(p.id)}
-                            disabled={saving}
-                            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary text-white hover:bg-red-700 transition-colors"
-                          >
-                            {saving ? <Loader2 className="size-3 animate-spin" /> : <Save className="size-3" />}
-                            Salvar
-                          </button>
+                    <div className="space-y-4">
+                      {/* Fornecedor section */}
+                      <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider flex items-center gap-2">
+                        <Store className="size-4 text-primary" /> Dados do Fornecedor
+                      </h3>
+                      <div className="space-y-3">
+                        {/* Link */}
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><LinkIcon className="size-4 text-white/30" /></div>
+                          <input
+                            value={editData.provider_link}
+                            onChange={(e) => setEditData(d => ({ ...d, provider_link: e.target.value }))}
+                            placeholder="Link do fornecedor (opcional)"
+                            className="w-full bg-black/30 border border-white/10 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder-white/30 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all"
+                          />
                         </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          {/* Nome */}
+                          <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><User className="size-4 text-white/30" /></div>
+                            <input
+                              value={editData.provider_name}
+                              onChange={(e) => setEditData(d => ({ ...d, provider_name: e.target.value }))}
+                              placeholder="Nome do fornecedor"
+                              className="w-full bg-black/30 border border-white/10 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder-white/30 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all"
+                            />
+                          </div>
+                          {/* Data */}
+                          <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><Calendar className="size-4 text-white/30" /></div>
+                            <input
+                              type="date"
+                              value={editData.purchase_date}
+                              onChange={(e) => setEditData(d => ({ ...d, purchase_date: e.target.value }))}
+                              className="w-full bg-black/30 border border-white/10 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white/80 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all [color-scheme:dark]"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Itens section */}
+                      <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider flex items-center gap-2 pt-2">
+                        <Layers className="size-4 text-primary" /> Detalhes dos Itens
+                      </h3>
+                      <div className="grid grid-cols-2 gap-3">
+                        {/* Tipo */}
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><Layers className="size-4 text-white/30" /></div>
+                          <select
+                            value={editData.item_type}
+                            onChange={(e) => setEditData(d => ({ ...d, item_type: e.target.value }))}
+                            className="w-full bg-black/30 border border-white/10 rounded-lg pl-10 pr-8 py-2.5 text-sm text-white appearance-none cursor-pointer focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all"
+                          >
+                            {itemTypes.map((t) => (
+                              <option key={t.value} value={t.value} className="bg-[#1a1a1a]">{t.label}</option>
+                            ))}
+                          </select>
+                          <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none"><ChevronDown className="size-4 text-white/30" /></div>
+                        </div>
+                        {/* Quantidade */}
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><ShoppingCart className="size-4 text-white/30" /></div>
+                          <input
+                            type="number"
+                            min="1"
+                            value={editData.quantity}
+                            onChange={(e) => setEditData(d => ({ ...d, quantity: Number(e.target.value) }))}
+                            placeholder="Quantidade"
+                            className="w-full bg-black/30 border border-white/10 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder-white/30 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all"
+                          />
+                        </div>
+                        {/* Valor unitário */}
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><DollarSign className="size-4 text-white/30" /></div>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={editData.unit_value}
+                            onChange={(e) => setEditData(d => ({ ...d, unit_value: Number(e.target.value) }))}
+                            placeholder="Valor unitário"
+                            className="w-full bg-black/30 border border-white/10 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder-white/30 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all"
+                          />
+                        </div>
+                        {/* Valor total (readonly) */}
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><Wallet className="size-4 text-white/30" /></div>
+                          <input
+                            type="text"
+                            value={formatCurrency(editData.quantity * editData.unit_value)}
+                            disabled
+                            className="w-full bg-white/5 border border-white/5 rounded-lg pl-10 pr-4 py-2.5 text-sm font-bold text-white cursor-not-allowed"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex justify-end items-center gap-2 pt-2">
+                        <button onClick={() => setEditingId(null)} className="px-4 py-2 text-xs text-white/50 hover:text-white transition-colors">
+                          Cancelar
+                        </button>
+                        <button
+                          onClick={() => handleSave(p.id)}
+                          disabled={saving}
+                          className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                        >
+                          {saving ? <Loader2 className="size-3 animate-spin" /> : <Save className="size-3" />}
+                          Salvar
+                        </button>
                       </div>
                     </div>
                   ) : (
