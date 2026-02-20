@@ -174,7 +174,7 @@ export default function AdminEstoque() {
                         {item.type === "perfil" && item.identification && !failedImages.has(item.id) ? (
                           <div className="w-10 h-10 rounded-full overflow-hidden bg-cyan-500/20 flex items-center justify-center shrink-0">
                             <img
-                              src={`https://graph.facebook.com/${item.identification}/picture?type=normal`}
+                              src={`https://graph.facebook.com/${item.identification}/picture?type=large&width=80&height=80`}
                               alt={item.name}
                               className="w-full h-full object-cover"
                               referrerPolicy="no-referrer"
