@@ -1,1 +1,4 @@
 project_id = "mxnlerkeygfvdnznoxld"
+
+[functions.fb-photo]
+verify_jwt = false

@@ -45,8 +45,39 @@ const itemTypes = [
 function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => void; onSaved: () => void }) {
   const [showPassword, setShowPassword] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [fetchingPhoto, setFetchingPhoto] = useState(false);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [tagInput, setTagInput] = useState("");
+
+  const handleFetchPhoto = async () => {
+    if (!formData.linkPerfil) {
+      toast.error("Preencha o link do perfil primeiro");
+      return;
+    }
+    setFetchingPhoto(true);
+    try {
+      const res = await fetch(
+        `https://mxnlerkeygfvdnznoxld.supabase.co/functions/v1/fb-photo?url=${encodeURIComponent(formData.linkPerfil)}`,
+        {
+          headers: {
+            "Authorization": `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im14bmxlcmtleWdmdmRuem5veGxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE0NDQ1NTAsImV4cCI6MjA4NzAyMDU1MH0.CTNgMcfo3AdbiiKIONkE0svroKgekXQ4x71bDpqwEV8`,
+            "apikey": `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im14bmxlcmtleWdmdmRuem5veGxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE0NDQ1NTAsImV4cCI6MjA4NzAyMDU1MH0.CTNgMcfo3AdbiiKIONkE0svroKgekXQ4x71bDpqwEV8`,
+          },
+        }
+      );
+      const data = await res.json();
+      if (data.ok && data.photoUrl) {
+        setFormData({ ...formData, fotoUrl: data.photoUrl });
+        toast.success("Foto do perfil encontrada!");
+      } else {
+        toast.error(data.error || "Não foi possível buscar a foto");
+      }
+    } catch (err) {
+      toast.error("Erro ao buscar foto do perfil");
+    } finally {
+      setFetchingPhoto(false);
+    }
+  };
   const [formData, setFormData] = useState({
     linkPerfil: "", idPerfil: "", emailAcesso: "", emailAlternativo: "",
     senha: "", token2fa: "", tempoPlataforma: "3-meses", statusAtual: "aquecido",
@@ -171,10 +202,24 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
                 <label className="text-xs font-medium text-zinc-400 group-focus-within:text-white transition-colors">
                   URL da Foto do Perfil <span className="text-zinc-600">(opcional)</span>
                 </label>
-                <div className="relative">
-                  <CircleUser className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-                  <Input type="url" placeholder="Copiar endereço da imagem do Facebook" value={formData.fotoUrl} onChange={e => setFormData({ ...formData, fotoUrl: e.target.value })} className="pl-10 bg-black/30 border-white/5 text-white placeholder:text-zinc-600" />
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <CircleUser className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                    <Input type="url" placeholder="Copiar endereço da imagem do Facebook" value={formData.fotoUrl} onChange={e => setFormData({ ...formData, fotoUrl: e.target.value })} className="pl-10 bg-black/30 border-white/5 text-white placeholder:text-zinc-600" />
+                  </div>
+                  {formData.linkPerfil && (
+                    <Button type="button" size="sm" variant="outline" disabled={fetchingPhoto} onClick={handleFetchPhoto} className="shrink-0 border-primary/30 text-primary hover:bg-primary/10 gap-1.5">
+                      {fetchingPhoto ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CircleUser className="h-3.5 w-3.5" />}
+                      Buscar Foto
+                    </Button>
+                  )}
                 </div>
+                {formData.fotoUrl && (
+                  <div className="mt-1 flex items-center gap-2">
+                    <img src={formData.fotoUrl} alt="Preview" className="h-8 w-8 rounded-full object-cover border border-white/10" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                    <span className="text-[10px] text-zinc-500 truncate max-w-[200px]">{formData.fotoUrl}</span>
+                  </div>
+                )}
               </div>
             </div>
 
