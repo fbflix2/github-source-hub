@@ -42,12 +42,12 @@ export function ProductListItem({ product, quantity, onQuantityChange, onReadMor
 
   return (
     <article
-      className={`glass-card rounded-xl overflow-hidden flex flex-col sm:flex-row items-stretch gap-0 group ${
+      className={`glass-card rounded-xl overflow-hidden flex flex-row items-center gap-0 group ${
         !product.available ? "opacity-70 hover:opacity-100" : ""
       }`}
     >
       {/* Left: Icon / Image */}
-      <div className="shrink-0 w-20 sm:w-20 h-20 flex items-center justify-center bg-secondary/50 border-b sm:border-b-0 sm:border-r border-border overflow-hidden">
+      <div className="shrink-0 w-16 h-16 m-3 rounded-lg overflow-hidden bg-secondary/50 flex items-center justify-center">
         {product.image_url ? (
           <img
             src={product.image_url}
