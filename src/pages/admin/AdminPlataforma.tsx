@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Plus, Search, Trash2, SquarePen, Tag, FolderTree, Palette, X, Save, User, Briefcase, Server, Globe, Flag, CircleUser, Building2, PackageOpen, Shield, Wifi, Key, Monitor, Smartphone, CreditCard, Mail, Lock, Loader2, type LucideIcon } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Plus, Search, Trash2, SquarePen, Tag, FolderTree, Palette, X, Save, User, Briefcase, Server, Globe, Flag, CircleUser, Building2, PackageOpen, Shield, Wifi, Key, Monitor, Smartphone, CreditCard, Mail, Lock, Loader2, ImageIcon, Upload, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -65,7 +65,7 @@ const platformIcons: PlatformIcon[] = [
 ];
 
 export default function AdminPlataforma() {
-  const [activeTab, setActiveTab] = useState<"tags" | "categorias" | "icones">("tags");
+  const [activeTab, setActiveTab] = useState<"tags" | "categorias" | "icones" | "imagens">("tags");
   const [statusTags, setStatusTags] = useState<TagItem[]>(defaultStatusTags);
   const [productTags, setProductTags] = useState<TagItem[]>(defaultProductTags);
   const [searchTerm, setSearchTerm] = useState("");
@@ -83,10 +83,50 @@ export default function AdminPlataforma() {
   const [categoryForm, setCategoryForm] = useState({ name: "", slug: "" });
   const [savingCategory, setSavingCategory] = useState(false);
 
+  // Product images state
+  const [productImages, setProductImages] = useState<{ id: string; name: string; url: string; created_at: string }[]>([]);
+  const [loadingImages, setLoadingImages] = useState(true);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Fetch categories
   useEffect(() => {
     fetchCategories();
+    fetchProductImages();
   }, []);
+
+  const fetchProductImages = async () => {
+    setLoadingImages(true);
+    const { data, error } = await supabase.from("product_images").select("*").order("created_at", { ascending: false });
+    if (data) setProductImages(data);
+    if (error) toast.error("Erro ao carregar imagens");
+    setLoadingImages(false);
+  };
+
+  const handleUploadImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingImage(true);
+    const ext = file.name.split(".").pop();
+    const fileName = `${Date.now()}.${ext}`;
+    const { error: uploadError } = await supabase.storage.from("product-images").upload(fileName, file);
+    if (uploadError) { toast.error("Erro ao fazer upload"); setUploadingImage(false); return; }
+    const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(fileName);
+    const { error: insertError } = await supabase.from("product_images").insert({ name: file.name, url: urlData.publicUrl });
+    if (insertError) { toast.error("Erro ao salvar imagem"); setUploadingImage(false); return; }
+    toast.success("Imagem adicionada!");
+    setUploadingImage(false);
+    fetchProductImages();
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleDeleteImage = async (img: { id: string; url: string }) => {
+    const path = img.url.split("/product-images/").pop();
+    if (path) await supabase.storage.from("product-images").remove([path]);
+    await supabase.from("product_images").delete().eq("id", img.id);
+    toast.success("Imagem removida!");
+    fetchProductImages();
+  };
 
   const fetchCategories = async () => {
     setLoadingCategories(true);
@@ -154,6 +194,7 @@ export default function AdminPlataforma() {
   const tabs = [
     { key: "tags" as const, label: "Tags de Status", icon: Tag },
     { key: "categorias" as const, label: "Categorias", icon: FolderTree },
+    { key: "imagens" as const, label: "Imagens de Produtos", icon: ImageIcon },
     { key: "icones" as const, label: "Banco de Ícones", icon: Palette },
   ];
 
@@ -427,6 +468,63 @@ export default function AdminPlataforma() {
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Imagens Tab */}
+      {activeTab === "imagens" && (
+        <section className="bg-[rgba(20,20,20,0.6)] backdrop-blur-xl border border-white/[0.08] rounded-2xl p-6 md:p-8">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold flex items-center gap-2">
+              <ImageIcon className="w-5 h-5 text-primary" />
+              Imagens de Produtos
+            </h2>
+            <div>
+              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleUploadImage} />
+              <Button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingImage}
+                className="bg-primary hover:bg-red-700 text-white font-bold py-2.5 px-5 rounded-xl flex items-center gap-2 shadow-lg shadow-primary/20"
+              >
+                {uploadingImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                Enviar Imagem
+              </Button>
+            </div>
+          </div>
+          <p className="text-gray-500 text-sm mb-6">Cadastre imagens para usar como foto dos produtos na blocagem.</p>
+
+          {loadingImages ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+            </div>
+          ) : productImages.length === 0 ? (
+            <div className="text-center py-12">
+              <ImageIcon className="w-10 h-10 text-gray-600 mx-auto mb-3" />
+              <p className="text-gray-400 text-sm">Nenhuma imagem cadastrada ainda.</p>
+              <p className="text-gray-500 text-xs mt-1">Envie imagens para associar aos produtos.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {productImages
+                .filter(img => img.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                .map((img) => (
+                <div key={img.id} className="group relative rounded-xl overflow-hidden border border-white/10 hover:border-primary/30 transition-all bg-white/5">
+                  <div className="aspect-square">
+                    <img src={img.url} alt={img.name} className="w-full h-full object-cover" />
+                  </div>
+                  <div className="p-2">
+                    <p className="text-xs text-gray-400 truncate">{img.name}</p>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteImage(img)}
+                    className="absolute top-2 right-2 p-1.5 rounded-lg bg-black/60 text-gray-400 hover:text-red-500 hover:bg-red-500/20 opacity-0 group-hover:opacity-100 transition-all"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               ))}
             </div>
