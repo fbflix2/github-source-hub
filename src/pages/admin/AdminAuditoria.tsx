@@ -39,25 +39,24 @@ export default function AdminAuditoria() {
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       const since = thirtyDaysAgo.toISOString();
 
-      // Fetch completed orders (revenue) and payments (costs) in parallel
-      const [ordersRes, paymentsRes] = await Promise.all([
+      // Fetch completed orders (revenue) and purchases (costs) in parallel
+      const [ordersRes, purchasesRes] = await Promise.all([
         supabase
           .from("orders")
           .select("total, updated_at")
           .in("status", ["completed", "delivered", "processing"])
           .gte("created_at", since),
         supabase
-          .from("payments")
-          .select("amount, updated_at")
-          .eq("status", "completed")
+          .from("purchases")
+          .select("total_value, updated_at")
           .gte("created_at", since),
       ]);
 
       const orders = ordersRes.data ?? [];
-      const payments = paymentsRes.data ?? [];
+      const purchases = purchasesRes.data ?? [];
 
       const revenue = orders.reduce((sum, o) => sum + Number(o.total || 0), 0);
-      const cost = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+      const cost = purchases.reduce((sum, p) => sum + Number(p.total_value || 0), 0);
 
       setTotalRevenue(revenue);
       setTotalCost(cost);
@@ -65,7 +64,7 @@ export default function AdminAuditoria() {
       // Find most recent update
       const allDates = [
         ...orders.map(o => new Date(o.updated_at)),
-        ...payments.map(p => new Date(p.updated_at)),
+        ...purchases.map(p => new Date(p.updated_at)),
       ].filter(d => !isNaN(d.getTime()));
       
       if (allDates.length > 0) {
