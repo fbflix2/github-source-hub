@@ -47,7 +47,7 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
   const [showPassword, setShowPassword] = useState(false);
   const [saving, setSaving] = useState(false);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
-  const [tagInput, setTagInput] = useState("");
+  const [productDefaults, setProductDefaults] = useState<{ id: string; name: string; tags: string[] }[]>([]);
   const [productImages, setProductImages] = useState<{ id: string; name: string; url: string }[]>([]);
   const [showImagePicker, setShowImagePicker] = useState(false);
   const [formData, setFormData] = useState({
@@ -60,6 +60,7 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
   useEffect(() => {
     supabase.from("product_categories").select("id, name").then(({ data }) => setCategories(data ?? []));
     supabase.from("product_images").select("id, name, url").eq("category", "perfil").order("created_at", { ascending: false }).then(({ data }) => setProductImages(data ?? []));
+    supabase.from("product_defaults").select("id, name, tags").order("name").then(({ data }) => setProductDefaults((data as any) ?? []));
   }, []);
 
   const handleSave = async () => {
@@ -106,7 +107,6 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
       cookies: "", descricao: "", nomePerfil: "", dataNascimento: "", genero: "masculino",
       linkDocumento: "", fotoUrl: "", preco: "", categoryId: "", tags: [] as string[], nomeProduto: ""
     });
-    setTagInput("");
   };
 
   return (
@@ -288,7 +288,15 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
                 </div>
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-medium text-zinc-400">Nome do Produto</label>
-                  <Input placeholder="Ex: BM Premium" value={formData.nomeProduto} onChange={e => setFormData({ ...formData, nomeProduto: e.target.value })} className="bg-black/30 border-white/5 text-white text-xs" />
+                  <Select value={formData.nomeProduto} onValueChange={v => {
+                    const def = productDefaults.find(d => d.name === v);
+                    setFormData({ ...formData, nomeProduto: v, tags: def?.tags ?? [] });
+                  }}>
+                    <SelectTrigger className="bg-black/30 border-white/5 text-white text-xs"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                    <SelectContent>
+                      {productDefaults.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               {/* Product fields inline */}
@@ -307,20 +315,16 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
                   </Select>
                 </div>
               </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><Tag className="h-3 w-3" />Tags</label>
-                <Input placeholder="Adicionar tag + Enter" value={tagInput} onChange={e => setTagInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) { setFormData({ ...formData, tags: [...formData.tags, tagInput.trim()] }); setTagInput(""); } } }} className="bg-black/30 border-white/5 text-white" />
-                {formData.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-1">
+              {formData.tags.length > 0 && (
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><Tag className="h-3 w-3" />Tags (do padrão)</label>
+                  <div className="flex flex-wrap gap-1">
                     {formData.tags.map(tag => (
-                      <Badge key={tag} className="bg-primary/20 text-primary text-xs gap-1">
-                        {tag}
-                        <button type="button" onClick={() => setFormData({ ...formData, tags: formData.tags.filter(t => t !== tag) })}><X className="h-3 w-3" /></button>
-                      </Badge>
+                      <Badge key={tag} className="bg-primary/20 text-primary text-xs">{tag}</Badge>
                     ))}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
               {/* Product Image Picker */}
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><ImageIcon className="h-3 w-3" />Foto do Produto</label>
@@ -399,7 +403,8 @@ function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => voi
   const [preco, setPreco] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [tags, setTags] = useState<string[]>([]);
-  const [tagInput, setTagInput] = useState("");
+  const [nomeProduto, setNomeProduto] = useState("");
+  const [productDefaults, setProductDefaults] = useState<{ id: string; name: string; tags: string[] }[]>([]);
   const [productImages, setProductImages] = useState<{ id: string; name: string; url: string }[]>([]);
   const [showImagePicker, setShowImagePicker] = useState(false);
   const [selectedImageUrl, setSelectedImageUrl] = useState("");
@@ -407,6 +412,7 @@ function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => voi
   useEffect(() => {
     supabase.from("product_categories").select("id, name").then(({ data }) => setCategories(data ?? []));
     supabase.from("product_images").select("id, name, url").eq("category", "bm").order("created_at", { ascending: false }).then(({ data }) => setProductImages(data ?? []));
+    supabase.from("product_defaults").select("id, name, tags").order("name").then(({ data }) => setProductDefaults((data as any) ?? []));
   }, []);
 
   const urlLines = useMemo(() => urls.split("\n").filter(l => l.trim()), [urls]);
@@ -426,6 +432,7 @@ function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => voi
         categoryId: categoryId || undefined,
         tags: tags.length > 0 ? tags : undefined,
         foto_url: selectedImageUrl || undefined,
+        nomeProduto: nomeProduto || undefined,
       },
     }));
     const { error } = await supabase.from("stock_items").insert(items);
@@ -437,7 +444,7 @@ function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => voi
     setPreco("");
     setCategoryId("");
     setTags([]);
-    setTagInput("");
+    setNomeProduto("");
     setSelectedImageUrl("");
   };
 
@@ -503,19 +510,28 @@ function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => voi
                 </Select>
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><Tag className="h-3 w-3" />Tags</label>
-                <Input placeholder="Adicionar tag + Enter" value={tagInput} onChange={e => setTagInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); if (tagInput.trim() && !tags.includes(tagInput.trim())) { setTags([...tags, tagInput.trim()]); setTagInput(""); } } }} className="bg-zinc-900/50 border-zinc-700 text-white" />
-                {tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-1">
+                <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><PackageOpen className="h-3 w-3" />Nome do Produto</label>
+                <Select value={nomeProduto} onValueChange={v => {
+                  const def = productDefaults.find(d => d.name === v);
+                  setNomeProduto(v);
+                  setTags(def?.tags ?? []);
+                }}>
+                  <SelectTrigger className="bg-zinc-900/50 border-zinc-700 text-white"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                  <SelectContent>
+                    {productDefaults.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              {tags.length > 0 && (
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><Tag className="h-3 w-3" />Tags (do padrão)</label>
+                  <div className="flex flex-wrap gap-1">
                     {tags.map(tag => (
-                      <Badge key={tag} className="bg-primary/20 text-primary text-xs gap-1">
-                        {tag}
-                        <button onClick={() => setTags(tags.filter(t => t !== tag))}><X className="h-3 w-3" /></button>
-                      </Badge>
+                      <Badge key={tag} className="bg-primary/20 text-primary text-xs">{tag}</Badge>
                     ))}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
               {/* Product Image Picker */}
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><ImageIcon className="h-3 w-3" />Foto do Produto</label>
