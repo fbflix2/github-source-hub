@@ -95,7 +95,7 @@ export function ProductListItem({ product, quantity, onQuantityChange, onReadMor
             {product.tags.map((tag) => (
               <span
                 key={tag}
-                className="text-[10px] px-2 py-0.5 rounded-full bg-secondary text-muted-foreground border border-border"
+                className="text-[10px] px-2 py-0.5 rounded-full bg-foreground text-background font-medium"
               >
                 {tag}
               </span>

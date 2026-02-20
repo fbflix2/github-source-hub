@@ -100,7 +100,7 @@ export function ProductDetailModal({ product, open, onOpenChange, quantity, onQu
               {product.tags.map((tag) => (
                 <span
                   key={tag}
-                  className="text-xs px-3 py-1 rounded-full bg-secondary text-muted-foreground border border-border"
+                  className="text-xs px-3 py-1 rounded-full bg-foreground text-background font-medium"
                 >
                   {tag}
                 </span>
