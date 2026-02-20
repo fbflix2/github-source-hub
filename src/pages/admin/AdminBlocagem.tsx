@@ -48,7 +48,7 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
     linkPerfil: "", idPerfil: "", emailAcesso: "", emailAlternativo: "",
     senha: "", token2fa: "", tempoPlataforma: "3-meses", statusAtual: "aquecido",
     cookies: "", descricao: "", nomePerfil: "", dataNascimento: "", genero: "masculino",
-    linkDocumento: ""
+    linkDocumento: "", fotoUrl: ""
   });
 
   const handleSave = async () => {
@@ -77,6 +77,7 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
         statusAtual: formData.statusAtual,
         cookies: formData.cookies,
         descricao: formData.descricao,
+        foto_url: formData.fotoUrl || undefined,
       },
     });
     setSaving(false);
@@ -153,6 +154,16 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
                 <div className="relative">
                   <Link className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
                   <Input type="url" placeholder="https://drive.google.com/..." value={formData.linkDocumento} onChange={e => setFormData({ ...formData, linkDocumento: e.target.value })} className="pl-10 bg-black/30 border-white/5 text-white placeholder:text-zinc-600" />
+                </div>
+              </div>
+              {/* URL da Foto do Perfil (opcional) */}
+              <div className="flex flex-col gap-2 group">
+                <label className="text-sm font-medium text-zinc-400 group-focus-within:text-white transition-colors">
+                  URL da Foto do Perfil <span className="text-zinc-600">(opcional)</span>
+                </label>
+                <div className="relative">
+                  <CircleUser className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                  <Input type="url" placeholder="Clique com botão direito na foto do Facebook → Copiar endereço da imagem" value={formData.fotoUrl} onChange={e => setFormData({ ...formData, fotoUrl: e.target.value })} className="pl-10 bg-black/30 border-white/5 text-white placeholder:text-zinc-600" />
                 </div>
               </div>
             </div>
