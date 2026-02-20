@@ -28,6 +28,8 @@ export default function Profile() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -55,6 +57,7 @@ export default function Profile() {
         });
         setVerified((profile as any).verified || false);
         setDocumentUrl((profile as any).document_url || null);
+        setAvatarUrl(profile.avatar_url || null);
       }
       setLoading(false);
     };
@@ -135,6 +138,38 @@ export default function Profile() {
     toast({ title: "Documento enviado!", description: "Salve as alterações para confirmar." });
   };
 
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !userId) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast({ title: "Arquivo muito grande", description: "O tamanho máximo é 2MB.", variant: "destructive" });
+      return;
+    }
+
+    setUploadingAvatar(true);
+    const ext = file.name.split(".").pop();
+    const path = `${userId}/avatar.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("avatars")
+      .upload(path, file, { upsert: true });
+
+    if (uploadError) {
+      toast({ title: "Erro no upload", description: uploadError.message, variant: "destructive" });
+      setUploadingAvatar(false);
+      return;
+    }
+
+    const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(path);
+    const newUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+
+    await supabase.from("profiles").update({ avatar_url: newUrl } as any).eq("user_id", userId);
+    setAvatarUrl(newUrl);
+    setUploadingAvatar(false);
+    toast({ title: "Foto atualizada!", description: "Sua foto de perfil foi alterada." });
+  };
+
   const formatCpf = (value: string) => {
     const digits = value.replace(/\D/g, "").slice(0, 11);
     return digits
@@ -171,7 +206,7 @@ export default function Profile() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column - Profile Card */}
         <div className="lg:col-span-1">
-          <ProfileCard verified={verified} fullName={formData.full_name} />
+          <ProfileCard verified={verified} fullName={formData.full_name} avatarUrl={avatarUrl} onAvatarChange={handleAvatarUpload} uploadingAvatar={uploadingAvatar} />
         </div>
 
         {/* Right Column - Form */}
@@ -337,7 +372,10 @@ export default function Profile() {
   );
 }
 
-function ProfileCard({ verified, fullName }: { verified: boolean; fullName: string }) {
+function ProfileCard({ verified, fullName, avatarUrl, onAvatarChange, uploadingAvatar }: { 
+  verified: boolean; fullName: string; avatarUrl: string | null; 
+  onAvatarChange: (e: React.ChangeEvent<HTMLInputElement>) => void; uploadingAvatar: boolean;
+}) {
   const initials = fullName
     ? fullName.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()
     : "?";
@@ -348,18 +386,27 @@ function ProfileCard({ verified, fullName }: { verified: boolean; fullName: stri
 
       <div className="relative mb-6 z-10">
         <div className="w-32 h-32 rounded-full p-1 bg-gradient-to-tr from-red-400 via-red-600 to-red-800 mx-auto">
-          <div className="w-full h-full rounded-full bg-card border-4 border-card flex items-center justify-center text-4xl font-bold text-primary">
-            {initials}
-          </div>
+          {avatarUrl ? (
+            <img src={avatarUrl} alt="Avatar" className="w-full h-full rounded-full object-cover border-4 border-card" />
+          ) : (
+            <div className="w-full h-full rounded-full bg-card border-4 border-card flex items-center justify-center text-4xl font-bold text-primary">
+              {initials}
+            </div>
+          )}
         </div>
         {verified && (
           <div className="absolute -top-1 -right-1 bg-green-500 text-white p-1 rounded-full shadow-lg" title="Perfil Verificado">
             <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
           </div>
         )}
-        <button className="absolute bottom-1 right-1 bg-card text-primary p-2 rounded-full border border-border hover:bg-primary hover:text-primary-foreground transition-all shadow-lg" title="Alterar Foto">
-          <span className="material-symbols-outlined text-xl">photo_camera</span>
-        </button>
+        <label className="absolute bottom-1 right-1 bg-card text-primary p-2 rounded-full border border-border hover:bg-primary hover:text-primary-foreground transition-all shadow-lg cursor-pointer" title="Alterar Foto">
+          {uploadingAvatar ? (
+            <span className="material-symbols-outlined text-xl animate-spin">progress_activity</span>
+          ) : (
+            <span className="material-symbols-outlined text-xl">photo_camera</span>
+          )}
+          <input type="file" accept="image/*" onChange={onAvatarChange} className="hidden" disabled={uploadingAvatar} />
+        </label>
       </div>
 
       <h2 className="text-xl font-bold text-foreground">{fullName || "Sem nome"}</h2>
@@ -391,9 +438,14 @@ function ProfileCard({ verified, fullName }: { verified: boolean; fullName: stri
       </div>
 
       <div className="mt-8 w-full">
-        <button className="w-full bg-secondary hover:bg-secondary/80 text-foreground border border-dashed border-border hover:border-primary/50 hover:text-primary font-medium py-2.5 px-6 rounded-lg transition-all duration-200 text-sm">
-          Upload Nova Foto
-        </button>
+        <label className="w-full bg-secondary hover:bg-secondary/80 text-foreground border border-dashed border-border hover:border-primary/50 hover:text-primary font-medium py-2.5 px-6 rounded-lg transition-all duration-200 text-sm cursor-pointer flex items-center justify-center gap-2">
+          {uploadingAvatar ? (
+            <><span className="material-symbols-outlined text-lg animate-spin">progress_activity</span> Enviando...</>
+          ) : (
+            "Upload Nova Foto"
+          )}
+          <input type="file" accept="image/*" onChange={onAvatarChange} className="hidden" disabled={uploadingAvatar} />
+        </label>
       </div>
     </div>
   );
