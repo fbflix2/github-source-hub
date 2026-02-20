@@ -4,8 +4,10 @@ import {
   MessageSquare, Loader2, Inbox
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import AdminTicketModal from "@/components/admin/AdminTicketModal";
 
 type Filter = "todos" | "novos" | "andamento" | "prioridade";
+type ModalMode = "history" | "respond" | null;
 
 interface TicketRow {
   id: string;
@@ -44,6 +46,8 @@ export default function AdminSuporte() {
   const [tickets, setTickets] = useState<TicketRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [profiles, setProfiles] = useState<Record<string, { full_name: string | null; avatar_url: string | null }>>({});
+  const [selectedTicket, setSelectedTicket] = useState<TicketRow | null>(null);
+  const [modalMode, setModalMode] = useState<ModalMode>(null);
 
   const fetchTickets = async () => {
     setLoading(true);
@@ -214,10 +218,16 @@ export default function AdminSuporte() {
                     </div>
 
                     <div className="flex gap-2 mt-2">
-                      <button className="flex-1 text-xs font-medium py-2.5 rounded-lg bg-white/5 hover:bg-white/10 text-white border border-white/10 transition-colors">
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); setSelectedTicket(ticket); setModalMode("history"); }}
+                        className="flex-1 text-xs font-medium py-2.5 rounded-lg bg-white/5 hover:bg-white/10 text-white border border-white/10 transition-colors"
+                      >
                         Ver Histórico
                       </button>
-                      <button className="flex-1 text-xs font-bold py-2.5 rounded-lg bg-primary text-white hover:bg-red-700 shadow-lg shadow-primary/20 transition-colors">
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); setSelectedTicket(ticket); setModalMode("respond"); }}
+                        className="flex-1 text-xs font-bold py-2.5 rounded-lg bg-primary text-white hover:bg-red-700 shadow-lg shadow-primary/20 transition-colors"
+                      >
                         Responder
                       </button>
                     </div>
@@ -228,6 +238,17 @@ export default function AdminSuporte() {
           )}
         </div>
       </div>
+
+      {/* Ticket Modal */}
+      {selectedTicket && modalMode && (
+        <AdminTicketModal
+          ticket={selectedTicket}
+          profileName={profiles[selectedTicket.user_id]?.full_name || "Usuário"}
+          mode={modalMode}
+          onClose={() => { setSelectedTicket(null); setModalMode(null); }}
+          onStatusChange={fetchTickets}
+        />
+      )}
     </div>
   );
 }
