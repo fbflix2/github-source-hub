@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
+import { Loader2, LayoutGrid, List } from "lucide-react";
+import { ProductListItem } from "@/components/loja/ProductListItem";
 
 interface Product {
   id: string;
@@ -35,6 +36,7 @@ export default function Dashboard() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   useEffect(() => {
     async function fetchData() {
@@ -149,12 +151,43 @@ export default function Dashboard() {
               {filter}
             </button>
           ))}
+          <div className="ml-auto shrink-0 flex items-center gap-1 bg-secondary rounded-lg border border-border p-0.5">
+            <button
+              onClick={() => setViewMode("grid")}
+              className={`p-2 rounded-md transition-all ${
+                viewMode === "grid" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+              }`}
+              title="Visualização em grade"
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setViewMode("list")}
+              className={`p-2 rounded-md transition-all ${
+                viewMode === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+              }`}
+              title="Visualização em lista"
+            >
+              <List className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {filteredProducts.length === 0 ? (
           <div className="text-center py-12">
             <span className="material-symbols-outlined text-[48px] text-muted-foreground mb-4">inventory_2</span>
             <p className="text-muted-foreground">Nenhum produto encontrado.</p>
+          </div>
+        ) : viewMode === "list" ? (
+          <div className="flex flex-col gap-3">
+            {filteredProducts.map((product) => (
+              <ProductListItem
+                key={product.id}
+                product={product}
+                quantity={getQuantity(product.id)}
+                onQuantityChange={updateQuantity}
+              />
+            ))}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
