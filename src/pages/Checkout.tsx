@@ -1,15 +1,19 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { Wallet, QrCode, CreditCard, Lock, ChevronLeft, User, Calendar, Flame } from "lucide-react";
+import { Wallet, QrCode, CreditCard, Lock, ChevronLeft, User, Calendar, Flame, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useCart } from "@/contexts/CartContext";
 
-// Product types
-interface Product {
-  id: number;
+interface DbProduct {
+  id: string;
   name: string;
-  description: string;
+  description: string | null;
   price: number;
-  image: string;
-  category: "perfil" | "bm" | "proxy" | "pagina" | "combo" | "vps";
+  image_url: string | null;
+  stock: number;
+  available: boolean;
+  category_id: string | null;
+  icon_type: string | null;
 }
 
 interface OrderBump {
@@ -19,16 +23,6 @@ interface OrderBump {
   price: number;
   category: "bm" | "proxy" | "pagina";
 }
-
-// Products data (same as Loja)
-const productsData: Product[] = [
-  { id: 1, name: "Proxy Residencial USA", description: "Alta velocidade e anonimato garantido.", price: 45.9, image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAMSqMkFMWm7q_5x82E3XACzHyq9898Go9Hug-9lMLd1sQVyiK58rk7OF3poyqvp7DBJJfNlOr-O2E37t0qXTmDcQWookAfKKjxE9D-5HN6lH1NrbcNrXQC7T2CfKjtOXOtLT6gYkTdr9m91V20LNOCyEep9xXZYTAupDK6zVw6KXIyBNgTjdRpJw2SGcxKmWhTAg1wWnY9KYRHIy8mIKjt6OsdH34WRlu8GLD2aX3EzI6eHHc_hCd-vNAOmuisFfwqCY0vSsEp8DA", category: "proxy" },
-  { id: 2, name: "Perfil Facebook Verificado", description: "Com identidade confirmada (2FA).", price: 120.0, image: "https://lh3.googleusercontent.com/aida-public/AB6AXuD5eYHpual39JFzdVfIUveRKwEpvktDT2Wzqqma0ra3ujTEYArUee-k27oLLShRngjVdkjMvF9x49oLvq83jRy0VQqyuOv_gw4dDu4rDhQdFafPk4H9UL7g9mR7QobSkBKuVL9ce2mgX0XauOFV6ejkTqrCYsNWm2N8d5IDl7oxO8W5A0eWFxd3GbeE7rsftgwLE35jJWJx1HnnftEAy7cFD5_QM16nesA3Wl0fFa8TUlLiBNfHWeaZaQEOJM3TaDgf_TI1Jtmf-gk", category: "perfil" },
-  { id: 3, name: "BM Ilimitada (Business Manager)", description: "Pronta para escalar campanhas.", price: 89.9, image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCp-U1UhcdViYGvkknFNIrYbhmDzIumsVmVzLpBjbCDQiFXZtBOGzl5z0p1CdhWQOTSCpzG_NRNJZJLWBn-eGkcHzMoAEUs3fcdPIXCuvVur22cnPQ_PTMBLk_PMKrKqg1a2ZYeAxVLdQhDMFdvZDSFF-eHmFzJVX2A46K6C9jBpq_vh2r-M5OMwQoq8Du_08hO7aXMgmTMIFzHlWS-LKa89F_jiyfxgwzxE1M4hrZ5bGCG2iVdQbEyT8Olf_WCFs_foLU40j9BUvM", category: "bm" },
-  { id: 4, name: "Proxy 4G Brasil", description: "IP rotativo por requisição.", price: 150.0, image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCCa2hNG160-dnA_L73Yf0ci9TD2-LHfghTZppJ3xpt3VSAUsp6F5JxME5E9JPECXeP8zvRxfH1A9uCNRH4Bzg8nHtfXxGJUa4V2Op4VruhEBUVG2Jw_-1FDveBVGUk-ks7yiHCOq8wTHzPvdmtP_eW41Jyjb_UPvk2VPE6XIcAcwA0w3EQBLMA4DA84KIi5vHg6N2nsFkxnFNhwMcxkP6V3zTy17yJHMuVN36NFK3PFjKvprCJK8x_MpYQP_odvz8Lx0NawzichUY", category: "proxy" },
-  { id: 5, name: "Combo Contingência", description: "3 Perfis + 1 BM + 1 Proxy.", price: 299.0, image: "https://lh3.googleusercontent.com/aida-public/AB6AXuAnFEZY5cpPq1l1BVqS6wl2I7NPfMkxaKu1dn7OJ0eXDk2r71Veo6By9kTYl-rwJRsIRAcb1_mI9qnu9R1DPBkTg0B_rB_7LBCJZkSFvEhSPKCtjYFHEHoC1X7IvZ7wzt2ALyJNhILMQhX5NJgqGCijeYISQl2nyBWNjk5bycU3tYxm3t9pdo3r7pIg2nw8NygCaBGjVzeZh5ped8_1lAH0_lKS_B1899KDKSRq9smLesywT0PEZ6DIRWIYyggz3HSanRb8ioMCogA", category: "combo" },
-  { id: 6, name: "VPS High Performance", description: "Servidores dedicados para automação.", price: 0, image: "https://lh3.googleusercontent.com/aida-public/AB6AXuBP1k9GUEWnGsXtIp1PCAzOpWL4FQOnE11OE7R_LdXWio5rNf35CSbfjyz5CX3EpAvWv8q5ieDqgZI-8V7jY4rpGjBkjFsPe4vRsGYGj_h_BP9RLr-DiJaMyE2xr039-jDlBJCfzAy4ZVEzbvbfJ6LBoxLdbT84Rt6LBalxtI3g80YRMFq50ldR_ZBy1iFx7kI6jzFV-aEXK4lyAOX-Y0jZKV3tCGlGGHjtIT5_xL-bP28ilLosV61LF-tV6QRtvrWbG1l05IVjy44", category: "vps" },
-];
 
 // Order bumps available
 const availableOrderBumps: OrderBump[] = [
@@ -49,55 +43,112 @@ const upsellOffer = {
 export default function Checkout() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { items: cartItems } = useCart();
   
-  const productId = parseInt(searchParams.get("product") || "2");
+  const productId = searchParams.get("product") || "";
   const quantity = parseInt(searchParams.get("qty") || "1");
-  
-  const product = productsData.find((p) => p.id === productId) || productsData[1];
+
+  const [product, setProduct] = useState<DbProduct | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchProduct() {
+      if (!productId) {
+        // If no product param, use first cart item
+        if (cartItems.length > 0) {
+          setProduct({
+            id: String(cartItems[0].productId),
+            name: cartItems[0].name,
+            description: null,
+            price: cartItems[0].price,
+            image_url: cartItems[0].image,
+            stock: 999,
+            available: true,
+            category_id: null,
+            icon_type: null,
+          });
+        }
+        setLoading(false);
+        return;
+      }
+
+      const { data } = await supabase
+        .from("products")
+        .select("id, name, description, price, image_url, stock, available, category_id, icon_type")
+        .eq("id", productId)
+        .single();
+
+      if (data) setProduct(data);
+      setLoading(false);
+    }
+    fetchProduct();
+  }, [productId, cartItems]);
 
   const [paymentMethod, setPaymentMethod] = useState<"saldo" | "pix" | "cartao">("saldo");
   const [selectedBumps, setSelectedBumps] = useState<string[]>([]);
   const [upsellAdded, setUpsellAdded] = useState(false);
   const [coupon, setCoupon] = useState("");
   const [discount, setDiscount] = useState(0);
-
-  // Card form states
   const [cardNumber, setCardNumber] = useState("");
   const [cardName, setCardName] = useState("");
   const [cardExpiry, setCardExpiry] = useState("");
   const [cardCvv, setCardCvv] = useState("");
 
-  // Determine which order bumps to show based on what the product is missing
-  const relevantBumps = useMemo(() => {
-    const productCategory = product.category;
-    const bumps: OrderBump[] = [];
+  const productType = product?.icon_type || "perfil";
 
-    // If buying just a profile, offer BM, Proxy, and Page
-    if (productCategory === "perfil") {
+  const relevantBumps = useMemo(() => {
+    if (!product) return [];
+    const bumps: OrderBump[] = [];
+    if (productType === "perfil") {
       bumps.push(...availableOrderBumps);
-    }
-    // If buying just a BM, offer Proxy and Page
-    else if (productCategory === "bm") {
+    } else if (productType === "bm") {
       bumps.push(...availableOrderBumps.filter((b) => b.category !== "bm"));
-    }
-    // If buying just a Proxy, offer BM and Page
-    else if (productCategory === "proxy") {
+    } else if (productType === "proxy") {
       bumps.push(...availableOrderBumps.filter((b) => b.category !== "proxy"));
     }
-    // Combo already has everything, no bumps
-    else if (productCategory === "combo") {
-      return [];
-    }
-
     return bumps;
-  }, [product.category]);
+  }, [productType, product]);
 
-  // Show upsell only if customer is buying a profile and hasn't already added both BM and Proxy
   const showUpsell = useMemo(() => {
-    if (product.category !== "perfil") return false;
+    if (productType !== "perfil") return false;
     const hasBothItems = selectedBumps.includes("bm") && selectedBumps.includes("proxy");
     return !hasBothItems && !upsellAdded;
-  }, [product.category, selectedBumps, upsellAdded]);
+  }, [productType, selectedBumps, upsellAdded]);
+
+  const subtotal = useMemo(() => {
+    if (!product) return 0;
+    let total = product.price * quantity;
+
+    if (!upsellAdded) {
+      selectedBumps.forEach((bumpId) => {
+        const bump = availableOrderBumps.find((b) => b.id === bumpId);
+        if (bump) total += bump.price;
+      });
+    } else {
+      total += upsellOffer.discountedPrice;
+    }
+
+    return total;
+  }, [product, quantity, selectedBumps, upsellAdded]);
+
+  const total = subtotal - discount;
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="size-8 text-primary animate-spin" />
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div className="text-center py-20">
+        <p className="text-muted-foreground">Produto não encontrado.</p>
+        <button onClick={() => navigate("/loja")} className="text-primary mt-4 hover:underline">Voltar à loja</button>
+      </div>
+    );
+  }
 
   const toggleBump = (bumpId: string) => {
     setSelectedBumps((prev) =>
@@ -107,7 +158,6 @@ export default function Checkout() {
 
   const handleAddUpsell = () => {
     setUpsellAdded(true);
-    // Remove individual bumps if any were selected
     setSelectedBumps((prev) => prev.filter((id) => !upsellOffer.items.includes(id)));
   };
 
@@ -118,26 +168,6 @@ export default function Checkout() {
       setDiscount(0);
     }
   };
-
-  // Calculate totals
-  const subtotal = useMemo(() => {
-    let total = product.price * quantity;
-
-    // Add individual bumps (only if upsell not added)
-    if (!upsellAdded) {
-      selectedBumps.forEach((bumpId) => {
-        const bump = availableOrderBumps.find((b) => b.id === bumpId);
-        if (bump) total += bump.price;
-      });
-    } else {
-      // Add upsell price
-      total += upsellOffer.discountedPrice;
-    }
-
-    return total;
-  }, [product.price, quantity, selectedBumps, upsellAdded]);
-
-  const total = subtotal - discount;
 
   return (
     <div className="min-h-screen animate-fade-in pb-20">
@@ -382,7 +412,7 @@ export default function Checkout() {
                 <div className="flex gap-4 items-start">
                   <div
                     className="w-16 h-16 rounded-lg bg-surface border border-border flex items-center justify-center shrink-0 bg-cover bg-center"
-                    style={{ backgroundImage: `url('${product.image}')` }}
+                    style={{ backgroundImage: `url('${product.image_url || "/placeholder.svg"}')` }}
                   />
                   <div className="flex flex-col gap-1 flex-1">
                     <p className="text-sm font-semibold text-foreground leading-tight">

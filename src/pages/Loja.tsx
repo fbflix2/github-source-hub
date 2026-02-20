@@ -61,11 +61,14 @@ export default function Dashboard() {
 
   const getQuantity = (id: string) => quantities[id] || 1;
 
-  const updateQuantity = (id: string, delta: number) => {
-    setQuantities((prev) => ({
-      ...prev,
-      [id]: Math.max(1, (prev[id] || 1) + delta),
-    }));
+  const updateQuantity = (id: string, delta: number, maxStock?: number) => {
+    setQuantities((prev) => {
+      const newVal = Math.max(1, (prev[id] || 1) + delta);
+      return {
+        ...prev,
+        [id]: maxStock ? Math.min(newVal, maxStock) : newVal,
+      };
+    });
   };
 
   const getStockInfo = (product: Product) => {
@@ -242,7 +245,7 @@ export default function Dashboard() {
                           <div className="flex items-center justify-between gap-3">
                             <div className="flex items-center bg-secondary rounded-lg border border-border h-10 px-1">
                               <button
-                                onClick={() => updateQuantity(product.id, -1)}
+                                onClick={() => updateQuantity(product.id, -1, product.stock)}
                                 className="w-8 h-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted rounded transition"
                               >
                                 <span className="material-symbols-outlined text-[16px]">remove</span>
@@ -254,8 +257,9 @@ export default function Dashboard() {
                                 className="w-8 bg-transparent text-center text-sm font-medium border-0 focus:ring-0 text-foreground"
                               />
                               <button
-                                onClick={() => updateQuantity(product.id, 1)}
-                                className="w-8 h-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted rounded transition"
+                                onClick={() => updateQuantity(product.id, 1, product.stock)}
+                                disabled={getQuantity(product.id) >= product.stock}
+                                className="w-8 h-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted rounded transition disabled:opacity-30 disabled:cursor-not-allowed"
                               >
                                 <span className="material-symbols-outlined text-[16px]">add</span>
                               </button>
