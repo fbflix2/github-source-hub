@@ -3,6 +3,7 @@ import { Outlet, useNavigate } from "react-router-dom";
 import { Navbar } from "./Navbar";
 import { Headphones, MessageCircleQuestion, Ticket } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 interface MainLayoutProps {
   userName: string;
@@ -15,6 +16,17 @@ const WHATSAPP_NUMBER = "5511999999999"; // Substitua pelo número real
 const WHATSAPP_MESSAGE = encodeURIComponent("oi tenho uma dúvida rápida");
 
 export function MainLayout({ userName, userEmail, onLogout, unreadTickets = 0 }: MainLayoutProps) {
+  const [balance, setBalance] = useState(0);
+
+  useEffect(() => {
+    async function fetchBalance() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase.from("profiles").select("balance").eq("user_id", user.id).maybeSingle();
+      if (data) setBalance(data.balance);
+    }
+    fetchBalance();
+  }, []);
   const [showSupportMenu, setShowSupportMenu] = useState(false);
   const supportMenuRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -45,7 +57,7 @@ export function MainLayout({ userName, userEmail, onLogout, unreadTickets = 0 }:
       <Navbar
         userName={userName}
         userEmail={userEmail}
-        balance={1450.0}
+        balance={balance}
         onLogout={onLogout}
         unreadTickets={unreadTickets}
       />
