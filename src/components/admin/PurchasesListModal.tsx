@@ -12,6 +12,8 @@ interface Purchase {
   quantity: number;
   unit_value: number;
   total_value: number;
+  sale_price: number;
+  tax_rate: number;
   created_at: string;
 }
 
@@ -38,7 +40,7 @@ export default function PurchasesListModal({ open, onClose, onUpdate }: Props) {
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editData, setEditData] = useState({ provider_name: "", provider_link: "", purchase_date: "", quantity: 0, unit_value: 0, item_type: "" });
+  const [editData, setEditData] = useState({ provider_name: "", provider_link: "", purchase_date: "", quantity: 0, unit_value: 0, item_type: "", sale_price: 0, tax_rate: 0 });
   const [saving, setSaving] = useState(false);
 
   const fetchPurchases = async () => {
@@ -57,7 +59,7 @@ export default function PurchasesListModal({ open, onClose, onUpdate }: Props) {
 
   const startEdit = (p: Purchase) => {
     setEditingId(p.id);
-    setEditData({ provider_name: p.provider_name, provider_link: p.provider_link || "", purchase_date: p.purchase_date, quantity: p.quantity, unit_value: p.unit_value, item_type: p.item_type });
+    setEditData({ provider_name: p.provider_name, provider_link: p.provider_link || "", purchase_date: p.purchase_date, quantity: p.quantity, unit_value: p.unit_value, item_type: p.item_type, sale_price: p.sale_price || 0, tax_rate: p.tax_rate || 0 });
   };
 
   const handleSave = async (id: string) => {
@@ -71,6 +73,8 @@ export default function PurchasesListModal({ open, onClose, onUpdate }: Props) {
       unit_value: editData.unit_value,
       total_value: total,
       item_type: editData.item_type,
+      sale_price: editData.sale_price,
+      tax_rate: editData.tax_rate,
     }).eq("id", id);
 
     if (error) {
@@ -213,6 +217,39 @@ export default function PurchasesListModal({ open, onClose, onUpdate }: Props) {
                             value={formatCurrency(editData.quantity * editData.unit_value)}
                             disabled
                             className="w-full bg-white/5 border border-white/5 rounded-lg pl-10 pr-4 py-2.5 text-sm font-bold text-white cursor-not-allowed"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Previsão de Lucro */}
+                      <h3 className="text-xs font-semibold text-white/50 uppercase tracking-wider flex items-center gap-2 pt-2">
+                        <DollarSign className="size-4 text-primary" /> Previsão de Lucro
+                      </h3>
+                      <div className="grid grid-cols-2 gap-3">
+                        {/* Preço de Venda */}
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><DollarSign className="size-4 text-white/30" /></div>
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={editData.sale_price}
+                            onChange={(e) => setEditData(d => ({ ...d, sale_price: Number(e.target.value) }))}
+                            placeholder="Preço de venda un."
+                            className="w-full bg-black/30 border border-white/10 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder-white/30 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all"
+                          />
+                        </div>
+                        {/* Taxa de Imposto */}
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none"><Layers className="size-4 text-white/30" /></div>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            max="100"
+                            value={editData.tax_rate}
+                            onChange={(e) => setEditData(d => ({ ...d, tax_rate: Number(e.target.value) }))}
+                            placeholder="Imposto %"
+                            className="w-full bg-black/30 border border-white/10 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder-white/30 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all"
                           />
                         </div>
                       </div>

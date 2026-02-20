@@ -34,7 +34,9 @@ export default function AdminNovaCompra() {
     purchaseDate: "",
     itemType: "",
     quantity: "",
-    unitValue: ""
+    unitValue: "",
+    salePrice: "",
+    taxRate: ""
   });
 
   const [totalValue, setTotalValue] = useState("R$ 0,00");
@@ -58,7 +60,9 @@ export default function AdminNovaCompra() {
       purchaseDate: "",
       itemType: "",
       quantity: "",
-      unitValue: ""
+      unitValue: "",
+      salePrice: "",
+      taxRate: ""
     });
   };
 
@@ -82,6 +86,8 @@ export default function AdminNovaCompra() {
       quantity: qty,
       unit_value: unit,
       total_value: total,
+      sale_price: parseFloat(formData.salePrice) || 0,
+      tax_rate: parseFloat(formData.taxRate) || 0,
     });
 
     if (error) {
@@ -282,7 +288,7 @@ export default function AdminNovaCompra() {
                 {/* Valor Total */}
                 <div className="space-y-2">
                   <label className="text-sm text-gray-400 font-medium ml-1 flex justify-between" htmlFor="totalValue">
-                    <span>Valor Total (R$)</span>
+                    <span>Custo Total (R$)</span>
                     <span className="text-xs text-gray-500 italic font-normal">*Calculado automaticamente</span>
                   </label>
                   <div className="relative group">
@@ -298,6 +304,115 @@ export default function AdminNovaCompra() {
                     />
                   </div>
                 </div>
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div className="h-px w-full bg-white/5" />
+
+            {/* Previsão de Lucro */}
+            <div className="space-y-6">
+              <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider flex items-center gap-2">
+                <DollarSign className="size-5 text-primary" />
+                Previsão de Lucro
+              </h2>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Preço de Venda Unitário */}
+                <div className="space-y-2">
+                  <label className="text-sm text-gray-400 font-medium ml-1" htmlFor="salePrice">
+                    Preço de Venda Unitário (R$)
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <DollarSign className="size-5 text-gray-500" />
+                    </div>
+                    <input
+                      type="number"
+                      id="salePrice"
+                      name="salePrice"
+                      step="0.01"
+                      value={formData.salePrice}
+                      onChange={handleChange}
+                      placeholder="0,00"
+                      className="w-full rounded-lg py-3 pl-10 pr-4 text-sm placeholder-gray-600 bg-black/20 border border-white/10 text-white focus:bg-black/40 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* Taxa de Imposto */}
+                <div className="space-y-2">
+                  <label className="text-sm text-gray-400 font-medium ml-1" htmlFor="taxRate">
+                    Taxa de Imposto (%)
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Layers className="size-5 text-gray-500" />
+                    </div>
+                    <input
+                      type="number"
+                      id="taxRate"
+                      name="taxRate"
+                      step="0.01"
+                      min="0"
+                      max="100"
+                      value={formData.taxRate}
+                      onChange={handleChange}
+                      placeholder="0"
+                      className="w-full rounded-lg py-3 pl-10 pr-4 text-sm placeholder-gray-600 bg-black/20 border border-white/10 text-white focus:bg-black/40 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* Previsão de Lucro Calculado */}
+                {(() => {
+                  const qty = parseFloat(formData.quantity) || 0;
+                  const unit = parseFloat(formData.unitValue) || 0;
+                  const sale = parseFloat(formData.salePrice) || 0;
+                  const tax = parseFloat(formData.taxRate) || 0;
+                  const costWithTax = unit * (1 + tax / 100);
+                  const profitPerUnit = sale - costWithTax;
+                  const totalProfit = profitPerUnit * qty;
+                  const isPositive = totalProfit >= 0;
+                  return (
+                    <>
+                      <div className="space-y-2">
+                        <label className="text-sm text-gray-400 font-medium ml-1 flex justify-between">
+                          <span>Custo c/ Imposto (un.)</span>
+                          <span className="text-xs text-gray-500 italic font-normal">*Calculado</span>
+                        </label>
+                        <div className="relative group">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <Wallet className="size-5 text-gray-500" />
+                          </div>
+                          <input
+                            type="text"
+                            value={costWithTax.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                            disabled
+                            className="w-full rounded-lg py-3 pl-10 pr-4 text-sm font-bold bg-white/5 border border-white/5 text-white cursor-not-allowed"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm text-gray-400 font-medium ml-1 flex justify-between">
+                          <span>Lucro Total Previsto</span>
+                          <span className="text-xs text-gray-500 italic font-normal">*Calculado</span>
+                        </label>
+                        <div className="relative group">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <Wallet className={`size-5 ${isPositive ? 'text-green-500' : 'text-red-500'}`} />
+                          </div>
+                          <input
+                            type="text"
+                            value={totalProfit.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                            disabled
+                            className={`w-full rounded-lg py-3 pl-10 pr-4 text-sm font-bold bg-white/5 border border-white/5 cursor-not-allowed ${isPositive ? 'text-green-400' : 'text-red-400'}`}
+                          />
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             </div>
 
