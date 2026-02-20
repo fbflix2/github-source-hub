@@ -206,9 +206,9 @@ export default function Dashboard() {
                 >
                   {/* Content */}
                   <div className="p-5 flex flex-col flex-1 gap-4">
-                    <div className="flex justify-between items-start">
-                      <div className="flex items-start gap-3">
-                        {/* Product image/icon */}
+                    {/* Header: image + name + price */}
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
                         <div className="shrink-0 w-10 h-10 rounded-lg overflow-hidden bg-secondary flex items-center justify-center">
                           {product.image_url ? (
                             <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
@@ -216,26 +216,19 @@ export default function Dashboard() {
                             <span className="material-symbols-outlined text-[20px] text-muted-foreground">inventory_2</span>
                           )}
                         </div>
-                        <div>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors">
-                              {product.name}
-                            </h3>
-                            {product.badge_text && (
-                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${product.badge_color || "bg-muted text-foreground border-border"}`}>
-                                {product.badge_icon && <span className="material-symbols-outlined text-[11px]">{product.badge_icon}</span>}
-                                {product.badge_text}
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {product.description && product.description.length > 150
-                              ? <>{product.description.substring(0, 150)}... <button onClick={() => setDetailProduct(product)} className="text-primary hover:underline font-medium text-xs">ler mais</button></>
-                              : product.description}
-                          </p>
+                        <div className="flex items-center gap-2 flex-wrap min-w-0">
+                          <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors truncate">
+                            {product.name}
+                          </h3>
+                          {product.badge_text && (
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 shrink-0 ${product.badge_color || "bg-muted text-foreground border-border"}`}>
+                              {product.badge_icon && <span className="material-symbols-outlined text-[11px]">{product.badge_icon}</span>}
+                              {product.badge_text}
+                            </span>
+                          )}
                         </div>
                       </div>
-                      <div className="text-right">
+                      <div className="text-right shrink-0 whitespace-nowrap">
                         <p className="text-xl font-bold text-foreground">
                           {product.available ? `R$ ${product.price.toFixed(2).replace(".", ",")}` : "---"}
                         </p>
@@ -244,6 +237,13 @@ export default function Dashboard() {
                         )}
                       </div>
                     </div>
+
+                    {/* Description */}
+                    <p className="text-sm text-muted-foreground">
+                      {product.description && product.description.length > 150
+                        ? <>{product.description.substring(0, 150)}... <button onClick={() => setDetailProduct(product)} className="text-primary hover:underline font-medium text-xs">ler mais</button></>
+                        : product.description}
+                    </p>
 
                     {/* Tags */}
                     {product.tags && product.tags.length > 0 && (
