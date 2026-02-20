@@ -44,6 +44,7 @@ import AdminBanners from "./pages/admin/AdminBanners";
 import AdminNotificacoes from "./pages/admin/AdminNotificacoes";
 import AdminTermos from "./pages/admin/AdminTermos";
 import AdminConfiguracoes from "./pages/admin/AdminConfiguracoes";
+import AdminPlataforma from "./pages/admin/AdminPlataforma";
 import AdminApi from "./pages/admin/AdminApi";
 import AdminAssinaturas from "./pages/admin/AdminAssinaturas";
 import AdminPagamentos from "./pages/admin/AdminPagamentos";
@@ -172,6 +173,7 @@ const App = () => {
                   <Route path="notificacoes" element={<AdminNotificacoes />} />
                   <Route path="termos" element={<AdminTermos />} />
                   <Route path="configuracoes" element={<AdminConfiguracoes />} />
+                  <Route path="configuracoes/plataforma" element={<AdminPlataforma />} />
                   <Route path="api" element={<AdminApi />} />
                 </Route>
 

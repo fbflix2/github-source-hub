@@ -17,11 +17,13 @@ import {
   Key,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Play,
   Monitor,
   Warehouse,
   ClipboardCheck,
-  Headphones
+  Headphones,
+  Palette
 } from "lucide-react";
 
 const menuItems = [
@@ -40,14 +42,22 @@ const menuItems = [
   { title: "Banners", icon: Image, path: "/admin/banners" },
   { title: "Notificações", icon: Bell, path: "/admin/notificacoes" },
   { title: "Termos de uso", icon: FileText, path: "/admin/termos" },
-  { title: "Configurações", icon: Settings, path: "/admin/configuracoes" },
+  { title: "Configurações", icon: Settings, path: "/admin/configuracoes", subItems: [
+    { title: "Plataforma", icon: Palette, path: "/admin/configuracoes/plataforma" },
+  ]},
   { title: "API | Token", icon: Key, path: "/admin/api" },
 ];
 
 export function AdminSidebar() {
   const [collapsed, setCollapsed] = useState(false);
+  const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
   const location = useLocation();
 
+  const toggleExpanded = (path: string) => {
+    setExpandedMenus(prev => 
+      prev.includes(path) ? prev.filter(p => p !== path) : [...prev, path]
+    );
+  };
   return (
     <aside 
       className={cn(
@@ -77,26 +87,69 @@ export function AdminSidebar() {
           {menuItems.map((item) => {
             const isActive = location.pathname === item.path || 
               (item.path !== "/admin" && location.pathname.startsWith(item.path));
+            const hasSubItems = 'subItems' in item && item.subItems;
+            const isExpanded = expandedMenus.includes(item.path);
             
             return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                className={cn(
-                  "flex items-center gap-2 px-3 py-2 rounded-lg transition-all group",
-                  isActive 
-                    ? "bg-primary shadow-lg shadow-primary/20 text-white" 
-                    : "text-white/60 hover:bg-white/5 hover:text-white"
+              <div key={item.path}>
+                <div className="flex items-center">
+                  <NavLink
+                    to={hasSubItems ? "#" : item.path}
+                    onClick={(e) => {
+                      if (hasSubItems) {
+                        e.preventDefault();
+                        toggleExpanded(item.path);
+                      }
+                    }}
+                    className={cn(
+                      "flex items-center gap-2 px-3 py-2 rounded-lg transition-all group flex-1",
+                      isActive && !hasSubItems
+                        ? "bg-primary shadow-lg shadow-primary/20 text-white" 
+                        : "text-white/60 hover:bg-white/5 hover:text-white"
+                    )}
+                  >
+                    <item.icon className={cn(
+                      "size-4 transition-colors",
+                      isActive && !hasSubItems ? "text-white" : "group-hover:text-primary"
+                    )} />
+                    {!collapsed && (
+                      <>
+                        <span className="text-xs font-medium flex-1">{item.title}</span>
+                        {hasSubItems && (
+                          <ChevronDown className={cn(
+                            "size-3 transition-transform duration-200",
+                            isExpanded && "rotate-180"
+                          )} />
+                        )}
+                      </>
+                    )}
+                  </NavLink>
+                </div>
+                
+                {/* Sub Items */}
+                {hasSubItems && isExpanded && !collapsed && (
+                  <div className="ml-4 mt-0.5 space-y-0.5 border-l border-white/10 pl-2">
+                    {item.subItems.map((sub) => {
+                      const isSubActive = location.pathname === sub.path;
+                      return (
+                        <NavLink
+                          key={sub.path}
+                          to={sub.path}
+                          className={cn(
+                            "flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all text-xs font-medium",
+                            isSubActive
+                              ? "bg-primary/20 text-primary"
+                              : "text-white/50 hover:bg-white/5 hover:text-white"
+                          )}
+                        >
+                          <sub.icon className="size-3.5" />
+                          <span>{sub.title}</span>
+                        </NavLink>
+                      );
+                    })}
+                  </div>
                 )}
-              >
-                <item.icon className={cn(
-                  "size-4 transition-colors",
-                  isActive ? "text-white" : "group-hover:text-primary"
-                )} />
-                {!collapsed && (
-                  <span className="text-xs font-medium">{item.title}</span>
-                )}
-              </NavLink>
+              </div>
             );
           })}
         </nav>
