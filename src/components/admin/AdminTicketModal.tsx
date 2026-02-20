@@ -24,12 +24,13 @@ interface TicketInfo {
 interface Props {
   ticket: TicketInfo | null;
   profileName: string;
-  mode: "history" | "respond";
+  mode: "history" | "respond" | "preview";
   onClose: () => void;
   onStatusChange?: () => void;
+  onOpenSupport?: () => void;
 }
 
-export default function AdminTicketModal({ ticket, profileName, mode, onClose, onStatusChange }: Props) {
+export default function AdminTicketModal({ ticket, profileName, mode, onClose, onStatusChange, onOpenSupport }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [reply, setReply] = useState("");
@@ -109,7 +110,7 @@ export default function AdminTicketModal({ ticket, profileName, mode, onClose, o
         <div className="flex items-center justify-between p-5 border-b border-white/10">
           <div>
             <h3 className="text-lg font-bold text-white">
-              {mode === "history" ? "Histórico" : "Responder"} — #{ticket.code}
+              {mode === "preview" ? "Detalhes do Ticket" : mode === "history" ? "Histórico" : "Responder"} — #{ticket.code}
             </h3>
             <p className="text-sm text-white/50 mt-0.5">
               {ticket.title} • <span className="text-white/70">{profileName}</span>
@@ -212,6 +213,24 @@ export default function AdminTicketModal({ ticket, profileName, mode, onClose, o
                 {sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
               </button>
             </div>
+          </div>
+        )}
+
+        {/* Preview mode - action buttons */}
+        {mode === "preview" && (
+          <div className="border-t border-white/10 p-4 flex gap-3">
+            <button
+              onClick={onClose}
+              className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-white/5 hover:bg-white/10 text-white border border-white/10 transition-colors"
+            >
+              Fechar
+            </button>
+            <button
+              onClick={() => onOpenSupport?.()}
+              className="flex-1 py-2.5 rounded-xl text-sm font-bold bg-primary text-white hover:bg-red-700 shadow-lg shadow-primary/20 transition-colors"
+            >
+              Abrir Atendimento
+            </button>
           </div>
         )}
       </div>
