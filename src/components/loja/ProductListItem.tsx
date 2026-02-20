@@ -47,12 +47,12 @@ export function ProductListItem({ product, quantity, onQuantityChange, onReadMor
       }`}
     >
       {/* Left: Icon / Image */}
-      <div className="shrink-0 w-full sm:w-16 h-20 sm:h-auto flex items-center justify-center bg-secondary/50 border-b sm:border-b-0 sm:border-r border-border">
+      <div className="shrink-0 w-20 sm:w-20 h-20 flex items-center justify-center bg-secondary/50 border-b sm:border-b-0 sm:border-r border-border overflow-hidden">
         {product.image_url ? (
           <img
             src={product.image_url}
             alt={product.name}
-            className="w-full h-full sm:w-16 sm:h-16 object-cover sm:rounded-none"
+            className="w-full h-full object-cover"
             referrerPolicy="no-referrer"
           />
         ) : (
