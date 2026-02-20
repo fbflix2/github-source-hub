@@ -15,7 +15,7 @@ export interface TicketData {
   id: string;
   code: string;
   title: string;
-  status: "open" | "answered" | "closed";
+  status: "open" | "answered" | "closed" | "in_progress" | "resolved";
   priority: "low" | "medium" | "high" | "urgent";
   created_at: string;
   updated_at: string;
