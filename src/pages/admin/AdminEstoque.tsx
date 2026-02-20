@@ -4,6 +4,7 @@ import {
   Search, Download, Send, ArrowLeft, Briefcase, UserRound, Flag, Copy,
   ChevronLeft, ChevronRight, ClipboardList, Archive, Loader2, Pencil
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -59,6 +60,24 @@ export default function AdminEstoque() {
     setSelectedItems(prev =>
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     );
+  };
+
+  const handleEnviarParaCadastro = async () => {
+    if (selectedItems.length === 0) {
+      toast.warning("Selecione pelo menos um item para enviar.");
+      return;
+    }
+    const { error } = await supabase
+      .from("stock_items")
+      .update({ status: "revisado" })
+      .in("id", selectedItems);
+    if (error) {
+      toast.error("Erro ao enviar itens para cadastro.");
+    } else {
+      toast.success(`${selectedItems.length} item(ns) enviado(s) para cadastro.`);
+      setSelectedItems([]);
+      fetchItems();
+    }
   };
 
   const filtered = items.filter(item =>
@@ -130,9 +149,9 @@ export default function AdminEstoque() {
               <ClipboardList className="h-4 w-4" />
               Blocagem
             </Button>
-            <Button className="bg-primary hover:bg-primary/90 text-white gap-2">
+            <Button className="bg-primary hover:bg-primary/90 text-white gap-2" onClick={handleEnviarParaCadastro} disabled={selectedItems.length === 0}>
               <Send className="h-4 w-4" />
-              Enviar para Cadastro
+              Enviar para Cadastro ({selectedItems.length})
             </Button>
           </div>
         </div>
