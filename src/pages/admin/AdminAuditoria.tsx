@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   ShoppingBag, 
@@ -6,47 +7,117 @@ import {
   ShoppingCart, 
   Tag, 
   BarChart3,
-  History
+  History,
+  Loader2
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
-const stats = [
-  {
-    label: "Custo Total de Compras",
-    value: "R$ 12.450,00",
-    badge: "Saída",
-    badgeColor: "text-red-400 bg-red-400/10 border-red-400/20",
-    icon: ShoppingBag,
-    iconBg: "bg-white/5 border-white/10",
-    iconColor: "text-gray-300",
-    subtitle: "Últimos 30 dias",
-    highlighted: false
-  },
-  {
-    label: "Receita Total de Vendas",
-    value: "R$ 45.200,00",
-    badge: "Entrada",
-    badgeColor: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20",
-    icon: Wallet,
-    iconBg: "bg-white/5 border-white/10",
-    iconColor: "text-gray-300",
-    subtitle: "Últimos 30 dias",
-    highlighted: false
-  },
-  {
-    label: "Lucro Bruto",
-    value: "R$ 32.750,00",
-    badge: "+26.5% vs mês anterior",
-    badgeColor: "text-primary bg-primary/10 border-primary/20",
-    icon: TrendingUp,
-    iconBg: "bg-primary/20 border-primary/30",
-    iconColor: "text-primary",
-    subtitle: "Margem líquida estimada: 72%",
-    highlighted: true
-  }
-];
+const formatCurrency = (value: number) =>
+  value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+const timeAgo = (date: Date) => {
+  const mins = Math.floor((Date.now() - date.getTime()) / 60000);
+  if (mins < 1) return "Agora mesmo";
+  if (mins < 60) return `Há ${mins} minutos`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `Há ${hours}h`;
+  return `Há ${Math.floor(hours / 24)}d`;
+};
 
 export default function AdminAuditoria() {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [totalCost, setTotalCost] = useState(0);
+  const [totalRevenue, setTotalRevenue] = useState(0);
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const since = thirtyDaysAgo.toISOString();
+
+      // Fetch completed orders (revenue) and payments (costs) in parallel
+      const [ordersRes, paymentsRes] = await Promise.all([
+        supabase
+          .from("orders")
+          .select("total, updated_at")
+          .in("status", ["completed", "delivered", "processing"])
+          .gte("created_at", since),
+        supabase
+          .from("payments")
+          .select("amount, updated_at")
+          .eq("status", "completed")
+          .gte("created_at", since),
+      ]);
+
+      const orders = ordersRes.data ?? [];
+      const payments = paymentsRes.data ?? [];
+
+      const revenue = orders.reduce((sum, o) => sum + Number(o.total || 0), 0);
+      const cost = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+
+      setTotalRevenue(revenue);
+      setTotalCost(cost);
+
+      // Find most recent update
+      const allDates = [
+        ...orders.map(o => new Date(o.updated_at)),
+        ...payments.map(p => new Date(p.updated_at)),
+      ].filter(d => !isNaN(d.getTime()));
+      
+      if (allDates.length > 0) {
+        setLastUpdate(new Date(Math.max(...allDates.map(d => d.getTime()))));
+      }
+
+      setLoading(false);
+    };
+
+    fetchData();
+  }, []);
+
+  const profit = totalRevenue - totalCost;
+  const margin = totalRevenue > 0 ? Math.round((profit / totalRevenue) * 100) : 0;
+
+  const stats = [
+    {
+      label: "Custo Total de Compras",
+      value: loading ? "..." : formatCurrency(totalCost),
+      badge: "Saída",
+      badgeColor: "text-red-400 bg-red-400/10 border-red-400/20",
+      icon: ShoppingBag,
+      iconBg: "bg-white/5 border-white/10",
+      iconColor: "text-gray-300",
+      subtitle: "Últimos 30 dias",
+      highlighted: false
+    },
+    {
+      label: "Receita Total de Vendas",
+      value: loading ? "..." : formatCurrency(totalRevenue),
+      badge: "Entrada",
+      badgeColor: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20",
+      icon: Wallet,
+      iconBg: "bg-white/5 border-white/10",
+      iconColor: "text-gray-300",
+      subtitle: "Últimos 30 dias",
+      highlighted: false
+    },
+    {
+      label: "Lucro Bruto",
+      value: loading ? "..." : formatCurrency(profit),
+      badge: profit >= 0 ? "Positivo" : "Negativo",
+      badgeColor: profit >= 0 
+        ? "text-emerald-400 bg-emerald-400/10 border-emerald-400/20" 
+        : "text-red-400 bg-red-400/10 border-red-400/20",
+      icon: TrendingUp,
+      iconBg: "bg-primary/20 border-primary/30",
+      iconColor: "text-primary",
+      subtitle: `Margem líquida estimada: ${margin}%`,
+      highlighted: true
+    }
+  ];
 
   return (
     <div className="flex flex-col min-h-[calc(100vh-80px)] -mx-6 -mt-6 p-6 lg:p-12 gap-10 relative">
@@ -103,12 +174,10 @@ export default function AdminAuditoria() {
                   : "border-white/10"
               }`}
             >
-              {/* Gradient overlay for highlighted card */}
               {stat.highlighted && (
                 <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent opacity-50" />
               )}
               
-              {/* Glow effect */}
               <div className={`absolute -right-6 -top-6 w-24 h-24 rounded-full blur-2xl transition-all duration-500 ${
                 stat.highlighted 
                   ? "bg-primary/20 group-hover:bg-primary/30" 
@@ -139,11 +208,7 @@ export default function AdminAuditoria() {
                     </span>
                   </div>
                   <p className={`text-xs mt-2 ${stat.highlighted ? "text-gray-400 font-medium" : "text-gray-500 font-mono opacity-60"}`}>
-                    {stat.highlighted ? (
-                      <>Margem líquida estimada: <span className="text-white">72%</span></>
-                    ) : (
-                      stat.subtitle
-                    )}
+                    {stat.subtitle}
                   </p>
                 </div>
               </div>
@@ -151,25 +216,22 @@ export default function AdminAuditoria() {
           ))}
         </section>
 
-        {/* Quick Recent Activity */}
+        {/* Last Update */}
         <div className="w-full bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 opacity-80 hover:opacity-100 transition-opacity">
           <div className="flex items-center gap-4">
             <div className="h-10 w-10 rounded-full bg-white/5 flex items-center justify-center border border-white/10">
-              <History className="size-5 text-gray-400" />
+              {loading ? <Loader2 className="size-5 text-gray-400 animate-spin" /> : <History className="size-5 text-gray-400" />}
             </div>
             <div>
               <p className="text-sm text-white font-medium">Última atualização do sistema</p>
-              <p className="text-xs text-gray-500">Há 15 minutos • Sincronizado automaticamente</p>
+              <p className="text-xs text-gray-500">
+                {lastUpdate ? `${timeAgo(lastUpdate)} • Sincronizado automaticamente` : "Sem dados recentes"}
+              </p>
             </div>
           </div>
-          <div className="h-1 flex-1 w-full sm:w-auto bg-white/5 rounded-full max-w-xs mx-4 overflow-hidden">
-            <div className="h-full bg-primary w-[85%] rounded-full shadow-[0_0_10px_rgba(249,6,6,0.5)]" />
-          </div>
-          <span className="text-xs font-mono text-gray-400">85% da Meta Mensal</span>
         </div>
       </div>
 
-      {/* Bottom aesthetic glow */}
       <div className="fixed bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-50 pointer-events-none" />
     </div>
   );
