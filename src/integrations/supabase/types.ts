@@ -327,18 +327,21 @@ export type Database = {
       }
       product_images: {
         Row: {
+          category: string
           created_at: string
           id: string
           name: string
           url: string
         }
         Insert: {
+          category?: string
           created_at?: string
           id?: string
           name: string
           url: string
         }
         Update: {
+          category?: string
           created_at?: string
           id?: string
           name?: string
