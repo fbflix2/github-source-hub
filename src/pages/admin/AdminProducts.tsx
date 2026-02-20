@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { 
   Search, Plus, Upload, User, Briefcase, Globe, Server, Tag, Save, X,
-  Filter, ChevronLeft, ChevronRight, Edit, Trash2, Image as ImageIcon, Loader2, ImagePlus
+  Filter, ChevronLeft, ChevronRight, Edit, Trash2, Image as ImageIcon, Loader2, ImagePlus,
+  BarChart3
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -73,7 +75,7 @@ export default function AdminProducts() {
   const [formIcon, setFormIcon] = useState<ProductIcon>("perfil");
   const [formTags, setFormTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
-  const [formStatus, setFormStatus] = useState("active");
+  const [formStatus, setFormStatus] = useState("estoque_interno");
   const [formImageUrl, setFormImageUrl] = useState("");
   const [productImages, setProductImages] = useState<{ id: string; name: string; url: string }[]>([]);
   const [showImagePicker, setShowImagePicker] = useState(false);
@@ -86,15 +88,29 @@ export default function AdminProducts() {
   // Category management
   const [newCategory, setNewCategory] = useState("");
 
+  // Sales data
+  const [salesByProduct, setSalesByProduct] = useState<Record<string, number>>({});
+
   const fetchData = async () => {
-    const [productsRes, categoriesRes, imagesRes] = await Promise.all([
+    const [productsRes, categoriesRes, imagesRes, salesRes] = await Promise.all([
       supabase.from("products").select("*").order("created_at", { ascending: false }),
       supabase.from("product_categories").select("*").order("name"),
       supabase.from("product_images").select("id, name, url").order("created_at", { ascending: false }),
+      supabase.from("order_items").select("product_id, quantity"),
     ]);
     setProducts(productsRes.data ?? []);
     setCategories(categoriesRes.data ?? []);
     setProductImages(imagesRes.data ?? []);
+
+    // Aggregate sales by product
+    const sales: Record<string, number> = {};
+    (salesRes.data ?? []).forEach((item: any) => {
+      if (item.product_id) {
+        sales[item.product_id] = (sales[item.product_id] || 0) + (item.quantity || 1);
+      }
+    });
+    setSalesByProduct(sales);
+
     setLoading(false);
   };
 
@@ -102,7 +118,7 @@ export default function AdminProducts() {
 
   const resetForm = () => {
     setFormName(""); setFormPrice(""); setFormStock(""); setFormDescription("");
-    setFormCategory(""); setFormIcon("perfil"); setFormTags([]); setFormStatus("active");
+    setFormCategory(""); setFormIcon("perfil"); setFormTags([]); setFormStatus("estoque_interno");
     setFormImageUrl(""); setEditingProduct(null);
   };
 
@@ -268,7 +284,8 @@ export default function AdminProducts() {
                 <Select value={formStatus} onValueChange={setFormStatus}>
                   <SelectTrigger className="bg-zinc-900/50 border-zinc-700 text-white"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="active">Ativo</SelectItem>
+                    <SelectItem value="estoque_interno">Estoque Interno</SelectItem>
+                    <SelectItem value="active">Ativo (na loja)</SelectItem>
                     <SelectItem value="inactive">Inativo</SelectItem>
                   </SelectContent>
                 </Select>
@@ -344,139 +361,232 @@ export default function AdminProducts() {
         </DialogContent>
       </Dialog>
 
-      {/* Categories Management */}
-      <div className="glass-panel rounded-xl p-4 space-y-3">
-        <div className="flex items-center gap-2 text-white">
-          <Briefcase className="h-4 w-4 text-zinc-400" />
-          <h3 className="font-medium text-sm">Gerenciar Categorias</h3>
-        </div>
-        <div className="flex gap-2">
-          <Input placeholder="Nome da nova categoria..." value={newCategory} onChange={e => setNewCategory(e.target.value)} onKeyDown={e => e.key === "Enter" && handleAddCategory()} className="bg-zinc-900/50 border-zinc-700 text-white placeholder:text-zinc-500 text-sm" />
-          <Button size="sm" variant="secondary" className="bg-zinc-700 hover:bg-zinc-600 px-3" onClick={handleAddCategory}>
-            <Plus className="h-4 w-4" />
-          </Button>
-        </div>
-        {categories.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {categories.map(cat => (
-              <Badge key={cat.id} className="bg-zinc-800 text-zinc-300 text-xs">{cat.name}</Badge>
-            ))}
-          </div>
-        )}
-      </div>
+      {/* Tabs */}
+      <Tabs defaultValue="produtos" className="space-y-4">
+        <TabsList className="bg-zinc-800/50 border border-zinc-700">
+          <TabsTrigger value="produtos" className="data-[state=active]:bg-primary data-[state=active]:text-white text-zinc-400">Produtos</TabsTrigger>
+          <TabsTrigger value="vendas" className="data-[state=active]:bg-primary data-[state=active]:text-white text-zinc-400 gap-1.5">
+            <BarChart3 className="h-3.5 w-3.5" />
+            Visão de Vendas
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Products Table */}
-      <div className="glass-panel rounded-xl p-4 space-y-4">
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <h3 className="font-medium text-white">Todos os Produtos</h3>
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-              <Input placeholder="Buscar por nome ou tag..." value={searchTerm} onChange={e => { setSearchTerm(e.target.value); setCurrentPage(1); }} className="bg-zinc-900/50 border-zinc-700 text-white placeholder:text-zinc-500 pl-8 w-[220px] text-sm" />
+        <TabsContent value="produtos" className="space-y-4">
+          {/* Categories Management */}
+          <div className="glass-panel rounded-xl p-4 space-y-3">
+            <div className="flex items-center gap-2 text-white">
+              <Briefcase className="h-4 w-4 text-zinc-400" />
+              <h3 className="font-medium text-sm">Gerenciar Categorias</h3>
             </div>
-            <Select value={filterCategory} onValueChange={v => { setFilterCategory(v); setCurrentPage(1); }}>
-              <SelectTrigger className="bg-zinc-900/50 border-zinc-700 text-white w-[160px] text-sm"><SelectValue placeholder="Todas Categorias" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas Categorias</SelectItem>
-                {categories.map(cat => <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2">
+              <Input placeholder="Nome da nova categoria..." value={newCategory} onChange={e => setNewCategory(e.target.value)} onKeyDown={e => e.key === "Enter" && handleAddCategory()} className="bg-zinc-900/50 border-zinc-700 text-white placeholder:text-zinc-500 text-sm" />
+              <Button size="sm" variant="secondary" className="bg-zinc-700 hover:bg-zinc-600 px-3" onClick={handleAddCategory}>
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+            {categories.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {categories.map(cat => (
+                  <Badge key={cat.id} className="bg-zinc-800 text-zinc-300 text-xs">{cat.name}</Badge>
+                ))}
+              </div>
+            )}
           </div>
-        </div>
 
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow className="border-zinc-800 hover:bg-transparent">
-                <TableHead className="text-zinc-400 text-xs font-medium">IMAGEM</TableHead>
-                <TableHead className="text-zinc-400 text-xs font-medium">NOME DO PRODUTO</TableHead>
-                <TableHead className="text-zinc-400 text-xs font-medium">CATEGORIA</TableHead>
-                <TableHead className="text-zinc-400 text-xs font-medium">TAGS</TableHead>
-                <TableHead className="text-zinc-400 text-xs font-medium">PREÇO</TableHead>
-                <TableHead className="text-zinc-400 text-xs font-medium">ESTOQUE</TableHead>
-                <TableHead className="text-zinc-400 text-xs font-medium">STATUS</TableHead>
-                <TableHead className="text-zinc-400 text-xs font-medium">AÇÕES</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {paginated.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center text-zinc-500 py-12">
-                    Nenhum produto cadastrado ainda.
-                  </TableCell>
-                </TableRow>
-              ) : paginated.map(product => {
-                const iconKey = (product.icon_type as ProductIcon) || "perfil";
-                return (
-                  <TableRow key={product.id} className="border-zinc-800 hover:bg-zinc-800/30">
-                    <TableCell>
-                      {product.image_url ? (
-                        <div className="w-10 h-10 rounded-lg overflow-hidden bg-zinc-800">
-                          <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                        </div>
-                      ) : (
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${iconColors[iconKey] || "bg-zinc-700"}`}>
-                          {productIcons[iconKey] || <ImageIcon className="h-5 w-5" />}
-                        </div>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-white text-sm font-medium max-w-[180px] truncate">{product.name}</TableCell>
-                    <TableCell className="text-zinc-400 text-sm">{getCategoryName(product.category_id)}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {product.tags && product.tags.length > 0 ? product.tags.map(tag => (
-                          <Badge key={tag} variant="secondary" className="text-xs bg-zinc-700 text-zinc-300">{tag}</Badge>
-                        )) : <span className="text-zinc-600 text-xs">—</span>}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-white text-sm">R$ {product.price.toFixed(2).replace(".", ",")}</TableCell>
-                    <TableCell className={`text-sm font-medium ${product.stock > 10 ? "text-green-400" : product.stock > 0 ? "text-yellow-400" : "text-red-400"}`}>
-                      {product.stock} un.
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={`text-xs ${product.status === "active" ? "bg-green-500/20 text-green-400" : "bg-zinc-600 text-zinc-400"}`}>
-                        ● {product.status === "active" ? "Ativo" : "Inativo"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-zinc-400 hover:text-white" onClick={() => openEditForm(product)}>
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-zinc-400 hover:text-red-400" onClick={() => handleDelete(product.id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+          {/* Products Table */}
+          <div className="glass-panel rounded-xl p-4 space-y-4">
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <h3 className="font-medium text-white">Todos os Produtos</h3>
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                  <Input placeholder="Buscar por nome ou tag..." value={searchTerm} onChange={e => { setSearchTerm(e.target.value); setCurrentPage(1); }} className="bg-zinc-900/50 border-zinc-700 text-white placeholder:text-zinc-500 pl-8 w-[220px] text-sm" />
+                </div>
+                <Select value={filterCategory} onValueChange={v => { setFilterCategory(v); setCurrentPage(1); }}>
+                  <SelectTrigger className="bg-zinc-900/50 border-zinc-700 text-white w-[160px] text-sm"><SelectValue placeholder="Todas Categorias" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas Categorias</SelectItem>
+                    {categories.map(cat => <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-zinc-800 hover:bg-transparent">
+                    <TableHead className="text-zinc-400 text-xs font-medium">IMAGEM</TableHead>
+                    <TableHead className="text-zinc-400 text-xs font-medium">NOME DO PRODUTO</TableHead>
+                    <TableHead className="text-zinc-400 text-xs font-medium">CATEGORIA</TableHead>
+                    <TableHead className="text-zinc-400 text-xs font-medium">TAGS</TableHead>
+                    <TableHead className="text-zinc-400 text-xs font-medium">PREÇO</TableHead>
+                    <TableHead className="text-zinc-400 text-xs font-medium">ESTOQUE</TableHead>
+                    <TableHead className="text-zinc-400 text-xs font-medium">STATUS</TableHead>
+                    <TableHead className="text-zinc-400 text-xs font-medium">AÇÕES</TableHead>
                   </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
-
-        {/* Pagination */}
-        <div className="flex items-center justify-between pt-2">
-          <p className="text-xs text-zinc-500">
-            Mostrando {Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, filtered.length)}-{Math.min(currentPage * ITEMS_PER_PAGE, filtered.length)} de {filtered.length} produtos
-          </p>
-          {totalPages > 1 && (
-            <div className="flex items-center gap-1">
-              <Button size="sm" variant="ghost" className="text-zinc-400 hover:text-white text-xs gap-1" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>
-                <ChevronLeft className="h-4 w-4" /> Anterior
-              </Button>
-              {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map(page => (
-                <Button key={page} size="sm" variant={currentPage === page ? "default" : "ghost"} className={`h-7 w-7 p-0 ${currentPage === page ? "bg-primary text-white" : "text-zinc-400 hover:text-white"}`} onClick={() => setCurrentPage(page)}>
-                  {page}
-                </Button>
-              ))}
-              <Button size="sm" variant="ghost" className="text-zinc-400 hover:text-white text-xs gap-1" disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}>
-                Próximo <ChevronRight className="h-4 w-4" />
-              </Button>
+                </TableHeader>
+                <TableBody>
+                  {paginated.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center text-zinc-500 py-12">
+                        Nenhum produto cadastrado ainda.
+                      </TableCell>
+                    </TableRow>
+                  ) : paginated.map(product => {
+                    const iconKey = (product.icon_type as ProductIcon) || "perfil";
+                    return (
+                      <TableRow key={product.id} className="border-zinc-800 hover:bg-zinc-800/30">
+                        <TableCell>
+                          {product.image_url ? (
+                            <div className="w-10 h-10 rounded-lg overflow-hidden bg-zinc-800">
+                              <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                            </div>
+                          ) : (
+                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${iconColors[iconKey] || "bg-zinc-700"}`}>
+                              {productIcons[iconKey] || <ImageIcon className="h-5 w-5" />}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-white text-sm font-medium max-w-[180px] truncate">{product.name}</TableCell>
+                        <TableCell className="text-zinc-400 text-sm">{getCategoryName(product.category_id)}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {product.tags && product.tags.length > 0 ? product.tags.map(tag => (
+                              <Badge key={tag} variant="secondary" className="text-xs bg-zinc-700 text-zinc-300">{tag}</Badge>
+                            )) : <span className="text-zinc-600 text-xs">—</span>}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-white text-sm">R$ {product.price.toFixed(2).replace(".", ",")}</TableCell>
+                        <TableCell className={`text-sm font-medium ${product.stock > 10 ? "text-green-400" : product.stock > 0 ? "text-yellow-400" : "text-red-400"}`}>
+                          {product.stock} un.
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={`text-xs ${
+                            product.status === "active" ? "bg-green-500/20 text-green-400" : 
+                            product.status === "estoque_interno" ? "bg-yellow-500/20 text-yellow-400" : 
+                            "bg-zinc-600 text-zinc-400"
+                          }`}>
+                            ● {product.status === "active" ? "Ativo" : product.status === "estoque_interno" ? "Estoque Interno" : "Inativo"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-1">
+                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-zinc-400 hover:text-white" onClick={() => openEditForm(product)}>
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-zinc-400 hover:text-red-400" onClick={() => handleDelete(product.id)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
             </div>
-          )}
-        </div>
-      </div>
+
+            {/* Pagination */}
+            <div className="flex items-center justify-between pt-2">
+              <p className="text-xs text-zinc-500">
+                Mostrando {Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, filtered.length)}-{Math.min(currentPage * ITEMS_PER_PAGE, filtered.length)} de {filtered.length} produtos
+              </p>
+              {totalPages > 1 && (
+                <div className="flex items-center gap-1">
+                  <Button size="sm" variant="ghost" className="text-zinc-400 hover:text-white text-xs gap-1" disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>
+                    <ChevronLeft className="h-4 w-4" /> Anterior
+                  </Button>
+                  {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => i + 1).map(page => (
+                    <Button key={page} size="sm" variant={currentPage === page ? "default" : "ghost"} className={`h-7 w-7 p-0 ${currentPage === page ? "bg-primary text-white" : "text-zinc-400 hover:text-white"}`} onClick={() => setCurrentPage(page)}>
+                      {page}
+                    </Button>
+                  ))}
+                  <Button size="sm" variant="ghost" className="text-zinc-400 hover:text-white text-xs gap-1" disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}>
+                    Próximo <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* Sales Overview Tab */}
+        <TabsContent value="vendas">
+          <div className="glass-panel rounded-xl p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-medium text-white">Visão Geral de Vendas</h3>
+              <div className="flex items-center gap-4 text-sm">
+                <span className="text-zinc-400">Total de produtos: <span className="text-white font-medium">{products.length}</span></span>
+                <span className="text-zinc-400">Total vendidos: <span className="text-green-400 font-medium">{Object.values(salesByProduct).reduce((a, b) => a + b, 0)}</span></span>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-zinc-800 hover:bg-transparent">
+                    <TableHead className="text-zinc-400 text-xs font-medium">IMAGEM</TableHead>
+                    <TableHead className="text-zinc-400 text-xs font-medium">PRODUTO</TableHead>
+                    <TableHead className="text-zinc-400 text-xs font-medium">CATEGORIA</TableHead>
+                    <TableHead className="text-zinc-400 text-xs font-medium">PREÇO</TableHead>
+                    <TableHead className="text-zinc-400 text-xs font-medium">ESTOQUE ATUAL</TableHead>
+                    <TableHead className="text-zinc-400 text-xs font-medium">VENDIDOS</TableHead>
+                    <TableHead className="text-zinc-400 text-xs font-medium">STATUS</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {products.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center text-zinc-500 py-12">
+                        Nenhum produto cadastrado ainda.
+                      </TableCell>
+                    </TableRow>
+                  ) : [...products].sort((a, b) => (salesByProduct[b.id] || 0) - (salesByProduct[a.id] || 0)).map(product => {
+                    const iconKey = (product.icon_type as ProductIcon) || "perfil";
+                    const sold = salesByProduct[product.id] || 0;
+                    return (
+                      <TableRow key={product.id} className="border-zinc-800 hover:bg-zinc-800/30">
+                        <TableCell>
+                          {product.image_url ? (
+                            <div className="w-10 h-10 rounded-lg overflow-hidden bg-zinc-800">
+                              <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                            </div>
+                          ) : (
+                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${iconColors[iconKey] || "bg-zinc-700"}`}>
+                              {productIcons[iconKey] || <ImageIcon className="h-5 w-5" />}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-white text-sm font-medium">{product.name}</TableCell>
+                        <TableCell className="text-zinc-400 text-sm">{getCategoryName(product.category_id)}</TableCell>
+                        <TableCell className="text-white text-sm">R$ {product.price.toFixed(2).replace(".", ",")}</TableCell>
+                        <TableCell className={`text-sm font-medium ${product.stock > 10 ? "text-green-400" : product.stock > 0 ? "text-yellow-400" : "text-red-400"}`}>
+                          {product.stock} un.
+                        </TableCell>
+                        <TableCell>
+                          <span className={`text-sm font-bold ${sold > 0 ? "text-green-400" : "text-zinc-500"}`}>
+                            {sold}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={`text-xs ${
+                            product.status === "active" ? "bg-green-500/20 text-green-400" : 
+                            product.status === "estoque_interno" ? "bg-yellow-500/20 text-yellow-400" : 
+                            "bg-zinc-600 text-zinc-400"
+                          }`}>
+                            ● {product.status === "active" ? "Ativo" : product.status === "estoque_interno" ? "Estoque Interno" : "Inativo"}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
