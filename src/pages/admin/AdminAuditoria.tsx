@@ -11,6 +11,7 @@ import {
   Loader2
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import PurchasesListModal from "@/components/admin/PurchasesListModal";
 
 const formatCurrency = (value: number) =>
   value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -30,50 +31,49 @@ export default function AdminAuditoria() {
   const [totalCost, setTotalCost] = useState(0);
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [showPurchases, setShowPurchases] = useState(false);
+
+  const fetchData = async () => {
+    setLoading(true);
+
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const since = thirtyDaysAgo.toISOString();
+
+    const [ordersRes, purchasesRes] = await Promise.all([
+      supabase
+        .from("orders")
+        .select("total, updated_at")
+        .in("status", ["completed", "delivered", "processing"])
+        .gte("created_at", since),
+      supabase
+        .from("purchases")
+        .select("total_value, updated_at")
+        .gte("created_at", since),
+    ]);
+
+    const orders = ordersRes.data ?? [];
+    const purchases = purchasesRes.data ?? [];
+
+    const revenue = orders.reduce((sum, o) => sum + Number(o.total || 0), 0);
+    const cost = purchases.reduce((sum, p) => sum + Number(p.total_value || 0), 0);
+
+    setTotalRevenue(revenue);
+    setTotalCost(cost);
+
+    const allDates = [
+      ...orders.map(o => new Date(o.updated_at)),
+      ...purchases.map(p => new Date(p.updated_at)),
+    ].filter(d => !isNaN(d.getTime()));
+    
+    if (allDates.length > 0) {
+      setLastUpdate(new Date(Math.max(...allDates.map(d => d.getTime()))));
+    }
+
+    setLoading(false);
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      const since = thirtyDaysAgo.toISOString();
-
-      // Fetch completed orders (revenue) and purchases (costs) in parallel
-      const [ordersRes, purchasesRes] = await Promise.all([
-        supabase
-          .from("orders")
-          .select("total, updated_at")
-          .in("status", ["completed", "delivered", "processing"])
-          .gte("created_at", since),
-        supabase
-          .from("purchases")
-          .select("total_value, updated_at")
-          .gte("created_at", since),
-      ]);
-
-      const orders = ordersRes.data ?? [];
-      const purchases = purchasesRes.data ?? [];
-
-      const revenue = orders.reduce((sum, o) => sum + Number(o.total || 0), 0);
-      const cost = purchases.reduce((sum, p) => sum + Number(p.total_value || 0), 0);
-
-      setTotalRevenue(revenue);
-      setTotalCost(cost);
-
-      // Find most recent update
-      const allDates = [
-        ...orders.map(o => new Date(o.updated_at)),
-        ...purchases.map(p => new Date(p.updated_at)),
-      ].filter(d => !isNaN(d.getTime()));
-      
-      if (allDates.length > 0) {
-        setLastUpdate(new Date(Math.max(...allDates.map(d => d.getTime()))));
-      }
-
-      setLoading(false);
-    };
-
     fetchData();
   }, []);
 
@@ -90,7 +90,8 @@ export default function AdminAuditoria() {
       iconBg: "bg-white/5 border-white/10",
       iconColor: "text-gray-300",
       subtitle: "Últimos 30 dias",
-      highlighted: false
+      highlighted: false,
+      onClick: () => setShowPurchases(true),
     },
     {
       label: "Receita Total de Vendas",
@@ -167,11 +168,12 @@ export default function AdminAuditoria() {
           {stats.map((stat, index) => (
             <div 
               key={index}
+              onClick={stat.onClick}
               className={`bg-white/[0.03] backdrop-blur-2xl border rounded-2xl p-8 relative overflow-hidden group transition-all duration-500 ${
                 stat.highlighted 
                   ? "border-primary/30 shadow-[0_0_40px_-10px_rgba(249,6,6,0.15)]" 
                   : "border-white/10"
-              }`}
+              } ${stat.onClick ? "cursor-pointer hover:border-white/30" : ""}`}
             >
               {stat.highlighted && (
                 <div className="absolute inset-0 bg-gradient-to-b from-primary/5 to-transparent opacity-50" />
@@ -232,6 +234,12 @@ export default function AdminAuditoria() {
       </div>
 
       <div className="fixed bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-50 pointer-events-none" />
+
+      <PurchasesListModal
+        open={showPurchases}
+        onClose={() => setShowPurchases(false)}
+        onUpdate={fetchData}
+      />
     </div>
   );
 }
