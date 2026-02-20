@@ -237,19 +237,6 @@ export default function AdminSuporte() {
                       >
                         Responder
                       </button>
-                      {ticket.status !== "resolved" && ticket.status !== "closed" && (
-                        <button 
-                          onClick={async (e) => { 
-                            e.stopPropagation(); 
-                            await supabase.from("tickets").update({ status: "resolved" }).eq("id", ticket.id);
-                            fetchTickets();
-                            toast.success("Ticket marcado como resolvido!");
-                          }}
-                          className="w-full text-xs font-medium py-2.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 transition-colors"
-                        >
-                          ✓ Marcar como Resolvido
-                        </button>
-                      )}
                     </div>
                   </div>
                 );

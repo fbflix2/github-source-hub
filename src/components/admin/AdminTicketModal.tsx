@@ -116,9 +116,24 @@ export default function AdminTicketModal({ ticket, profileName, mode, onClose, o
               {ticket.title} • <span className="text-white/70">{profileName}</span>
             </p>
           </div>
-          <button onClick={onClose} className="text-white/30 hover:text-white transition-colors">
-            <X className="size-6" />
-          </button>
+          <div className="flex items-center gap-2">
+            {ticket.status !== "resolved" && ticket.status !== "closed" && (
+              <button
+                onClick={async () => {
+                  await supabase.from("tickets").update({ status: "resolved" }).eq("id", ticket.id);
+                  onStatusChange?.();
+                  toast.success("Ticket marcado como resolvido!");
+                  onClose();
+                }}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 transition-colors"
+              >
+                ✓ Resolvido
+              </button>
+            )}
+            <button onClick={onClose} className="text-white/30 hover:text-white transition-colors">
+              <X className="size-6" />
+            </button>
+          </div>
         </div>
 
         {/* Messages */}
