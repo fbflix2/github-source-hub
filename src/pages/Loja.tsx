@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, LayoutGrid, List } from "lucide-react";
 import { ProductListItem } from "@/components/loja/ProductListItem";
+import { ProductDetailModal } from "@/components/loja/ProductDetailModal";
 
 interface Product {
   id: string;
@@ -37,6 +38,7 @@ export default function Dashboard() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [detailProduct, setDetailProduct] = useState<Product | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -92,6 +94,7 @@ export default function Dashboard() {
   }
 
   return (
+    <>
     <div className="space-y-10 animate-fade-in">
       {/* Hero Section */}
       <section className="relative w-full rounded-2xl overflow-hidden glass-card shadow-glass group">
@@ -186,6 +189,7 @@ export default function Dashboard() {
                 product={product}
                 quantity={getQuantity(product.id)}
                 onQuantityChange={updateQuantity}
+                onReadMore={setDetailProduct}
               />
             ))}
           </div>
@@ -230,7 +234,11 @@ export default function Dashboard() {
                         <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors">
                           {product.name}
                         </h3>
-                        <p className="text-sm text-muted-foreground mt-1">{product.description}</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {product.description && product.description.length > 150
+                            ? <>{product.description.substring(0, 150)}... <button onClick={() => setDetailProduct(product)} className="text-primary hover:underline font-medium text-xs">ler mais</button></>
+                            : product.description}
+                        </p>
                       </div>
                       <div className="text-right">
                         <p className="text-xl font-bold text-foreground">
@@ -337,5 +345,14 @@ export default function Dashboard() {
         )}
       </section>
     </div>
+
+      <ProductDetailModal
+        product={detailProduct}
+        open={!!detailProduct}
+        onOpenChange={(open) => { if (!open) setDetailProduct(null); }}
+        quantity={detailProduct ? getQuantity(detailProduct.id) : 1}
+        onQuantityChange={updateQuantity}
+      />
+    </>
   );
 }

@@ -22,6 +22,7 @@ interface Props {
   product: Product;
   quantity: number;
   onQuantityChange: (id: string, delta: number, maxStock?: number) => void;
+  onReadMore: (product: Product) => void;
 }
 
 function getStockInfo(product: Product) {
@@ -34,7 +35,7 @@ function getStockInfo(product: Product) {
   return { status: "Em estoque", statusColor: "text-primary", percentage: Math.min(90, product.stock), sold: `${product.stock} em estoque` };
 }
 
-export function ProductListItem({ product, quantity, onQuantityChange }: Props) {
+export function ProductListItem({ product, quantity, onQuantityChange, onReadMore }: Props) {
   const navigate = useNavigate();
   const { addItem } = useCart();
   const stockInfo = getStockInfo(product);
@@ -80,7 +81,11 @@ export function ProductListItem({ product, quantity, onQuantityChange }: Props) 
                 </span>
               )}
             </div>
-            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{product.description}</p>
+            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+              {product.description && product.description.length > 150
+                ? <>{product.description.substring(0, 150)}... <button onClick={() => onReadMore(product)} className="text-primary hover:underline font-medium">ler mais</button></>
+                : product.description}
+            </p>
           </div>
         </div>
 
