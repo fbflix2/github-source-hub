@@ -456,6 +456,27 @@ export type Database = {
         }
         Relationships: []
       }
+      stock_folders: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       stock_items: {
         Row: {
           created_at: string
