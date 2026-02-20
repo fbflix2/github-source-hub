@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { 
   Search, Plus, Upload, User, Briefcase, Globe, Server, Tag, Save, X,
-  Filter, ChevronLeft, ChevronRight, Edit, Trash2, Image as ImageIcon, Loader2
+  Filter, ChevronLeft, ChevronRight, Edit, Trash2, Image as ImageIcon, Loader2, ImagePlus
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -74,6 +74,9 @@ export default function AdminProducts() {
   const [formTags, setFormTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
   const [formStatus, setFormStatus] = useState("active");
+  const [formImageUrl, setFormImageUrl] = useState("");
+  const [productImages, setProductImages] = useState<{ id: string; name: string; url: string }[]>([]);
+  const [showImagePicker, setShowImagePicker] = useState(false);
 
   // Table state
   const [searchTerm, setSearchTerm] = useState("");
@@ -84,12 +87,14 @@ export default function AdminProducts() {
   const [newCategory, setNewCategory] = useState("");
 
   const fetchData = async () => {
-    const [productsRes, categoriesRes] = await Promise.all([
+    const [productsRes, categoriesRes, imagesRes] = await Promise.all([
       supabase.from("products").select("*").order("created_at", { ascending: false }),
       supabase.from("product_categories").select("*").order("name"),
+      supabase.from("product_images").select("id, name, url").order("created_at", { ascending: false }),
     ]);
     setProducts(productsRes.data ?? []);
     setCategories(categoriesRes.data ?? []);
+    setProductImages(imagesRes.data ?? []);
     setLoading(false);
   };
 
@@ -98,7 +103,7 @@ export default function AdminProducts() {
   const resetForm = () => {
     setFormName(""); setFormPrice(""); setFormStock(""); setFormDescription("");
     setFormCategory(""); setFormIcon("perfil"); setFormTags([]); setFormStatus("active");
-    setEditingProduct(null);
+    setFormImageUrl(""); setEditingProduct(null);
   };
 
   const openEditForm = (product: Product) => {
@@ -111,6 +116,7 @@ export default function AdminProducts() {
     setFormIcon((product.icon_type as ProductIcon) ?? "perfil");
     setFormTags(product.tags ?? []);
     setFormStatus(product.status);
+    setFormImageUrl(product.image_url ?? "");
     setShowForm(true);
   };
 
@@ -128,6 +134,7 @@ export default function AdminProducts() {
       tags: formTags.length > 0 ? formTags : null,
       status: formStatus,
       available: formStatus === "active",
+      image_url: formImageUrl || null,
     };
 
     let error;
@@ -285,6 +292,47 @@ export default function AdminProducts() {
               )}
             </div>
 
+            {/* Image selector */}
+            <div className="space-y-2">
+              <label className="text-sm text-zinc-400">Foto do Produto</label>
+              {formImageUrl ? (
+                <div className="flex items-center gap-3">
+                  <div className="w-16 h-16 rounded-lg overflow-hidden bg-zinc-800">
+                    <img src={formImageUrl} alt="Produto" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button type="button" size="sm" variant="outline" className="border-zinc-700 text-zinc-300 hover:bg-zinc-700" onClick={() => setShowImagePicker(true)}>Trocar</Button>
+                    <Button type="button" size="sm" variant="ghost" className="text-red-400 hover:text-red-300 hover:bg-red-500/10" onClick={() => setFormImageUrl("")}>Remover</Button>
+                  </div>
+                </div>
+              ) : (
+                <Button type="button" variant="outline" className="border-zinc-700 text-zinc-400 hover:bg-zinc-700 gap-2 w-full justify-center" onClick={() => setShowImagePicker(true)}>
+                  <ImagePlus className="h-4 w-4" /> Selecionar imagem
+                </Button>
+              )}
+            </div>
+
+            {/* Image picker modal */}
+            {showImagePicker && (
+              <div className="border border-zinc-700 rounded-lg p-3 space-y-2 bg-zinc-900/80">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-zinc-400 font-medium">Biblioteca de Imagens</span>
+                  <button onClick={() => setShowImagePicker(false)} className="text-zinc-500 hover:text-white"><X className="h-4 w-4" /></button>
+                </div>
+                {productImages.length === 0 ? (
+                  <p className="text-xs text-zinc-500 py-4 text-center">Nenhuma imagem na biblioteca. Adicione em Plataforma → Imagens.</p>
+                ) : (
+                  <div className="grid grid-cols-4 gap-2 max-h-[200px] overflow-y-auto">
+                    {productImages.map(img => (
+                      <button key={img.id} onClick={() => { setFormImageUrl(img.url); setShowImagePicker(false); }}
+                        className={`aspect-square rounded-lg overflow-hidden border-2 transition-all ${formImageUrl === img.url ? "border-primary" : "border-transparent hover:border-zinc-600"}`}>
+                        <img src={img.url} alt={img.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
             <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
               <Button variant="ghost" onClick={() => { resetForm(); setShowForm(false); }} className="text-zinc-400 hover:text-white">Cancelar</Button>
               <Button onClick={handleSave} disabled={saving} className="bg-primary hover:bg-primary/90 text-white gap-2">
