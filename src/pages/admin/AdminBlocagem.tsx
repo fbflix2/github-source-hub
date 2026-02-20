@@ -135,8 +135,49 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
               </div>
               {[
                 { label: "Nome do Perfil", icon: CircleUser, key: "nomePerfil", placeholder: "Nome completo do perfil", type: "text" },
-                { label: "Link do Perfil", icon: Link, key: "linkPerfil", placeholder: "https://facebook.com/profile.php?id=...", type: "url" },
-                { label: "ID do Perfil", icon: Hash, key: "idPerfil", placeholder: "10000843...", type: "text", mono: true },
+              ].map(f => (
+                <div key={f.key} className="flex flex-col gap-1 group">
+                  <label className="text-xs font-medium text-zinc-400 group-focus-within:text-white transition-colors">{f.label}</label>
+                  <div className="relative">
+                    <f.icon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                    <Input type={f.type} placeholder={f.placeholder} value={(formData as any)[f.key]} onChange={e => setFormData({ ...formData, [f.key]: e.target.value })} className="pl-10 bg-black/30 border-white/5 text-white placeholder:text-zinc-600" />
+                  </div>
+                </div>
+              ))}
+              {/* Link do Perfil with auto-extract ID */}
+              <div className="flex flex-col gap-1 group">
+                <label className="text-xs font-medium text-zinc-400 group-focus-within:text-white transition-colors">Link do Perfil</label>
+                <div className="relative">
+                  <Link className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                  <Input type="url" placeholder="https://facebook.com/profile.php?id=..." value={formData.linkPerfil} onChange={e => {
+                    const url = e.target.value;
+                    setFormData(prev => {
+                      const next = { ...prev, linkPerfil: url };
+                      // Auto-extract ID from URL
+                      const idMatch = url.match(/[?&]id=(\d+)/i);
+                      if (idMatch?.[1]) {
+                        next.idPerfil = idMatch[1];
+                      } else {
+                        const handleMatch = url.match(/facebook\.com\/([^/?#]+)/i);
+                        const handle = handleMatch?.[1];
+                        const blocked = ["profile.php","people","pages","watch","reel","marketplace","groups","login","settings","help","photo","photo.php","photos"];
+                        if (handle && !blocked.includes(handle.toLowerCase())) {
+                          next.idPerfil = handle;
+                        }
+                      }
+                      return next;
+                    });
+                  }} className="pl-10 bg-black/30 border-white/5 text-white placeholder:text-zinc-600" />
+                </div>
+              </div>
+              <div className="flex flex-col gap-1 group">
+                <label className="text-xs font-medium text-zinc-400 group-focus-within:text-white transition-colors">ID do Perfil</label>
+                <div className="relative">
+                  <Hash className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                  <Input type="text" placeholder="10000843..." value={formData.idPerfil} onChange={e => setFormData({ ...formData, idPerfil: e.target.value })} className="pl-10 bg-black/30 border-white/5 text-white placeholder:text-zinc-600 font-mono" readOnly />
+                </div>
+              </div>
+              {[
                 { label: "Email de Acesso", icon: Mail, key: "emailAcesso", placeholder: "exemplo@fbflix.com", type: "email" },
                 { label: "Email Alternativo", icon: AtSign, key: "emailAlternativo", placeholder: "recuperacao@email.com", type: "email" },
               ].map(f => (
@@ -144,7 +185,7 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
                   <label className="text-xs font-medium text-zinc-400 group-focus-within:text-white transition-colors">{f.label}</label>
                   <div className="relative">
                     <f.icon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-                    <Input type={f.type} placeholder={f.placeholder} value={(formData as any)[f.key]} onChange={e => setFormData({ ...formData, [f.key]: e.target.value })} className={`pl-10 bg-black/30 border-white/5 text-white placeholder:text-zinc-600 ${f.mono ? "font-mono" : ""}`} />
+                    <Input type={f.type} placeholder={f.placeholder} value={(formData as any)[f.key]} onChange={e => setFormData({ ...formData, [f.key]: e.target.value })} className={`pl-10 bg-black/30 border-white/5 text-white placeholder:text-zinc-600`} />
                   </div>
                 </div>
               ))}
