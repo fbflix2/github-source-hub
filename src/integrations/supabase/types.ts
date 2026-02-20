@@ -422,40 +422,52 @@ export type Database = {
           address: string | null
           avatar_url: string | null
           balance: number
+          birth_date: string | null
           cep: string | null
+          cpf: string | null
           created_at: string
+          document_url: string | null
           full_name: string | null
           id: string
           phone: string | null
           status: string
           updated_at: string
           user_id: string
+          verified: boolean
         }
         Insert: {
           address?: string | null
           avatar_url?: string | null
           balance?: number
+          birth_date?: string | null
           cep?: string | null
+          cpf?: string | null
           created_at?: string
+          document_url?: string | null
           full_name?: string | null
           id?: string
           phone?: string | null
           status?: string
           updated_at?: string
           user_id: string
+          verified?: boolean
         }
         Update: {
           address?: string | null
           avatar_url?: string | null
           balance?: number
+          birth_date?: string | null
           cep?: string | null
+          cpf?: string | null
           created_at?: string
+          document_url?: string | null
           full_name?: string | null
           id?: string
           phone?: string | null
           status?: string
           updated_at?: string
           user_id?: string
+          verified?: boolean
         }
         Relationships: []
       }
