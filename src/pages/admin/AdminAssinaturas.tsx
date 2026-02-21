@@ -262,14 +262,19 @@ export default function AdminAssinaturas() {
     expired: subscriptions.filter((s) => s.mappedStatus === "expired").length,
   }), [subscriptions]);
 
+  const normalize = (str: string) =>
+    str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
   const filtered = useMemo(() => {
     return subscriptions.filter((sub) => {
-      const term = searchTerm.toLowerCase();
+      const term = normalize(searchTerm);
       const matchesSearch = !term ||
-        sub.code?.toLowerCase().includes(term) ||
-        sub.name?.toLowerCase().includes(term) ||
-        sub.clientName?.toLowerCase().includes(term) ||
-        sub.proxy?.ip?.includes(term);
+        normalize(sub.code || "").includes(term) ||
+        normalize(sub.name || "").includes(term) ||
+        normalize(sub.clientName || "").includes(term) ||
+        normalize(sub.product_name || "").includes(term) ||
+        (sub.proxy?.ip || "").includes(term) ||
+        normalize(sub.proxy?.username || "").includes(term);
       const matchesStatus = statusFilter === "all" || sub.mappedStatus === statusFilter;
       const matchesRenewal = renewalFilter === "all" ||
         (renewalFilter === "auto" && sub.auto_renew) ||
