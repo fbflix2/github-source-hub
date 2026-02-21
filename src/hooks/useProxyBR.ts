@@ -1,29 +1,71 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useState, useCallback, useRef, useEffect } from "react";
 
 async function callProxyBR(action: string, params: Record<string, unknown> = {}) {
   const { data, error } = await supabase.functions.invoke("proxybr-api", {
     body: { action, ...params },
   });
   if (error) throw new Error(error.message || "Erro ao chamar ProxyBR API");
-  // Don't throw on data.error for get-all — it may contain partial results
   if (data?.error && !data?.data) throw new Error(data.error);
   return data;
+}
+
+/** Fetches all subscriptions in paginated batches to avoid edge function timeouts */
+export function useProxyBRAllSubscriptions() {
+  const [allSubs, setAllSubs] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  const fetchedRef = useRef(false);
+
+  const fetchAll = useCallback(async () => {
+    if (isLoading) return;
+    setIsLoading(true);
+    setError(null);
+    const accumulated: any[] = [];
+    let nextPage: number | null = 1;
+    const PAGES_PER_BATCH = 8;
+
+    try {
+      while (nextPage !== null) {
+        const result = await callProxyBR("get-all-subscriptions", {
+          startPage: nextPage,
+          maxPages: PAGES_PER_BATCH,
+        });
+        if (result?.data?.length) {
+          accumulated.push(...result.data);
+          setAllSubs([...accumulated]); // update progressively
+        }
+        nextPage = result?.nextPage ?? null;
+      }
+    } catch (err: any) {
+      setError(err);
+      // Still keep whatever we accumulated
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!fetchedRef.current) {
+      fetchedRef.current = true;
+      fetchAll();
+    }
+  }, [fetchAll]);
+
+  return {
+    data: { data: allSubs, total: allSubs.length },
+    isLoading,
+    error,
+    refetch: () => { fetchedRef.current = false; fetchAll(); },
+  };
 }
 
 export function useProxyBRSubscriptions() {
   return useQuery({
     queryKey: ["proxybr-subscriptions"],
     queryFn: () => callProxyBR("get-subscriptions"),
-    staleTime: 30_000,
-  });
-}
-
-export function useProxyBRAllSubscriptions() {
-  return useQuery({
-    queryKey: ["proxybr-all-subscriptions"],
-    queryFn: () => callProxyBR("get-all-subscriptions"),
     staleTime: 30_000,
   });
 }
