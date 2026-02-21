@@ -1,7 +1,8 @@
 import { useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Upload, FileSpreadsheet, AlertCircle, CheckCircle, Loader2, X } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { Upload, FileSpreadsheet, CheckCircle, Loader2, X, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
@@ -12,23 +13,112 @@ interface ImportClientsModalProps {
   onImported: () => void;
 }
 
-interface ParsedClient {
-  name: string;
+interface ClientRow {
   email: string;
-  phone: string;
+  full_name?: string;
+  phone?: string;
+  cpf?: string;
+  cep?: string;
+  address?: string;
+  birth_date?: string;
+}
+
+// Column synonym mapping
+const COLUMN_MAP: Record<string, keyof ClientRow> = {
+  nome: "full_name",
+  name: "full_name",
+  "nome completo": "full_name",
+  "full name": "full_name",
+  "full_name": "full_name",
+  email: "email",
+  "e-mail": "email",
+  "e mail": "email",
+  telefone: "phone",
+  phone: "phone",
+  fone: "phone",
+  celular: "phone",
+  cel: "phone",
+  whatsapp: "phone",
+  cpf: "cpf",
+  documento: "cpf",
+  doc: "cpf",
+  cep: "cep",
+  zip: "cep",
+  "codigo postal": "cep",
+  endereco: "address",
+  endereço: "address",
+  address: "address",
+  "endereço completo": "address",
+  nascimento: "birth_date",
+  birth: "birth_date",
+  "data nascimento": "birth_date",
+  "data_nascimento": "birth_date",
+  "birth_date": "birth_date",
+  "data de nascimento": "birth_date",
+  aniversario: "birth_date",
+  aniversário: "birth_date",
+};
+
+const FIELD_LABELS: Record<keyof ClientRow, string> = {
+  email: "Email",
+  full_name: "Nome",
+  phone: "Telefone",
+  cpf: "CPF",
+  cep: "CEP",
+  address: "Endereço",
+  birth_date: "Nascimento",
+};
+
+function normalize(str: string): string {
+  return str
+    .toLowerCase()
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9 _]/g, "");
+}
+
+function detectColumns(firstRow: any[]): { mapping: (keyof ClientRow | null)[]; isHeader: boolean } {
+  const normalized = firstRow.map((cell) => normalize(String(cell || "")));
+  let matches = 0;
+  const mapping: (keyof ClientRow | null)[] = [];
+
+  for (const cell of normalized) {
+    const mapped = COLUMN_MAP[cell] || null;
+    if (mapped) matches++;
+    mapping.push(mapped);
+  }
+
+  // If at least 2 columns match known headers, treat as header row
+  if (matches >= 2) {
+    return { mapping, isHeader: true };
+  }
+
+  // Default: assume Nome, Email, Telefone
+  const defaultMapping: (keyof ClientRow | null)[] = [
+    "full_name",
+    "email",
+    "phone",
+    ...Array(Math.max(0, firstRow.length - 3)).fill(null),
+  ];
+  return { mapping: defaultMapping, isHeader: false };
 }
 
 export default function ImportClientsModal({ open, onClose, onImported }: ImportClientsModalProps) {
-  const [parsedClients, setParsedClients] = useState<ParsedClient[]>([]);
+  const [parsedClients, setParsedClients] = useState<ClientRow[]>([]);
+  const [detectedFields, setDetectedFields] = useState<(keyof ClientRow)[]>([]);
   const [fileName, setFileName] = useState("");
   const [importing, setImporting] = useState(false);
-  const [importResult, setImportResult] = useState<{ success: number; failed: number } | null>(null);
+  const [progress, setProgress] = useState({ current: 0, total: 0 });
+  const [importResult, setImportResult] = useState<{ success: number; failed: number; errors: string[] } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const reset = () => {
     setParsedClients([]);
+    setDetectedFields([]);
     setFileName("");
     setImportResult(null);
+    setProgress({ current: 0, total: 0 });
   };
 
   const handleClose = () => {
@@ -50,80 +140,96 @@ export default function ImportClientsModal({ open, onClose, onImported }: Import
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         const rows: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
-        const clients: ParsedClient[] = [];
-        for (const row of rows) {
-          const name = String(row[0] || "").trim();
-          const email = String(row[1] || "").trim();
-          const phone = String(row[2] || "").trim();
-          if (name && email) {
-            clients.push({ name, email, phone });
+        if (rows.length === 0) {
+          toast.error("Arquivo vazio.");
+          return;
+        }
+
+        const { mapping, isHeader } = detectColumns(rows[0]);
+        const dataRows = isHeader ? rows.slice(1) : rows;
+
+        // Determine which fields were detected
+        const fields = mapping.filter((m): m is keyof ClientRow => m !== null);
+        const uniqueFields = [...new Set(fields)];
+        setDetectedFields(uniqueFields);
+
+        const clients: ClientRow[] = [];
+        for (const row of dataRows) {
+          const client: Partial<ClientRow> = {};
+          for (let i = 0; i < mapping.length; i++) {
+            const field = mapping[i];
+            if (field && row[i] !== undefined && row[i] !== null) {
+              const val = String(row[i]).trim();
+              if (val) {
+                (client as any)[field] = val;
+              }
+            }
+          }
+          // Must have at least email
+          if (client.email) {
+            clients.push(client as ClientRow);
           }
         }
+
         setParsedClients(clients);
+        if (clients.length === 0) {
+          toast.error("Nenhum cliente com email válido encontrado.");
+        }
       } catch {
         toast.error("Erro ao ler o arquivo. Verifique o formato.");
       }
     };
     reader.readAsArrayBuffer(file);
-    // Reset file input
     if (fileRef.current) fileRef.current.value = "";
   };
 
   const handleImport = async () => {
     if (parsedClients.length === 0) return;
     setImporting(true);
-    let success = 0;
-    let failed = 0;
+    setProgress({ current: 0, total: parsedClients.length });
 
-    const { data: { session } } = await supabase.auth.getSession();
+    // Process in batches of 20
+    const batchSize = 20;
+    let totalSuccess = 0;
+    let totalFailed = 0;
+    const allErrors: string[] = [];
 
-    for (const client of parsedClients) {
+    for (let i = 0; i < parsedClients.length; i += batchSize) {
+      const batch = parsedClients.slice(i, i + batchSize);
+
       try {
-        // Create user via edge function or directly sign up
-        const { data, error } = await supabase.auth.admin?.createUser?.({
-          email: client.email,
-          password: Math.random().toString(36).slice(-10) + "A1!",
-          email_confirm: true,
-          user_metadata: { full_name: client.name },
-        }) ?? { data: null, error: new Error("Admin API not available") };
+        const { data, error } = await supabase.functions.invoke("import-clients", {
+          body: { clients: batch },
+        });
 
         if (error) {
-          // Try signUp as fallback
-          const { error: signUpError } = await supabase.auth.signUp({
-            email: client.email,
-            password: Math.random().toString(36).slice(-10) + "A1!",
-            options: { data: { full_name: client.name } },
-          });
-          if (signUpError) {
-            failed++;
-            continue;
+          totalFailed += batch.length;
+          allErrors.push(`Lote ${Math.floor(i / batchSize) + 1}: ${error.message}`);
+        } else {
+          totalSuccess += data.success || 0;
+          totalFailed += data.failed || 0;
+          if (data.errors?.length) {
+            allErrors.push(...data.errors);
           }
         }
-
-        // Update phone if we have it - profile is created by trigger
-        if (client.phone) {
-          // Small delay for trigger to create profile
-          await new Promise(r => setTimeout(r, 300));
-          await supabase
-            .from("profiles")
-            .update({ phone: client.phone })
-            .eq("full_name", client.name);
-        }
-
-        success++;
-      } catch {
-        failed++;
+      } catch (e) {
+        totalFailed += batch.length;
+        allErrors.push(`Lote ${Math.floor(i / batchSize) + 1}: Erro de conexão`);
       }
+
+      setProgress({ current: Math.min(i + batchSize, parsedClients.length), total: parsedClients.length });
     }
 
-    setImportResult({ success, failed });
+    setImportResult({ success: totalSuccess, failed: totalFailed, errors: allErrors });
     setImporting(false);
-    if (success > 0) onImported();
+    if (totalSuccess > 0) onImported();
   };
+
+  const progressPercent = progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="bg-[#1a0a0a] border-white/10 text-white max-w-2xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="bg-[#1a0a0a] border-white/10 text-white max-w-3xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold flex items-center gap-2">
             <Upload className="w-5 h-5 text-primary" />
@@ -134,13 +240,16 @@ export default function ImportClientsModal({ open, onClose, onImported }: Import
         <div className="flex flex-col gap-5 mt-2">
           {/* Instructions */}
           <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-sm text-white/60">
-            <p className="font-semibold text-white/80 mb-2">Formato esperado do arquivo (.xlsx ou .csv):</p>
-            <div className="flex gap-6 text-xs">
-              <span className="bg-white/10 px-3 py-1 rounded-full">Coluna A: Nome</span>
-              <span className="bg-white/10 px-3 py-1 rounded-full">Coluna B: Email</span>
-              <span className="bg-white/10 px-3 py-1 rounded-full">Coluna C: Telefone</span>
+            <p className="font-semibold text-white/80 mb-2">O sistema detecta automaticamente as colunas do arquivo (.xlsx ou .csv):</p>
+            <div className="flex flex-wrap gap-2 text-xs">
+              {Object.values(FIELD_LABELS).map((label) => (
+                <span key={label} className="bg-white/10 px-3 py-1 rounded-full">{label}</span>
+              ))}
             </div>
-            <p className="mt-2 text-white/40 text-xs">Sem cabeçalho. Cada linha é um cliente.</p>
+            <p className="mt-2 text-white/40 text-xs">
+              A primeira linha pode ser cabeçalho (nome, email, telefone, cpf...) ou dados diretos.
+              Contas importadas ficam <strong className="text-green-400">ativas imediatamente</strong>.
+            </p>
           </div>
 
           {/* File Input */}
@@ -162,8 +271,20 @@ export default function ImportClientsModal({ open, onClose, onImported }: Import
             </Button>
           </div>
 
+          {/* Detected fields badge */}
+          {detectedFields.length > 0 && !importResult && (
+            <div className="flex flex-wrap gap-2">
+              <span className="text-xs text-white/40">Colunas detectadas:</span>
+              {detectedFields.map((f) => (
+                <span key={f} className="bg-primary/20 text-primary text-xs px-2 py-0.5 rounded-full">
+                  {FIELD_LABELS[f]}
+                </span>
+              ))}
+            </div>
+          )}
+
           {/* Preview */}
-          {parsedClients.length > 0 && !importResult && (
+          {parsedClients.length > 0 && !importResult && !importing && (
             <div className="flex flex-col gap-3">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-semibold text-white/80">
@@ -174,23 +295,23 @@ export default function ImportClientsModal({ open, onClose, onImported }: Import
                 </Button>
               </div>
 
-              <div className="bg-white/5 rounded-xl border border-white/10 max-h-60 overflow-y-auto">
+              <div className="bg-white/5 rounded-xl border border-white/10 max-h-60 overflow-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-white/10 text-white/50 text-xs">
                       <th className="text-left p-3">#</th>
-                      <th className="text-left p-3">Nome</th>
-                      <th className="text-left p-3">Email</th>
-                      <th className="text-left p-3">Telefone</th>
+                      {detectedFields.map((f) => (
+                        <th key={f} className="text-left p-3">{FIELD_LABELS[f]}</th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
                     {parsedClients.slice(0, 50).map((c, i) => (
                       <tr key={i} className="border-b border-white/5 text-white/70">
                         <td className="p-3 text-white/30">{i + 1}</td>
-                        <td className="p-3 font-medium text-white/90">{c.name}</td>
-                        <td className="p-3">{c.email}</td>
-                        <td className="p-3">{c.phone || "—"}</td>
+                        {detectedFields.map((f) => (
+                          <td key={f} className="p-3">{(c as any)[f] || "—"}</td>
+                        ))}
                       </tr>
                     ))}
                   </tbody>
@@ -204,21 +325,23 @@ export default function ImportClientsModal({ open, onClose, onImported }: Import
 
               <Button
                 onClick={handleImport}
-                disabled={importing}
                 className="bg-primary hover:bg-primary/80 text-white font-bold py-3 h-auto rounded-xl"
               >
-                {importing ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Importando... Aguarde
-                  </>
-                ) : (
-                  <>
-                    <Upload className="w-4 h-4 mr-2" />
-                    Importar {parsedClients.length} Clientes
-                  </>
-                )}
+                <Upload className="w-4 h-4 mr-2" />
+                Importar {parsedClients.length} Clientes
               </Button>
+            </div>
+          )}
+
+          {/* Progress */}
+          {importing && (
+            <div className="flex flex-col gap-3 py-4">
+              <div className="flex items-center gap-2 text-sm text-white/70">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Importando... {progress.current} de {progress.total}
+              </div>
+              <Progress value={progressPercent} className="h-2" />
+              <p className="text-xs text-white/40">{progressPercent}% concluído</p>
             </div>
           )}
 
@@ -233,6 +356,21 @@ export default function ImportClientsModal({ open, onClose, onImported }: Import
                   <span className="text-red-400 font-semibold">{importResult.failed} falharam</span>
                 )}
               </div>
+
+              {importResult.errors.length > 0 && (
+                <div className="w-full bg-red-500/10 border border-red-500/20 rounded-xl p-3 max-h-40 overflow-y-auto">
+                  <p className="text-xs font-semibold text-red-400 mb-1 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" /> Detalhes dos erros:
+                  </p>
+                  {importResult.errors.slice(0, 20).map((err, i) => (
+                    <p key={i} className="text-xs text-red-300/70">{err}</p>
+                  ))}
+                  {importResult.errors.length > 20 && (
+                    <p className="text-xs text-red-300/50 mt-1">... e mais {importResult.errors.length - 20} erros</p>
+                  )}
+                </div>
+              )}
+
               <Button variant="outline" onClick={handleClose} className="mt-2 border-white/20 text-white/70">
                 Fechar
               </Button>
