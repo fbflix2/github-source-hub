@@ -146,6 +146,34 @@ export default function ItemDetails() {
     URL.revokeObjectURL(url);
   };
 
+  const downloadBloco = () => {
+    const lines = [
+      `=== ${itemName} ===`,
+      `Pedido: ${order?.code || "—"}`,
+      `Data: ${order?.created_at ? formatDate(order.created_at) : "—"}`,
+      "",
+      "--- Dados de Acesso ---",
+      `Login / Email: ${email}`,
+      `Senha: ${senha}`,
+      `Código 2FA: ${token2fa}`,
+    ];
+    if (stockData.emailAlternativo) lines.push(`Email Alternativo: ${stockData.emailAlternativo}`);
+    if (stockData.nomePerfil) lines.push(`Nome do Perfil: ${stockData.nomePerfil}`);
+    if (stockData.dataNascimento) lines.push(`Data de Nascimento: ${stockData.dataNascimento}`);
+    if (stockData.genero) lines.push(`Gênero: ${stockData.genero}`);
+    if (stockData.tempoPlataforma) lines.push(`Tempo de Plataforma: ${stockData.tempoPlataforma}`);
+    if (stockData.statusAtual) lines.push(`Status Atual: ${stockData.statusAtual}`);
+    if (descricao) { lines.push("", "--- Descrição ---", descricao); }
+    if (stockData.cookies) { lines.push("", "--- Cookies ---", stockData.cookies); }
+    const blob = new Blob([lines.join("\n")], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `bloco_${orderItem?.id || "item"}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -261,14 +289,18 @@ export default function ItemDetails() {
                     </div>
                   </div>
                 </div>
-                {stockData.cookies && (
-                  <div className="mt-2 pt-2 border-t border-border">
-                    <button onClick={downloadCookies} className="w-full py-2 bg-primary text-background font-bold rounded-lg hover:brightness-110 transition-all flex items-center justify-center gap-1.5 text-sm shadow-glow">
-                      <span className="material-symbols-outlined text-[16px]">cloud_download</span>
-                      Baixar Cookies e Backup
+              <div className="mt-2 pt-2 border-t border-border flex gap-2">
+                  {stockData.cookies && (
+                    <button onClick={() => { navigator.clipboard.writeText(stockData.cookies!); setCopied('cookies'); setTimeout(() => setCopied(null), 2000); }} className="flex-1 py-1.5 bg-muted/50 border border-border text-foreground font-semibold rounded-lg hover:bg-muted transition-all flex items-center justify-center gap-1.5 text-xs">
+                      <span className="material-symbols-outlined text-[14px]">{copied === 'cookies' ? 'check' : 'cookie'}</span>
+                      {copied === 'cookies' ? 'Copiado!' : 'Copiar Cookies'}
                     </button>
-                  </div>
-                )}
+                  )}
+                  <button onClick={downloadBloco} className="flex-1 py-1.5 bg-muted/50 border border-border text-foreground font-semibold rounded-lg hover:bg-muted transition-all flex items-center justify-center gap-1.5 text-xs">
+                    <span className="material-symbols-outlined text-[14px]">download</span>
+                    Baixar Bloco
+                  </button>
+                </div>
               </div>
             </div>
           </div>
