@@ -120,7 +120,7 @@ export default function Checkout() {
         toast.success("Pagamento confirmado! Pedido criado.");
         setTimeout(() => {
           setPixModal(false);
-          navigate("/pedidos");
+          navigate("/orders");
         }, 3000);
       }
     }, 3000);
@@ -305,7 +305,7 @@ export default function Checkout() {
         }
 
         toast.success("Pedido realizado com sucesso!");
-        navigate("/pedidos");
+        navigate("/orders");
 
       } else if (paymentMethod === "pix") {
         const { data: order, error: orderError } = await supabase.from("orders").insert({
