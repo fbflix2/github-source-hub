@@ -25,8 +25,8 @@ async function fetchAllSubscriptions(apiKey: string, statusFilter?: string) {
   let allSubs: any[] = [];
   let page = 1;
   const maxPages = 300;
-  const DELAY_BETWEEN_PAGES = 1200; // 1.2s between requests to avoid 429
-  const MAX_RETRIES = 3;
+  const DELAY_BETWEEN_PAGES = 2000; // 2s between requests
+  const MAX_RETRIES = 5;
 
   while (page <= maxPages) {
     let url = `${PROXYBR_BASE}/subscriptions?page=${page}`;
@@ -35,6 +35,7 @@ async function fetchAllSubscriptions(apiKey: string, statusFilter?: string) {
 
     let response: Response | null = null;
     let text = "";
+    let success = false;
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       response = await proxyFetch(url, apiKey);
@@ -42,15 +43,22 @@ async function fetchAllSubscriptions(apiKey: string, statusFilter?: string) {
 
       if (response.status === 429) {
         const retryAfter = response.headers.get("Retry-After");
-        const waitMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : DELAY_BETWEEN_PAGES * attempt * 2;
+        // Exponential backoff: 3s, 6s, 12s, 24s, 48s
+        const waitMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : 3000 * Math.pow(2, attempt - 1);
         console.warn(`Rate limited on page ${page}, attempt ${attempt}/${MAX_RETRIES}. Waiting ${waitMs}ms...`);
         await sleep(waitMs);
         continue;
       }
+      success = true;
       break;
     }
 
-    if (!response || !response.ok) {
+    if (!success || !response || !response.ok) {
+      // If rate limited after all retries, return what we have instead of crashing
+      if (response?.status === 429) {
+        console.warn(`Persistent rate limit after ${MAX_RETRIES} retries on page ${page}. Returning ${allSubs.length} subs fetched so far.`);
+        break;
+      }
       console.error(`ProxyBR error [${response?.status}]: ${text.substring(0, 300)}`);
       throw new Error(`ProxyBR API error [${response?.status}]`);
     }
