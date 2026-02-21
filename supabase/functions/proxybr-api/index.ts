@@ -347,14 +347,14 @@ Deno.serve(async (req) => {
 
               const endDateStr = sub.due_date || sub.end_date || new Date().toISOString();
               const startDateStr = sub.created_at || sub.start_date || new Date().toISOString();
-              const apiStatus = (sub.status || "UNKNOWN").toUpperCase();
-              const now = new Date();
-              const daysLeft = Math.floor((new Date(endDateStr).getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+              const apiStatus = (sub.status || "UNKNOWN").toLowerCase().trim();
 
               let mappedStatus = "active";
-              if (apiStatus === "CANCELLED") mappedStatus = "cancelled";
+              if (apiStatus === "cancelled" || apiStatus === "cancelado" || apiStatus === "canceled") mappedStatus = "cancelled";
+              else if (apiStatus === "expired" || apiStatus === "vencido" || apiStatus === "expirado") mappedStatus = "expired";
+              else if (apiStatus === "pending_renewal" || apiStatus === "renovação pendente" || apiStatus === "renewal_pending" || apiStatus === "pending" || apiStatus === "pendente") mappedStatus = "pending_renewal";
+              else if (apiStatus === "active" || apiStatus === "ativo" || apiStatus === "enabled") mappedStatus = "active";
               else if (daysLeft < 0) mappedStatus = "expired";
-              else if (daysLeft <= 3) mappedStatus = "expiring";
 
               const record: Record<string, any> = {
                 name: code, type: "proxybr", status: mappedStatus,
