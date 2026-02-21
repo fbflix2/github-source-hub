@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Wallet, QrCode, CreditCard, Lock, ChevronLeft, User, Calendar, Flame, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { useCart } from "@/contexts/CartContext";
 
 interface DbProduct {
@@ -89,6 +90,8 @@ export default function Checkout() {
   const [upsellAdded, setUpsellAdded] = useState(false);
   const [coupon, setCoupon] = useState("");
   const [discount, setDiscount] = useState(0);
+  const [couponApplied, setCouponApplied] = useState(false);
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
   const [cardNumber, setCardNumber] = useState("");
   const [cardName, setCardName] = useState("");
   const [cardExpiry, setCardExpiry] = useState("");
@@ -161,11 +164,61 @@ export default function Checkout() {
     setSelectedBumps((prev) => prev.filter((id) => !upsellOffer.items.includes(id)));
   };
 
-  const applyCoupon = () => {
-    if (coupon.toLowerCase() === "desconto10") {
-      setDiscount(10);
-    } else {
-      setDiscount(0);
+  const applyCoupon = async () => {
+    if (!coupon.trim()) return;
+    setApplyingCoupon(true);
+    try {
+      const { data, error } = await supabase
+        .from("coupons")
+        .select("*")
+        .eq("code", coupon.trim().toUpperCase())
+        .eq("status", "active")
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (!data) {
+        setDiscount(0);
+        setCouponApplied(false);
+        toast.error("Cupom inválido ou expirado");
+        return;
+      }
+
+      // Check expiry
+      if (data.expires_at && new Date(data.expires_at) < new Date()) {
+        setDiscount(0);
+        setCouponApplied(false);
+        toast.error("Este cupom já expirou");
+        return;
+      }
+
+      // Check usage limit
+      if (data.used_count >= data.max_uses) {
+        setDiscount(0);
+        setCouponApplied(false);
+        toast.error("Este cupom atingiu o limite de usos");
+        return;
+      }
+
+      // Apply discount
+      let discountAmount = 0;
+      if (data.discount_type === "percent") {
+        discountAmount = (subtotal * data.discount_value) / 100;
+      } else {
+        discountAmount = data.discount_value;
+      }
+
+      // Cap discount at subtotal
+      discountAmount = Math.min(discountAmount, subtotal);
+
+      setDiscount(discountAmount);
+      setCouponApplied(true);
+      toast.success(`Cupom ${data.code} aplicado! -R$ ${discountAmount.toFixed(2).replace(".", ",")}`);
+    } catch (err) {
+      console.error("Coupon error:", err);
+      toast.error("Erro ao validar cupom");
+    } finally {
+      setApplyingCoupon(false);
     }
   };
 
@@ -366,8 +419,21 @@ export default function Checkout() {
 
               {/* Coupon */}
               <div className="flex gap-2">
-                <input type="text" value={coupon} onChange={(e) => setCoupon(e.target.value)} placeholder="Cupom de desconto" className="glass-input flex-1 rounded-lg py-2 px-3 text-xs text-foreground placeholder-muted-foreground outline-none focus:ring-1 focus:ring-primary bg-black/30 border border-border" />
-                <button onClick={applyCoupon} className="bg-muted hover:bg-muted/80 text-foreground text-xs font-bold rounded-lg px-3 transition-colors">APLICAR</button>
+                <input
+                  type="text"
+                  value={coupon}
+                  onChange={(e) => { setCoupon(e.target.value); if (couponApplied) { setCouponApplied(false); setDiscount(0); } }}
+                  placeholder="Cupom de desconto"
+                  disabled={couponApplied}
+                  className={`glass-input flex-1 rounded-lg py-2 px-3 text-xs text-foreground placeholder-muted-foreground outline-none focus:ring-1 focus:ring-primary bg-black/30 border ${couponApplied ? "border-emerald-500/50 bg-emerald-500/5" : "border-border"}`}
+                />
+                <button
+                  onClick={applyCoupon}
+                  disabled={applyingCoupon || couponApplied}
+                  className="bg-muted hover:bg-muted/80 text-foreground text-xs font-bold rounded-lg px-3 transition-colors disabled:opacity-50"
+                >
+                  {applyingCoupon ? "..." : couponApplied ? "✓" : "APLICAR"}
+                </button>
               </div>
 
               <div className="h-px w-full bg-border" />
