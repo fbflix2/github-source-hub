@@ -122,6 +122,33 @@ Deno.serve(async (req) => {
 
     const { action, ...params } = await req.json();
 
+    // Update notes on a ProxyBR subscription
+    if (action === "update-subscription-notes") {
+      const { subscriptionCode, notes } = params as { subscriptionCode: string; notes: string };
+      if (!subscriptionCode) throw new Error("subscriptionCode é obrigatório");
+      if (typeof notes !== "string") throw new Error("notes é obrigatório");
+
+      const updateUrl = `${PROXYBR_BASE}/subscriptions/${subscriptionCode}`;
+      console.log(`Updating ProxyBR notes for ${subscriptionCode}: "${notes}"`);
+      const updateResp = await proxyFetch(updateUrl, PROXYBR_API_KEY, "PUT", JSON.stringify({ notes }));
+      const updateText = await updateResp.text();
+      console.log(`ProxyBR update-notes response [${updateResp.status}]: ${updateText.substring(0, 300)}`);
+
+      if (!updateResp.ok) {
+        return new Response(
+          JSON.stringify({ error: `ProxyBR API error [${updateResp.status}]`, details: updateText }),
+          { status: updateResp.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      let updateData;
+      try { updateData = JSON.parse(updateText); } catch { updateData = { raw: updateText }; }
+      return new Response(
+        JSON.stringify(updateData),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Handle the new get-all-subscriptions action
     if (action === "get-all-subscriptions") {
       const allSubs = await fetchAllSubscriptions(PROXYBR_API_KEY);
@@ -325,6 +352,7 @@ Deno.serve(async (req) => {
 
         // Save subscription locally with the buyer's user_id
         const subCode = contractData.code || contractData.data?.code;
+        const endDate = contractData.due_date || contractData.end_date || null;
         if (subCode) {
           const supabaseAdmin = createClient(
             Deno.env.get("SUPABASE_URL")!,
@@ -356,6 +384,16 @@ Deno.serve(async (req) => {
             });
           }
           console.log(`Saved subscription ${subCode} linked to user ${user.id}`);
+
+          // Push buyer's email to ProxyBR notes for future sync matching
+          try {
+            const notesUrl = `${PROXYBR_BASE}/subscriptions/${subCode}`;
+            console.log(`Setting ProxyBR notes for ${subCode} to "${user.email}"`);
+            const notesResp = await proxyFetch(notesUrl, PROXYBR_API_KEY, "PUT", JSON.stringify({ notes: user.email }));
+            console.log(`ProxyBR notes update [${notesResp.status}]`);
+          } catch (e) {
+            console.error(`Failed to update ProxyBR notes: ${e}`);
+          }
         }
 
         return new Response(

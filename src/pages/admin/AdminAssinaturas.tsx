@@ -259,7 +259,7 @@ export default function AdminAssinaturas() {
     }
   }, [queryClient, refetch]);
 
-  // Link subscription to a client
+  // Link subscription to a client (also pushes email to ProxyBR notes)
   const handleLinkClient = useCallback(async (subCode: string, userId: string) => {
     try {
       const { data: existing } = await supabase
@@ -283,6 +283,24 @@ export default function AdminAssinaturas() {
           user_id: userId,
         });
       }
+
+      // Get client email from profiles to push to ProxyBR notes
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      // Try to get email via edge function (uses service role)
+      const clientLabel = profileData?.full_name || userId;
+      try {
+        await supabase.functions.invoke("proxybr-api", {
+          body: { action: "update-subscription-notes", subscriptionCode: subCode, notes: clientLabel },
+        });
+      } catch (e) {
+        console.error("Failed to update ProxyBR notes:", e);
+      }
+
       toast.success("Cliente vinculado com sucesso!");
       queryClient.invalidateQueries({ queryKey: ["admin-subscriptions-local"] });
       setLinkModalSub(null);
