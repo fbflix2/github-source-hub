@@ -53,6 +53,7 @@ Deno.serve(async (req) => {
     let success = 0;
     let failed = 0;
     const errors: string[] = [];
+    const credentials: { email: string; password: string; full_name: string }[] = [];
 
     for (const client of clients) {
       try {
@@ -63,7 +64,7 @@ Deno.serve(async (req) => {
         }
 
         // Create user with email_confirm: true (account is active immediately)
-        const password = crypto.randomUUID().slice(0, 12) + "A1!";
+        const password = crypto.randomUUID().slice(0, 8) + "A1!";
         const { data: userData, error: createError } = await supabaseAdmin.auth.admin.createUser({
           email: client.email,
           password,
@@ -86,20 +87,22 @@ Deno.serve(async (req) => {
         if (client.birth_date) profileUpdate.birth_date = client.birth_date;
 
         if (Object.keys(profileUpdate).length > 0 && userData.user) {
-          // Small delay for trigger to create profile
           await new Promise((r) => setTimeout(r, 200));
-
           const { error: updateError } = await supabaseAdmin
             .from("profiles")
             .update(profileUpdate)
             .eq("user_id", userData.user.id);
 
           if (updateError) {
-            // User was created but profile update failed - still count as partial success
             errors.push(`${client.email}: perfil criado mas erro ao atualizar dados extras: ${updateError.message}`);
           }
         }
 
+        credentials.push({
+          email: client.email,
+          password,
+          full_name: client.full_name || "",
+        });
         success++;
       } catch (e) {
         failed++;
@@ -108,7 +111,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success, failed, errors }),
+      JSON.stringify({ success, failed, errors, credentials }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {

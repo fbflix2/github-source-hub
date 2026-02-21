@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Upload, FileSpreadsheet, CheckCircle, Loader2, X, AlertCircle } from "lucide-react";
+import { Upload, FileSpreadsheet, CheckCircle, Loader2, X, AlertCircle, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
@@ -104,6 +104,12 @@ function detectColumns(firstRow: any[]): { mapping: (keyof ClientRow | null)[]; 
   return { mapping: defaultMapping, isHeader: false };
 }
 
+interface CredentialRow {
+  email: string;
+  password: string;
+  full_name: string;
+}
+
 export default function ImportClientsModal({ open, onClose, onImported }: ImportClientsModalProps) {
   const [parsedClients, setParsedClients] = useState<ClientRow[]>([]);
   const [detectedFields, setDetectedFields] = useState<(keyof ClientRow)[]>([]);
@@ -111,6 +117,7 @@ export default function ImportClientsModal({ open, onClose, onImported }: Import
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [importResult, setImportResult] = useState<{ success: number; failed: number; errors: string[] } | null>(null);
+  const [allCredentials, setAllCredentials] = useState<CredentialRow[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const reset = () => {
@@ -118,6 +125,7 @@ export default function ImportClientsModal({ open, onClose, onImported }: Import
     setDetectedFields([]);
     setFileName("");
     setImportResult(null);
+    setAllCredentials([]);
     setProgress({ current: 0, total: 0 });
   };
 
@@ -131,6 +139,7 @@ export default function ImportClientsModal({ open, onClose, onImported }: Import
     if (!file) return;
     setFileName(file.name);
     setImportResult(null);
+    setAllCredentials([]);
 
     const reader = new FileReader();
     reader.onload = (evt) => {
@@ -148,7 +157,6 @@ export default function ImportClientsModal({ open, onClose, onImported }: Import
         const { mapping, isHeader } = detectColumns(rows[0]);
         const dataRows = isHeader ? rows.slice(1) : rows;
 
-        // Determine which fields were detected
         const fields = mapping.filter((m): m is keyof ClientRow => m !== null);
         const uniqueFields = [...new Set(fields)];
         setDetectedFields(uniqueFields);
@@ -165,7 +173,6 @@ export default function ImportClientsModal({ open, onClose, onImported }: Import
               }
             }
           }
-          // Must have at least email
           if (client.email) {
             clients.push(client as ClientRow);
           }
@@ -188,11 +195,11 @@ export default function ImportClientsModal({ open, onClose, onImported }: Import
     setImporting(true);
     setProgress({ current: 0, total: parsedClients.length });
 
-    // Process in batches of 20
     const batchSize = 20;
     let totalSuccess = 0;
     let totalFailed = 0;
     const allErrors: string[] = [];
+    const creds: CredentialRow[] = [];
 
     for (let i = 0; i < parsedClients.length; i += batchSize) {
       const batch = parsedClients.slice(i, i + batchSize);
@@ -208,9 +215,8 @@ export default function ImportClientsModal({ open, onClose, onImported }: Import
         } else {
           totalSuccess += data.success || 0;
           totalFailed += data.failed || 0;
-          if (data.errors?.length) {
-            allErrors.push(...data.errors);
-          }
+          if (data.errors?.length) allErrors.push(...data.errors);
+          if (data.credentials?.length) creds.push(...data.credentials);
         }
       } catch (e) {
         totalFailed += batch.length;
@@ -221,8 +227,24 @@ export default function ImportClientsModal({ open, onClose, onImported }: Import
     }
 
     setImportResult({ success: totalSuccess, failed: totalFailed, errors: allErrors });
+    setAllCredentials(creds);
     setImporting(false);
     if (totalSuccess > 0) onImported();
+  };
+
+  const handleExportCredentials = () => {
+    if (allCredentials.length === 0) return;
+    const ws = XLSX.utils.json_to_sheet(
+      allCredentials.map((c) => ({
+        Nome: c.full_name,
+        Email: c.email,
+        "Senha Primeiro Acesso": c.password,
+      }))
+    );
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Credenciais");
+    XLSX.writeFile(wb, "credenciais_clientes.xlsx");
+    toast.success("Arquivo de credenciais exportado!");
   };
 
   const progressPercent = progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0;
@@ -356,6 +378,25 @@ export default function ImportClientsModal({ open, onClose, onImported }: Import
                   <span className="text-red-400 font-semibold">{importResult.failed} falharam</span>
                 )}
               </div>
+
+              {allCredentials.length > 0 && (
+                <div className="w-full bg-primary/10 border border-primary/20 rounded-xl p-4 flex flex-col gap-2">
+                  <p className="text-sm font-semibold text-primary flex items-center gap-2">
+                    <Download className="w-4 h-4" />
+                    {allCredentials.length} credenciais de primeiro acesso geradas
+                  </p>
+                  <p className="text-xs text-white/50">
+                    Baixe o arquivo e envie a senha de primeiro acesso para cada cliente. Após o login, eles poderão trocar a senha.
+                  </p>
+                  <Button
+                    onClick={handleExportCredentials}
+                    className="bg-primary hover:bg-primary/80 text-white font-bold rounded-xl mt-1"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Baixar Credenciais (.xlsx)
+                  </Button>
+                </div>
+              )}
 
               {importResult.errors.length > 0 && (
                 <div className="w-full bg-red-500/10 border border-red-500/20 rounded-xl p-3 max-h-40 overflow-y-auto">
