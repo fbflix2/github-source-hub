@@ -160,11 +160,24 @@ export default function AdminAssinaturas() {
   const { data: localSubs } = useQuery({
     queryKey: ["admin-subscriptions-local"],
     queryFn: async () => {
-      const { data } = await supabase
+      // No FK between subscriptions and profiles, so join manually
+      const { data: subs } = await supabase
         .from("subscriptions")
-        .select("name, user_id, type, profiles!inner(full_name)")
+        .select("name, user_id, type")
         .eq("type", "proxybr");
-      return data || [];
+      if (!subs?.length) return [];
+      
+      const userIds = [...new Set(subs.map(s => s.user_id))];
+      const { data: profs } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", userIds);
+      
+      const profMap = new Map((profs || []).map(p => [p.user_id, p.full_name]));
+      return subs.map(s => ({
+        ...s,
+        profiles: { full_name: profMap.get(s.user_id) || "Cliente" },
+      }));
     },
   });
 
@@ -207,6 +220,9 @@ export default function AdminAssinaturas() {
 
   const subscriptions: EnrichedSubscription[] = useMemo(() => {
     const arr = Array.isArray(rawSubs?.data) ? rawSubs.data : Array.isArray(rawSubs) ? rawSubs : [];
+    if (rawSubs?.partial && rawSubs?.total) {
+      console.log(`Loaded ${rawSubs.total} subscriptions (partial: ${rawSubs.partial})`);
+    }
     return arr.map((s: Record<string, unknown>) => enrichSub(s, localSubsMap));
   }, [rawSubs, localSubsMap]);
 

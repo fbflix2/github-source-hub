@@ -180,7 +180,7 @@ Deno.serve(async (req) => {
       const statusFilter = (params as any).status || undefined;
       const allSubs = await fetchAllSubscriptions(PROXYBR_API_KEY, statusFilter);
       return new Response(
-        JSON.stringify(allSubs),
+        JSON.stringify({ data: allSubs, total: allSubs.length, partial: allSubs.length > 0 }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
