@@ -357,10 +357,11 @@ export default function AdminAssinaturas() {
   }, [profiles, linkSearch]);
 
   const stats = [
-    { label: "Ativas", value: counts.active.toString(), icon: CheckCircle, iconColor: "text-green-400", glowColor: "bg-primary/10" },
-    { label: "Vencendo", value: counts.expiring.toString(), icon: AlertTriangle, iconColor: "text-orange-400", glowColor: "bg-orange-500/10" },
-    { label: "Canceladas", value: counts.cancelled.toString(), icon: XCircle, iconColor: "text-red-500", glowColor: "bg-red-500/10" },
-    { label: "Expiradas", value: counts.expired.toString(), icon: RefreshCw, iconColor: "text-blue-400", glowColor: "bg-blue-500/10" },
+    { label: "Ativo", value: counts.active.toString(), icon: CheckCircle, iconColor: "text-green-400", glowColor: "bg-primary/10" },
+    { label: "Renovação pendente", value: counts.expiring.toString(), icon: AlertTriangle, iconColor: "text-yellow-400", glowColor: "bg-yellow-500/10" },
+    { label: "Vencido", value: counts.expired.toString(), icon: RefreshCw, iconColor: "text-orange-400", glowColor: "bg-orange-500/10" },
+    { label: "Cancelado", value: counts.cancelled.toString(), icon: XCircle, iconColor: "text-red-500", glowColor: "bg-red-500/10" },
+    { label: "Total", value: subscriptions.length.toString(), icon: Globe, iconColor: "text-emerald-400", glowColor: "bg-emerald-500/10" },
   ];
 
   const getStatusBadge = (status: MappedStatus) => {
@@ -374,9 +375,9 @@ export default function AdminAssinaturas() {
         );
       case "expiring":
         return (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-orange-500/10 text-orange-400 border border-orange-500/20">
-            <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
-            Vencendo
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">
+            <span className="w-1.5 h-1.5 rounded-full bg-yellow-500" />
+            Renovação pendente
           </span>
         );
       case "expired":
@@ -430,7 +431,7 @@ export default function AdminAssinaturas() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         {stats.map((stat, index) => (
           <div key={index} className="glass-card rounded-xl p-5 relative overflow-hidden">
             <div className={`absolute -right-4 -top-4 w-24 h-24 rounded-full ${stat.glowColor} blur-xl`} />
