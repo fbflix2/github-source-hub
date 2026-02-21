@@ -146,7 +146,7 @@ export function ProductListItem({ product, quantity, onQuantityChange, onReadMor
           )}
         </div>
 
-        {product.available ? (
+        {product.available && product.stock > 0 ? (
           <div className="flex items-center gap-2">
             {/* Quantity */}
             <div className="flex items-center bg-secondary rounded-lg border border-border h-8 px-0.5">

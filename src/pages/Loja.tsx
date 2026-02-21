@@ -290,7 +290,7 @@ export default function Dashboard() {
 
                     {/* Actions */}
                     <div className="mt-auto pt-4 flex flex-col gap-3 border-t border-border">
-                      {product.available ? (
+                      {product.available && product.stock > 0 ? (
                         <>
                           <div className="flex items-center justify-between gap-3">
                             <div className="flex items-center bg-secondary rounded-lg border border-border h-10 px-1">
