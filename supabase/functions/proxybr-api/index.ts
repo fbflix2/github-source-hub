@@ -17,28 +17,49 @@ async function proxyFetch(url: string, apiKey: string, method = "GET", body?: st
   return fetch(url, { method, headers, body: body || undefined });
 }
 
+function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function fetchAllSubscriptions(apiKey: string, statusFilter?: string) {
   let allSubs: any[] = [];
   let page = 1;
-  const maxPages = 300; // safety limit for ~2500 subs at 10/page
+  const maxPages = 300;
+  const DELAY_BETWEEN_PAGES = 1200; // 1.2s between requests to avoid 429
+  const MAX_RETRIES = 3;
 
   while (page <= maxPages) {
     let url = `${PROXYBR_BASE}/subscriptions?page=${page}`;
     if (statusFilter) url += `&status=${statusFilter}`;
-    if (page === 1 || page % 50 === 0) console.log(`Fetching page ${page}. Total so far: ${allSubs.length}`);
-    const response = await proxyFetch(url, apiKey);
-    const text = await response.text();
+    if (page === 1 || page % 25 === 0) console.log(`Fetching page ${page}. Total so far: ${allSubs.length}`);
 
-    if (!response.ok) {
-      console.error(`ProxyBR error [${response.status}]: ${text.substring(0, 300)}`);
-      throw new Error(`ProxyBR API error [${response.status}]`);
+    let response: Response | null = null;
+    let text = "";
+
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      response = await proxyFetch(url, apiKey);
+      text = await response.text();
+
+      if (response.status === 429) {
+        const retryAfter = response.headers.get("Retry-After");
+        const waitMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : DELAY_BETWEEN_PAGES * attempt * 2;
+        console.warn(`Rate limited on page ${page}, attempt ${attempt}/${MAX_RETRIES}. Waiting ${waitMs}ms...`);
+        await sleep(waitMs);
+        continue;
+      }
+      break;
+    }
+
+    if (!response || !response.ok) {
+      console.error(`ProxyBR error [${response?.status}]: ${text.substring(0, 300)}`);
+      throw new Error(`ProxyBR API error [${response?.status}]`);
     }
 
     let parsed: any;
     try { parsed = JSON.parse(text); } catch { throw new Error("Invalid JSON from ProxyBR"); }
 
     if (Array.isArray(parsed)) {
-      if (parsed.length === 0) break; // no more items
+      if (parsed.length === 0) break;
       if (page === 1) console.log(`First sub keys: ${Object.keys(parsed[0]).join(', ')}`);
       allSubs = [...allSubs, ...parsed];
       page++;
@@ -52,6 +73,9 @@ async function fetchAllSubscriptions(apiKey: string, statusFilter?: string) {
       allSubs = [parsed];
       break;
     }
+
+    // Delay between pages to respect rate limits
+    await sleep(DELAY_BETWEEN_PAGES);
   }
 
   console.log(`Total subscriptions fetched: ${allSubs.length}`);
