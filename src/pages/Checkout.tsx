@@ -1,9 +1,15 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { Wallet, QrCode, CreditCard, Lock, ChevronLeft, User, Calendar, Flame, Loader2 } from "lucide-react";
+import { Wallet, QrCode, CreditCard, Lock, ChevronLeft, User, Calendar, Flame, Loader2, Check, Copy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useCart } from "@/contexts/CartContext";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface DbProduct {
   id: string;
@@ -96,6 +102,30 @@ export default function Checkout() {
   const [cardName, setCardName] = useState("");
   const [cardExpiry, setCardExpiry] = useState("");
   const [cardCvv, setCardCvv] = useState("");
+  const [processing, setProcessing] = useState(false);
+  const [pixModal, setPixModal] = useState(false);
+  const [pixData, setPixData] = useState<{ qr_code: string | null; qr_code_base64: string | null; amount: number } | null>(null);
+  const [pixPaymentId, setPixPaymentId] = useState<string | null>(null);
+  const [pixConfirmed, setPixConfirmed] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  // Poll for PIX payment confirmation
+  useEffect(() => {
+    if (!pixModal || !pixPaymentId) return;
+    const interval = setInterval(async () => {
+      const { data } = await supabase.from("payments").select("status").eq("id", pixPaymentId).single();
+      if (data?.status === "completed") {
+        clearInterval(interval);
+        setPixConfirmed(true);
+        toast.success("Pagamento confirmado! Pedido criado.");
+        setTimeout(() => {
+          setPixModal(false);
+          navigate("/pedidos");
+        }, 3000);
+      }
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [pixModal, pixPaymentId]);
 
   const productType = product?.icon_type || "perfil";
 
@@ -220,6 +250,110 @@ export default function Checkout() {
     } finally {
       setApplyingCoupon(false);
     }
+  };
+
+  const handlePay = async () => {
+    if (processing) return;
+    setProcessing(true);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("Faça login para continuar");
+        navigate("/auth");
+        return;
+      }
+
+      const orderCode = `ORD-${Date.now().toString(36).toUpperCase()}`;
+
+      if (paymentMethod === "saldo") {
+        const { data: profile } = await supabase.from("profiles").select("balance").eq("user_id", user.id).maybeSingle();
+        if (!profile || profile.balance < total) {
+          toast.error(`Saldo insuficiente. Você tem R$ ${(profile?.balance || 0).toFixed(2).replace(".", ",")} e precisa de R$ ${total.toFixed(2).replace(".", ",")}`);
+          return;
+        }
+
+        const { data: order, error: orderError } = await supabase.from("orders").insert({
+          code: orderCode, user_id: user.id, subtotal, discount, total,
+          payment_method: "saldo", status: "completed",
+          coupon_code: couponApplied ? coupon.trim().toUpperCase() : null,
+        }).select("id").single();
+        if (orderError) throw orderError;
+
+        const orderItems: any[] = [{ order_id: order.id, product_id: product!.id, name: product!.name, price: product!.price, quantity }];
+        if (upsellAdded) {
+          orderItems.push({ order_id: order.id, name: "BM + Proxy (Combo)", price: upsellOffer.discountedPrice, quantity: 1 });
+        } else {
+          selectedBumps.forEach(bumpId => {
+            const bump = availableOrderBumps.find(b => b.id === bumpId);
+            if (bump) orderItems.push({ order_id: order.id, name: bump.name, price: bump.price, quantity: 1 });
+          });
+        }
+        await supabase.from("order_items").insert(orderItems);
+
+        const newBalance = profile.balance - total;
+        await supabase.from("profiles").update({ balance: newBalance }).eq("user_id", user.id);
+
+        await supabase.from("wallet_transactions").insert({
+          user_id: user.id, type: "purchase", title: `Compra #${orderCode}`,
+          amount: -total, balance_after: newBalance, reference_id: order.id,
+        });
+
+        if (couponApplied && coupon.trim()) {
+          const { data: cpn } = await supabase.from("coupons").select("used_count").eq("code", coupon.trim().toUpperCase()).single();
+          if (cpn) await supabase.from("coupons").update({ used_count: cpn.used_count + 1 }).eq("code", coupon.trim().toUpperCase());
+        }
+
+        toast.success("Pedido realizado com sucesso!");
+        navigate("/pedidos");
+
+      } else if (paymentMethod === "pix") {
+        const { data: order, error: orderError } = await supabase.from("orders").insert({
+          code: orderCode, user_id: user.id, subtotal, discount, total,
+          payment_method: "pix", status: "processing",
+          coupon_code: couponApplied ? coupon.trim().toUpperCase() : null,
+        }).select("id").single();
+        if (orderError) throw orderError;
+
+        const orderItems: any[] = [{ order_id: order.id, product_id: product!.id, name: product!.name, price: product!.price, quantity }];
+        if (upsellAdded) {
+          orderItems.push({ order_id: order.id, name: "BM + Proxy (Combo)", price: upsellOffer.discountedPrice, quantity: 1 });
+        } else {
+          selectedBumps.forEach(bumpId => {
+            const bump = availableOrderBumps.find(b => b.id === bumpId);
+            if (bump) orderItems.push({ order_id: order.id, name: bump.name, price: bump.price, quantity: 1 });
+          });
+        }
+        await supabase.from("order_items").insert(orderItems);
+
+        const { data: pixResult, error: pixError } = await supabase.functions.invoke("create-pix-payment", {
+          body: { amount: total, order_id: order.id },
+        });
+        if (pixError) throw pixError;
+        if (pixResult?.error) throw new Error(pixResult.error);
+
+        setPixData({ qr_code: pixResult.qr_code, qr_code_base64: pixResult.qr_code_base64, amount: total });
+        setPixPaymentId(pixResult.payment_id || null);
+        setPixConfirmed(false);
+        setCopied(false);
+        setPixModal(true);
+      } else {
+        toast.error("Método de pagamento por cartão ainda não disponível.");
+      }
+    } catch (err: any) {
+      console.error("Payment error:", err);
+      toast.error(err.message || "Erro ao processar pagamento");
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleCopyPix = async () => {
+    if (!pixData?.qr_code) return;
+    await navigator.clipboard.writeText(pixData.qr_code);
+    setCopied(true);
+    toast.success("Código PIX copiado!");
+    setTimeout(() => setCopied(false), 3000);
   };
 
   return (
@@ -460,9 +594,22 @@ export default function Checkout() {
               </div>
 
               {/* Pay Button */}
-              <button className="w-full bg-primary hover:bg-primary/90 shadow-glow text-primary-foreground font-bold text-sm py-3 rounded-xl flex items-center justify-center gap-2 transition-all transform hover:scale-[1.02] active:scale-[0.98]">
-                <Lock className="w-4 h-4" />
-                PAGAR AGORA
+              <button
+                onClick={handlePay}
+                disabled={processing}
+                className="w-full bg-primary hover:bg-primary/90 shadow-glow text-primary-foreground font-bold text-sm py-3 rounded-xl flex items-center justify-center gap-2 transition-all transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              >
+                {processing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    PROCESSANDO...
+                  </>
+                ) : (
+                  <>
+                    <Lock className="w-4 h-4" />
+                    PAGAR AGORA
+                  </>
+                )}
               </button>
 
               <div className="flex justify-center gap-3 opacity-50 text-muted-foreground">
@@ -480,6 +627,58 @@ export default function Checkout() {
           </div>
         </div>
       </div>
+
+      {/* PIX QR Code Modal */}
+      <Dialog open={pixModal} onOpenChange={(open) => { if (!open) { setPixModal(false); setPixData(null); setPixPaymentId(null); setPixConfirmed(false); } }}>
+        <DialogContent className="sm:max-w-md">
+          {pixConfirmed ? (
+            <div className="flex flex-col items-center gap-6 py-8">
+              <div className="w-20 h-20 rounded-full bg-primary/10 border-2 border-primary flex items-center justify-center animate-fade-in">
+                <Check className="size-10 text-primary" />
+              </div>
+              <div className="text-center space-y-2">
+                <h3 className="text-2xl font-black text-foreground">Pagamento Confirmado!</h3>
+                <p className="text-muted-foreground">
+                  Seu pedido de <span className="text-primary font-bold">R$ {pixData?.amount.toFixed(2).replace(".", ",")}</span> foi confirmado.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Loader2 className="size-3 animate-spin" />
+                <span>Redirecionando para pedidos...</span>
+              </div>
+            </div>
+          ) : (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-center text-xl font-bold">Pague com PIX</DialogTitle>
+              </DialogHeader>
+              {pixData && (
+                <div className="flex flex-col items-center gap-6 py-4">
+                  <p className="text-muted-foreground text-sm text-center">Escaneie o QR Code ou copie o código para pagar</p>
+                  <div className="bg-primary/10 border border-primary/20 rounded-2xl px-6 py-3">
+                    <span className="text-2xl font-black text-primary">R$ {pixData.amount.toFixed(2).replace(".", ",")}</span>
+                  </div>
+                  {pixData.qr_code_base64 && (
+                    <div className="bg-white rounded-2xl p-4">
+                      <img src={`data:image/png;base64,${pixData.qr_code_base64}`} alt="QR Code PIX" className="w-56 h-56" />
+                    </div>
+                  )}
+                  {pixData.qr_code && (
+                    <button onClick={handleCopyPix} className="w-full flex items-center justify-center gap-2 bg-muted border border-border rounded-xl px-4 py-3 hover:bg-accent transition-colors">
+                      {copied ? <Check className="size-4 text-primary" /> : <Copy className="size-4 text-muted-foreground" />}
+                      <span className="text-sm font-medium text-foreground">{copied ? "Copiado!" : "Copiar código Pix Copia e Cola"}</span>
+                    </button>
+                  )}
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Loader2 className="size-3 animate-spin" />
+                    <span>Aguardando pagamento...</span>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
