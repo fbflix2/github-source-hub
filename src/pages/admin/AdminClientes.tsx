@@ -1,9 +1,12 @@
 import { useState, useEffect } from "react";
-import { Users, Wallet, CheckCircle, Search, LogIn, KeyRound, Pencil, MoreVertical, ChevronLeft, ChevronRight, UserPlus, TrendingUp, Minus, X, Ban, Clock, Loader2, Mail, Phone } from "lucide-react";
+import { Users, Wallet, CheckCircle, Search, LogIn, KeyRound, Pencil, ChevronLeft, ChevronRight, UserPlus, TrendingUp, Minus, X, Ban, Clock, Loader2, Mail, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import ClientEditModal from "@/components/admin/ClientEditModal";
+import ClientHistoryModal from "@/components/admin/ClientHistoryModal";
+import ResetPasswordModal from "@/components/admin/ResetPasswordModal";
 
 type ClientStatus = "active" | "inactive" | "blocked";
 
@@ -31,6 +34,9 @@ export default function AdminClientes() {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [impersonating, setImpersonating] = useState<string | null>(null);
+  const [editClient, setEditClient] = useState<Client | null>(null);
+  const [historyClient, setHistoryClient] = useState<Client | null>(null);
+  const [resetClient, setResetClient] = useState<Client | null>(null);
 
   // Stats
   const [totalClients, setTotalClients] = useState(0);
@@ -306,8 +312,12 @@ export default function AdminClientes() {
                     {getStatusBadge(client)}
                   </div>
                 </div>
-                <button className="text-white/40 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10">
-                  <MoreVertical className="w-5 h-5" />
+                <button
+                  onClick={() => setHistoryClient(client)}
+                  className="text-white/40 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10"
+                  title="Histórico do Cliente"
+                >
+                  <span className="text-lg leading-none">🦫</span>
                 </button>
               </div>
 
@@ -347,10 +357,10 @@ export default function AdminClientes() {
                   >
                     {impersonating === client.user_id ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogIn className="w-4 h-4" />}
                   </button>
-                  <button className="size-9 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 text-white/70 hover:text-primary border border-white/5 transition-all" title="Resetar Senha">
+                  <button onClick={() => setResetClient(client)} className="size-9 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 text-white/70 hover:text-primary border border-white/5 transition-all" title="Resetar Senha">
                     <KeyRound className="w-4 h-4" />
                   </button>
-                  <button className="size-9 flex items-center justify-center rounded-lg bg-primary/20 hover:bg-primary text-primary hover:text-white border border-primary/20 transition-all" title="Editar">
+                  <button onClick={() => setEditClient(client)} className="size-9 flex items-center justify-center rounded-lg bg-primary/20 hover:bg-primary text-primary hover:text-white border border-primary/20 transition-all" title="Editar">
                     <Pencil className="w-4 h-4" />
                   </button>
                 </div>
@@ -411,6 +421,24 @@ export default function AdminClientes() {
           </div>
         </div>
       )}
+
+      {/* Modals */}
+      <ClientEditModal
+        open={!!editClient}
+        onClose={() => setEditClient(null)}
+        client={editClient}
+        onUpdate={fetchClients}
+      />
+      <ClientHistoryModal
+        open={!!historyClient}
+        onClose={() => setHistoryClient(null)}
+        client={historyClient}
+      />
+      <ResetPasswordModal
+        open={!!resetClient}
+        onClose={() => setResetClient(null)}
+        client={resetClient}
+      />
     </div>
   );
 }
