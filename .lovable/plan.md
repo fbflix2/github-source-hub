@@ -1,68 +1,54 @@
 
-# Plano: Puxar Todas as Assinaturas da ProxyBR e Vincular aos Clientes
 
-## Resumo
-Atualizar o sistema para buscar **todas** as assinaturas da API ProxyBR (todos os status), corrigir o mapeamento dos campos da API (que usa `due_date` em vez de `end_date`, e `proxies.data[]` com formato `ip:port:user:pass`), e criar um mecanismo de vinculacao automatica entre assinaturas ProxyBR e clientes importados usando a tabela `subscriptions` do Supabase.
+# Corrigir Vinculacao Automatica de Assinaturas ProxyBR
 
-## O que sera feito
+## Problema Identificado
+A API ProxyBR **nao retorna** campos `customer` nem `client` nas assinaturas. Os campos disponiveis sao: `id, code, type, due_date, price_per_unit, discount, total_price, status, notes, auto_renew_active, exchange_quota_free, exchange_quota_pay, proxies, product, product_variant, created_at`.
 
-### 1. Corrigir mapeamento dos campos da API ProxyBR
+O codigo atual tenta acessar `sub.customer?.email` e `sub.client?.email`, que sao sempre `undefined`, resultando em 0 vinculacoes.
 
-A API retorna campos diferentes do que o codigo espera atualmente:
+## Solucao
 
-```text
-API retorna:                    Codigo espera:
-due_date                   ->   end_date
-proxies.data[].code        ->   proxy.ip / proxy.port / proxy.username / proxy.password
-  (formato: "ip:port:user:pass")
-status: "ACTIVE"           ->   status: "active" (uppercase vs lowercase)
-auto_renew_active          ->   auto_renew
-```
+### 1. Adicionar logging do campo `notes` na Edge Function
+Antes de corrigir o matching, precisamos saber o que o campo `notes` contem para cada assinatura. Vamos adicionar um log detalhado na funcao `fetchAllSubscriptions` para capturar os valores de `notes` de todas as assinaturas.
 
-O `enrichSub` sera atualizado para normalizar esses campos antes de processar.
+### 2. Atualizar a logica de matching
+Remover as referencias a `sub.customer` e `sub.client` (que nao existem) e usar o campo `notes` como fonte primaria de identificacao. A estrategia sera:
 
-### 2. Edge Function: Suporte a paginacao e todos os status
+- Comparar `notes` (lowercase, trimmed) com emails dos usuarios (`emailToUserId`)
+- Comparar `notes` (lowercase, trimmed) com nomes completos dos perfis (`nameToUserId`)
+- Adicionar matching parcial: se `notes` **contem** um email ou nome conhecido, tambem vincular
 
-Atualizar a Edge Function `proxybr-api` para:
-- Adicionar suporte ao parametro `status` na chamada de subscriptions (ex: `?status=all` ou sem filtro)
-- Adicionar suporte a paginacao caso a API ProxyBR pagine resultados (buscar todas as paginas)
+### 3. Logging detalhado durante o sync
+Adicionar logs que mostrem:
+- O valor de `notes` de cada assinatura
+- Se houve match e com qual criterio (email exato, nome exato, match parcial)
+- Quantos usuarios e perfis foram carregados para comparacao
 
-### 3. Vincular assinaturas aos clientes importados
-
-Usar a tabela `subscriptions` existente no Supabase como tabela de vinculacao:
-- Quando o admin acessar a pagina de assinaturas, o sistema cruza os dados da ProxyBR com a tabela `subscriptions` local usando o campo `name` (codigo ProxyBR)
-- Criar uma acao na interface admin para vincular manualmente uma assinatura a um cliente (selecionar cliente de uma lista)
-- Tambem implementar vinculacao automatica: um botao "Sincronizar" que cria registros na tabela `subscriptions` para cada assinatura da ProxyBR, permitindo que o admin vincule clientes depois
-
-### 4. Interface Admin atualizada
-
-- Mostrar o status real vindo da API (ACTIVE, EXPIRED, CANCELLED, etc.)
-- Coluna "Cliente" mostra o nome do cliente vinculado ou "Nao vinculado" com botao para vincular
-- Modal de vinculacao com busca de clientes por nome/email
-- Exibir proxy completo (IP, porta, usuario, senha) parseado do campo `code`
-
-## Detalhes Tecnicos
+## Alteracoes Tecnicas
 
 ### Edge Function (`proxybr-api/index.ts`)
-- Nova action `get-all-subscriptions` que faz loop de paginacao se necessario
-- Parsing do campo `proxies.data[].code` no formato `ip:port:user:pass` para objeto estruturado
 
-### Hook (`useProxyBR.ts`)
-- Novo hook `useProxyBRAllSubscriptions` para buscar todas as assinaturas sem filtro de status
+**Na funcao `fetchAllSubscriptions`** (apos o loop):
+- Adicionar log do campo `notes` do primeiro item para debug
 
-### Pagina Admin (`AdminAssinaturas.tsx`)
-- Normalizar campos da API no `enrichSub`: `due_date` -> `end_date`, parse de `proxies.data[].code`
-- Cruzar com tabela `subscriptions` local para identificar cliente vinculado
-- Botao "Vincular Cliente" que abre modal com busca
-- Botao "Sincronizar com ProxyBR" que cria/atualiza registros na tabela `subscriptions`
+**Na action `sync-subscriptions`** (linhas 160-170):
+- Trocar `sub.customer?.email` e `sub.client?.email` por `sub.notes`
+- Implementar matching por: email exato em notes, nome exato em notes, e match parcial (notes contem email ou nome)
+- Adicionar logs de debug mostrando cada tentativa de match
 
-### Banco de Dados
-- A tabela `subscriptions` ja existe com os campos necessarios (`user_id`, `name`, `status`, `start_date`, `end_date`, `type`)
-- O campo `name` sera usado para guardar o codigo da assinatura ProxyBR (ex: "2602202123")
-- O campo `type` guardara "proxybr" para identificar a origem
+```text
+Antes (nao funciona):
+  customerEmail = sub.customer?.email   -> sempre undefined
+  customerName = sub.client?.name       -> sempre undefined
 
-### Fluxo de vinculacao
-1. Admin clica "Sincronizar" -> sistema busca todas as assinaturas da ProxyBR
-2. Para cada assinatura, cria/atualiza registro na tabela `subscriptions` com `name = codigo_proxybr`, `type = "proxybr"`, `status`, `start_date`, `end_date`
-3. Admin pode clicar "Vincular" em cada assinatura para associar a um `user_id` de um cliente importado
-4. Na proxima carga, o sistema cruza ProxyBR code com `subscriptions.name` e mostra o cliente vinculado
+Depois (correto):
+  notes = sub.notes || ""
+  1. Tentar match exato: emailToUserId.get(notes)
+  2. Tentar match exato nome: nameToUserId.get(notes)
+  3. Tentar match parcial: percorrer emails e verificar se notes contem algum
+  4. Tentar match parcial nome: percorrer nomes e verificar se notes contem algum
+```
+
+### Arquivos modificados
+- `supabase/functions/proxybr-api/index.ts` — corrigir logica de matching e adicionar logs
