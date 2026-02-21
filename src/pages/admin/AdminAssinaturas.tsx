@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   CheckCircle,
   AlertTriangle,
@@ -8,11 +8,8 @@ import {
   Download,
   Globe,
   Eye,
-  Pencil,
-  Ban,
   ChevronRight,
   ChevronLeft,
-  TrendingUp,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -22,127 +19,178 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useProxyBRSubscriptions, useRenewSubscription } from "@/hooks/useProxyBR";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { differenceInDays, parseISO, format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-interface Subscription {
-  id: string;
+type MappedStatus = "active" | "expiring" | "expired" | "cancelled";
+
+interface EnrichedSubscription {
   code: string;
-  proxyIp: string;
-  country: string;
-  quantity: number;
-  clientName: string;
-  clientEmail: string;
-  status: "active" | "pending" | "cancelled";
-  startDate: string;
-  endDate: string;
-  daysRemaining: string;
-  renewalType: "auto" | "manual";
+  name: string;
+  product_name?: string;
+  status: string;
+  mappedStatus: MappedStatus;
+  start_date: string;
+  end_date: string;
+  daysRemaining: number;
+  daysExpired: number;
+  formattedStart: string;
+  formattedEnd: string;
+  daysLabel: string;
+  auto_renew?: boolean;
+  quantity?: number;
+  proxy?: {
+    id: number;
+    ip: string;
+    port: number;
+    username?: string;
+    password?: string;
+    protocol?: string;
+    country?: string;
+  };
+  // linked client
+  clientName?: string;
+  clientEmail?: string;
+  userId?: string;
+  [key: string]: unknown;
 }
 
-const mockSubscriptions: Subscription[] = [
-  {
-    id: "1",
-    code: "#PX-9281",
-    proxyIp: "192.168.0.45",
-    country: "BR",
-    quantity: 5,
-    clientName: "Carlos Andrade",
-    clientEmail: "carlos.a@gmail.com",
-    status: "active",
-    startDate: "24 Jul 2024",
-    endDate: "24 Ago 2024",
-    daysRemaining: "12 dias restantes",
-    renewalType: "auto",
-  },
-  {
-    id: "2",
-    code: "#PX-8822",
-    proxyIp: "104.22.11.90",
-    country: "US",
-    quantity: 1,
-    clientName: "Mariana Souza",
-    clientEmail: "mari.souza@outlook.com",
-    status: "pending",
-    startDate: "10 Jul 2024",
-    endDate: "10 Ago 2024",
-    daysRemaining: "Vence hoje",
-    renewalType: "manual",
-  },
-  {
-    id: "3",
-    code: "#PX-7731",
-    proxyIp: "45.33.22.11",
-    country: "UK",
-    quantity: 10,
-    clientName: "Roberto Lima",
-    clientEmail: "beto.lima@gmail.com",
-    status: "cancelled",
-    startDate: "01 Jul 2024",
-    endDate: "01 Ago 2024",
-    daysRemaining: "Expirado",
-    renewalType: "manual",
-  },
-  {
-    id: "4",
-    code: "#PX-9901",
-    proxyIp: "188.90.12.33",
-    country: "DE",
-    quantity: 2,
-    clientName: "Julia Martins",
-    clientEmail: "ju.martins@tech.io",
-    status: "active",
-    startDate: "15 Ago 2024",
-    endDate: "15 Set 2024",
-    daysRemaining: "30+ dias",
-    renewalType: "auto",
-  },
-];
+function mapStatus(sub: { status: string; end_date: string }): MappedStatus {
+  const now = new Date();
+  const endDate = parseISO(sub.end_date);
+  const daysLeft = differenceInDays(endDate, now);
+  if (sub.status === "cancelled") return "cancelled";
+  if (daysLeft < 0) return "expired";
+  if (daysLeft <= 3) return "expiring";
+  return "active";
+}
 
-const stats = [
-  {
-    label: "Assinaturas Ativas",
-    value: "1,245",
-    icon: CheckCircle,
-    iconColor: "text-green-400",
-    badge: "+12%",
-    badgeColor: "text-green-400 bg-green-400/10 border-green-400/20",
-    glowColor: "bg-primary/10 group-hover:bg-primary/20",
-  },
-  {
-    label: "Vencendo em Breve",
-    value: "42",
-    icon: AlertTriangle,
-    iconColor: "text-orange-400",
-    badge: "7 dias",
-    badgeColor: "text-orange-400 bg-orange-400/10 border-orange-400/20",
-    glowColor: "bg-orange-500/10 group-hover:bg-orange-500/20",
-  },
-  {
-    label: "Canceladas (Mês)",
-    value: "15",
-    icon: XCircle,
-    iconColor: "text-red-500",
-    badge: "+5%",
-    badgeColor: "text-red-400 bg-red-400/10 border-red-400/20",
-    glowColor: "bg-primary/10 group-hover:bg-primary/20",
-  },
-  {
-    label: "Renovação Pendente",
-    value: "8",
-    icon: RefreshCw,
-    iconColor: "text-blue-400",
-    badge: null,
-    badgeColor: "",
-    glowColor: "bg-blue-500/10 group-hover:bg-blue-500/20",
-  },
-];
+function enrichSub(sub: Record<string, unknown>): EnrichedSubscription {
+  const s = sub as { code: string; name: string; product_name?: string; status: string; start_date: string; end_date: string; auto_renew?: boolean; quantity?: number; proxy?: EnrichedSubscription["proxy"] };
+  const now = new Date();
+  const endDate = parseISO(s.end_date);
+  const startDate = parseISO(s.start_date);
+  const daysLeft = differenceInDays(endDate, now);
+  const mapped = mapStatus(s);
+
+  let daysLabel = "";
+  if (mapped === "expired") daysLabel = "Expirado";
+  else if (mapped === "expiring") daysLabel = daysLeft === 0 ? "Vence hoje" : `${daysLeft} dia${daysLeft !== 1 ? "s" : ""} restante${daysLeft !== 1 ? "s" : ""}`;
+  else if (mapped === "active") daysLabel = daysLeft > 30 ? "30+ dias" : `${daysLeft} dia${daysLeft !== 1 ? "s" : ""} restante${daysLeft !== 1 ? "s" : ""}`;
+
+  return {
+    ...s,
+    mappedStatus: mapped,
+    daysRemaining: Math.max(0, daysLeft),
+    daysExpired: daysLeft < 0 ? Math.abs(daysLeft) : 0,
+    formattedStart: format(startDate, "dd MMM yyyy", { locale: ptBR }),
+    formattedEnd: format(endDate, "dd MMM yyyy", { locale: ptBR }),
+    daysLabel,
+  };
+}
+
+const PER_PAGE = 10;
 
 export default function AdminAssinaturas() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [renewalFilter, setRenewalFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedSub, setSelectedSub] = useState<EnrichedSubscription | null>(null);
 
-  const getStatusBadge = (status: string) => {
+  const { data: rawSubs, isLoading, refetch } = useProxyBRSubscriptions();
+  const renewMutation = useRenewSubscription();
+
+  // Fetch local subscriptions with user links
+  const { data: localSubs } = useQuery({
+    queryKey: ["admin-subscriptions-local"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("subscriptions")
+        .select("*, profiles!subscriptions_user_id_fkey(full_name, user_id)")
+        .order("created_at", { ascending: false });
+      return data || [];
+    },
+  });
+
+  // Fetch profiles for linking
+  const { data: profiles } = useQuery({
+    queryKey: ["admin-profiles-for-subs"],
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("user_id, full_name");
+      return data || [];
+    },
+  });
+
+  const subscriptions: EnrichedSubscription[] = useMemo(() => {
+    const arr = Array.isArray(rawSubs?.data) ? rawSubs.data : Array.isArray(rawSubs) ? rawSubs : [];
+    return arr.map((s: Record<string, unknown>) => enrichSub(s));
+  }, [rawSubs]);
+
+  const counts = useMemo(() => ({
+    active: subscriptions.filter((s) => s.mappedStatus === "active").length,
+    expiring: subscriptions.filter((s) => s.mappedStatus === "expiring").length,
+    cancelled: subscriptions.filter((s) => s.mappedStatus === "cancelled").length,
+    expired: subscriptions.filter((s) => s.mappedStatus === "expired").length,
+  }), [subscriptions]);
+
+  const filtered = useMemo(() => {
+    return subscriptions.filter((sub) => {
+      const term = searchTerm.toLowerCase();
+      const matchesSearch = !term ||
+        sub.code?.toLowerCase().includes(term) ||
+        sub.name?.toLowerCase().includes(term) ||
+        sub.clientName?.toLowerCase().includes(term) ||
+        sub.clientEmail?.toLowerCase().includes(term) ||
+        sub.proxy?.ip?.includes(term);
+      const matchesStatus = statusFilter === "all" || sub.mappedStatus === statusFilter;
+      const matchesRenewal = renewalFilter === "all" ||
+        (renewalFilter === "auto" && sub.auto_renew) ||
+        (renewalFilter === "manual" && !sub.auto_renew);
+      return matchesSearch && matchesStatus && matchesRenewal;
+    });
+  }, [subscriptions, searchTerm, statusFilter, renewalFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
+  const paginated = filtered.slice((currentPage - 1) * PER_PAGE, currentPage * PER_PAGE);
+
+  const stats = [
+    {
+      label: "Assinaturas Ativas",
+      value: counts.active.toString(),
+      icon: CheckCircle,
+      iconColor: "text-green-400",
+      glowColor: "bg-primary/10",
+    },
+    {
+      label: "Vencendo em Breve",
+      value: counts.expiring.toString(),
+      icon: AlertTriangle,
+      iconColor: "text-orange-400",
+      glowColor: "bg-orange-500/10",
+    },
+    {
+      label: "Canceladas",
+      value: counts.cancelled.toString(),
+      icon: XCircle,
+      iconColor: "text-red-500",
+      glowColor: "bg-red-500/10",
+    },
+    {
+      label: "Expiradas",
+      value: counts.expired.toString(),
+      icon: RefreshCw,
+      iconColor: "text-blue-400",
+      glowColor: "bg-blue-500/10",
+    },
+  ];
+
+  const getStatusBadge = (status: MappedStatus) => {
     switch (status) {
       case "active":
         return (
@@ -151,11 +199,17 @@ export default function AdminAssinaturas() {
             Ativo
           </span>
         );
-      case "pending":
+      case "expiring":
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-orange-500/10 text-orange-400 border border-orange-500/20">
             <span className="w-1.5 h-1.5 rounded-full bg-orange-500" />
-            Pendente
+            Vencendo
+          </span>
+        );
+      case "expired":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-muted text-text-secondary border border-border">
+            Expirado
           </span>
         );
       case "cancelled":
@@ -164,54 +218,33 @@ export default function AdminAssinaturas() {
             Cancelado
           </span>
         );
-      default:
-        return null;
     }
   };
 
-  const getDaysRemainingStyle = (status: string, daysRemaining: string) => {
-    if (status === "cancelled") {
-      return "text-white/30";
-    }
-    if (daysRemaining === "Vence hoje") {
-      return "text-orange-400";
-    }
-    if (daysRemaining.includes("dias restantes")) {
-      return "text-green-400";
-    }
-    return "text-white/40";
+  const getDaysStyle = (status: MappedStatus, label: string) => {
+    if (status === "expired" || status === "cancelled") return "text-text-secondary";
+    if (label === "Vence hoje") return "text-orange-400";
+    return "text-green-400";
   };
-
-  const filteredSubscriptions = mockSubscriptions.filter((sub) => {
-    const matchesSearch =
-      sub.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      sub.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      sub.clientEmail.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === "all" || sub.status === statusFilter;
-    const matchesRenewal = renewalFilter === "all" || sub.renewalType === renewalFilter;
-    return matchesSearch && matchesStatus && matchesRenewal;
-  });
 
   return (
     <div className="flex flex-col gap-6 py-6">
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm text-white/40">
+      <div className="flex items-center gap-2 text-sm text-text-secondary">
         <span className="hover:text-primary transition-colors cursor-pointer">Painel</span>
         <ChevronRight className="w-4 h-4" />
-        <span className="text-white font-medium">Gerenciamento de Assinaturas Proxy</span>
+        <span className="text-foreground font-medium">Gerenciamento de Assinaturas Proxy</span>
       </div>
 
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-        <div>
-          <h2 className="text-3xl font-black text-white tracking-tight mb-2">
-            Gerenciamento de Assinaturas Proxy
-          </h2>
-          <p className="text-white/50 max-w-2xl text-sm">
-            Gerencie o ciclo de vida das assinaturas, monitore status de renovação e controle o
-            acesso dos clientes aos serviços de proxy.
-          </p>
-        </div>
+      <div>
+        <h2 className="text-3xl font-black text-foreground tracking-tight mb-2">
+          Gerenciamento de Assinaturas Proxy
+        </h2>
+        <p className="text-text-secondary max-w-2xl text-sm">
+          Gerencie o ciclo de vida das assinaturas, monitore status de renovação e controle o
+          acesso dos clientes aos serviços de proxy.
+        </p>
       </div>
 
       {/* Stats Cards */}
@@ -219,59 +252,52 @@ export default function AdminAssinaturas() {
         {stats.map((stat, index) => (
           <div
             key={index}
-            className="bg-[rgba(30,30,30,0.4)] backdrop-blur-xl border border-white/[0.08] rounded-xl p-5 relative overflow-hidden group"
+            className="glass-card rounded-xl p-5 relative overflow-hidden group"
           >
-            <div
-              className={`absolute -right-4 -top-4 w-24 h-24 rounded-full ${stat.glowColor} transition-all blur-xl`}
-            />
+            <div className={`absolute -right-4 -top-4 w-24 h-24 rounded-full ${stat.glowColor} transition-all blur-xl`} />
             <div className="flex justify-between items-start mb-4 relative z-10">
-              <div className="p-2 bg-white/5 rounded-lg border border-white/5">
+              <div className="p-2 bg-muted rounded-lg border border-border">
                 <stat.icon className={`w-5 h-5 ${stat.iconColor}`} />
               </div>
-              {stat.badge && (
-                <span
-                  className={`flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full border ${stat.badgeColor}`}
-                >
-                  {stat.badge}
-                  {stat.badge.includes("%") && <TrendingUp className="w-2.5 h-2.5" />}
-                </span>
-              )}
             </div>
-            <p className="text-white/50 text-xs font-medium uppercase tracking-wider mb-1">
+            <p className="text-text-secondary text-xs font-medium uppercase tracking-wider mb-1">
               {stat.label}
             </p>
-            <p className="text-2xl font-bold text-white">{stat.value}</p>
+            <p className="text-2xl font-bold text-foreground">
+              {isLoading ? <Skeleton className="h-8 w-16" /> : stat.value}
+            </p>
           </div>
         ))}
       </div>
 
       {/* Filters */}
-      <div className="bg-[rgba(30,30,30,0.4)] backdrop-blur-xl border border-white/[0.08] p-4 rounded-xl flex flex-col lg:flex-row gap-4 justify-between items-end lg:items-center">
+      <div className="glass-card p-4 rounded-xl flex flex-col lg:flex-row gap-4 justify-between items-end lg:items-center">
         <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto flex-1">
           <div className="relative flex-1 min-w-[300px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 w-5 h-5" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-secondary w-5 h-5" />
             <Input
               type="text"
-              placeholder="Buscar por código (ex: #PX-2024), nome ou email..."
+              placeholder="Buscar por código, nome, email ou IP..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-black/20 border-white/10 text-white text-sm rounded-lg pl-10 placeholder-white/30 focus:border-primary focus:ring-primary"
+              onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+              className="w-full bg-muted border-border text-foreground text-sm rounded-lg pl-10 placeholder-text-secondary"
             />
           </div>
           <div className="flex gap-2 w-full sm:w-auto">
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="bg-black/20 border-white/10 text-white text-sm rounded-lg min-w-[140px]">
+            <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setCurrentPage(1); }}>
+              <SelectTrigger className="bg-muted border-border text-foreground text-sm rounded-lg min-w-[140px]">
                 <SelectValue placeholder="Status: Todos" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Status: Todos</SelectItem>
                 <SelectItem value="active">Ativo</SelectItem>
-                <SelectItem value="pending">Pendente</SelectItem>
+                <SelectItem value="expiring">Vencendo</SelectItem>
+                <SelectItem value="expired">Expirado</SelectItem>
                 <SelectItem value="cancelled">Cancelado</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={renewalFilter} onValueChange={setRenewalFilter}>
-              <SelectTrigger className="bg-black/20 border-white/10 text-white text-sm rounded-lg min-w-[160px]">
+            <Select value={renewalFilter} onValueChange={(v) => { setRenewalFilter(v); setCurrentPage(1); }}>
+              <SelectTrigger className="bg-muted border-border text-foreground text-sm rounded-lg min-w-[160px]">
                 <SelectValue placeholder="Renovação: Todas" />
               </SelectTrigger>
               <SelectContent>
@@ -284,13 +310,8 @@ export default function AdminAssinaturas() {
         </div>
         <div className="flex gap-2">
           <button
-            className="p-2.5 text-white/70 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg border border-white/5 transition-colors"
-            title="Exportar CSV"
-          >
-            <Download className="w-5 h-5" />
-          </button>
-          <button
-            className="p-2.5 text-white/70 hover:text-white bg-white/5 hover:bg-white/10 rounded-lg border border-white/5 transition-colors"
+            onClick={() => refetch()}
+            className="p-2.5 text-text-secondary hover:text-foreground bg-muted hover:bg-muted/80 rounded-lg border border-border transition-colors"
             title="Atualizar"
           >
             <RefreshCw className="w-5 h-5" />
@@ -298,136 +319,205 @@ export default function AdminAssinaturas() {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-[rgba(30,30,30,0.4)] backdrop-blur-xl border border-white/[0.08] rounded-xl overflow-hidden flex flex-col">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left text-white/80">
-            <thead className="text-xs text-white/50 uppercase bg-black/20 border-b border-white/5">
-              <tr>
-                <th className="px-4 py-4 font-medium">Código do Proxy</th>
-                <th className="px-4 py-4 font-medium">Proxy Adquirido</th>
-                <th className="px-4 py-4 font-medium text-center">Quantidade</th>
-                <th className="px-4 py-4 font-medium">Cliente</th>
-                <th className="px-4 py-4 font-medium">Status da Assinatura</th>
-                <th className="px-4 py-4 font-medium">Data de Início</th>
-                <th className="px-4 py-4 font-medium">Data de Vencimento</th>
-                <th className="px-4 py-4 font-medium">Renovação</th>
-                <th className="px-4 py-4 font-medium text-right">Ações</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {filteredSubscriptions.map((sub) => (
-                <tr key={sub.id} className="hover:bg-white/[0.02] transition-colors group">
-                  <td className="px-4 py-4 font-medium text-primary">{sub.code}</td>
-                  <td className="px-4 py-4">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs bg-white/5 px-1.5 py-0.5 rounded text-white/70">
-                        {sub.proxyIp}
-                      </span>
-                      <div className="flex items-center gap-1 text-xs text-white/50">
-                        <Globe className="w-3.5 h-3.5" /> {sub.country}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-4 text-center">
-                    <span className="bg-white/5 px-2 py-1 rounded text-xs font-bold">
-                      {sub.quantity}
-                    </span>
-                  </td>
-                  <td className="px-4 py-4">
-                    <div className="flex flex-col">
-                      <span className="text-white font-medium">{sub.clientName}</span>
-                      <span className="text-white/40 text-xs">{sub.clientEmail}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-4">{getStatusBadge(sub.status)}</td>
-                  <td className="px-4 py-4">
-                    <span className="text-white">{sub.startDate}</span>
-                  </td>
-                  <td className="px-4 py-4">
-                    <div className="flex flex-col">
-                      <span
-                        className={`${
-                          sub.status === "cancelled" ? "text-white/50 line-through" : "text-white"
-                        }`}
-                      >
-                        {sub.endDate}
-                      </span>
-                      <span className={`text-xs ${getDaysRemainingStyle(sub.status, sub.daysRemaining)}`}>
-                        {sub.daysRemaining}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-4">
-                    <span className="text-xs border border-white/10 px-2 py-1 rounded-md text-white/60">
-                      {sub.renewalType === "auto" ? "Automática" : "Manual"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        className="text-white/40 hover:text-white p-1"
-                        title="Ver Detalhes"
-                      >
-                        <Eye className="w-5 h-5" />
-                      </button>
-                      <button
-                        className="text-white/40 hover:text-primary p-1"
-                        title="Editar"
-                      >
-                        <Pencil className="w-5 h-5" />
-                      </button>
-                      <button
-                        className="text-white/40 hover:text-red-500 p-1"
-                        title="Suspender"
-                      >
-                        <Ban className="w-5 h-5" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination */}
-        <div className="border-t border-white/5 bg-black/20 p-4 flex items-center justify-between">
-          <span className="text-xs text-white/40">
-            Mostrando <span className="text-white">1-{filteredSubscriptions.length}</span> de{" "}
-            <span className="text-white">1,245</span>
-          </span>
-          <div className="flex items-center gap-1">
-            <button
-              className="p-1 rounded hover:bg-white/10 text-white/40 hover:text-white disabled:opacity-30"
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-            {[1, 2, 3].map((page) => (
-              <button
-                key={page}
-                onClick={() => setCurrentPage(page)}
-                className={`px-3 py-1 rounded text-xs ${
-                  currentPage === page
-                    ? "bg-primary text-white font-bold"
-                    : "hover:bg-white/10 text-white/60 hover:text-white"
-                }`}
-              >
-                {page}
-              </button>
-            ))}
-            <span className="text-white/40 px-1">...</span>
-            <button
-              className="p-1 rounded hover:bg-white/10 text-white/40 hover:text-white"
-              onClick={() => setCurrentPage((p) => p + 1)}
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
+      {/* Loading */}
+      {isLoading && (
+        <div className="glass-card rounded-xl p-8">
+          <div className="space-y-4">
+            {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-14 w-full" />)}
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Error / Empty */}
+      {!isLoading && subscriptions.length === 0 && (
+        <div className="glass-card rounded-xl p-12 text-center">
+          <span className="material-symbols-outlined text-[48px] text-text-secondary mb-4">inbox</span>
+          <p className="text-text-secondary">Nenhuma assinatura encontrada na ProxyBR.</p>
+        </div>
+      )}
+
+      {/* Table */}
+      {!isLoading && subscriptions.length > 0 && (
+        <div className="glass-card rounded-xl overflow-hidden flex flex-col">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead className="text-xs text-text-secondary uppercase bg-muted/50 border-b border-border">
+                <tr>
+                  <th className="px-4 py-4 font-medium">Código</th>
+                  <th className="px-4 py-4 font-medium">Proxy</th>
+                  <th className="px-4 py-4 font-medium text-center">Qtd</th>
+                  <th className="px-4 py-4 font-medium">Cliente</th>
+                  <th className="px-4 py-4 font-medium">Status</th>
+                  <th className="px-4 py-4 font-medium">Início</th>
+                  <th className="px-4 py-4 font-medium">Vencimento</th>
+                  <th className="px-4 py-4 font-medium">Renovação</th>
+                  <th className="px-4 py-4 font-medium text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {paginated.map((sub) => (
+                  <tr key={sub.code} className="hover:bg-muted/30 transition-colors group">
+                    <td className="px-4 py-4 font-medium text-primary">{sub.code}</td>
+                    <td className="px-4 py-4">
+                      {sub.proxy ? (
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded text-foreground">
+                            {sub.proxy.ip}:{sub.proxy.port}
+                          </span>
+                          {sub.proxy.country && (
+                            <div className="flex items-center gap-1 text-xs text-text-secondary">
+                              <Globe className="w-3.5 h-3.5" /> {sub.proxy.country}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-text-secondary text-xs">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-4 text-center">
+                      <span className="bg-muted px-2 py-1 rounded text-xs font-bold text-foreground">
+                        {sub.quantity || 1}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4">
+                      {sub.clientName ? (
+                        <div className="flex flex-col">
+                          <span className="text-foreground font-medium">{sub.clientName}</span>
+                          <span className="text-text-secondary text-xs">{sub.clientEmail}</span>
+                        </div>
+                      ) : (
+                        <span className="text-text-secondary text-xs italic">Não vinculado</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-4">{getStatusBadge(sub.mappedStatus)}</td>
+                    <td className="px-4 py-4 text-foreground">{sub.formattedStart}</td>
+                    <td className="px-4 py-4">
+                      <div className="flex flex-col">
+                        <span className={sub.mappedStatus === "cancelled" ? "text-text-secondary line-through" : "text-foreground"}>
+                          {sub.formattedEnd}
+                        </span>
+                        <span className={`text-xs ${getDaysStyle(sub.mappedStatus, sub.daysLabel)}`}>
+                          {sub.daysLabel}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-4">
+                      <span className="text-xs border border-border px-2 py-1 rounded-md text-text-secondary">
+                        {sub.auto_renew ? "Automática" : "Manual"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => setSelectedSub(sub)}
+                          className="text-text-secondary hover:text-foreground p-1"
+                          title="Ver Detalhes"
+                        >
+                          <Eye className="w-5 h-5" />
+                        </button>
+                        {(sub.mappedStatus === "expiring" || sub.mappedStatus === "expired") && (
+                          <button
+                            onClick={() => renewMutation.mutate(sub.code)}
+                            disabled={renewMutation.isPending}
+                            className="text-text-secondary hover:text-primary p-1 disabled:opacity-50"
+                            title="Renovar"
+                          >
+                            <RefreshCw className={`w-5 h-5 ${renewMutation.isPending ? "animate-spin" : ""}`} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          <div className="border-t border-border bg-muted/30 p-4 flex items-center justify-between">
+            <span className="text-xs text-text-secondary">
+              Mostrando <span className="text-foreground">{(currentPage - 1) * PER_PAGE + 1}-{Math.min(currentPage * PER_PAGE, filtered.length)}</span> de{" "}
+              <span className="text-foreground">{filtered.length}</span>
+            </span>
+            <div className="flex items-center gap-1">
+              <button
+                className="p-1 rounded hover:bg-muted text-text-secondary hover:text-foreground disabled:opacity-30"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => i + 1).map((page) => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`px-3 py-1 rounded text-xs ${
+                    currentPage === page
+                      ? "bg-primary text-primary-foreground font-bold"
+                      : "hover:bg-muted text-text-secondary hover:text-foreground"
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+              {totalPages > 5 && <span className="text-text-secondary px-1">...</span>}
+              <button
+                className="p-1 rounded hover:bg-muted text-text-secondary hover:text-foreground disabled:opacity-30"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Detail Modal */}
+      {selectedSub && (
+        <Dialog open={!!selectedSub} onOpenChange={(v) => !v && setSelectedSub(null)}>
+          <DialogContent className="glass-card border-glass-border max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-foreground">{selectedSub.name || selectedSub.code}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-text-secondary">Código</span>
+                <span className="text-foreground font-mono">{selectedSub.code}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-text-secondary">Status</span>
+                {getStatusBadge(selectedSub.mappedStatus)}
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-text-secondary">Período</span>
+                <span className="text-foreground">{selectedSub.formattedStart} → {selectedSub.formattedEnd}</span>
+              </div>
+              {selectedSub.proxy && (
+                <div className="space-y-2 p-3 rounded-lg bg-muted/50 border border-border">
+                  <h4 className="text-foreground font-bold text-sm">Dados do Proxy</h4>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-text-secondary">IP:Porta</span>
+                    <span className="text-foreground font-mono">{selectedSub.proxy.ip}:{selectedSub.proxy.port}</span>
+                  </div>
+                  {selectedSub.proxy.username && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-text-secondary">Usuário</span>
+                      <span className="text-foreground font-mono">{selectedSub.proxy.username}</span>
+                    </div>
+                  )}
+                  {selectedSub.proxy.password && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-text-secondary">Senha</span>
+                      <span className="text-foreground font-mono">{selectedSub.proxy.password}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
