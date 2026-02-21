@@ -25,7 +25,7 @@ export function useProxyBRAllSubscriptions() {
     setError(null);
     const accumulated: any[] = [];
     let nextPage: number | null = 1;
-    const PAGES_PER_BATCH = 8;
+    const PAGES_PER_BATCH = 3;
 
     try {
       while (nextPage !== null) {

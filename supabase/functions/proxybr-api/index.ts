@@ -179,12 +179,12 @@ Deno.serve(async (req) => {
     if (action === "get-all-subscriptions") {
       const statusFilter = (params as any).status || undefined;
       const startPage = (params as any).startPage || 1;
-      const maxPages = (params as any).maxPages || 5; // fetch 5 API pages per call (~50 subs)
+      const maxPages = Math.min((params as any).maxPages || 3, 3); // max 3 API pages per call
 
       let subs: any[] = [];
       let page = startPage;
       const endPage = startPage + maxPages - 1;
-      const DELAY = 1500;
+      const DELAY = 500;
       const MAX_RETRIES = 3;
       let hitEnd = false;
 
