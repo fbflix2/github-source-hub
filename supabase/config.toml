@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.expire-payments]
 verify_jwt = false
+
+[functions.import-clients]
+verify_jwt = false
