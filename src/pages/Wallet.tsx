@@ -56,6 +56,48 @@ export default function Wallet() {
     amount: number;
   } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
+  const [paymentId, setPaymentId] = useState<string | null>(null);
+
+  // Poll for payment confirmation
+  useEffect(() => {
+    if (!pixModal || !paymentId) return;
+
+    const interval = setInterval(async () => {
+      const { data } = await supabase
+        .from("payments")
+        .select("status")
+        .eq("id", paymentId)
+        .single();
+
+      if (data?.status === "completed") {
+        clearInterval(interval);
+        setPaymentConfirmed(true);
+
+        // Refresh balance and transactions
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const [profileRes, transactionsRes] = await Promise.all([
+            supabase.from("profiles").select("balance").eq("user_id", user.id).maybeSingle(),
+            supabase.from("wallet_transactions").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(20),
+          ]);
+          if (profileRes.data) setBalance(profileRes.data.balance);
+          if (transactionsRes.data) setTransactions(transactionsRes.data);
+        }
+
+        // Auto-close after 5 seconds
+        setTimeout(() => {
+          setPixModal(false);
+          setPaymentConfirmed(false);
+          setPixData(null);
+          setPaymentId(null);
+          setRechargeValue("");
+        }, 5000);
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [pixModal, paymentId]);
 
   useEffect(() => {
     async function fetchData() {
@@ -103,6 +145,8 @@ export default function Wallet() {
         qr_code_base64: data.qr_code_base64,
         amount,
       });
+      setPaymentId(data.payment_id || null);
+      setPaymentConfirmed(false);
       setPixModal(true);
     } catch (err: any) {
       console.error("PIX error:", err);
@@ -317,57 +361,86 @@ export default function Wallet() {
       </div>
 
       {/* PIX QR Code Modal */}
-      <Dialog open={pixModal} onOpenChange={setPixModal}>
+      <Dialog open={pixModal} onOpenChange={(open) => {
+        if (!open) {
+          setPixModal(false);
+          setPaymentConfirmed(false);
+          setPixData(null);
+          setPaymentId(null);
+        }
+      }}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-center text-xl font-bold">Pague com PIX</DialogTitle>
-          </DialogHeader>
-
-          {pixData && (
-            <div className="flex flex-col items-center gap-6 py-4">
-              <p className="text-muted-foreground text-sm text-center">
-                Escaneie o QR Code ou copie o código para pagar
-              </p>
-
-              {/* Amount */}
-              <div className="bg-primary/10 border border-primary/20 rounded-2xl px-6 py-3">
-                <span className="text-2xl font-black text-primary">
-                  R$ {pixData.amount.toFixed(2).replace(".", ",")}
-                </span>
+          {paymentConfirmed ? (
+            <div className="flex flex-col items-center gap-6 py-8">
+              <div className="w-20 h-20 rounded-full bg-primary/10 border-2 border-primary flex items-center justify-center animate-fade-in">
+                <Check className="size-10 text-primary" />
               </div>
+              <div className="text-center space-y-2">
+                <h3 className="text-2xl font-black text-foreground">Pagamento Confirmado!</h3>
+                <p className="text-muted-foreground">
+                  Obrigado! Seu saldo de{" "}
+                  <span className="text-primary font-bold">
+                    R$ {pixData?.amount.toFixed(2).replace(".", ",")}
+                  </span>{" "}
+                  já está disponível na plataforma.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Loader2 className="size-3 animate-spin" />
+                <span>Fechando automaticamente...</span>
+              </div>
+            </div>
+          ) : (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-center text-xl font-bold">Pague com PIX</DialogTitle>
+              </DialogHeader>
 
-              {/* QR Code */}
-              {pixData.qr_code_base64 && (
-                <div className="bg-white rounded-2xl p-4">
-                  <img
-                    src={`data:image/png;base64,${pixData.qr_code_base64}`}
-                    alt="QR Code PIX"
-                    className="w-56 h-56"
-                  />
+              {pixData && (
+                <div className="flex flex-col items-center gap-6 py-4">
+                  <p className="text-muted-foreground text-sm text-center">
+                    Escaneie o QR Code ou copie o código para pagar
+                  </p>
+
+                  <div className="bg-primary/10 border border-primary/20 rounded-2xl px-6 py-3">
+                    <span className="text-2xl font-black text-primary">
+                      R$ {pixData.amount.toFixed(2).replace(".", ",")}
+                    </span>
+                  </div>
+
+                  {pixData.qr_code_base64 && (
+                    <div className="bg-white rounded-2xl p-4">
+                      <img
+                        src={`data:image/png;base64,${pixData.qr_code_base64}`}
+                        alt="QR Code PIX"
+                        className="w-56 h-56"
+                      />
+                    </div>
+                  )}
+
+                  {pixData.qr_code && (
+                    <button
+                      onClick={handleCopyPix}
+                      className="w-full flex items-center justify-center gap-2 bg-muted border border-border rounded-xl px-4 py-3 hover:bg-accent transition-colors"
+                    >
+                      {copied ? (
+                        <Check className="size-4 text-primary" />
+                      ) : (
+                        <Copy className="size-4 text-muted-foreground" />
+                      )}
+                      <span className="text-sm font-medium text-foreground">
+                        {copied ? "Copiado!" : "Copiar código Pix Copia e Cola"}
+                      </span>
+                    </button>
+                  )}
+
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Loader2 className="size-3 animate-spin" />
+                    <span>Aguardando pagamento...</span>
+                  </div>
                 </div>
               )}
-
-              {/* Copy Pix Code */}
-              {pixData.qr_code && (
-                <button
-                  onClick={handleCopyPix}
-                  className="w-full flex items-center justify-center gap-2 bg-muted border border-border rounded-xl px-4 py-3 hover:bg-accent transition-colors"
-                >
-                  {copied ? (
-                    <Check className="size-4 text-primary" />
-                  ) : (
-                    <Copy className="size-4 text-muted-foreground" />
-                  )}
-                  <span className="text-sm font-medium text-foreground">
-                    {copied ? "Copiado!" : "Copiar código Pix Copia e Cola"}
-                  </span>
-                </button>
-              )}
-
-              <p className="text-xs text-muted-foreground text-center">
-                Após o pagamento, seu saldo será creditado automaticamente.
-              </p>
-            </div>
+            </>
           )}
         </DialogContent>
       </Dialog>
