@@ -28,6 +28,7 @@ export interface ProxySubscription {
 }
 
 function mapStatus(sub: ProxySubscription): SubscriptionStatus {
+  if (!sub.end_date) return "active";
   const now = new Date();
   const endDate = parseISO(sub.end_date);
   const daysLeft = differenceInDays(endDate, now);
@@ -40,8 +41,10 @@ function mapStatus(sub: ProxySubscription): SubscriptionStatus {
 
 function getDaysInfo(sub: ProxySubscription) {
   const now = new Date();
-  const endDate = parseISO(sub.end_date);
-  const startDate = parseISO(sub.start_date);
+  const endDateStr = sub.end_date || sub.start_date || new Date().toISOString();
+  const startDateStr = sub.start_date || new Date().toISOString();
+  const endDate = parseISO(endDateStr);
+  const startDate = parseISO(startDateStr);
   const totalDays = differenceInDays(endDate, startDate);
   const daysLeft = differenceInDays(endDate, now);
   const elapsed = totalDays - daysLeft;
