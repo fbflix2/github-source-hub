@@ -20,13 +20,12 @@ async function proxyFetch(url: string, apiKey: string, method = "GET", body?: st
 async function fetchAllSubscriptions(apiKey: string, statusFilter?: string) {
   let allSubs: any[] = [];
   let page = 1;
-  const perPage = 100;
-  const maxPages = 100; // safety limit
+  const maxPages = 300; // safety limit for ~2500 subs at 10/page
 
   while (page <= maxPages) {
-    let url = `${PROXYBR_BASE}/subscriptions?page=${page}&per_page=${perPage}`;
+    let url = `${PROXYBR_BASE}/subscriptions?page=${page}`;
     if (statusFilter) url += `&status=${statusFilter}`;
-    console.log(`Fetching subscriptions page ${page}: ${url}. Total so far: ${allSubs.length}`);
+    if (page === 1 || page % 50 === 0) console.log(`Fetching page ${page}. Total so far: ${allSubs.length}`);
     const response = await proxyFetch(url, apiKey);
     const text = await response.text();
 
@@ -39,18 +38,14 @@ async function fetchAllSubscriptions(apiKey: string, statusFilter?: string) {
     try { parsed = JSON.parse(text); } catch { throw new Error("Invalid JSON from ProxyBR"); }
 
     if (Array.isArray(parsed)) {
-      if (page === 1 && parsed.length > 0) {
-        const first = parsed[0];
-        console.log(`First sub keys: ${Object.keys(first).join(', ')}`);
-      }
+      if (parsed.length === 0) break; // no more items
+      if (page === 1) console.log(`First sub keys: ${Object.keys(parsed[0]).join(', ')}`);
       allSubs = [...allSubs, ...parsed];
-      // If array returned fewer items than perPage, we've reached the end
-      if (parsed.length < perPage) break;
       page++;
     } else if (parsed?.data && Array.isArray(parsed.data)) {
+      if (parsed.data.length === 0) break;
       allSubs = [...allSubs, ...parsed.data];
       const lastPage = parsed.last_page || parsed.meta?.last_page || 1;
-      console.log(`Paginated response: page ${page}/${lastPage}, got ${parsed.data.length} items`);
       if (page >= lastPage) break;
       page++;
     } else {
