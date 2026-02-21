@@ -33,41 +33,59 @@ Deno.serve(async (req) => {
       throw fetchError;
     }
 
-    if (!expiredPayments || expiredPayments.length === 0) {
-      return new Response(
-        JSON.stringify({ message: "No expired payments found", cancelled: 0 }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
     let cancelledCount = 0;
     let abandonedCount = 0;
 
-    for (const payment of expiredPayments) {
-      // Cancel the payment
-      await supabase
-        .from("payments")
-        .update({
-          status: "cancelled",
-          metadata: {
-            type: "wallet_recharge",
-            cancelled_reason: "pix_expired",
-            expired_at: new Date().toISOString(),
-          },
-        })
-        .eq("id", payment.id);
-
-      cancelledCount++;
-
-      // If there's an associated order, mark it as abandoned
-      if (payment.order_id) {
+    if (expiredPayments && expiredPayments.length > 0) {
+      for (const payment of expiredPayments) {
         await supabase
-          .from("orders")
-          .update({ status: "abandoned" })
-          .eq("id", payment.order_id)
-          .in("status", ["processing"]);
+          .from("payments")
+          .update({
+            status: "cancelled",
+            metadata: {
+              type: "wallet_recharge",
+              cancelled_reason: "pix_expired",
+              expired_at: new Date().toISOString(),
+            },
+          })
+          .eq("id", payment.id);
 
-        abandonedCount++;
+        cancelledCount++;
+
+        if (payment.order_id) {
+          await supabase
+            .from("orders")
+            .update({ status: "abandoned" })
+            .eq("id", payment.order_id)
+            .in("status", ["processing"]);
+          abandonedCount++;
+        }
+      }
+    }
+
+    // Also expire any "processing" orders older than 30 minutes that have no successful payment
+    const { data: staleOrders, error: staleError } = await supabase
+      .from("orders")
+      .select("id")
+      .eq("status", "processing")
+      .lt("created_at", thirtyMinutesAgo);
+
+    if (!staleError && staleOrders && staleOrders.length > 0) {
+      for (const order of staleOrders) {
+        const { data: paidPayments } = await supabase
+          .from("payments")
+          .select("id")
+          .eq("order_id", order.id)
+          .eq("status", "completed")
+          .limit(1);
+
+        if (!paidPayments || paidPayments.length === 0) {
+          await supabase
+            .from("orders")
+            .update({ status: "abandoned" })
+            .eq("id", order.id);
+          abandonedCount++;
+        }
       }
     }
 
