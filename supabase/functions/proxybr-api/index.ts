@@ -250,10 +250,14 @@ Deno.serve(async (req) => {
           .maybeSingle();
 
         if (existing) {
-          // Update status, and if not linked yet but we found a match, link it
+          // Preserve existing user_id if already linked to a real user
+          const keepUserId = existing.user_id !== user.id ? existing.user_id : (matchedUserId || existing.user_id);
           if (matchedUserId && existing.user_id === user.id) {
             record.user_id = matchedUserId;
             linked++;
+          } else {
+            record.user_id = keepUserId;
+            if (keepUserId !== user.id) linked++;
           }
           await supabaseAdmin.from("subscriptions").update(record).eq("id", existing.id);
         } else {
@@ -293,7 +297,7 @@ Deno.serve(async (req) => {
         url = `${PROXYBR_BASE}/subscriptions/${params.subscriptionCode}`;
         break;
 
-      case "contract-subscription":
+      case "contract-subscription": {
         url = `${PROXYBR_BASE}/subscriptions/contract`;
         method = "POST";
         body = JSON.stringify({
@@ -302,7 +306,63 @@ Deno.serve(async (req) => {
           product_variant_id: params.product_variant_id,
           discount_coupon: params.discount_coupon || null,
         });
-        break;
+
+        // Make the API call here to save locally with user_id
+        console.log(`ProxyBR API call: POST ${url}`);
+        const contractResponse = await proxyFetch(url, PROXYBR_API_KEY, "POST", body);
+        const contractText = await contractResponse.text();
+        console.log(`ProxyBR contract response [${contractResponse.status}]: ${contractText.substring(0, 500)}`);
+
+        let contractData: any;
+        try { contractData = JSON.parse(contractText); } catch { contractData = { raw: contractText }; }
+
+        if (!contractResponse.ok) {
+          return new Response(
+            JSON.stringify({ error: `ProxyBR API error [${contractResponse.status}]`, details: contractData }),
+            { status: contractResponse.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        // Save subscription locally with the buyer's user_id
+        const subCode = contractData.code || contractData.data?.code;
+        if (subCode) {
+          const supabaseAdmin = createClient(
+            Deno.env.get("SUPABASE_URL")!,
+            Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+          );
+          const { data: existingSub } = await supabaseAdmin
+            .from("subscriptions")
+            .select("id")
+            .eq("name", subCode)
+            .eq("type", "proxybr")
+            .maybeSingle();
+
+          if (existingSub) {
+            await supabaseAdmin.from("subscriptions").update({
+              user_id: user.id,
+              status: "active",
+              end_date: endDate || null,
+              auto_renew: contractData.auto_renew_active ?? false,
+            }).eq("id", existingSub.id);
+          } else {
+            await supabaseAdmin.from("subscriptions").insert({
+              name: subCode,
+              type: "proxybr",
+              status: "active",
+              user_id: user.id,
+              start_date: new Date().toISOString(),
+              end_date: endDate || null,
+              auto_renew: contractData.auto_renew_active ?? false,
+            });
+          }
+          console.log(`Saved subscription ${subCode} linked to user ${user.id}`);
+        }
+
+        return new Response(
+          JSON.stringify(contractData),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
 
       case "renew-subscription":
         if (!params.subscriptionCode) throw new Error("subscriptionCode é obrigatório");
