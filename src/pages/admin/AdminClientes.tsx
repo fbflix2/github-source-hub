@@ -438,6 +438,7 @@ export default function AdminClientes() {
         open={!!historyClient}
         onClose={() => setHistoryClient(null)}
         client={historyClient}
+        onBalanceUpdate={fetchClients}
       />
       <ResetPasswordModal
         open={!!resetClient}
