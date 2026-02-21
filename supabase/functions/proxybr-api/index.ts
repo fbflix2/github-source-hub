@@ -154,20 +154,57 @@ Deno.serve(async (req) => {
         }
       }
 
+      console.log(`Loaded ${emailToUserId.size} emails and ${nameToUserId.size} profile names for matching`);
+
       let synced = 0;
       let linked = 0;
 
       for (const sub of allSubs) {
-        const code = sub.code;
+      const code = sub.code;
         if (!code) continue;
 
-        // Try to find matching user by customer email or name
-        const customerEmail = (sub.customer?.email || sub.client?.email || "").toLowerCase().trim();
-        const customerName = (sub.customer?.name || sub.client?.name || sub.notes || "").toLowerCase().trim();
+        // Use notes field as primary identification (API doesn't return customer/client objects)
+        const notes = (sub.notes || "").toLowerCase().trim();
+        console.log(`Sub ${code}: notes="${notes}"`);
 
-        let matchedUserId = customerEmail ? emailToUserId.get(customerEmail) : undefined;
-        if (!matchedUserId && customerName) {
-          matchedUserId = nameToUserId.get(customerName);
+        let matchedUserId: string | undefined;
+
+        // 1. Exact email match
+        if (notes && emailToUserId.has(notes)) {
+          matchedUserId = emailToUserId.get(notes);
+          console.log(`Sub ${code}: exact email match -> ${matchedUserId}`);
+        }
+
+        // 2. Exact name match
+        if (!matchedUserId && notes && nameToUserId.has(notes)) {
+          matchedUserId = nameToUserId.get(notes);
+          console.log(`Sub ${code}: exact name match -> ${matchedUserId}`);
+        }
+
+        // 3. Partial match: notes contains a known email
+        if (!matchedUserId && notes) {
+          for (const [email, uid] of emailToUserId.entries()) {
+            if (notes.includes(email)) {
+              matchedUserId = uid;
+              console.log(`Sub ${code}: partial email match "${email}" -> ${uid}`);
+              break;
+            }
+          }
+        }
+
+        // 4. Partial match: notes contains a known name
+        if (!matchedUserId && notes) {
+          for (const [name, uid] of nameToUserId.entries()) {
+            if (name.length >= 3 && notes.includes(name)) {
+              matchedUserId = uid;
+              console.log(`Sub ${code}: partial name match "${name}" -> ${uid}`);
+              break;
+            }
+          }
+        }
+
+        if (!matchedUserId) {
+          console.log(`Sub ${code}: no match found`);
         }
 
         // Determine status
