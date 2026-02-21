@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Users, Wallet, CheckCircle, Search, LogIn, KeyRound, Pencil, ChevronLeft, ChevronRight, UserPlus, TrendingUp, Minus, X, Ban, Clock, Loader2, Mail, Phone } from "lucide-react";
+import { Users, Wallet, CheckCircle, Search, LogIn, KeyRound, Pencil, ChevronLeft, ChevronRight, UserPlus, TrendingUp, Minus, X, Ban, Clock, Loader2, Mail, Phone, Squirrel, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import ClientEditModal from "@/components/admin/ClientEditModal";
 import ClientHistoryModal from "@/components/admin/ClientHistoryModal";
 import ResetPasswordModal from "@/components/admin/ResetPasswordModal";
+import AdjustBalanceModal from "@/components/admin/AdjustBalanceModal";
 
 type ClientStatus = "active" | "inactive" | "blocked";
 
@@ -37,6 +38,7 @@ export default function AdminClientes() {
   const [editClient, setEditClient] = useState<Client | null>(null);
   const [historyClient, setHistoryClient] = useState<Client | null>(null);
   const [resetClient, setResetClient] = useState<Client | null>(null);
+  const [balanceClient, setBalanceClient] = useState<Client | null>(null);
 
   // Stats
   const [totalClients, setTotalClients] = useState(0);
@@ -314,10 +316,10 @@ export default function AdminClientes() {
                 </div>
                 <button
                   onClick={() => setHistoryClient(client)}
-                  className="text-white/40 hover:text-white transition-colors p-1 rounded-lg hover:bg-white/10"
+                  className="size-8 flex items-center justify-center rounded-lg text-white/40 hover:text-white transition-colors hover:bg-white/10"
                   title="Histórico do Cliente"
                 >
-                  <span className="text-lg leading-none">🦫</span>
+                  <Squirrel className="w-5 h-5" />
                 </button>
               </div>
 
@@ -348,20 +350,23 @@ export default function AdminClientes() {
                     )}
                   </p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-1.5">
                   <button
                     onClick={() => handleImpersonate(client.user_id)}
                     disabled={impersonating === client.user_id}
-                    className="size-9 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 text-white/70 hover:text-primary border border-white/5 transition-all disabled:opacity-50"
+                    className="size-8 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 text-white/70 hover:text-primary border border-white/5 transition-all disabled:opacity-50"
                     title="Acessar Conta"
                   >
-                    {impersonating === client.user_id ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogIn className="w-4 h-4" />}
+                    {impersonating === client.user_id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <LogIn className="w-3.5 h-3.5" />}
                   </button>
-                  <button onClick={() => setResetClient(client)} className="size-9 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 text-white/70 hover:text-primary border border-white/5 transition-all" title="Resetar Senha">
-                    <KeyRound className="w-4 h-4" />
+                  <button onClick={() => setResetClient(client)} className="size-8 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 text-white/70 hover:text-primary border border-white/5 transition-all" title="Resetar Senha">
+                    <KeyRound className="w-3.5 h-3.5" />
                   </button>
-                  <button onClick={() => setEditClient(client)} className="size-9 flex items-center justify-center rounded-lg bg-primary/20 hover:bg-primary text-primary hover:text-white border border-primary/20 transition-all" title="Editar">
-                    <Pencil className="w-4 h-4" />
+                  <button onClick={() => setBalanceClient(client)} className="size-8 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 text-white/70 hover:text-green-400 border border-white/5 transition-all" title="Ajustar Saldo">
+                    <DollarSign className="w-3.5 h-3.5" />
+                  </button>
+                  <button onClick={() => setEditClient(client)} className="size-8 flex items-center justify-center rounded-lg bg-primary/20 hover:bg-primary text-primary hover:text-white border border-primary/20 transition-all" title="Editar">
+                    <Pencil className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
@@ -438,6 +443,12 @@ export default function AdminClientes() {
         open={!!resetClient}
         onClose={() => setResetClient(null)}
         client={resetClient}
+      />
+      <AdjustBalanceModal
+        open={!!balanceClient}
+        onClose={() => setBalanceClient(null)}
+        client={balanceClient}
+        onUpdate={fetchClients}
       />
     </div>
   );
