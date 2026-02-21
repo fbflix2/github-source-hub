@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   PlusCircle,
   Server,
@@ -8,7 +8,6 @@ import {
   Search,
   RefreshCw,
   Eye,
-  Zap,
   Pencil,
   Trash2,
   Copy,
@@ -17,6 +16,8 @@ import {
   ChevronRight,
   AlertCircle,
   Clipboard,
+  EyeOff,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,83 +32,175 @@ import {
 } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ApiKey {
   id: string;
   name: string;
   abbreviation: string;
-  description: string;
+  description: string | null;
   token: string;
-  status: "active" | "inactive" | "error";
-  lastModified: string;
+  status: string;
   color: string;
+  created_at: string;
+  updated_at: string;
 }
-
-const mockApiKeys: ApiKey[] = [
-  {
-    id: "1",
-    name: "Mercado Pago",
-    abbreviation: "MP",
-    description: "Checkout Transparente",
-    token: "APP_USR-63...1a9df",
-    status: "active",
-    lastModified: "20/10/2023 14:30",
-    color: "blue",
-  },
-  {
-    id: "2",
-    name: "Stripe",
-    abbreviation: "ST",
-    description: "Pagamentos Globais",
-    token: "sk_test_51...L8x",
-    status: "inactive",
-    lastModified: "15/09/2023 09:12",
-    color: "indigo",
-  },
-  {
-    id: "3",
-    name: "AWS S3",
-    abbreviation: "AWS",
-    description: "Armazenamento de Mídia",
-    token: "AKIA...R5J2",
-    status: "active",
-    lastModified: "22/10/2023 11:05",
-    color: "orange",
-  },
-  {
-    id: "4",
-    name: "OpenAI API",
-    abbreviation: "GPT",
-    description: "Geração de Sinopses",
-    token: "sk-proj-...9x1",
-    status: "error",
-    lastModified: "01/10/2023 16:45",
-    color: "purple",
-  },
-];
 
 export default function AdminApi() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [serviceName, setServiceName] = useState("");
+  const [abbreviation, setAbbreviation] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [description, setDescription] = useState("");
   const [isActive, setIsActive] = useState(true);
+  const [color, setColor] = useState("blue");
+  const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [visibleTokens, setVisibleTokens] = useState<Set<string>>(new Set());
+  const [editingId, setEditingId] = useState<string | null>(null);
 
-  const getColorClasses = (color: string) => {
-    switch (color) {
-      case "blue":
-        return "bg-blue-500/20 text-blue-400";
-      case "indigo":
-        return "bg-indigo-500/20 text-indigo-400";
-      case "orange":
-        return "bg-orange-500/20 text-orange-400";
-      case "purple":
-        return "bg-purple-500/20 text-purple-400";
-      default:
-        return "bg-gray-500/20 text-gray-400";
+  const fetchKeys = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("api_keys")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      toast.error("Erro ao carregar chaves");
+    } else {
+      setApiKeys(data || []);
     }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchKeys();
+  }, []);
+
+  const maskToken = (token: string) => {
+    if (token.length <= 8) return "••••••••";
+    return token.slice(0, 6) + "•••" + token.slice(-4);
+  };
+
+  const toggleTokenVisibility = (id: string) => {
+    setVisibleTokens((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleSave = async () => {
+    if (!serviceName.trim() || !apiKey.trim()) {
+      toast.error("Preencha o nome do serviço e a chave");
+      return;
+    }
+
+    setSaving(true);
+
+    if (editingId) {
+      const { error } = await supabase
+        .from("api_keys")
+        .update({
+          name: serviceName,
+          abbreviation: abbreviation || serviceName.slice(0, 3).toUpperCase(),
+          token: apiKey,
+          description: description || null,
+          status: isActive ? "active" : "inactive",
+          color,
+        })
+        .eq("id", editingId);
+
+      if (error) {
+        toast.error("Erro ao atualizar chave");
+      } else {
+        toast.success("Chave atualizada com sucesso");
+        resetForm();
+        fetchKeys();
+      }
+    } else {
+      const { error } = await supabase.from("api_keys").insert({
+        name: serviceName,
+        abbreviation: abbreviation || serviceName.slice(0, 3).toUpperCase(),
+        token: apiKey,
+        description: description || null,
+        status: isActive ? "active" : "inactive",
+        color,
+      });
+
+      if (error) {
+        toast.error("Erro ao salvar chave");
+      } else {
+        toast.success("Chave adicionada com sucesso");
+        resetForm();
+        fetchKeys();
+      }
+    }
+
+    setSaving(false);
+  };
+
+  const resetForm = () => {
+    setServiceName("");
+    setAbbreviation("");
+    setApiKey("");
+    setDescription("");
+    setIsActive(true);
+    setColor("blue");
+    setEditingId(null);
+  };
+
+  const handleEdit = (key: ApiKey) => {
+    setEditingId(key.id);
+    setServiceName(key.name);
+    setAbbreviation(key.abbreviation);
+    setApiKey(key.token);
+    setDescription(key.description || "");
+    setIsActive(key.status === "active");
+    setColor(key.color);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase.from("api_keys").delete().eq("id", id);
+    if (error) {
+      toast.error("Erro ao excluir chave");
+    } else {
+      toast.success("Chave excluída com sucesso");
+      fetchKeys();
+    }
+  };
+
+  const handleCopyToken = (token: string) => {
+    navigator.clipboard.writeText(token);
+    toast.success("Token copiado para a área de transferência");
+  };
+
+  const handlePaste = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      setApiKey(text);
+      toast.success("Chave colada com sucesso");
+    } catch {
+      toast.error("Não foi possível acessar a área de transferência");
+    }
+  };
+
+  const getColorClasses = (c: string) => {
+    const map: Record<string, string> = {
+      blue: "bg-blue-500/20 text-blue-400",
+      indigo: "bg-indigo-500/20 text-indigo-400",
+      orange: "bg-orange-500/20 text-orange-400",
+      purple: "bg-purple-500/20 text-purple-400",
+      green: "bg-green-500/20 text-green-400",
+      red: "bg-red-500/20 text-red-400",
+    };
+    return map[c] || "bg-gray-500/20 text-gray-400";
   };
 
   const getStatusBadge = (status: string) => {
@@ -138,27 +231,22 @@ export default function AdminApi() {
     }
   };
 
-  const filteredKeys = mockApiKeys.filter((key) => {
+  const filteredKeys = apiKeys.filter((key) => {
     const matchesSearch =
       key.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      key.description.toLowerCase().includes(searchTerm.toLowerCase());
+      (key.description || "").toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || key.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
-  const handleCopyToken = (token: string) => {
-    navigator.clipboard.writeText(token);
-    toast.success("Token copiado para a área de transferência");
-  };
-
-  const handlePaste = async () => {
-    try {
-      const text = await navigator.clipboard.readText();
-      setApiKey(text);
-      toast.success("Chave colada com sucesso");
-    } catch {
-      toast.error("Não foi possível acessar a área de transferência");
-    }
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
 
   return (
@@ -190,21 +278,21 @@ export default function AdminApi() {
       </header>
 
       <main className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
-        {/* Left Column: Add New Key Form */}
+        {/* Left Column: Add/Edit Key Form */}
         <section className="xl:col-span-4 flex flex-col gap-6">
           <div className="bg-[rgba(30,30,30,0.4)] backdrop-blur-xl border border-white/[0.08] rounded-2xl p-6 shadow-lg relative overflow-hidden">
-            {/* Subtle red accent line at top */}
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-red-900 to-transparent opacity-50" />
 
             <div className="flex items-center gap-3 mb-6">
               <div className="bg-primary/20 p-2 rounded-lg text-primary">
                 <PlusCircle className="w-5 h-5" />
               </div>
-              <h2 className="text-xl font-bold text-white tracking-tight">Adicionar Nova Chave</h2>
+              <h2 className="text-xl font-bold text-white tracking-tight">
+                {editingId ? "Editar Chave" : "Adicionar Nova Chave"}
+              </h2>
             </div>
 
-            <form className="flex flex-col gap-5">
-              {/* Service Name */}
+            <form className="flex flex-col gap-5" onSubmit={(e) => e.preventDefault()}>
               <label className="flex flex-col gap-2">
                 <span className="text-sm font-medium text-gray-300 ml-1">Nome do Serviço/Parceiro</span>
                 <div className="relative">
@@ -219,10 +307,21 @@ export default function AdminApi() {
                 </div>
               </label>
 
-              {/* API Key / Token */}
+              <label className="flex flex-col gap-2">
+                <span className="text-sm font-medium text-gray-300 ml-1">Abreviação (2-4 letras)</span>
+                <Input
+                  type="text"
+                  placeholder="Ex: MP"
+                  value={abbreviation}
+                  onChange={(e) => setAbbreviation(e.target.value.toUpperCase().slice(0, 4))}
+                  maxLength={4}
+                  className="w-full px-4 py-3 rounded-xl bg-black/30 border-white/10 placeholder:text-gray-600 text-sm focus:border-primary focus:ring-primary"
+                />
+              </label>
+
               <label className="flex flex-col gap-2">
                 <span className="text-sm font-medium text-gray-300 ml-1">Chave API / Token (Valor)</span>
-                <div className="relative group/input">
+                <div className="relative">
                   <Key className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
                   <Input
                     type="password"
@@ -240,10 +339,8 @@ export default function AdminApi() {
                     <Clipboard className="w-4 h-4" />
                   </button>
                 </div>
-                <span className="text-xs text-gray-500 ml-1">Recomendamos rotacionar as chaves a cada 90 dias.</span>
               </label>
 
-              {/* Description */}
               <label className="flex flex-col gap-2">
                 <span className="text-sm font-medium text-gray-300 ml-1">Descrição (Uso)</span>
                 <Textarea
@@ -254,7 +351,23 @@ export default function AdminApi() {
                 />
               </label>
 
-              {/* Toggle Active */}
+              <label className="flex flex-col gap-2">
+                <span className="text-sm font-medium text-gray-300 ml-1">Cor do Ícone</span>
+                <Select value={color} onValueChange={setColor}>
+                  <SelectTrigger className="bg-black/30 border-white/10 rounded-xl text-sm text-gray-300">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="blue">Azul</SelectItem>
+                    <SelectItem value="indigo">Índigo</SelectItem>
+                    <SelectItem value="orange">Laranja</SelectItem>
+                    <SelectItem value="purple">Roxo</SelectItem>
+                    <SelectItem value="green">Verde</SelectItem>
+                    <SelectItem value="red">Vermelho</SelectItem>
+                  </SelectContent>
+                </Select>
+              </label>
+
               <div className="flex items-center justify-between bg-black/20 p-4 rounded-xl border border-white/5">
                 <div className="flex flex-col">
                   <span className="text-sm font-medium text-white">Ativar para Uso</span>
@@ -267,18 +380,30 @@ export default function AdminApi() {
                 />
               </div>
 
-              {/* Action Button */}
-              <Button
-                type="button"
-                className="mt-2 w-full bg-primary hover:bg-red-700 text-white font-bold py-3.5 rounded-xl shadow-lg hover:shadow-primary/25 flex justify-center items-center gap-2"
-              >
-                <Save className="w-5 h-5" />
-                Adicionar Chave/Token
-              </Button>
+              <div className="flex gap-2 mt-2">
+                <Button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="flex-1 bg-primary hover:bg-red-700 text-white font-bold py-3.5 rounded-xl shadow-lg hover:shadow-primary/25 flex justify-center items-center gap-2"
+                >
+                  {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                  {editingId ? "Salvar Alterações" : "Adicionar Chave"}
+                </Button>
+                {editingId && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={resetForm}
+                    className="rounded-xl border-white/10 text-gray-400 hover:text-white"
+                  >
+                    Cancelar
+                  </Button>
+                )}
+              </div>
             </form>
           </div>
 
-          {/* Mini Helper Card */}
           <div className="bg-[rgba(30,30,30,0.4)] backdrop-blur-xl border border-white/[0.08] rounded-xl p-5 flex gap-4 items-start">
             <div className="bg-blue-500/10 p-2 rounded-lg text-blue-400 shrink-0">
               <ShieldCheck className="w-5 h-5" />
@@ -286,8 +411,7 @@ export default function AdminApi() {
             <div>
               <h4 className="text-sm font-bold text-white mb-1">Ambiente Seguro</h4>
               <p className="text-xs text-gray-400 leading-relaxed">
-                Todas as chaves são criptografadas antes de serem salvas no banco de dados. Logs de
-                acesso são gerados para qualquer visualização de token.
+                Todas as chaves são protegidas por RLS e acessíveis apenas por administradores autenticados.
               </p>
             </div>
           </div>
@@ -295,9 +419,7 @@ export default function AdminApi() {
 
         {/* Right Column: List & Filters */}
         <section className="xl:col-span-8 flex flex-col gap-6 h-full">
-          {/* Search & Filters Toolbar */}
           <div className="bg-[rgba(30,30,30,0.4)] backdrop-blur-xl border border-white/[0.08] rounded-xl p-2 flex flex-col md:flex-row gap-2 justify-between items-center">
-            {/* Search */}
             <div className="relative w-full md:max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
               <Input
@@ -308,8 +430,6 @@ export default function AdminApi() {
                 className="w-full bg-transparent border-transparent focus:border-white/10 focus:bg-white/5 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-gray-500 focus:ring-0 transition-all"
               />
             </div>
-
-            {/* Filters Actions */}
             <div className="flex items-center gap-2 w-full md:w-auto">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="bg-white/5 border-white/10 hover:border-white/20 rounded-lg text-sm text-gray-300 w-[160px]">
@@ -323,6 +443,7 @@ export default function AdminApi() {
                 </SelectContent>
               </Select>
               <button
+                onClick={fetchKeys}
                 className="p-2.5 bg-white/5 border border-white/10 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors"
                 title="Atualizar Lista"
               >
@@ -331,97 +452,94 @@ export default function AdminApi() {
             </div>
           </div>
 
-          {/* Data Table */}
           <div className="bg-[rgba(30,30,30,0.4)] backdrop-blur-xl border border-white/[0.08] rounded-2xl overflow-hidden flex flex-col flex-1 min-h-[400px]">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-black/40 border-b border-white/5 text-xs uppercase tracking-wider text-gray-500">
-                    <th className="px-6 py-4 font-semibold">Nome do Serviço</th>
-                    <th className="px-6 py-4 font-semibold">Valor (Token)</th>
-                    <th className="px-6 py-4 font-semibold">Status</th>
-                    <th className="px-6 py-4 font-semibold">Última Modificação</th>
-                    <th className="px-6 py-4 font-semibold text-right">Ações</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-white/5 text-sm">
-                  {filteredKeys.map((key) => (
-                    <tr key={key.id} className="group hover:bg-white/[0.02] transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className={`w-8 h-8 rounded flex items-center justify-center font-bold text-xs ${getColorClasses(
-                              key.color
-                            )}`}
-                          >
-                            {key.abbreviation}
-                          </div>
-                          <div>
-                            <div className="font-medium text-white">{key.name}</div>
-                            <div className="text-xs text-gray-500">{key.description}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2 group/token">
-                          <code className="bg-black/30 px-2 py-1 rounded text-gray-300 text-xs font-mono border border-white/5">
-                            {key.token}
-                          </code>
-                          <button
-                            onClick={() => handleCopyToken(key.token)}
-                            className="opacity-0 group-hover/token:opacity-100 transition-opacity text-gray-500 hover:text-primary"
-                          >
-                            <Copy className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">{getStatusBadge(key.status)}</td>
-                      <td className="px-6 py-4 text-gray-400 text-xs">{key.lastModified}</td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <button
-                            className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
-                            title="Visualizar"
-                          >
-                            <Eye className="w-5 h-5" />
-                          </button>
-                          <button
-                            className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
-                            title="Testar Conexão"
-                          >
-                            <Zap className="w-5 h-5" />
-                          </button>
-                          <button
-                            className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
-                            title="Editar"
-                          >
-                            <Pencil className="w-5 h-5" />
-                          </button>
-                          <button
-                            className="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/10 transition-colors"
-                            title="Excluir"
-                          >
-                            <Trash2 className="w-5 h-5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Pagination / Footer */}
-            <div className="bg-black/20 border-t border-white/5 px-6 py-4 flex items-center justify-between mt-auto">
-              <span className="text-xs text-gray-500">Mostrando {filteredKeys.length} de 12 registros</span>
-              <div className="flex gap-2">
-                <button className="px-3 py-1 rounded-lg border border-white/10 text-xs text-gray-400 hover:bg-white/5 hover:text-white transition-colors disabled:opacity-50">
-                  Anterior
-                </button>
-                <button className="px-3 py-1 rounded-lg border border-white/10 text-xs text-gray-400 hover:bg-white/5 hover:text-white transition-colors">
-                  Próximo
-                </button>
+            {loading ? (
+              <div className="flex items-center justify-center flex-1 py-20">
+                <Loader2 className="w-8 h-8 animate-spin text-gray-500" />
               </div>
+            ) : filteredKeys.length === 0 ? (
+              <div className="flex flex-col items-center justify-center flex-1 py-20 text-gray-500">
+                <Key className="w-12 h-12 mb-4 opacity-30" />
+                <p className="text-lg font-medium">Nenhuma chave cadastrada</p>
+                <p className="text-sm">Adicione sua primeira chave API usando o formulário ao lado.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-black/40 border-b border-white/5 text-xs uppercase tracking-wider text-gray-500">
+                      <th className="px-6 py-4 font-semibold">Nome do Serviço</th>
+                      <th className="px-6 py-4 font-semibold">Valor (Token)</th>
+                      <th className="px-6 py-4 font-semibold">Status</th>
+                      <th className="px-6 py-4 font-semibold">Última Modificação</th>
+                      <th className="px-6 py-4 font-semibold text-right">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5 text-sm">
+                    {filteredKeys.map((key) => (
+                      <tr key={key.id} className="group hover:bg-white/[0.02] transition-colors">
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`w-8 h-8 rounded flex items-center justify-center font-bold text-xs ${getColorClasses(key.color)}`}
+                            >
+                              {key.abbreviation}
+                            </div>
+                            <div>
+                              <div className="font-medium text-white">{key.name}</div>
+                              <div className="text-xs text-gray-500">{key.description || "—"}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <code className="bg-black/30 px-2 py-1 rounded text-gray-300 text-xs font-mono border border-white/5">
+                              {visibleTokens.has(key.id) ? key.token : maskToken(key.token)}
+                            </code>
+                            <button
+                              onClick={() => handleCopyToken(key.token)}
+                              className="text-gray-500 hover:text-primary transition-colors"
+                            >
+                              <Copy className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">{getStatusBadge(key.status)}</td>
+                        <td className="px-6 py-4 text-gray-400 text-xs">{formatDate(key.updated_at)}</td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={() => toggleTokenVisibility(key.id)}
+                              className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+                              title={visibleTokens.has(key.id) ? "Ocultar" : "Visualizar"}
+                            >
+                              {visibleTokens.has(key.id) ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                            </button>
+                            <button
+                              onClick={() => handleEdit(key)}
+                              className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+                              title="Editar"
+                            >
+                              <Pencil className="w-5 h-5" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(key.id)}
+                              className="p-1.5 rounded-lg text-gray-400 hover:text-primary hover:bg-primary/10 transition-colors"
+                              title="Excluir"
+                            >
+                              <Trash2 className="w-5 h-5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <div className="bg-black/20 border-t border-white/5 px-6 py-4 flex items-center justify-between mt-auto">
+              <span className="text-xs text-gray-500">{filteredKeys.length} registro(s)</span>
             </div>
           </div>
         </section>

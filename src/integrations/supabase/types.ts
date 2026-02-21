@@ -47,6 +47,42 @@ export type Database = {
         }
         Relationships: []
       }
+      api_keys: {
+        Row: {
+          abbreviation: string
+          color: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          status: string
+          token: string
+          updated_at: string
+        }
+        Insert: {
+          abbreviation?: string
+          color?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          status?: string
+          token: string
+          updated_at?: string
+        }
+        Update: {
+          abbreviation?: string
+          color?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          status?: string
+          token?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       banners: {
         Row: {
           active: boolean
