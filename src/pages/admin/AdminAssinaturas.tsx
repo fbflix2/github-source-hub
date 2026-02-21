@@ -30,7 +30,7 @@ import { ptBR } from "date-fns/locale";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 
-type MappedStatus = "active" | "expiring" | "expired" | "cancelled";
+type MappedStatus = "active" | "pending_renewal" | "expired" | "cancelled";
 
 interface ParsedProxy {
   id: number;
@@ -65,13 +65,17 @@ interface EnrichedSubscription {
 }
 
 function mapStatus(sub: { status: string; end_date: string }): MappedStatus {
+  const s = (sub.status || "").toLowerCase().trim();
+  // Map ProxyBR API status values directly
+  if (s === "cancelled" || s === "cancelado" || s === "canceled") return "cancelled";
+  if (s === "expired" || s === "vencido" || s === "expirado") return "expired";
+  if (s === "pending_renewal" || s === "renovação pendente" || s === "renewal_pending" || s === "pending" || s === "pendente") return "pending_renewal";
+  if (s === "active" || s === "ativo" || s === "enabled") return "active";
+  // Fallback: check by date
   const now = new Date();
   const endDate = parseISO(sub.end_date);
   const daysLeft = differenceInDays(endDate, now);
-  const s = sub.status.toUpperCase();
-  if (s === "CANCELLED") return "cancelled";
   if (daysLeft < 0) return "expired";
-  if (daysLeft <= 3) return "expiring";
   return "active";
 }
 
@@ -96,7 +100,7 @@ function enrichSub(
   let daysLabel = "";
   if (mapped === "expired") daysLabel = "Expirado";
   else if (mapped === "cancelled") daysLabel = "Cancelado";
-  else if (mapped === "expiring") daysLabel = daysLeft === 0 ? "Vence hoje" : `${daysLeft} dia${daysLeft !== 1 ? "s" : ""} restante${daysLeft !== 1 ? "s" : ""}`;
+  else if (mapped === "pending_renewal") daysLabel = "Renovação pendente";
   else if (mapped === "active") daysLabel = daysLeft > 30 ? "30+ dias" : `${daysLeft} dia${daysLeft !== 1 ? "s" : ""} restante${daysLeft !== 1 ? "s" : ""}`;
 
   // Parse proxy from proxies.data[0]
@@ -225,7 +229,7 @@ export default function AdminAssinaturas() {
 
   const counts = useMemo(() => ({
     active: subscriptions.filter((s) => s.mappedStatus === "active").length,
-    expiring: subscriptions.filter((s) => s.mappedStatus === "expiring").length,
+    pending_renewal: subscriptions.filter((s) => s.mappedStatus === "pending_renewal").length,
     cancelled: subscriptions.filter((s) => s.mappedStatus === "cancelled").length,
     expired: subscriptions.filter((s) => s.mappedStatus === "expired").length,
   }), [subscriptions]);
@@ -358,7 +362,7 @@ export default function AdminAssinaturas() {
 
   const stats = [
     { label: "Ativo", value: counts.active.toString(), icon: CheckCircle, iconColor: "text-green-400", glowColor: "bg-primary/10" },
-    { label: "Renovação pendente", value: counts.expiring.toString(), icon: AlertTriangle, iconColor: "text-yellow-400", glowColor: "bg-yellow-500/10" },
+    { label: "Renovação pendente", value: counts.pending_renewal.toString(), icon: AlertTriangle, iconColor: "text-yellow-400", glowColor: "bg-yellow-500/10" },
     { label: "Vencido", value: counts.expired.toString(), icon: RefreshCw, iconColor: "text-orange-400", glowColor: "bg-orange-500/10" },
     { label: "Cancelado", value: counts.cancelled.toString(), icon: XCircle, iconColor: "text-red-500", glowColor: "bg-red-500/10" },
     { label: "Total", value: subscriptions.length.toString(), icon: Globe, iconColor: "text-emerald-400", glowColor: "bg-emerald-500/10" },
@@ -373,7 +377,7 @@ export default function AdminAssinaturas() {
             Ativo
           </span>
         );
-      case "expiring":
+      case "pending_renewal":
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">
             <span className="w-1.5 h-1.5 rounded-full bg-yellow-500" />
@@ -469,7 +473,7 @@ export default function AdminAssinaturas() {
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="active">Ativo</SelectItem>
-                <SelectItem value="expiring">Vencendo</SelectItem>
+                <SelectItem value="pending_renewal">Renovação pendente</SelectItem>
                 <SelectItem value="expired">Expirado</SelectItem>
                 <SelectItem value="cancelled">Cancelado</SelectItem>
               </SelectContent>
@@ -581,7 +585,7 @@ export default function AdminAssinaturas() {
                         <button onClick={() => setSelectedSub(sub)} className="text-muted-foreground hover:text-foreground p-1" title="Detalhes">
                           <Eye className="w-5 h-5" />
                         </button>
-                        {(sub.mappedStatus === "expiring" || sub.mappedStatus === "expired") && (
+                        {(sub.mappedStatus === "pending_renewal" || sub.mappedStatus === "expired") && (
                           <button
                             onClick={() => renewMutation.mutate(sub.code)}
                             disabled={renewMutation.isPending}
