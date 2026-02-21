@@ -11,6 +11,8 @@ import {
   ChevronLeft,
   Link2,
   Loader2,
+  Clock,
+  AlertCircle,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -22,10 +24,10 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { useProxyBRAllSubscriptions, useRenewSubscription } from "@/hooks/useProxyBR";
+import { useRenewSubscription, useCheckSubscriptionCount } from "@/hooks/useProxyBR";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { differenceInDays, parseISO, format } from "date-fns";
+import { differenceInDays, parseISO, format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
@@ -94,25 +96,20 @@ function mapStatus(sub: { status: any; end_date: string }): MappedStatus {
   return "active";
 }
 
-function enrichSub(
-  apiSub: Record<string, unknown>,
-  localSubsMap: Map<string, { userId: string; clientName: string; clientEmail: string }>
+function enrichSubFromLocal(
+  dbSub: any,
+  profilesMap: Map<string, string>
 ): EnrichedSubscription {
-  const sub = apiSub as any;
   const now = new Date();
-
-  // Normalize API fields: due_date -> end_date, auto_renew_active -> auto_renew
-  const endDateStr = sub.due_date || sub.end_date || sub.start_date || new Date().toISOString();
-  const startDateStr = sub.created_at || sub.start_date || new Date().toISOString();
-  const code = sub.code || "";
-  const rawApiStatus = typeof sub.status === "object" && sub.status !== null
-    ? ((sub.status as any).name || JSON.stringify(sub.status))
-    : String(sub.status || "UNKNOWN");
-
+  const raw = dbSub.raw_data || {};
+  const code = dbSub.name || "";
+  const endDateStr = dbSub.end_date || new Date().toISOString();
+  const startDateStr = dbSub.start_date || new Date().toISOString();
+  
   const endDate = parseISO(endDateStr);
   const startDate = parseISO(startDateStr);
   const daysLeft = differenceInDays(endDate, now);
-  const mapped = mapStatus({ status: rawApiStatus, end_date: endDateStr });
+  const mapped = mapStatus({ status: dbSub.status, end_date: endDateStr });
 
   let daysLabel = "";
   if (mapped === "expired") daysLabel = "Expirado";
@@ -120,10 +117,11 @@ function enrichSub(
   else if (mapped === "pending_renewal") daysLabel = "Renovação pendente";
   else if (mapped === "active") daysLabel = daysLeft > 30 ? "30+ dias" : `${daysLeft} dia${daysLeft !== 1 ? "s" : ""} restante${daysLeft !== 1 ? "s" : ""}`;
 
-  // Parse proxy from proxies.data[0]
+  // Parse proxy from raw_data
   let proxy: ParsedProxy | undefined;
-  if (sub.proxies?.data?.length > 0) {
-    const p = sub.proxies.data[0];
+  const proxies = raw.proxies?.data;
+  if (proxies?.length > 0) {
+    const p = proxies[0];
     if (p.parsed) {
       proxy = { id: p.id, ip: p.parsed.ip, port: p.parsed.port, username: p.parsed.username, password: p.parsed.password, status: p.status };
     } else if (p.code && typeof p.code === "string") {
@@ -134,14 +132,15 @@ function enrichSub(
     }
   }
 
-  // Check local linking
-  const linked = localSubsMap.get(code);
+  const clientName = profilesMap.get(dbSub.user_id) || undefined;
+  const rawApiStatus = raw.status 
+    ? (typeof raw.status === "object" ? (raw.status.name || JSON.stringify(raw.status)) : String(raw.status))
+    : dbSub.status;
 
   return {
-    ...sub,
     code,
-    name: sub.product?.name || code,
-    product_name: sub.product?.name,
+    name: raw.product?.name || code,
+    product_name: raw.product?.name,
     status: rawApiStatus,
     rawApiStatus,
     mappedStatus: mapped,
@@ -152,12 +151,12 @@ function enrichSub(
     formattedStart: format(startDate, "dd MMM yyyy", { locale: ptBR }),
     formattedEnd: format(endDate, "dd MMM yyyy", { locale: ptBR }),
     daysLabel,
-    auto_renew: sub.auto_renew_active ?? sub.auto_renew ?? false,
-    quantity: sub.proxies?.total || 1,
+    auto_renew: dbSub.auto_renew ?? false,
+    quantity: raw.proxies?.total || 1,
     proxy,
-    clientName: linked?.clientName,
-    clientEmail: linked?.clientEmail,
-    userId: linked?.userId,
+    clientName,
+    clientEmail: "",
+    userId: dbSub.user_id,
   };
 }
 
@@ -174,75 +173,87 @@ export default function AdminAssinaturas() {
   const [syncing, setSyncing] = useState(false);
 
   const queryClient = useQueryClient();
-  const { data: rawSubs, isLoading, refetch } = useProxyBRAllSubscriptions();
   const renewMutation = useRenewSubscription();
 
-  // Fetch local subscriptions with linked profiles
-  const { data: localSubs } = useQuery({
-    queryKey: ["admin-subscriptions-local"],
+  // PRIMARY SOURCE: Load from local Supabase DB (instant)
+  const { data: localDbSubs, isLoading } = useQuery({
+    queryKey: ["admin-subscriptions-cached"],
     queryFn: async () => {
-      // No FK between subscriptions and profiles, so join manually
-      const { data: subs } = await supabase
-        .from("subscriptions")
-        .select("name, user_id, type")
-        .eq("type", "proxybr");
-      if (!subs?.length) return [];
-      
-      const userIds = [...new Set(subs.map(s => s.user_id))];
-      const { data: profs } = await supabase
-        .from("profiles")
-        .select("user_id, full_name")
-        .in("user_id", userIds);
-      
-      const profMap = new Map((profs || []).map(p => [p.user_id, p.full_name]));
-      return subs.map(s => ({
-        ...s,
-        profiles: { full_name: profMap.get(s.user_id) || "Cliente" },
-      }));
-    },
-  });
-
-  // Fetch all profiles for linking
-  const { data: profiles } = useQuery({
-    queryKey: ["admin-profiles-for-subs"],
-    queryFn: async () => {
-      // Paginate to get all
       let all: any[] = [];
       let from = 0;
       const pageSize = 1000;
-      let hasMore = true;
-      while (hasMore) {
+      while (true) {
+        const { data } = await supabase
+          .from("subscriptions")
+          .select("*")
+          .eq("type", "proxybr")
+          .range(from, from + pageSize - 1);
+        if (!data?.length) break;
+        all = [...all, ...data];
+        if (data.length < pageSize) break;
+        from += pageSize;
+      }
+      return all;
+    },
+    staleTime: 30_000,
+  });
+
+  // Fetch last sync timestamp from site_settings
+  const { data: syncResult } = useQuery({
+    queryKey: ["sync-result"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("site_settings")
+        .select("value")
+        .eq("key", "sync_result")
+        .maybeSingle();
+      if (data?.value) {
+        try { return JSON.parse(data.value); } catch { return null; }
+      }
+      return null;
+    },
+    staleTime: 10_000,
+  });
+
+  // Quick API check - compare total with local count
+  const { data: apiCount } = useCheckSubscriptionCount();
+  const localCount = localDbSubs?.length || 0;
+  const apiTotal = apiCount?.apiTotal || 0;
+  const hasChanges = apiTotal > 0 && localCount > 0 && apiTotal !== localCount;
+
+  // Fetch all profiles for name resolution + linking
+  const { data: profiles } = useQuery({
+    queryKey: ["admin-profiles-for-subs"],
+    queryFn: async () => {
+      let all: any[] = [];
+      let from = 0;
+      const pageSize = 1000;
+      while (true) {
         const { data } = await supabase.from("profiles").select("user_id, full_name").range(from, from + pageSize - 1);
-        if (!data || data.length < pageSize) { all = [...all, ...(data || [])]; hasMore = false; }
-        else { all = [...all, ...data]; from += pageSize; }
+        if (!data?.length) break;
+        all = [...all, ...data];
+        if (data.length < pageSize) break;
+        from += pageSize;
       }
       return all;
     },
   });
 
-  // Also fetch auth users emails for linking
-  // We'll get emails from profiles query or use a separate approach
-  // Since we can't query auth.users, we'll match by profile full_name
-
-  // Build local subs map: code -> { userId, clientName }
-  const localSubsMap = useMemo(() => {
-    const map = new Map<string, { userId: string; clientName: string; clientEmail: string }>();
-    if (!localSubs) return map;
-    for (const ls of localSubs as any[]) {
-      const profile = ls.profiles as any;
-      map.set(ls.name, {
-        userId: ls.user_id,
-        clientName: profile?.full_name || "Cliente",
-        clientEmail: "",
-      });
+  // Build userId -> name map
+  const profilesMap = useMemo(() => {
+    const map = new Map<string, string>();
+    if (profiles) {
+      for (const p of profiles) {
+        if (p.full_name) map.set(p.user_id, p.full_name);
+      }
     }
     return map;
-  }, [localSubs]);
+  }, [profiles]);
 
   const subscriptions: EnrichedSubscription[] = useMemo(() => {
-    const arr = Array.isArray(rawSubs?.data) ? rawSubs.data : Array.isArray(rawSubs) ? rawSubs : [];
-    return arr.map((s: Record<string, unknown>) => enrichSub(s, localSubsMap));
-  }, [rawSubs, localSubsMap]);
+    if (!localDbSubs?.length) return [];
+    return localDbSubs.map((s: any) => enrichSubFromLocal(s, profilesMap));
+  }, [localDbSubs, profilesMap]);
 
   const counts = useMemo(() => ({
     active: subscriptions.filter((s) => s.mappedStatus === "active").length,
@@ -298,8 +309,9 @@ export default function AdminAssinaturas() {
               const result = JSON.parse(setting.value);
               if (result.status === "done") {
                 toast.success(`${result.synced} assinaturas sincronizadas, ${result.linked} vinculadas!`);
-                queryClient.invalidateQueries({ queryKey: ["admin-subscriptions-local"] });
-                refetch();
+                queryClient.invalidateQueries({ queryKey: ["admin-subscriptions-cached"] });
+                queryClient.invalidateQueries({ queryKey: ["sync-result"] });
+                queryClient.invalidateQueries({ queryKey: ["proxybr-check-count"] });
                 setSyncing(false);
                 return;
               }
@@ -319,7 +331,7 @@ export default function AdminAssinaturas() {
       toast.error(`Erro ao sincronizar: ${err.message}`);
       setSyncing(false);
     }
-  }, [queryClient, refetch]);
+  }, [queryClient]);
 
   // Link subscription to a client (also pushes email to ProxyBR notes)
   const handleLinkClient = useCallback(async (subCode: string, userId: string) => {
@@ -364,7 +376,7 @@ export default function AdminAssinaturas() {
       }
 
       toast.success("Cliente vinculado com sucesso!");
-      queryClient.invalidateQueries({ queryKey: ["admin-subscriptions-local"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-subscriptions-cached"] });
       setLinkModalSub(null);
     } catch (err: any) {
       toast.error(`Erro ao vincular: ${err.message}`);
@@ -440,16 +452,55 @@ export default function AdminAssinaturas() {
           <p className="text-muted-foreground max-w-2xl text-sm">
             Todas as assinaturas da ProxyBR ({subscriptions.length} total). Sincronize e vincule clientes.
           </p>
+          {syncResult?.timestamp && (
+            <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              Última sincronização: {formatDistanceToNow(new Date(syncResult.timestamp), { addSuffix: true, locale: ptBR })}
+              {syncResult.synced && ` (${syncResult.synced} registros)`}
+            </p>
+          )}
         </div>
         <Button
           onClick={handleSync}
-          disabled={syncing || isLoading || !subscriptions.length}
+          disabled={syncing || isLoading}
           className="gap-2"
         >
           {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
           Sincronizar
         </Button>
       </div>
+
+      {/* Sync Banner */}
+      {hasChanges && !syncing && (
+        <div className="flex items-center gap-3 p-4 rounded-xl border border-primary/30 bg-primary/5">
+          <AlertCircle className="w-5 h-5 text-primary shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm text-foreground font-medium">Mudanças detectadas na ProxyBR</p>
+            <p className="text-xs text-muted-foreground">
+              Local: {localCount} assinaturas · API: {apiTotal} assinaturas
+            </p>
+          </div>
+          <Button size="sm" onClick={handleSync} className="gap-1.5">
+            <RefreshCw className="w-3.5 h-3.5" />
+            Sincronizar agora
+          </Button>
+        </div>
+      )}
+
+      {/* No data - first sync needed */}
+      {!isLoading && subscriptions.length === 0 && !syncing && (
+        <div className="flex flex-col items-center gap-4 p-8 rounded-xl border border-dashed border-border bg-muted/30">
+          <Globe className="w-10 h-10 text-muted-foreground" />
+          <div className="text-center">
+            <p className="text-foreground font-medium">Nenhuma assinatura sincronizada</p>
+            <p className="text-sm text-muted-foreground mt-1">Clique em "Sincronizar" para importar as assinaturas da ProxyBR.</p>
+          </div>
+          <Button onClick={handleSync} className="gap-2">
+            <RefreshCw className="w-4 h-4" />
+            Sincronizar agora
+          </Button>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
@@ -508,7 +559,7 @@ export default function AdminAssinaturas() {
           </div>
         </div>
         <button
-          onClick={() => refetch()}
+          onClick={() => queryClient.invalidateQueries({ queryKey: ["admin-subscriptions-cached"] })}
           className="p-2.5 text-muted-foreground hover:text-foreground bg-muted hover:bg-muted/80 rounded-lg border border-border transition-colors"
           title="Atualizar"
         >

@@ -716,6 +716,7 @@ export type Database = {
           id: string
           name: string
           product_id: string | null
+          raw_data: Json | null
           start_date: string
           status: string
           type: string | null
@@ -729,6 +730,7 @@ export type Database = {
           id?: string
           name: string
           product_id?: string | null
+          raw_data?: Json | null
           start_date?: string
           status?: string
           type?: string | null
@@ -742,6 +744,7 @@ export type Database = {
           id?: string
           name?: string
           product_id?: string | null
+          raw_data?: Json | null
           start_date?: string
           status?: string
           type?: string | null
