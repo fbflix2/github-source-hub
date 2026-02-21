@@ -1,7 +1,17 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface StockData {
   emailAcesso?: string;
@@ -23,9 +33,14 @@ export default function ItemDetails() {
   const navigate = useNavigate();
   const { orderId, itemId } = useParams();
   const [showPassword, setShowPassword] = useState(false);
+  const [showToken, setShowToken] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [itemStatus, setItemStatus] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [acceptedDisclaimer, setAcceptedDisclaimer] = useState(false);
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
+  const [disclaimerChecked, setDisclaimerChecked] = useState(false);
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
 
   const [order, setOrder] = useState<any>(null);
   const [orderItem, setOrderItem] = useState<any>(null);
@@ -121,6 +136,25 @@ export default function ItemDetails() {
     navigator.clipboard.writeText(text);
     setCopied(field);
     setTimeout(() => setCopied(null), 2000);
+  };
+
+  const requireDisclaimer = useCallback((action: () => void) => {
+    if (acceptedDisclaimer) {
+      action();
+    } else {
+      setPendingAction(() => action);
+      setShowDisclaimer(true);
+    }
+  }, [acceptedDisclaimer]);
+
+  const handleDisclaimerConfirm = () => {
+    setAcceptedDisclaimer(true);
+    setShowDisclaimer(false);
+    setDisclaimerChecked(false);
+    if (pendingAction) {
+      pendingAction();
+      setPendingAction(null);
+    }
   };
 
   const totalSeconds = countdown.hours * 3600 + countdown.minutes * 60 + countdown.seconds;
@@ -282,8 +316,13 @@ export default function ItemDetails() {
                   <div>
                     <label className="text-[10px] text-text-secondary mb-0.5 block">Código 2FA</label>
                     <div className="flex items-center gap-1">
-                      <code className="flex-1 bg-background/50 px-2 py-1.5 rounded border border-border text-xs font-mono text-foreground">{token2fa}</code>
-                      <button onClick={() => copyToClipboard(token2fa, '2fa')} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
+                      <code className="flex-1 bg-background/50 px-2 py-1.5 rounded border border-border text-xs font-mono text-foreground">
+                        {showToken ? token2fa : "•••••••••"}
+                      </code>
+                      <button onClick={() => requireDisclaimer(() => setShowToken(!showToken))} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
+                        <span className="material-symbols-outlined text-[14px]">{showToken ? 'visibility_off' : 'visibility'}</span>
+                      </button>
+                      <button onClick={() => requireDisclaimer(() => copyToClipboard(token2fa, '2fa'))} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
                         <span className="material-symbols-outlined text-[14px]">{copied === '2fa' ? 'check' : 'content_copy'}</span>
                       </button>
                     </div>
@@ -291,12 +330,12 @@ export default function ItemDetails() {
                 </div>
               <div className="mt-2 pt-2 border-t border-border flex gap-2">
                   {stockData.cookies && (
-                    <button onClick={() => { navigator.clipboard.writeText(stockData.cookies!); setCopied('cookies'); setTimeout(() => setCopied(null), 2000); }} className="flex-1 py-1.5 bg-muted/50 border border-border text-foreground font-semibold rounded-lg hover:bg-muted transition-all flex items-center justify-center gap-1.5 text-xs">
+                    <button onClick={() => requireDisclaimer(() => { navigator.clipboard.writeText(stockData.cookies!); setCopied('cookies'); setTimeout(() => setCopied(null), 2000); })} className="flex-1 py-1.5 bg-muted/50 border border-border text-foreground font-semibold rounded-lg hover:bg-muted transition-all flex items-center justify-center gap-1.5 text-xs">
                       <span className="material-symbols-outlined text-[14px]">{copied === 'cookies' ? 'check' : 'cookie'}</span>
                       {copied === 'cookies' ? 'Copiado!' : 'Copiar Cookies'}
                     </button>
                   )}
-                  <button onClick={downloadBloco} className="flex-1 py-1.5 bg-muted/50 border border-border text-foreground font-semibold rounded-lg hover:bg-muted transition-all flex items-center justify-center gap-1.5 text-xs">
+                  <button onClick={() => requireDisclaimer(downloadBloco)} className="flex-1 py-1.5 bg-muted/50 border border-border text-foreground font-semibold rounded-lg hover:bg-muted transition-all flex items-center justify-center gap-1.5 text-xs">
                     <span className="material-symbols-outlined text-[14px]">download</span>
                     Baixar Bloco
                   </button>
@@ -394,6 +433,40 @@ export default function ItemDetails() {
           </div>
         </div>
       </div>
+      {/* Disclaimer Modal */}
+      <AlertDialog open={showDisclaimer} onOpenChange={(open) => { if (!open) { setShowDisclaimer(false); setPendingAction(null); setDisclaimerChecked(false); } }}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary">shield</span>
+              Aviso Importante
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm leading-relaxed">
+              Ao revelar o código 2FA, copiar cookies ou baixar os dados deste item, você reconhece que teve acesso completo às credenciais do perfil adquirido. A partir deste momento, estornos não serão aceitos, exceto em casos de problemas técnicos com o item que não possam ser resolvidos pelo suporte. Ao prosseguir, você declara estar ciente e de acordo com estes termos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex items-start gap-2 py-2">
+            <Checkbox
+              id="disclaimer-check"
+              checked={disclaimerChecked}
+              onCheckedChange={(checked) => setDisclaimerChecked(checked === true)}
+            />
+            <label htmlFor="disclaimer-check" className="text-xs text-muted-foreground cursor-pointer leading-relaxed">
+              Li e estou ciente dos termos acima. Entendo que ao acessar estas informações, não poderei solicitar estorno.
+            </label>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <button
+              disabled={!disclaimerChecked}
+              onClick={handleDisclaimerConfirm}
+              className="inline-flex items-center justify-center rounded-md text-sm font-medium px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Concordo e Desejo Continuar
+            </button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
