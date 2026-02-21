@@ -2,3 +2,12 @@ project_id = "mxnlerkeygfvdnznoxld"
 
 [functions.fb-photo]
 verify_jwt = false
+
+[functions.create-pix-payment]
+verify_jwt = false
+
+[functions.mercadopago-webhook]
+verify_jwt = false
+
+[functions.impersonate-user]
+verify_jwt = false

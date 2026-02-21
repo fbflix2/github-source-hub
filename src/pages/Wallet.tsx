@@ -1,7 +1,14 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
+import { Loader2, Copy, Check } from "lucide-react";
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface Transaction {
   id: string;
@@ -41,6 +48,14 @@ export default function Wallet() {
   const [balance, setBalance] = useState(0);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
+  const [pixModal, setPixModal] = useState(false);
+  const [pixData, setPixData] = useState<{
+    qr_code: string | null;
+    qr_code_base64: string | null;
+    amount: number;
+  } | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -66,6 +81,44 @@ export default function Wallet() {
   const todayDeposits = transactions
     .filter((t) => t.amount > 0 && new Date(t.created_at).toDateString() === new Date().toDateString())
     .reduce((sum, t) => sum + t.amount, 0);
+
+  const handleGeneratePix = async () => {
+    const amount = parseFloat(rechargeValue.replace(",", "."));
+    if (!amount || amount < 1) {
+      toast.error("Valor mínimo: R$ 1,00");
+      return;
+    }
+
+    setGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-pix-payment", {
+        body: { amount },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      setPixData({
+        qr_code: data.qr_code,
+        qr_code_base64: data.qr_code_base64,
+        amount,
+      });
+      setPixModal(true);
+    } catch (err: any) {
+      console.error("PIX error:", err);
+      toast.error(err.message || "Erro ao gerar PIX");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleCopyPix = async () => {
+    if (!pixData?.qr_code) return;
+    await navigator.clipboard.writeText(pixData.qr_code);
+    setCopied(true);
+    toast.success("Código PIX copiado!");
+    setTimeout(() => setCopied(false), 3000);
+  };
 
   if (loading) {
     return (
@@ -170,9 +223,22 @@ export default function Wallet() {
               </div>
 
               <div className="pt-6 border-t border-border mt-2">
-                <button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground h-14 rounded-xl text-base font-bold tracking-wide shadow-glow hover:shadow-glow-lg transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-3">
-                  <span className="material-symbols-outlined font-semibold">photo_camera</span>
-                  Gerar Pix para Pagamento
+                <button
+                  onClick={handleGeneratePix}
+                  disabled={generating}
+                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground h-14 rounded-xl text-base font-bold tracking-wide shadow-glow hover:shadow-glow-lg transition-all transform hover:-translate-y-0.5 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                >
+                  {generating ? (
+                    <>
+                      <Loader2 className="size-5 animate-spin" />
+                      Gerando PIX...
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined font-semibold">qr_code_2</span>
+                      Gerar Pix para Pagamento
+                    </>
+                  )}
                 </button>
                 <p className="text-center text-muted-foreground text-xs mt-5 flex items-center justify-center gap-1.5 opacity-70">
                   <span className="material-symbols-outlined text-[16px] text-primary">lock</span>
@@ -249,6 +315,62 @@ export default function Wallet() {
           </div>
         </div>
       </div>
+
+      {/* PIX QR Code Modal */}
+      <Dialog open={pixModal} onOpenChange={setPixModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center text-xl font-bold">Pague com PIX</DialogTitle>
+          </DialogHeader>
+
+          {pixData && (
+            <div className="flex flex-col items-center gap-6 py-4">
+              <p className="text-muted-foreground text-sm text-center">
+                Escaneie o QR Code ou copie o código para pagar
+              </p>
+
+              {/* Amount */}
+              <div className="bg-primary/10 border border-primary/20 rounded-2xl px-6 py-3">
+                <span className="text-2xl font-black text-primary">
+                  R$ {pixData.amount.toFixed(2).replace(".", ",")}
+                </span>
+              </div>
+
+              {/* QR Code */}
+              {pixData.qr_code_base64 && (
+                <div className="bg-white rounded-2xl p-4">
+                  <img
+                    src={`data:image/png;base64,${pixData.qr_code_base64}`}
+                    alt="QR Code PIX"
+                    className="w-56 h-56"
+                  />
+                </div>
+              )}
+
+              {/* Copy Pix Code */}
+              {pixData.qr_code && (
+                <button
+                  onClick={handleCopyPix}
+                  className="w-full flex items-center justify-center gap-2 bg-muted border border-border rounded-xl px-4 py-3 hover:bg-accent transition-colors"
+                >
+                  {copied ? (
+                    <Check className="size-4 text-primary" />
+                  ) : (
+                    <Copy className="size-4 text-muted-foreground" />
+                  )}
+                  <span className="text-sm font-medium text-foreground">
+                    {copied ? "Copiado!" : "Copiar código Pix Copia e Cola"}
+                  </span>
+                </button>
+              )}
+
+              <p className="text-xs text-muted-foreground text-center">
+                Após o pagamento, seu saldo será creditado automaticamente.
+              </p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
