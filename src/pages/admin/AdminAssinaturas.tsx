@@ -236,49 +236,25 @@ export default function AdminAssinaturas() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
   const paginated = filtered.slice((currentPage - 1) * PER_PAGE, currentPage * PER_PAGE);
 
-  // Sync all ProxyBR subscriptions to local DB
+  // Sync all ProxyBR subscriptions to local DB with auto-linking
   const handleSync = useCallback(async () => {
-    if (!subscriptions.length) return;
     setSyncing(true);
     try {
-      let synced = 0;
-      for (const sub of subscriptions) {
-        // Check if already exists
-        const { data: existing } = await supabase
-          .from("subscriptions")
-          .select("id, user_id")
-          .eq("name", sub.code)
-          .eq("type", "proxybr")
-          .maybeSingle();
-
-        const record = {
-          name: sub.code,
-          type: "proxybr",
-          status: sub.mappedStatus,
-          start_date: sub.start_date,
-          end_date: sub.end_date,
-          auto_renew: sub.auto_renew || false,
-        };
-
-        if (existing) {
-          await supabase.from("subscriptions").update(record).eq("id", existing.id);
-        } else {
-          // Create with a placeholder user_id (admin's own) - admin can link later
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) {
-            await supabase.from("subscriptions").insert({ ...record, user_id: user.id });
-          }
-        }
-        synced++;
-      }
-      toast.success(`${synced} assinaturas sincronizadas com sucesso!`);
+      const { data, error } = await supabase.functions.invoke("proxybr-api", {
+        body: { action: "sync-subscriptions" },
+      });
+      if (error) throw new Error(error.message || "Erro ao sincronizar");
+      if (data?.error) throw new Error(data.error);
+      
+      toast.success(`${data.synced} assinaturas sincronizadas, ${data.linked} vinculadas automaticamente!`);
       queryClient.invalidateQueries({ queryKey: ["admin-subscriptions-local"] });
+      refetch();
     } catch (err: any) {
       toast.error(`Erro ao sincronizar: ${err.message}`);
     } finally {
       setSyncing(false);
     }
-  }, [subscriptions, queryClient]);
+  }, [queryClient, refetch]);
 
   // Link subscription to a client
   const handleLinkClient = useCallback(async (subCode: string, userId: string) => {

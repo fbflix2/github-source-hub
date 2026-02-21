@@ -25,7 +25,7 @@ async function fetchAllSubscriptions(apiKey: string) {
 
   while (page <= maxPages) {
     const url = `${PROXYBR_BASE}/subscriptions?page=${page}`;
-    console.log(`Fetching subscriptions page ${page}: ${url}`);
+    console.log(`Fetching subscriptions page ${page}: ${url}. Total so far: ${allSubs.length}`);
     const response = await proxyFetch(url, apiKey);
     const text = await response.text();
 
@@ -39,6 +39,13 @@ async function fetchAllSubscriptions(apiKey: string) {
 
     // API may return { data: [...], last_page: N } or just an array
     if (Array.isArray(parsed)) {
+      if (parsed.length > 0) {
+        // Log first sub keys and customer field to understand structure
+        const first = parsed[0];
+        console.log(`First sub keys: ${Object.keys(first).join(', ')}`);
+        if (first.customer) console.log(`Customer field: ${JSON.stringify(first.customer)}`);
+        if (first.client) console.log(`Client field: ${JSON.stringify(first.client)}`);
+      }
       allSubs = [...allSubs, ...parsed];
       break; // flat array = no pagination
     } else if (parsed?.data && Array.isArray(parsed.data)) {
@@ -108,6 +115,109 @@ Deno.serve(async (req) => {
       const allSubs = await fetchAllSubscriptions(PROXYBR_API_KEY);
       return new Response(
         JSON.stringify(allSubs),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Sync subscriptions to local DB with auto-linking by email
+    if (action === "sync-subscriptions") {
+      // Verify admin
+      const supabaseAdmin = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+      const { data: isAdmin } = await supabaseAdmin.rpc("has_role", { _user_id: user.id, _role: "admin" });
+      if (!isAdmin) throw new Error("Sem permissão de administrador");
+
+      const allSubs = await fetchAllSubscriptions(PROXYBR_API_KEY);
+
+      // Build email -> user_id map from auth.users
+      const emailToUserId = new Map<string, string>();
+      let page = 1;
+      const perPage = 1000;
+      while (true) {
+        const { data: { users }, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
+        if (error || !users?.length) break;
+        for (const u of users) {
+          if (u.email) emailToUserId.set(u.email.toLowerCase(), u.id);
+        }
+        if (users.length < perPage) break;
+        page++;
+      }
+
+      // Also build name -> user_id map from profiles as fallback
+      const nameToUserId = new Map<string, string>();
+      const { data: profiles } = await supabaseAdmin.from("profiles").select("user_id, full_name");
+      if (profiles) {
+        for (const p of profiles) {
+          if (p.full_name) nameToUserId.set(p.full_name.toLowerCase().trim(), p.user_id);
+        }
+      }
+
+      let synced = 0;
+      let linked = 0;
+
+      for (const sub of allSubs) {
+        const code = sub.code;
+        if (!code) continue;
+
+        // Try to find matching user by customer email or name
+        const customerEmail = (sub.customer?.email || sub.client?.email || "").toLowerCase().trim();
+        const customerName = (sub.customer?.name || sub.client?.name || sub.notes || "").toLowerCase().trim();
+
+        let matchedUserId = customerEmail ? emailToUserId.get(customerEmail) : undefined;
+        if (!matchedUserId && customerName) {
+          matchedUserId = nameToUserId.get(customerName);
+        }
+
+        // Determine status
+        const endDateStr = sub.due_date || sub.end_date || new Date().toISOString();
+        const startDateStr = sub.created_at || sub.start_date || new Date().toISOString();
+        const apiStatus = (sub.status || "UNKNOWN").toUpperCase();
+        const now = new Date();
+        const endDate = new Date(endDateStr);
+        const daysLeft = Math.floor((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        
+        let mappedStatus = "active";
+        if (apiStatus === "CANCELLED") mappedStatus = "cancelled";
+        else if (daysLeft < 0) mappedStatus = "expired";
+        else if (daysLeft <= 3) mappedStatus = "expiring";
+
+        const record: Record<string, any> = {
+          name: code,
+          type: "proxybr",
+          status: mappedStatus,
+          start_date: startDateStr,
+          end_date: endDateStr,
+          auto_renew: sub.auto_renew_active ?? false,
+        };
+
+        // Check if already exists
+        const { data: existing } = await supabaseAdmin
+          .from("subscriptions")
+          .select("id, user_id")
+          .eq("name", code)
+          .eq("type", "proxybr")
+          .maybeSingle();
+
+        if (existing) {
+          // Update status, and if not linked yet but we found a match, link it
+          if (matchedUserId && existing.user_id === user.id) {
+            record.user_id = matchedUserId;
+            linked++;
+          }
+          await supabaseAdmin.from("subscriptions").update(record).eq("id", existing.id);
+        } else {
+          // Create new — use matched user or admin as placeholder
+          record.user_id = matchedUserId || user.id;
+          if (matchedUserId) linked++;
+          await supabaseAdmin.from("subscriptions").insert(record);
+        }
+        synced++;
+      }
+
+      return new Response(
+        JSON.stringify({ synced, linked, total: allSubs.length }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
