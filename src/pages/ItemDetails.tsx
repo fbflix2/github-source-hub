@@ -1,71 +1,119 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Loader2 } from "lucide-react";
 
-interface ItemDetailsData {
-  orderId: string;
-  orderDate: string;
-  itemName: string;
-  itemDescription: string;
-  features: string[];
-  loginEmail: string;
-  password: string;
-  code2FA: string;
-  feedbackDeadline: {
-    hours: number;
-    minutes: number;
-    seconds: number;
-  };
+interface StockData {
+  emailAcesso?: string;
+  emailAlternativo?: string;
+  senha?: string;
+  token2fa?: string;
+  cookies?: string;
+  descricao?: string;
+  nomePerfil?: string;
+  dataNascimento?: string;
+  genero?: string;
+  linkDocumento?: string;
+  tempoPlataforma?: string;
+  statusAtual?: string;
+  foto_url?: string;
 }
-
-// Mock data - in production this would come from an API
-const mockItemData: ItemDetailsData = {
-  orderId: "#ORD-2023-882",
-  orderDate: "20 Out 2023",
-  itemName: "Perfil Farmado (Alta Qualidade)",
-  itemDescription: "Este perfil foi farmado manualmente por 30 dias com interações reais. Possui cookies aquecidos e está pronto para anunciar.",
-  features: [
-    "Conta com 2FA ativado",
-    "Amigos e postagens reais",
-    "Marketplace Ativo",
-    "Ads Manager intacto"
-  ],
-  loginEmail: "usuario_farmado882@fbflix.com",
-  password: "senha_secreta_123",
-  code2FA: "AABB CCDD EEFF GGHH",
-  feedbackDeadline: {
-    hours: 18,
-    minutes: 42,
-    seconds: 15
-  }
-};
 
 export default function ItemDetails() {
   const navigate = useNavigate();
   const { orderId, itemId } = useParams();
   const [showPassword, setShowPassword] = useState(false);
-  const [countdown, setCountdown] = useState(mockItemData.feedbackDeadline);
   const [copied, setCopied] = useState<string | null>(null);
   const [itemStatus, setItemStatus] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const [order, setOrder] = useState<any>(null);
+  const [orderItem, setOrderItem] = useState<any>(null);
+  const [stockData, setStockData] = useState<StockData>({});
+  const [product, setProduct] = useState<any>(null);
+
+  // Countdown from order created_at + 24h
+  const [countdown, setCountdown] = useState({ hours: 0, minutes: 0, seconds: 0 });
+
+  useEffect(() => {
+    async function fetchData() {
+      if (!orderId || !itemId) { setLoading(false); return; }
+
+      const decodedCode = decodeURIComponent(orderId);
+
+      // Fetch order by code
+      const { data: orderData } = await supabase
+        .from("orders")
+        .select("*")
+        .eq("code", decodedCode)
+        .single();
+
+      if (!orderData) { setLoading(false); return; }
+      setOrder(orderData);
+
+      // Fetch order item
+      const { data: itemData } = await supabase
+        .from("order_items")
+        .select("*")
+        .eq("id", itemId)
+        .eq("order_id", orderData.id)
+        .single();
+
+      if (!itemData) { setLoading(false); return; }
+      setOrderItem(itemData);
+
+      // Check delivery_data on order_item first
+      if (itemData.delivery_data && typeof itemData.delivery_data === "object") {
+        setStockData(itemData.delivery_data as StockData);
+      }
+
+      // Fetch linked stock_item
+      const { data: stockItem } = await supabase
+        .from("stock_items")
+        .select("*")
+        .eq("order_item_id", itemId)
+        .maybeSingle();
+
+      if (stockItem?.data && typeof stockItem.data === "object") {
+        setStockData(stockItem.data as StockData);
+      }
+
+      // Fetch product info
+      if (itemData.product_id) {
+        const { data: prod } = await supabase
+          .from("products")
+          .select("*")
+          .eq("id", itemData.product_id)
+          .single();
+        if (prod) setProduct(prod);
+      }
+
+      // Calculate countdown (24h from order creation)
+      const deadline = new Date(orderData.created_at).getTime() + 24 * 60 * 60 * 1000;
+      const remaining = Math.max(0, deadline - Date.now());
+      const totalSec = Math.floor(remaining / 1000);
+      setCountdown({
+        hours: Math.floor(totalSec / 3600),
+        minutes: Math.floor((totalSec % 3600) / 60),
+        seconds: totalSec % 60,
+      });
+
+      setLoading(false);
+    }
+    fetchData();
+  }, [orderId, itemId]);
 
   // Countdown timer
   useEffect(() => {
     const timer = setInterval(() => {
       setCountdown(prev => {
         let { hours, minutes, seconds } = prev;
-        if (seconds > 0) {
-          seconds--;
-        } else if (minutes > 0) {
-          minutes--;
-          seconds = 59;
-        } else if (hours > 0) {
-          hours--;
-          minutes = 59;
-          seconds = 59;
-        }
+        if (seconds > 0) seconds--;
+        else if (minutes > 0) { minutes--; seconds = 59; }
+        else if (hours > 0) { hours--; minutes = 59; seconds = 59; }
         return { hours, minutes, seconds };
       });
     }, 1000);
-
     return () => clearInterval(timer);
   }, []);
 
@@ -75,13 +123,52 @@ export default function ItemDetails() {
     setTimeout(() => setCopied(null), 2000);
   };
 
-  // Calculate progress percentage based on remaining time (24h = 100%)
   const totalSeconds = countdown.hours * 3600 + countdown.minutes * 60 + countdown.seconds;
   const progressPercent = (totalSeconds / (24 * 3600)) * 100;
 
+  const formatDate = (d: string) => new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
+
+  const itemName = orderItem?.name || product?.name || "Item";
+  const email = stockData.emailAcesso || "—";
+  const senha = stockData.senha || "—";
+  const token2fa = stockData.token2fa || "—";
+  const descricao = stockData.descricao || product?.description || "";
+  const tags = product?.tags || [];
+
+  const downloadCookies = () => {
+    if (!stockData.cookies) return;
+    const blob = new Blob([stockData.cookies], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `cookies_${orderItem?.id || "backup"}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="size-8 text-primary animate-spin" />
+      </div>
+    );
+  }
+
+  if (!order || !orderItem) {
+    return (
+      <div className="text-center py-20 space-y-4">
+        <span className="material-symbols-outlined text-[48px] text-muted-foreground">error</span>
+        <p className="text-muted-foreground text-lg">Item não encontrado.</p>
+        <button onClick={() => navigate("/orders")} className="px-4 py-2 rounded-lg bg-primary text-primary-foreground font-bold">
+          Voltar para Pedidos
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3 animate-fade-in">
-      {/* Page Header */}
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-2 text-xs text-text-secondary mb-0.5">
@@ -89,55 +176,54 @@ export default function ItemDetails() {
             <span className="material-symbols-outlined text-[12px]">chevron_right</span>
             <span className="text-foreground">Detalhes do Item</span>
           </div>
-          <h1 className="text-xl font-bold text-foreground tracking-tight">{mockItemData.itemName}</h1>
+          <h1 className="text-xl font-bold text-foreground tracking-tight">{itemName}</h1>
         </div>
-        <button 
-          onClick={() => navigate("/orders")}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg glass-panel text-foreground hover:bg-muted/50 transition-all text-sm group"
-        >
+        <button onClick={() => navigate("/orders")} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg glass-panel text-foreground hover:bg-muted/50 transition-all text-sm group">
           <span className="material-symbols-outlined text-[16px] group-hover:-translate-x-1 transition-transform">arrow_back</span>
           <span>Voltar</span>
         </button>
       </div>
 
-      {/* Main Content Grid */}
+      {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* Left Column */}
         <div className="lg:col-span-8 flex flex-col gap-3">
           {/* Item Details Card */}
           <div className="glass-panel rounded-xl p-4 relative overflow-hidden">
-            {/* Order Header */}
             <div className="flex justify-between items-center mb-3 pb-3 border-b border-border">
               <div>
                 <span className="text-[10px] uppercase tracking-wider text-text-secondary font-bold">Pedido</span>
-                <h2 className="text-lg font-mono font-bold text-foreground">{mockItemData.orderId}</h2>
+                <h2 className="text-lg font-mono font-bold text-foreground">{order.code}</h2>
               </div>
               <div className="flex items-center gap-2">
                 <span className="flex items-center gap-1 px-2 py-1 rounded-md bg-green-500/10 text-green-400 border border-green-500/20 text-[10px] font-bold uppercase">
                   <span className="w-1.5 h-1.5 rounded-full bg-green-400"></span>
-                  Entregue
+                  {order.status === "completed" ? "Entregue" : order.status}
                 </span>
-                <span className="text-xs text-text-secondary">{mockItemData.orderDate}</span>
+                <span className="text-xs text-text-secondary">{formatDate(order.created_at)}</span>
               </div>
             </div>
 
-            {/* Content Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Item Description */}
+              {/* Description */}
               <div>
                 <h3 className="text-sm font-bold text-foreground mb-2 flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-primary text-[16px]">description</span>
                   Detalhes do Item
                 </h3>
-                <p className="text-text-secondary text-xs leading-relaxed mb-2">{mockItemData.itemDescription}</p>
-                <ul className="space-y-1">
-                  {mockItemData.features.map((feature, index) => (
-                    <li key={index} className="flex items-center gap-1.5 text-xs text-text-secondary">
-                      <span className="material-symbols-outlined text-primary text-[14px]">check_circle</span>
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
+                {descricao && (
+                  <p className="text-text-secondary text-xs leading-relaxed mb-2 whitespace-pre-line max-h-32 overflow-y-auto">{descricao}</p>
+                )}
+                {tags.length > 0 && (
+                  <ul className="space-y-1">
+                    {tags.map((tag: string, i: number) => (
+                      <li key={i} className="flex items-center gap-1.5 text-xs text-text-secondary">
+                        <span className="material-symbols-outlined text-primary text-[14px]">check_circle</span>
+                        <span>{tag}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
 
               {/* Access Data */}
@@ -147,8 +233,8 @@ export default function ItemDetails() {
                   <div>
                     <label className="text-[10px] text-text-secondary mb-0.5 block">Login / Email</label>
                     <div className="flex items-center gap-1">
-                      <code className="flex-1 bg-background/50 px-2 py-1.5 rounded border border-border text-xs font-mono text-foreground">{mockItemData.loginEmail}</code>
-                      <button onClick={() => copyToClipboard(mockItemData.loginEmail, 'email')} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
+                      <code className="flex-1 bg-background/50 px-2 py-1.5 rounded border border-border text-xs font-mono text-foreground truncate">{email}</code>
+                      <button onClick={() => copyToClipboard(email, 'email')} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
                         <span className="material-symbols-outlined text-[14px]">{copied === 'email' ? 'check' : 'content_copy'}</span>
                       </button>
                     </div>
@@ -156,11 +242,11 @@ export default function ItemDetails() {
                   <div>
                     <label className="text-[10px] text-text-secondary mb-0.5 block">Senha</label>
                     <div className="flex items-center gap-1">
-                      <code className="flex-1 bg-background/50 px-2 py-1.5 rounded border border-border text-xs font-mono text-foreground">{showPassword ? mockItemData.password : "***********"}</code>
+                      <code className="flex-1 bg-background/50 px-2 py-1.5 rounded border border-border text-xs font-mono text-foreground">{showPassword ? senha : "•••••••••"}</code>
                       <button onClick={() => setShowPassword(!showPassword)} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
                         <span className="material-symbols-outlined text-[14px]">{showPassword ? 'visibility_off' : 'visibility'}</span>
                       </button>
-                      <button onClick={() => copyToClipboard(mockItemData.password, 'password')} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
+                      <button onClick={() => copyToClipboard(senha, 'password')} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
                         <span className="material-symbols-outlined text-[14px]">{copied === 'password' ? 'check' : 'content_copy'}</span>
                       </button>
                     </div>
@@ -168,24 +254,26 @@ export default function ItemDetails() {
                   <div>
                     <label className="text-[10px] text-text-secondary mb-0.5 block">Código 2FA</label>
                     <div className="flex items-center gap-1">
-                      <code className="flex-1 bg-background/50 px-2 py-1.5 rounded border border-border text-xs font-mono text-foreground">{mockItemData.code2FA}</code>
-                      <button onClick={() => copyToClipboard(mockItemData.code2FA, '2fa')} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
+                      <code className="flex-1 bg-background/50 px-2 py-1.5 rounded border border-border text-xs font-mono text-foreground">{token2fa}</code>
+                      <button onClick={() => copyToClipboard(token2fa, '2fa')} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
                         <span className="material-symbols-outlined text-[14px]">{copied === '2fa' ? 'check' : 'content_copy'}</span>
                       </button>
                     </div>
                   </div>
                 </div>
-                <div className="mt-2 pt-2 border-t border-border">
-                  <button className="w-full py-2 bg-primary text-background font-bold rounded-lg hover:brightness-110 transition-all flex items-center justify-center gap-1.5 text-sm shadow-glow">
-                    <span className="material-symbols-outlined text-[16px]">cloud_download</span>
-                    Baixar Cookies e Backup
-                  </button>
-                </div>
+                {stockData.cookies && (
+                  <div className="mt-2 pt-2 border-t border-border">
+                    <button onClick={downloadCookies} className="w-full py-2 bg-primary text-background font-bold rounded-lg hover:brightness-110 transition-all flex items-center justify-center gap-1.5 text-sm shadow-glow">
+                      <span className="material-symbols-outlined text-[16px]">cloud_download</span>
+                      Baixar Cookies e Backup
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
 
-          {/* Item Management Card */}
+          {/* Item Management */}
           <div className="glass-panel rounded-xl p-4">
             <h3 className="text-sm font-bold text-foreground mb-3">Gerenciamento do Item</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -221,7 +309,7 @@ export default function ItemDetails() {
           </div>
         </div>
 
-        {/* Right Column - Sidebar */}
+        {/* Right Column */}
         <div className="lg:col-span-4 flex flex-col gap-3">
           {/* Feedback Timer */}
           <div className="glass-panel rounded-xl p-4 bg-gradient-to-br from-muted/30 to-primary/5 border-primary/20">
