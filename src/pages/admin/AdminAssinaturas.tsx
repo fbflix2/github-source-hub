@@ -72,12 +72,21 @@ function mapStatus(sub: { status: any; end_date: string }): MappedStatus {
   }
   const s = (String(raw) || "").toLowerCase().trim();
 
-  if (["cancelled", "cancelado", "canceled"].includes(s)) return "cancelled";
+  // "NOT ACTIVE" da API = Cancelado
+  if (["cancelled", "cancelado", "canceled", "not active"].includes(s)) return "cancelled";
   if (["expired", "vencido", "expirado"].includes(s)) return "expired";
   if (["pending_renewal", "renovação pendente", "renewal_pending", "pending", "pendente"].includes(s)) return "pending_renewal";
-  if (["active", "ativo", "enabled"].includes(s)) return "active";
 
-  // Fallback: check by date
+  // "ACTIVE" com due_date no passado = Vencido
+  if (["active", "ativo", "enabled"].includes(s)) {
+    const now = new Date();
+    const endDate = parseISO(sub.end_date);
+    const daysLeft = differenceInDays(endDate, now);
+    if (daysLeft < 0) return "expired";
+    return "active";
+  }
+
+  // Fallback genérico por data
   const now = new Date();
   const endDate = parseISO(sub.end_date);
   const daysLeft = differenceInDays(endDate, now);
