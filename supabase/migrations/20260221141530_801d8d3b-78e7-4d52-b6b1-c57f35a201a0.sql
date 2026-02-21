@@ -1,0 +1,1 @@
+UPDATE site_settings SET value = '{"status":"idle","timestamp":0}' WHERE key = 'sync_result';
