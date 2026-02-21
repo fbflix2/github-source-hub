@@ -49,6 +49,7 @@ import AdminApi from "./pages/admin/AdminApi";
 import AdminAssinaturas from "./pages/admin/AdminAssinaturas";
 import AdminPagamentos from "./pages/admin/AdminPagamentos";
 import AdminPedidos from "./pages/admin/AdminPedidos";
+import AdminCarrinhosAbandonados from "./pages/admin/AdminCarrinhosAbandonados";
 import { AdminLayout } from "./components/admin/AdminLayout";
 
 // Layout
@@ -165,6 +166,7 @@ const App = () => {
                   <Route path="auditoria/balanco" element={<AdminBalanco />} />
                   <Route path="pedidos" element={<AdminPedidos />} />
                   <Route path="pagamentos" element={<AdminPagamentos />} />
+                  <Route path="carrinhos-abandonados" element={<AdminCarrinhosAbandonados />} />
                   <Route path="assinaturas" element={<AdminAssinaturas />} />
                   <Route path="clientes" element={<AdminClientes />} />
                   <Route path="afiliados" element={<AdminAfiliados />} />

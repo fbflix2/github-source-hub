@@ -34,6 +34,7 @@ const menuItems = [
   { title: "Produtos", icon: Package, path: "/admin/produtos" },
   { title: "Pedidos", icon: ShoppingCart, path: "/admin/pedidos" },
   { title: "Pagamentos", icon: CreditCard, path: "/admin/pagamentos" },
+  { title: "Carrinhos Abandonados", icon: ShoppingCart, path: "/admin/carrinhos-abandonados" },
   { title: "Assinaturas", icon: Monitor, path: "/admin/assinaturas" },
   { title: "Clientes", icon: Users, path: "/admin/clientes" },
   { title: "Afiliados", icon: UserCheck, path: "/admin/afiliados" },
