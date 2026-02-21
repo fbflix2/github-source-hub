@@ -25,13 +25,11 @@ export function useProxyBRAllSubscriptions() {
     setError(null);
     const accumulated: any[] = [];
     let nextPage: number | null = 1;
-    const PAGES_PER_BATCH = 3;
-
     try {
       while (nextPage !== null) {
         const result = await callProxyBR("get-all-subscriptions", {
           startPage: nextPage,
-          maxPages: PAGES_PER_BATCH,
+          maxPages: 1,
         });
         if (result?.data?.length) {
           accumulated.push(...result.data);
