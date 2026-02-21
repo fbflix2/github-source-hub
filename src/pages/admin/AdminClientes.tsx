@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Users, Wallet, CheckCircle, Search, LogIn, KeyRound, Pencil, ChevronLeft, ChevronRight, UserPlus, TrendingUp, Minus, X, Ban, Clock, Loader2, Mail, Phone, Squirrel, DollarSign } from "lucide-react";
+import { Users, Wallet, CheckCircle, Search, LogIn, KeyRound, Pencil, ChevronLeft, ChevronRight, UserPlus, TrendingUp, Minus, X, Ban, Clock, Loader2, Mail, Phone, Squirrel, DollarSign, Upload, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,6 +8,8 @@ import ClientEditModal from "@/components/admin/ClientEditModal";
 import ClientHistoryModal from "@/components/admin/ClientHistoryModal";
 import ResetPasswordModal from "@/components/admin/ResetPasswordModal";
 import AdjustBalanceModal from "@/components/admin/AdjustBalanceModal";
+import ImportClientsModal from "@/components/admin/ImportClientsModal";
+import ExportClientsModal from "@/components/admin/ExportClientsModal";
 
 type ClientStatus = "active" | "inactive" | "blocked";
 
@@ -39,6 +41,8 @@ export default function AdminClientes() {
   const [historyClient, setHistoryClient] = useState<Client | null>(null);
   const [resetClient, setResetClient] = useState<Client | null>(null);
   const [balanceClient, setBalanceClient] = useState<Client | null>(null);
+  const [showImport, setShowImport] = useState(false);
+  const [showExport, setShowExport] = useState(false);
 
   // Stats
   const [totalClients, setTotalClients] = useState(0);
@@ -192,10 +196,20 @@ export default function AdminClientes() {
               Gerencie usuários, saldos e assinaturas de forma centralizada.
             </p>
           </div>
-          <Button className="bg-primary hover:bg-primary/80 text-white px-6 py-3 h-auto rounded-xl font-bold flex items-center gap-2 shadow-[0_0_20px_rgba(249,6,6,0.4)] transition-all hover:scale-105">
-            <UserPlus className="w-5 h-5" />
-            Novo Cliente
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => setShowImport(true)} variant="outline" className="border-white/10 text-white/70 hover:text-white hover:bg-white/10 px-4 py-3 h-auto rounded-xl font-bold flex items-center gap-2">
+              <Upload className="w-4 h-4" />
+              Importar
+            </Button>
+            <Button onClick={() => setShowExport(true)} variant="outline" className="border-white/10 text-white/70 hover:text-white hover:bg-white/10 px-4 py-3 h-auto rounded-xl font-bold flex items-center gap-2">
+              <Download className="w-4 h-4" />
+              Exportar
+            </Button>
+            <Button className="bg-primary hover:bg-primary/80 text-white px-6 py-3 h-auto rounded-xl font-bold flex items-center gap-2 shadow-[0_0_20px_rgba(249,6,6,0.4)] transition-all hover:scale-105">
+              <UserPlus className="w-5 h-5" />
+              Novo Cliente
+            </Button>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -450,6 +464,15 @@ export default function AdminClientes() {
         onClose={() => setBalanceClient(null)}
         client={balanceClient}
         onUpdate={fetchClients}
+      />
+      <ImportClientsModal
+        open={showImport}
+        onClose={() => setShowImport(false)}
+        onImported={fetchClients}
+      />
+      <ExportClientsModal
+        open={showExport}
+        onClose={() => setShowExport(false)}
       />
     </div>
   );
