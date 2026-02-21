@@ -119,16 +119,21 @@ export default function AdminDashboard() {
       setPendingOrders(ords.filter(o => o.status === "processing").length + (pendingPaymentsRes.count ?? 0));
       setCancelledOrders(ords.filter(o => o.status === "cancelled").length);
 
-      // Chart: group orders by month
+      // Only count completed/delivered orders as received revenue
+      const completedStatuses = ["completed", "delivered"];
+      const completedOrds = ords.filter(o => completedStatuses.includes(o.status));
+      const completedOrderIds = new Set(completedOrds.map(o => o.id));
+
+      // Chart: group completed orders by month
       const monthMap: Record<string, number> = {};
-      ords.forEach(o => {
+      completedOrds.forEach(o => {
         const d = new Date(o.created_at);
         const key = d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
         monthMap[key] = (monthMap[key] || 0) + (o.total || 0);
       });
       setChartData(Object.entries(monthMap).slice(-7).map(([name, value]) => ({ name, value })));
 
-      // Category stats from order items
+      // Category stats from order items (only completed orders)
       const cats = categoriesRes.data ?? [];
       const prodsByCat = await supabase.from("products").select("id, category_id");
       const prodCatMap: Record<string, string> = {};
@@ -138,6 +143,7 @@ export default function AdminDashboard() {
 
       const catStats: Record<string, { sales: number; revenue: number }> = {};
       (orderItemsRes.data ?? []).forEach(item => {
+        if (!completedOrderIds.has(item.order_id)) return;
         const catId = item.product_id ? prodCatMap[item.product_id] : null;
         if (catId) {
           if (!catStats[catId]) catStats[catId] = { sales: 0, revenue: 0 };
