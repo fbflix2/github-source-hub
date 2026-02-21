@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.proxybr-api]
 verify_jwt = false
+
+[functions.sync-subscriptions-cron]
+verify_jwt = false
