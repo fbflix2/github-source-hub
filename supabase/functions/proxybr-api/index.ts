@@ -257,7 +257,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Sync subscriptions to local DB with auto-linking by email
+    // Sync subscriptions to local DB with auto-linking by email (background processing)
     if (action === "sync-subscriptions") {
       // Verify admin
       const supabaseAdmin = createClient(
@@ -267,136 +267,153 @@ Deno.serve(async (req) => {
       const { data: isAdmin } = await supabaseAdmin.rpc("has_role", { _user_id: user.id, _role: "admin" });
       if (!isAdmin) throw new Error("Sem permissão de administrador");
 
-      const allSubs = await fetchAllSubscriptions(PROXYBR_API_KEY);
+      // Background sync: fetch pages one at a time and upsert
+      const doSync = async () => {
+        try {
+          // Build email -> user_id map
+          const emailToUserId = new Map<string, string>();
+          let pg = 1;
+          const perPage = 1000;
+          while (true) {
+            const { data: { users }, error } = await supabaseAdmin.auth.admin.listUsers({ page: pg, perPage });
+            if (error || !users?.length) break;
+            for (const u of users) {
+              if (u.email) emailToUserId.set(u.email.toLowerCase(), u.id);
+            }
+            if (users.length < perPage) break;
+            pg++;
+          }
 
-      // Build email -> user_id map from auth.users
-      const emailToUserId = new Map<string, string>();
-      let page = 1;
-      const perPage = 1000;
-      while (true) {
-        const { data: { users }, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
-        if (error || !users?.length) break;
-        for (const u of users) {
-          if (u.email) emailToUserId.set(u.email.toLowerCase(), u.id);
-        }
-        if (users.length < perPage) break;
-        page++;
-      }
-
-      // Also build name -> user_id map from profiles as fallback
-      const nameToUserId = new Map<string, string>();
-      const { data: profiles } = await supabaseAdmin.from("profiles").select("user_id, full_name");
-      if (profiles) {
-        for (const p of profiles) {
-          if (p.full_name) nameToUserId.set(p.full_name.toLowerCase().trim(), p.user_id);
-        }
-      }
-
-      console.log(`Loaded ${emailToUserId.size} emails and ${nameToUserId.size} profile names for matching`);
-
-      let synced = 0;
-      let linked = 0;
-
-      for (const sub of allSubs) {
-      const code = sub.code;
-        if (!code) continue;
-
-        // Use notes field as primary identification (API doesn't return customer/client objects)
-        const notes = (sub.notes || "").toLowerCase().trim();
-        console.log(`Sub ${code}: notes="${notes}"`);
-
-        let matchedUserId: string | undefined;
-
-        // 1. Exact email match
-        if (notes && emailToUserId.has(notes)) {
-          matchedUserId = emailToUserId.get(notes);
-          console.log(`Sub ${code}: exact email match -> ${matchedUserId}`);
-        }
-
-        // 2. Exact name match
-        if (!matchedUserId && notes && nameToUserId.has(notes)) {
-          matchedUserId = nameToUserId.get(notes);
-          console.log(`Sub ${code}: exact name match -> ${matchedUserId}`);
-        }
-
-        // 3. Partial match: notes contains a known email
-        if (!matchedUserId && notes) {
-          for (const [email, uid] of emailToUserId.entries()) {
-            if (notes.includes(email)) {
-              matchedUserId = uid;
-              console.log(`Sub ${code}: partial email match "${email}" -> ${uid}`);
-              break;
+          const nameToUserId = new Map<string, string>();
+          const { data: profiles } = await supabaseAdmin.from("profiles").select("user_id, full_name");
+          if (profiles) {
+            for (const p of profiles) {
+              if (p.full_name) nameToUserId.set(p.full_name.toLowerCase().trim(), p.user_id);
             }
           }
-        }
 
-        // 4. Partial match: notes contains a known name
-        if (!matchedUserId && notes) {
-          for (const [name, uid] of nameToUserId.entries()) {
-            if (name.length >= 3 && notes.includes(name)) {
-              matchedUserId = uid;
-              console.log(`Sub ${code}: partial name match "${name}" -> ${uid}`);
+          console.log(`Sync: ${emailToUserId.size} emails, ${nameToUserId.size} names loaded`);
+
+          let synced = 0, linked = 0, page = 1;
+          const DELAY = 500;
+          const MAX_RETRIES = 3;
+
+          while (true) {
+            let url = `${PROXYBR_BASE}/subscriptions?page=${page}`;
+            let response: Response | null = null;
+            let text = "";
+            let success = false;
+
+            for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+              response = await proxyFetch(url, PROXYBR_API_KEY);
+              text = await response.text();
+              if (response.status === 429) {
+                const waitMs = 3000 * Math.pow(2, attempt - 1);
+                console.warn(`Sync rate limited page ${page}, attempt ${attempt}. Waiting ${waitMs}ms`);
+                await sleep(waitMs);
+                continue;
+              }
+              success = true;
               break;
             }
+
+            if (!success || !response || !response.ok) {
+              console.warn(`Sync stopping at page ${page}. Synced so far: ${synced}`);
+              break;
+            }
+
+            let parsed: any;
+            try { parsed = JSON.parse(text); } catch { break; }
+
+            const items = Array.isArray(parsed) ? parsed : parsed?.data;
+            if (!items?.length) break;
+
+            if (page % 25 === 0 || page === 1) console.log(`Sync page ${page}, total synced: ${synced}`);
+
+            for (const sub of items) {
+              const code = sub.code;
+              if (!code) continue;
+
+              const notes = (sub.notes || "").toLowerCase().trim();
+              let matchedUserId: string | undefined;
+
+              if (notes && emailToUserId.has(notes)) matchedUserId = emailToUserId.get(notes);
+              if (!matchedUserId && notes && nameToUserId.has(notes)) matchedUserId = nameToUserId.get(notes);
+              if (!matchedUserId && notes) {
+                for (const [email, uid] of emailToUserId.entries()) {
+                  if (notes.includes(email)) { matchedUserId = uid; break; }
+                }
+              }
+
+              const endDateStr = sub.due_date || sub.end_date || new Date().toISOString();
+              const startDateStr = sub.created_at || sub.start_date || new Date().toISOString();
+              const apiStatus = (sub.status || "UNKNOWN").toUpperCase();
+              const now = new Date();
+              const daysLeft = Math.floor((new Date(endDateStr).getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+              let mappedStatus = "active";
+              if (apiStatus === "CANCELLED") mappedStatus = "cancelled";
+              else if (daysLeft < 0) mappedStatus = "expired";
+              else if (daysLeft <= 3) mappedStatus = "expiring";
+
+              const record: Record<string, any> = {
+                name: code, type: "proxybr", status: mappedStatus,
+                start_date: startDateStr, end_date: endDateStr,
+                auto_renew: sub.auto_renew_active ?? false,
+              };
+
+              const { data: existing } = await supabaseAdmin
+                .from("subscriptions").select("id, user_id").eq("name", code).eq("type", "proxybr").maybeSingle();
+
+              if (existing) {
+                const keepUserId = existing.user_id !== user.id ? existing.user_id : (matchedUserId || existing.user_id);
+                if (matchedUserId && existing.user_id === user.id) { record.user_id = matchedUserId; linked++; }
+                else { record.user_id = keepUserId; if (keepUserId !== user.id) linked++; }
+                await supabaseAdmin.from("subscriptions").update(record).eq("id", existing.id);
+              } else {
+                record.user_id = matchedUserId || user.id;
+                if (matchedUserId) linked++;
+                await supabaseAdmin.from("subscriptions").insert(record);
+              }
+              synced++;
+            }
+
+            const lastPage = parsed?.last_page || parsed?.meta?.last_page;
+            if (lastPage && page >= lastPage) break;
+            if (Array.isArray(parsed) && parsed.length === 0) break;
+            page++;
+            await sleep(DELAY);
           }
+
+          console.log(`Sync complete: ${synced} synced, ${linked} linked`);
+
+          // Store result in site_settings for frontend polling
+          await supabaseAdmin.from("site_settings").upsert({
+            key: "sync_result",
+            value: JSON.stringify({ synced, linked, total: synced, status: "done", timestamp: Date.now() }),
+          }, { onConflict: "key" });
+
+        } catch (err: any) {
+          console.error("Background sync error:", err.message);
+          const supabaseAdmin2 = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+          await supabaseAdmin2.from("site_settings").upsert({
+            key: "sync_result",
+            value: JSON.stringify({ status: "error", error: err.message, timestamp: Date.now() }),
+          }, { onConflict: "key" });
         }
+      };
 
-        if (!matchedUserId) {
-          console.log(`Sub ${code}: no match found`);
-        }
+      // Store "in_progress" status
+      await supabaseAdmin.from("site_settings").upsert({
+        key: "sync_result",
+        value: JSON.stringify({ status: "in_progress", timestamp: Date.now() }),
+      }, { onConflict: "key" });
 
-        // Determine status
-        const endDateStr = sub.due_date || sub.end_date || new Date().toISOString();
-        const startDateStr = sub.created_at || sub.start_date || new Date().toISOString();
-        const apiStatus = (sub.status || "UNKNOWN").toUpperCase();
-        const now = new Date();
-        const endDate = new Date(endDateStr);
-        const daysLeft = Math.floor((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-        
-        let mappedStatus = "active";
-        if (apiStatus === "CANCELLED") mappedStatus = "cancelled";
-        else if (daysLeft < 0) mappedStatus = "expired";
-        else if (daysLeft <= 3) mappedStatus = "expiring";
-
-        const record: Record<string, any> = {
-          name: code,
-          type: "proxybr",
-          status: mappedStatus,
-          start_date: startDateStr,
-          end_date: endDateStr,
-          auto_renew: sub.auto_renew_active ?? false,
-        };
-
-        // Check if already exists
-        const { data: existing } = await supabaseAdmin
-          .from("subscriptions")
-          .select("id, user_id")
-          .eq("name", code)
-          .eq("type", "proxybr")
-          .maybeSingle();
-
-        if (existing) {
-          // Preserve existing user_id if already linked to a real user
-          const keepUserId = existing.user_id !== user.id ? existing.user_id : (matchedUserId || existing.user_id);
-          if (matchedUserId && existing.user_id === user.id) {
-            record.user_id = matchedUserId;
-            linked++;
-          } else {
-            record.user_id = keepUserId;
-            if (keepUserId !== user.id) linked++;
-          }
-          await supabaseAdmin.from("subscriptions").update(record).eq("id", existing.id);
-        } else {
-          // Create new — use matched user or admin as placeholder
-          record.user_id = matchedUserId || user.id;
-          if (matchedUserId) linked++;
-          await supabaseAdmin.from("subscriptions").insert(record);
-        }
-        synced++;
-      }
+      // Run in background
+      (globalThis as any).EdgeRuntime.waitUntil(doSync());
 
       return new Response(
-        JSON.stringify({ synced, linked, total: allSubs.length }),
+        JSON.stringify({ status: "started", message: "Sincronização iniciada em segundo plano" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
