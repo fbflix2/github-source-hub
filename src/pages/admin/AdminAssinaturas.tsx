@@ -455,10 +455,14 @@ export default function AdminAssinaturas() {
           {syncResult?.timestamp && (
             <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
               <Clock className="w-3 h-3" />
-              Última sincronização: {formatDistanceToNow(new Date(syncResult.timestamp), { addSuffix: true, locale: ptBR })}
+              Última sincronização{syncResult.source === "cron" ? " (automática)" : ""}: {formatDistanceToNow(new Date(syncResult.timestamp), { addSuffix: true, locale: ptBR })}
               {syncResult.synced && ` (${syncResult.synced} registros)`}
             </p>
           )}
+          <p className="text-xs text-emerald-500 mt-0.5 flex items-center gap-1">
+            <RefreshCw className="w-3 h-3" />
+            Sincronização automática ativa (a cada 10 min)
+          </p>
         </div>
         <Button
           onClick={handleSync}
