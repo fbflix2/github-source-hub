@@ -4,11 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Send, ShoppingBag, Wallet, Clock, StickyNote, Trash2 } from "lucide-react";
+import { Loader2, Send, ShoppingBag, Wallet, Clock, StickyNote, Trash2, DollarSign } from "lucide-react";
+import AdjustBalanceModal from "./AdjustBalanceModal";
 
 interface ClientHistoryModalProps {
   open: boolean;
   onClose: () => void;
+  onBalanceUpdate?: () => void;
   client: {
     user_id: string;
     full_name: string | null;
@@ -51,7 +53,7 @@ const statusLabels: Record<string, string> = {
   abandoned: "Abandonado",
 };
 
-export default function ClientHistoryModal({ open, onClose, client }: ClientHistoryModalProps) {
+export default function ClientHistoryModal({ open, onClose, onBalanceUpdate, client }: ClientHistoryModalProps) {
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<OrderItem[]>([]);
   const [walletTxs, setWalletTxs] = useState<WalletItem[]>([]);
@@ -60,6 +62,7 @@ export default function ClientHistoryModal({ open, onClose, client }: ClientHist
   const [newNote, setNewNote] = useState("");
   const [savingNote, setSavingNote] = useState(false);
   const [activeTab, setActiveTab] = useState<"orders" | "wallet" | "notes">("orders");
+  const [showAdjustBalance, setShowAdjustBalance] = useState(false);
 
   useEffect(() => {
     if (open && client) {
@@ -153,6 +156,7 @@ export default function ClientHistoryModal({ open, onClose, client }: ClientHist
   ];
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
@@ -187,6 +191,15 @@ export default function ClientHistoryModal({ open, onClose, client }: ClientHist
               </span>
             </div>
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowAdjustBalance(true)}
+            className="shrink-0 gap-1.5"
+          >
+            <DollarSign className="size-3.5" />
+            Ajustar Saldo
+          </Button>
         </div>
 
         {/* Tabs */}
@@ -311,5 +324,16 @@ export default function ClientHistoryModal({ open, onClose, client }: ClientHist
         </div>
       </DialogContent>
     </Dialog>
+
+    <AdjustBalanceModal
+      open={showAdjustBalance}
+      onClose={() => setShowAdjustBalance(false)}
+      client={client}
+      onUpdate={() => {
+        fetchAll();
+        onBalanceUpdate?.();
+      }}
+    />
+    </>
   );
 }
