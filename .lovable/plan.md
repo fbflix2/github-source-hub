@@ -1,36 +1,63 @@
 
-## Proteção de Dados Sensíveis na Pagina de Detalhes do Item
 
-### O que muda
+# Importador Inteligente de Clientes
 
-1. **Token 2FA oculto por padrao** -- igual a senha, exibido como "dots" com botao de olho para revelar.
+## Problema Atual
+O importador atual assume que a planilha sempre tem 3 colunas fixas (Nome, Email, Telefone) e tenta criar usuários usando `supabase.auth.admin` direto do navegador -- o que **nao funciona** com a chave anon. Precisamos de uma solução robusta.
 
-2. **Disclaimer de aceite obrigatorio** -- um dialogo (modal) aparece antes de permitir:
-   - Revelar o token 2FA
-   - Copiar cookies
-   - Baixar bloco
-   
-   O usuario precisa marcar um checkbox confirmando que esta ciente da politica de nao-estorno.
+## O que a planilha contém
+A planilha `users.xlsx` possui **3 colunas**: Nome, Email e Telefone. O importador será atualizado para detectar automaticamente qualquer coluna disponível.
 
-3. **Texto do disclaimer (4-6 linhas)**:
-   > Ao revelar o codigo 2FA, copiar cookies ou baixar os dados deste item, voce reconhece que teve acesso completo as credenciais do perfil adquirido. A partir deste momento, estornos nao serao aceitos, exceto em casos de problemas tecnicos com o item que nao possam ser resolvidos pelo suporte. Ao prosseguir, voce declara estar ciente e de acordo com estes termos.
+## Plano de Implementação
 
-### Detalhes tecnicos
+### 1. Criar Edge Function `import-clients`
+Uma nova Edge Function que recebe os dados dos clientes e:
+- Verifica se o chamador é admin
+- Usa `supabase.auth.admin.createUser` (com service role) para criar cada usuário com `email_confirm: true` (conta já ativa)
+- Atualiza o perfil com todos os dados extras (phone, cpf, cep, address, birth_date)
+- Retorna quantos tiveram sucesso e quantos falharam, com detalhes dos erros
 
-**Arquivo:** `src/pages/ItemDetails.tsx`
+### 2. Atualizar `ImportClientsModal.tsx`
+- **Detecção inteligente de colunas**: Ao ler o arquivo, o sistema verifica se a primeira linha parece ser um cabeçalho (ex: "nome", "email", "telefone", "cpf", "endereço", "cep", "data de nascimento"). Se sim, usa como mapeamento. Se não, assume a ordem padrão (Nome, Email, Telefone)
+- **Mapeamento flexível**: Suportar sinônimos (ex: "fone" = "telefone", "name" = "nome", "endereco" = "address")
+- **Interface de preview**: Mostrar todas as colunas detectadas na tabela de preview, não apenas as 3 fixas
+- **Instruções atualizadas**: Informar que o sistema aceita colunas extras como CPF, Endereço, CEP, Data de Nascimento
+- **Chamada via Edge Function**: Substituir a criação direta por chamadas à nova edge function `import-clients`
+- **Barra de progresso**: Mostrar o andamento da importação (X de Y processados)
 
-- Novo estado `showToken` (boolean) -- controla visibilidade do 2FA, igual ao `showPassword`.
-- Novo estado `acceptedDisclaimer` (boolean) -- desbloqueado apos aceite no modal.
-- Novo estado `showDisclaimer` (boolean) -- controla abertura do modal.
+### 3. Campos suportados no mapeamento
 
-**Fluxo de interacao:**
-- Token 2FA renderizado como `"•••••••••"` por padrao, com botao de olho.
-- Ao clicar no olho do token, copiar cookies ou baixar bloco:
-  - Se `acceptedDisclaimer === false` --> abre o modal de disclaimer.
-  - Se `acceptedDisclaimer === true` --> executa a acao normalmente.
-- No modal: checkbox + texto do disclaimer + botao "Concordo e Desejo Continuar" (desabilitado ate marcar o checkbox).
-- Apos aceite, o estado `acceptedDisclaimer` fica `true` para a sessao e a acao pendente e executada automaticamente.
+| Coluna na Planilha | Campo no Perfil |
+|---|---|
+| nome / name | full_name |
+| email / e-mail | email (auth) |
+| telefone / phone / fone / celular | phone |
+| cpf / documento | cpf |
+| cep / zip | cep |
+| endereco / endereço / address | address |
+| nascimento / birth / data_nascimento | birth_date |
 
-**Modal:** Usar `AlertDialog` do shadcn/ui ja instalado no projeto, mantendo consistencia visual.
+---
 
-**Botoes "Copiar Cookies" e "Baixar Bloco":** Ficam visiveis mas disparam o disclaimer se ainda nao aceito. Apos aceite, funcionam normalmente.
+## Detalhes Técnicos
+
+### Edge Function `import-clients`
+```
+POST /import-clients
+Body: { clients: [{ email, full_name, phone?, cpf?, cep?, address?, birth_date? }] }
+Response: { success: number, failed: number, errors: string[] }
+```
+
+A função processa os clientes em lote:
+1. Para cada cliente, chama `auth.admin.createUser` com email_confirm: true
+2. Aguarda o trigger criar o perfil, depois faz update com os campos extras
+3. Acumula resultados e retorna o resumo
+
+### Detecção de cabeçalho
+O sistema normaliza a primeira linha (lowercase, sem acentos) e verifica se contém palavras-chave como "nome", "email", "telefone". Se pelo menos 2 corresponderem, trata como cabeçalho e usa para mapear as colunas. Caso contrário, assume ordem padrão.
+
+### Arquivos modificados
+- `supabase/functions/import-clients/index.ts` -- novo
+- `src/components/admin/ImportClientsModal.tsx` -- reescrito com detecção inteligente
+- `supabase/config.toml` -- adicionar nova function
+
