@@ -7,7 +7,8 @@ async function callProxyBR(action: string, params: Record<string, unknown> = {})
     body: { action, ...params },
   });
   if (error) throw new Error(error.message || "Erro ao chamar ProxyBR API");
-  if (data?.error) throw new Error(data.error);
+  // Don't throw on data.error for get-all — it may contain partial results
+  if (data?.error && !data?.data) throw new Error(data.error);
   return data;
 }
 
