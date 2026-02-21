@@ -240,6 +240,9 @@ export default function AdminAssinaturas() {
   const handleSync = useCallback(async () => {
     setSyncing(true);
     try {
+      // Refresh session to avoid expired JWT errors
+      await supabase.auth.refreshSession();
+      
       const { data, error } = await supabase.functions.invoke("proxybr-api", {
         body: { action: "sync-subscriptions" },
       });
