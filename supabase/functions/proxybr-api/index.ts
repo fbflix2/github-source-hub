@@ -68,7 +68,11 @@ async function fetchAllSubscriptions(apiKey: string, statusFilter?: string) {
 
     if (Array.isArray(parsed)) {
       if (parsed.length === 0) break;
-      if (page === 1) console.log(`First sub keys: ${Object.keys(parsed[0]).join(', ')}`);
+      if (page === 1) {
+        console.log(`First sub keys: ${Object.keys(parsed[0]).join(', ')}`);
+        const statusSamples = parsed.slice(0, 5).map((s: any) => ({ code: s.code, status: s.status, statusType: typeof s.status }));
+        console.log("STATUS SAMPLES:", JSON.stringify(statusSamples));
+      }
       allSubs = [...allSubs, ...parsed];
       page++;
     } else if (parsed?.data && Array.isArray(parsed.data)) {
@@ -350,7 +354,10 @@ Deno.serve(async (req) => {
 
               const endDateStr = sub.due_date || sub.end_date || new Date().toISOString();
               const startDateStr = sub.created_at || sub.start_date || new Date().toISOString();
-              const apiStatus = (sub.status || "UNKNOWN").toLowerCase().trim();
+              const rawStatus = typeof sub.status === "object" && sub.status !== null
+                ? (sub.status.name || sub.status.label || JSON.stringify(sub.status))
+                : String(sub.status || "UNKNOWN");
+              const apiStatus = rawStatus.toLowerCase().trim();
 
               let mappedStatus = "active";
               if (["cancelled", "cancelado", "canceled"].includes(apiStatus)) mappedStatus = "cancelled";
