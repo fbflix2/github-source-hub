@@ -253,7 +253,6 @@ export default function AdminAssinaturas() {
   const handleSync = useCallback(async () => {
     setSyncing(true);
     try {
-      // Refresh session to avoid expired JWT errors
       await supabase.auth.refreshSession();
       
       const { data, error } = await supabase.functions.invoke("proxybr-api", {
@@ -262,12 +261,41 @@ export default function AdminAssinaturas() {
       if (error) throw new Error(error.message || "Erro ao sincronizar");
       if (data?.error) throw new Error(data.error);
       
-      toast.success(`${data.synced} assinaturas sincronizadas, ${data.linked} vinculadas automaticamente!`);
-      queryClient.invalidateQueries({ queryKey: ["admin-subscriptions-local"] });
-      refetch();
+      toast.info("Sincronização iniciada em segundo plano...");
+
+      // Poll for completion
+      const poll = async () => {
+        for (let i = 0; i < 120; i++) {
+          await new Promise(r => setTimeout(r, 3000));
+          const { data: setting } = await supabase
+            .from("site_settings")
+            .select("value")
+            .eq("key", "sync_result")
+            .maybeSingle();
+          if (setting?.value) {
+            try {
+              const result = JSON.parse(setting.value);
+              if (result.status === "done") {
+                toast.success(`${result.synced} assinaturas sincronizadas, ${result.linked} vinculadas!`);
+                queryClient.invalidateQueries({ queryKey: ["admin-subscriptions-local"] });
+                refetch();
+                setSyncing(false);
+                return;
+              }
+              if (result.status === "error") {
+                toast.error(`Erro na sincronização: ${result.error}`);
+                setSyncing(false);
+                return;
+              }
+            } catch {}
+          }
+        }
+        toast.error("Timeout aguardando sincronização");
+        setSyncing(false);
+      };
+      poll();
     } catch (err: any) {
       toast.error(`Erro ao sincronizar: ${err.message}`);
-    } finally {
       setSyncing(false);
     }
   }, [queryClient, refetch]);
