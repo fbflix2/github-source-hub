@@ -1,63 +1,68 @@
 
+# Plano: Puxar Todas as Assinaturas da ProxyBR e Vincular aos Clientes
 
-# Importador Inteligente de Clientes
+## Resumo
+Atualizar o sistema para buscar **todas** as assinaturas da API ProxyBR (todos os status), corrigir o mapeamento dos campos da API (que usa `due_date` em vez de `end_date`, e `proxies.data[]` com formato `ip:port:user:pass`), e criar um mecanismo de vinculacao automatica entre assinaturas ProxyBR e clientes importados usando a tabela `subscriptions` do Supabase.
 
-## Problema Atual
-O importador atual assume que a planilha sempre tem 3 colunas fixas (Nome, Email, Telefone) e tenta criar usuários usando `supabase.auth.admin` direto do navegador -- o que **nao funciona** com a chave anon. Precisamos de uma solução robusta.
+## O que sera feito
 
-## O que a planilha contém
-A planilha `users.xlsx` possui **3 colunas**: Nome, Email e Telefone. O importador será atualizado para detectar automaticamente qualquer coluna disponível.
+### 1. Corrigir mapeamento dos campos da API ProxyBR
 
-## Plano de Implementação
+A API retorna campos diferentes do que o codigo espera atualmente:
 
-### 1. Criar Edge Function `import-clients`
-Uma nova Edge Function que recebe os dados dos clientes e:
-- Verifica se o chamador é admin
-- Usa `supabase.auth.admin.createUser` (com service role) para criar cada usuário com `email_confirm: true` (conta já ativa)
-- Atualiza o perfil com todos os dados extras (phone, cpf, cep, address, birth_date)
-- Retorna quantos tiveram sucesso e quantos falharam, com detalhes dos erros
-
-### 2. Atualizar `ImportClientsModal.tsx`
-- **Detecção inteligente de colunas**: Ao ler o arquivo, o sistema verifica se a primeira linha parece ser um cabeçalho (ex: "nome", "email", "telefone", "cpf", "endereço", "cep", "data de nascimento"). Se sim, usa como mapeamento. Se não, assume a ordem padrão (Nome, Email, Telefone)
-- **Mapeamento flexível**: Suportar sinônimos (ex: "fone" = "telefone", "name" = "nome", "endereco" = "address")
-- **Interface de preview**: Mostrar todas as colunas detectadas na tabela de preview, não apenas as 3 fixas
-- **Instruções atualizadas**: Informar que o sistema aceita colunas extras como CPF, Endereço, CEP, Data de Nascimento
-- **Chamada via Edge Function**: Substituir a criação direta por chamadas à nova edge function `import-clients`
-- **Barra de progresso**: Mostrar o andamento da importação (X de Y processados)
-
-### 3. Campos suportados no mapeamento
-
-| Coluna na Planilha | Campo no Perfil |
-|---|---|
-| nome / name | full_name |
-| email / e-mail | email (auth) |
-| telefone / phone / fone / celular | phone |
-| cpf / documento | cpf |
-| cep / zip | cep |
-| endereco / endereço / address | address |
-| nascimento / birth / data_nascimento | birth_date |
-
----
-
-## Detalhes Técnicos
-
-### Edge Function `import-clients`
-```
-POST /import-clients
-Body: { clients: [{ email, full_name, phone?, cpf?, cep?, address?, birth_date? }] }
-Response: { success: number, failed: number, errors: string[] }
+```text
+API retorna:                    Codigo espera:
+due_date                   ->   end_date
+proxies.data[].code        ->   proxy.ip / proxy.port / proxy.username / proxy.password
+  (formato: "ip:port:user:pass")
+status: "ACTIVE"           ->   status: "active" (uppercase vs lowercase)
+auto_renew_active          ->   auto_renew
 ```
 
-A função processa os clientes em lote:
-1. Para cada cliente, chama `auth.admin.createUser` com email_confirm: true
-2. Aguarda o trigger criar o perfil, depois faz update com os campos extras
-3. Acumula resultados e retorna o resumo
+O `enrichSub` sera atualizado para normalizar esses campos antes de processar.
 
-### Detecção de cabeçalho
-O sistema normaliza a primeira linha (lowercase, sem acentos) e verifica se contém palavras-chave como "nome", "email", "telefone". Se pelo menos 2 corresponderem, trata como cabeçalho e usa para mapear as colunas. Caso contrário, assume ordem padrão.
+### 2. Edge Function: Suporte a paginacao e todos os status
 
-### Arquivos modificados
-- `supabase/functions/import-clients/index.ts` -- novo
-- `src/components/admin/ImportClientsModal.tsx` -- reescrito com detecção inteligente
-- `supabase/config.toml` -- adicionar nova function
+Atualizar a Edge Function `proxybr-api` para:
+- Adicionar suporte ao parametro `status` na chamada de subscriptions (ex: `?status=all` ou sem filtro)
+- Adicionar suporte a paginacao caso a API ProxyBR pagine resultados (buscar todas as paginas)
 
+### 3. Vincular assinaturas aos clientes importados
+
+Usar a tabela `subscriptions` existente no Supabase como tabela de vinculacao:
+- Quando o admin acessar a pagina de assinaturas, o sistema cruza os dados da ProxyBR com a tabela `subscriptions` local usando o campo `name` (codigo ProxyBR)
+- Criar uma acao na interface admin para vincular manualmente uma assinatura a um cliente (selecionar cliente de uma lista)
+- Tambem implementar vinculacao automatica: um botao "Sincronizar" que cria registros na tabela `subscriptions` para cada assinatura da ProxyBR, permitindo que o admin vincule clientes depois
+
+### 4. Interface Admin atualizada
+
+- Mostrar o status real vindo da API (ACTIVE, EXPIRED, CANCELLED, etc.)
+- Coluna "Cliente" mostra o nome do cliente vinculado ou "Nao vinculado" com botao para vincular
+- Modal de vinculacao com busca de clientes por nome/email
+- Exibir proxy completo (IP, porta, usuario, senha) parseado do campo `code`
+
+## Detalhes Tecnicos
+
+### Edge Function (`proxybr-api/index.ts`)
+- Nova action `get-all-subscriptions` que faz loop de paginacao se necessario
+- Parsing do campo `proxies.data[].code` no formato `ip:port:user:pass` para objeto estruturado
+
+### Hook (`useProxyBR.ts`)
+- Novo hook `useProxyBRAllSubscriptions` para buscar todas as assinaturas sem filtro de status
+
+### Pagina Admin (`AdminAssinaturas.tsx`)
+- Normalizar campos da API no `enrichSub`: `due_date` -> `end_date`, parse de `proxies.data[].code`
+- Cruzar com tabela `subscriptions` local para identificar cliente vinculado
+- Botao "Vincular Cliente" que abre modal com busca
+- Botao "Sincronizar com ProxyBR" que cria/atualiza registros na tabela `subscriptions`
+
+### Banco de Dados
+- A tabela `subscriptions` ja existe com os campos necessarios (`user_id`, `name`, `status`, `start_date`, `end_date`, `type`)
+- O campo `name` sera usado para guardar o codigo da assinatura ProxyBR (ex: "2602202123")
+- O campo `type` guardara "proxybr" para identificar a origem
+
+### Fluxo de vinculacao
+1. Admin clica "Sincronizar" -> sistema busca todas as assinaturas da ProxyBR
+2. Para cada assinatura, cria/atualiza registro na tabela `subscriptions` com `name = codigo_proxybr`, `type = "proxybr"`, `status`, `start_date`, `end_date`
+3. Admin pode clicar "Vincular" em cada assinatura para associar a um `user_id` de um cliente importado
+4. Na proxima carga, o sistema cruza ProxyBR code com `subscriptions.name` e mostra o cliente vinculado
