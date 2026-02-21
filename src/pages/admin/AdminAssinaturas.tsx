@@ -64,13 +64,19 @@ interface EnrichedSubscription {
   [key: string]: unknown;
 }
 
-function mapStatus(sub: { status: string; end_date: string }): MappedStatus {
-  const s = (sub.status || "").toLowerCase().trim();
-  // Map ProxyBR API status values directly
-  if (s === "cancelled" || s === "cancelado" || s === "canceled") return "cancelled";
-  if (s === "expired" || s === "vencido" || s === "expirado") return "expired";
-  if (s === "pending_renewal" || s === "renovação pendente" || s === "renewal_pending" || s === "pending" || s === "pendente") return "pending_renewal";
-  if (s === "active" || s === "ativo" || s === "enabled") return "active";
+function mapStatus(sub: { status: any; end_date: string }): MappedStatus {
+  let raw = sub.status;
+  // Handle status as object (e.g. {id: X, name: "Cancelado"})
+  if (raw && typeof raw === "object") {
+    raw = raw.name || raw.label || raw.value || JSON.stringify(raw);
+  }
+  const s = (String(raw) || "").toLowerCase().trim();
+
+  if (["cancelled", "cancelado", "canceled"].includes(s)) return "cancelled";
+  if (["expired", "vencido", "expirado"].includes(s)) return "expired";
+  if (["pending_renewal", "renovação pendente", "renewal_pending", "pending", "pendente"].includes(s)) return "pending_renewal";
+  if (["active", "ativo", "enabled"].includes(s)) return "active";
+
   // Fallback: check by date
   const now = new Date();
   const endDate = parseISO(sub.end_date);
@@ -90,7 +96,9 @@ function enrichSub(
   const endDateStr = sub.due_date || sub.end_date || sub.start_date || new Date().toISOString();
   const startDateStr = sub.created_at || sub.start_date || new Date().toISOString();
   const code = sub.code || "";
-  const rawApiStatus = sub.status || "UNKNOWN";
+  const rawApiStatus = typeof sub.status === "object" && sub.status !== null
+    ? ((sub.status as any).name || JSON.stringify(sub.status))
+    : String(sub.status || "UNKNOWN");
 
   const endDate = parseISO(endDateStr);
   const startDate = parseISO(startDateStr);
