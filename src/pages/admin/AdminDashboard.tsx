@@ -1,7 +1,25 @@
 import { useState, useEffect } from "react";
-import { Users, Receipt, Wallet, TrendingUp, Database, CheckCircle, Clock, AlertTriangle, Ban, User, Briefcase, Globe, MoreVertical, Loader2 } from "lucide-react";
+import { Users, Receipt, Wallet, TrendingUp, Database, CheckCircle, Clock, AlertTriangle, Ban, User, Briefcase, Globe, MoreVertical, Loader2, X, ExternalLink } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
+interface PendingItem {
+  id: string;
+  type: "pix_pending" | "order_pending";
+  amount: number;
+  created_at: string;
+  status: string;
+  client_name: string | null;
+  client_email: string | null;
+  code: string;
+  gateway?: string;
+}
 
 export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
@@ -15,10 +33,67 @@ export default function AdminDashboard() {
   const [cancelledOrders, setCancelledOrders] = useState(0);
   const [chartData, setChartData] = useState<{ name: string; value: number }[]>([]);
   const [categoryStats, setCategoryStats] = useState<{ name: string; sales: number; revenue: number }[]>([]);
+  const [pendingModal, setPendingModal] = useState(false);
+  const [pendingItems, setPendingItems] = useState<PendingItem[]>([]);
+  const [loadingPending, setLoadingPending] = useState(false);
+
+  const openPendingModal = async () => {
+    setPendingModal(true);
+    setLoadingPending(true);
+    try {
+      // Fetch pending payments (PIX not paid) and pending orders
+      const [paymentsRes, ordersRes2] = await Promise.all([
+        supabase.from("payments").select("id, amount, created_at, status, code, gateway, user_id").eq("status", "pending").order("created_at", { ascending: false }),
+        supabase.from("orders").select("id, total, created_at, status, code, user_id").eq("status", "processing").order("created_at", { ascending: false }),
+      ]);
+
+      const allUserIds = [
+        ...(paymentsRes.data ?? []).map(p => p.user_id),
+        ...(ordersRes2.data ?? []).map(o => o.user_id),
+      ].filter((v, i, a) => a.indexOf(v) === i);
+
+      // Fetch profiles for names
+      const { data: profiles } = await supabase.from("profiles").select("user_id, full_name").in("user_id", allUserIds.length > 0 ? allUserIds : ["none"]);
+      const profileMap: Record<string, string | null> = {};
+      (profiles ?? []).forEach(p => { profileMap[p.user_id] = p.full_name; });
+
+      // Fetch emails from auth (use user_id mapping)
+      const items: PendingItem[] = [
+        ...(paymentsRes.data ?? []).map(p => ({
+          id: p.id,
+          type: "pix_pending" as const,
+          amount: p.amount,
+          created_at: p.created_at,
+          status: p.status,
+          client_name: profileMap[p.user_id] || null,
+          client_email: null,
+          code: p.code,
+          gateway: p.gateway,
+        })),
+        ...(ordersRes2.data ?? []).map(o => ({
+          id: o.id,
+          type: "order_pending" as const,
+          amount: o.total,
+          created_at: o.created_at,
+          status: o.status,
+          client_name: profileMap[o.user_id] || null,
+          client_email: null,
+          code: o.code,
+        })),
+      ];
+
+      items.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      setPendingItems(items);
+    } catch (err) {
+      console.error("Error fetching pending items:", err);
+    } finally {
+      setLoadingPending(false);
+    }
+  };
 
   useEffect(() => {
     async function fetchStats() {
-      const [profilesRes, transactionsRes, balanceRes, productsRes, ordersRes, orderItemsRes, categoriesRes] = await Promise.all([
+      const [profilesRes, transactionsRes, balanceRes, productsRes, ordersRes, orderItemsRes, categoriesRes, pendingPaymentsRes] = await Promise.all([
         supabase.from("profiles").select("id", { count: "exact", head: true }),
         supabase.from("wallet_transactions").select("id", { count: "exact", head: true }),
         supabase.from("profiles").select("balance"),
@@ -26,6 +101,7 @@ export default function AdminDashboard() {
         supabase.from("orders").select("id, status, total, created_at"),
         supabase.from("order_items").select("product_id, price, quantity, created_at, order_id"),
         supabase.from("product_categories").select("id, name"),
+        supabase.from("payments").select("id", { count: "exact", head: true }).eq("status", "pending"),
       ]);
 
       setTotalClients(profilesRes.count ?? 0);
@@ -40,7 +116,7 @@ export default function AdminDashboard() {
 
       const ords = ordersRes.data ?? [];
       setTotalOrders(ords.length);
-      setPendingOrders(ords.filter(o => o.status === "processing").length);
+      setPendingOrders(ords.filter(o => o.status === "processing").length + (pendingPaymentsRes.count ?? 0));
       setCancelledOrders(ords.filter(o => o.status === "cancelled").length);
 
       // Chart: group orders by month
@@ -131,13 +207,17 @@ export default function AdminDashboard() {
         </div>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {[
-            { label: "Total Produtos", value: totalProducts.toString(), icon: Database, color: "text-white" },
-            { label: "Disponíveis", value: activeProducts.toString(), icon: CheckCircle, color: "text-green-500" },
-            { label: "Pedidos Pendentes", value: pendingOrders.toString(), icon: Clock, color: "text-yellow-500" },
-            { label: "Total Pedidos", value: totalOrders.toString(), icon: AlertTriangle, color: "text-blue-400" },
-            { label: "Cancelados", value: cancelledOrders.toString(), icon: Ban, color: "text-red-500" },
+            { label: "Total Produtos", value: totalProducts.toString(), icon: Database, color: "text-white", clickable: false },
+            { label: "Disponíveis", value: activeProducts.toString(), icon: CheckCircle, color: "text-green-500", clickable: false },
+            { label: "Pedidos Pendentes", value: pendingOrders.toString(), icon: Clock, color: "text-yellow-500", clickable: true },
+            { label: "Total Pedidos", value: totalOrders.toString(), icon: AlertTriangle, color: "text-blue-400", clickable: false },
+            { label: "Cancelados", value: cancelledOrders.toString(), icon: Ban, color: "text-red-500", clickable: false },
           ].map((metric) => (
-            <div key={metric.label} className="bg-white/5 rounded-lg p-3 flex items-center gap-3">
+            <div
+              key={metric.label}
+              onClick={metric.clickable ? openPendingModal : undefined}
+              className={`bg-white/5 rounded-lg p-3 flex items-center gap-3 transition-colors ${metric.clickable ? "cursor-pointer hover:bg-white/10 hover:ring-1 hover:ring-yellow-500/30" : ""}`}
+            >
               <div className={`p-2 rounded-lg bg-white/10 ${metric.color}`}>
                 <metric.icon className="size-4" />
               </div>
@@ -206,6 +286,73 @@ export default function AdminDashboard() {
           )}
         </div>
       </div>
+
+      {/* Pending Orders Modal */}
+      <Dialog open={pendingModal} onOpenChange={setPendingModal}>
+        <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-lg">
+              <Clock className="size-5 text-yellow-500" />
+              Pedidos Pendentes
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="overflow-y-auto flex-1 -mx-6 px-6">
+            {loadingPending ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="size-6 animate-spin text-primary" />
+              </div>
+            ) : pendingItems.length === 0 ? (
+              <div className="text-center py-12">
+                <CheckCircle className="size-10 text-primary mx-auto mb-3" />
+                <p className="text-muted-foreground text-sm">Nenhum pedido pendente no momento.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {pendingItems.map((item) => (
+                  <div key={item.id} className="rounded-xl border border-border bg-muted/50 p-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-lg ${item.type === "pix_pending" ? "bg-yellow-500/10 text-yellow-500" : "bg-blue-500/10 text-blue-400"}`}>
+                          {item.type === "pix_pending" ? <Wallet className="size-4" /> : <Receipt className="size-4" />}
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-foreground">
+                            {item.type === "pix_pending" ? "PIX Aguardando Pagamento" : "Pedido em Processamento"}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Código: {item.code}
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-sm font-bold text-yellow-500">
+                        R$ {item.amount.toFixed(2).replace(".", ",")}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-border">
+                      <div className="flex items-center gap-3">
+                        <span className="flex items-center gap-1">
+                          <User className="size-3" />
+                          {item.client_name || "Sem nome"}
+                        </span>
+                        {item.gateway && (
+                          <span className="px-2 py-0.5 bg-muted rounded text-[10px] uppercase font-medium">
+                            {item.gateway}
+                          </span>
+                        )}
+                      </div>
+                      <span>
+                        {new Date(item.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
