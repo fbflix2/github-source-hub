@@ -328,7 +328,10 @@ Deno.serve(async (req) => {
             const items = Array.isArray(parsed) ? parsed : parsed?.data;
             if (!items?.length) break;
 
-            if (page % 25 === 0 || page === 1) console.log(`Sync page ${page}, total synced: ${synced}`);
+            if (page % 25 === 0 || page === 1) {
+              const statusSample = items.slice(0, 3).map((s: any) => s.status);
+              console.log(`Sync page ${page}, total synced: ${synced}, sample statuses: ${JSON.stringify(statusSample)}`);
+            }
 
             for (const sub of items) {
               const code = sub.code;
@@ -350,11 +353,14 @@ Deno.serve(async (req) => {
               const apiStatus = (sub.status || "UNKNOWN").toLowerCase().trim();
 
               let mappedStatus = "active";
-              if (apiStatus === "cancelled" || apiStatus === "cancelado" || apiStatus === "canceled") mappedStatus = "cancelled";
-              else if (apiStatus === "expired" || apiStatus === "vencido" || apiStatus === "expirado") mappedStatus = "expired";
-              else if (apiStatus === "pending_renewal" || apiStatus === "renovação pendente" || apiStatus === "renewal_pending" || apiStatus === "pending" || apiStatus === "pendente") mappedStatus = "pending_renewal";
-              else if (apiStatus === "active" || apiStatus === "ativo" || apiStatus === "enabled") mappedStatus = "active";
-              else if (daysLeft < 0) mappedStatus = "expired";
+              if (["cancelled", "cancelado", "canceled"].includes(apiStatus)) mappedStatus = "cancelled";
+              else if (["expired", "vencido", "expirado"].includes(apiStatus)) mappedStatus = "expired";
+              else if (["pending_renewal", "renovação pendente", "renewal_pending", "pending", "pendente"].includes(apiStatus)) mappedStatus = "pending_renewal";
+              else if (["active", "ativo", "enabled"].includes(apiStatus)) mappedStatus = "active";
+              else {
+                console.warn(`Unknown ProxyBR status: "${sub.status}" (normalized: "${apiStatus}")`);
+                mappedStatus = "active";
+              }
 
               const record: Record<string, any> = {
                 name: code, type: "proxybr", status: mappedStatus,
