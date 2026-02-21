@@ -175,12 +175,84 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Handle the new get-all-subscriptions action
+    // Handle paginated get-all-subscriptions (fetches a batch of API pages per call)
     if (action === "get-all-subscriptions") {
       const statusFilter = (params as any).status || undefined;
-      const allSubs = await fetchAllSubscriptions(PROXYBR_API_KEY, statusFilter);
+      const startPage = (params as any).startPage || 1;
+      const maxPages = (params as any).maxPages || 5; // fetch 5 API pages per call (~50 subs)
+
+      let subs: any[] = [];
+      let page = startPage;
+      const endPage = startPage + maxPages - 1;
+      const DELAY = 1500;
+      const MAX_RETRIES = 3;
+      let hitEnd = false;
+
+      while (page <= endPage) {
+        let url = `${PROXYBR_BASE}/subscriptions?page=${page}`;
+        if (statusFilter) url += `&status=${statusFilter}`;
+
+        let response: Response | null = null;
+        let text = "";
+        let success = false;
+
+        for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+          response = await proxyFetch(url, PROXYBR_API_KEY);
+          text = await response.text();
+          if (response.status === 429) {
+            const waitMs = 3000 * Math.pow(2, attempt - 1);
+            console.warn(`Rate limited page ${page}, attempt ${attempt}. Waiting ${waitMs}ms`);
+            await sleep(waitMs);
+            continue;
+          }
+          success = true;
+          break;
+        }
+
+        if (!success || !response || !response.ok) {
+          // Return what we have so far
+          console.warn(`Stopping at page ${page} due to error ${response?.status}. Returning ${subs.length} subs.`);
+          hitEnd = true;
+          break;
+        }
+
+        let parsed: any;
+        try { parsed = JSON.parse(text); } catch { hitEnd = true; break; }
+
+        if (Array.isArray(parsed)) {
+          if (parsed.length === 0) { hitEnd = true; break; }
+          // Parse proxy codes
+          for (const sub of parsed) {
+            if (sub.proxies?.data && Array.isArray(sub.proxies.data)) {
+              sub.proxies.data = sub.proxies.data.map((p: any) => {
+                if (p.code && typeof p.code === "string") {
+                  const parts = p.code.split(":");
+                  if (parts.length >= 4) {
+                    p.parsed = { ip: parts[0], port: parseInt(parts[1], 10), username: parts[2], password: parts[3] };
+                  }
+                }
+                return p;
+              });
+            }
+          }
+          subs = [...subs, ...parsed];
+        } else if (parsed?.data && Array.isArray(parsed.data)) {
+          if (parsed.data.length === 0) { hitEnd = true; break; }
+          subs = [...subs, ...parsed.data];
+          const lastPage = parsed.last_page || parsed.meta?.last_page || 1;
+          if (page >= lastPage) { hitEnd = true; break; }
+        } else {
+          subs = [parsed];
+          hitEnd = true;
+          break;
+        }
+
+        page++;
+        if (page <= endPage) await sleep(DELAY);
+      }
+
       return new Response(
-        JSON.stringify({ data: allSubs, total: allSubs.length, partial: allSubs.length > 0 }),
+        JSON.stringify({ data: subs, nextPage: hitEnd ? null : page, fetched: subs.length }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

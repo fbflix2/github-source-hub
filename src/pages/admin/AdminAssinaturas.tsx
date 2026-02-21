@@ -220,9 +220,6 @@ export default function AdminAssinaturas() {
 
   const subscriptions: EnrichedSubscription[] = useMemo(() => {
     const arr = Array.isArray(rawSubs?.data) ? rawSubs.data : Array.isArray(rawSubs) ? rawSubs : [];
-    if (rawSubs?.partial && rawSubs?.total) {
-      console.log(`Loaded ${rawSubs.total} subscriptions (partial: ${rawSubs.partial})`);
-    }
     return arr.map((s: Record<string, unknown>) => enrichSub(s, localSubsMap));
   }, [rawSubs, localSubsMap]);
 
