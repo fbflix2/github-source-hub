@@ -1,81 +1,93 @@
 
 
-## Corrigir mapeamento de status Vencido e Cancelado
+## Carregar dados do banco local + sincronizacao inteligente
 
-### Causa raiz
+### Problema atual
+Toda vez que a pagina de assinaturas e acessada, o sistema busca **todas as 2441+ assinaturas** da API ProxyBR do zero (pagina por pagina), o que e lento e desnecessario. Os dados ja foram sincronizados para o banco local mas nao estao sendo usados como fonte primaria.
 
-A API da ProxyBR retorna o campo `status` como a string `"NOT ACTIVE"` para todas as assinaturas que nao estao ativas. O codigo atual nao reconhece esse valor, entao cai no fallback por data e classifica tudo como "expired" (Vencido), resultando em Vencido=2263 e Cancelado=0.
+### Solucao proposta
 
-Na realidade, o painel da ProxyBR diferencia assim:
-- **"NOT ACTIVE"** = Cancelado (2248 assinaturas)
-- **"ACTIVE" com due_date no passado** = Vencido (17 assinaturas)
-- **"ACTIVE" com due_date no futuro** = Ativo (192 assinaturas)
+#### Estrategia: Banco local como fonte primaria + sync sob demanda
 
-### Alteracoes necessarias
-
-#### 1. Atualizar `mapStatus` em `src/pages/admin/AdminAssinaturas.tsx`
-
-Adicionar `"not active"` ao array de status cancelados e ajustar a logica de fallback por data para que assinaturas "ACTIVE" com due_date passada sejam classificadas como "expired" (Vencido):
-
-```typescript
-function mapStatus(sub: { status: any; end_date: string }): MappedStatus {
-  let raw = sub.status;
-  if (raw && typeof raw === "object") {
-    raw = raw.name || raw.label || raw.value || JSON.stringify(raw);
-  }
-  const s = (String(raw) || "").toLowerCase().trim();
-
-  // "NOT ACTIVE" da API = Cancelado
-  if (["cancelled", "cancelado", "canceled", "not active"].includes(s)) return "cancelled";
-  if (["expired", "vencido", "expirado"].includes(s)) return "expired";
-  if (["pending_renewal", "renovacao pendente", "renewal_pending", "pending", "pendente"].includes(s)) return "pending_renewal";
-
-  // "ACTIVE" com due_date no passado = Vencido
-  if (["active", "ativo", "enabled"].includes(s)) {
-    const now = new Date();
-    const endDate = parseISO(sub.end_date);
-    const daysLeft = differenceInDays(endDate, now);
-    if (daysLeft < 0) return "expired"; // Vencido
-    return "active";
-  }
-
-  // Fallback generico por data
-  const now = new Date();
-  const endDate = parseISO(sub.end_date);
-  const daysLeft = differenceInDays(endDate, now);
-  if (daysLeft < 0) return "expired";
-  return "active";
-}
+```text
++------------------+     +-------------------+     +----------------+
+|  Pagina carrega   | --> | Le do banco local | --> | Exibe dados    |
+|                   |     | (instantaneo)     |     | imediatamente  |
++------------------+     +-------------------+     +----------------+
+                                                           |
+                                                    +------v-------+
+                                                    | Verifica     |
+                                                    | ultima sync  |
+                                                    | e total API  |
+                                                    +--------------+
+                                                           |
+                                                    +------v-------+
+                                                    | Se diferente:|
+                                                    | mostra aviso |
+                                                    | "Sincronizar"|
+                                                    +--------------+
 ```
 
-#### 2. Atualizar o mesmo mapeamento na Edge Function `proxybr-api/index.ts`
+#### 1. Adicionar coluna `raw_data` na tabela subscriptions
 
-No action `sync-subscriptions`, aplicar a mesma logica para que os dados persistidos no banco local tambem estejam corretos:
+Armazenar o JSON completo da API (proxy IP, produto, credenciais) para nao perder informacoes na exibicao.
 
-```typescript
-// Adicionar "not active" ao mapeamento de cancelados
-if (["cancelled", "cancelado", "canceled", "not active"].includes(apiStatus)) mappedStatus = "cancelled";
-else if (["expired", "vencido", "expirado"].includes(apiStatus)) mappedStatus = "expired";
-else if (["pending_renewal", ...].includes(apiStatus)) mappedStatus = "pending_renewal";
-else if (["active", "ativo", "enabled"].includes(apiStatus)) {
-  // ACTIVE com due_date passada = vencido
-  const endMs = new Date(endDateStr).getTime();
-  if (endMs < Date.now()) mappedStatus = "expired";
-  else mappedStatus = "active";
-}
+```sql
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS raw_data jsonb;
 ```
 
-#### 3. Re-deploy da Edge Function
+#### 2. Atualizar o sync na Edge Function para salvar `raw_data`
 
-Fazer deploy da funcao atualizada para que futuras sincronizacoes persistam os status corretos.
+No `sync-subscriptions`, adicionar o campo `raw_data` ao upsert com todos os dados da API (proxy, produto, etc).
 
-### Arquivos modificados
-- `src/pages/admin/AdminAssinaturas.tsx` - adicionar "not active" como cancelado no mapStatus
-- `supabase/functions/proxybr-api/index.ts` - mesma correcao no sync
+#### 3. Mudar a fonte de dados da pagina AdminAssinaturas
+
+**Antes**: `useProxyBRAllSubscriptions()` (busca tudo da API a cada visita)
+
+**Depois**: Query do banco local `subscriptions` com `raw_data`, que carrega instantaneamente.
+
+```typescript
+// Nova query - carrega do banco local
+const { data: localSubs, isLoading } = useQuery({
+  queryKey: ["admin-subscriptions-cached"],
+  queryFn: async () => {
+    const { data } = await supabase
+      .from("subscriptions")
+      .select("*")
+      .eq("type", "proxybr");
+    return data || [];
+  },
+});
+```
+
+#### 4. Verificacao rapida de mudancas
+
+Ao carregar a pagina, fazer uma unica chamada leve a API (apenas pagina 1) para comparar o total. Se o total for diferente do banco local, exibir um banner:
+
+```text
+"Foram detectadas mudancas na ProxyBR. Clique para sincronizar."
+```
+
+#### 5. Adaptar o `enrichSub` para usar dados do `raw_data`
+
+O `enrichSub` vai reconstruir as informacoes de proxy, produto e status a partir do `raw_data` JSONB salvo no banco, em vez de depender de uma chamada API.
+
+#### 6. Exibir "Ultima sincronizacao"
+
+Mostrar a data/hora da ultima sync bem-sucedida (lida do `site_settings.sync_result.timestamp`).
+
+### Arquivos a modificar
+
+1. **Nova migracao SQL** - adicionar coluna `raw_data jsonb` na tabela `subscriptions`
+2. **`supabase/functions/proxybr-api/index.ts`** - salvar `raw_data` no sync; adicionar action `check-subscription-count` para verificacao rapida
+3. **`src/pages/admin/AdminAssinaturas.tsx`** - trocar fonte de dados para banco local; adicionar banner de mudancas detectadas; exibir ultima sync
+4. **`src/hooks/useProxyBR.ts`** - adicionar hook para verificacao rapida de contagem
 
 ### Resultado esperado
-- Cancelado: ~2248 (todas as "NOT ACTIVE")
-- Vencido: ~17 (as "ACTIVE" com due_date no passado)
-- Ativo: ~192 (as "ACTIVE" com due_date no futuro)
-- Renovacao pendente: ~4
-- Total: ~2461
+
+- Pagina carrega **instantaneamente** com dados do banco local
+- Mostra data da ultima sincronizacao
+- Verifica automaticamente se ha mudancas e avisa o admin
+- Sync so acontece quando o admin clica no botao (ou quando mudancas sao detectadas)
+- Dados completos (proxy, produto, credenciais) preservados no `raw_data`
+
