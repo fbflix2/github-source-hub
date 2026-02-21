@@ -1,93 +1,67 @@
 
 
-## Carregar dados do banco local + sincronizacao inteligente
+## Sincronizacao automatica com Cron Job
 
-### Problema atual
-Toda vez que a pagina de assinaturas e acessada, o sistema busca **todas as 2441+ assinaturas** da API ProxyBR do zero (pagina por pagina), o que e lento e desnecessario. Os dados ja foram sincronizados para o banco local mas nao estao sendo usados como fonte primaria.
+### Como funciona hoje
+A sincronizacao so acontece quando voce acessa a pagina de assinaturas e clica em "Sincronizar". Se voce sair da pagina, nada mais e atualizado.
 
-### Solucao proposta
+### Solucao: Edge Function agendada (Cron)
 
-#### Estrategia: Banco local como fonte primaria + sync sob demanda
+Uma funcao que roda automaticamente a cada intervalo definido (ex: 10 minutos), sem precisar estar na pagina.
 
 ```text
-+------------------+     +-------------------+     +----------------+
-|  Pagina carrega   | --> | Le do banco local | --> | Exibe dados    |
-|                   |     | (instantaneo)     |     | imediatamente  |
-+------------------+     +-------------------+     +----------------+
-                                                           |
-                                                    +------v-------+
-                                                    | Verifica     |
-                                                    | ultima sync  |
-                                                    | e total API  |
-                                                    +--------------+
-                                                           |
-                                                    +------v-------+
-                                                    | Se diferente:|
-                                                    | mostra aviso |
-                                                    | "Sincronizar"|
-                                                    +--------------+
+A cada 10 min:
+  Cron Job --> Edge Function "sync-subscriptions-cron"
+                  |
+                  +--> Busca assinaturas da API ProxyBR
+                  +--> Compara com banco local
+                  +--> Atualiza apenas o que mudou
+                  +--> Salva timestamp da ultima sync
 ```
 
-#### 1. Adicionar coluna `raw_data` na tabela subscriptions
+### Arquivos a criar/modificar
 
-Armazenar o JSON completo da API (proxy IP, produto, credenciais) para nao perder informacoes na exibicao.
+#### 1. Nova Edge Function `supabase/functions/sync-subscriptions-cron/index.ts`
+- Funcao dedicada ao cron que chama a logica de sync existente no `proxybr-api`
+- Usa service role key para acessar o banco diretamente
+- Roda a mesma logica do action `sync-subscriptions` ja existente
+
+#### 2. Configurar o Cron no Supabase
+- Usar `pg_cron` (extensao do Postgres) para agendar a chamada da edge function a cada 10 minutos
+- Migracao SQL:
 
 ```sql
-ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS raw_data jsonb;
+-- Habilitar pg_cron e agendar sync automatico
+SELECT cron.schedule(
+  'sync-proxybr-subscriptions',
+  '*/10 * * * *',  -- a cada 10 minutos
+  $$
+  SELECT net.http_post(
+    url := '<SUPABASE_URL>/functions/v1/proxybr-api',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'Authorization', 'Bearer <SERVICE_ROLE_KEY>'
+    ),
+    body := '{"action": "sync-subscriptions"}'::jsonb
+  );
+  $$
+);
 ```
 
-#### 2. Atualizar o sync na Edge Function para salvar `raw_data`
+#### 3. Atualizar `AdminAssinaturas.tsx`
+- Remover o botao manual de "Sincronizar" (ou manter como opcao de sync forcado)
+- Exibir "Ultima sincronizacao: X minutos atras" com auto-refresh
+- A pagina so le do banco local, os dados ja estarao sempre atualizados
 
-No `sync-subscriptions`, adicionar o campo `raw_data` ao upsert com todos os dados da API (proxy, produto, etc).
+### Intervalo configuravel
+O intervalo pode ser ajustado (5 min, 10 min, 30 min) conforme necessidade. Quanto menor o intervalo, mais chamadas a API ProxyBR serao feitas.
 
-#### 3. Mudar a fonte de dados da pagina AdminAssinaturas
+### Vantagens
+- Dados sempre atualizados, mesmo sem acessar a pagina
+- Pagina carrega instantaneamente do banco local
+- Nenhuma acao manual necessaria
+- Se a API ProxyBR estiver fora, o banco local mantem os ultimos dados validos
 
-**Antes**: `useProxyBRAllSubscriptions()` (busca tudo da API a cada visita)
-
-**Depois**: Query do banco local `subscriptions` com `raw_data`, que carrega instantaneamente.
-
-```typescript
-// Nova query - carrega do banco local
-const { data: localSubs, isLoading } = useQuery({
-  queryKey: ["admin-subscriptions-cached"],
-  queryFn: async () => {
-    const { data } = await supabase
-      .from("subscriptions")
-      .select("*")
-      .eq("type", "proxybr");
-    return data || [];
-  },
-});
-```
-
-#### 4. Verificacao rapida de mudancas
-
-Ao carregar a pagina, fazer uma unica chamada leve a API (apenas pagina 1) para comparar o total. Se o total for diferente do banco local, exibir um banner:
-
-```text
-"Foram detectadas mudancas na ProxyBR. Clique para sincronizar."
-```
-
-#### 5. Adaptar o `enrichSub` para usar dados do `raw_data`
-
-O `enrichSub` vai reconstruir as informacoes de proxy, produto e status a partir do `raw_data` JSONB salvo no banco, em vez de depender de uma chamada API.
-
-#### 6. Exibir "Ultima sincronizacao"
-
-Mostrar a data/hora da ultima sync bem-sucedida (lida do `site_settings.sync_result.timestamp`).
-
-### Arquivos a modificar
-
-1. **Nova migracao SQL** - adicionar coluna `raw_data jsonb` na tabela `subscriptions`
-2. **`supabase/functions/proxybr-api/index.ts`** - salvar `raw_data` no sync; adicionar action `check-subscription-count` para verificacao rapida
-3. **`src/pages/admin/AdminAssinaturas.tsx`** - trocar fonte de dados para banco local; adicionar banner de mudancas detectadas; exibir ultima sync
-4. **`src/hooks/useProxyBR.ts`** - adicionar hook para verificacao rapida de contagem
-
-### Resultado esperado
-
-- Pagina carrega **instantaneamente** com dados do banco local
-- Mostra data da ultima sincronizacao
-- Verifica automaticamente se ha mudancas e avisa o admin
-- Sync so acontece quando o admin clica no botao (ou quando mudancas sao detectadas)
-- Dados completos (proxy, produto, credenciais) preservados no `raw_data`
+### Consideracao importante
+A API ProxyBR tem limite de requisicoes? Se sim, um intervalo de 10 minutos faz ~144 syncs/dia. Se o limite for baixo, podemos aumentar o intervalo para 30 minutos (~48 syncs/dia).
 
