@@ -71,12 +71,16 @@ function mapStatus(sub: { status: string; end_date: string }): MappedStatus {
 }
 
 function enrichSub(sub: Record<string, unknown>): EnrichedSubscription {
-  const s = sub as { code: string; name: string; product_name?: string; status: string; start_date: string; end_date: string; auto_renew?: boolean; quantity?: number; proxy?: EnrichedSubscription["proxy"] };
+  const s = sub as { code: string; name: string; product_name?: string; status: string; start_date?: string; end_date?: string; auto_renew?: boolean; quantity?: number; proxy?: EnrichedSubscription["proxy"] };
   const now = new Date();
-  const endDate = parseISO(s.end_date);
-  const startDate = parseISO(s.start_date);
+
+  // Safely handle missing dates
+  const endDateStr = s.end_date || s.start_date || new Date().toISOString();
+  const startDateStr = s.start_date || new Date().toISOString();
+  const endDate = parseISO(endDateStr);
+  const startDate = parseISO(startDateStr);
   const daysLeft = differenceInDays(endDate, now);
-  const mapped = mapStatus(s);
+  const mapped = s.end_date ? mapStatus({ status: s.status, end_date: endDateStr }) : "active" as MappedStatus;
 
   let daysLabel = "";
   if (mapped === "expired") daysLabel = "Expirado";
@@ -85,6 +89,8 @@ function enrichSub(sub: Record<string, unknown>): EnrichedSubscription {
 
   return {
     ...s,
+    start_date: startDateStr,
+    end_date: endDateStr,
     mappedStatus: mapped,
     daysRemaining: Math.max(0, daysLeft),
     daysExpired: daysLeft < 0 ? Math.abs(daysLeft) : 0,
