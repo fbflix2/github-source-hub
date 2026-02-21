@@ -48,6 +48,7 @@ import AdminPlataforma from "./pages/admin/AdminPlataforma";
 import AdminApi from "./pages/admin/AdminApi";
 import AdminAssinaturas from "./pages/admin/AdminAssinaturas";
 import AdminPagamentos from "./pages/admin/AdminPagamentos";
+import AdminPedidos from "./pages/admin/AdminPedidos";
 import { AdminLayout } from "./components/admin/AdminLayout";
 
 // Layout
@@ -162,7 +163,7 @@ const App = () => {
                   <Route path="auditoria" element={<AdminAuditoria />} />
                   <Route path="auditoria/nova-compra" element={<AdminNovaCompra />} />
                   <Route path="auditoria/balanco" element={<AdminBalanco />} />
-                  <Route path="pedidos" element={<AdminDashboard />} />
+                  <Route path="pedidos" element={<AdminPedidos />} />
                   <Route path="pagamentos" element={<AdminPagamentos />} />
                   <Route path="assinaturas" element={<AdminAssinaturas />} />
                   <Route path="clientes" element={<AdminClientes />} />
