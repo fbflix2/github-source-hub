@@ -46,7 +46,7 @@ export default function AdminAuditoria() {
       supabase
         .from("orders")
         .select("total, updated_at")
-        .in("status", ["completed", "delivered", "processing"])
+        .in("status", ["completed", "delivered"])
         .gte("created_at", since),
       supabase
         .from("purchases")
