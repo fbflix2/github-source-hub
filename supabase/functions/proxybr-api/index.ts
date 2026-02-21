@@ -17,14 +17,15 @@ async function proxyFetch(url: string, apiKey: string, method = "GET", body?: st
   return fetch(url, { method, headers, body: body || undefined });
 }
 
-async function fetchAllSubscriptions(apiKey: string) {
-  // Try fetching with pagination - ProxyBR may return paginated or flat array
+async function fetchAllSubscriptions(apiKey: string, statusFilter?: string) {
   let allSubs: any[] = [];
   let page = 1;
-  const maxPages = 50; // safety limit
+  const perPage = 100;
+  const maxPages = 100; // safety limit
 
   while (page <= maxPages) {
-    const url = `${PROXYBR_BASE}/subscriptions?page=${page}`;
+    let url = `${PROXYBR_BASE}/subscriptions?page=${page}&per_page=${perPage}`;
+    if (statusFilter) url += `&status=${statusFilter}`;
     console.log(`Fetching subscriptions page ${page}: ${url}. Total so far: ${allSubs.length}`);
     const response = await proxyFetch(url, apiKey);
     const text = await response.text();
@@ -37,24 +38,22 @@ async function fetchAllSubscriptions(apiKey: string) {
     let parsed: any;
     try { parsed = JSON.parse(text); } catch { throw new Error("Invalid JSON from ProxyBR"); }
 
-    // API may return { data: [...], last_page: N } or just an array
     if (Array.isArray(parsed)) {
-      if (parsed.length > 0) {
-        // Log first sub keys and customer field to understand structure
+      if (page === 1 && parsed.length > 0) {
         const first = parsed[0];
         console.log(`First sub keys: ${Object.keys(first).join(', ')}`);
-        if (first.customer) console.log(`Customer field: ${JSON.stringify(first.customer)}`);
-        if (first.client) console.log(`Client field: ${JSON.stringify(first.client)}`);
       }
       allSubs = [...allSubs, ...parsed];
-      break; // flat array = no pagination
+      // If array returned fewer items than perPage, we've reached the end
+      if (parsed.length < perPage) break;
+      page++;
     } else if (parsed?.data && Array.isArray(parsed.data)) {
       allSubs = [...allSubs, ...parsed.data];
       const lastPage = parsed.last_page || parsed.meta?.last_page || 1;
+      console.log(`Paginated response: page ${page}/${lastPage}, got ${parsed.data.length} items`);
       if (page >= lastPage) break;
       page++;
     } else {
-      // Unknown format, return as-is
       allSubs = [parsed];
       break;
     }
@@ -151,7 +150,8 @@ Deno.serve(async (req) => {
 
     // Handle the new get-all-subscriptions action
     if (action === "get-all-subscriptions") {
-      const allSubs = await fetchAllSubscriptions(PROXYBR_API_KEY);
+      const statusFilter = (params as any).status || undefined;
+      const allSubs = await fetchAllSubscriptions(PROXYBR_API_KEY, statusFilter);
       return new Response(
         JSON.stringify(allSubs),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
