@@ -94,7 +94,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     async function fetchStats() {
       const [profilesRes, transactionsRes, balanceRes, productsRes, ordersRes, orderItemsRes, categoriesRes, pendingPaymentsRes] = await Promise.all([
-        supabase.from("profiles").select("id", { count: "exact", head: true }),
+        supabase.from("profiles").select("id", { count: "exact", head: true }).limit(0),
         supabase.from("wallet_transactions").select("id", { count: "exact", head: true }),
         supabase.from("profiles").select("balance"),
         supabase.from("products").select("id, available"),

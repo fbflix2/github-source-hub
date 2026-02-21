@@ -56,22 +56,39 @@ export default function AdminClientes() {
   const fetchClients = async () => {
     setLoading(true);
 
-    // Fetch profiles with auth emails
-    const [profilesRes, subsRes] = await Promise.all([
-      supabase.from("profiles").select("*").order("created_at", { ascending: false }),
-      supabase.from("subscriptions").select("user_id, status").eq("status", "active"),
-    ]);
+    // Fetch ALL profiles by paginating (Supabase default limit is 1000)
+    let allProfiles: any[] = [];
+    let from = 0;
+    const pageSize = 1000;
+    let hasMore = true;
+    while (hasMore) {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .range(from, from + pageSize - 1);
+      if (error || !data || data.length === 0) {
+        hasMore = false;
+      } else {
+        allProfiles = allProfiles.concat(data);
+        from += pageSize;
+        if (data.length < pageSize) hasMore = false;
+      }
+    }
 
-    const profiles = profilesRes.data || [];
-    const activeSubs = subsRes.data || [];
-    const activeSubUserIds = new Set(activeSubs.map(s => s.user_id));
+    const { data: activeSubs } = await supabase
+      .from("subscriptions")
+      .select("user_id, status")
+      .eq("status", "active");
+
+    const activeSubUserIds = new Set((activeSubs || []).map(s => s.user_id));
 
     // Build client list
-    const clientList: Client[] = profiles.map((p) => ({
+    const clientList: Client[] = allProfiles.map((p) => ({
       id: p.id,
       user_id: p.user_id,
       full_name: p.full_name,
-      email: "", // Will be populated if possible
+      email: "",
       phone: p.phone,
       balance: p.balance ?? 0,
       status: p.status ?? "active",
@@ -83,7 +100,7 @@ export default function AdminClientes() {
     setClients(clientList);
     setTotalClients(clientList.length);
     setClientsWithBalance(clientList.filter(c => c.balance > 0).length);
-    setActiveSubscriptions(activeSubs.length);
+    setActiveSubscriptions((activeSubs || []).length);
     setLoading(false);
   };
 
