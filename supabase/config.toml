@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.import-clients]
 verify_jwt = false
+
+[functions.proxybr-api]
+verify_jwt = false

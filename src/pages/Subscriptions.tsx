@@ -1,112 +1,102 @@
 import { useState } from "react";
+import { useProxyBRSubscriptions, useRenewSubscription, useExchangeProxy } from "@/hooks/useProxyBR";
+import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
+import { differenceInDays, parseISO, format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import SubscriptionCard from "@/components/subscriptions/SubscriptionCard";
+import SubscriptionDetailModal from "@/components/subscriptions/SubscriptionDetailModal";
 
-type SubscriptionStatus = "active" | "expiring" | "cancelled" | "expired";
+export type SubscriptionStatus = "active" | "expiring" | "cancelled" | "expired";
 
-interface Subscription {
-  id: number;
+export interface ProxySubscription {
+  code: string;
   name: string;
-  type: string;
-  icon: string;
-  status: SubscriptionStatus;
-  daysRemaining?: number;
-  daysExpired?: number;
-  startDate: string;
-  endDate: string;
-  progressPercent: number;
+  product_name?: string;
+  status: string;
+  start_date: string;
+  end_date: string;
+  proxy?: {
+    id: number;
+    ip: string;
+    port: number;
+    username?: string;
+    password?: string;
+    protocol?: string;
+  };
+  [key: string]: unknown;
 }
 
-const subscriptions: Subscription[] = [
-  {
-    id: 1,
-    name: "Proxy DC USA",
-    type: "Datacenter Premium",
-    icon: "dns",
-    status: "expiring",
-    daysRemaining: 2,
-    startDate: "01 Out 2023",
-    endDate: "01 Nov 2023",
-    progressPercent: 95,
-  },
-  {
-    id: 2,
-    name: "Residencial BR",
-    type: "IP Residencial SP",
-    icon: "router",
-    status: "active",
-    daysRemaining: 25,
-    startDate: "15 Out 2023",
-    endDate: "15 Nov 2023",
-    progressPercent: 30,
-  },
-  {
-    id: 3,
-    name: "Mobile 4G RJ",
-    type: "Rotação Automática",
-    icon: "wifi_tethering",
-    status: "active",
-    daysRemaining: 12,
-    startDate: "10 Out 2023",
-    endDate: "10 Nov 2023",
-    progressPercent: 60,
-  },
-  {
-    id: 4,
-    name: "Proxy UK Static",
-    type: "Datacenter",
-    icon: "public",
-    status: "expired",
-    daysExpired: 5,
-    startDate: "01 Set 2023",
-    endDate: "01 Out 2023",
-    progressPercent: 0,
-  },
-];
+function mapStatus(sub: ProxySubscription): SubscriptionStatus {
+  const now = new Date();
+  const endDate = parseISO(sub.end_date);
+  const daysLeft = differenceInDays(endDate, now);
 
-const filters = [
-  { key: "all", label: "Todas", count: 8 },
-  { key: "active", label: "Ativas", count: 2 },
-  { key: "expiring", label: "Vencendo", count: 1, isWarning: true },
-  { key: "cancelled", label: "Canceladas", count: 0 },
-  { key: "expired", label: "Expiradas", count: 5 },
-];
+  if (sub.status === "cancelled") return "cancelled";
+  if (daysLeft < 0) return "expired";
+  if (daysLeft <= 3) return "expiring";
+  return "active";
+}
+
+function getDaysInfo(sub: ProxySubscription) {
+  const now = new Date();
+  const endDate = parseISO(sub.end_date);
+  const startDate = parseISO(sub.start_date);
+  const totalDays = differenceInDays(endDate, startDate);
+  const daysLeft = differenceInDays(endDate, now);
+  const elapsed = totalDays - daysLeft;
+  const progressPercent = totalDays > 0 ? Math.min(100, Math.max(0, (elapsed / totalDays) * 100)) : 0;
+
+  return {
+    daysRemaining: Math.max(0, daysLeft),
+    daysExpired: daysLeft < 0 ? Math.abs(daysLeft) : 0,
+    progressPercent,
+    formattedStart: format(startDate, "dd MMM yyyy", { locale: ptBR }),
+    formattedEnd: format(endDate, "dd MMM yyyy", { locale: ptBR }),
+  };
+}
 
 export default function Subscriptions() {
   const [activeFilter, setActiveFilter] = useState<string>("all");
+  const [selectedSub, setSelectedSub] = useState<ProxySubscription | null>(null);
+  const { data: subscriptionsRaw, isLoading, error } = useProxyBRSubscriptions();
+  const renewMutation = useRenewSubscription();
 
-  const filteredSubscriptions = subscriptions.filter((sub) => {
+  const subscriptions: ProxySubscription[] = Array.isArray(subscriptionsRaw?.data)
+    ? subscriptionsRaw.data
+    : Array.isArray(subscriptionsRaw)
+    ? subscriptionsRaw
+    : [];
+
+  const enriched = subscriptions.map((sub) => ({
+    ...sub,
+    mappedStatus: mapStatus(sub),
+    ...getDaysInfo(sub),
+  }));
+
+  const counts = {
+    all: enriched.length,
+    active: enriched.filter((s) => s.mappedStatus === "active").length,
+    expiring: enriched.filter((s) => s.mappedStatus === "expiring").length,
+    cancelled: enriched.filter((s) => s.mappedStatus === "cancelled").length,
+    expired: enriched.filter((s) => s.mappedStatus === "expired").length,
+  };
+
+  const filters = [
+    { key: "all", label: "Todas", count: counts.all },
+    { key: "active", label: "Ativas", count: counts.active },
+    { key: "expiring", label: "Vencendo", count: counts.expiring, isWarning: true },
+    { key: "cancelled", label: "Canceladas", count: counts.cancelled },
+    { key: "expired", label: "Expiradas", count: counts.expired },
+  ];
+
+  const filtered = enriched.filter((s) => {
     if (activeFilter === "all") return true;
-    return sub.status === activeFilter;
+    return s.mappedStatus === activeFilter;
   });
 
-  const getStatusBadge = (status: SubscriptionStatus) => {
-    switch (status) {
-      case "expiring":
-        return (
-          <span className="bg-danger/10 text-danger border border-danger/20 text-[10px] uppercase font-bold px-2 py-1 rounded-md tracking-wide">
-            Crítico
-          </span>
-        );
-      case "active":
-        return (
-          <span className="bg-green-500/10 text-green-500 border border-green-500/20 text-[10px] uppercase font-bold px-2 py-1 rounded-md tracking-wide">
-            Ativo
-          </span>
-        );
-      case "expired":
-        return (
-          <span className="bg-muted text-text-secondary border border-border text-[10px] uppercase font-bold px-2 py-1 rounded-md tracking-wide">
-            Expirado
-          </span>
-        );
-      case "cancelled":
-        return (
-          <span className="bg-muted text-text-secondary border border-border text-[10px] uppercase font-bold px-2 py-1 rounded-md tracking-wide">
-            Cancelado
-          </span>
-        );
-      default:
-        return null;
-    }
+  const handleRenew = (code: string) => {
+    renewMutation.mutate(code);
   };
 
   return (
@@ -117,10 +107,13 @@ export default function Subscriptions() {
           <h1 className="text-3xl md:text-4xl font-black text-foreground tracking-tight">Minhas Assinaturas</h1>
           <p className="text-text-secondary text-base">Gerencie seus planos de proxy e renovações automáticas.</p>
         </div>
-        <button className="bg-primary hover:bg-[#00c968] text-background h-11 px-6 rounded-lg text-sm font-bold flex items-center gap-2 transition-all shadow-glow hover:shadow-glow-lg">
+        <a
+          href="/loja"
+          className="bg-primary hover:bg-[#00c968] text-background h-11 px-6 rounded-lg text-sm font-bold flex items-center gap-2 transition-all shadow-glow hover:shadow-glow-lg"
+        >
           <span className="material-symbols-outlined">add_shopping_cart</span>
           Nova Assinatura
-        </button>
+        </a>
       </div>
 
       {/* Stats Cards */}
@@ -131,18 +124,22 @@ export default function Subscriptions() {
           </div>
           <div>
             <p className="text-text-secondary text-xs uppercase font-semibold tracking-wider">Ativas</p>
-            <p className="text-foreground text-2xl font-bold">2 Assinaturas</p>
+            <p className="text-foreground text-2xl font-bold">
+              {isLoading ? <Skeleton className="h-8 w-20" /> : `${counts.active} Assinatura${counts.active !== 1 ? "s" : ""}`}
+            </p>
           </div>
         </div>
-        <div className="glass-panel rounded-xl p-5 flex items-center gap-4 border-danger/30 bg-danger/5">
-          <div className="w-10 h-10 rounded-lg bg-danger/10 flex items-center justify-center text-danger">
-            <span className="material-symbols-outlined">priority_high</span>
+        {counts.expiring > 0 && (
+          <div className="glass-panel rounded-xl p-5 flex items-center gap-4 border-danger/30 bg-danger/5">
+            <div className="w-10 h-10 rounded-lg bg-danger/10 flex items-center justify-center text-danger">
+              <span className="material-symbols-outlined">priority_high</span>
+            </div>
+            <div>
+              <p className="text-danger/80 text-xs uppercase font-semibold tracking-wider">Atenção</p>
+              <p className="text-foreground text-2xl font-bold">{counts.expiring} Vencendo</p>
+            </div>
           </div>
-          <div>
-            <p className="text-danger/80 text-xs uppercase font-semibold tracking-wider">Atenção</p>
-            <p className="text-foreground text-2xl font-bold">1 Vencendo</p>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Filters */}
@@ -187,112 +184,46 @@ export default function Subscriptions() {
         </div>
       </div>
 
+      {/* Loading */}
+      {isLoading && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-72 rounded-2xl" />
+          ))}
+        </div>
+      )}
+
+      {/* Error */}
+      {error && (
+        <div className="text-center py-12">
+          <span className="material-symbols-outlined text-[48px] text-danger mb-4">error</span>
+          <p className="text-danger font-bold">Erro ao carregar assinaturas</p>
+          <p className="text-text-secondary text-sm mt-1">{(error as Error).message}</p>
+        </div>
+      )}
+
       {/* Subscription Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {filteredSubscriptions.map((sub) => (
-          <div
-            key={sub.id}
-            className={`glass-card rounded-2xl p-6 flex flex-col gap-6 relative overflow-hidden group ${
-              sub.status === "expired" ? "opacity-75 hover:opacity-100 transition-opacity" : ""
-            }`}
-          >
-            {/* Critical indicator bar */}
-            {sub.status === "expiring" && (
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-danger to-orange-500"></div>
-            )}
+      {!isLoading && !error && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {filtered.map((sub) => (
+            <SubscriptionCard
+              key={sub.code}
+              subscription={sub}
+              status={sub.mappedStatus}
+              daysRemaining={sub.daysRemaining}
+              daysExpired={sub.daysExpired}
+              progressPercent={sub.progressPercent}
+              formattedStart={sub.formattedStart}
+              formattedEnd={sub.formattedEnd}
+              onRenew={() => handleRenew(sub.code)}
+              onManage={() => setSelectedSub(sub)}
+              isRenewing={renewMutation.isPending}
+            />
+          ))}
+        </div>
+      )}
 
-            {/* Header */}
-            <div className="flex justify-between items-start">
-              <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-lg bg-muted flex items-center justify-center border border-border ${
-                  sub.status === "expired" ? "text-text-secondary" : "text-foreground"
-                }`}>
-                  <span className="material-symbols-outlined">{sub.icon}</span>
-                </div>
-                <div>
-                  <h3 className="text-foreground font-bold text-lg leading-tight">{sub.name}</h3>
-                  <span className="text-text-secondary text-xs">{sub.type}</span>
-                </div>
-              </div>
-              {getStatusBadge(sub.status)}
-            </div>
-
-            {/* Status Info */}
-            <div className="flex flex-col gap-1">
-              {sub.status === "expiring" && (
-                <div className="flex items-center gap-2 text-danger">
-                  <span className="material-symbols-outlined text-sm">timer</span>
-                  <span className="text-sm font-bold">Vence em {sub.daysRemaining} dias</span>
-                </div>
-              )}
-              {sub.status === "active" && (
-                <div className="flex items-center gap-2 text-green-500">
-                  <span className="material-symbols-outlined text-sm">check_circle</span>
-                  <span className="text-sm font-bold">{sub.daysRemaining} dias restantes</span>
-                </div>
-              )}
-              {sub.status === "expired" && (
-                <div className="flex items-center gap-2 text-text-secondary">
-                  <span className="material-symbols-outlined text-sm">event_busy</span>
-                  <span className="text-sm font-bold">Expirou há {sub.daysExpired} dias</span>
-                </div>
-              )}
-              
-              {/* Progress Bar */}
-              <div className={`w-full h-1.5 rounded-full mt-1 overflow-hidden ${
-                sub.status === "expired" ? "bg-muted" : "bg-muted"
-              }`}>
-                {sub.progressPercent > 0 && (
-                  <div
-                    className={`h-full rounded-full ${
-                      sub.status === "expiring" ? "bg-danger" : "bg-green-500"
-                    }`}
-                    style={{ width: `${sub.progressPercent}%` }}
-                  ></div>
-                )}
-              </div>
-            </div>
-
-            {/* Dates */}
-            <div className="flex flex-col gap-3 pt-2 border-t border-glass-border">
-              <div className="flex justify-between text-xs">
-                <span className="text-text-secondary">Início</span>
-                <span className={sub.status === "expired" ? "text-text-secondary/70" : "text-foreground font-medium"}>
-                  {sub.startDate}
-                </span>
-              </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-text-secondary">Vencimento</span>
-                <span className={sub.status === "expired" ? "text-text-secondary/70" : "text-foreground font-medium"}>
-                  {sub.endDate}
-                </span>
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex gap-2 mt-auto">
-              {sub.status === "expiring" && (
-                <button className="flex-1 bg-danger hover:bg-red-600 text-danger-foreground h-10 rounded-lg text-sm font-bold transition-all shadow-[0_0_15px_rgba(255,59,48,0.3)] hover:shadow-[0_0_20px_rgba(255,59,48,0.5)]">
-                  Renovar Agora
-                </button>
-              )}
-              {sub.status === "active" && (
-                <button className="flex-1 border border-border hover:border-foreground text-foreground bg-transparent hover:bg-muted h-10 rounded-lg text-sm font-bold transition-all">
-                  Gerenciar
-                </button>
-              )}
-              {sub.status === "expired" && (
-                <button className="flex-1 border border-glass-border hover:border-primary hover:text-primary text-text-secondary bg-transparent h-10 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2">
-                  <span className="material-symbols-outlined text-lg">replay</span>
-                  Reativar
-                </button>
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {filteredSubscriptions.length === 0 && (
+      {!isLoading && !error && filtered.length === 0 && (
         <div className="text-center py-12">
           <span className="material-symbols-outlined text-[48px] text-text-secondary mb-4">inbox</span>
           <p className="text-text-secondary">Nenhuma assinatura encontrada com este filtro.</p>
@@ -301,19 +232,29 @@ export default function Subscriptions() {
 
       {/* CTA Banner */}
       <div className="w-full mt-8 rounded-2xl glass-card border border-primary/20 p-8 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
-        {/* Decorative background */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
-        
         <div className="flex flex-col gap-3 z-10">
           <h2 className="text-2xl font-bold text-foreground">Precisa de mais performance?</h2>
           <p className="text-text-secondary max-w-xl">
             Nossos novos planos de Proxy Residencial Rotativo oferecem IPs limpos e alta velocidade para suas operações.
           </p>
         </div>
-        <button className="z-10 whitespace-nowrap bg-primary hover:bg-[#00c968] text-background h-12 px-8 rounded-xl text-base font-bold transition-all shadow-lg hover:shadow-primary/20">
+        <a
+          href="/loja"
+          className="z-10 whitespace-nowrap bg-primary hover:bg-[#00c968] text-background h-12 px-8 rounded-xl text-base font-bold transition-all shadow-lg hover:shadow-primary/20 flex items-center"
+        >
           Conhecer Novos Planos
-        </button>
+        </a>
       </div>
+
+      {/* Detail Modal */}
+      {selectedSub && (
+        <SubscriptionDetailModal
+          subscription={selectedSub}
+          open={!!selectedSub}
+          onClose={() => setSelectedSub(null)}
+        />
+      )}
     </div>
   );
 }
