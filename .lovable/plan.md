@@ -1,34 +1,36 @@
 
+## Proteção de Dados Sensíveis na Pagina de Detalhes do Item
 
-## Solucao: Campo de Foto do Perfil Manual
+### O que muda
 
-### Problema
-O Facebook nao permite mais acessar fotos de perfil via `graph.facebook.com/{id}/picture` sem um token de aplicativo (App Access Token). A API retorna uma silhueta generica em vez da foto real, e como a imagem carrega sem erro, o fallback nunca e acionado.
+1. **Token 2FA oculto por padrao** -- igual a senha, exibido como "dots" com botao de olho para revelar.
 
-### Solucao
-Adicionar um campo `foto_url` no formulario de cadastro/edicao do perfil, onde o admin pode colar a URL direta da foto do perfil do Facebook (copiada manualmente do navegador). Essa URL sera salva no campo `data` (JSON) do item e usada como avatar no estoque.
+2. **Disclaimer de aceite obrigatorio** -- um dialogo (modal) aparece antes de permitir:
+   - Revelar o token 2FA
+   - Copiar cookies
+   - Baixar bloco
+   
+   O usuario precisa marcar um checkbox confirmando que esta ciente da politica de nao-estorno.
 
-### Alteracoes
-
-**1. `src/pages/admin/AdminBlocagem.tsx`**
-- Adicionar campo "URL da Foto do Perfil" (opcional) no formulario de perfil
-- Salvar o valor em `data.foto_url`
-
-**2. `src/components/admin/EditStockItemModal.tsx`**
-- Adicionar campo "URL da Foto do Perfil" no modal de edicao
-- Carregar e salvar `data.foto_url`
-
-**3. `src/pages/admin/AdminEstoque.tsx`**
-- Na coluna TIPO/NOME, para itens do tipo `perfil`:
-  - Verificar se `item.data?.foto_url` existe
-  - Se sim, usar essa URL como `src` da imagem (com fallback para icone)
-  - Remover a tentativa de usar `graph.facebook.com` (nao funciona mais sem token)
-  - Manter o fallback com icone `UserRound` caso a foto nao carregue
-
-### Como o admin obtem a URL da foto
-O admin pode clicar com botao direito na foto do perfil no Facebook e copiar o endereco da imagem. Essa URL direta funciona como `src` de uma tag `<img>`.
+3. **Texto do disclaimer (4-6 linhas)**:
+   > Ao revelar o codigo 2FA, copiar cookies ou baixar os dados deste item, voce reconhece que teve acesso completo as credenciais do perfil adquirido. A partir deste momento, estornos nao serao aceitos, exceto em casos de problemas tecnicos com o item que nao possam ser resolvidos pelo suporte. Ao prosseguir, voce declara estar ciente e de acordo com estes termos.
 
 ### Detalhes tecnicos
-- O campo `foto_url` e armazenado no JSONB `data` existente, sem necessidade de alterar o schema do banco
-- Fallback com `onError` continua funcionando caso a URL expire ou fique invalida
-- Campo e opcional, nao impacta perfis ja cadastrados
+
+**Arquivo:** `src/pages/ItemDetails.tsx`
+
+- Novo estado `showToken` (boolean) -- controla visibilidade do 2FA, igual ao `showPassword`.
+- Novo estado `acceptedDisclaimer` (boolean) -- desbloqueado apos aceite no modal.
+- Novo estado `showDisclaimer` (boolean) -- controla abertura do modal.
+
+**Fluxo de interacao:**
+- Token 2FA renderizado como `"•••••••••"` por padrao, com botao de olho.
+- Ao clicar no olho do token, copiar cookies ou baixar bloco:
+  - Se `acceptedDisclaimer === false` --> abre o modal de disclaimer.
+  - Se `acceptedDisclaimer === true` --> executa a acao normalmente.
+- No modal: checkbox + texto do disclaimer + botao "Concordo e Desejo Continuar" (desabilitado ate marcar o checkbox).
+- Apos aceite, o estado `acceptedDisclaimer` fica `true` para a sessao e a acao pendente e executada automaticamente.
+
+**Modal:** Usar `AlertDialog` do shadcn/ui ja instalado no projeto, mantendo consistencia visual.
+
+**Botoes "Copiar Cookies" e "Baixar Bloco":** Ficam visiveis mas disparam o disclaimer se ainda nao aceito. Apos aceite, funcionam normalmente.
