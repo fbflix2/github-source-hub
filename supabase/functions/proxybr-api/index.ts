@@ -376,6 +376,7 @@ Deno.serve(async (req) => {
                 name: code, type: "proxybr", status: mappedStatus,
                 start_date: startDateStr, end_date: endDateStr,
                 auto_renew: sub.auto_renew_active ?? false,
+                raw_data: sub,
               };
 
               const { data: existing } = await supabaseAdmin
@@ -430,6 +431,33 @@ Deno.serve(async (req) => {
 
       return new Response(
         JSON.stringify({ status: "started", message: "Sincronização iniciada em segundo plano" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Quick count check - lightweight, only fetches page 1 to get total
+    if (action === "check-subscription-count") {
+      const url = `${PROXYBR_BASE}/subscriptions?page=1`;
+      const resp = await proxyFetch(url, PROXYBR_API_KEY);
+      const text = await resp.text();
+      if (!resp.ok) throw new Error(`ProxyBR API error [${resp.status}]`);
+      let parsed: any;
+      try { parsed = JSON.parse(text); } catch { throw new Error("Invalid JSON from ProxyBR"); }
+      
+      // Try to get total from paginated response or array length
+      let apiTotal = 0;
+      if (parsed?.total) apiTotal = parsed.total;
+      else if (parsed?.meta?.total) apiTotal = parsed.meta.total;
+      else if (Array.isArray(parsed)) {
+        // If array, we need last_page info - estimate from first page
+        // This is a rough estimate; the real total comes from pagination metadata
+        apiTotal = parsed.length; // At least this many
+      } else if (parsed?.data) {
+        apiTotal = parsed.total || parsed.meta?.total || parsed.data.length;
+      }
+
+      return new Response(
+        JSON.stringify({ apiTotal }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

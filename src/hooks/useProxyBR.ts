@@ -114,6 +114,15 @@ export function useExchangeProxy() {
   });
 }
 
+export function useCheckSubscriptionCount() {
+  return useQuery({
+    queryKey: ["proxybr-check-count"],
+    queryFn: () => callProxyBR("check-subscription-count"),
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  });
+}
+
 export function useContractSubscription() {
   const queryClient = useQueryClient();
   return useMutation({
