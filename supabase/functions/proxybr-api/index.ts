@@ -360,11 +360,14 @@ Deno.serve(async (req) => {
               const apiStatus = rawStatus.toLowerCase().trim();
 
               let mappedStatus = "active";
-              if (["cancelled", "cancelado", "canceled"].includes(apiStatus)) mappedStatus = "cancelled";
+              if (["cancelled", "cancelado", "canceled", "not active"].includes(apiStatus)) mappedStatus = "cancelled";
               else if (["expired", "vencido", "expirado"].includes(apiStatus)) mappedStatus = "expired";
               else if (["pending_renewal", "renovação pendente", "renewal_pending", "pending", "pendente"].includes(apiStatus)) mappedStatus = "pending_renewal";
-              else if (["active", "ativo", "enabled"].includes(apiStatus)) mappedStatus = "active";
-              else {
+              else if (["active", "ativo", "enabled"].includes(apiStatus)) {
+                const endMs = new Date(endDateStr).getTime();
+                if (endMs < Date.now()) mappedStatus = "expired";
+                else mappedStatus = "active";
+              } else {
                 console.warn(`Unknown ProxyBR status: "${sub.status}" (normalized: "${apiStatus}")`);
                 mappedStatus = "active";
               }
