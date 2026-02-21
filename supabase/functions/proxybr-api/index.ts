@@ -8,6 +8,75 @@ const corsHeaders = {
 
 const PROXYBR_BASE = "https://painel.proxybr.com.br/api";
 
+async function proxyFetch(url: string, apiKey: string, method = "GET", body?: string) {
+  const headers: Record<string, string> = {
+    "Accept": "application/json",
+    "X-API-Key": apiKey,
+  };
+  if (body) headers["Content-Type"] = "application/json";
+  return fetch(url, { method, headers, body: body || undefined });
+}
+
+async function fetchAllSubscriptions(apiKey: string) {
+  // Try fetching with pagination - ProxyBR may return paginated or flat array
+  let allSubs: any[] = [];
+  let page = 1;
+  const maxPages = 50; // safety limit
+
+  while (page <= maxPages) {
+    const url = `${PROXYBR_BASE}/subscriptions?page=${page}`;
+    console.log(`Fetching subscriptions page ${page}: ${url}`);
+    const response = await proxyFetch(url, apiKey);
+    const text = await response.text();
+
+    if (!response.ok) {
+      console.error(`ProxyBR error [${response.status}]: ${text.substring(0, 300)}`);
+      throw new Error(`ProxyBR API error [${response.status}]`);
+    }
+
+    let parsed: any;
+    try { parsed = JSON.parse(text); } catch { throw new Error("Invalid JSON from ProxyBR"); }
+
+    // API may return { data: [...], last_page: N } or just an array
+    if (Array.isArray(parsed)) {
+      allSubs = [...allSubs, ...parsed];
+      break; // flat array = no pagination
+    } else if (parsed?.data && Array.isArray(parsed.data)) {
+      allSubs = [...allSubs, ...parsed.data];
+      const lastPage = parsed.last_page || parsed.meta?.last_page || 1;
+      if (page >= lastPage) break;
+      page++;
+    } else {
+      // Unknown format, return as-is
+      allSubs = [parsed];
+      break;
+    }
+  }
+
+  console.log(`Total subscriptions fetched: ${allSubs.length}`);
+
+  // Parse proxy codes into structured objects
+  return allSubs.map((sub: any) => {
+    if (sub.proxies?.data && Array.isArray(sub.proxies.data)) {
+      sub.proxies.data = sub.proxies.data.map((p: any) => {
+        if (p.code && typeof p.code === "string") {
+          const parts = p.code.split(":");
+          if (parts.length >= 4) {
+            p.parsed = {
+              ip: parts[0],
+              port: parseInt(parts[1], 10),
+              username: parts[2],
+              password: parts[3],
+            };
+          }
+        }
+        return p;
+      });
+    }
+    return sub;
+  });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -33,6 +102,15 @@ Deno.serve(async (req) => {
     if (!user) throw new Error("Não autorizado");
 
     const { action, ...params } = await req.json();
+
+    // Handle the new get-all-subscriptions action
+    if (action === "get-all-subscriptions") {
+      const allSubs = await fetchAllSubscriptions(PROXYBR_API_KEY);
+      return new Response(
+        JSON.stringify(allSubs),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     let url: string;
     let method = "GET";
@@ -85,22 +163,9 @@ Deno.serve(async (req) => {
         throw new Error(`Ação desconhecida: ${action}`);
     }
 
-    const proxyHeaders: Record<string, string> = {
-      "Accept": "application/json",
-      "X-API-Key": PROXYBR_API_KEY,
-    };
-    if (body) {
-      proxyHeaders["Content-Type"] = "application/json";
-    }
-
     console.log(`ProxyBR API call: ${method} ${url}`);
 
-    const response = await fetch(url, {
-      method,
-      headers: proxyHeaders,
-      body: body || undefined,
-    });
-
+    const response = await proxyFetch(url, PROXYBR_API_KEY, method, body);
     const responseText = await response.text();
     console.log(`ProxyBR response [${response.status}]: ${responseText.substring(0, 500)}`);
 

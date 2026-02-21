@@ -19,6 +19,14 @@ export function useProxyBRSubscriptions() {
   });
 }
 
+export function useProxyBRAllSubscriptions() {
+  return useQuery({
+    queryKey: ["proxybr-all-subscriptions"],
+    queryFn: () => callProxyBR("get-all-subscriptions"),
+    staleTime: 30_000,
+  });
+}
+
 export function useProxyBRProducts() {
   return useQuery({
     queryKey: ["proxybr-products"],
