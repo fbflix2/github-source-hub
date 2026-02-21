@@ -289,7 +289,44 @@ export default function Checkout() {
             if (bump) orderItems.push({ order_id: order.id, name: bump.name, price: bump.price, quantity: 1 });
           });
         }
-        await supabase.from("order_items").insert(orderItems);
+        const { data: createdOrderItems } = await supabase.from("order_items").insert(orderItems).select("id, product_id");
+
+        // Fulfill: link stock_items and decrement product stock
+        if (createdOrderItems) {
+          for (const oi of createdOrderItems) {
+            if (!oi.product_id) continue;
+
+            // Find an available stock_item for this product
+            const { data: stockItem } = await supabase
+              .from("stock_items")
+              .select("id, data")
+              .eq("product_id", oi.product_id)
+              .eq("status", "revisado")
+              .is("order_item_id", null)
+              .limit(1)
+              .maybeSingle();
+
+            if (stockItem) {
+              // Link stock_item to order_item
+              await supabase.from("stock_items").update({ order_item_id: oi.id, status: "vendido" }).eq("id", stockItem.id);
+
+              // Copy delivery data to order_item
+              if (stockItem.data) {
+                await supabase.from("order_items").update({ delivery_data: stockItem.data }).eq("id", oi.id);
+              }
+            }
+
+            // Decrement product stock
+            const { data: prod } = await supabase.from("products").select("stock").eq("id", oi.product_id).single();
+            if (prod) {
+              const newStock = Math.max(0, prod.stock - 1);
+              await supabase.from("products").update({
+                stock: newStock,
+                available: newStock > 0,
+              }).eq("id", oi.product_id);
+            }
+          }
+        }
 
         const newBalance = profile.balance - total;
         await supabase.from("profiles").update({ balance: newBalance }).eq("user_id", user.id);

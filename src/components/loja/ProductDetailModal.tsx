@@ -148,7 +148,7 @@ export function ProductDetailModal({ product, open, onOpenChange, quantity, onQu
               )}
             </div>
 
-            {product.available ? (
+            {product.available && product.stock > 0 ? (
               <div className="flex items-center gap-3">
                 <div className="flex items-center bg-secondary rounded-lg border border-border h-10 px-1">
                   <button

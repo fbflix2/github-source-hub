@@ -89,29 +89,28 @@ export default function AdminEstoque() {
       };
     });
 
-    // Insert products
-    const { error: productError } = await supabase
+    // Insert products and get back IDs
+    const { data: createdProducts, error: productError } = await supabase
       .from("products")
-      .insert(productsToCreate);
+      .insert(productsToCreate)
+      .select("id");
 
-    if (productError) {
-      toast.error("Erro ao criar produtos: " + productError.message);
+    if (productError || !createdProducts) {
+      toast.error("Erro ao criar produtos: " + (productError?.message || "Erro desconhecido"));
       return;
     }
 
-    // Update stock items status
-    const { error } = await supabase
-      .from("stock_items")
-      .update({ status: "revisado" })
-      .in("id", selectedItems);
-
-    if (error) {
-      toast.error("Erro ao atualizar status do estoque.");
-    } else {
-      toast.success(`${selectedItems.length} item(ns) enviado(s) para Produtos!`);
-      setSelectedItems([]);
-      fetchItems();
+    // Link each stock_item to its created product
+    for (let i = 0; i < selectedStockItems.length; i++) {
+      await supabase
+        .from("stock_items")
+        .update({ status: "revisado", product_id: createdProducts[i].id })
+        .eq("id", selectedStockItems[i].id);
     }
+
+    toast.success(`${selectedItems.length} item(ns) enviado(s) para Produtos!`);
+    setSelectedItems([]);
+    fetchItems();
   };
 
   const filtered = items.filter(item =>
