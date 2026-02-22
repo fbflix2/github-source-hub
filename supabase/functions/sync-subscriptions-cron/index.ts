@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
         const parsed = JSON.parse(currentStatus.value);
         if (parsed.status === "in_progress") {
           const elapsed = Date.now() - (parsed.timestamp || 0);
-          if (elapsed < 10 * 60 * 1000) {
+          if (elapsed < 5 * 60 * 1000) {
             console.log("Sync already in progress, skipping cron run");
             return new Response(
               JSON.stringify({ status: "skipped", reason: "sync already in progress" }),
@@ -113,7 +113,7 @@ Deno.serve(async (req) => {
 
         // 3. Fetch all API pages and build batch arrays
         let synced = 0, linked = 0, page = 1;
-        const DELAY = 300;
+        const DELAY = 1000;
         const MAX_RETRIES = 5;
         const BATCH_SIZE = 50;
         const toInsert: any[] = [];
