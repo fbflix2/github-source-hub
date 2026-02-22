@@ -12,13 +12,11 @@ function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function proxyFetch(url: string, apiKey: string, method = "GET", body?: string) {
-  const headers: Record<string, string> = {
-    "Accept": "application/json",
-    "X-API-Key": apiKey,
-  };
-  if (body) headers["Content-Type"] = "application/json";
-  return fetch(url, { method, headers, body: body || undefined });
+async function proxyFetch(url: string, apiKey: string) {
+  return fetch(url, {
+    method: "GET",
+    headers: { "Accept": "application/json", "X-API-Key": apiKey },
+  });
 }
 
 Deno.serve(async (req) => {
@@ -46,9 +44,8 @@ Deno.serve(async (req) => {
       try {
         const parsed = JSON.parse(currentStatus.value);
         if (parsed.status === "in_progress") {
-          // If in_progress for more than 15 minutes, consider it stale
           const elapsed = Date.now() - (parsed.timestamp || 0);
-          if (elapsed < 15 * 60 * 1000) {
+          if (elapsed < 10 * 60 * 1000) {
             console.log("Sync already in progress, skipping cron run");
             return new Response(
               JSON.stringify({ status: "skipped", reason: "sync already in progress" }),
@@ -67,13 +64,15 @@ Deno.serve(async (req) => {
 
     // Run sync in background
     const doSync = async () => {
+      const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
       try {
-        // Build email -> user_id map
+        // 1. Build email -> user_id map
         const emailToUserId = new Map<string, string>();
         let pg = 1;
         const perPage = 1000;
         while (true) {
-          const { data: { users }, error } = await supabaseAdmin.auth.admin.listUsers({ page: pg, perPage });
+          const { data: { users }, error } = await sb.auth.admin.listUsers({ page: pg, perPage });
           if (error || !users?.length) break;
           for (const u of users) {
             if (u.email) emailToUserId.set(u.email.toLowerCase(), u.id);
@@ -83,26 +82,42 @@ Deno.serve(async (req) => {
         }
 
         const nameToUserId = new Map<string, string>();
-        const { data: profiles } = await supabaseAdmin.from("profiles").select("user_id, full_name");
+        const { data: profiles } = await sb.from("profiles").select("user_id, full_name");
         if (profiles) {
           for (const p of profiles) {
             if (p.full_name) nameToUserId.set(p.full_name.toLowerCase().trim(), p.user_id);
           }
         }
 
-        // We need a fallback admin user_id for unlinked subs
-        const { data: adminRoles } = await supabaseAdmin
-          .from("user_roles")
-          .select("user_id")
-          .eq("role", "admin")
-          .limit(1);
+        const { data: adminRoles } = await sb.from("user_roles").select("user_id").eq("role", "admin").limit(1);
         const fallbackUserId = adminRoles?.[0]?.user_id || "00000000-0000-0000-0000-000000000000";
 
-        console.log(`Cron sync: ${emailToUserId.size} emails, ${nameToUserId.size} names loaded`);
+        // 2. Load ALL existing subscriptions from DB at once
+        const existingMap = new Map<string, { id: string; user_id: string }>();
+        let offset = 0;
+        while (true) {
+          const { data: batch } = await sb
+            .from("subscriptions")
+            .select("id, name, user_id")
+            .eq("type", "proxybr")
+            .range(offset, offset + 999);
+          if (!batch?.length) break;
+          for (const s of batch) {
+            existingMap.set(s.name, { id: s.id, user_id: s.user_id });
+          }
+          if (batch.length < 1000) break;
+          offset += 1000;
+        }
 
+        console.log(`Cron sync: ${emailToUserId.size} emails, ${nameToUserId.size} names, ${existingMap.size} existing subs`);
+
+        // 3. Fetch all API pages and build batch arrays
         let synced = 0, linked = 0, page = 1;
-        const DELAY = 500;
+        const DELAY = 300;
         const MAX_RETRIES = 5;
+        const BATCH_SIZE = 50;
+        const toInsert: any[] = [];
+        const toUpdate: { id: string; record: Record<string, any> }[] = [];
 
         while (true) {
           const url = `${PROXYBR_BASE}/subscriptions?page=${page}`;
@@ -115,7 +130,7 @@ Deno.serve(async (req) => {
             text = await response.text();
             if (response.status === 429) {
               const waitMs = 3000 * Math.pow(2, attempt - 1);
-              console.warn(`Cron rate limited page ${page}, attempt ${attempt}. Waiting ${waitMs}ms`);
+              console.warn(`Rate limited page ${page}, attempt ${attempt}. Waiting ${waitMs}ms`);
               await sleep(waitMs);
               continue;
             }
@@ -124,7 +139,7 @@ Deno.serve(async (req) => {
           }
 
           if (!success || !response || !response.ok) {
-            console.warn(`Cron sync stopping at page ${page}. Synced: ${synced}`);
+            console.warn(`Stopping at page ${page}. Synced so far: ${synced}`);
             break;
           }
 
@@ -135,10 +150,10 @@ Deno.serve(async (req) => {
           if (!items?.length) break;
 
           if (page % 25 === 0 || page === 1) {
-            console.log(`Cron sync page ${page}, total synced: ${synced}`);
+            console.log(`Cron sync page ${page}, items: ${items.length}`);
           }
 
-          // Parse proxy codes
+          // Parse proxy codes in-place
           for (const sub of items) {
             if (sub.proxies?.data && Array.isArray(sub.proxies.data)) {
               sub.proxies.data = sub.proxies.data.map((p: any) => {
@@ -191,20 +206,17 @@ Deno.serve(async (req) => {
               raw_data: sub,
             };
 
-            const { data: existing } = await supabaseAdmin
-              .from("subscriptions").select("id, user_id").eq("name", code).eq("type", "proxybr").maybeSingle();
-
+            const existing = existingMap.get(code);
             if (existing) {
-              // Keep existing user_id, only update if we found a match and current is fallback
               if (matchedUserId && existing.user_id === fallbackUserId) {
                 record.user_id = matchedUserId;
                 linked++;
               }
-              await supabaseAdmin.from("subscriptions").update(record).eq("id", existing.id);
+              toUpdate.push({ id: existing.id, record });
             } else {
               record.user_id = matchedUserId || fallbackUserId;
               if (matchedUserId) linked++;
-              await supabaseAdmin.from("subscriptions").insert(record);
+              toInsert.push(record);
             }
             synced++;
           }
@@ -216,16 +228,35 @@ Deno.serve(async (req) => {
           await sleep(DELAY);
         }
 
+        // 4. Batch inserts
+        if (toInsert.length > 0) {
+          for (let i = 0; i < toInsert.length; i += BATCH_SIZE) {
+            const batch = toInsert.slice(i, i + BATCH_SIZE);
+            const { error } = await sb.from("subscriptions").insert(batch);
+            if (error) console.error(`Insert batch error at ${i}:`, error.message);
+          }
+          console.log(`Inserted ${toInsert.length} new subscriptions`);
+        }
+
+        // 5. Batch updates (upsert by id)
+        if (toUpdate.length > 0) {
+          for (let i = 0; i < toUpdate.length; i += BATCH_SIZE) {
+            const batch = toUpdate.slice(i, i + BATCH_SIZE).map(u => ({ id: u.id, ...u.record }));
+            const { error } = await sb.from("subscriptions").upsert(batch, { onConflict: "id" });
+            if (error) console.error(`Upsert batch error at ${i}:`, error.message);
+          }
+          console.log(`Updated ${toUpdate.length} existing subscriptions`);
+        }
+
         console.log(`Cron sync complete: ${synced} synced, ${linked} linked`);
 
-        await supabaseAdmin.from("site_settings").upsert({
+        await sb.from("site_settings").upsert({
           key: "sync_result",
           value: JSON.stringify({ synced, linked, total: synced, status: "done", timestamp: Date.now(), source: "cron" }),
         }, { onConflict: "key" });
 
       } catch (err: any) {
         console.error("Cron sync error:", err.message);
-        const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
         await sb.from("site_settings").upsert({
           key: "sync_result",
           value: JSON.stringify({ status: "error", error: err.message, timestamp: Date.now(), source: "cron" }),
@@ -248,4 +279,3 @@ Deno.serve(async (req) => {
     );
   }
 });
-
