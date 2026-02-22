@@ -435,17 +435,30 @@ export default function ItemDetails() {
                   {isConfirmedOk ? 'Confirmado' : 'OK'}
                 </button>
               </div>
-              <div className="flex items-center justify-between p-3 rounded-lg bg-destructive/10 border border-destructive/20 group hover:bg-destructive/15 transition-colors">
-                <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-destructive text-[18px]">report_problem</span>
-                  <span className="text-foreground text-xs font-bold">Item com Problema</span>
+              {/* Feedback Timer */}
+              <div className="p-3 rounded-lg bg-gradient-to-br from-muted/30 to-primary/5 border border-primary/20">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="material-symbols-outlined text-primary text-[16px]">timer</span>
+                  <span className="text-foreground text-xs font-bold">Tempo de Feedback</span>
                 </div>
-                <button 
-                  onClick={handleMarkBlocked}
-                  className="px-3 py-1.5 rounded-md bg-destructive text-destructive-foreground font-bold hover:brightness-110 transition-all text-xs"
-                >
-                  Reportar
-                </button>
+                <p className="text-[10px] text-text-secondary mb-2">24h para testar e reportar problemas.</p>
+                <div className="flex justify-center gap-2 mb-2">
+                  {[
+                    { val: countdown.hours, label: 'Horas' },
+                    { val: countdown.minutes, label: 'Min' },
+                    { val: countdown.seconds, label: 'Seg' },
+                  ].map((t) => (
+                    <div key={t.label} className="flex flex-col items-center">
+                      <div className="w-10 h-10 rounded-lg bg-background/50 border border-border flex items-center justify-center text-base font-mono font-bold text-foreground">
+                        {t.val.toString().padStart(2, '0')}
+                      </div>
+                      <span className="text-[8px] uppercase text-text-secondary mt-0.5">{t.label}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="h-1 w-full bg-muted rounded-full overflow-hidden">
+                  <div className="h-full bg-primary rounded-full shadow-glow transition-all duration-1000" style={{ width: `${progressPercent}%` }}></div>
+                </div>
               </div>
             </div>
           </div>
@@ -494,30 +507,14 @@ export default function ItemDetails() {
             </button>
           </div>
 
-          {/* Feedback Timer */}
-          <div className="glass-panel rounded-xl p-4 bg-gradient-to-br from-muted/30 to-primary/5 border-primary/20">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="material-symbols-outlined text-primary text-lg">timer</span>
-              <h3 className="text-sm font-bold text-foreground">Tempo de Feedback</h3>
-            </div>
-            <p className="text-xs text-text-secondary mb-3">24h para testar e reportar problemas.</p>
-            <div className="flex justify-center gap-3 mb-3">
-              {[
-                { val: countdown.hours, label: 'Horas' },
-                { val: countdown.minutes, label: 'Min' },
-                { val: countdown.seconds, label: 'Seg' },
-              ].map((t) => (
-                <div key={t.label} className="flex flex-col items-center">
-                  <div className="w-12 h-12 rounded-lg bg-background/50 border border-border flex items-center justify-center text-xl font-mono font-bold text-foreground">
-                    {t.val.toString().padStart(2, '0')}
-                  </div>
-                  <span className="text-[9px] uppercase text-text-secondary mt-0.5">{t.label}</span>
-                </div>
-              ))}
-            </div>
-            <div className="h-1 w-full bg-muted rounded-full overflow-hidden">
-              <div className="h-full bg-primary rounded-full shadow-glow transition-all duration-1000" style={{ width: `${progressPercent}%` }}></div>
-            </div>
+          {/* Support */}
+          <div className="glass-panel rounded-xl p-4">
+            <h3 className="text-foreground text-sm font-bold mb-1">Precisa de Ajuda?</h3>
+            <p className="text-xs text-text-secondary mb-2">Suporte online para este item.</p>
+            <button className="w-full py-2 rounded-lg bg-muted/50 hover:bg-muted text-foreground border border-border transition-colors flex items-center justify-center gap-1.5 text-xs">
+              <span className="material-symbols-outlined text-[16px]">support_agent</span>
+              Abrir Chat de Suporte
+            </button>
           </div>
         </div>
       </div>
