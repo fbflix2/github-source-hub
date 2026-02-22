@@ -36,11 +36,14 @@ export default function ItemDetails() {
   const [showToken, setShowToken] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [itemStatus, setItemStatus] = useState(false);
+  const [isBlocked, setIsBlocked] = useState(false);
+  const [isConfirmedOk, setIsConfirmedOk] = useState(false);
   const [loading, setLoading] = useState(true);
   const [acceptedDisclaimer, setAcceptedDisclaimer] = useState(false);
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const [disclaimerChecked, setDisclaimerChecked] = useState(false);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+  const [stockItemId, setStockItemId] = useState<string | null>(null);
 
   const [order, setOrder] = useState<any>(null);
   const [orderItem, setOrderItem] = useState<any>(null);
@@ -89,8 +92,13 @@ export default function ItemDetails() {
         .eq("order_item_id", itemId)
         .maybeSingle();
 
-      if (stockItem?.data && typeof stockItem.data === "object") {
-        setStockData(stockItem.data as StockData);
+      if (stockItem) {
+        setStockItemId(stockItem.id);
+        if (stockItem.status === "bloqueado") setIsBlocked(true);
+        if (stockItem.status === "ok") setIsConfirmedOk(true);
+        if (stockItem.data && typeof stockItem.data === "object") {
+          setStockData(stockItem.data as StockData);
+        }
       }
 
       // Fetch product info
@@ -208,6 +216,25 @@ export default function ItemDetails() {
     URL.revokeObjectURL(url);
   };
 
+  const handleMarkBlocked = async () => {
+    if (!stockItemId) return;
+    await supabase.from("stock_items").update({ status: "bloqueado" }).eq("id", stockItemId);
+    setIsBlocked(true);
+  };
+
+  const handleConfirmOk = async () => {
+    if (!stockItemId) return;
+    await supabase.from("stock_items").update({ status: "ok" }).eq("id", stockItemId);
+    setIsConfirmedOk(true);
+  };
+
+  const handleToggleStatus = async () => {
+    if (!stockItemId) return;
+    const newStatus = itemStatus ? "aguardando" : "revisado";
+    await supabase.from("stock_items").update({ status: newStatus }).eq("id", stockItemId);
+    setItemStatus(!itemStatus);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -224,6 +251,53 @@ export default function ItemDetails() {
         <button onClick={() => navigate("/orders")} className="px-4 py-2 rounded-lg bg-primary text-primary-foreground font-bold">
           Voltar para Pedidos
         </button>
+      </div>
+    );
+  }
+
+  // Blocked page
+  if (isBlocked) {
+    return (
+      <div className="space-y-3 animate-fade-in">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2 text-xs text-text-secondary mb-0.5">
+              <a onClick={() => navigate("/orders")} className="hover:text-foreground transition-colors cursor-pointer">Meus Pedidos</a>
+              <span className="material-symbols-outlined text-[12px]">chevron_right</span>
+              <span className="text-foreground">Detalhes do Item</span>
+            </div>
+            <h1 className="text-xl font-bold text-foreground tracking-tight">{itemName}</h1>
+          </div>
+          <button onClick={() => navigate("/orders")} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg glass-panel text-foreground hover:bg-muted/50 transition-all text-sm group">
+            <span className="material-symbols-outlined text-[16px] group-hover:-translate-x-1 transition-transform">arrow_back</span>
+            <span>Voltar</span>
+          </button>
+        </div>
+
+        <div className="glass-panel rounded-xl p-8 text-center space-y-4 border border-destructive/30 bg-destructive/5">
+          <div className="w-16 h-16 rounded-full bg-destructive/20 flex items-center justify-center mx-auto">
+            <span className="material-symbols-outlined text-destructive text-[32px]">block</span>
+          </div>
+          <h2 className="text-xl font-bold text-foreground">Item Bloqueado</h2>
+          <p className="text-text-secondary text-sm max-w-md mx-auto">
+            Este item foi marcado como bloqueado. Entre em contato com o suporte para mais informações ou para solicitar a reposição dentro do prazo de garantia.
+          </p>
+          <div className="flex items-center justify-center gap-3 pt-2">
+            <button 
+              onClick={() => navigate("/suporte")} 
+              className="px-4 py-2 rounded-lg bg-primary text-primary-foreground font-bold text-sm hover:bg-primary/90 transition-colors flex items-center gap-2"
+            >
+              <span className="material-symbols-outlined text-[16px]">support_agent</span>
+              Abrir Suporte
+            </button>
+            <button 
+              onClick={() => navigate("/orders")} 
+              className="px-4 py-2 rounded-lg border border-border text-foreground font-medium text-sm hover:bg-muted/50 transition-colors"
+            >
+              Voltar aos Pedidos
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -351,10 +425,14 @@ export default function ItemDetails() {
               <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border">
                 <div>
                   <span className="block text-foreground text-xs font-medium">Status do Item</span>
-                  <span className="text-[10px] text-text-secondary">Controle interno</span>
+                  <span className="text-[10px] text-text-secondary">Marcar como bloqueado</span>
                 </div>
-                <button onClick={() => setItemStatus(!itemStatus)} className={`relative w-10 h-5 rounded-full transition-colors ${itemStatus ? 'bg-primary' : 'bg-muted-foreground/30'}`}>
-                  <span className={`absolute top-0.5 w-4 h-4 bg-foreground rounded-full transition-all ${itemStatus ? 'right-0.5' : 'left-0.5'}`}></span>
+                <button 
+                  onClick={handleMarkBlocked} 
+                  disabled={isBlocked}
+                  className={`relative w-10 h-5 rounded-full transition-colors ${isBlocked ? 'bg-destructive' : 'bg-muted-foreground/30'}`}
+                >
+                  <span className={`absolute top-0.5 w-4 h-4 bg-foreground rounded-full transition-all ${isBlocked ? 'right-0.5' : 'left-0.5'}`}></span>
                 </button>
               </div>
               <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border">
@@ -362,17 +440,28 @@ export default function ItemDetails() {
                   <span className="block text-foreground text-xs font-medium">Funcionando?</span>
                   <span className="text-[10px] text-text-secondary">Confirme que está OK</span>
                 </div>
-                <button className="px-3 py-1.5 rounded-md bg-green-500/20 text-green-400 border border-green-500/30 font-semibold hover:bg-green-500/30 transition-colors flex items-center gap-1 text-xs">
-                  <span className="material-symbols-outlined text-[16px]">thumb_up</span>
-                  OK
+                <button 
+                  onClick={handleConfirmOk} 
+                  disabled={isConfirmedOk}
+                  className={`px-3 py-1.5 rounded-md font-semibold transition-colors flex items-center gap-1 text-xs ${
+                    isConfirmedOk 
+                      ? 'bg-green-500/30 text-green-400 border border-green-500/40 cursor-default' 
+                      : 'bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-[16px]">{isConfirmedOk ? 'check_circle' : 'thumb_up'}</span>
+                  {isConfirmedOk ? 'Confirmado' : 'OK'}
                 </button>
               </div>
-              <div className="flex items-center justify-between p-3 rounded-lg bg-danger/10 border border-danger/20 group hover:bg-danger/15 transition-colors">
+              <div className="flex items-center justify-between p-3 rounded-lg bg-destructive/10 border border-destructive/20 group hover:bg-destructive/15 transition-colors">
                 <div className="flex items-center gap-2">
-                  <span className="material-symbols-outlined text-danger text-[18px]">report_problem</span>
-                  <span className="text-foreground text-xs font-bold">Bloqueio?</span>
+                  <span className="material-symbols-outlined text-destructive text-[18px]">report_problem</span>
+                  <span className="text-foreground text-xs font-bold">Item com Problema</span>
                 </div>
-                <button className="px-3 py-1.5 rounded-md bg-danger text-danger-foreground font-bold hover:brightness-110 transition-all text-xs">
+                <button 
+                  onClick={handleMarkBlocked}
+                  className="px-3 py-1.5 rounded-md bg-destructive text-destructive-foreground font-bold hover:brightness-110 transition-all text-xs"
+                >
                   Reportar
                 </button>
               </div>
