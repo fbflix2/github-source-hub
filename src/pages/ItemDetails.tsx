@@ -511,7 +511,10 @@ export default function ItemDetails() {
           <div className="glass-panel rounded-xl p-4">
             <h3 className="text-foreground text-sm font-bold mb-1">Precisa de Ajuda?</h3>
             <p className="text-xs text-text-secondary mb-2">Suporte online para este item.</p>
-            <button className="w-full py-2 rounded-lg bg-muted/50 hover:bg-muted text-foreground border border-border transition-colors flex items-center justify-center gap-1.5 text-xs">
+            <button 
+              onClick={() => navigate(`/suporte?pedido=${encodeURIComponent(order?.code || '')}&item=${encodeURIComponent(itemName)}`)}
+              className="w-full py-2 rounded-lg bg-muted/50 hover:bg-muted text-foreground border border-border transition-colors flex items-center justify-center gap-1.5 text-xs"
+            >
               <span className="material-symbols-outlined text-[16px]">support_agent</span>
               Abrir Chat de Suporte
             </button>

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { 
   Plus, 
   Info, 
@@ -26,9 +27,15 @@ interface TicketListItem {
 }
 
 export default function Suporte() {
-  const [title, setTitle] = useState("");
+  const [searchParams] = useSearchParams();
+  const pedidoParam = searchParams.get("pedido");
+  const itemParam = searchParams.get("item");
+
+  const [title, setTitle] = useState(
+    pedidoParam ? `Problema com item: ${itemParam || ''} — Pedido ${pedidoParam}` : ""
+  );
   const [urgency, setUrgency] = useState("medium");
-  const [link, setLink] = useState("");
+  const [link, setLink] = useState(pedidoParam ? window.location.origin + `/orders/${encodeURIComponent(pedidoParam)}` : "");
   const [description, setDescription] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [createdCode, setCreatedCode] = useState("");
