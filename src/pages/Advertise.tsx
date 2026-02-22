@@ -162,8 +162,7 @@ export default function Advertise() {
   };
 
   const formatClientCount = (count: number) => {
-    if (count >= 1000) return `${(count / 1000).toFixed(0)} mil`;
-    return count.toString();
+    return count.toLocaleString("pt-BR");
   };
 
   if (loading) {
