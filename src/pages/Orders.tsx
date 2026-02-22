@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useLayoutEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
@@ -57,6 +57,23 @@ export default function Orders() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Lock parent overflow to prevent page scroll - only left cards scroll
+  useLayoutEffect(() => {
+    const main = document.querySelector('main');
+    if (main) {
+      main.style.overflow = 'hidden';
+      main.style.height = 'calc(100vh - 7rem)';
+      main.style.paddingBottom = '0';
+    }
+    return () => {
+      if (main) {
+        main.style.overflow = '';
+        main.style.height = '';
+        main.style.paddingBottom = '';
+      }
+    };
+  }, []);
 
   useEffect(() => {
     async function fetchOrders() {
@@ -120,7 +137,7 @@ export default function Orders() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-80px)] animate-fade-in overflow-hidden">
+    <div className="flex flex-col h-full animate-fade-in overflow-hidden">
       {/* Page Header - compact */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 pb-3 shrink-0">
         <div>
