@@ -7,7 +7,7 @@ import { Play } from "lucide-react";
 export function AdminLayout() {
   const { isAdmin, loading } = useAdminAuth();
   const location = useLocation();
-  const hideHeader = location.pathname === "/admin/blocagem";
+  const hideHeader = location.pathname === "/admin/blocagem" || location.pathname === "/admin/clientes";
 
   if (loading || !isAdmin) {
     return (
@@ -36,7 +36,7 @@ export function AdminLayout() {
       {/* Main Content */}
       <main className="relative z-10 flex-1 flex flex-col h-full overflow-hidden">
         {!hideHeader && <AdminHeader />}
-        <div className="flex-1 overflow-y-auto px-6 pb-6">
+        <div className={`flex-1 ${hideHeader ? 'overflow-hidden' : 'overflow-y-auto'} px-6 pb-6`}>
           <div className="max-w-7xl mx-auto w-full">
             <Outlet />
           </div>

@@ -201,9 +201,9 @@ export default function AdminClientes() {
   }, [searchTerm, activeFilter]);
 
   return (
-    <div className="flex flex-col gap-8 py-6">
+    <div className="flex flex-col h-[calc(100vh-1.5rem)] pt-4">
       {/* Header */}
-      <section className="flex flex-col gap-6">
+      <section className="flex flex-col gap-4 flex-shrink-0">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white mb-2">
@@ -231,10 +231,10 @@ export default function AdminClientes() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-[rgba(30,15,15,0.4)] backdrop-blur-xl border border-white/[0.08] p-6 rounded-2xl flex items-center justify-between group shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
+          <div className="bg-[rgba(30,15,15,0.4)] backdrop-blur-xl border border-white/[0.08] p-4 rounded-2xl flex items-center justify-between group shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
             <div className="flex flex-col gap-1">
               <p className="text-white/60 text-sm font-medium uppercase tracking-wider">Total de Clientes</p>
-              <h3 className="text-4xl font-black text-white group-hover:text-primary transition-colors">
+              <h3 className="text-3xl font-black text-white group-hover:text-primary transition-colors">
                 {loading ? "..." : totalClients.toLocaleString("pt-BR")}
               </h3>
             </div>
@@ -243,10 +243,10 @@ export default function AdminClientes() {
             </div>
           </div>
 
-          <div className="bg-[rgba(30,15,15,0.4)] backdrop-blur-xl border border-white/[0.08] p-6 rounded-2xl flex items-center justify-between group shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
+          <div className="bg-[rgba(30,15,15,0.4)] backdrop-blur-xl border border-white/[0.08] p-4 rounded-2xl flex items-center justify-between group shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
             <div className="flex flex-col gap-1">
               <p className="text-white/60 text-sm font-medium uppercase tracking-wider">Clientes com Saldo</p>
-              <h3 className="text-4xl font-black text-white group-hover:text-primary transition-colors">
+              <h3 className="text-3xl font-black text-white group-hover:text-primary transition-colors">
                 {loading ? "..." : clientsWithBalance}
               </h3>
             </div>
@@ -255,10 +255,10 @@ export default function AdminClientes() {
             </div>
           </div>
 
-          <div className="bg-[rgba(30,15,15,0.4)] backdrop-blur-xl border border-white/[0.08] p-6 rounded-2xl flex items-center justify-between group shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
+          <div className="bg-[rgba(30,15,15,0.4)] backdrop-blur-xl border border-white/[0.08] p-4 rounded-2xl flex items-center justify-between group shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
             <div className="flex flex-col gap-1">
               <p className="text-white/60 text-sm font-medium uppercase tracking-wider">Assinaturas Ativas</p>
-              <h3 className="text-4xl font-black text-white group-hover:text-primary transition-colors">
+              <h3 className="text-3xl font-black text-white group-hover:text-primary transition-colors">
                 {loading ? "..." : activeSubscriptions}
               </h3>
             </div>
@@ -269,8 +269,8 @@ export default function AdminClientes() {
         </div>
       </section>
 
-      {/* Search and Filters */}
-      <section className="sticky top-6 z-40">
+      {/* Search and Filters - Fixed */}
+      <section className="flex-shrink-0 mt-4 mb-2">
         <div className="bg-[rgba(30,15,15,0.4)] backdrop-blur-xl border border-white/[0.08] p-2 rounded-2xl flex flex-col md:flex-row gap-2 shadow-2xl">
           <div className="relative flex-1">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
@@ -306,7 +306,8 @@ export default function AdminClientes() {
         </div>
       </section>
 
-      {/* Client Cards Grid */}
+      {/* Client Cards Grid - Scrollable */}
+      <div className="flex-1 overflow-y-auto min-h-0">
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -317,7 +318,7 @@ export default function AdminClientes() {
           <p className="text-gray-400">Nenhum cliente encontrado.</p>
         </div>
       ) : (
-        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-20">
+        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-20 pr-1">
           {paginated.map((client) => (
             <div
               key={client.id}
@@ -405,6 +406,7 @@ export default function AdminClientes() {
           ))}
         </section>
       )}
+      </div>
 
       {/* Pagination */}
       {totalPages > 1 && (
