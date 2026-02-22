@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Ticket,
   Clock,
@@ -59,6 +60,7 @@ const formatDate = (dateString: string) => {
 };
 
 export default function Tickets() {
+  const navigate = useNavigate();
   const { tickets, loading, totalUnread, sendReply, markAsRead } = useTickets();
   const [selectedTicket, setSelectedTicket] = useState<TicketData | null>(null);
   const [replyMessage, setReplyMessage] = useState("");
@@ -104,6 +106,28 @@ export default function Tickets() {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="size-8 text-primary animate-spin" />
+      </div>
+    );
+  }
+
+  // Empty state — no tickets at all
+  if (!loading && tickets.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 space-y-4 animate-fade-in">
+        <div className="p-4 rounded-2xl bg-muted/50 border border-border">
+          <Ticket className="size-12 text-muted-foreground" />
+        </div>
+        <h2 className="text-xl font-bold text-foreground">Nenhum ticket ainda</h2>
+        <p className="text-muted-foreground text-sm text-center max-w-md">
+          Você ainda não abriu nenhum ticket de suporte. Se precisar de ajuda, abra seu primeiro ticket.
+        </p>
+        <button
+          onClick={() => navigate("/suporte")}
+          className="mt-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:bg-primary/90 transition-colors flex items-center gap-2"
+        >
+          <MessageCircle className="size-4" />
+          Abrir Primeiro Ticket
+        </button>
       </div>
     );
   }
