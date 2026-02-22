@@ -36,6 +36,7 @@ export default function Suporte() {
   );
   const [urgency, setUrgency] = useState("medium");
   const [link, setLink] = useState(pedidoParam ? window.location.origin + `/orders/${encodeURIComponent(pedidoParam)}` : "");
+  const [orderCode, setOrderCode] = useState(pedidoParam || "");
   const [description, setDescription] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [createdCode, setCreatedCode] = useState("");
@@ -140,8 +141,12 @@ export default function Suporte() {
       setUploading(false);
     }
 
-    // Build message content with attachment links
-    let messageContent = description.trim();
+    // Build message content with order code and attachment links
+    let messageContent = "";
+    if (orderCode.trim()) {
+      messageContent += `📦 Pedido: ${orderCode.trim()}\n\n`;
+    }
+    messageContent += description.trim();
     if (attachmentUrls.length > 0) {
       messageContent += "\n\n📎 Anexos:\n" + attachmentUrls.map((url, i) => `[Arquivo ${i + 1}](${url})`).join("\n");
     }
@@ -162,6 +167,7 @@ export default function Suporte() {
     setTitle("");
     setUrgency("medium");
     setLink("");
+    setOrderCode("");
     setDescription("");
     setAttachedFiles([]);
     setSubmitting(false);
@@ -244,7 +250,7 @@ export default function Suporte() {
               />
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-muted-foreground">Nível de Urgência</label>
                 <div className="relative">
@@ -259,6 +265,18 @@ export default function Suporte() {
                   </select>
                   <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground size-4" />
                 </div>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-muted-foreground">
+                  Código do Pedido <span className="text-muted-foreground/50 text-[10px] font-normal">(Opcional)</span>
+                </label>
+                <input 
+                  className="w-full rounded-lg px-3 py-2.5 placeholder-muted-foreground/50 bg-card border border-border text-foreground text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all" 
+                  placeholder="Ex: #1234"
+                  type="text"
+                  value={orderCode}
+                  onChange={(e) => setOrderCode(e.target.value)}
+                />
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-muted-foreground">
@@ -286,18 +304,18 @@ export default function Suporte() {
             </div>
             
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Anexar Imagens/Vídeos</label>
+              <label className="text-xs font-medium text-muted-foreground">Anexar Arquivos</label>
               <label className="border-dashed border flex flex-col items-center justify-center p-4 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors group bg-card border-border">
                 <Upload className="size-6 text-muted-foreground mb-1 group-hover:text-primary transition-colors" />
                 <span className="text-xs text-muted-foreground">
                   Arraste ou <span className="text-primary font-semibold">clique para buscar</span>
                 </span>
-                <span className="text-[10px] text-muted-foreground/50 mt-0.5">PNG, JPG, MP4 até 20MB</span>
+                <span className="text-[10px] text-muted-foreground/50 mt-0.5">PNG, JPG, MP4, TXT, PDF até 20MB</span>
                 <input
                   className="hidden"
                   multiple
                   type="file"
-                  accept="image/*,video/*"
+                  accept="image/*,video/*,.txt,.pdf,.doc,.docx"
                   ref={fileInputRef}
                   onChange={handleFileChange}
                 />
