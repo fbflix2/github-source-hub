@@ -53,15 +53,62 @@ export default function Checkout() {
   const { items: cartItems } = useCart();
   
   const productId = searchParams.get("product") || "";
+  const existingOrderId = searchParams.get("order") || "";
   const quantity = parseInt(searchParams.get("qty") || "1");
 
   const [product, setProduct] = useState<DbProduct | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchProduct() {
+    async function fetchData() {
+      // If resuming an existing order
+      if (existingOrderId) {
+        const { data: order } = await supabase
+          .from("orders")
+          .select("id, code, total, subtotal, discount, payment_method, coupon_code")
+          .eq("id", existingOrderId)
+          .single();
+
+        if (!order) { setLoading(false); return; }
+
+        setDraftOrderId(order.id);
+        setDraftOrderCode(order.code);
+
+        // Fetch order items to get main product
+        const { data: items } = await supabase
+          .from("order_items")
+          .select("product_id, name, price, quantity")
+          .eq("order_id", existingOrderId);
+
+        if (items && items.length > 0) {
+          const mainItem = items[0];
+          if (mainItem.product_id) {
+            const { data: prod } = await supabase
+              .from("products")
+              .select("id, name, description, price, image_url, stock, available, category_id, icon_type")
+              .eq("id", mainItem.product_id)
+              .single();
+            if (prod) setProduct(prod);
+          } else {
+            setProduct({
+              id: "unknown",
+              name: mainItem.name,
+              description: null,
+              price: mainItem.price,
+              image_url: null,
+              stock: 999,
+              available: true,
+              category_id: null,
+              icon_type: null,
+            });
+          }
+        }
+        setLoading(false);
+        return;
+      }
+
+      // Normal flow
       if (!productId) {
-        // If no product param, use first cart item
         if (cartItems.length > 0) {
           setProduct({
             id: String(cartItems[0].productId),
@@ -88,8 +135,8 @@ export default function Checkout() {
       if (data) setProduct(data);
       setLoading(false);
     }
-    fetchProduct();
-  }, [productId, cartItems]);
+    fetchData();
+  }, [productId, existingOrderId, cartItems]);
 
   const [paymentMethod, setPaymentMethod] = useState<"saldo" | "pix" | "cartao">("saldo");
   const [selectedBumps, setSelectedBumps] = useState<string[]>([]);
@@ -113,8 +160,9 @@ export default function Checkout() {
   const draftCreatingRef = useRef(false);
 
   // Create draft order when entering checkout (for abandoned cart tracking)
+  // Skip if resuming an existing order
   useEffect(() => {
-    if (!product || draftOrderId || draftCreatingRef.current) return;
+    if (!product || draftOrderId || draftCreatingRef.current || existingOrderId) return;
 
     const createDraftOrder = async () => {
       draftCreatingRef.current = true;
