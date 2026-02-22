@@ -120,24 +120,23 @@ export default function Orders() {
   }
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+    <div className="flex flex-col h-[calc(100vh-80px)] animate-fade-in overflow-hidden">
+      {/* Page Header - compact */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 pb-3 shrink-0">
         <div>
-          <div className="flex items-center gap-2 text-muted-foreground text-sm mb-2">
+          <div className="flex items-center gap-1.5 text-muted-foreground text-xs mb-1">
             <a className="hover:text-foreground transition-colors cursor-pointer">Dashboard</a>
-            <span className="material-symbols-outlined text-xs">chevron_right</span>
+            <span className="material-symbols-outlined text-[10px]">chevron_right</span>
             <span className="text-foreground">Meus Pedidos</span>
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2 tracking-tight">Histórico de Pedidos</h1>
-          <p className="text-muted-foreground">Gerencie suas compras de perfis, BMs e páginas.</p>
+          <h1 className="text-xl font-bold text-foreground tracking-tight">Histórico de Pedidos</h1>
         </div>
-        <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0">
+        <div className="flex gap-1.5">
           {filters.map((f) => (
             <button
               key={f.key}
               onClick={() => setActiveFilter(f.key)}
-              className={`px-4 py-2 rounded-lg font-medium text-sm transition whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-lg font-medium text-xs transition whitespace-nowrap ${
                 activeFilter === f.key
                   ? "bg-primary text-primary-foreground font-bold shadow-glow"
                   : "glass-panel text-muted-foreground hover:text-foreground hover:bg-muted border border-transparent hover:border-border"
@@ -155,9 +154,9 @@ export default function Orders() {
           <p className="text-muted-foreground text-lg">Você ainda não tem pedidos.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 min-h-[600px]">
-          {/* Orders List */}
-          <div className="lg:col-span-4 flex flex-col gap-4 overflow-y-auto pr-2 custom-scrollbar max-h-[700px]">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1 min-h-0">
+          {/* Orders List - scrollable */}
+          <div className="lg:col-span-4 flex flex-col gap-2 overflow-y-auto pr-1 custom-scrollbar">
             {filteredOrders.map((order) => {
               const st = statusConfig[order.status] || statusConfig.processing;
               const isSelected = selectedOrder?.id === order.id;
@@ -165,7 +164,7 @@ export default function Orders() {
                 <div
                   key={order.id}
                   onClick={() => setSelectedOrder(order)}
-                  className={`glass-panel p-5 rounded-2xl cursor-pointer group border-l-[3px] hover:bg-muted transition-all relative overflow-hidden ${
+                  className={`glass-panel p-3 rounded-xl cursor-pointer group border-l-[3px] hover:bg-muted transition-all relative overflow-hidden ${
                     isSelected ? st.className : "border-l-transparent opacity-80 hover:opacity-100"
                   }`}
                 >
@@ -173,10 +172,10 @@ export default function Orders() {
                     <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent pointer-events-none"></div>
                   )}
                   <div className="relative z-10">
-                    <div className="flex justify-between items-start mb-3">
+                    <div className="flex justify-between items-start mb-1.5">
                       <div>
-                        <p className="text-xs text-muted-foreground font-mono mb-1">{order.code}</p>
-                        <h3 className="text-foreground font-semibold text-lg">
+                        <p className="text-[10px] text-muted-foreground font-mono">{order.code}</p>
+                        <h3 className="text-foreground font-semibold text-sm">
                           {order.items.length > 0 ? order.items[0].name : "Pedido"}
                           {order.items.length > 1 && ` +${order.items.length - 1}`}
                         </h3>
@@ -187,18 +186,18 @@ export default function Orders() {
                           </span>
                         )}
                       </div>
-                      <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider border ${st.badgeClassName}`}>
+                      <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border ${st.badgeClassName}`}>
                         {st.label}
                       </span>
                     </div>
                     <div className="flex justify-between items-end">
-                      <div className="text-muted-foreground text-sm">
+                      <div className="text-muted-foreground text-xs">
                         <span className="flex items-center gap-1">
-                          <span className="material-symbols-outlined text-[16px]">calendar_today</span>
+                          <span className="material-symbols-outlined text-[13px]">calendar_today</span>
                           {formatDate(order.created_at)}
                         </span>
                       </div>
-                      <p className="text-foreground font-bold text-xl">R$ {order.total.toFixed(2).replace(".", ",")}</p>
+                      <p className="text-foreground font-bold text-base">R$ {order.total.toFixed(2).replace(".", ",")}</p>
                     </div>
                   </div>
                 </div>
@@ -213,15 +212,15 @@ export default function Orders() {
             )}
           </div>
 
-          {/* Order Details */}
+          {/* Order Details - fixed, no scroll */}
           {selectedOrder && status && (
-            <div className="lg:col-span-8">
-              <div className="glass-panel rounded-3xl min-h-[700px] flex flex-col overflow-hidden relative border border-border shadow-2xl">
-                <div className="p-6 md:p-8 border-b border-border flex flex-wrap gap-4 justify-between items-center bg-muted/50">
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <h3 className="text-2xl font-bold text-foreground">Pedido {selectedOrder.code}</h3>
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
+            <div className="lg:col-span-8 overflow-y-auto custom-scrollbar">
+              <div className="glass-panel rounded-xl flex flex-col overflow-hidden border border-border">
+                <div className="px-4 py-3 border-b border-border flex flex-wrap gap-3 justify-between items-center bg-muted/50">
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-lg font-bold text-foreground">Pedido {selectedOrder.code}</h3>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                         selectedOrder.status === "completed"
                           ? "bg-primary text-primary-foreground"
                           : selectedOrder.status === "processing"
@@ -231,45 +230,45 @@ export default function Orders() {
                         {status.label}
                       </span>
                     </div>
-                    <p className="text-muted-foreground text-sm">Feito em {formatDateFull(selectedOrder.created_at)}</p>
+                    <p className="text-muted-foreground text-xs">{formatDateFull(selectedOrder.created_at)}</p>
                   </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar">
-                  <h4 className="text-lg font-bold text-foreground mb-6 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-primary">shopping_bag</span> Itens do Pedido
+                <div className="p-4 space-y-4">
+                  <h4 className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-primary text-[16px]">shopping_bag</span> Itens do Pedido
                   </h4>
 
-                  <div className="flex flex-col gap-4 mb-8">
+                  <div className="flex flex-col gap-2">
                     {selectedOrder.items.map((item) => (
                       <div
                         key={item.id}
-                        className="flex flex-col md:flex-row items-center gap-6 p-4 rounded-xl bg-muted/50 border border-border hover:border-primary/20 transition-colors group"
+                        className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-border hover:border-primary/20 transition-colors"
                       >
-                        <div className="w-20 h-20 rounded-lg shrink-0 shadow-lg flex items-center justify-center border bg-blue-500/10 border-blue-500/20">
-                          <span className="material-symbols-outlined text-3xl text-blue-400">inventory_2</span>
+                        <div className="w-10 h-10 rounded-lg shrink-0 flex items-center justify-center border bg-blue-500/10 border-blue-500/20">
+                          <span className="material-symbols-outlined text-lg text-blue-400">inventory_2</span>
                         </div>
-                        <div className="flex-1 text-center md:text-left w-full md:w-auto">
-                          <div className="flex items-center gap-2 justify-center md:justify-start">
-                            <h5 className="text-foreground font-bold text-lg">{item.name}</h5>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <h5 className="text-foreground font-bold text-sm truncate">{item.name}</h5>
                             {item.isBlocked && (
-                              <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-destructive/20 text-destructive border border-destructive/30 text-[9px] font-bold uppercase">
-                                <span className="material-symbols-outlined text-[10px]">block</span>
+                              <span className="flex items-center gap-0.5 px-1 py-0.5 rounded bg-destructive/20 text-destructive border border-destructive/30 text-[8px] font-bold uppercase">
+                                <span className="material-symbols-outlined text-[9px]">block</span>
                                 Bloqueado
                               </span>
                             )}
                           </div>
-                          <p className="text-muted-foreground text-sm">{item.description || `Qtd: ${item.quantity}`}</p>
+                          <p className="text-muted-foreground text-xs">{item.description || `Qtd: ${item.quantity}`}</p>
                         </div>
-                        <div className="flex flex-col items-center md:items-end gap-3 shrink-0 w-full md:w-auto">
-                          <span className="text-foreground font-bold text-lg">R$ {(item.price * item.quantity).toFixed(2).replace(".", ",")}</span>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-foreground font-bold text-sm">R$ {(item.price * item.quantity).toFixed(2).replace(".", ",")}</span>
                           {selectedOrder.status === "completed" && (
                             <button
                               onClick={() => navigate(`/item-details/${encodeURIComponent(selectedOrder.code)}/${item.id}`)}
-                              className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                              className="flex items-center gap-1 px-2 py-1 rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors text-xs"
                             >
-                              <span className="material-symbols-outlined text-[20px]">visibility</span>
-                              Ver Detalhes
+                              <span className="material-symbols-outlined text-[14px]">visibility</span>
+                              Detalhes
                             </button>
                           )}
                         </div>
@@ -278,49 +277,44 @@ export default function Orders() {
                   </div>
 
                   {/* Payment & Summary */}
-                  <div className="flex flex-col md:flex-row gap-8 pt-8 border-t border-border">
+                  <div className="flex flex-col md:flex-row gap-4 pt-3 border-t border-border">
                     <div className="flex-1">
-                      <h4 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-4">Informações de Pagamento</h4>
-                      <div className="flex items-center gap-4 mb-4">
-                        <div className="w-12 h-8 rounded bg-muted flex items-center justify-center border border-border">
-                          <span className="material-symbols-outlined text-foreground">credit_card</span>
+                      <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Pagamento</h4>
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-6 rounded bg-muted flex items-center justify-center border border-border">
+                          <span className="material-symbols-outlined text-foreground text-[14px]">credit_card</span>
                         </div>
-                        <div>
-                          <p className="text-foreground text-sm font-medium">
-                            {selectedOrder.payment_method || "PIX"} {selectedOrder.payment_last4 && `final ${selectedOrder.payment_last4}`}
-                          </p>
-                          {selectedOrder.payment_expiry && (
-                            <p className="text-muted-foreground text-xs">Expira em {selectedOrder.payment_expiry}</p>
-                          )}
-                        </div>
+                        <p className="text-foreground text-xs font-medium">
+                          {selectedOrder.payment_method || "PIX"} {selectedOrder.payment_last4 && `final ${selectedOrder.payment_last4}`}
+                        </p>
                       </div>
                     </div>
 
-                    <div className="w-full md:w-80 p-6 rounded-xl bg-muted/50 border border-border">
-                      <div className="flex justify-between mb-3 text-sm">
+                    <div className="w-full md:w-64 p-3 rounded-lg bg-muted/50 border border-border">
+                      <div className="flex justify-between mb-1.5 text-xs">
                         <span className="text-muted-foreground">Subtotal</span>
                         <span className="text-foreground">R$ {subtotal.toFixed(2).replace(".", ",")}</span>
                       </div>
-                      <div className="flex justify-between mb-3 text-sm">
+                      <div className="flex justify-between mb-1.5 text-xs">
                         <span className="text-muted-foreground">Desconto</span>
                         <span className="text-primary">- R$ {selectedOrder.discount.toFixed(2).replace(".", ",")}</span>
                       </div>
-                      <div className="h-px bg-border my-4"></div>
+                      <div className="h-px bg-border my-2"></div>
                       <div className="flex justify-between items-center">
-                        <span className="text-foreground font-bold">Total</span>
-                        <span className="text-2xl font-bold text-primary">R$ {selectedOrder.total.toFixed(2).replace(".", ",")}</span>
+                        <span className="text-foreground font-bold text-sm">Total</span>
+                        <span className="text-lg font-bold text-primary">R$ {selectedOrder.total.toFixed(2).replace(".", ",")}</span>
                       </div>
                     </div>
                   </div>
 
                   {/* Finalizar Pedido button for pending orders */}
                   {selectedOrder.status === "processing" && (
-                    <div className="pt-6 border-t border-border">
+                    <div className="pt-3 border-t border-border">
                       <button
                         onClick={() => navigate(`/checkout?order=${selectedOrder.id}`)}
-                        className="w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm transition-all shadow-glow hover:scale-[1.02] active:scale-[0.98]"
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm transition-all shadow-glow hover:scale-[1.02] active:scale-[0.98]"
                       >
-                        <span className="material-symbols-outlined text-[20px]">shopping_cart_checkout</span>
+                        <span className="material-symbols-outlined text-[18px]">shopping_cart_checkout</span>
                         Finalizar Pedido
                       </button>
                     </div>
