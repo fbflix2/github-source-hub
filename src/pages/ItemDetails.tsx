@@ -311,7 +311,16 @@ export default function ItemDetails() {
             <div className="flex justify-between items-center mb-3 pb-3 border-b border-border">
               <div>
                 <span className="text-[10px] uppercase tracking-wider text-text-secondary font-bold">Pedido</span>
-                <h2 className="text-lg font-mono font-bold text-foreground">{order.code}</h2>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg font-mono font-bold text-foreground">{order.code}</h2>
+                  <button 
+                    onClick={() => copyToClipboard(order.code, 'orderCode')} 
+                    className="p-1 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground"
+                    title="Copiar código"
+                  >
+                    <span className="material-symbols-outlined text-[14px]">{copied === 'orderCode' ? 'check' : 'content_copy'}</span>
+                  </button>
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <span className="flex items-center gap-1 px-2 py-1 rounded-md bg-green-500/10 text-green-400 border border-green-500/20 text-[10px] font-bold uppercase">

@@ -112,7 +112,7 @@ export default function Suporte() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !description.trim()) return;
+    if (!title.trim() || !description.trim() || !orderCode.trim()) return;
 
     setSubmitting(true);
     const { data: { user } } = await supabase.auth.getUser();
@@ -268,12 +268,13 @@ export default function Suporte() {
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-muted-foreground">
-                  Código do Pedido <span className="text-muted-foreground/50 text-[10px] font-normal">(Opcional)</span>
+                  Código do Pedido
                 </label>
                 <input 
                   className="w-full rounded-lg px-3 py-2.5 placeholder-muted-foreground/50 bg-card border border-border text-foreground text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all" 
-                  placeholder="Ex: #1234"
+                  placeholder="Ex: ORD-MLVP10XS"
                   type="text"
+                  required
                   value={orderCode}
                   onChange={(e) => setOrderCode(e.target.value)}
                 />
