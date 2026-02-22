@@ -14,6 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
+      ads: {
+        Row: {
+          created_at: string
+          end_date: string | null
+          id: string
+          image_url: string | null
+          name: string
+          position_name: string
+          position_price: number
+          start_date: string | null
+          status: string
+          updated_at: string
+          url: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          image_url?: string | null
+          name: string
+          position_name: string
+          position_price?: number
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+          url?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          end_date?: string | null
+          id?: string
+          image_url?: string | null
+          name?: string
+          position_name?: string
+          position_price?: number
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+          url?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       affiliates: {
         Row: {
           commission_rate: number
