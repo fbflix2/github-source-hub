@@ -511,7 +511,7 @@ export default function ItemDetails() {
             <p className="text-xs text-text-secondary mb-1">Cobrimos bloqueios imediatos, falhas no login ou itens fora da descrição.</p>
             <p className="text-[10px] italic text-text-secondary/70 mb-3">Não cobrimos mau uso ou bloqueios após atividade publicitária.</p>
             <button 
-              onClick={() => navigate("/tutoriais")}
+              onClick={() => navigate("/tutorials")}
               className="w-full py-2 rounded-lg border border-border hover:bg-muted/50 text-foreground text-xs font-medium flex items-center justify-center gap-1.5 transition-all group"
             >
               <span className="material-symbols-outlined text-[16px] group-hover:text-primary transition-colors">play_circle</span>
