@@ -52,6 +52,8 @@ export default function ItemDetails() {
 
   // Countdown from order created_at + 24h
   const [countdown, setCountdown] = useState({ hours: 0, minutes: 0, seconds: 0 });
+  // Warranty countdown from order created_at + 7 days
+  const [warrantyCountdown, setWarrantyCountdown] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
   useEffect(() => {
     async function fetchData() {
@@ -121,6 +123,17 @@ export default function ItemDetails() {
         seconds: totalSec % 60,
       });
 
+      // Calculate warranty countdown (7 days from order creation)
+      const warrantyDeadline = new Date(orderData.created_at).getTime() + 7 * 24 * 60 * 60 * 1000;
+      const warrantyRemaining = Math.max(0, warrantyDeadline - Date.now());
+      const wTotalSec = Math.floor(warrantyRemaining / 1000);
+      setWarrantyCountdown({
+        days: Math.floor(wTotalSec / 86400),
+        hours: Math.floor((wTotalSec % 86400) / 3600),
+        minutes: Math.floor((wTotalSec % 3600) / 60),
+        seconds: wTotalSec % 60,
+      });
+
       setLoading(false);
     }
     fetchData();
@@ -135,6 +148,14 @@ export default function ItemDetails() {
         else if (minutes > 0) { minutes--; seconds = 59; }
         else if (hours > 0) { hours--; minutes = 59; seconds = 59; }
         return { hours, minutes, seconds };
+      });
+      setWarrantyCountdown(prev => {
+        let { days, hours, minutes, seconds } = prev;
+        if (seconds > 0) seconds--;
+        else if (minutes > 0) { minutes--; seconds = 59; }
+        else if (hours > 0) { hours--; minutes = 59; seconds = 59; }
+        else if (days > 0) { days--; hours = 23; minutes = 59; seconds = 59; }
+        return { days, hours, minutes, seconds };
       });
     }, 1000);
     return () => clearInterval(timer);
@@ -432,6 +453,47 @@ export default function ItemDetails() {
 
         {/* Right Column */}
         <div className="lg:col-span-4 flex flex-col gap-3">
+          {/* Warranty Timer (7 days) */}
+          <div className="glass-panel rounded-xl p-4 bg-gradient-to-br from-muted/30 to-blue-500/5 border-blue-500/20">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="material-symbols-outlined text-blue-400 text-lg">verified_user</span>
+              <h3 className="text-sm font-bold text-foreground">Garantia de 7 Dias</h3>
+            </div>
+            <p className="text-xs text-text-secondary mb-3">Período de cobertura para reposição.</p>
+            <div className="flex justify-center gap-2 mb-3">
+              {[
+                { val: warrantyCountdown.days, label: 'Dias' },
+                { val: warrantyCountdown.hours, label: 'Horas' },
+                { val: warrantyCountdown.minutes, label: 'Min' },
+                { val: warrantyCountdown.seconds, label: 'Seg' },
+              ].map((t) => (
+                <div key={t.label} className="flex flex-col items-center">
+                  <div className="w-11 h-11 rounded-lg bg-background/50 border border-border flex items-center justify-center text-lg font-mono font-bold text-foreground">
+                    {t.val.toString().padStart(2, '0')}
+                  </div>
+                  <span className="text-[9px] uppercase text-text-secondary mt-0.5">{t.label}</span>
+                </div>
+              ))}
+            </div>
+            <div className="h-1 w-full bg-muted rounded-full overflow-hidden">
+              <div className="h-full bg-blue-400 rounded-full transition-all duration-1000" style={{ width: `${(warrantyCountdown.days * 86400 + warrantyCountdown.hours * 3600 + warrantyCountdown.minutes * 60 + warrantyCountdown.seconds) / (7 * 86400) * 100}%` }}></div>
+            </div>
+          </div>
+
+          {/* Warranty Info */}
+          <div className="glass-panel rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="material-symbols-outlined text-blue-400 text-lg">shield</span>
+              <h3 className="text-sm font-bold text-foreground">Garantia de Reposição</h3>
+            </div>
+            <p className="text-xs text-text-secondary mb-1">Cobrimos bloqueios imediatos, falhas no login ou itens fora da descrição.</p>
+            <p className="text-[10px] italic text-text-secondary/70 mb-3">Não cobrimos mau uso ou bloqueios após atividade publicitária.</p>
+            <button className="w-full py-2 rounded-lg border border-border hover:bg-muted/50 text-foreground text-xs font-medium flex items-center justify-center gap-1.5 transition-all group">
+              <span className="material-symbols-outlined text-[16px] group-hover:text-primary transition-colors">play_circle</span>
+              Assistir Termos de Garantia
+            </button>
+          </div>
+
           {/* Feedback Timer */}
           <div className="glass-panel rounded-xl p-4 bg-gradient-to-br from-muted/30 to-primary/5 border-primary/20">
             <div className="flex items-center gap-2 mb-2">
@@ -456,30 +518,6 @@ export default function ItemDetails() {
             <div className="h-1 w-full bg-muted rounded-full overflow-hidden">
               <div className="h-full bg-primary rounded-full shadow-glow transition-all duration-1000" style={{ width: `${progressPercent}%` }}></div>
             </div>
-          </div>
-
-          {/* Warranty */}
-          <div className="glass-panel rounded-xl p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="material-symbols-outlined text-blue-400 text-lg">verified_user</span>
-              <h3 className="text-sm font-bold text-foreground">Garantia de Reposição</h3>
-            </div>
-            <p className="text-xs text-text-secondary mb-1">Cobrimos bloqueios imediatos, falhas no login ou itens fora da descrição.</p>
-            <p className="text-[10px] italic text-text-secondary/70 mb-3">Não cobrimos mau uso ou bloqueios após atividade publicitária.</p>
-            <button className="w-full py-2 rounded-lg border border-border hover:bg-muted/50 text-foreground text-xs font-medium flex items-center justify-center gap-1.5 transition-all group">
-              <span className="material-symbols-outlined text-[16px] group-hover:text-primary transition-colors">play_circle</span>
-              Assistir Termos de Garantia
-            </button>
-          </div>
-
-          {/* Support */}
-          <div className="glass-panel rounded-xl p-4">
-            <h3 className="text-foreground text-sm font-bold mb-1">Precisa de Ajuda?</h3>
-            <p className="text-xs text-text-secondary mb-2">Suporte online para este item.</p>
-            <button className="w-full py-2 rounded-lg bg-muted/50 hover:bg-muted text-foreground border border-border transition-colors flex items-center justify-center gap-1.5 text-xs">
-              <span className="material-symbols-outlined text-[16px]">support_agent</span>
-              Abrir Chat de Suporte
-            </button>
           </div>
         </div>
       </div>
