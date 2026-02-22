@@ -11,6 +11,7 @@ interface OrderItem {
   description: string | null;
   price: number;
   quantity: number;
+  isBlocked?: boolean;
 }
 
 interface Order {
@@ -76,9 +77,23 @@ export default function Orders() {
         .select("*")
         .in("order_id", orderIds.length > 0 ? orderIds : ["__none__"]);
 
+      // Fetch stock_items to check blocked status
+      const itemIds = (itemsData || []).map((i) => i.id);
+      const { data: stockItems } = await supabase
+        .from("stock_items")
+        .select("order_item_id, status")
+        .in("order_item_id", itemIds.length > 0 ? itemIds : ["__none__"]);
+
+      const blockedItemIds = new Set(
+        (stockItems || []).filter((s) => s.status === "bloqueado").map((s) => s.order_item_id)
+      );
+
       const enriched: Order[] = ordersData.map((order) => ({
         ...order,
-        items: (itemsData || []).filter((i) => i.order_id === order.id),
+        items: (itemsData || []).filter((i) => i.order_id === order.id).map((i) => ({
+          ...i,
+          isBlocked: blockedItemIds.has(i.id),
+        })),
       }));
 
       setOrders(enriched);
@@ -165,6 +180,12 @@ export default function Orders() {
                           {order.items.length > 0 ? order.items[0].name : "Pedido"}
                           {order.items.length > 1 && ` +${order.items.length - 1}`}
                         </h3>
+                        {order.items.some((i) => i.isBlocked) && (
+                          <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-destructive/20 text-destructive border border-destructive/30 text-[9px] font-bold uppercase w-fit">
+                            <span className="material-symbols-outlined text-[10px]">block</span>
+                            Bloqueado
+                          </span>
+                        )}
                       </div>
                       <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider border ${st.badgeClassName}`}>
                         {st.label}
@@ -229,7 +250,15 @@ export default function Orders() {
                           <span className="material-symbols-outlined text-3xl text-blue-400">inventory_2</span>
                         </div>
                         <div className="flex-1 text-center md:text-left w-full md:w-auto">
-                          <h5 className="text-foreground font-bold text-lg">{item.name}</h5>
+                          <div className="flex items-center gap-2 justify-center md:justify-start">
+                            <h5 className="text-foreground font-bold text-lg">{item.name}</h5>
+                            {item.isBlocked && (
+                              <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-destructive/20 text-destructive border border-destructive/30 text-[9px] font-bold uppercase">
+                                <span className="material-symbols-outlined text-[10px]">block</span>
+                                Bloqueado
+                              </span>
+                            )}
+                          </div>
                           <p className="text-muted-foreground text-sm">{item.description || `Qtd: ${item.quantity}`}</p>
                         </div>
                         <div className="flex flex-col items-center md:items-end gap-3 shrink-0 w-full md:w-auto">
