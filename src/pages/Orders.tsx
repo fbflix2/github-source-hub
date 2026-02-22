@@ -214,7 +214,7 @@ export default function Orders() {
 
           {/* Order Details - fixed, no scroll */}
           {selectedOrder && status && (
-            <div className="lg:col-span-8 overflow-y-auto custom-scrollbar">
+            <div className="lg:col-span-8 overflow-hidden">
               <div className="glass-panel rounded-xl flex flex-col overflow-hidden border border-border">
                 <div className="px-4 py-3 border-b border-border flex flex-wrap gap-3 justify-between items-center bg-muted/50">
                   <div>
