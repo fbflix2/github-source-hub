@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Wallet, QrCode, CreditCard, Lock, ChevronLeft, User, Calendar, Flame, Loader2, Check, Copy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -108,6 +108,53 @@ export default function Checkout() {
   const [pixPaymentId, setPixPaymentId] = useState<string | null>(null);
   const [pixConfirmed, setPixConfirmed] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [draftOrderId, setDraftOrderId] = useState<string | null>(null);
+  const [draftOrderCode, setDraftOrderCode] = useState<string | null>(null);
+  const draftCreatingRef = useRef(false);
+
+  // Create draft order when entering checkout (for abandoned cart tracking)
+  useEffect(() => {
+    if (!product || draftOrderId || draftCreatingRef.current) return;
+
+    const createDraftOrder = async () => {
+      draftCreatingRef.current = true;
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const orderCode = `ORD-${Date.now().toString(36).toUpperCase()}`;
+
+        const { data: order, error } = await supabase.from("orders").insert({
+          code: orderCode,
+          user_id: user.id,
+          subtotal: product.price * quantity,
+          discount: 0,
+          total: product.price * quantity,
+          payment_method: null,
+          status: "processing",
+          coupon_code: null,
+        }).select("id").single();
+
+        if (error) {
+          console.error("Error creating draft order:", error);
+          return;
+        }
+
+        // Insert order items
+        const orderItems: any[] = [{ order_id: order.id, product_id: product.id, name: product.name, price: product.price, quantity }];
+        await supabase.from("order_items").insert(orderItems);
+
+        setDraftOrderId(order.id);
+        setDraftOrderCode(orderCode);
+      } catch (err) {
+        console.error("Draft order error:", err);
+      } finally {
+        draftCreatingRef.current = false;
+      }
+    };
+
+    createDraftOrder();
+  }, [product]);
 
   // Poll for PIX payment confirmation
   useEffect(() => {
@@ -264,7 +311,36 @@ export default function Checkout() {
         return;
       }
 
-      const orderCode = `ORD-${Date.now().toString(36).toUpperCase()}`;
+      if (!draftOrderId || !draftOrderCode) {
+        toast.error("Erro ao preparar pedido. Recarregue a página.");
+        return;
+      }
+
+      const orderId = draftOrderId;
+      const orderCode = draftOrderCode;
+
+      // Update draft order with final values (bumps, coupon, payment method, totals)
+      const updateData: any = {
+        subtotal,
+        discount,
+        total,
+        payment_method: paymentMethod,
+        coupon_code: couponApplied ? coupon.trim().toUpperCase() : null,
+      };
+
+      // Add bump/upsell order items if any
+      const extraItems: any[] = [];
+      if (upsellAdded) {
+        extraItems.push({ order_id: orderId, name: "BM + Proxy (Combo)", price: upsellOffer.discountedPrice, quantity: 1 });
+      } else {
+        selectedBumps.forEach(bumpId => {
+          const bump = availableOrderBumps.find(b => b.id === bumpId);
+          if (bump) extraItems.push({ order_id: orderId, name: bump.name, price: bump.price, quantity: 1 });
+        });
+      }
+      if (extraItems.length > 0) {
+        await supabase.from("order_items").insert(extraItems);
+      }
 
       if (paymentMethod === "saldo") {
         const { data: profile } = await supabase.from("profiles").select("balance").eq("user_id", user.id).maybeSingle();
@@ -273,30 +349,18 @@ export default function Checkout() {
           return;
         }
 
-        const { data: order, error: orderError } = await supabase.from("orders").insert({
-          code: orderCode, user_id: user.id, subtotal, discount, total,
-          payment_method: "saldo", status: "completed",
-          coupon_code: couponApplied ? coupon.trim().toUpperCase() : null,
-        }).select("id").single();
-        if (orderError) throw orderError;
+        updateData.status = "completed";
+        const { error: updateError } = await supabase.from("orders").update(updateData).eq("id", orderId);
+        if (updateError) throw updateError;
 
-        const orderItems: any[] = [{ order_id: order.id, product_id: product!.id, name: product!.name, price: product!.price, quantity }];
-        if (upsellAdded) {
-          orderItems.push({ order_id: order.id, name: "BM + Proxy (Combo)", price: upsellOffer.discountedPrice, quantity: 1 });
-        } else {
-          selectedBumps.forEach(bumpId => {
-            const bump = availableOrderBumps.find(b => b.id === bumpId);
-            if (bump) orderItems.push({ order_id: order.id, name: bump.name, price: bump.price, quantity: 1 });
-          });
-        }
-        const { data: createdOrderItems } = await supabase.from("order_items").insert(orderItems).select("id, product_id");
+        // Get all order items for fulfillment
+        const { data: createdOrderItems } = await supabase.from("order_items").select("id, product_id").eq("order_id", orderId);
 
         // Fulfill: link stock_items and decrement product stock
         if (createdOrderItems) {
           for (const oi of createdOrderItems) {
             if (!oi.product_id) continue;
 
-            // Find an available stock_item for this product
             const { data: stockItem } = await supabase
               .from("stock_items")
               .select("id, data")
@@ -307,16 +371,12 @@ export default function Checkout() {
               .maybeSingle();
 
             if (stockItem) {
-              // Link stock_item to order_item
               await supabase.from("stock_items").update({ order_item_id: oi.id, status: "vendido" }).eq("id", stockItem.id);
-
-              // Copy delivery data to order_item
               if (stockItem.data) {
                 await supabase.from("order_items").update({ delivery_data: stockItem.data }).eq("id", oi.id);
               }
             }
 
-            // Decrement product stock
             const { data: prod } = await supabase.from("products").select("stock").eq("id", oi.product_id).single();
             if (prod) {
               const newStock = Math.max(0, prod.stock - 1);
@@ -333,7 +393,7 @@ export default function Checkout() {
 
         await supabase.from("wallet_transactions").insert({
           user_id: user.id, type: "purchase", title: `Compra #${orderCode}`,
-          amount: -total, balance_after: newBalance, reference_id: order.id,
+          amount: -total, balance_after: newBalance, reference_id: orderId,
         });
 
         if (couponApplied && coupon.trim()) {
@@ -345,26 +405,12 @@ export default function Checkout() {
         navigate("/orders");
 
       } else if (paymentMethod === "pix") {
-        const { data: order, error: orderError } = await supabase.from("orders").insert({
-          code: orderCode, user_id: user.id, subtotal, discount, total,
-          payment_method: "pix", status: "processing",
-          coupon_code: couponApplied ? coupon.trim().toUpperCase() : null,
-        }).select("id").single();
-        if (orderError) throw orderError;
-
-        const orderItems: any[] = [{ order_id: order.id, product_id: product!.id, name: product!.name, price: product!.price, quantity }];
-        if (upsellAdded) {
-          orderItems.push({ order_id: order.id, name: "BM + Proxy (Combo)", price: upsellOffer.discountedPrice, quantity: 1 });
-        } else {
-          selectedBumps.forEach(bumpId => {
-            const bump = availableOrderBumps.find(b => b.id === bumpId);
-            if (bump) orderItems.push({ order_id: order.id, name: bump.name, price: bump.price, quantity: 1 });
-          });
-        }
-        await supabase.from("order_items").insert(orderItems);
+        updateData.status = "processing";
+        const { error: updateError } = await supabase.from("orders").update(updateData).eq("id", orderId);
+        if (updateError) throw updateError;
 
         const { data: pixResult, error: pixError } = await supabase.functions.invoke("create-pix-payment", {
-          body: { amount: total, order_id: order.id },
+          body: { amount: total, order_id: orderId },
         });
         if (pixError) throw pixError;
         if (pixResult?.error) throw new Error(pixResult.error);
