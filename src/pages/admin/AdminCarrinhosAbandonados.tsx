@@ -1,7 +1,11 @@
 import { useState, useEffect } from "react";
-import { Search, ShoppingCart, ChevronLeft, ChevronRight, Loader2, User, Calendar, CreditCard, Package, RefreshCw, ExternalLink } from "lucide-react";
+import { Search, ShoppingCart, ChevronLeft, ChevronRight, Loader2, User, Calendar, CreditCard, Package, RefreshCw, ExternalLink, CalendarIcon, X } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Calendar as CalendarPicker } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Table,
   TableBody,
@@ -33,7 +37,8 @@ export default function AdminCarrinhosAbandonados() {
   const [expiring, setExpiring] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
+  const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
   const fetchAbandonedCarts = async () => {
     setLoading(true);
 
@@ -138,18 +143,32 @@ export default function AdminCarrinhosAbandonados() {
     }
   };
 
-  // Stats
-  const totalValue = carts.reduce((sum, c) => sum + c.total, 0);
-
+  // Stats - computed from filtered results
   // Filter
   const filtered = carts.filter(c => {
-    if (!searchTerm) return true;
-    const term = searchTerm.toLowerCase();
-    return (
-      c.code.toLowerCase().includes(term) ||
-      (c.client_name || "").toLowerCase().includes(term)
-    );
+    // Text filter
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      if (!c.code.toLowerCase().includes(term) && !(c.client_name || "").toLowerCase().includes(term)) {
+        return false;
+      }
+    }
+    // Date filter
+    const cartDate = new Date(c.created_at);
+    if (dateFrom) {
+      const from = new Date(dateFrom);
+      from.setHours(0, 0, 0, 0);
+      if (cartDate < from) return false;
+    }
+    if (dateTo) {
+      const to = new Date(dateTo);
+      to.setHours(23, 59, 59, 999);
+      if (cartDate > to) return false;
+    }
+    return true;
   });
+
+  const totalValue = filtered.reduce((sum, c) => sum + c.total, 0);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
   const paginated = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
@@ -206,7 +225,7 @@ export default function AdminCarrinhosAbandonados() {
           <div className="absolute -right-4 -top-4 rounded-full bg-red-500/5 p-8 blur-2xl"></div>
           <div className="relative z-10 flex flex-col gap-1">
             <p className="text-sm font-medium text-gray-400">Carrinhos</p>
-            <h2 className="text-3xl font-bold text-white">{carts.length}</h2>
+            <h2 className="text-3xl font-bold text-white">{filtered.length}</h2>
           </div>
         </div>
 
@@ -215,14 +234,14 @@ export default function AdminCarrinhosAbandonados() {
           <div className="relative z-10 flex flex-col gap-1">
             <p className="text-sm font-medium text-gray-400">Ticket Médio</p>
             <h2 className="text-3xl font-bold text-white">
-              {carts.length > 0 ? formatCurrency(totalValue / carts.length) : "R$ 0,00"}
+              {filtered.length > 0 ? formatCurrency(totalValue / filtered.length) : "R$ 0,00"}
             </h2>
           </div>
         </div>
       </div>
 
-      {/* Search */}
-      <div className="glass-panel flex flex-col justify-between gap-4 rounded-2xl p-4 lg:flex-row lg:items-center">
+      {/* Search & Date Filters */}
+      <div className="glass-panel flex flex-col gap-4 rounded-2xl p-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="relative flex w-full max-w-lg items-center">
           <Search className="absolute left-4 size-4 text-gray-500" />
           <Input
@@ -231,6 +250,52 @@ export default function AdminCarrinhosAbandonados() {
             value={searchTerm}
             onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
           />
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className={cn("h-10 gap-2 text-xs", !dateFrom && "text-muted-foreground")}>
+                <CalendarIcon className="size-3.5" />
+                {dateFrom ? format(dateFrom, "dd/MM/yyyy") : "Data início"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <CalendarPicker
+                mode="single"
+                selected={dateFrom}
+                onSelect={(d) => { setDateFrom(d); setCurrentPage(1); }}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className={cn("h-10 gap-2 text-xs", !dateTo && "text-muted-foreground")}>
+                <CalendarIcon className="size-3.5" />
+                {dateTo ? format(dateTo, "dd/MM/yyyy") : "Data fim"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <CalendarPicker
+                mode="single"
+                selected={dateTo}
+                onSelect={(d) => { setDateTo(d); setCurrentPage(1); }}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+          {(dateFrom || dateTo) && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-10 w-10"
+              onClick={() => { setDateFrom(undefined); setDateTo(undefined); setCurrentPage(1); }}
+            >
+              <X className="size-4" />
+            </Button>
+          )}
         </div>
       </div>
 
