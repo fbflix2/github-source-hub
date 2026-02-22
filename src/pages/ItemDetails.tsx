@@ -255,53 +255,6 @@ export default function ItemDetails() {
     );
   }
 
-  // Blocked page
-  if (isBlocked) {
-    return (
-      <div className="space-y-3 animate-fade-in">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-2 text-xs text-text-secondary mb-0.5">
-              <a onClick={() => navigate("/orders")} className="hover:text-foreground transition-colors cursor-pointer">Meus Pedidos</a>
-              <span className="material-symbols-outlined text-[12px]">chevron_right</span>
-              <span className="text-foreground">Detalhes do Item</span>
-            </div>
-            <h1 className="text-xl font-bold text-foreground tracking-tight">{itemName}</h1>
-          </div>
-          <button onClick={() => navigate("/orders")} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg glass-panel text-foreground hover:bg-muted/50 transition-all text-sm group">
-            <span className="material-symbols-outlined text-[16px] group-hover:-translate-x-1 transition-transform">arrow_back</span>
-            <span>Voltar</span>
-          </button>
-        </div>
-
-        <div className="glass-panel rounded-xl p-8 text-center space-y-4 border border-destructive/30 bg-destructive/5">
-          <div className="w-16 h-16 rounded-full bg-destructive/20 flex items-center justify-center mx-auto">
-            <span className="material-symbols-outlined text-destructive text-[32px]">block</span>
-          </div>
-          <h2 className="text-xl font-bold text-foreground">Item Bloqueado</h2>
-          <p className="text-text-secondary text-sm max-w-md mx-auto">
-            Este item foi marcado como bloqueado. Entre em contato com o suporte para mais informações ou para solicitar a reposição dentro do prazo de garantia.
-          </p>
-          <div className="flex items-center justify-center gap-3 pt-2">
-            <button 
-              onClick={() => navigate("/suporte")} 
-              className="px-4 py-2 rounded-lg bg-primary text-primary-foreground font-bold text-sm hover:bg-primary/90 transition-colors flex items-center gap-2"
-            >
-              <span className="material-symbols-outlined text-[16px]">support_agent</span>
-              Abrir Suporte
-            </button>
-            <button 
-              onClick={() => navigate("/orders")} 
-              className="px-4 py-2 rounded-lg border border-border text-foreground font-medium text-sm hover:bg-muted/50 transition-colors"
-            >
-              Voltar aos Pedidos
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-3 animate-fade-in">
       {/* Header */}
@@ -312,7 +265,15 @@ export default function ItemDetails() {
             <span className="material-symbols-outlined text-[12px]">chevron_right</span>
             <span className="text-foreground">Detalhes do Item</span>
           </div>
-          <h1 className="text-xl font-bold text-foreground tracking-tight">{itemName}</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold text-foreground tracking-tight">{itemName}</h1>
+            {isBlocked && (
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-destructive/20 text-destructive border border-destructive/30 text-[10px] font-bold uppercase">
+                <span className="material-symbols-outlined text-[12px]">block</span>
+                Bloqueado
+              </span>
+            )}
+          </div>
         </div>
         <button onClick={() => navigate("/orders")} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg glass-panel text-foreground hover:bg-muted/50 transition-all text-sm group">
           <span className="material-symbols-outlined text-[16px] group-hover:-translate-x-1 transition-transform">arrow_back</span>
