@@ -50,6 +50,7 @@ import AdminAssinaturas from "./pages/admin/AdminAssinaturas";
 import AdminPagamentos from "./pages/admin/AdminPagamentos";
 import AdminPedidos from "./pages/admin/AdminPedidos";
 import AdminCarrinhosAbandonados from "./pages/admin/AdminCarrinhosAbandonados";
+import AdminAnuncios from "./pages/admin/AdminAnuncios";
 import { AdminLayout } from "./components/admin/AdminLayout";
 
 // Layout
@@ -178,6 +179,7 @@ const App = () => {
                   <Route path="configuracoes" element={<AdminConfiguracoes />} />
                   <Route path="configuracoes/plataforma" element={<AdminPlataforma />} />
                   <Route path="api" element={<AdminApi />} />
+                  <Route path="anuncios" element={<AdminAnuncios />} />
                 </Route>
 
                 {/* Protected routes */}

@@ -23,7 +23,8 @@ import {
   Warehouse,
   ClipboardCheck,
   Headphones,
-  Palette
+  Palette,
+  Megaphone
 } from "lucide-react";
 
 const menuItems = [
@@ -41,6 +42,7 @@ const menuItems = [
   { title: "Cupons", icon: Ticket, path: "/admin/cupons" },
   { title: "Tutoriais", icon: GraduationCap, path: "/admin/tutoriais" },
   { title: "Banners", icon: Image, path: "/admin/banners" },
+  { title: "Anúncios", icon: Megaphone, path: "/admin/anuncios" },
   { title: "Notificações", icon: Bell, path: "/admin/notificacoes" },
   { title: "Termos de uso", icon: FileText, path: "/admin/termos" },
   { title: "Configurações", icon: Settings, path: "/admin/configuracoes", subItems: [
