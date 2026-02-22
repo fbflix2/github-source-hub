@@ -63,7 +63,43 @@ export function useProxyBRAllSubscriptions() {
 export function useProxyBRSubscriptions() {
   return useQuery({
     queryKey: ["proxybr-subscriptions"],
-    queryFn: () => callProxyBR("get-subscriptions"),
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
+
+      const { data, error } = await supabase
+        .from("subscriptions")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("type", "proxybr")
+        .order("created_at", { ascending: false });
+
+      if (error) throw new Error(error.message);
+
+      // Map local DB records to the format the UI expects
+      return (data || []).map((sub: any) => {
+        const raw = sub.raw_data || {};
+        const proxy = raw.proxies?.data?.[0] || null;
+        return {
+          code: sub.name,
+          name: sub.name,
+          product_name: raw.product?.name || raw.product_name || undefined,
+          status: sub.status,
+          start_date: sub.start_date,
+          end_date: sub.end_date || sub.start_date,
+          auto_renew: sub.auto_renew,
+          proxy: proxy?.parsed ? {
+            id: proxy.id,
+            ip: proxy.parsed.ip,
+            port: proxy.parsed.port,
+            username: proxy.parsed.username,
+            password: proxy.parsed.password,
+            protocol: raw.product?.type || "SOCKS5",
+          } : undefined,
+          raw_data: raw,
+        };
+      });
+    },
     staleTime: 30_000,
   });
 }

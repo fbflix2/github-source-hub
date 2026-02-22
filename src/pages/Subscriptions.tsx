@@ -65,9 +65,7 @@ export default function Subscriptions() {
   const { data: subscriptionsRaw, isLoading, error } = useProxyBRSubscriptions();
   const renewMutation = useRenewSubscription();
 
-  const subscriptions: ProxySubscription[] = Array.isArray(subscriptionsRaw?.data)
-    ? subscriptionsRaw.data
-    : Array.isArray(subscriptionsRaw)
+  const subscriptions: ProxySubscription[] = Array.isArray(subscriptionsRaw)
     ? subscriptionsRaw
     : [];
 
