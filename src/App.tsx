@@ -178,6 +178,7 @@ const App = () => {
                   <Route path="termos" element={<AdminTermos />} />
                   <Route path="configuracoes" element={<AdminConfiguracoes />} />
                   <Route path="configuracoes/plataforma" element={<AdminPlataforma />} />
+                  <Route path="configuracoes/usuarios" element={<AdminConfiguracoes />} />
                   <Route path="api" element={<AdminApi />} />
                   <Route path="anuncios" element={<AdminAnuncios />} />
                 </Route>
