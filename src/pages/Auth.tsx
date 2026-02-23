@@ -85,7 +85,7 @@ export default function Auth() {
         title: "Conta criada!",
         description: "Você já pode fazer login.",
       });
-      navigate("/dashboard");
+      navigate("/loja");
     }
 
     setLoading(false);
