@@ -261,8 +261,8 @@ export default function Dashboard() {
                               <span className="material-symbols-outlined text-[20px] text-muted-foreground">dns</span>
                             )}
                           </div>
-                          <div className="flex items-center gap-2 flex-wrap min-w-0">
-                            <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors break-words">
+                          <div className="flex flex-col gap-1 min-w-0">
+                            <h3 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-tight">
                               {product.name}
                             </h3>
                             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 shrink-0 bg-primary/10 text-primary border-primary/20">
@@ -399,8 +399,8 @@ export default function Dashboard() {
                             <span className="material-symbols-outlined text-[20px] text-muted-foreground">inventory_2</span>
                           )}
                         </div>
-                        <div className="flex items-center gap-2 flex-wrap min-w-0">
-                          <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors break-words">
+                        <div className="flex flex-col gap-1 min-w-0">
+                          <h3 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-tight">
                             {product.name}
                           </h3>
                           {product.badge_text && (
