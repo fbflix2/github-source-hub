@@ -317,7 +317,7 @@ export default function Dashboard() {
                             <button
                               onClick={() => {
                                 addItem({
-                                  productId: Number(product.id.substring(0, 8), ),
+                                  productId: product.id,
                                   name: product.name,
                                   price: product.price,
                                   quantity: getQuantity(product.id),
