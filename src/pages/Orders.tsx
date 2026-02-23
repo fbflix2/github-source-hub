@@ -181,40 +181,38 @@ export default function Orders() {
                 <div
                   key={order.id}
                   onClick={() => setSelectedOrder(order)}
-                  className={`glass-panel p-3.5 pb-4 rounded-xl cursor-pointer group border-l-[3px] hover:bg-muted transition-all relative overflow-hidden ${
+                  className={`glass-panel p-4 pb-5 rounded-xl cursor-pointer group border-l-[3px] hover:bg-muted transition-all relative ${
                     isSelected ? st.className : "border-l-transparent opacity-80 hover:opacity-100"
                   }`}
                 >
                   {isSelected && (
-                    <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-transparent pointer-events-none"></div>
+                    <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary/5 to-transparent pointer-events-none"></div>
                   )}
-                  <div className="relative z-10">
-                    <div className="flex justify-between items-start mb-1.5">
+                  <div className="relative z-10 flex flex-col gap-3 min-h-[72px]">
+                    <div className="flex justify-between items-start">
                       <div>
-                        <p className="text-[10px] text-muted-foreground font-mono">{order.code}</p>
-                        <h3 className="text-foreground font-semibold text-sm">
+                        <p className="text-[10px] text-muted-foreground font-mono leading-normal">{order.code}</p>
+                        <h3 className="text-foreground font-semibold text-sm leading-tight">
                           {order.items.length > 0 ? order.items[0].name : "Pedido"}
                           {order.items.length > 1 && ` +${order.items.length - 1}`}
                         </h3>
                         {order.items.some((i) => i.isBlocked) && (
-                          <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-destructive/20 text-destructive border border-destructive/30 text-[9px] font-bold uppercase w-fit">
+                          <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-destructive/20 text-destructive border border-destructive/30 text-[9px] font-bold uppercase w-fit mt-0.5">
                             <span className="material-symbols-outlined text-[10px]">block</span>
                             Bloqueado
                           </span>
                         )}
                       </div>
-                      <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border ${st.badgeClassName}`}>
+                      <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border shrink-0 ${st.badgeClassName}`}>
                         {st.label}
                       </span>
                     </div>
-                    <div className="flex justify-between items-end">
-                      <div className="text-muted-foreground text-xs">
-                        <span className="flex items-center gap-1">
-                          <span className="material-symbols-outlined text-[13px]">calendar_today</span>
-                          {formatDate(order.created_at)}
-                        </span>
-                      </div>
-                      <p className="text-foreground font-bold text-base">R$ {order.total.toFixed(2).replace(".", ",")}</p>
+                    <div className="flex justify-between items-center mt-auto">
+                      <span className="flex items-center gap-1 text-muted-foreground text-xs leading-normal">
+                        <span className="material-symbols-outlined text-[13px]">calendar_today</span>
+                        {formatDate(order.created_at)}
+                      </span>
+                      <p className="text-foreground font-bold text-base leading-normal">R$ {order.total.toFixed(2).replace(".", ",")}</p>
                     </div>
                   </div>
                 </div>
