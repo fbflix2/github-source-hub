@@ -27,9 +27,9 @@ export default function ProxyProductsShowcase() {
 
       {/* Loading */}
       {isLoading && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-64 rounded-2xl" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-72 rounded-2xl" />
           ))}
         </div>
       )}
@@ -43,9 +43,9 @@ export default function ProxyProductsShowcase() {
         </div>
       )}
 
-      {/* Products Grid */}
+      {/* Products Grid - Same design as Loja grid cards */}
       {!isLoading && !error && products.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {products.map((product: any) => {
             const variants = product.variants?.data || product.variants || [];
             const cheapestVariant = variants.length
@@ -53,59 +53,81 @@ export default function ProxyProductsShowcase() {
                   (v.price || 0) < (min.price || 0) ? v : min, variants[0])
               : null;
             const price = cheapestVariant?.price || product.price || 0;
-            const formattedPrice = new Intl.NumberFormat("pt-BR", {
-              style: "currency",
-              currency: "BRL",
-            }).format(price);
+            const formattedPrice = `R$ ${Number(price).toFixed(2).replace(".", ",")}`;
+
+            const typeIcon = product.type === "RESIDENTIAL" ? "home" : product.type === "MOBILE" ? "smartphone" : "dns";
+            const typeLabel = product.type || "Proxy";
 
             return (
-              <div
+              <article
                 key={product.id}
-                className="glass-panel rounded-2xl p-6 flex flex-col gap-4 border border-border hover:border-primary/40 transition-all group hover:shadow-lg hover:shadow-primary/5"
+                className="glass-card rounded-2xl overflow-hidden flex flex-col group h-full"
               >
-                {/* Icon + Type */}
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
-                    <span className="material-symbols-outlined">
-                      {product.type === "RESIDENTIAL" ? "home" : product.type === "MOBILE" ? "smartphone" : "dns"}
-                    </span>
+                <div className="p-5 flex flex-col flex-1 gap-4">
+                  {/* Header: icon + name + price */}
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="shrink-0 w-10 h-10 rounded-lg overflow-hidden bg-secondary flex items-center justify-center">
+                        <span className="material-symbols-outlined text-[20px] text-muted-foreground">{typeIcon}</span>
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap min-w-0">
+                        <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors truncate">
+                          {product.name}
+                        </h3>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 shrink-0 bg-primary/10 text-primary border-primary/20">
+                          <span className="material-symbols-outlined text-[11px]">bolt</span>
+                          {typeLabel}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0 whitespace-nowrap">
+                      <p className="text-xl font-bold text-foreground">{formattedPrice}</p>
+                      <p className="text-[10px] text-muted-foreground">mensal</p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <h3 className="text-foreground font-bold text-base truncate">{product.name}</h3>
-                    {product.type && (
-                      <span className="text-xs text-muted-foreground uppercase tracking-wider">{product.type}</span>
-                    )}
+
+                  {/* Description */}
+                  {product.description && (
+                    <p className="text-sm text-muted-foreground line-clamp-2">{product.description}</p>
+                  )}
+
+                  {/* Variants info as tags */}
+                  {variants.length > 1 && (
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-foreground text-background font-medium">
+                        {variants.length} planos
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Availability Bar */}
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between text-xs font-medium">
+                      <span className="text-primary flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                        Disponível
+                      </span>
+                      {variants.length > 0 && (
+                        <span className="text-muted-foreground">A partir de {formattedPrice}</span>
+                      )}
+                    </div>
+                    <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div className="h-full rounded-full bg-gradient-to-r from-green-400 to-green-600 w-[80%]" />
+                    </div>
+                  </div>
+
+                  {/* Actions - Same layout as Loja */}
+                  <div className="mt-auto pt-4 flex flex-col gap-3 border-t border-border">
+                    <a
+                      href="/loja"
+                      className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm h-10 rounded-lg transition-all flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(220,38,38,0.2)]"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">flash_on</span>
+                      Comprar agora
+                    </a>
                   </div>
                 </div>
-
-                {/* Description */}
-                {product.description && (
-                  <p className="text-muted-foreground text-sm line-clamp-2">{product.description}</p>
-                )}
-
-                {/* Variants count */}
-                {variants.length > 1 && (
-                  <p className="text-xs text-muted-foreground">
-                    {variants.length} variações disponíveis
-                  </p>
-                )}
-
-                {/* Price + CTA */}
-                <div className="mt-auto pt-4 border-t border-border flex items-end justify-between gap-4">
-                  <div>
-                    <p className="text-xs text-muted-foreground">A partir de</p>
-                    <p className="text-2xl font-black text-foreground">{formattedPrice}</p>
-                    <p className="text-xs text-muted-foreground">/mês</p>
-                  </div>
-                  <a
-                    href="/loja"
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground h-10 px-5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all shrink-0"
-                  >
-                    <span className="material-symbols-outlined text-[18px]">shopping_cart</span>
-                    Assinar
-                  </a>
-                </div>
-              </div>
+              </article>
             );
           })}
         </div>
