@@ -6,6 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2, LayoutGrid, List } from "lucide-react";
 import { ProductListItem } from "@/components/loja/ProductListItem";
 import { ProductDetailModal } from "@/components/loja/ProductDetailModal";
+import { useProxyBRProducts } from "@/hooks/useProxyBR";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Product {
   id: string;
@@ -39,6 +41,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [detailProduct, setDetailProduct] = useState<Product | null>(null);
+  const { data: proxyProductsData, isLoading: proxyLoading, error: proxyError } = useProxyBRProducts();
+  const [proxyQuantities, setProxyQuantities] = useState<Record<string, number>>({});
 
   useEffect(() => {
     async function fetchData() {
@@ -54,7 +58,23 @@ export default function Dashboard() {
     fetchData();
   }, []);
 
-  const filters = ["Todos", ...categories.map((c) => c.name)];
+  const proxyProducts: any[] = Array.isArray(proxyProductsData?.data)
+    ? proxyProductsData.data
+    : Array.isArray(proxyProductsData)
+    ? proxyProductsData
+    : [];
+
+  const getProxyQty = (id: string) => proxyQuantities[id] || 1;
+  const updateProxyQty = (id: string, delta: number) => {
+    setProxyQuantities((prev) => ({
+      ...prev,
+      [id]: Math.max(1, (prev[id] || 1) + delta),
+    }));
+  };
+
+  const isProxyFilter = activeFilter === "Proxy";
+
+  const filters = ["Todos", ...categories.map((c) => c.name), "Proxy"];
 
   const filteredProducts = activeFilter === "Todos"
     ? products
@@ -176,7 +196,151 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {filteredProducts.length === 0 ? (
+        {isProxyFilter ? (
+          /* Proxy products from ProxyBR API */
+          proxyLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {[1, 2, 3, 4].map((i) => (
+                <Skeleton key={i} className="h-72 rounded-2xl" />
+              ))}
+            </div>
+          ) : proxyError ? (
+            <div className="text-center py-12">
+              <span className="material-symbols-outlined text-[48px] text-destructive mb-4">error</span>
+              <p className="text-destructive font-bold">Erro ao carregar proxies</p>
+              <p className="text-muted-foreground text-sm mt-1">{(proxyError as Error).message}</p>
+            </div>
+          ) : proxyProducts.length === 0 ? (
+            <div className="text-center py-12">
+              <span className="material-symbols-outlined text-[48px] text-muted-foreground mb-4">inventory_2</span>
+              <p className="text-muted-foreground">Nenhum proxy disponível no momento.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {proxyProducts.map((product: any) => {
+                const variants = product.variants?.data || product.variants || [];
+                const cheapestVariant = variants.length
+                  ? variants.reduce((min: any, v: any) =>
+                      (v.price || 0) < (min.price || 0) ? v : min, variants[0])
+                  : null;
+                const price = cheapestVariant?.price || product.price || 0;
+                const formattedPrice = `R$ ${Number(price).toFixed(2).replace(".", ",")}`;
+                const productId = String(product.id);
+                const qty = getProxyQty(productId);
+                const typeIcon = product.type === "RESIDENTIAL" ? "home" : product.type === "MOBILE" ? "smartphone" : "dns";
+                const typeLabel = product.type || "Proxy";
+
+                return (
+                  <article
+                    key={product.id}
+                    className="glass-card rounded-2xl overflow-hidden flex flex-col group h-full"
+                  >
+                    <div className="p-5 flex flex-col flex-1 gap-4">
+                      {/* Header: image + name + price */}
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="shrink-0 w-10 h-10 rounded-lg overflow-hidden bg-secondary flex items-center justify-center">
+                            <span className="material-symbols-outlined text-[20px] text-muted-foreground">{typeIcon}</span>
+                          </div>
+                          <div className="flex items-center gap-2 flex-wrap min-w-0">
+                            <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors truncate">
+                              {product.name}
+                            </h3>
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 shrink-0 bg-primary/10 text-primary border-primary/20">
+                              <span className="material-symbols-outlined text-[11px]">bolt</span>
+                              {typeLabel}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0 whitespace-nowrap">
+                          <p className="text-xl font-bold text-foreground">{formattedPrice}</p>
+                          <p className="text-[10px] text-muted-foreground">mensal</p>
+                        </div>
+                      </div>
+
+                      {/* Description */}
+                      {product.description && (
+                        <p className="text-sm text-muted-foreground line-clamp-2">{product.description}</p>
+                      )}
+
+                      {/* Tags */}
+                      {variants.length > 1 && (
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-foreground text-background font-medium">
+                            {variants.length} planos
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Availability Bar */}
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between text-xs font-medium">
+                          <span className="text-primary flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                            Disponível
+                          </span>
+                          <span className="text-muted-foreground">Disponível</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                          <div className="h-full rounded-full bg-gradient-to-r from-green-400 to-green-600 w-[80%]" />
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="mt-auto pt-4 flex flex-col gap-3 border-t border-border">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center bg-secondary rounded-lg border border-border h-10 px-1">
+                            <button
+                              onClick={() => updateProxyQty(productId, -1)}
+                              className="w-8 h-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted rounded transition"
+                            >
+                              <span className="material-symbols-outlined text-[16px]">remove</span>
+                            </button>
+                            <input
+                              type="text"
+                              readOnly
+                              value={qty}
+                              className="w-8 bg-transparent text-center text-sm font-medium border-0 focus:ring-0 text-foreground"
+                            />
+                            <button
+                              onClick={() => updateProxyQty(productId, 1)}
+                              className="w-8 h-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted rounded transition"
+                            >
+                              <span className="material-symbols-outlined text-[16px]">add</span>
+                            </button>
+                          </div>
+                          <button
+                            onClick={() => {
+                              addItem({
+                                productId,
+                                name: product.name,
+                                price: Number(price),
+                                quantity: qty,
+                                image: "/placeholder.svg",
+                              });
+                              toast.success(`${product.name} adicionado ao carrinho!`);
+                            }}
+                            className="h-10 px-3 rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all flex items-center justify-center"
+                            title="Adicionar ao carrinho"
+                          >
+                            <span className="material-symbols-outlined text-[20px]">shopping_cart</span>
+                          </button>
+                        </div>
+                        <button
+                          onClick={() => navigate(`/checkout`)}
+                          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm h-10 rounded-lg transition-all flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(220,38,38,0.2)]"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">flash_on</span>
+                          Comprar agora
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )
+        ) : filteredProducts.length === 0 ? (
           <div className="text-center py-12">
             <span className="material-symbols-outlined text-[48px] text-muted-foreground mb-4">inventory_2</span>
             <p className="text-muted-foreground">Nenhum produto encontrado.</p>
