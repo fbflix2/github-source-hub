@@ -252,28 +252,28 @@ export default function Dashboard() {
                   >
                     <div className="p-5 flex flex-col flex-1 gap-4">
                       {/* Header: image + name + price */}
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="shrink-0 w-10 h-10 rounded-lg overflow-hidden bg-secondary flex items-center justify-center">
-                            {proxyImg ? (
-                              <img src={proxyImg} alt={product.name} className="w-full h-full object-cover" />
-                            ) : (
-                              <span className="material-symbols-outlined text-[20px] text-muted-foreground">dns</span>
-                            )}
-                          </div>
-                          <div className="flex flex-col gap-1 min-w-0">
+                      <div className="flex items-start gap-3">
+                        <div className="shrink-0 w-10 h-10 rounded-lg overflow-hidden bg-secondary flex items-center justify-center mt-0.5">
+                          {proxyImg ? (
+                            <img src={proxyImg} alt={product.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="material-symbols-outlined text-[20px] text-muted-foreground">dns</span>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
                             <h3 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-tight">
                               {product.name}
                             </h3>
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 shrink-0 bg-primary/10 text-primary border-primary/20">
-                              <span className="material-symbols-outlined text-[11px]">bolt</span>
-                              {typeLabel}
-                            </span>
+                            <div className="text-right shrink-0 whitespace-nowrap">
+                              <p className="text-xl font-bold text-foreground">{formattedPrice}</p>
+                              <p className="text-[10px] text-muted-foreground">mensal</p>
+                            </div>
                           </div>
-                        </div>
-                        <div className="text-right shrink-0 whitespace-nowrap">
-                          <p className="text-xl font-bold text-foreground">{formattedPrice}</p>
-                          <p className="text-[10px] text-muted-foreground">mensal</p>
+                          <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-bold px-2 py-0.5 rounded-full border bg-primary/10 text-primary border-primary/20">
+                            <span className="material-symbols-outlined text-[11px]">bolt</span>
+                            {typeLabel}
+                          </span>
                         </div>
                       </div>
 
