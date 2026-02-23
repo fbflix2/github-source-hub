@@ -36,7 +36,7 @@ const filters = [
 ];
 
 const statusConfig: Record<string, { label: string; className: string; badgeClassName: string }> = {
-  completed: { label: "Concluído", className: "border-l-primary bg-muted/50", badgeClassName: "bg-primary/20 text-primary border-primary/20" },
+  completed: { label: "Concluído", className: "border-l-emerald-500 bg-muted/50", badgeClassName: "bg-emerald-500/20 text-emerald-400 border-emerald-500/20" },
   processing: { label: "Pendente", className: "opacity-80 hover:opacity-100", badgeClassName: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20" },
   cancelled: { label: "Cancelado", className: "opacity-60", badgeClassName: "bg-destructive/10 text-destructive border-destructive/20" },
 };
@@ -239,7 +239,7 @@ export default function Orders() {
                       <h3 className="text-lg font-bold text-foreground">Pedido {selectedOrder.code}</h3>
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                         selectedOrder.status === "completed"
-                          ? "bg-primary text-primary-foreground"
+                          ? "bg-emerald-500 text-white"
                           : selectedOrder.status === "processing"
                           ? "bg-yellow-500 text-background"
                           : "bg-destructive text-destructive-foreground"
