@@ -169,7 +169,7 @@ export function ProductDetailModal({ product, open, onOpenChange, quantity, onQu
                 <button
                   onClick={() => {
                     addItem({
-                      productId: Number(product.id.substring(0, 8)),
+                      productId: product.id,
                       name: product.name,
                       price: product.price,
                       quantity,

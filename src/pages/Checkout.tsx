@@ -111,7 +111,7 @@ export default function Checkout() {
       if (!productId) {
         if (cartItems.length > 0) {
           setProduct({
-            id: String(cartItems[0].productId),
+            id: cartItems[0].productId,
             name: cartItems[0].name,
             description: null,
             price: cartItems[0].price,
@@ -188,9 +188,13 @@ export default function Checkout() {
           return;
         }
 
-        // Insert order items
-        const orderItems: any[] = [{ order_id: order.id, product_id: product.id, name: product.name, price: product.price, quantity }];
-        await supabase.from("order_items").insert(orderItems);
+        // Insert order items - use null for product_id if not a valid UUID
+        const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(product.id);
+        const orderItems: any[] = [{ order_id: order.id, product_id: isValidUUID ? product.id : null, name: product.name, price: product.price, quantity }];
+        const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
+        if (itemsError) {
+          console.error("Error inserting order items:", itemsError);
+        }
 
         setDraftOrderId(order.id);
         setDraftOrderCode(orderCode);
