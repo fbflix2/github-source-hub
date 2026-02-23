@@ -543,7 +543,7 @@ export default function AdminProducts() {
                             </div>
                           )}
                         </TableCell>
-                        <TableCell className="text-white text-sm font-medium max-w-[180px] truncate">{product.name}</TableCell>
+                        <TableCell className="text-white text-sm font-medium whitespace-normal break-words">{product.name}</TableCell>
                         <TableCell className="text-zinc-400 text-sm">{getCategoryName(product.category_id)}</TableCell>
                         <TableCell>
                           <div className="flex flex-wrap gap-1">
