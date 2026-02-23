@@ -24,7 +24,8 @@ import {
   ClipboardCheck,
   Headphones,
   Palette,
-  Megaphone
+  Megaphone,
+  ShieldCheck
 } from "lucide-react";
 
 const menuItems = [
@@ -47,6 +48,7 @@ const menuItems = [
   { title: "Termos de uso", icon: FileText, path: "/admin/termos" },
   { title: "Configurações", icon: Settings, path: "/admin/configuracoes", subItems: [
     { title: "Plataforma", icon: Palette, path: "/admin/configuracoes/plataforma" },
+    { title: "Usuários e Acessos", icon: ShieldCheck, path: "/admin/configuracoes/usuarios" },
   ]},
   { title: "API | Token", icon: Key, path: "/admin/api" },
 ];
