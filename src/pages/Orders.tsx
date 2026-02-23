@@ -171,9 +171,9 @@ export default function Orders() {
           <p className="text-muted-foreground text-lg">Você ainda não tem pedidos.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1 min-h-0">
+        <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-4 flex-1 min-h-0">
           {/* Orders List - scrollable */}
-          <div className="lg:col-span-4 flex flex-col gap-2 overflow-y-auto pr-1 custom-scrollbar">
+          <div className="flex flex-col gap-2 overflow-y-auto pr-1 custom-scrollbar min-w-0">
             {filteredOrders.map((order) => {
               const st = statusConfig[order.status] || statusConfig.processing;
               const isSelected = selectedOrder?.id === order.id;
@@ -231,7 +231,7 @@ export default function Orders() {
 
           {/* Order Details - fixed, no scroll */}
           {selectedOrder && status && (
-            <div className="lg:col-span-8 overflow-hidden">
+            <div className="min-w-0 overflow-y-auto">
               <div className="glass-panel rounded-xl flex flex-col overflow-hidden border border-border">
                 <div className="px-4 py-3 border-b border-border flex flex-wrap gap-3 justify-between items-center bg-muted/50">
                   <div>
