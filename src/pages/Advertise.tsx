@@ -200,7 +200,7 @@ export default function Advertise() {
       <div className="glass-card rounded-xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4">
         <div>
           <p className="text-sm text-muted-foreground mb-1">Seu saldo disponível</p>
-          <div className="text-3xl font-bold text-foreground tracking-tight">
+          <div className={`text-3xl font-bold tracking-tight ${balance > 0 ? "text-emerald-400" : "text-destructive"}`}>
             R$ {balance.toFixed(2).replace(".", ",")}
           </div>
         </div>

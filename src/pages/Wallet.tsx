@@ -208,7 +208,7 @@ export default function Wallet() {
               </span>
             </div>
             <div className="relative z-10 mt-2">
-              <h2 className="text-4xl font-black text-foreground tracking-tighter">
+              <h2 className={`text-4xl font-black tracking-tighter ${balance > 0 ? "text-emerald-400" : "text-destructive"}`}>
                 R$ {balance.toFixed(2).replace(".", ",")}
               </h2>
               {todayDeposits > 0 && (
@@ -299,12 +299,12 @@ export default function Wallet() {
               <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Gasto Mensal</span>
               <span className="text-lg font-black text-foreground">R$ {monthlyExpense.toFixed(2).replace(".", ",")}</span>
             </div>
-            <div className="rounded-xl glass-panel p-3.5 flex flex-col gap-1 relative overflow-hidden group border-primary/20 bg-primary/5">
-              <div className="absolute top-0 right-0 p-2 opacity-20 text-primary">
+            <div className={`rounded-xl glass-panel p-3.5 flex flex-col gap-1 relative overflow-hidden group ${balance > 0 ? "border-emerald-500/20 bg-emerald-500/5" : "border-destructive/20 bg-destructive/5"}`}>
+              <div className={`absolute top-0 right-0 p-2 opacity-20 ${balance > 0 ? "text-emerald-400" : "text-destructive"}`}>
                 <span className="material-symbols-outlined text-2xl">savings</span>
               </div>
-              <span className="text-[10px] text-primary font-bold uppercase tracking-wider">Saldo</span>
-              <span className="text-lg font-black text-primary">R$ {balance.toFixed(2).replace(".", ",")}</span>
+              <span className={`text-[10px] font-bold uppercase tracking-wider ${balance > 0 ? "text-emerald-400" : "text-destructive"}`}>Saldo</span>
+              <span className={`text-lg font-black ${balance > 0 ? "text-emerald-400" : "text-destructive"}`}>R$ {balance.toFixed(2).replace(".", ",")}</span>
             </div>
           </div>
 
@@ -332,7 +332,7 @@ export default function Wallet() {
                         <div
                           className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
                             isPositive
-                              ? "bg-primary/10 border border-primary/20 text-primary"
+                              ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-400"
                               : "bg-destructive/10 border border-destructive/20 text-destructive"
                           }`}
                         >
@@ -343,7 +343,7 @@ export default function Wallet() {
                           <span className="text-[10px] text-muted-foreground">{formatDate(transaction.created_at)}</span>
                         </div>
                       </div>
-                      <span className={`text-xs font-bold ${isPositive ? "text-primary" : "text-foreground"}`}>
+                      <span className={`text-xs font-bold ${isPositive ? "text-emerald-400" : "text-foreground"}`}>
                         {isPositive ? "+" : "-"} R$ {Math.abs(transaction.amount).toFixed(2).replace(".", ",")}
                       </span>
                     </div>
