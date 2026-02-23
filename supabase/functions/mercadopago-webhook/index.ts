@@ -25,7 +25,6 @@ Deno.serve(async (req) => {
     const body = await req.json();
     console.log("Webhook received:", JSON.stringify(body));
 
-    // Mercado Pago sends action "payment.updated" or "payment.created"
     if (body.type !== "payment" && body.action !== "payment.updated") {
       return new Response(JSON.stringify({ received: true }), {
         status: 200,
@@ -42,7 +41,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Fetch payment details from Mercado Pago to verify
+    // Fetch payment details from Mercado Pago
     const mpResponse = await fetch(
       `https://api.mercadopago.com/v1/payments/${mpPaymentId}`,
       {
@@ -59,14 +58,12 @@ Deno.serve(async (req) => {
     console.log("MP Payment status:", mpPayment.status, "external_reference:", mpPayment.external_reference);
 
     if (mpPayment.status !== "approved") {
-      // Update payment status but don't credit
       if (mpPayment.external_reference) {
         await supabase
           .from("payments")
           .update({
             status: mpPayment.status === "rejected" ? "failed" : mpPayment.status,
             metadata: {
-              type: "wallet_recharge",
               mp_status: mpPayment.status,
               mp_status_detail: mpPayment.status_detail,
             },
@@ -80,7 +77,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Payment approved - credit balance
+    // Payment approved
     const paymentId = mpPayment.external_reference;
     if (!paymentId) {
       console.error("No external_reference in approved payment");
@@ -93,7 +90,7 @@ Deno.serve(async (req) => {
     // Check if already processed
     const { data: existingPayment } = await supabase
       .from("payments")
-      .select("id, status, user_id, amount")
+      .select("id, status, user_id, amount, order_id, metadata")
       .eq("id", paymentId)
       .single();
 
@@ -115,32 +112,7 @@ Deno.serve(async (req) => {
 
     const amount = Number(existingPayment.amount);
     const userId = existingPayment.user_id;
-
-    // Get current balance
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("balance")
-      .eq("user_id", userId)
-      .single();
-
-    const currentBalance = profile?.balance || 0;
-    const newBalance = currentBalance + amount;
-
-    // Update balance
-    await supabase
-      .from("profiles")
-      .update({ balance: newBalance })
-      .eq("user_id", userId);
-
-    // Record transaction
-    await supabase.from("wallet_transactions").insert({
-      user_id: userId,
-      type: "deposit",
-      title: "Recarga via PIX",
-      amount: amount,
-      balance_after: newBalance,
-      reference_id: paymentId,
-    });
+    const orderId = existingPayment.order_id;
 
     // Mark payment as completed
     await supabase
@@ -148,17 +120,82 @@ Deno.serve(async (req) => {
       .update({
         status: "completed",
         metadata: {
-          type: "wallet_recharge",
+          ...(typeof existingPayment.metadata === 'object' && existingPayment.metadata ? existingPayment.metadata : {}),
           mp_status: "approved",
           mp_payment_id: String(mpPaymentId),
         },
       })
       .eq("id", paymentId);
 
-    console.log(`Credited R$ ${amount} to user ${userId}. New balance: ${newBalance}`);
+    // Check if this is a wallet recharge or an order payment
+    const metadataObj = typeof existingPayment.metadata === 'object' && existingPayment.metadata ? existingPayment.metadata : {};
+    const isWalletRecharge = (metadataObj as Record<string, unknown>).type === "wallet_recharge" && !orderId;
+
+    if (isWalletRecharge) {
+      // ========== WALLET RECHARGE FLOW ==========
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("balance")
+        .eq("user_id", userId)
+        .single();
+
+      const currentBalance = profile?.balance || 0;
+      const newBalance = currentBalance + amount;
+
+      await supabase
+        .from("profiles")
+        .update({ balance: newBalance })
+        .eq("user_id", userId);
+
+      await supabase.from("wallet_transactions").insert({
+        user_id: userId,
+        type: "deposit",
+        title: "Recarga via PIX",
+        amount: amount,
+        balance_after: newBalance,
+        reference_id: paymentId,
+      });
+
+      console.log(`Credited R$ ${amount} to user ${userId}. New balance: ${newBalance}`);
+    } else if (orderId) {
+      // ========== ORDER PAYMENT FLOW ==========
+      console.log(`Processing order payment for order ${orderId}`);
+
+      // Mark order as completed
+      await supabase
+        .from("orders")
+        .update({ status: "completed" })
+        .eq("id", orderId);
+
+      // Get order items for fulfillment
+      const { data: orderItems } = await supabase
+        .from("order_items")
+        .select("id, product_id")
+        .eq("order_id", orderId);
+
+      if (orderItems) {
+        for (const oi of orderItems) {
+          if (!oi.product_id) continue;
+
+          // Use the atomic fulfillment function
+          const { data: result, error: rpcError } = await supabase.rpc("fulfill_order_item", {
+            p_order_item_id: oi.id,
+            p_product_id: oi.product_id,
+          });
+
+          if (rpcError) {
+            console.error(`Fulfillment error for item ${oi.id}:`, rpcError);
+          } else {
+            console.log(`Fulfillment result for item ${oi.id}:`, result);
+          }
+        }
+      }
+
+      console.log(`Order ${orderId} fulfilled successfully`);
+    }
 
     return new Response(
-      JSON.stringify({ received: true, credited: true, new_balance: newBalance }),
+      JSON.stringify({ received: true, credited: isWalletRecharge, order_fulfilled: !!orderId }),
       {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
