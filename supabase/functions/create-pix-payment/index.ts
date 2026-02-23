@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
     const userId = claimsData.claims.sub as string;
     const userEmail = (claimsData.claims.email as string) || "cliente@email.com";
 
-    const { amount } = await req.json();
+    const { amount, order_id } = await req.json();
     const numericAmount = Number(amount);
 
     if (!numericAmount || numericAmount < 1) {
@@ -64,7 +64,8 @@ Deno.serve(async (req) => {
         code: paymentCode,
         gateway: "mercadopago",
         status: "pending",
-        metadata: { type: "wallet_recharge" },
+        order_id: order_id || null,
+        metadata: { type: order_id ? "order_payment" : "wallet_recharge" },
       })
       .select("id")
       .single();
@@ -84,7 +85,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         transaction_amount: numericAmount,
-        description: `Recarga de saldo - ${paymentCode}`,
+        description: order_id ? `Pedido - ${paymentCode}` : `Recarga de saldo - ${paymentCode}`,
         payment_method_id: "pix",
         payer: { email: userEmail },
         external_reference: payment.id,

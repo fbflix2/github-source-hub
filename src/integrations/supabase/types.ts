@@ -1016,6 +1016,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      fulfill_order_item: {
+        Args: { p_order_item_id: string; p_product_id: string }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

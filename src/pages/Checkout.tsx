@@ -368,6 +368,29 @@ export default function Checkout() {
         return;
       }
 
+      // Validate stock before proceeding
+      const { data: orderItemsToCheck } = await supabase
+        .from("order_items")
+        .select("id, product_id, name, quantity")
+        .eq("order_id", draftOrderId);
+
+      if (orderItemsToCheck) {
+        for (const oi of orderItemsToCheck) {
+          if (!oi.product_id) continue;
+          const { data: prodCheck } = await supabase
+            .from("products")
+            .select("stock, available")
+            .eq("id", oi.product_id)
+            .single();
+
+          if (!prodCheck || prodCheck.stock <= 0 || !prodCheck.available) {
+            toast.error(`"${oi.name}" está sem estoque. Remova do carrinho e tente novamente.`);
+            setProcessing(false);
+            return;
+          }
+        }
+      }
+
       const orderId = draftOrderId;
       const orderCode = draftOrderCode;
 
@@ -408,34 +431,21 @@ export default function Checkout() {
         // Get all order items for fulfillment
         const { data: createdOrderItems } = await supabase.from("order_items").select("id, product_id").eq("order_id", orderId);
 
-        // Fulfill: link stock_items and decrement product stock
+        // Fulfill atomically using DB function
         if (createdOrderItems) {
           for (const oi of createdOrderItems) {
             if (!oi.product_id) continue;
 
-            const { data: stockItem } = await supabase
-              .from("stock_items")
-              .select("id, data")
-              .eq("product_id", oi.product_id)
-              .eq("status", "revisado")
-              .is("order_item_id", null)
-              .limit(1)
-              .maybeSingle();
+            const { data: result, error: rpcError } = await supabase.rpc("fulfill_order_item", {
+              p_order_item_id: oi.id,
+              p_product_id: oi.product_id,
+            });
 
-            if (stockItem) {
-              await supabase.from("stock_items").update({ order_item_id: oi.id, status: "vendido" }).eq("id", stockItem.id);
-              if (stockItem.data) {
-                await supabase.from("order_items").update({ delivery_data: stockItem.data }).eq("id", oi.id);
-              }
-            }
-
-            const { data: prod } = await supabase.from("products").select("stock").eq("id", oi.product_id).single();
-            if (prod) {
-              const newStock = Math.max(0, prod.stock - 1);
-              await supabase.from("products").update({
-                stock: newStock,
-                available: newStock > 0,
-              }).eq("id", oi.product_id);
+            if (rpcError) {
+              console.error("Fulfillment error:", rpcError);
+            } else if (result && typeof result === 'object' && !Array.isArray(result) && !(result as any).success) {
+              console.warn("Fulfillment warning:", (result as any).error);
+              toast.error(`Erro no estoque de "${product?.name}": ${(result as any).error}`);
             }
           }
         }
