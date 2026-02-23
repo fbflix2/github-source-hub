@@ -262,7 +262,7 @@ export default function Dashboard() {
                             )}
                           </div>
                           <div className="flex items-center gap-2 flex-wrap min-w-0">
-                            <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors truncate">
+                            <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors break-words">
                               {product.name}
                             </h3>
                             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 shrink-0 bg-primary/10 text-primary border-primary/20">
@@ -400,7 +400,7 @@ export default function Dashboard() {
                           )}
                         </div>
                         <div className="flex items-center gap-2 flex-wrap min-w-0">
-                          <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors truncate">
+                          <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors break-words">
                             {product.name}
                           </h3>
                           {product.badge_text && (
