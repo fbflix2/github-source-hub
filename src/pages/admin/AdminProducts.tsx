@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { 
   Search, Plus, Upload, User, Briefcase, Globe, Server, Tag, Save, X,
   Filter, ChevronLeft, ChevronRight, Edit, Trash2, Image as ImageIcon, Loader2, ImagePlus,
-  BarChart3
+  BarChart3, Download
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useProxyBRProducts } from "@/hooks/useProxyBR";
 
 interface Product {
   id: string;
@@ -91,16 +92,23 @@ export default function AdminProducts() {
   // Sales data
   const [salesByProduct, setSalesByProduct] = useState<Record<string, number>>({});
 
+  // Proxy import
+  const { data: proxyProductsData } = useProxyBRProducts();
+  const [importingProxy, setImportingProxy] = useState(false);
+  const [proxyImages, setProxyImages] = useState<{ name: string; url: string }[]>([]);
+
   const fetchData = async () => {
-    const [productsRes, categoriesRes, imagesRes, salesRes] = await Promise.all([
+    const [productsRes, categoriesRes, imagesRes, salesRes, proxyImgRes] = await Promise.all([
       supabase.from("products").select("*").order("created_at", { ascending: false }),
       supabase.from("product_categories").select("*").order("name"),
       supabase.from("product_images").select("id, name, url").order("created_at", { ascending: false }),
       supabase.from("order_items").select("product_id, quantity"),
+      supabase.from("product_images").select("name, url").eq("category", "proxy"),
     ]);
     setProducts(productsRes.data ?? []);
     setCategories(categoriesRes.data ?? []);
     setProductImages(imagesRes.data ?? []);
+    setProxyImages(proxyImgRes.data ?? []);
 
     // Aggregate sales by product
     const sales: Record<string, number> = {};
@@ -115,6 +123,82 @@ export default function AdminProducts() {
   };
 
   useEffect(() => { fetchData(); }, []);
+
+  const getProxyImageUrl = (name: string): string | null => {
+    const match = proxyImages.find(
+      (img) => img.name.toLowerCase().trim() === name.toLowerCase().trim()
+    );
+    return match?.url || null;
+  };
+
+  const handleImportProxyProducts = async () => {
+    const apiProducts = proxyProductsData?.data || proxyProductsData;
+    if (!apiProducts || !Array.isArray(apiProducts) || apiProducts.length === 0) {
+      toast.error("Nenhum produto proxy encontrado na ProxyBR");
+      return;
+    }
+
+    // Find or create "Proxy" category
+    let proxyCatId: string | null = null;
+    const existingCat = categories.find(c => c.name.toLowerCase() === "proxy");
+    if (existingCat) {
+      proxyCatId = existingCat.id;
+    } else {
+      const { data: newCat, error: catErr } = await supabase
+        .from("product_categories")
+        .insert({ name: "Proxy", slug: "proxy" })
+        .select("id")
+        .single();
+      if (newCat) proxyCatId = newCat.id;
+    }
+
+    setImportingProxy(true);
+    let created = 0, skipped = 0;
+
+    for (const product of apiProducts) {
+      const name = product.name || `Proxy ${product.id}`;
+      // Check if already exists in local products
+      const exists = products.some(
+        (p) => p.name.toLowerCase() === name.toLowerCase() && p.icon_type === "proxy"
+      );
+      if (exists) { skipped++; continue; }
+
+      const variants = product.variants?.data || product.variants || [];
+      const cheapestVariant = variants.length
+        ? variants.reduce((min: any, v: any) => ((v.price || 0) < (min.price || 0) ? v : min), variants[0])
+        : null;
+      const price = cheapestVariant?.price || product.price || 0;
+
+      // Build tags
+      const tags: string[] = [];
+      if (product.type) tags.push(product.type);
+      tags.push("Proxy");
+
+      const imageUrl = getProxyImageUrl(name);
+
+      const { error } = await supabase.from("products").insert({
+        name,
+        price: Number(price),
+        stock: 999,
+        description: product.description || null,
+        category_id: proxyCatId,
+        icon_type: "proxy",
+        tags: tags.length > 0 ? tags : null,
+        status: "active",
+        available: true,
+        image_url: imageUrl,
+      });
+      if (!error) created++;
+    }
+
+    setImportingProxy(false);
+    if (created > 0) {
+      toast.success(`${created} produto(s) proxy importado(s)!${skipped > 0 ? ` ${skipped} já existiam.` : ""}`);
+      fetchData();
+    } else {
+      toast.info(`Todos os produtos proxy já estão cadastrados. (${skipped} ignorados)`);
+    }
+  };
 
   const resetForm = () => {
     setFormName(""); setFormPrice(""); setFormStock(""); setFormDescription("");
@@ -221,10 +305,21 @@ export default function AdminProducts() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold text-white">Painel de Controle</h1>
-        <Button onClick={() => { resetForm(); setShowForm(true); }} className="bg-primary hover:bg-primary/90 text-white gap-2">
-          <Plus className="h-4 w-4" />
-          NOVO PRODUTO
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={handleImportProxyProducts}
+            disabled={importingProxy}
+            variant="outline"
+            className="border-primary/30 text-primary hover:bg-primary/10 gap-2"
+          >
+            {importingProxy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            Importar Proxys
+          </Button>
+          <Button onClick={() => { resetForm(); setShowForm(true); }} className="bg-primary hover:bg-primary/90 text-white gap-2">
+            <Plus className="h-4 w-4" />
+            NOVO PRODUTO
+          </Button>
+        </div>
       </div>
 
       {/* Product Form Dialog */}
