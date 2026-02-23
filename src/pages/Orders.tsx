@@ -282,7 +282,7 @@ export default function Orders() {
                           {selectedOrder.status === "completed" && (
                             <button
                               onClick={() => navigate(`/item-details/${encodeURIComponent(selectedOrder.code)}/${item.id}`)}
-                              className="flex items-center gap-1 px-2 py-1 rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition-colors text-xs"
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white text-black font-semibold hover:bg-white/90 transition-colors text-xs shadow-sm"
                             >
                               <span className="material-symbols-outlined text-[14px]">visibility</span>
                               Detalhes
