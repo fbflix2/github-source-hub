@@ -1,67 +1,60 @@
 
+Objetivo
+- Corrigir definitivamente o corte visual do conteúdo dentro dos cards da coluna esquerda em `/orders`, para que código, nome, data e valor fiquem 100% legíveis em todos os cards.
 
-## Sincronizacao automatica com Cron Job
+Diagnóstico do que está acontecendo
+- Pelo código atual de `src/pages/Orders.tsx` e pelas capturas enviadas, o corte está no bloco inferior dos cards (data/valor), especialmente no valor (`R$ ...`) e na linha da data.
+- O card da lista está com combinação que favorece clipping visual:
+  - `overflow-hidden` no próprio card
+  - layout interno sem estrutura de distribuição vertical estável (linha de baixo “encostando” no limite inferior)
+  - alinhamento `items-end` na linha de data/valor
+  - uso de `glass-panel` (com `backdrop-filter`) dentro de container com scroll, que pode agravar artefato visual de recorte em alguns ambientes.
+- Ajustes anteriores de padding (`p-3.5 pb-4`) ajudaram pouco porque a causa principal é estrutural/compositing, não apenas espaço.
 
-### Como funciona hoje
-A sincronizacao so acontece quando voce acessa a pagina de assinaturas e clica em "Sincronizar". Se voce sair da pagina, nada mais e atualizado.
+Plano de correção (implementação)
+1) Reestruturar o layout interno do card para garantir altura e fluxo estáveis
+- Em `src/pages/Orders.tsx`, no card da lista (map de `filteredOrders`):
+  - Transformar o wrapper interno (`relative z-10`) em coluna flex com distribuição vertical:
+    - `flex flex-col justify-between`
+    - `gap` controlado entre topo e rodapé
+    - `min-h` seguro para nunca “esmagar” a última linha.
+- Resultado esperado: a linha de data/valor sempre terá área própria e não encostará no limite do card.
 
-### Solucao: Edge Function agendada (Cron)
+2) Remover o clipping do próprio card e preservar visual de seleção
+- No container do card:
+  - Remover `overflow-hidden` (principal fonte de recorte de texto quando combinado com blur/scroll).
+- Na camada de destaque do card selecionado:
+  - Manter o overlay absoluto, mas com borda arredondada explícita (`rounded-xl`) para preservar o visual sem depender de clipping do pai.
+- Resultado esperado: texto deixa de ser “cortado” mesmo com rendering subpixel.
 
-Uma funcao que roda automaticamente a cada intervalo definido (ex: 10 minutos), sem precisar estar na pagina.
+3) Ajustar microtipografia da linha inferior para legibilidade
+- Na linha de metadados (ícone calendário + data + valor):
+  - trocar `items-end` por `items-center` (ou `items-baseline` conforme melhor resultado visual no preview);
+  - aplicar `leading-tight`/`leading-none` de forma controlada na data e no valor para evitar descida de glifos fora da caixa.
+- Resultado esperado: números como “1” e caracteres de data não ficam serrilhados/cortados na base.
 
-```text
-A cada 10 min:
-  Cron Job --> Edge Function "sync-subscriptions-cron"
-                  |
-                  +--> Busca assinaturas da API ProxyBR
-                  +--> Compara com banco local
-                  +--> Atualiza apenas o que mudou
-                  +--> Salva timestamp da ultima sync
-```
+4) Manter consistência visual com o restante da tela
+- Preservar:
+  - largura da coluna esquerda
+  - filtro/status
+  - comportamento de scroll interno
+  - aparência geral glass/dark do projeto.
+- Só corrigir o que afeta legibilidade dos cards, sem alterar comportamento funcional de seleção/detalhes.
 
-### Arquivos a criar/modificar
+Validação (critério de aceite)
+- Desktop (como no seu print grande):
+  - nenhum card com data ou valor cortado;
+  - cards selecionados e não selecionados legíveis.
+- Largura estreita (como no print compacto):
+  - texto completo visível dentro de cada card;
+  - sem recorte na parte inferior de “R$ ...” e da linha da data.
+- Fluxo:
+  - rolar lista longa sem artefatos;
+  - alternar entre filtros “Todos/Concluídos/Processando” sem voltar o problema.
 
-#### 1. Nova Edge Function `supabase/functions/sync-subscriptions-cron/index.ts`
-- Funcao dedicada ao cron que chama a logica de sync existente no `proxybr-api`
-- Usa service role key para acessar o banco diretamente
-- Roda a mesma logica do action `sync-subscriptions` ja existente
+Risco e mitigação
+- Risco: ao remover `overflow-hidden`, o overlay de seleção pode passar do raio.
+- Mitigação: aplicar `rounded-xl` no overlay e manter ordem de camadas (`absolute` + `relative z-10`) para acabamento limpo.
 
-#### 2. Configurar o Cron no Supabase
-- Usar `pg_cron` (extensao do Postgres) para agendar a chamada da edge function a cada 10 minutos
-- Migracao SQL:
-
-```sql
--- Habilitar pg_cron e agendar sync automatico
-SELECT cron.schedule(
-  'sync-proxybr-subscriptions',
-  '*/10 * * * *',  -- a cada 10 minutos
-  $$
-  SELECT net.http_post(
-    url := '<SUPABASE_URL>/functions/v1/proxybr-api',
-    headers := jsonb_build_object(
-      'Content-Type', 'application/json',
-      'Authorization', 'Bearer <SERVICE_ROLE_KEY>'
-    ),
-    body := '{"action": "sync-subscriptions"}'::jsonb
-  );
-  $$
-);
-```
-
-#### 3. Atualizar `AdminAssinaturas.tsx`
-- Remover o botao manual de "Sincronizar" (ou manter como opcao de sync forcado)
-- Exibir "Ultima sincronizacao: X minutos atras" com auto-refresh
-- A pagina so le do banco local, os dados ja estarao sempre atualizados
-
-### Intervalo configuravel
-O intervalo pode ser ajustado (5 min, 10 min, 30 min) conforme necessidade. Quanto menor o intervalo, mais chamadas a API ProxyBR serao feitas.
-
-### Vantagens
-- Dados sempre atualizados, mesmo sem acessar a pagina
-- Pagina carrega instantaneamente do banco local
-- Nenhuma acao manual necessaria
-- Se a API ProxyBR estiver fora, o banco local mantem os ultimos dados validos
-
-### Consideracao importante
-A API ProxyBR tem limite de requisicoes? Se sim, um intervalo de 10 minutos faz ~144 syncs/dia. Se o limite for baixo, podemos aumentar o intervalo para 30 minutos (~48 syncs/dia).
-
+Arquivos impactados
+- `src/pages/Orders.tsx` (somente ajustes de classes/layout no card da lista esquerda; sem mudança de lógica de dados).
