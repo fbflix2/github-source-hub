@@ -6,6 +6,7 @@ import { differenceInDays, parseISO, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import SubscriptionCard from "@/components/subscriptions/SubscriptionCard";
 import SubscriptionDetailModal from "@/components/subscriptions/SubscriptionDetailModal";
+import ProxyProductsShowcase from "@/components/subscriptions/ProxyProductsShowcase";
 
 export type SubscriptionStatus = "active" | "expiring" | "cancelled" | "expired";
 
@@ -100,9 +101,13 @@ export default function Subscriptions() {
     renewMutation.mutate(code);
   };
 
+  // Show products showcase when user has no subscriptions
+  if (!isLoading && !error && subscriptions.length === 0) {
+    return <ProxyProductsShowcase />;
+  }
+
   return (
     <div className="space-y-8 animate-fade-in">
-      {/* Page Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="flex flex-col gap-2">
           <h1 className="text-3xl md:text-4xl font-black text-foreground tracking-tight">Minhas Assinaturas</h1>
