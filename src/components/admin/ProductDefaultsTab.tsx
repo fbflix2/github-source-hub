@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import { Plus, Trash2, SquarePen, Save, Loader2, PackageOpen, X, Tag } from "lucide-react";
+import { Plus, Trash2, SquarePen, Save, Loader2, PackageOpen, X, Tag, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useProxyBRProducts } from "@/hooks/useProxyBR";
 
 interface ProductDefault {
   id: string;
@@ -26,6 +27,8 @@ export default function ProductDefaultsTab({ searchTerm }: ProductDefaultsTabPro
   const [formTags, setFormTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
   const [saving, setSaving] = useState(false);
+  const [importingProxy, setImportingProxy] = useState(false);
+  const { data: proxyData } = useProxyBRProducts();
 
   useEffect(() => {
     fetchItems();
@@ -108,6 +111,53 @@ export default function ProductDefaultsTab({ searchTerm }: ProductDefaultsTabPro
     }
   };
 
+  const handleImportProxy = async () => {
+    const products = proxyData?.data || proxyData;
+    if (!products || !Array.isArray(products) || products.length === 0) {
+      toast.error("Nenhum produto proxy encontrado na ProxyBR");
+      return;
+    }
+
+    setImportingProxy(true);
+    let created = 0;
+    let skipped = 0;
+
+    for (const product of products) {
+      const name = product.name || product.title || `Proxy ${product.id}`;
+      // Check if already exists
+      const exists = items.some((i) => i.name.toLowerCase() === name.toLowerCase());
+      if (exists) {
+        skipped++;
+        continue;
+      }
+
+      // Build tags from product info
+      const tags: string[] = [];
+      if (product.type) tags.push(product.type);
+      if (product.protocol) tags.push(product.protocol);
+      if (product.variants && Array.isArray(product.variants)) {
+        for (const v of product.variants) {
+          if (v.name && !tags.includes(v.name)) tags.push(v.name);
+        }
+      }
+      if (product.location || product.country) tags.push(product.location || product.country);
+      tags.push("Proxy");
+
+      const { error } = await supabase
+        .from("product_defaults")
+        .insert({ name, tags } as any);
+      if (!error) created++;
+    }
+
+    setImportingProxy(false);
+    if (created > 0) {
+      toast.success(`${created} padrão(ões) de proxy importado(s)!${skipped > 0 ? ` ${skipped} já existiam.` : ""}`);
+      fetchItems();
+    } else {
+      toast.info(`Todos os produtos proxy já estão cadastrados. (${skipped} ignorados)`);
+    }
+  };
+
   const filtered = items.filter((i) =>
     i.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     i.tags.some((t) => t.toLowerCase().includes(searchTerm.toLowerCase()))
@@ -121,15 +171,26 @@ export default function ProductDefaultsTab({ searchTerm }: ProductDefaultsTabPro
             <PackageOpen className="w-5 h-5 text-primary" />
             Padrões de Produtos
           </h2>
-          <Button
-            onClick={openCreate}
-            className="bg-primary hover:bg-red-700 text-white font-bold py-2.5 px-5 rounded-xl flex items-center gap-2 shadow-lg shadow-primary/20"
-          >
-            <Plus className="w-4 h-4" />
-            Novo Padrão
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={handleImportProxy}
+              disabled={importingProxy}
+              variant="outline"
+              className="border-primary/30 text-primary hover:bg-primary/10 font-bold py-2.5 px-5 rounded-xl flex items-center gap-2"
+            >
+              {importingProxy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              Importar Proxys
+            </Button>
+            <Button
+              onClick={openCreate}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold py-2.5 px-5 rounded-xl flex items-center gap-2 shadow-lg shadow-primary/20"
+            >
+              <Plus className="w-4 h-4" />
+              Novo Padrão
+            </Button>
+          </div>
         </div>
-        <p className="text-gray-500 text-sm mb-6">
+        <p className="text-muted-foreground text-sm mb-6">
           Crie nomes padrão de produtos com tags pré-definidas. Na blocagem, ao selecionar um padrão, as tags serão vinculadas automaticamente.
         </p>
 
