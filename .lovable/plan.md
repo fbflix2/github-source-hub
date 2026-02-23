@@ -1,60 +1,27 @@
 
-Objetivo
-- Corrigir definitivamente o corte visual do conteúdo dentro dos cards da coluna esquerda em `/orders`, para que código, nome, data e valor fiquem 100% legíveis em todos os cards.
+## Tela de Assinaturas: Mostrar produtos disponíveis quando não há assinaturas
 
-Diagnóstico do que está acontecendo
-- Pelo código atual de `src/pages/Orders.tsx` e pelas capturas enviadas, o corte está no bloco inferior dos cards (data/valor), especialmente no valor (`R$ ...`) e na linha da data.
-- O card da lista está com combinação que favorece clipping visual:
-  - `overflow-hidden` no próprio card
-  - layout interno sem estrutura de distribuição vertical estável (linha de baixo “encostando” no limite inferior)
-  - alinhamento `items-end` na linha de data/valor
-  - uso de `glass-panel` (com `backdrop-filter`) dentro de container com scroll, que pode agravar artefato visual de recorte em alguns ambientes.
-- Ajustes anteriores de padding (`p-3.5 pb-4`) ajudaram pouco porque a causa principal é estrutural/compositing, não apenas espaço.
+Quando o cliente não possui nenhuma assinatura de proxy, em vez de exibir a tela vazia com filtros e "Nenhuma assinatura encontrada", a página mostrará os planos de proxy disponíveis da ProxyBR para que ele possa contratar diretamente.
 
-Plano de correção (implementação)
-1) Reestruturar o layout interno do card para garantir altura e fluxo estáveis
-- Em `src/pages/Orders.tsx`, no card da lista (map de `filteredOrders`):
-  - Transformar o wrapper interno (`relative z-10`) em coluna flex com distribuição vertical:
-    - `flex flex-col justify-between`
-    - `gap` controlado entre topo e rodapé
-    - `min-h` seguro para nunca “esmagar” a última linha.
-- Resultado esperado: a linha de data/valor sempre terá área própria e não encostará no limite do card.
+### O que vai mudar
 
-2) Remover o clipping do próprio card e preservar visual de seleção
-- No container do card:
-  - Remover `overflow-hidden` (principal fonte de recorte de texto quando combinado com blur/scroll).
-- Na camada de destaque do card selecionado:
-  - Manter o overlay absoluto, mas com borda arredondada explícita (`rounded-xl`) para preservar o visual sem depender de clipping do pai.
-- Resultado esperado: texto deixa de ser “cortado” mesmo com rendering subpixel.
+**Página `/subscriptions` (`src/pages/Subscriptions.tsx`)**
 
-3) Ajustar microtipografia da linha inferior para legibilidade
-- Na linha de metadados (ícone calendário + data + valor):
-  - trocar `items-end` por `items-center` (ou `items-baseline` conforme melhor resultado visual no preview);
-  - aplicar `leading-tight`/`leading-none` de forma controlada na data e no valor para evitar descida de glifos fora da caixa.
-- Resultado esperado: números como “1” e caracteres de data não ficam serrilhados/cortados na base.
+- Quando o carregamento terminar e a lista de assinaturas estiver vazia (0 itens), toda a interface atual (stats, filtros, cards vazios, banner CTA) será substituída por uma nova seção de "vitrine de planos".
+- Essa vitrine vai:
+  - Usar o hook `useProxyBRProducts()` (já existente em `useProxyBR.ts`) para buscar os produtos disponíveis na API ProxyBR.
+  - Exibir um header convidativo tipo "Escolha seu plano de Proxy" com subtítulo explicativo.
+  - Listar os produtos retornados em cards estilizados (seguindo o visual glass/dark do projeto), mostrando nome, descrição/tipo e preço de cada plano.
+  - Cada card terá um botão "Assinar" que redireciona para `/loja` ou abre o fluxo de contratação.
+- Quando o cliente **já tem** assinaturas (1 ou mais), a tela continua exatamente como está hoje (filtros, cards, modal de detalhes, banner CTA).
 
-4) Manter consistência visual com o restante da tela
-- Preservar:
-  - largura da coluna esquerda
-  - filtro/status
-  - comportamento de scroll interno
-  - aparência geral glass/dark do projeto.
-- Só corrigir o que afeta legibilidade dos cards, sem alterar comportamento funcional de seleção/detalhes.
+### Detalhes técnicos
 
-Validação (critério de aceite)
-- Desktop (como no seu print grande):
-  - nenhum card com data ou valor cortado;
-  - cards selecionados e não selecionados legíveis.
-- Largura estreita (como no print compacto):
-  - texto completo visível dentro de cada card;
-  - sem recorte na parte inferior de “R$ ...” e da linha da data.
-- Fluxo:
-  - rolar lista longa sem artefatos;
-  - alternar entre filtros “Todos/Concluídos/Processando” sem voltar o problema.
+1. No `Subscriptions.tsx`, importar `useProxyBRProducts` de `@/hooks/useProxyBR`.
+2. Chamar o hook no componente.
+3. Adicionar uma condição: se `!isLoading && !error && subscriptions.length === 0`, renderizar a seção de produtos em vez do conteúdo atual.
+4. A seção de produtos mostrará um grid de cards com os dados retornados pela API (`data` do hook), com skeleton durante carregamento dos produtos.
+5. O botão de cada produto levará o usuário para `/loja` para completar a compra.
 
-Risco e mitigação
-- Risco: ao remover `overflow-hidden`, o overlay de seleção pode passar do raio.
-- Mitigação: aplicar `rounded-xl` no overlay e manter ordem de camadas (`absolute` + `relative z-10`) para acabamento limpo.
-
-Arquivos impactados
-- `src/pages/Orders.tsx` (somente ajustes de classes/layout no card da lista esquerda; sem mudança de lógica de dados).
+### Arquivo impactado
+- `src/pages/Subscriptions.tsx` -- adição de lógica condicional e novo bloco de UI para estado vazio com produtos.
