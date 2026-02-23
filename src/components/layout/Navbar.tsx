@@ -82,16 +82,22 @@ export function Navbar({ userName, balance, avatarUrl, onLogout, unreadTickets =
           {/* Balance Badge */}
           <NavLink
             to="/wallet"
-            className="hidden sm:flex items-center gap-2 bg-primary/10 border border-primary/20 px-4 py-1.5 rounded-full backdrop-blur-sm hover:bg-primary/20 transition-colors cursor-pointer group"
+            className={`hidden sm:flex items-center gap-2 border px-4 py-1.5 rounded-full backdrop-blur-sm transition-colors cursor-pointer group ${
+              balance > 0
+                ? "bg-emerald-500/10 border-emerald-500/20 hover:bg-emerald-500/20"
+                : "bg-destructive/10 border-destructive/20 hover:bg-destructive/20"
+            }`}
           >
-            <span className="material-symbols-outlined text-primary text-[20px] group-hover:animate-pulse">
+            <span className={`material-symbols-outlined text-[20px] group-hover:animate-pulse ${
+              balance > 0 ? "text-emerald-400" : "text-destructive"
+            }`}>
               account_balance_wallet
             </span>
             <div className="flex flex-col leading-none">
               <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
                 Saldo
               </span>
-              <span className="text-sm font-bold text-primary">
+              <span className={`text-sm font-bold ${balance > 0 ? "text-emerald-400" : "text-destructive"}`}>
                 R$ {balance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
               </span>
             </div>
