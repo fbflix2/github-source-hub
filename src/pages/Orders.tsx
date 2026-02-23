@@ -181,7 +181,7 @@ export default function Orders() {
                 <div
                   key={order.id}
                   onClick={() => setSelectedOrder(order)}
-                  className={`glass-panel p-3.5 rounded-xl cursor-pointer group border-l-[3px] hover:bg-muted transition-all relative overflow-hidden ${
+                  className={`glass-panel p-3.5 pb-4 rounded-xl cursor-pointer group border-l-[3px] hover:bg-muted transition-all relative overflow-hidden ${
                     isSelected ? st.className : "border-l-transparent opacity-80 hover:opacity-100"
                   }`}
                 >
