@@ -9,6 +9,11 @@ import { ProductDetailModal } from "@/components/loja/ProductDetailModal";
 import { useProxyBRProducts } from "@/hooks/useProxyBR";
 import { Skeleton } from "@/components/ui/skeleton";
 
+interface ProxyImage {
+  name: string;
+  url: string;
+}
+
 interface Product {
   id: string;
   name: string;
@@ -43,16 +48,19 @@ export default function Dashboard() {
   const [detailProduct, setDetailProduct] = useState<Product | null>(null);
   const { data: proxyProductsData, isLoading: proxyLoading, error: proxyError } = useProxyBRProducts();
   const [proxyQuantities, setProxyQuantities] = useState<Record<string, number>>({});
+  const [proxyImages, setProxyImages] = useState<ProxyImage[]>([]);
 
   useEffect(() => {
     async function fetchData() {
-      const [productsRes, categoriesRes] = await Promise.all([
+      const [productsRes, categoriesRes, proxyImagesRes] = await Promise.all([
         supabase.from("products").select("*").eq("status", "active").order("created_at", { ascending: false }),
         supabase.from("product_categories").select("*"),
+        supabase.from("product_images").select("name, url").eq("category", "proxy"),
       ]);
 
       if (productsRes.data) setProducts(productsRes.data);
       if (categoriesRes.data) setCategories(categoriesRes.data);
+      if (proxyImagesRes.data) setProxyImages(proxyImagesRes.data);
       setLoading(false);
     }
     fetchData();
@@ -70,6 +78,13 @@ export default function Dashboard() {
       ...prev,
       [id]: Math.max(1, (prev[id] || 1) + delta),
     }));
+  };
+
+  const getProxyImage = (productName: string): string | null => {
+    const match = proxyImages.find(
+      (img) => img.name.toLowerCase().trim() === productName.toLowerCase().trim()
+    );
+    return match?.url || null;
   };
 
   const isProxyFilter = activeFilter === "Proxy";
@@ -227,8 +242,8 @@ export default function Dashboard() {
                 const formattedPrice = `R$ ${Number(price).toFixed(2).replace(".", ",")}`;
                 const productId = String(product.id);
                 const qty = getProxyQty(productId);
-                const typeIcon = product.type === "RESIDENTIAL" ? "home" : product.type === "MOBILE" ? "smartphone" : "dns";
                 const typeLabel = product.type || "Proxy";
+                const proxyImg = getProxyImage(product.name);
 
                 return (
                   <article
@@ -240,7 +255,11 @@ export default function Dashboard() {
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-3 min-w-0">
                           <div className="shrink-0 w-10 h-10 rounded-lg overflow-hidden bg-secondary flex items-center justify-center">
-                            <span className="material-symbols-outlined text-[20px] text-muted-foreground">{typeIcon}</span>
+                            {proxyImg ? (
+                              <img src={proxyImg} alt={product.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <span className="material-symbols-outlined text-[20px] text-muted-foreground">dns</span>
+                            )}
                           </div>
                           <div className="flex items-center gap-2 flex-wrap min-w-0">
                             <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors truncate">
@@ -316,7 +335,7 @@ export default function Dashboard() {
                                 name: product.name,
                                 price: Number(price),
                                 quantity: qty,
-                                image: "/placeholder.svg",
+                              image: proxyImg || "/placeholder.svg",
                               });
                               toast.success(`${product.name} adicionado ao carrinho!`);
                             }}

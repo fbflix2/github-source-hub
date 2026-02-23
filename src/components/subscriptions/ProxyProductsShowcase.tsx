@@ -1,15 +1,27 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProxyBRProducts } from "@/hooks/useProxyBR";
 import { useCart } from "@/contexts/CartContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function ProxyProductsShowcase() {
   const { data: productsData, isLoading, error } = useProxyBRProducts();
   const navigate = useNavigate();
   const { addItem } = useCart();
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [proxyImages, setProxyImages] = useState<{ name: string; url: string }[]>([]);
+
+  useEffect(() => {
+    supabase
+      .from("product_images")
+      .select("name, url")
+      .eq("category", "proxy")
+      .then(({ data }) => {
+        if (data) setProxyImages(data);
+      });
+  }, []);
 
   const products: any[] = Array.isArray(productsData?.data)
     ? productsData.data
@@ -18,6 +30,13 @@ export default function ProxyProductsShowcase() {
     : [];
 
   const getQuantity = (id: string) => quantities[id] || 1;
+
+  const getProxyImage = (productName: string): string | null => {
+    const match = proxyImages.find(
+      (img) => img.name.toLowerCase().trim() === productName.toLowerCase().trim()
+    );
+    return match?.url || null;
+  };
 
   const updateQuantity = (id: string, delta: number) => {
     setQuantities((prev) => ({
@@ -72,9 +91,8 @@ export default function ProxyProductsShowcase() {
             const formattedPrice = `R$ ${Number(price).toFixed(2).replace(".", ",")}`;
             const productId = String(product.id);
             const qty = getQuantity(productId);
-
-            const typeIcon = product.type === "RESIDENTIAL" ? "home" : product.type === "MOBILE" ? "smartphone" : "dns";
             const typeLabel = product.type || "Proxy";
+            const proxyImg = getProxyImage(product.name);
 
             return (
               <article
@@ -87,7 +105,11 @@ export default function ProxyProductsShowcase() {
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="shrink-0 w-10 h-10 rounded-lg overflow-hidden bg-secondary flex items-center justify-center">
-                        <span className="material-symbols-outlined text-[20px] text-muted-foreground">{typeIcon}</span>
+                        {proxyImg ? (
+                          <img src={proxyImg} alt={product.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="material-symbols-outlined text-[20px] text-muted-foreground">dns</span>
+                        )}
                       </div>
                       <div className="flex items-center gap-2 flex-wrap min-w-0">
                         <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors truncate">
@@ -165,7 +187,7 @@ export default function ProxyProductsShowcase() {
                             name: product.name,
                             price: Number(price),
                             quantity: qty,
-                            image: "/placeholder.svg",
+                            image: proxyImg || "/placeholder.svg",
                           });
                           toast.success(`${product.name} adicionado ao carrinho!`);
                         }}
