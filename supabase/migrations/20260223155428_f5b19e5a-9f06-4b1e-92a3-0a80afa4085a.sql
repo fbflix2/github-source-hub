@@ -1,0 +1,1 @@
+UPDATE products SET stock = 0, available = false WHERE id = 'ff707388-1a22-4d91-b761-fd1629c2d0d6';
