@@ -32,7 +32,7 @@ export function ProxyProductCard({ product, proxyImage, quantity, onQuantityChan
     ? variants.reduce((min: any, v: any) =>
         (v.price || 0) < (min.price || 0) ? v : min, variants[0])
     : null;
-  const price = cheapestVariant?.price || product.price || 0;
+  const price = (localData?.price != null && localData.price > 0) ? localData.price : (cheapestVariant?.price || product.price || 0);
   const formattedPrice = `R$ ${Number(price).toFixed(2).replace(".", ",")}`;
   const productId = String(product.id);
   const typeLabel = product.type || "Proxy";
