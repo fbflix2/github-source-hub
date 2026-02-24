@@ -490,6 +490,7 @@ export type Database = {
           category_id: string | null
           created_at: string
           description: string | null
+          external_id: string | null
           icon_type: string | null
           id: string
           image_url: string | null
@@ -509,6 +510,7 @@ export type Database = {
           category_id?: string | null
           created_at?: string
           description?: string | null
+          external_id?: string | null
           icon_type?: string | null
           id?: string
           image_url?: string | null
@@ -528,6 +530,7 @@ export type Database = {
           category_id?: string | null
           created_at?: string
           description?: string | null
+          external_id?: string | null
           icon_type?: string | null
           id?: string
           image_url?: string | null

@@ -153,15 +153,26 @@ export default function AdminProducts() {
     }
 
     setImportingProxy(true);
-    let created = 0, skipped = 0;
+    let created = 0, skipped = 0, updated = 0;
 
     for (const product of apiProducts) {
       const name = product.name || `Proxy ${product.id}`;
-      // Check if already exists in local products
-      const exists = products.some(
+      const externalId = String(product.id);
+
+      // Check if already exists by external_id
+      const existsByExternalId = products.find((p) => (p as any).external_id === externalId);
+      if (existsByExternalId) { skipped++; continue; }
+
+      // Check if exists by name (legacy, without external_id)
+      const existsByName = products.find(
         (p) => p.name.toLowerCase() === name.toLowerCase() && p.icon_type === "proxy"
       );
-      if (exists) { skipped++; continue; }
+      if (existsByName) {
+        // Update external_id on existing product
+        await supabase.from("products").update({ external_id: externalId } as any).eq("id", existsByName.id);
+        updated++;
+        continue;
+      }
 
       const variants = product.variants?.data || product.variants || [];
       const cheapestVariant = variants.length
@@ -169,7 +180,6 @@ export default function AdminProducts() {
         : null;
       const price = cheapestVariant?.price || product.price || 0;
 
-      // Build tags
       const tags: string[] = [];
       if (product.type) tags.push(product.type);
       tags.push("Proxy");
@@ -187,13 +197,18 @@ export default function AdminProducts() {
         status: "active",
         available: true,
         image_url: imageUrl,
-      });
+        external_id: externalId,
+      } as any);
       if (!error) created++;
     }
 
     setImportingProxy(false);
-    if (created > 0) {
-      toast.success(`${created} produto(s) proxy importado(s)!${skipped > 0 ? ` ${skipped} já existiam.` : ""}`);
+    const messages: string[] = [];
+    if (created > 0) messages.push(`${created} importado(s)`);
+    if (updated > 0) messages.push(`${updated} vinculado(s)`);
+    if (skipped > 0) messages.push(`${skipped} já existiam`);
+    if (created > 0 || updated > 0) {
+      toast.success(messages.join(", ") + "!");
       fetchData();
     } else {
       toast.info(`Todos os produtos proxy já estão cadastrados. (${skipped} ignorados)`);
