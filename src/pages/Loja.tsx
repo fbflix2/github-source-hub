@@ -89,7 +89,7 @@ export default function Dashboard() {
 
   const isProxyFilter = activeFilter === "Proxy";
 
-  const filters = ["Todos", ...categories.map((c) => c.name), "Proxy"];
+  const filters = ["Todos", ...categories.filter((c) => c.name.toLowerCase() !== "proxy").map((c) => c.name), "Proxy"];
 
   const filteredProducts = activeFilter === "Todos"
     ? products
