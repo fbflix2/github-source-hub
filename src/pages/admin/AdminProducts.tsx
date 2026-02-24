@@ -270,6 +270,13 @@ export default function AdminProducts() {
   };
 
   const handleDelete = async (id: string) => {
+    if (!window.confirm("Tem certeza que deseja excluir este produto?")) return;
+    
+    // Remove foreign key references first
+    await supabase.from("stock_items").update({ product_id: null }).eq("product_id", id);
+    await supabase.from("order_items").update({ product_id: null }).eq("product_id", id);
+    await supabase.from("subscriptions").update({ product_id: null }).eq("product_id", id);
+    
     const { error } = await supabase.from("products").delete().eq("id", id);
     if (error) { toast.error("Erro ao excluir: " + error.message); return; }
     toast.success("Produto excluído!");
