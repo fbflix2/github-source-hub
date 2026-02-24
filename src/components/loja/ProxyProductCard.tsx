@@ -3,6 +3,7 @@ import { useCart } from "@/contexts/CartContext";
 import { toast } from "sonner";
 
 interface LocalProductData {
+  name?: string | null;
   description?: string | null;
   tags?: string[] | null;
   image_url?: string | null;
@@ -34,6 +35,7 @@ export function ProxyProductCard({ product, proxyImage, quantity, onQuantityChan
   const formattedPrice = `R$ ${Number(price).toFixed(2).replace(".", ",")}`;
   const productId = String(product.id);
   const typeLabel = product.type || "Proxy";
+  const displayName = localData?.name || product.name;
   const description = localData?.description || product.description;
   const tags = localData?.tags || [];
   const imageUrl = localData?.image_url || proxyImage;
@@ -55,7 +57,7 @@ export function ProxyProductCard({ product, proxyImage, quantity, onQuantityChan
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
               <h3 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-tight">
-                {product.name}
+                {displayName}
               </h3>
               <div className="text-right shrink-0 whitespace-nowrap">
                 <p className="text-xl font-bold text-foreground">{formattedPrice}</p>
@@ -129,12 +131,12 @@ export function ProxyProductCard({ product, proxyImage, quantity, onQuantityChan
               onClick={() => {
                 addItem({
                   productId,
-                  name: product.name,
+                  name: displayName,
                   price: Number(price),
                   quantity,
                   image: imageUrl || "/placeholder.svg",
                 });
-                toast.success(`${product.name} adicionado ao carrinho!`);
+                toast.success(`${displayName} adicionado ao carrinho!`);
               }}
               className="h-10 px-3 rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all flex items-center justify-center"
               title="Adicionar ao carrinho"

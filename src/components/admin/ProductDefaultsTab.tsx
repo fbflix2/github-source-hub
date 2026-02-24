@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { Plus, Trash2, SquarePen, Save, Loader2, PackageOpen, X, Tag, Download } from "lucide-react";
+import { Plus, Trash2, SquarePen, Save, Loader2, PackageOpen, X, Tag, Download, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useProxyBRProducts } from "@/hooks/useProxyBR";
@@ -29,9 +30,11 @@ export default function ProductDefaultsTab({ searchTerm }: ProductDefaultsTabPro
   const [saving, setSaving] = useState(false);
   const [importingProxy, setImportingProxy] = useState(false);
   const { data: proxyData } = useProxyBRProducts();
+  const [localProducts, setLocalProducts] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
     fetchItems();
+    fetchLocalProducts();
   }, []);
 
   const fetchItems = async () => {
@@ -43,6 +46,31 @@ export default function ProductDefaultsTab({ searchTerm }: ProductDefaultsTabPro
     if (data) setItems(data as ProductDefault[]);
     if (error) toast.error("Erro ao carregar padrões de produto");
     setLoading(false);
+  };
+
+  const fetchLocalProducts = async () => {
+    const catRes = await supabase.from("product_categories").select("id").eq("slug", "proxy").single();
+    if (!catRes.data) return;
+    const { data } = await supabase
+      .from("products")
+      .select("id, name")
+      .eq("category_id", catRes.data.id);
+    if (data) setLocalProducts(data);
+  };
+
+  const getProductDivergence = (defaultName: string): string | null => {
+    // Find a local product whose name matches loosely (case-insensitive)
+    const match = localProducts.find(
+      (p) => p.name.toLowerCase().trim() === defaultName.toLowerCase().trim()
+    );
+    if (match) return null; // names match, no divergence
+    // Check if there's a product that could be related (partial match)
+    const partial = localProducts.find(
+      (p) => p.name.toLowerCase().includes(defaultName.toLowerCase().substring(0, 10)) ||
+             defaultName.toLowerCase().includes(p.name.toLowerCase().substring(0, 10))
+    );
+    if (partial) return `Nome no produto: "${partial.name}"`;
+    return null;
   };
 
   const openCreate = () => {
@@ -206,10 +234,12 @@ export default function ProductDefaultsTab({ searchTerm }: ProductDefaultsTabPro
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filtered.map((item) => (
+            {filtered.map((item) => {
+              const divergence = getProductDivergence(item.name);
+              return (
               <div
                 key={item.id}
-                className="group relative p-5 rounded-xl bg-white/5 border border-white/10 hover:border-white/20 transition-all"
+                className={`group relative p-5 rounded-xl bg-white/5 border ${divergence ? 'border-yellow-500/40' : 'border-white/10'} hover:border-white/20 transition-all`}
               >
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-bold text-white text-sm">{item.name}</h3>
@@ -228,6 +258,21 @@ export default function ProductDefaultsTab({ searchTerm }: ProductDefaultsTabPro
                     </button>
                   </div>
                 </div>
+                {divergence && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center gap-1.5 mb-3 px-2 py-1.5 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-xs font-medium cursor-help">
+                          <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                          <span>Divergência de nome</span>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="max-w-xs">
+                        <p className="text-xs">{divergence}. Defina o mesmo nome no padrão e no produto para sincronizar corretamente.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
                 <div className="flex flex-wrap gap-1.5">
                   {item.tags.length === 0 ? (
                     <span className="text-xs text-gray-600">Sem tags</span>
@@ -244,7 +289,8 @@ export default function ProductDefaultsTab({ searchTerm }: ProductDefaultsTabPro
                   )}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </section>
