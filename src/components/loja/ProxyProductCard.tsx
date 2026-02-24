@@ -2,14 +2,26 @@ import { useNavigate } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
 import { toast } from "sonner";
 
+interface LocalProductData {
+  description?: string | null;
+  tags?: string[] | null;
+  image_url?: string | null;
+  price?: number;
+  stock?: number;
+  badge_text?: string | null;
+  badge_color?: string | null;
+  badge_icon?: string | null;
+}
+
 interface ProxyProductCardProps {
   product: any;
   proxyImage: string | null;
   quantity: number;
   onQuantityChange: (id: string, delta: number) => void;
+  localData?: LocalProductData | null;
 }
 
-export function ProxyProductCard({ product, proxyImage, quantity, onQuantityChange }: ProxyProductCardProps) {
+export function ProxyProductCard({ product, proxyImage, quantity, onQuantityChange, localData }: ProxyProductCardProps) {
   const navigate = useNavigate();
   const { addItem } = useCart();
 
@@ -22,6 +34,11 @@ export function ProxyProductCard({ product, proxyImage, quantity, onQuantityChan
   const formattedPrice = `R$ ${Number(price).toFixed(2).replace(".", ",")}`;
   const productId = String(product.id);
   const typeLabel = product.type || "Proxy";
+  const description = localData?.description || product.description;
+  const tags = localData?.tags || [];
+  const imageUrl = localData?.image_url || proxyImage;
+  const stockCount = localData?.stock ?? 999;
+  const stockLabel = `${stockCount} em estoque`;
 
   return (
     <article className="glass-card rounded-2xl overflow-hidden flex flex-col group h-full">
@@ -29,8 +46,8 @@ export function ProxyProductCard({ product, proxyImage, quantity, onQuantityChan
         {/* Header: image + name + price */}
         <div className="flex items-start gap-3">
           <div className="shrink-0 w-10 h-10 rounded-lg overflow-hidden bg-secondary flex items-center justify-center mt-0.5">
-            {proxyImage ? (
-              <img src={proxyImage} alt={product.name} className="w-full h-full object-cover" />
+            {imageUrl ? (
+              <img src={imageUrl} alt={product.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
             ) : (
               <span className="material-symbols-outlined text-[20px] text-muted-foreground">dns</span>
             )}
@@ -53,16 +70,21 @@ export function ProxyProductCard({ product, proxyImage, quantity, onQuantityChan
         </div>
 
         {/* Description */}
-        {product.description && (
-          <p className="text-sm text-muted-foreground line-clamp-2">{product.description}</p>
+        {description && (
+          <p className="text-sm text-muted-foreground line-clamp-2">{description}</p>
         )}
 
         {/* Tags */}
-        {variants.length > 1 && (
+        {tags.length > 0 && (
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-foreground text-background font-medium">
-              {variants.length} planos
-            </span>
+            {tags.map((tag) => (
+              <span
+                key={tag}
+                className="text-[10px] px-2 py-0.5 rounded-full bg-foreground text-background font-medium"
+              >
+                {tag}
+              </span>
+            ))}
           </div>
         )}
 
@@ -71,9 +93,9 @@ export function ProxyProductCard({ product, proxyImage, quantity, onQuantityChan
           <div className="flex justify-between text-xs font-medium">
             <span className="text-primary flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-              Disponível
+              Em estoque
             </span>
-            <span className="text-muted-foreground">Disponível</span>
+            <span className="text-muted-foreground">{stockLabel}</span>
           </div>
           <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
             <div className="h-full rounded-full bg-gradient-to-r from-green-400 to-green-600 w-[80%]" />
@@ -110,7 +132,7 @@ export function ProxyProductCard({ product, proxyImage, quantity, onQuantityChan
                   name: product.name,
                   price: Number(price),
                   quantity,
-                  image: proxyImage || "/placeholder.svg",
+                  image: imageUrl || "/placeholder.svg",
                 });
                 toast.success(`${product.name} adicionado ao carrinho!`);
               }}
