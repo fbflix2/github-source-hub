@@ -21,9 +21,10 @@ interface ProxyProductCardProps {
   quantity: number;
   onQuantityChange: (id: string, delta: number) => void;
   localData?: LocalProductData | null;
+  onReadMore?: (info: { name: string; description: string | null; tags: string[] | null; image_url: string | null; price: number }) => void;
 }
 
-export function ProxyProductCard({ product, proxyImage, quantity, onQuantityChange, localData }: ProxyProductCardProps) {
+export function ProxyProductCard({ product, proxyImage, quantity, onQuantityChange, localData, onReadMore }: ProxyProductCardProps) {
   const navigate = useNavigate();
   const { addItem } = useCart();
 
@@ -74,7 +75,11 @@ export function ProxyProductCard({ product, proxyImage, quantity, onQuantityChan
 
         {/* Description */}
         {description && (
-          <p className="text-sm text-muted-foreground line-clamp-2">{description}</p>
+          <p className="text-sm text-muted-foreground">
+            {description.length > 50
+              ? <>{description.substring(0, 50)}... <button onClick={() => onReadMore?.({ name: displayName, description, tags, image_url: imageUrl, price: Number(price) })} className="text-primary hover:underline font-medium text-xs">saiba mais</button></>
+              : description}
+          </p>
         )}
 
         {/* Tags */}
