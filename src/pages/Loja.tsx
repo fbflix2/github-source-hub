@@ -445,7 +445,7 @@ export default function Dashboard() {
                 proxyImage={getProxyImage(product.name)}
                 quantity={getProxyQty(String(product.id))}
                 onQuantityChange={updateProxyQty}
-                localData={getLocalProxyData(product.name)}
+                localData={getLocalProxyData(product)}
                 onReadMore={(info) => setDetailProduct({ id: String(product.id), name: info.name, description: info.description, price: info.price, price_label: "mensal", image_url: info.image_url, badge_text: null, badge_color: null, badge_icon: null, stock: 999, available: true, category_id: null, tags: info.tags } as any)}
               />
             ))}
