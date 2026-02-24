@@ -10,15 +10,19 @@ export default function ProxyProductsShowcase() {
   const navigate = useNavigate();
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [proxyImages, setProxyImages] = useState<{ name: string; url: string }[]>([]);
+  const [localProducts, setLocalProducts] = useState<any[]>([]);
 
   useEffect(() => {
-    supabase
-      .from("product_images")
-      .select("name, url")
-      .eq("category", "proxy")
-      .then(({ data }) => {
-        if (data) setProxyImages(data);
-      });
+    Promise.all([
+      supabase.from("product_images").select("name, url").eq("category", "proxy"),
+      supabase.from("products").select("*").eq("status", "active"),
+      supabase.from("product_categories").select("id").eq("slug", "proxy").single(),
+    ]).then(([imagesRes, productsRes, catRes]) => {
+      if (imagesRes.data) setProxyImages(imagesRes.data);
+      if (productsRes.data && catRes.data) {
+        setLocalProducts(productsRes.data.filter((p: any) => p.category_id === catRes.data.id));
+      }
+    });
   }, []);
 
   const products: any[] = Array.isArray(productsData?.data)
@@ -34,6 +38,12 @@ export default function ProxyProductsShowcase() {
       (img) => img.name.toLowerCase().trim() === productName.toLowerCase().trim()
     );
     return match?.url || null;
+  };
+
+  const getLocalData = (apiName: string) => {
+    return localProducts.find(
+      (p) => p.name.toLowerCase().trim() === apiName.toLowerCase().trim()
+    ) || null;
   };
 
   const updateQuantity = (id: string, delta: number) => {
@@ -83,6 +93,7 @@ export default function ProxyProductsShowcase() {
               proxyImage={getProxyImage(product.name)}
               quantity={getQuantity(String(product.id))}
               onQuantityChange={updateQuantity}
+              localData={getLocalData(product.name)}
             />
           ))}
         </div>

@@ -91,6 +91,13 @@ export default function Dashboard() {
   const isProxyFilter = activeFilter === "Proxy";
 
   const proxyCategoryId = categories.find((c) => c.name.toLowerCase() === "proxy")?.id;
+  const localProxyProducts = proxyCategoryId ? products.filter((p) => p.category_id === proxyCategoryId) : [];
+  const getLocalProxyData = (apiName: string) => {
+    const match = localProxyProducts.find(
+      (p) => p.name.toLowerCase().trim() === apiName.toLowerCase().trim()
+    );
+    return match || null;
+  };
   const filters = ["Todos", ...categories.filter((c) => c.name.toLowerCase() !== "proxy").map((c) => c.name), "Proxy"];
 
   const filteredProducts = activeFilter === "Todos"
@@ -241,6 +248,7 @@ export default function Dashboard() {
                   proxyImage={getProxyImage(product.name)}
                   quantity={getProxyQty(String(product.id))}
                   onQuantityChange={updateProxyQty}
+                  localData={getLocalProxyData(product.name)}
                 />
               ))}
             </div>
@@ -427,6 +435,7 @@ export default function Dashboard() {
                 proxyImage={getProxyImage(product.name)}
                 quantity={getProxyQty(String(product.id))}
                 onQuantityChange={updateProxyQty}
+                localData={getLocalProxyData(product.name)}
               />
             ))}
           </div>
