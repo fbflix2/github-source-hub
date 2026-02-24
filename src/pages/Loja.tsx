@@ -91,7 +91,7 @@ export default function Dashboard() {
 
   const isProxyFilter = activeFilter === "Proxy";
 
-  const proxyCategoryId = categories.find((c) => c.name.toLowerCase() === "proxy")?.id;
+  const proxyCategoryId = categories.find((c) => c.slug === "proxy")?.id;
   const localProxyProducts = proxyCategoryId ? products.filter((p) => p.category_id === proxyCategoryId) : [];
   const normalizeStr = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
   const getLocalProxyData = (apiProduct: any) => {
@@ -105,7 +105,7 @@ export default function Dashboard() {
     );
     return match || null;
   };
-  const filters = ["Todos", ...categories.filter((c) => c.name.toLowerCase() !== "proxy").map((c) => c.name), "Proxy"];
+  const filters = ["Todos", ...categories.filter((c) => c.slug !== "proxy").map((c) => c.name), "Proxy"];
 
   const filteredProducts = activeFilter === "Todos"
     ? products.filter((p) => p.category_id !== proxyCategoryId)
