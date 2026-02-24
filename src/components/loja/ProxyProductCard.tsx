@@ -3,6 +3,7 @@ import { useCart } from "@/contexts/CartContext";
 import { toast } from "sonner";
 
 interface LocalProductData {
+  id?: string;
   name?: string | null;
   description?: string | null;
   tags?: string[] | null;
@@ -129,8 +130,9 @@ export function ProxyProductCard({ product, proxyImage, quantity, onQuantityChan
             </div>
             <button
               onClick={() => {
+                const localId = localData?.id;
                 addItem({
-                  productId,
+                  productId: localId || productId,
                   name: displayName,
                   price: Number(price),
                   quantity,
@@ -145,7 +147,22 @@ export function ProxyProductCard({ product, proxyImage, quantity, onQuantityChan
             </button>
           </div>
           <button
-            onClick={() => navigate(`/checkout`)}
+            onClick={() => {
+              const localId = localData?.id;
+              if (localId) {
+                navigate(`/checkout?product=${localId}&qty=${quantity}`);
+              } else {
+                // No local product, add to cart and go to checkout
+                addItem({
+                  productId,
+                  name: displayName,
+                  price: Number(price),
+                  quantity,
+                  image: imageUrl || "/placeholder.svg",
+                });
+                navigate(`/checkout`);
+              }
+            }}
             className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm h-10 rounded-lg transition-all flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(220,38,38,0.2)]"
           >
             <span className="material-symbols-outlined text-[18px]">flash_on</span>
