@@ -105,6 +105,11 @@ export default function Dashboard() {
     ) || localProxyProducts.find(
       (p) => normalizeStr(p.name) === normalizeStr(apiName)
     );
+    if (match) {
+      console.log(`[ProxyMatch] API id=${apiId} → local id=${match.id}, price=${match.price}, tags=${JSON.stringify(match.tags)}, desc=${match.description?.substring(0, 30)}`);
+    } else {
+      console.log(`[ProxyMatch] API id=${apiId} name="${apiName}" → NO MATCH. localProxyProducts:`, localProxyProducts.map(p => ({ id: p.id, ext: p.external_id, name: p.name })));
+    }
     return match || null;
   };
   const filters = ["Todos", ...categories.filter((c) => c.slug !== "proxy").map((c) => c.name), "Proxy"];
