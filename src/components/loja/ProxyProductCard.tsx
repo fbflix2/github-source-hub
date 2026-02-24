@@ -76,8 +76,8 @@ export function ProxyProductCard({ product, proxyImage, quantity, onQuantityChan
         {/* Description */}
         {description && (
           <p className="text-sm text-muted-foreground">
-            {description.length > 50
-              ? <>{description.substring(0, 50)}... <button onClick={() => onReadMore?.({ name: displayName, description, tags, image_url: imageUrl, price: Number(price) })} className="text-primary hover:underline font-medium text-xs">saiba mais</button></>
+            {description.length > 150
+              ? <>{description.substring(0, 150)}... <button onClick={() => onReadMore?.({ name: displayName, description, tags, image_url: imageUrl, price: Number(price) })} className="text-primary hover:underline font-medium text-xs">ler mais</button></>
               : description}
           </p>
         )}
