@@ -6,7 +6,7 @@ import { differenceInDays, parseISO, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import SubscriptionCard from "@/components/subscriptions/SubscriptionCard";
 import SubscriptionDetailModal from "@/components/subscriptions/SubscriptionDetailModal";
-import ProxyProductsShowcase from "@/components/subscriptions/ProxyProductsShowcase";
+
 
 export type SubscriptionStatus = "active" | "expiring" | "cancelled" | "expired";
 
@@ -101,9 +101,28 @@ export default function Subscriptions() {
     renewMutation.mutate(code);
   };
 
-  // Show products showcase when user has no subscriptions
+  // Show CTA when user has no subscriptions
   if (!isLoading && !error && subscriptions.length === 0) {
-    return <ProxyProductsShowcase />;
+    return (
+      <div className="flex flex-col items-center justify-center py-24 px-4 animate-fade-in">
+        <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-6">
+          <span className="material-symbols-outlined text-primary text-[32px]">vpn_lock</span>
+        </div>
+        <h1 className="text-3xl md:text-4xl font-black text-foreground tracking-tight text-center mb-3">
+          Você ainda não possui assinaturas
+        </h1>
+        <p className="text-text-secondary text-base text-center max-w-md mb-8">
+          Conheça nossos planos de proxy residencial e comece a navegar com segurança e velocidade.
+        </p>
+        <a
+          href="/loja?filter=Proxy"
+          className="bg-primary hover:bg-[#00c968] text-background h-12 px-8 rounded-xl text-base font-bold transition-all shadow-glow hover:shadow-glow-lg flex items-center gap-2"
+        >
+          <span className="material-symbols-outlined">shopping_cart</span>
+          Ver Planos de Proxy
+        </a>
+      </div>
+    );
   }
 
   return (
