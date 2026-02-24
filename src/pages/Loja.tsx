@@ -92,8 +92,13 @@ export default function Dashboard() {
 
   const proxyCategoryId = categories.find((c) => c.name.toLowerCase() === "proxy")?.id;
   const localProxyProducts = proxyCategoryId ? products.filter((p) => p.category_id === proxyCategoryId) : [];
-  const getLocalProxyData = (apiName: string) => {
+  const getLocalProxyData = (apiProduct: any) => {
+    const apiId = String(apiProduct.id);
+    const apiName = apiProduct.name || "";
+    // Match by external_id first, then fallback to name
     const match = localProxyProducts.find(
+      (p) => (p as any).external_id === apiId
+    ) || localProxyProducts.find(
       (p) => p.name.toLowerCase().trim() === apiName.toLowerCase().trim()
     );
     return match || null;
@@ -248,7 +253,7 @@ export default function Dashboard() {
                   proxyImage={getProxyImage(product.name)}
                   quantity={getProxyQty(String(product.id))}
                   onQuantityChange={updateProxyQty}
-                  localData={getLocalProxyData(product.name)}
+                  localData={getLocalProxyData(product)}
                 />
               ))}
             </div>

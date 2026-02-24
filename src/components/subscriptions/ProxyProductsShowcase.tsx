@@ -15,7 +15,7 @@ export default function ProxyProductsShowcase() {
   useEffect(() => {
     Promise.all([
       supabase.from("product_images").select("name, url").eq("category", "proxy"),
-      supabase.from("products").select("*").eq("status", "active"),
+      supabase.from("products").select("*, external_id").eq("status", "active"),
       supabase.from("product_categories").select("id").eq("slug", "proxy").single(),
     ]).then(([imagesRes, productsRes, catRes]) => {
       if (imagesRes.data) setProxyImages(imagesRes.data);
@@ -40,8 +40,12 @@ export default function ProxyProductsShowcase() {
     return match?.url || null;
   };
 
-  const getLocalData = (apiName: string) => {
+  const getLocalData = (apiProduct: any) => {
+    const apiId = String(apiProduct.id);
+    const apiName = apiProduct.name || "";
     return localProducts.find(
+      (p) => p.external_id === apiId
+    ) || localProducts.find(
       (p) => p.name.toLowerCase().trim() === apiName.toLowerCase().trim()
     ) || null;
   };
@@ -93,7 +97,7 @@ export default function ProxyProductsShowcase() {
               proxyImage={getProxyImage(product.name)}
               quantity={getQuantity(String(product.id))}
               onQuantityChange={updateQuantity}
-              localData={getLocalData(product.name)}
+              localData={getLocalData(product)}
             />
           ))}
         </div>
