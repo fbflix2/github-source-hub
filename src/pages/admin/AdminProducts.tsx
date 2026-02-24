@@ -33,6 +33,7 @@ interface Product {
   badge_icon: string | null;
   price_label: string | null;
   created_at: string;
+  external_id: string | null;
 }
 
 interface Category {
@@ -160,12 +161,13 @@ export default function AdminProducts() {
       const externalId = String(product.id);
 
       // Check if already exists by external_id
-      const existsByExternalId = products.find((p) => (p as any).external_id === externalId);
+      const existsByExternalId = products.find((p) => p.external_id === externalId);
       if (existsByExternalId) { skipped++; continue; }
 
-      // Check if exists by name (legacy, without external_id)
+      // Check if exists by name (legacy, without external_id) - normalize spaces
+      const normalize = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
       const existsByName = products.find(
-        (p) => p.name.toLowerCase() === name.toLowerCase() && p.icon_type === "proxy"
+        (p) => normalize(p.name) === normalize(name) && p.icon_type === "proxy"
       );
       if (existsByName) {
         // Update external_id on existing product

@@ -40,13 +40,14 @@ export default function ProxyProductsShowcase() {
     return match?.url || null;
   };
 
+  const normalizeStr = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
   const getLocalData = (apiProduct: any) => {
     const apiId = String(apiProduct.id);
     const apiName = apiProduct.name || "";
     return localProducts.find(
       (p) => p.external_id === apiId
     ) || localProducts.find(
-      (p) => p.name.toLowerCase().trim() === apiName.toLowerCase().trim()
+      (p) => normalizeStr(p.name) === normalizeStr(apiName)
     ) || null;
   };
 
