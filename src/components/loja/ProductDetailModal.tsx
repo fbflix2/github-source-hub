@@ -22,6 +22,7 @@ interface Product {
   available: boolean;
   category_id: string | null;
   tags: string[] | null;
+  external_id?: string | null;
 }
 
 interface Props {

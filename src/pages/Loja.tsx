@@ -29,6 +29,7 @@ interface Product {
   available: boolean;
   category_id: string | null;
   tags: string[] | null;
+  external_id?: string | null;
 }
 
 interface Category {
@@ -92,14 +93,15 @@ export default function Dashboard() {
 
   const proxyCategoryId = categories.find((c) => c.name.toLowerCase() === "proxy")?.id;
   const localProxyProducts = proxyCategoryId ? products.filter((p) => p.category_id === proxyCategoryId) : [];
+  const normalizeStr = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
   const getLocalProxyData = (apiProduct: any) => {
     const apiId = String(apiProduct.id);
     const apiName = apiProduct.name || "";
-    // Match by external_id first, then fallback to name
+    // Match by external_id first, then fallback to normalized name
     const match = localProxyProducts.find(
-      (p) => (p as any).external_id === apiId
+      (p) => p.external_id === apiId
     ) || localProxyProducts.find(
-      (p) => p.name.toLowerCase().trim() === apiName.toLowerCase().trim()
+      (p) => normalizeStr(p.name) === normalizeStr(apiName)
     );
     return match || null;
   };
