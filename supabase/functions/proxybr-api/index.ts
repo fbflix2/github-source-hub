@@ -204,16 +204,30 @@ Deno.serve(async (req) => {
       const subCode = contractData.subscription?.code || contractData.code || contractData.data?.code;
       let endDate = contractData.subscription?.due_date || contractData.due_date || contractData.end_date || null;
 
-      // The contract response often lacks due_date, so fetch subscription details to get it
-      if (subCode && !endDate) {
+      // Always fetch subscription details to get due_date, product info, and proxy data
+      if (subCode) {
         try {
-          console.log(`[purchase-proxy-with-balance] Fetching subscription details for ${subCode} to get due_date`);
+          console.log(`[purchase-proxy-with-balance] Fetching subscription details for ${subCode}`);
           const detailResp = await proxyFetch(`${PROXYBR_BASE}/subscriptions/${subCode}`, PROXYBR_API_KEY);
           if (detailResp.ok) {
             const detailText = await detailResp.text();
             const detailData = JSON.parse(detailText);
-            console.log(`[purchase-proxy-with-balance] Detail response: ${detailText.substring(0, 500)}`);
-            endDate = detailData.due_date || detailData.end_date || null;
+            console.log(`[purchase-proxy-with-balance] Detail response: ${detailText.substring(0, 800)}`);
+            if (!endDate) {
+              endDate = detailData.due_date || detailData.end_date || null;
+            }
+            // Parse proxy codes
+            if (detailData.proxies?.data && Array.isArray(detailData.proxies.data)) {
+              detailData.proxies.data = detailData.proxies.data.map((p: any) => {
+                if (p.code && typeof p.code === "string") {
+                  const parts = p.code.split(":");
+                  if (parts.length >= 4) {
+                    p.parsed = { ip: parts[0], port: parseInt(parts[1], 10), username: parts[2], password: parts[3] };
+                  }
+                }
+                return p;
+              });
+            }
             // Merge full details into contractData for raw_data storage
             if (detailData) {
               contractData = { ...contractData, subscription: { ...contractData.subscription, ...detailData } };
@@ -221,7 +235,9 @@ Deno.serve(async (req) => {
           }
         } catch (e) {
           console.error(`[purchase-proxy-with-balance] Failed to fetch sub details: ${e}`);
-          // Fallback: calculate end_date based on interval
+        }
+        // Fallback: calculate end_date if still missing
+        if (!endDate) {
           const now = new Date();
           if ((interval || "monthly") === "quarterly") {
             now.setMonth(now.getMonth() + 3);
