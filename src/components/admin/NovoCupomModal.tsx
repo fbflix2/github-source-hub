@@ -16,7 +16,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Plus, Tag, Percent, Users, Calendar as CalendarIcon, ArrowRight, DollarSign, Loader2 } from "lucide-react";
+import { Plus, Tag, Percent, Users, Calendar as CalendarIcon, ArrowRight, DollarSign, Loader2, Package, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -30,6 +30,12 @@ export interface CouponData {
   max_uses: number;
   status: string;
   expires_at: string | null;
+  product_id: string | null;
+}
+
+interface ProductOption {
+  id: string;
+  name: string;
 }
 
 interface NovoCupomModalProps {
@@ -49,6 +55,21 @@ export function NovoCupomModal({ open, onOpenChange, onCreated, editCoupon }: No
   const [expiresAt, setExpiresAt] = useState<Date | undefined>();
   const [isActive, setIsActive] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
+  const [products, setProducts] = useState<ProductOption[]>([]);
+  const [productSearch, setProductSearch] = useState("");
+
+  // Fetch products
+  useEffect(() => {
+    const fetchProducts = async () => {
+      const { data } = await supabase
+        .from("products")
+        .select("id, name")
+        .order("name");
+      setProducts(data ?? []);
+    };
+    if (open) fetchProducts();
+  }, [open]);
 
   // Populate form when editing
   useEffect(() => {
@@ -60,6 +81,7 @@ export function NovoCupomModal({ open, onOpenChange, onCreated, editCoupon }: No
       setLimit(String(editCoupon.max_uses));
       setExpiresAt(editCoupon.expires_at ? new Date(editCoupon.expires_at) : undefined);
       setIsActive(editCoupon.status === "active");
+      setSelectedProductId(editCoupon.product_id || null);
     } else {
       resetForm();
     }
@@ -73,6 +95,8 @@ export function NovoCupomModal({ open, onOpenChange, onCreated, editCoupon }: No
     setLimit("");
     setExpiresAt(undefined);
     setIsActive(true);
+    setSelectedProductId(null);
+    setProductSearch("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -90,6 +114,7 @@ export function NovoCupomModal({ open, onOpenChange, onCreated, editCoupon }: No
         max_uses: Number(limit) || 100,
         expires_at: expiresAt ? expiresAt.toISOString() : null,
         status: isActive ? "active" : "paused",
+        product_id: selectedProductId || null,
       };
 
       if (isEditing && editCoupon) {
@@ -250,6 +275,64 @@ export function NovoCupomModal({ open, onOpenChange, onCreated, editCoupon }: No
                     />
                   </PopoverContent>
                 </Popover>
+              </div>
+
+              {/* Produto específico */}
+              <div className="flex flex-col gap-2">
+                <label className="text-[11px] font-bold text-white/50 uppercase tracking-widest pl-1">Produto (opcional)</label>
+                {selectedProductId ? (
+                  <div className="flex items-center gap-2 p-3 rounded-2xl bg-black/40 border border-primary/30">
+                    <Package className="w-5 h-5 text-primary shrink-0" />
+                    <span className="text-white text-sm font-medium flex-1 truncate">
+                      {products.find(p => p.id === selectedProductId)?.name || "Produto selecionado"}
+                    </span>
+                    <button type="button" onClick={() => setSelectedProductId(null)} className="text-white/40 hover:text-white transition-colors">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full pl-12 pr-4 py-4 h-auto rounded-2xl bg-black/40 border border-white/10 text-left font-medium hover:bg-black/60 hover:border-primary/50 transition-all justify-start text-white/20"
+                      >
+                        <Package className="absolute left-4 w-5 h-5 text-white/30" />
+                        Todos os produtos
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[360px] p-0 bg-neutral-900 border-white/10" align="start">
+                      <div className="p-3 border-b border-white/10">
+                        <Input
+                          type="text"
+                          placeholder="Buscar produto..."
+                          value={productSearch}
+                          onChange={(e) => setProductSearch(e.target.value)}
+                          className="bg-black/40 border-white/10 text-white placeholder:text-white/30 text-sm"
+                        />
+                      </div>
+                      <div className="max-h-[200px] overflow-y-auto p-1">
+                        {products
+                          .filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase()))
+                          .map(product => (
+                            <button
+                              key={product.id}
+                              type="button"
+                              onClick={() => { setSelectedProductId(product.id); setProductSearch(""); }}
+                              className="w-full text-left px-3 py-2 text-sm text-white/80 hover:bg-white/10 rounded-lg transition-colors truncate"
+                            >
+                              {product.name}
+                            </button>
+                          ))}
+                        {products.filter(p => p.name.toLowerCase().includes(productSearch.toLowerCase())).length === 0 && (
+                          <p className="text-white/30 text-sm text-center py-4">Nenhum produto encontrado</p>
+                        )}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                )}
+                <span className="text-[10px] text-white/30 pl-1">Deixe vazio para aceitar em todos os produtos</span>
               </div>
 
               {/* Ativar */}

@@ -35,6 +35,7 @@ interface DbCoupon {
   status: string;
   expires_at: string | null;
   created_at: string;
+  product_id: string | null;
 }
 
 function getCouponDisplayStatus(coupon: DbCoupon): "active" | "expired" | "paused" | "almostFull" {
