@@ -42,7 +42,11 @@ Deno.serve(async (req) => {
     }
 
     const userId = claimsData.claims.sub as string;
-    const userEmail = (claimsData.claims.email as string) || "cliente@email.com";
+    const rawEmail = (claimsData.claims.email as string) || "cliente@email.com";
+    
+    // Mercado Pago blocks payments where payer email = seller email.
+    // Use a generic buyer email to avoid "Payer email forbidden" errors.
+    const userEmail = `comprador-${userId.slice(0, 8)}@pagamento.com`;
 
     const { amount, order_id } = await req.json();
     const numericAmount = Number(amount);
