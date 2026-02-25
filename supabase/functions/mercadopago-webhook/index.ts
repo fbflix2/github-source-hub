@@ -22,24 +22,51 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const body = await req.json();
-    console.log("Webhook received:", JSON.stringify(body));
+    // MP can send webhooks as JSON body or as query params (IPN style)
+    let mpPaymentId: string | null = null;
+    
+    const url = new URL(req.url);
+    const topicParam = url.searchParams.get("topic") || url.searchParams.get("type");
+    const idParam = url.searchParams.get("id") || url.searchParams.get("data.id");
 
-    if (body.type !== "payment" && body.action !== "payment.updated") {
+    // Try JSON body first
+    let body: Record<string, unknown> = {};
+    try {
+      body = await req.json();
+    } catch {
+      // No JSON body — might be IPN query-param style
+    }
+    
+    console.log("Webhook received - body:", JSON.stringify(body), "query:", url.search);
+
+    // Extract payment ID from various MP webhook formats
+    if (body.data && typeof body.data === 'object' && (body.data as Record<string, unknown>).id) {
+      mpPaymentId = String((body.data as Record<string, unknown>).id);
+    } else if (body.id && (body.type === "payment" || topicParam === "payment")) {
+      mpPaymentId = String(body.id);
+    } else if (idParam && (topicParam === "payment" || topicParam === "merchant_order")) {
+      mpPaymentId = idParam;
+    }
+
+    // Skip non-payment events
+    const eventType = body.type || body.action || topicParam || "";
+    if (!String(eventType).includes("payment") && !mpPaymentId) {
+      console.log("Skipping non-payment event:", eventType);
       return new Response(JSON.stringify({ received: true }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const mpPaymentId = body.data?.id;
     if (!mpPaymentId) {
-      console.log("No payment ID in webhook");
+      console.log("No payment ID found in webhook");
       return new Response(JSON.stringify({ received: true }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    
+    console.log("Processing payment ID:", mpPaymentId);
 
     // Fetch payment details from Mercado Pago
     const mpResponse = await fetch(

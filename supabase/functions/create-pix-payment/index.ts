@@ -93,7 +93,7 @@ Deno.serve(async (req) => {
         payment_method_id: "pix",
         payer: { email: userEmail },
         external_reference: payment.id,
-        notification_url: `${Deno.env.get("SUPABASE_URL")}/functions/v1/mercadopago-webhook`,
+        notification_url: `https://mxnlerkeygfvdnznoxld.supabase.co/functions/v1/mercadopago-webhook`,
       }),
     });
 
