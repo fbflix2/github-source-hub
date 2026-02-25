@@ -1,0 +1,1 @@
+INSERT INTO product_images (name, url, category) VALUES ('PROXY IPV4 GRINGA PREMIUM', '/images/proxy/proxy-13.png', 'proxy');
