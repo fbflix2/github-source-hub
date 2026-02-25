@@ -175,7 +175,7 @@ export default function AdminAssinaturas() {
   const [linkModalSub, setLinkModalSub] = useState<EnrichedSubscription | null>(null);
   const [linkSearch, setLinkSearch] = useState("");
   const [syncing, setSyncing] = useState(false);
-
+  const [relinking, setRelinking] = useState(false);
   const queryClient = useQueryClient();
   const renewMutation = useRenewSubscription();
 
@@ -342,6 +342,25 @@ export default function AdminAssinaturas() {
     }
   }, [queryClient]);
 
+  // Re-link all admin-owned subscriptions
+  const handleRelinkAll = useCallback(async () => {
+    setRelinking(true);
+    try {
+      await supabase.auth.refreshSession();
+      const { data, error } = await supabase.functions.invoke("proxybr-api", {
+        body: { action: "relink-all-subscriptions" },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      toast.success(`${data.relinked} assinaturas re-vinculadas de ${data.total} no admin!`);
+      queryClient.invalidateQueries({ queryKey: ["admin-subscriptions-cached"] });
+    } catch (err: any) {
+      toast.error(`Erro ao re-vincular: ${err.message}`);
+    } finally {
+      setRelinking(false);
+    }
+  }, [queryClient]);
+
   // Link subscription to a client (also pushes email to ProxyBR notes)
   const handleLinkClient = useCallback(async (subCode: string, userId: string) => {
     try {
@@ -473,14 +492,25 @@ export default function AdminAssinaturas() {
             Sincronização automática ativa (a cada 10 min)
           </p>
         </div>
-        <Button
-          onClick={handleSync}
-          disabled={syncing || isLoading}
-          className="gap-2"
-        >
-          {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-          Sincronizar
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={handleRelinkAll}
+            disabled={relinking || syncing || isLoading}
+            variant="outline"
+            className="gap-2"
+          >
+            {relinking ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
+            Re-vincular tudo
+          </Button>
+          <Button
+            onClick={handleSync}
+            disabled={syncing || isLoading}
+            className="gap-2"
+          >
+            {syncing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+            Sincronizar
+          </Button>
+        </div>
       </div>
 
       {/* Sync Banner */}

@@ -21,6 +21,28 @@ function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+/** Tries to match a ProxyBR subscription to a local user using all available fields */
+function matchUserFromSub(
+  sub: any,
+  emailToUserId: Map<string, string>,
+  nameToUserId: Map<string, string>,
+): string | undefined {
+  const notes = (sub.notes || "").toLowerCase().trim();
+  if (notes && emailToUserId.has(notes)) return emailToUserId.get(notes);
+  if (notes && nameToUserId.has(notes)) return nameToUserId.get(notes);
+  if (notes) {
+    for (const [email, uid] of emailToUserId.entries()) {
+      if (notes.includes(email)) return uid;
+    }
+  }
+  if (notes) {
+    for (const [name, uid] of nameToUserId.entries()) {
+      if (name.length >= 4 && notes.includes(name)) return uid;
+    }
+  }
+  return undefined;
+}
+
 async function fetchAllSubscriptions(apiKey: string, statusFilter?: string) {
   let allSubs: any[] = [];
   let page = 1;
@@ -469,6 +491,62 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Re-link all admin-owned subscriptions by re-checking notes against users
+    if (action === "relink-all-subscriptions") {
+      const supabaseAdmin = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+      const { data: isAdmin } = await supabaseAdmin.rpc("has_role", { _user_id: user.id, _role: "admin" });
+      if (!isAdmin) throw new Error("Sem permissão de administrador");
+
+      // Build maps
+      const emailToUserId = new Map<string, string>();
+      let pg = 1;
+      while (true) {
+        const { data: { users }, error } = await supabaseAdmin.auth.admin.listUsers({ page: pg, perPage: 1000 });
+        if (error || !users?.length) break;
+        for (const u of users) { if (u.email) emailToUserId.set(u.email.toLowerCase(), u.id); }
+        if (users.length < 1000) break;
+        pg++;
+      }
+      const nameToUserId = new Map<string, string>();
+      const { data: profilesList } = await supabaseAdmin.from("profiles").select("user_id, full_name");
+      if (profilesList) {
+        for (const p of profilesList) { if (p.full_name) nameToUserId.set(p.full_name.toLowerCase().trim(), p.user_id); }
+      }
+
+      // Get admin user_id
+      const { data: adminRoles } = await supabaseAdmin.from("user_roles").select("user_id").eq("role", "admin").limit(1);
+      const adminUserId = adminRoles?.[0]?.user_id || user.id;
+
+      // Find all subs owned by admin
+      const { data: adminSubs } = await supabaseAdmin
+        .from("subscriptions")
+        .select("id, name, raw_data")
+        .eq("user_id", adminUserId)
+        .eq("type", "proxybr");
+
+      let relinked = 0;
+      if (adminSubs) {
+        for (const sub of adminSubs) {
+          const raw = sub.raw_data || {};
+          const matched = matchUserFromSub(raw, emailToUserId, nameToUserId);
+          if (matched && matched !== adminUserId) {
+            await supabaseAdmin.from("subscriptions").update({ user_id: matched }).eq("id", sub.id);
+            relinked++;
+          }
+        }
+      }
+
+      console.log(`Relink complete: ${relinked} of ${adminSubs?.length || 0} re-linked`);
+
+      return new Response(
+        JSON.stringify({ success: true, relinked, total: adminSubs?.length || 0 }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Sync subscriptions to local DB with auto-linking by email (background processing)
     if (action === "sync-subscriptions") {
       // Verify admin
@@ -547,16 +625,7 @@ Deno.serve(async (req) => {
               const code = sub.code;
               if (!code) continue;
 
-              const notes = (sub.notes || "").toLowerCase().trim();
-              let matchedUserId: string | undefined;
-
-              if (notes && emailToUserId.has(notes)) matchedUserId = emailToUserId.get(notes);
-              if (!matchedUserId && notes && nameToUserId.has(notes)) matchedUserId = nameToUserId.get(notes);
-              if (!matchedUserId && notes) {
-                for (const [email, uid] of emailToUserId.entries()) {
-                  if (notes.includes(email)) { matchedUserId = uid; break; }
-                }
-              }
+              const matchedUserId = matchUserFromSub(sub, emailToUserId, nameToUserId);
 
               const endDateStr = sub.due_date || sub.end_date || new Date().toISOString();
               const startDateStr = sub.created_at || sub.start_date || new Date().toISOString();
