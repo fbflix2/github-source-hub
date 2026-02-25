@@ -1,0 +1,1 @@
+UPDATE public.subscriptions SET end_date = '2026-03-27T13:00:00+00:00', status = 'active' WHERE name = '2602253053';
