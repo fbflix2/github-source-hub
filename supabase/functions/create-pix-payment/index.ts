@@ -45,10 +45,9 @@ Deno.serve(async (req) => {
     const rawEmail = (claimsData.claims.email as string) || "cliente@email.com";
     
     // Mercado Pago blocks payments where payer email = seller email.
-    // Use a generic buyer email to avoid "Payer email forbidden" errors.
     const userEmail = `comprador-${userId.slice(0, 8)}@pagamento.com`;
 
-    const { amount, order_id } = await req.json();
+    const { amount, order_id, proxy_data } = await req.json();
     const numericAmount = Number(amount);
 
     if (!numericAmount || numericAmount < 1) {
@@ -79,6 +78,37 @@ Deno.serve(async (req) => {
       throw new Error("Erro ao criar pagamento");
     }
 
+    // If proxy_data is provided, persist it to order_items.delivery_data using service_role
+    if (proxy_data && order_id) {
+      console.log(`[create-pix-payment] Persisting proxy_data for order ${order_id}:`, JSON.stringify(proxy_data));
+      const supabaseAdmin = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+
+      // Get order items for this order
+      const { data: orderItems } = await supabaseAdmin
+        .from("order_items")
+        .select("id")
+        .eq("order_id", order_id);
+
+      if (orderItems && orderItems.length > 0) {
+        const deliveryData = {
+          type: "proxy_contract",
+          product_variant_id: proxy_data.product_variant_id,
+          api_product_id: proxy_data.api_product_id,
+          variant_location: proxy_data.variant_location,
+          quantity: proxy_data.quantity || 1,
+          interval: proxy_data.interval || "monthly",
+        };
+        await supabaseAdmin
+          .from("order_items")
+          .update({ delivery_data: deliveryData })
+          .eq("id", orderItems[0].id);
+        console.log(`[create-pix-payment] delivery_data saved for order_item ${orderItems[0].id}`);
+      }
+    }
+
     // Create Mercado Pago PIX payment
     const mpResponse = await fetch("https://api.mercadopago.com/v1/payments", {
       method: "POST",
@@ -104,7 +134,7 @@ Deno.serve(async (req) => {
       throw new Error(`Erro Mercado Pago [${mpResponse.status}]: ${JSON.stringify(mpData)}`);
     }
 
-    // Update payment with gateway reference — preserve the original metadata.type
+    // Update payment with gateway reference
     await supabase
       .from("payments")
       .update({

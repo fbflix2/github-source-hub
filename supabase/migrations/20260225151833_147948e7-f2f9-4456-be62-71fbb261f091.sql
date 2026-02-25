@@ -1,0 +1,1 @@
+CREATE POLICY "Users can update own orders" ON orders FOR UPDATE USING (auth.uid() = user_id);
