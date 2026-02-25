@@ -605,7 +605,7 @@ export default function Checkout() {
             {product.tags && product.tags.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 {product.tags.map((tag, i) => (
-                  <span key={i} className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">{tag}</span>
+                  <span key={i} className="text-[10px] px-2 py-0.5 rounded-full bg-foreground text-background font-medium">{tag}</span>
                 ))}
               </div>
             )}
