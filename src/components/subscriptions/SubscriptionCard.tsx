@@ -69,29 +69,29 @@ export default function SubscriptionCard({
       )}
 
       {/* Header */}
-      <div className="flex justify-between items-start">
-        <div className="flex items-center gap-3">
-          <div
-            className={`w-10 h-10 rounded-lg bg-muted flex items-center justify-center border border-border ${
-              status === "expired" ? "text-text-secondary" : "text-foreground"
-            }`}
-          >
-            <span className="material-symbols-outlined">dns</span>
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            <div
+              className={`w-10 h-10 shrink-0 rounded-lg bg-muted flex items-center justify-center border border-border ${
+                status === "expired" ? "text-text-secondary" : "text-foreground"
+              }`}
+            >
+              <span className="material-symbols-outlined">dns</span>
+            </div>
+            <div className="min-w-0">
+              <h3 className="text-foreground font-bold text-sm leading-tight truncate">{sub.name || sub.code}</h3>
+              <span className="text-text-secondary text-xs truncate block">{sub.product_name || sub.code}</span>
+            </div>
           </div>
-          <div>
-            <h3 className="text-foreground font-bold text-sm leading-tight truncate">{sub.name || sub.code}</h3>
-            <span className="text-text-secondary text-xs">{sub.product_name || sub.code}</span>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          {profileTag && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-foreground/10 backdrop-blur-sm border border-foreground/20 text-foreground text-[10px] font-bold">
-              <span className="material-symbols-outlined text-xs">person_pin</span>
-              {profileTag}
-            </span>
-          )}
           {getStatusBadge(status)}
         </div>
+        {profileTag && (
+          <span className="inline-flex items-center gap-1.5 self-start px-2.5 py-1 rounded-md bg-foreground/10 border border-foreground/20 text-foreground text-[11px] font-bold">
+            <span className="material-symbols-outlined text-sm">person_pin</span>
+            {profileTag}
+          </span>
+        )}
       </div>
 
       {/* Status Info */}
