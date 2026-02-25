@@ -24,10 +24,11 @@ Deno.serve(async (req) => {
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
     // Verify caller is admin
+    const token = authHeader.replace("Bearer ", "");
     const callerClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
-    const { data: { user: caller } } = await callerClient.auth.getUser();
+    const { data: { user: caller } } = await callerClient.auth.getUser(token);
     if (!caller) {
       return new Response(JSON.stringify({ error: "Não autorizado" }), {
         status: 401,
