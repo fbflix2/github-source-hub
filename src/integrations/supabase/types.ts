@@ -1034,6 +1034,7 @@ export type Database = {
         Args: { p_order_item_id: string; p_product_id: string }
         Returns: Json
       }
+      get_total_wallet_balance: { Args: never; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

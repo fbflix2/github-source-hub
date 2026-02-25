@@ -96,7 +96,7 @@ export default function AdminDashboard() {
       const [profilesRes, transactionsRes, balanceRes, productsRes, ordersRes, orderItemsRes, categoriesRes, pendingPaymentsRes] = await Promise.all([
         supabase.from("profiles").select("id", { count: "exact", head: true }).limit(0),
         supabase.from("wallet_transactions").select("id", { count: "exact", head: true }),
-        supabase.from("profiles").select("balance"),
+        supabase.rpc("get_total_wallet_balance"),
         supabase.from("products").select("id, available"),
         supabase.from("orders").select("id, status, total, created_at"),
         supabase.from("order_items").select("product_id, price, quantity, created_at, order_id"),
@@ -107,8 +107,7 @@ export default function AdminDashboard() {
       setTotalClients(profilesRes.count ?? 0);
       setTotalTransactions(transactionsRes.count ?? 0);
 
-      const sumBalance = (balanceRes.data ?? []).reduce((s, p) => s + (p.balance || 0), 0);
-      setTotalBalance(sumBalance);
+      setTotalBalance(balanceRes.data ?? 0);
 
       const prods = productsRes.data ?? [];
       setTotalProducts(prods.length);
