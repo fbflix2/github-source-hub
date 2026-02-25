@@ -122,6 +122,7 @@ export default function Dashboard() {
       ? variants.reduce((min: any, v: any) => ((v.price || 0) < (min.price || 0) ? v : min), variants[0])
       : null;
     const price = (local?.price != null && local.price > 0) ? local.price : (cheapestVariant?.price || p.price || 0);
+    const totalApiStock = variants.reduce((sum: number, v: any) => sum + (v.stocks ?? 0), 0);
     return {
       id: local?.id || String(p.id),
       name: local?.name || p.name,
@@ -132,7 +133,7 @@ export default function Dashboard() {
       badge_text: local?.badge_text || null,
       badge_color: local?.badge_color || null,
       badge_icon: local?.badge_icon || null,
-      stock: local?.stock ?? 999,
+      stock: totalApiStock > 0 ? totalApiStock : (local?.stock ?? 0),
       available: true,
       category_id: proxyCategoryId || null,
       tags: local?.tags || null,
@@ -291,6 +292,7 @@ export default function Dashboard() {
                   ? variants.reduce((min: any, v: any) => ((v.price || 0) < (min.price || 0) ? v : min), variants[0])
                   : null;
                 const price = (local?.price != null && local.price > 0) ? local.price : (cheapestVariant?.price || product.price || 0);
+                const totalApiStock = variants.reduce((sum: number, v: any) => sum + (v.stocks ?? 0), 0);
                 const asProduct: Product = {
                   id: local?.id || String(product.id),
                   name: local?.name || product.name,
@@ -301,7 +303,7 @@ export default function Dashboard() {
                   badge_text: local?.badge_text || null,
                   badge_color: local?.badge_color || null,
                   badge_icon: local?.badge_icon || null,
-                  stock: local?.stock ?? 999,
+                  stock: totalApiStock > 0 ? totalApiStock : (local?.stock ?? 0),
                   available: true,
                   category_id: null,
                   tags: local?.tags || null,
@@ -327,7 +329,7 @@ export default function Dashboard() {
                   quantity={getProxyQty(String(product.id))}
                   onQuantityChange={updateProxyQty}
                   localData={getLocalProxyData(product)}
-                  onReadMore={(info) => setDetailProduct({ id: String(product.id), name: info.name, description: info.description, price: info.price, price_label: "mensal", image_url: info.image_url, badge_text: null, badge_color: null, badge_icon: null, stock: 999, available: true, category_id: null, tags: info.tags } as any)}
+                  onReadMore={(info) => { const variants = product.variants?.data || product.variants || []; const totalApiStock = variants.reduce((sum: number, v: any) => sum + (v.stocks ?? 0), 0); setDetailProduct({ id: String(product.id), name: info.name, description: info.description, price: info.price, price_label: "mensal", image_url: info.image_url, badge_text: null, badge_color: null, badge_icon: null, stock: totalApiStock > 0 ? totalApiStock : 0, available: true, category_id: null, tags: info.tags } as any); }}
                 />
               ))}
             </div>
