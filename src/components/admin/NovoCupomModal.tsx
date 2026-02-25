@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -21,13 +21,26 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+export interface CouponData {
+  id: string;
+  code: string;
+  discount_type: string;
+  discount_value: number;
+  description: string | null;
+  max_uses: number;
+  status: string;
+  expires_at: string | null;
+}
+
 interface NovoCupomModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCreated?: () => void;
+  editCoupon?: CouponData | null;
 }
 
-export function NovoCupomModal({ open, onOpenChange, onCreated }: NovoCupomModalProps) {
+export function NovoCupomModal({ open, onOpenChange, onCreated, editCoupon }: NovoCupomModalProps) {
+  const isEditing = !!editCoupon;
   const [code, setCode] = useState("");
   const [discountValue, setDiscountValue] = useState("");
   const [discountType, setDiscountType] = useState<"percent" | "fixed">("percent");
@@ -36,6 +49,21 @@ export function NovoCupomModal({ open, onOpenChange, onCreated }: NovoCupomModal
   const [expiresAt, setExpiresAt] = useState<Date | undefined>();
   const [isActive, setIsActive] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  // Populate form when editing
+  useEffect(() => {
+    if (editCoupon) {
+      setCode(editCoupon.code);
+      setDiscountValue(String(editCoupon.discount_value));
+      setDiscountType(editCoupon.discount_type === "fixed" ? "fixed" : "percent");
+      setDescription(editCoupon.description || "");
+      setLimit(String(editCoupon.max_uses));
+      setExpiresAt(editCoupon.expires_at ? new Date(editCoupon.expires_at) : undefined);
+      setIsActive(editCoupon.status === "active");
+    } else {
+      resetForm();
+    }
+  }, [editCoupon]);
 
   const resetForm = () => {
     setCode("");
@@ -54,7 +82,7 @@ export function NovoCupomModal({ open, onOpenChange, onCreated }: NovoCupomModal
 
     setSaving(true);
     try {
-      const { error } = await supabase.from("coupons").insert({
+      const payload = {
         code: code.trim().toUpperCase(),
         discount_type: discountType,
         discount_value: Number(discountValue),
@@ -62,11 +90,17 @@ export function NovoCupomModal({ open, onOpenChange, onCreated }: NovoCupomModal
         max_uses: Number(limit) || 100,
         expires_at: expiresAt ? expiresAt.toISOString() : null,
         status: isActive ? "active" : "paused",
-      });
+      };
 
-      if (error) throw error;
-
-      toast.success("Cupom criado com sucesso!");
+      if (isEditing && editCoupon) {
+        const { error } = await supabase.from("coupons").update(payload).eq("id", editCoupon.id);
+        if (error) throw error;
+        toast.success("Cupom atualizado com sucesso!");
+      } else {
+        const { error } = await supabase.from("coupons").insert(payload);
+        if (error) throw error;
+        toast.success("Cupom criado com sucesso!");
+      }
       resetForm();
       onOpenChange(false);
       onCreated?.();
@@ -88,7 +122,7 @@ export function NovoCupomModal({ open, onOpenChange, onCreated }: NovoCupomModal
                 <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(249,6,6,0.4)]">
                   <Plus className="w-5 h-5 text-white" />
                 </div>
-                Novo Cupom
+                {isEditing ? "Editar Cupom" : "Novo Cupom"}
               </DialogTitle>
             </DialogHeader>
 
@@ -233,9 +267,9 @@ export function NovoCupomModal({ open, onOpenChange, onCreated }: NovoCupomModal
                 className="mt-4 w-full bg-primary hover:bg-red-600 text-white font-bold py-4 px-6 h-auto rounded-2xl shadow-[0_0_20px_rgba(249,6,6,0.4)] hover:shadow-[0_0_30px_rgba(249,6,6,0.6)] transition-all flex items-center justify-center gap-2 group disabled:opacity-50"
               >
                 {saving ? (
-                  <><Loader2 className="w-5 h-5 animate-spin" /> Criando...</>
+                  <><Loader2 className="w-5 h-5 animate-spin" /> {isEditing ? "Salvando..." : "Criando..."}</>
                 ) : (
-                  <><span>CRIAR CUPOM</span><ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" /></>
+                  <><span>{isEditing ? "SALVAR CUPOM" : "CRIAR CUPOM"}</span><ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" /></>
                 )}
               </Button>
             </form>
