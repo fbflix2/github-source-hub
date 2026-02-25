@@ -80,6 +80,25 @@ export function useProxyBRSubscriptions() {
       return (data || []).map((sub: any) => {
         const raw = sub.raw_data || {};
         const proxy = raw.proxies?.data?.[0] || null;
+        let proxyInfo = undefined;
+        if (proxy) {
+          // Try parsed first, then parse from code string
+          const parsed = proxy.parsed || (() => {
+            const parts = proxy.code?.split(":");
+            if (parts?.length >= 4) return { ip: parts[0], port: parts[1], username: parts[2], password: parts[3] };
+            return null;
+          })();
+          if (parsed) {
+            proxyInfo = {
+              id: proxy.id,
+              ip: parsed.ip,
+              port: parsed.port,
+              username: parsed.username,
+              password: parsed.password,
+              protocol: raw.product?.type || "SOCKS5",
+            };
+          }
+        }
         return {
           code: sub.name,
           name: sub.name,
@@ -88,14 +107,7 @@ export function useProxyBRSubscriptions() {
           start_date: sub.start_date,
           end_date: sub.end_date || sub.start_date,
           auto_renew: sub.auto_renew,
-          proxy: proxy?.parsed ? {
-            id: proxy.id,
-            ip: proxy.parsed.ip,
-            port: proxy.parsed.port,
-            username: proxy.parsed.username,
-            password: proxy.parsed.password,
-            protocol: raw.product?.type || "SOCKS5",
-          } : undefined,
+          proxy: proxyInfo,
           raw_data: raw,
         };
       });
