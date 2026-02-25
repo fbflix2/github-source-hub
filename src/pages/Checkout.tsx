@@ -291,7 +291,6 @@ export default function Checkout() {
       }
 
       toast.success("Proxy ativado com sucesso!");
-      sessionStorage.removeItem("proxy_purchase");
     } catch (err) {
       console.error("Proxy contract exception:", err);
       toast.error("Pagamento confirmado, mas houve erro ao ativar o proxy. Contate o suporte.");
@@ -308,11 +307,11 @@ export default function Checkout() {
         setPixConfirmed(true);
         
         // Auto-contract proxy if this is a proxy purchase
+        const isProxyPurchase = !!sessionStorage.getItem("proxy_purchase");
         await contractProxyIfNeeded();
+        sessionStorage.removeItem("proxy_purchase");
         
         toast.success("Pagamento confirmado! Pedido criado.");
-        const isProxyPurchase = !!sessionStorage.getItem("proxy_purchase");
-        sessionStorage.removeItem("proxy_purchase");
         setTimeout(() => {
           setPixModal(false);
           navigate(isProxyPurchase ? "/subscriptions" : "/orders");
@@ -561,9 +560,8 @@ export default function Checkout() {
         }
 
         // Auto-contract proxy if this is a proxy purchase
-        await contractProxyIfNeeded();
-
         const isProxyPurchase = !!sessionStorage.getItem("proxy_purchase");
+        await contractProxyIfNeeded();
         sessionStorage.removeItem("proxy_purchase");
         toast.success("Pedido realizado com sucesso!");
         navigate(isProxyPurchase ? "/subscriptions" : "/orders");
