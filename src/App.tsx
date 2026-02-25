@@ -52,6 +52,7 @@ import AdminPagamentos from "./pages/admin/AdminPagamentos";
 import AdminPedidos from "./pages/admin/AdminPedidos";
 import AdminCarrinhosAbandonados from "./pages/admin/AdminCarrinhosAbandonados";
 import AdminAnuncios from "./pages/admin/AdminAnuncios";
+import AdminCentralProxy from "./pages/admin/AdminCentralProxy";
 import { AdminLayout } from "./components/admin/AdminLayout";
 
 // Layout
@@ -171,6 +172,7 @@ const App = () => {
                   <Route path="pagamentos" element={<AdminPagamentos />} />
                   <Route path="carrinhos-abandonados" element={<AdminCarrinhosAbandonados />} />
                   <Route path="assinaturas" element={<AdminAssinaturas />} />
+                  <Route path="central-proxy" element={<AdminCentralProxy />} />
                   <Route path="clientes" element={<AdminClientes />} />
                   <Route path="afiliados" element={<AdminAfiliados />} />
                   <Route path="cupons" element={<AdminCupons />} />
