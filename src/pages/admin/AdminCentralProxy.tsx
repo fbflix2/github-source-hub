@@ -1,12 +1,14 @@
-import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Globe, TrendingUp, Package, Warehouse, RefreshCw } from "lucide-react";
+import { Globe, TrendingUp, Package, Warehouse, RefreshCw, Save, Percent } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "@/hooks/use-toast";
 
 interface ApiVariant {
   id: number;
@@ -35,7 +37,8 @@ interface MergedRow {
   productName: string;
   productType: string;
   variantName: string;
-  costPrice: number;
+  apiPrice: number;
+  realCost: number;
   salePrice: number | null;
   margin: number | null;
   marginPercent: number | null;
@@ -54,6 +57,47 @@ async function callProxyBR(action: string, params: Record<string, unknown> = {})
 }
 
 export default function AdminCentralProxy() {
+  const queryClient = useQueryClient();
+  const [discountInput, setDiscountInput] = useState<string>("");
+  const [discountLoaded, setDiscountLoaded] = useState(false);
+
+  const { data: discountSetting } = useQuery({
+    queryKey: ["proxybr-reseller-discount"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("site_settings")
+        .select("value")
+        .eq("key", "proxybr_reseller_discount")
+        .maybeSingle();
+      if (error) throw error;
+      const val = data?.value || "0";
+      if (!discountLoaded) {
+        setDiscountInput(val);
+        setDiscountLoaded(true);
+      }
+      return val;
+    },
+    staleTime: 60_000,
+  });
+
+  const discount = parseFloat(discountSetting || "0") || 0;
+
+  const saveDiscount = useMutation({
+    mutationFn: async (value: string) => {
+      const { error } = await supabase
+        .from("site_settings")
+        .upsert({ key: "proxybr_reseller_discount", value } as any, { onConflict: "key" });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["proxybr-reseller-discount"] });
+      toast({ title: "Desconto salvo com sucesso!" });
+    },
+    onError: () => {
+      toast({ title: "Erro ao salvar desconto", variant: "destructive" });
+    },
+  });
+
   const { data: apiData, isLoading: apiLoading, refetch: refetchApi } = useQuery({
     queryKey: ["proxybr-products-central"],
     queryFn: () => callProxyBR("get-products"),
@@ -90,16 +134,18 @@ export default function AdminCentralProxy() {
       const localMatch = localMap.get(String(prod.id).trim().toLowerCase());
 
       for (const v of variants) {
-        const cost = v.price;
+        const apiPrice = v.price;
+        const realCost = apiPrice * (1 - discount / 100);
         const sale = localMatch?.price ?? null;
-        const margin = sale !== null ? sale - cost : null;
+        const margin = sale !== null ? sale - realCost : null;
         const marginPercent = sale !== null && sale > 0 ? ((margin! / sale) * 100) : null;
 
         rows.push({
           productName: prod.name,
           productType: prod.type || "—",
           variantName: v.location || v.name || `Variante ${v.id}`,
-          costPrice: cost,
+          apiPrice,
+          realCost,
           salePrice: sale,
           margin,
           marginPercent,
@@ -123,10 +169,19 @@ export default function AdminCentralProxy() {
     refetchLocal();
   };
 
+  const handleSaveDiscount = () => {
+    const val = parseFloat(discountInput);
+    if (isNaN(val) || val < 0 || val > 100) {
+      toast({ title: "Informe um valor entre 0 e 100", variant: "destructive" });
+      return;
+    }
+    saveDiscount.mutate(String(val));
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="flex items-center justify-center size-10 rounded-xl bg-gradient-to-br from-primary to-red-900 shadow-lg shadow-primary/20">
             <Globe className="text-primary-foreground size-5" />
@@ -136,10 +191,34 @@ export default function AdminCentralProxy() {
             <p className="text-xs text-muted-foreground">Gestão de custos, margens e estoque</p>
           </div>
         </div>
-        <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isLoading}>
-          <RefreshCw className={`size-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
-          Atualizar
-        </Button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 bg-card border border-border/40 rounded-lg px-3 py-1.5">
+            <Percent className="size-3.5 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground whitespace-nowrap">Desconto Revenda:</span>
+            <Input
+              type="number"
+              min={0}
+              max={100}
+              value={discountInput}
+              onChange={e => setDiscountInput(e.target.value)}
+              className="w-16 h-7 text-xs text-center px-1"
+            />
+            <span className="text-xs text-muted-foreground">%</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2"
+              onClick={handleSaveDiscount}
+              disabled={saveDiscount.isPending}
+            >
+              <Save className="size-3.5" />
+            </Button>
+          </div>
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isLoading}>
+            <RefreshCw className={`size-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
+            Atualizar
+          </Button>
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -195,7 +274,8 @@ export default function AdminCentralProxy() {
               <TableRow className="border-border/30">
                 <TableHead>Produto</TableHead>
                 <TableHead>Variante</TableHead>
-                <TableHead className="text-right">Custo</TableHead>
+                <TableHead className="text-right">Preço API</TableHead>
+                <TableHead className="text-right">Custo Real</TableHead>
                 <TableHead className="text-right">Venda</TableHead>
                 <TableHead className="text-right">Margem</TableHead>
                 <TableHead className="text-right">Estoque</TableHead>
@@ -205,14 +285,14 @@ export default function AdminCentralProxy() {
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={i} className="border-border/20">
-                    {Array.from({ length: 6 }).map((_, j) => (
+                    {Array.from({ length: 7 }).map((_, j) => (
                       <TableCell key={j}><Skeleton className="h-4 w-20" /></TableCell>
                     ))}
                   </TableRow>
                 ))
               ) : rows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                     Nenhum produto encontrado
                   </TableCell>
                 </TableRow>
@@ -226,8 +306,11 @@ export default function AdminCentralProxy() {
                       </div>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">{row.variantName}</TableCell>
-                    <TableCell className="text-right font-mono text-sm text-foreground">
-                      R$ {row.costPrice.toFixed(2)}
+                    <TableCell className="text-right font-mono text-xs text-muted-foreground">
+                      R$ {row.apiPrice.toFixed(2)}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-sm font-medium text-foreground">
+                      R$ {row.realCost.toFixed(2)}
                     </TableCell>
                     <TableCell className="text-right font-mono text-sm">
                       {row.salePrice !== null ? (
