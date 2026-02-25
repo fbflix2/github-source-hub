@@ -19,6 +19,7 @@ interface ProxyVariantModalProps {
     id?: string;
     name?: string | null;
     description?: string | null;
+    tags?: string[] | null;
     image_url?: string | null;
     price?: number;
   } | null;
@@ -33,6 +34,8 @@ export function ProxyVariantModal({ open, onClose, product, localData, proxyImag
 
   const variants: Variant[] = product?.variants?.data || product?.variants || [];
   const displayName = localData?.name || product?.name || "Proxy";
+  const description = localData?.description || product?.description || null;
+  const tags: string[] = localData?.tags || [];
   const imageUrl = localData?.image_url || proxyImage;
   const typeLabel = product?.type || "Proxy";
 
@@ -87,6 +90,27 @@ export function ProxyVariantModal({ open, onClose, product, localData, proxyImag
         </DialogHeader>
 
         <div className="space-y-5 mt-2">
+          {/* Product description & tags */}
+          {(description || tags.length > 0) && (
+            <div className="space-y-3 p-4 rounded-xl bg-secondary/50 border border-border">
+              {description && (
+                <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
+              )}
+              {tags.length > 0 && (
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="text-[10px] px-2 py-0.5 rounded-full bg-foreground text-background font-medium"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Variant selection */}
           <div className="space-y-2">
             <h4 className="text-sm font-bold text-foreground">Escolha a localização</h4>
