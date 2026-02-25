@@ -117,7 +117,7 @@ export default function Dashboard() {
 
   const proxyAsProducts: Product[] = proxyProducts.map((p: any) => {
     const local = getLocalProxyData(p);
-    const variants = p.variants?.data || p.variants || [];
+    const variants = p.variant || p.variants?.data || p.variants || [];
     const cheapestVariant = variants.length
       ? variants.reduce((min: any, v: any) => ((v.price || 0) < (min.price || 0) ? v : min), variants[0])
       : null;
@@ -287,7 +287,7 @@ export default function Dashboard() {
             <div className="flex flex-col gap-3">
               {proxyProducts.map((product: any) => {
                 const local = getLocalProxyData(product);
-                const variants = product.variants?.data || product.variants || [];
+                const variants = product.variant || product.variants?.data || product.variants || [];
                 const cheapestVariant = variants.length
                   ? variants.reduce((min: any, v: any) => ((v.price || 0) < (min.price || 0) ? v : min), variants[0])
                   : null;
@@ -329,7 +329,7 @@ export default function Dashboard() {
                   quantity={getProxyQty(String(product.id))}
                   onQuantityChange={updateProxyQty}
                   localData={getLocalProxyData(product)}
-                  onReadMore={(info) => { const variants = product.variants?.data || product.variants || []; const totalApiStock = variants.reduce((sum: number, v: any) => sum + (v.stocks ?? 0), 0); setDetailProduct({ id: String(product.id), name: info.name, description: info.description, price: info.price, price_label: "mensal", image_url: info.image_url, badge_text: null, badge_color: null, badge_icon: null, stock: totalApiStock > 0 ? totalApiStock : 0, available: true, category_id: null, tags: info.tags } as any); }}
+                  onReadMore={(info) => { const variants = product.variant || product.variants?.data || product.variants || []; const totalApiStock = variants.reduce((sum: number, v: any) => sum + (v.stocks ?? 0), 0); setDetailProduct({ id: String(product.id), name: info.name, description: info.description, price: info.price, price_label: "mensal", image_url: info.image_url, badge_text: null, badge_color: null, badge_icon: null, stock: totalApiStock > 0 ? totalApiStock : 0, available: true, category_id: null, tags: info.tags } as any); }}
                 />
               ))}
             </div>

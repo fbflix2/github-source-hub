@@ -31,7 +31,7 @@ export function ProxyProductCard({ product, proxyImage, quantity, onQuantityChan
   const { addItem } = useCart();
   const [variantModalOpen, setVariantModalOpen] = useState(false);
 
-  const variants = product.variants?.data || product.variants || [];
+  const variants = product.variant || product.variants?.data || product.variants || [];
   const cheapestVariant = variants.length
     ? variants.reduce((min: any, v: any) =>
         (v.price || 0) < (min.price || 0) ? v : min, variants[0])
