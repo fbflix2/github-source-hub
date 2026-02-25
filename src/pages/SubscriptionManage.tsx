@@ -275,15 +275,15 @@ export default function SubscriptionManage() {
               </div>
             ) : (
               <div className="flex gap-2">
-                <Input
+              <Input
                   placeholder="Ex: Perfil 01 ou BM-1234"
                   value={profileName}
                   onChange={(e) => setProfileName(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSaveProfile()}
-                  className="bg-muted border-border text-foreground h-8 text-xs"
+                  className="bg-muted border-border text-foreground h-7 text-xs max-w-[200px]"
                   autoFocus={isEditingProfile}
                 />
-                <Button size="sm" onClick={handleSaveProfile} disabled={!profileName.trim()} className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold shrink-0 text-xs h-8">
+                <Button size="sm" onClick={handleSaveProfile} disabled={!profileName.trim()} className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold shrink-0 text-xs h-7 px-3">
                   Adicionar
                 </Button>
               </div>
