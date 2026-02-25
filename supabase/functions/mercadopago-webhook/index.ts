@@ -86,11 +86,21 @@ Deno.serve(async (req) => {
 
     if (mpPayment.status !== "approved") {
       if (mpPayment.external_reference) {
+        // Fetch existing payment to preserve metadata fields (e.g. type)
+        const { data: existingPmt } = await supabase
+          .from("payments")
+          .select("metadata")
+          .eq("id", mpPayment.external_reference)
+          .single();
+
+        const existingMeta = typeof existingPmt?.metadata === 'object' && existingPmt?.metadata ? existingPmt.metadata : {};
+
         await supabase
           .from("payments")
           .update({
             status: mpPayment.status === "rejected" ? "failed" : mpPayment.status,
             metadata: {
+              ...(existingMeta as Record<string, unknown>),
               mp_status: mpPayment.status,
               mp_status_detail: mpPayment.status_detail,
             },
@@ -156,7 +166,8 @@ Deno.serve(async (req) => {
 
     // Check if this is a wallet recharge or an order payment
     const metadataObj = typeof existingPayment.metadata === 'object' && existingPayment.metadata ? existingPayment.metadata : {};
-    const isWalletRecharge = (metadataObj as Record<string, unknown>).type === "wallet_recharge" && !orderId;
+    // If there's no order_id, it's a wallet recharge (more robust than checking metadata.type)
+    const isWalletRecharge = !orderId;
 
     if (isWalletRecharge) {
       // ========== WALLET RECHARGE FLOW ==========

@@ -104,14 +104,15 @@ Deno.serve(async (req) => {
       throw new Error(`Erro Mercado Pago [${mpResponse.status}]: ${JSON.stringify(mpData)}`);
     }
 
-    // Update payment with gateway reference
+    // Update payment with gateway reference — preserve the original metadata.type
     await supabase
       .from("payments")
       .update({
         gateway_reference: String(mpData.id),
         metadata: {
-          type: "wallet_recharge",
+          type: order_id ? "order_payment" : "wallet_recharge",
           mp_status: mpData.status,
+          mp_payment_id: String(mpData.id),
         },
       })
       .eq("id", payment.id);
