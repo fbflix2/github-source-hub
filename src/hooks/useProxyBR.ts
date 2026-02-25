@@ -162,6 +162,21 @@ export function useExchangeProxy() {
   });
 }
 
+export function useToggleAutoRenew() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ subscriptionCode, auto_renew }: { subscriptionCode: string; auto_renew: boolean }) =>
+      callProxyBR("toggle-auto-renew", { subscriptionCode, auto_renew }),
+    onSuccess: () => {
+      toast.success("Renovação automática atualizada!");
+      queryClient.invalidateQueries({ queryKey: ["proxybr-subscriptions"] });
+    },
+    onError: (err: Error) => {
+      toast.error(`Erro ao atualizar: ${err.message}`);
+    },
+  });
+}
+
 export function useCheckSubscriptionCount() {
   return useQuery({
     queryKey: ["proxybr-check-count"],

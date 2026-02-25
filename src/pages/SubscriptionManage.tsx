@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useProxyBRSubscriptions, useExchangeProxy, useRenewSubscription } from "@/hooks/useProxyBR";
+import { useProxyBRSubscriptions, useExchangeProxy, useRenewSubscription, useToggleAutoRenew } from "@/hooks/useProxyBR";
+import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -26,6 +27,7 @@ export default function SubscriptionManage() {
   const { data: subscriptions, isLoading } = useProxyBRSubscriptions();
   const exchangeMutation = useExchangeProxy();
   const renewMutation = useRenewSubscription();
+  const autoRenewMutation = useToggleAutoRenew();
 
   
   const [note, setNote] = useState("");
@@ -239,6 +241,19 @@ export default function SubscriptionManage() {
                   <span className={`${'mono' in item && item.mono ? 'font-mono' : ''} ${'className' in item ? item.className : 'text-foreground font-medium'} text-right max-w-[160px]`}>{item.value}</span>
                 </div>
               ))}
+            </div>
+            <div className="flex items-center justify-between pt-2 border-t border-border">
+              <div className="flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-primary text-sm">autorenew</span>
+                <span className="text-xs text-text-secondary">Renovação automática</span>
+              </div>
+              <Switch
+                checked={!!sub.auto_renew}
+                disabled={autoRenewMutation.isPending}
+                onCheckedChange={(checked) =>
+                  autoRenewMutation.mutate({ subscriptionCode: sub.code, auto_renew: checked })
+                }
+              />
             </div>
           </div>
 
