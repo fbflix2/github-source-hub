@@ -201,8 +201,8 @@ Deno.serve(async (req) => {
       let contractData: any;
       try { contractData = JSON.parse(contractText); } catch { contractData = {}; }
 
-      const subCode = contractData.code || contractData.data?.code;
-      const endDate = contractData.due_date || contractData.end_date || null;
+      const subCode = contractData.subscription?.code || contractData.code || contractData.data?.code;
+      const endDate = contractData.subscription?.due_date || contractData.due_date || contractData.end_date || null;
 
       // 3. Debit balance
       const newBalance = profile.balance - total;
@@ -238,8 +238,8 @@ Deno.serve(async (req) => {
             user_id: user.id,
             status: "active",
             end_date: endDate || null,
-            auto_renew: contractData.auto_renew_active ?? false,
-            raw_data: contractData,
+            auto_renew: contractData.subscription?.auto_renew_active ?? contractData.auto_renew_active ?? false,
+            raw_data: contractData.subscription || contractData,
           }).eq("id", existingSub.id);
         } else {
           await supabaseAdmin.from("subscriptions").insert({
@@ -249,8 +249,8 @@ Deno.serve(async (req) => {
             user_id: user.id,
             start_date: new Date().toISOString(),
             end_date: endDate || null,
-            auto_renew: contractData.auto_renew_active ?? false,
-            raw_data: contractData,
+            auto_renew: contractData.subscription?.auto_renew_active ?? contractData.auto_renew_active ?? false,
+            raw_data: contractData.subscription || contractData,
           });
         }
         console.log(`[purchase-proxy-with-balance] Saved subscription ${subCode} for user ${user.id}`);
