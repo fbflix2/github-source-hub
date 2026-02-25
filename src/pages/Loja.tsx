@@ -92,6 +92,7 @@ export default function Dashboard() {
   };
 
   const isProxyFilter = activeFilter === "Proxy";
+  const showProxiesInAll = activeFilter === "Todos" && !proxyLoading && !proxyError && proxyProducts.length > 0;
 
   const proxyCategoryId = categories.find((c) => c.slug === "proxy")?.id;
   const localProxyProducts = proxyCategoryId ? products.filter((p) => p.category_id === proxyCategoryId) : [];
@@ -114,12 +115,40 @@ export default function Dashboard() {
   };
   const filters = ["Todos", ...categories.filter((c) => c.slug !== "proxy").map((c) => c.name), "Proxy"];
 
+  const proxyAsProducts: Product[] = proxyProducts.map((p: any) => {
+    const local = getLocalProxyData(p);
+    const variants = p.variants?.data || p.variants || [];
+    const cheapestVariant = variants.length
+      ? variants.reduce((min: any, v: any) => ((v.price || 0) < (min.price || 0) ? v : min), variants[0])
+      : null;
+    const price = (local?.price != null && local.price > 0) ? local.price : (cheapestVariant?.price || p.price || 0);
+    return {
+      id: local?.id || String(p.id),
+      name: local?.name || p.name,
+      description: local?.description || p.description || null,
+      price: Number(price),
+      price_label: "mensal",
+      image_url: local?.image_url || getProxyImage(p.name),
+      badge_text: local?.badge_text || null,
+      badge_color: local?.badge_color || null,
+      badge_icon: local?.badge_icon || null,
+      stock: local?.stock ?? 999,
+      available: true,
+      category_id: proxyCategoryId || null,
+      tags: local?.tags || null,
+    };
+  });
+
   const filteredProducts = activeFilter === "Todos"
     ? products.filter((p) => p.category_id !== proxyCategoryId)
     : products.filter((p) => {
         const cat = categories.find((c) => c.name === activeFilter);
         return cat && p.category_id === cat.id;
       });
+
+  const allProducts = showProxiesInAll
+    ? [...filteredProducts, ...proxyAsProducts]
+    : filteredProducts;
 
   const getQuantity = (id: string) => quantities[id] || 1;
 
@@ -303,14 +332,14 @@ export default function Dashboard() {
               ))}
             </div>
           )
-        ) : filteredProducts.length === 0 && !(activeFilter === "Todos" && proxyProducts.length > 0) ? (
+        ) : allProducts.length === 0 ? (
           <div className="text-center py-12">
             <span className="material-symbols-outlined text-[48px] text-muted-foreground mb-4">inventory_2</span>
             <p className="text-muted-foreground">Nenhum produto encontrado.</p>
           </div>
         ) : viewMode === "list" ? (
           <div className="flex flex-col gap-3">
-            {filteredProducts.map((product) => (
+            {allProducts.map((product) => (
               <ProductListItem
                 key={product.id}
                 product={product}
@@ -322,7 +351,7 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {filteredProducts.map((product) => {
+            {allProducts.map((product) => {
               const stockInfo = getStockInfo(product);
               return (
                 <article
