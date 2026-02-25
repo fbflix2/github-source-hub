@@ -202,7 +202,35 @@ Deno.serve(async (req) => {
       try { contractData = JSON.parse(contractText); } catch { contractData = {}; }
 
       const subCode = contractData.subscription?.code || contractData.code || contractData.data?.code;
-      const endDate = contractData.subscription?.due_date || contractData.due_date || contractData.end_date || null;
+      let endDate = contractData.subscription?.due_date || contractData.due_date || contractData.end_date || null;
+
+      // The contract response often lacks due_date, so fetch subscription details to get it
+      if (subCode && !endDate) {
+        try {
+          console.log(`[purchase-proxy-with-balance] Fetching subscription details for ${subCode} to get due_date`);
+          const detailResp = await proxyFetch(`${PROXYBR_BASE}/subscriptions/${subCode}`, PROXYBR_API_KEY);
+          if (detailResp.ok) {
+            const detailText = await detailResp.text();
+            const detailData = JSON.parse(detailText);
+            console.log(`[purchase-proxy-with-balance] Detail response: ${detailText.substring(0, 500)}`);
+            endDate = detailData.due_date || detailData.end_date || null;
+            // Merge full details into contractData for raw_data storage
+            if (detailData) {
+              contractData = { ...contractData, subscription: { ...contractData.subscription, ...detailData } };
+            }
+          }
+        } catch (e) {
+          console.error(`[purchase-proxy-with-balance] Failed to fetch sub details: ${e}`);
+          // Fallback: calculate end_date based on interval
+          const now = new Date();
+          if ((interval || "monthly") === "quarterly") {
+            now.setMonth(now.getMonth() + 3);
+          } else {
+            now.setMonth(now.getMonth() + 1);
+          }
+          endDate = now.toISOString();
+        }
+      }
 
       // 3. Debit balance
       const newBalance = profile.balance - total;
