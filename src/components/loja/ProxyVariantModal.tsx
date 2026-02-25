@@ -47,12 +47,16 @@ export function ProxyVariantModal({ open, onClose, product, localData, proxyImag
     const productId = localData?.id || String(product.id);
 
     // Store variant info in sessionStorage for checkout to use
+    const description = localData?.description || product?.description || "";
+    const tags = localData?.tags || [];
     sessionStorage.setItem("proxy_purchase", JSON.stringify({
       product_variant_id: selectedVariant.id,
       api_product_id: product.id,
       variant_location: selectedVariant.location,
       quantity,
       interval: "monthly",
+      description: description ? `${description}${selectedVariant.location ? ` Localização: ${selectedVariant.location}` : ""}` : `Localização: ${selectedVariant.location || "N/A"} Protocolo: ${typeLabel}`,
+      tags,
     }));
 
     if (localData?.id) {
