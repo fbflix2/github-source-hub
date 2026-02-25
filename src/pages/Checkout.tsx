@@ -482,6 +482,45 @@ export default function Checkout() {
           return;
         }
 
+        // Check if this is a proxy purchase FIRST - handle entirely server-side
+        const proxyData = getProxyPurchaseData();
+        if (proxyData?.product_variant_id) {
+          // Update order with payment info but DON'T complete or debit - server does it all
+          updateData.status = "processing";
+          await supabase.from("orders").update(updateData).eq("id", orderId);
+
+          toast.info("Ativando seu proxy...");
+          const { data: proxyResult, error: proxyError } = await supabase.functions.invoke("proxybr-api", {
+            body: {
+              action: "purchase-proxy-with-balance",
+              order_id: orderId,
+              product_variant_id: proxyData.product_variant_id,
+              quantity: proxyData.quantity || 1,
+              interval: proxyData.interval || "monthly",
+              total,
+            },
+          });
+
+          if (proxyError || proxyResult?.error) {
+            console.error("Proxy purchase error:", proxyError || proxyResult?.error);
+            toast.error("Erro ao ativar proxy. Contate o suporte.");
+            sessionStorage.removeItem("proxy_purchase");
+            navigate("/orders");
+            return;
+          }
+
+          if (couponApplied && coupon.trim()) {
+            const { data: cpn } = await supabase.from("coupons").select("used_count").eq("code", coupon.trim().toUpperCase()).single();
+            if (cpn) await supabase.from("coupons").update({ used_count: cpn.used_count + 1 }).eq("code", coupon.trim().toUpperCase());
+          }
+
+          sessionStorage.removeItem("proxy_purchase");
+          toast.success("Proxy ativado com sucesso!");
+          navigate("/subscriptions");
+          return;
+        }
+
+        // Normal (non-proxy) balance flow
         updateData.status = "completed";
         const { error: updateError } = await supabase.from("orders").update(updateData).eq("id", orderId);
         if (updateError) throw updateError;
@@ -519,36 +558,6 @@ export default function Checkout() {
         if (couponApplied && coupon.trim()) {
           const { data: cpn } = await supabase.from("coupons").select("used_count").eq("code", coupon.trim().toUpperCase()).single();
           if (cpn) await supabase.from("coupons").update({ used_count: cpn.used_count + 1 }).eq("code", coupon.trim().toUpperCase());
-        }
-
-        // Check if this is a proxy purchase - handle server-side
-        const proxyData = getProxyPurchaseData();
-        if (proxyData?.product_variant_id) {
-          // Use server-side purchase flow for proxies
-          toast.info("Ativando seu proxy...");
-          const { data: proxyResult, error: proxyError } = await supabase.functions.invoke("proxybr-api", {
-            body: {
-              action: "purchase-proxy-with-balance",
-              order_id: orderId,
-              product_variant_id: proxyData.product_variant_id,
-              quantity: proxyData.quantity || 1,
-              interval: proxyData.interval || "monthly",
-              total,
-            },
-          });
-
-          if (proxyError || proxyResult?.error) {
-            console.error("Proxy purchase error:", proxyError || proxyResult?.error);
-            toast.error("Erro ao ativar proxy. Contate o suporte.");
-            sessionStorage.removeItem("proxy_purchase");
-            navigate("/orders");
-            return;
-          }
-
-          sessionStorage.removeItem("proxy_purchase");
-          toast.success("Proxy ativado com sucesso!");
-          navigate("/subscriptions");
-          return;
         }
 
         toast.success("Pedido realizado com sucesso!");
