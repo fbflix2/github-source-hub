@@ -217,7 +217,25 @@ export default function Checkout() {
 
         // Insert order items - use null for product_id if not a valid UUID
         const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(product.id);
-        const orderItems: any[] = [{ order_id: order.id, product_id: isValidUUID ? product.id : null, name: product.name, price: product.price, quantity }];
+        
+        // Store proxy purchase data in delivery_data so the webhook can contract server-side
+        const proxyPurchaseStr = sessionStorage.getItem("proxy_purchase");
+        let deliveryData: any = null;
+        if (proxyPurchaseStr) {
+          try {
+            const pp = JSON.parse(proxyPurchaseStr);
+            deliveryData = {
+              type: "proxy_contract",
+              product_variant_id: pp.product_variant_id,
+              api_product_id: pp.api_product_id,
+              variant_location: pp.variant_location,
+              quantity: pp.quantity || 1,
+              interval: pp.interval || "monthly",
+            };
+          } catch {}
+        }
+        
+        const orderItems: any[] = [{ order_id: order.id, product_id: isValidUUID ? product.id : null, name: product.name, price: product.price, quantity, delivery_data: deliveryData }];
         const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
         if (itemsError) {
           console.error("Error inserting order items:", itemsError);

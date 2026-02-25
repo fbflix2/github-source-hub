@@ -208,11 +208,112 @@ Deno.serve(async (req) => {
       // Get order items for fulfillment
       const { data: orderItems } = await supabase
         .from("order_items")
-        .select("id, product_id")
+        .select("id, product_id, delivery_data")
         .eq("order_id", orderId);
 
       if (orderItems) {
         for (const oi of orderItems) {
+          // Check if this is a proxy contract order
+          const dd = typeof oi.delivery_data === 'object' && oi.delivery_data ? oi.delivery_data as Record<string, unknown> : null;
+          if (dd && dd.type === "proxy_contract" && dd.product_variant_id) {
+            console.log(`Contracting proxy for order item ${oi.id}:`, JSON.stringify(dd));
+            
+            const PROXYBR_API_KEY = Deno.env.get("PROXYBR_API_KEY");
+            if (PROXYBR_API_KEY) {
+              try {
+                const contractResp = await fetch("https://painel.proxybr.com.br/api/subscriptions/contract", {
+                  method: "POST",
+                  headers: {
+                    "Accept": "application/json",
+                    "Content-Type": "application/json",
+                    "X-API-Key": PROXYBR_API_KEY,
+                  },
+                  body: JSON.stringify({
+                    quantity: dd.quantity || 1,
+                    interval: dd.interval || "monthly",
+                    product_variant_id: dd.product_variant_id,
+                  }),
+                });
+                const contractText = await contractResp.text();
+                console.log(`ProxyBR contract response [${contractResp.status}]: ${contractText.substring(0, 500)}`);
+                
+                if (contractResp.ok) {
+                  let contractData: any;
+                  try { contractData = JSON.parse(contractText); } catch { contractData = {}; }
+                  
+                  const subCode = contractData.code || contractData.data?.code;
+                  const endDate = contractData.due_date || contractData.end_date || null;
+                  
+                  if (subCode) {
+                    // Save subscription linked to user
+                    const { data: existingSub } = await supabase
+                      .from("subscriptions")
+                      .select("id")
+                      .eq("name", subCode)
+                      .eq("type", "proxybr")
+                      .maybeSingle();
+
+                    if (existingSub) {
+                      await supabase.from("subscriptions").update({
+                        user_id: userId,
+                        status: "active",
+                        end_date: endDate || null,
+                        auto_renew: contractData.auto_renew_active ?? false,
+                        raw_data: contractData,
+                      }).eq("id", existingSub.id);
+                    } else {
+                      await supabase.from("subscriptions").insert({
+                        name: subCode,
+                        type: "proxybr",
+                        status: "active",
+                        user_id: userId,
+                        start_date: new Date().toISOString(),
+                        end_date: endDate || null,
+                        auto_renew: contractData.auto_renew_active ?? false,
+                        raw_data: contractData,
+                      });
+                    }
+                    console.log(`Saved proxy subscription ${subCode} for user ${userId}`);
+                    
+                    // Get user email and push to ProxyBR notes
+                    const { data: { user: buyerUser } } = await supabase.auth.admin.getUserById(userId);
+                    if (buyerUser?.email) {
+                      try {
+                        await fetch(`https://painel.proxybr.com.br/api/subscriptions/${subCode}`, {
+                          method: "PUT",
+                          headers: {
+                            "Accept": "application/json",
+                            "Content-Type": "application/json",
+                            "X-API-Key": PROXYBR_API_KEY,
+                          },
+                          body: JSON.stringify({ notes: buyerUser.email }),
+                        });
+                        console.log(`Set ProxyBR notes for ${subCode} to ${buyerUser.email}`);
+                      } catch (e) {
+                        console.error("Failed to set ProxyBR notes:", e);
+                      }
+                    }
+                  }
+                  
+                  // Mark delivery_data as fulfilled
+                  await supabase.from("order_items").update({
+                    delivery_data: { ...dd, fulfilled: true, subscription_code: subCode },
+                  }).eq("id", oi.id);
+                } else {
+                  console.error(`Proxy contract failed for item ${oi.id}`);
+                  await supabase.from("order_items").update({
+                    delivery_data: { ...dd, fulfilled: false, error: contractText.substring(0, 200) },
+                  }).eq("id", oi.id);
+                }
+              } catch (contractErr) {
+                console.error(`Proxy contract exception for item ${oi.id}:`, contractErr);
+              }
+            } else {
+              console.error("PROXYBR_API_KEY not configured, cannot contract proxy");
+            }
+            continue; // Skip normal fulfillment for proxy items
+          }
+          
           if (!oi.product_id) continue;
 
           // Use the atomic fulfillment function
