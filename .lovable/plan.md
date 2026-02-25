@@ -2,67 +2,110 @@
 
 ## Diagnosis
 
-After tracing the entire purchase flow, I found **two bugs** preventing proxy subscriptions from appearing:
+I queried the database directly and found the root causes:
 
-### Bug 1: `sessionStorage` already cleared before redirect check (critical)
+### Finding 1: `delivery_data` is NULL for every single proxy order
+```
+order_id: 81f66f08... | delivery_data: NULL | status: completed (PIX)
+order_id: 4ad6050b... | delivery_data: NULL | status: processing (Balance)
+order_id: b510c32c... | delivery_data: NULL | status: processing (Balance)
+... all 10 recent proxy orders have NULL delivery_data
+```
 
-In `Checkout.tsx`, the `contractProxyIfNeeded()` function (line 294) calls `sessionStorage.removeItem("proxy_purchase")` upon success. Then on line 566, the code checks `sessionStorage.getItem("proxy_purchase")` again — but it's already been removed. This means `isProxyPurchase` is **always `false`**, and the user **always** gets redirected to `/orders` instead of `/subscriptions`.
+The client-side code that saves `delivery_data` during draft order creation appears correct, but the data never reaches the database. This means the webhook cannot detect proxy orders and never calls the ProxyBR API.
 
-The same issue exists in the PIX flow (line 311 calls `contractProxyIfNeeded` which removes it, then line 314 checks it again).
+### Finding 2: RLS blocks users from updating their own orders
+The `orders` table has NO UPDATE policy for regular users — only admins can update. When the balance flow calls `supabase.from("orders").update({status: "completed"})`, it silently fails due to RLS. That is why balance purchases stay as "Pendente" (status "processing").
 
-### Bug 2: Edge function contract never executes (no logs)
+The same is true for `order_items` — no user UPDATE policy.
 
-The ProxyBR edge function logs show **zero** contract-subscription calls. This means the `supabase.functions.invoke("proxybr-api", ...)` call is either:
-- Failing silently (the error toast appears but the user may not notice it among other toasts)
-- Or the `sessionStorage` data is missing by the time `contractProxyIfNeeded` is called
-
-Looking at the flow: the draft order is created in a `useEffect` (line 253). This effect reads `sessionStorage.getItem("proxy_purchase")` to store `delivery_data`. The `contractProxyIfNeeded` function also reads from the same sessionStorage. However, there's a timing issue — if the product state isn't set correctly (e.g., proxy product from cart without a DB product ID), the useEffect may not fire, and `delivery_data` may be null.
-
-More critically: looking at the edge function auth, it uses `supabase.auth.getUser(token)` which should work. But the **real issue** is likely that when paying with balance, the function invoke happens but returns an error that gets swallowed. The user sees "Pedido realizado com sucesso!" and gets redirected to `/orders` before they notice the proxy activation error.
+### Finding 3: Webhook skips proxy contracting
+The webhook for the PIX order `81f66f08` called `fulfill_order_item` (regular stock fulfillment) instead of the ProxyBR contract path, because `delivery_data.type` was not `"proxy_contract"` — it was NULL.
 
 ---
 
 ## Plan
 
-### 1. Fix `sessionStorage` race condition in both flows
+The fix has two pillars: (A) move proxy purchasing to server-side edge functions so it bypasses RLS and sessionStorage issues entirely, and (B) add missing RLS policies as a general fix.
+
+### 1. Add RLS UPDATE policy on `orders` table
+
+**Migration file.** Allow users to update their own orders:
+```sql
+CREATE POLICY "Users can update own orders" ON orders
+FOR UPDATE USING (auth.uid() = user_id);
+```
+
+This fixes balance payments silently failing to mark orders as "completed."
+
+### 2. New action in `proxybr-api`: `purchase-proxy-with-balance`
+
+**File:** `supabase/functions/proxybr-api/index.ts`
+
+Add a new action that handles the ENTIRE balance payment flow server-side:
+
+1. Verify user auth
+2. Receive: `order_id`, `product_variant_id`, `quantity`, `interval`, `total`
+3. Check user balance >= total (using service_role)
+4. Debit balance
+5. Call ProxyBR API `POST /subscriptions/contract`
+6. Save subscription in `subscriptions` table with `raw_data`
+7. Update order status to "completed"
+8. Create `wallet_transactions` record
+9. Update order_item `delivery_data` with `{type: "proxy_contract", fulfilled: true, subscription_code: ...}`
+10. Set ProxyBR notes to user email
+11. Return the subscription data
+
+This bypasses all RLS and sessionStorage issues since it runs with service_role.
+
+### 3. Modify `create-pix-payment` to persist proxy data server-side
+
+**File:** `supabase/functions/create-pix-payment/index.ts`
+
+Accept optional `proxy_data` in the request body (containing `product_variant_id`, `quantity`, `interval`). When present, use service_role to UPDATE the order_item's `delivery_data` with `{type: "proxy_contract", product_variant_id, quantity, interval}`.
+
+This ensures the webhook can detect and contract proxy orders for PIX payments, regardless of what happened client-side.
+
+### 4. Update `Checkout.tsx` payment flows
 
 **File:** `src/pages/Checkout.tsx`
 
-Save `isProxyPurchase` **before** calling `contractProxyIfNeeded()`, since that function removes the sessionStorage item.
+**Balance flow:**
+- At the start of `handlePay`, read `proxy_purchase` from sessionStorage
+- If proxy product AND balance payment: call the new `purchase-proxy-with-balance` action via `supabase.functions.invoke("proxybr-api", ...)` passing `order_id`, `product_variant_id`, `quantity`, `interval`, `total`
+- Skip all client-side balance debit, fulfillment, and `contractProxyIfNeeded`
+- On success, clear sessionStorage and redirect to `/subscriptions`
 
-**Balance flow (lines 563-569):**
-```typescript
-const isProxyPurchase = !!sessionStorage.getItem("proxy_purchase");
-await contractProxyIfNeeded();
-sessionStorage.removeItem("proxy_purchase");
-toast.success("Pedido realizado com sucesso!");
-navigate(isProxyPurchase ? "/subscriptions" : "/orders");
-```
+**PIX flow:**
+- Pass `proxy_data` to `create-pix-payment` so the server stores it in delivery_data
+- When PIX is confirmed (poll detects "completed"), redirect to `/subscriptions` if proxy purchase, `/orders` otherwise
 
-**PIX flow (lines 310-319):**
-```typescript
-const isProxyPurchase = !!sessionStorage.getItem("proxy_purchase");
-await contractProxyIfNeeded();
-sessionStorage.removeItem("proxy_purchase");
-toast.success("Pagamento confirmado! Pedido criado.");
-setTimeout(() => {
-  setPixModal(false);
-  navigate(isProxyPurchase ? "/subscriptions" : "/orders");
-}, 3000);
-```
+**Remove `contractProxyIfNeeded`** entirely — all proxy contracting is now server-side.
 
-### 2. Add better error visibility in `contractProxyIfNeeded`
+### 5. Filter proxy orders from the Orders page
 
-Add a `console.error` with the full response when the invoke fails, and ensure the toast message is prominent enough. Also log the full invoke result to help debug:
+**File:** `src/pages/Orders.tsx`
+
+After fetching orders, filter out orders where all items are proxy products. Check by joining with the `products` table and checking `icon_type = 'proxy'`:
 
 ```typescript
-const { data: contractResult, error: contractError } = await supabase.functions.invoke("proxybr-api", { ... });
-console.log("[Checkout] contract invoke result:", { contractResult, contractError });
+// In the fetch query, get product icon_type
+const { data: itemsData } = await supabase
+  .from("order_items")
+  .select("*, products:product_id(icon_type)")
+  .in("order_id", orderIds);
+
+// Filter: exclude orders where ALL items are proxy type
+const nonProxyOrders = ordersData.filter(order => {
+  const items = (itemsData || []).filter(i => i.order_id === order.id);
+  const allProxy = items.length > 0 && items.every(i => i.products?.icon_type === 'proxy');
+  return !allProxy;
+});
 ```
 
-### 3. Ensure proxy purchases don't duplicate the `removeItem` call
+### 6. Deploy edge functions
 
-Remove the `sessionStorage.removeItem("proxy_purchase")` from inside `contractProxyIfNeeded()` (line 294) and only do it in the caller after the redirect target is determined. This prevents the race condition entirely.
+Deploy `proxybr-api` and `create-pix-payment` after changes.
 
 ---
 
@@ -70,5 +113,9 @@ Remove the `sessionStorage.removeItem("proxy_purchase")` from inside `contractPr
 
 | File | Change |
 |------|--------|
-| `src/pages/Checkout.tsx` | (1) Save `isProxyPurchase` flag before calling `contractProxyIfNeeded()` in both balance and PIX flows. (2) Remove `sessionStorage.removeItem` from inside `contractProxyIfNeeded` — only clean up in the caller. (3) Add better logging for debugging contract failures. |
+| **Migration (new)** | Add RLS UPDATE policy on `orders` for users |
+| `supabase/functions/proxybr-api/index.ts` | Add `purchase-proxy-with-balance` action (server-side balance debit + proxy contract) |
+| `supabase/functions/create-pix-payment/index.ts` | Accept `proxy_data` param and save to `order_items.delivery_data` using service_role |
+| `src/pages/Checkout.tsx` | Balance: call new server-side action. PIX: pass proxy_data. Remove `contractProxyIfNeeded`. Both: redirect to `/subscriptions` for proxy |
+| `src/pages/Orders.tsx` | Filter out orders where all items are proxy products |
 
