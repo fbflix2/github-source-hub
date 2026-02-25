@@ -306,6 +306,24 @@ export default function AdminProducts() {
     return categories.find(c => c.id === catId)?.name ?? "—";
   };
 
+  // Build a map of external_id → real API stock for proxy products
+  const apiStockMap = new Map<string, number>();
+  const apiProducts = proxyProductsData?.data || (Array.isArray(proxyProductsData) ? proxyProductsData : []);
+  if (Array.isArray(apiProducts)) {
+    for (const ap of apiProducts) {
+      const variants = ap.variant || ap.variants || [];
+      const totalStock = variants.reduce((sum: number, v: any) => sum + (v.stocks ?? 0), 0);
+      apiStockMap.set(String(ap.id), totalStock);
+    }
+  }
+
+  const getDisplayStock = (product: Product): number => {
+    if (product.external_id && apiStockMap.has(product.external_id)) {
+      return apiStockMap.get(product.external_id)!;
+    }
+    return product.stock;
+  };
+
   // Filtering & pagination
   const filtered = products.filter(p => {
     const matchesSearch = !searchTerm || p.name.toLowerCase().includes(searchTerm.toLowerCase()) || p.tags?.some(t => t.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -577,8 +595,8 @@ export default function AdminProducts() {
                           </div>
                         </TableCell>
                         <TableCell className="text-white text-sm">R$ {product.price.toFixed(2).replace(".", ",")}</TableCell>
-                        <TableCell className={`text-sm font-medium ${product.stock > 10 ? "text-green-400" : product.stock > 0 ? "text-yellow-400" : "text-red-400"}`}>
-                          {product.stock} un.
+                        <TableCell className={`text-sm font-medium ${getDisplayStock(product) > 10 ? "text-green-400" : getDisplayStock(product) > 0 ? "text-yellow-400" : "text-red-400"}`}>
+                          {getDisplayStock(product)} un.
                         </TableCell>
                         <TableCell>
                           <Badge className={`text-xs ${
@@ -680,8 +698,8 @@ export default function AdminProducts() {
                         <TableCell className="text-white text-sm font-medium">{product.name}</TableCell>
                         <TableCell className="text-zinc-400 text-sm">{getCategoryName(product.category_id)}</TableCell>
                         <TableCell className="text-white text-sm">R$ {product.price.toFixed(2).replace(".", ",")}</TableCell>
-                        <TableCell className={`text-sm font-medium ${product.stock > 10 ? "text-green-400" : product.stock > 0 ? "text-yellow-400" : "text-red-400"}`}>
-                          {product.stock} un.
+                        <TableCell className={`text-sm font-medium ${getDisplayStock(product) > 10 ? "text-green-400" : getDisplayStock(product) > 0 ? "text-yellow-400" : "text-red-400"}`}>
+                          {getDisplayStock(product)} un.
                         </TableCell>
                         <TableCell>
                           <span className={`text-sm font-bold ${sold > 0 ? "text-green-400" : "text-zinc-500"}`}>
