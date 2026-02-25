@@ -40,7 +40,7 @@ function getStockInfo(product: Product) {
   if (product.stock <= 10) {
     return { status: "Últimas unidades", statusColor: "text-destructive", percentage: 15, sold: `${product.stock} restantes` };
   }
-  return { status: "Em estoque", statusColor: "text-primary", percentage: Math.min(90, product.stock), sold: `${product.stock} em estoque` };
+  return { status: "Disponível", statusColor: "text-emerald-500", percentage: Math.min(90, product.stock), sold: `${product.stock} em estoque` };
 }
 
 export function ProductDetailModal({ product, open, onOpenChange, quantity, onQuantityChange }: Props) {
@@ -116,7 +116,7 @@ export function ProductDetailModal({ product, open, onOpenChange, quantity, onQu
                 {stockInfo.percentage > 0 && (
                   <span
                     className={`w-1.5 h-1.5 rounded-full ${
-                      stockInfo.statusColor === "text-primary" ? "bg-primary animate-pulse" : "bg-destructive"
+                      stockInfo.statusColor === "text-emerald-500" ? "bg-emerald-500 animate-pulse" : "bg-destructive"
                     }`}
                   />
                 )}
@@ -127,7 +127,7 @@ export function ProductDetailModal({ product, open, onOpenChange, quantity, onQu
             <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
               <div
                 className={`h-full rounded-full ${
-                  stockInfo.statusColor === "text-primary"
+                  stockInfo.statusColor === "text-emerald-500"
                     ? "bg-gradient-to-r from-green-400 to-green-600"
                     : stockInfo.statusColor === "text-destructive"
                     ? "bg-gradient-to-r from-red-500 to-orange-500"

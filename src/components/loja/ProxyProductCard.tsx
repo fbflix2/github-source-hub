@@ -99,9 +99,9 @@ export function ProxyProductCard({ product, proxyImage, quantity, onQuantityChan
         {/* Availability Bar */}
         <div className="space-y-1.5">
           <div className="flex justify-between text-xs font-medium">
-            <span className="text-primary flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-              Em estoque
+            <span className="text-emerald-500 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Disponível
             </span>
             <span className="text-muted-foreground">{stockLabel}</span>
           </div>
