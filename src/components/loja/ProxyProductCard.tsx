@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
 import { toast } from "sonner";
+import { ProxyVariantModal } from "./ProxyVariantModal";
 
 interface LocalProductData {
   id?: string;
@@ -27,6 +29,7 @@ interface ProxyProductCardProps {
 export function ProxyProductCard({ product, proxyImage, quantity, onQuantityChange, localData, onReadMore }: ProxyProductCardProps) {
   const navigate = useNavigate();
   const { addItem } = useCart();
+  const [variantModalOpen, setVariantModalOpen] = useState(false);
 
   const variants = product.variants?.data || product.variants || [];
   const cheapestVariant = variants.length
@@ -152,22 +155,7 @@ export function ProxyProductCard({ product, proxyImage, quantity, onQuantityChan
             </button>
           </div>
           <button
-            onClick={() => {
-              const localId = localData?.id;
-              if (localId) {
-                navigate(`/checkout?product=${localId}&qty=${quantity}`);
-              } else {
-                // No local product, add to cart and go to checkout
-                addItem({
-                  productId,
-                  name: displayName,
-                  price: Number(price),
-                  quantity,
-                  image: imageUrl || "/placeholder.svg",
-                });
-                navigate(`/checkout`);
-              }
-            }}
+            onClick={() => setVariantModalOpen(true)}
             className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm h-10 rounded-lg transition-all flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(220,38,38,0.2)]"
           >
             <span className="material-symbols-outlined text-[18px]">flash_on</span>
@@ -175,6 +163,14 @@ export function ProxyProductCard({ product, proxyImage, quantity, onQuantityChan
           </button>
         </div>
       </div>
+
+      <ProxyVariantModal
+        open={variantModalOpen}
+        onClose={() => setVariantModalOpen(false)}
+        product={product}
+        localData={localData}
+        proxyImage={proxyImage}
+      />
     </article>
   );
 }

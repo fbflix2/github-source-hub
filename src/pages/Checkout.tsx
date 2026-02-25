@@ -208,6 +208,46 @@ export default function Checkout() {
     createDraftOrder();
   }, [product]);
 
+  // Contract proxy subscription if this is a proxy purchase
+  const contractProxyIfNeeded = async () => {
+    const proxyPurchaseStr = sessionStorage.getItem("proxy_purchase");
+    if (!proxyPurchaseStr) return;
+    
+    try {
+      const proxyPurchase = JSON.parse(proxyPurchaseStr);
+      if (!proxyPurchase.product_variant_id) return;
+
+      toast.info("Ativando seu proxy...");
+      
+      const { data: contractResult, error: contractError } = await supabase.functions.invoke("proxybr-api", {
+        body: {
+          action: "contract-subscription",
+          quantity: proxyPurchase.quantity || 1,
+          interval: proxyPurchase.interval || "monthly",
+          product_variant_id: proxyPurchase.product_variant_id,
+        },
+      });
+
+      if (contractError) {
+        console.error("Proxy contract error:", contractError);
+        toast.error("Pagamento confirmado, mas houve erro ao ativar o proxy. Contate o suporte.");
+        return;
+      }
+
+      if (contractResult?.error) {
+        console.error("Proxy contract API error:", contractResult.error);
+        toast.error("Pagamento confirmado, mas houve erro ao ativar o proxy. Contate o suporte.");
+        return;
+      }
+
+      toast.success("Proxy ativado com sucesso!");
+      sessionStorage.removeItem("proxy_purchase");
+    } catch (err) {
+      console.error("Proxy contract exception:", err);
+      toast.error("Pagamento confirmado, mas houve erro ao ativar o proxy. Contate o suporte.");
+    }
+  };
+
   // Poll for PIX payment confirmation
   useEffect(() => {
     if (!pixModal || !pixPaymentId) return;
@@ -216,6 +256,10 @@ export default function Checkout() {
       if (data?.status === "completed") {
         clearInterval(interval);
         setPixConfirmed(true);
+        
+        // Auto-contract proxy if this is a proxy purchase
+        await contractProxyIfNeeded();
+        
         toast.success("Pagamento confirmado! Pedido criado.");
         setTimeout(() => {
           setPixModal(false);
@@ -351,8 +395,9 @@ export default function Checkout() {
     }
   };
 
+  // contractProxyIfNeeded defined above
+
   const handlePay = async () => {
-    if (processing) return;
     setProcessing(true);
 
     try {
@@ -462,6 +507,9 @@ export default function Checkout() {
           const { data: cpn } = await supabase.from("coupons").select("used_count").eq("code", coupon.trim().toUpperCase()).single();
           if (cpn) await supabase.from("coupons").update({ used_count: cpn.used_count + 1 }).eq("code", coupon.trim().toUpperCase());
         }
+
+        // Auto-contract proxy if this is a proxy purchase
+        await contractProxyIfNeeded();
 
         toast.success("Pedido realizado com sucesso!");
         navigate("/orders");
