@@ -127,7 +127,7 @@ export default function SubscriptionManage() {
                 { label: "Início", value: format(startDate, "dd MMM yyyy", { locale: ptBR }) },
                 { label: "Vencimento", value: format(endDate, "dd MMM yyyy", { locale: ptBR }) },
                 { label: "Dias Restantes", value: String(daysLeft), highlight: true },
-                { label: "Progresso", value: `${Math.round(progress)}%` },
+                { label: "Valor", value: `R$ ${((sub.raw_data as Record<string, any>)?.total_price ?? 0).toFixed(2).replace('.', ',')}` },
               ].map((item) => (
                 <div key={item.label} className="bg-muted/50 rounded-lg p-2.5 border border-border">
                   <p className="text-text-secondary text-[10px] uppercase tracking-wider font-semibold">{item.label}</p>
