@@ -311,9 +311,11 @@ export default function Checkout() {
         await contractProxyIfNeeded();
         
         toast.success("Pagamento confirmado! Pedido criado.");
+        const isProxyPurchase = !!sessionStorage.getItem("proxy_purchase");
+        sessionStorage.removeItem("proxy_purchase");
         setTimeout(() => {
           setPixModal(false);
-          navigate("/orders");
+          navigate(isProxyPurchase ? "/subscriptions" : "/orders");
         }, 3000);
       }
     }, 3000);
@@ -561,8 +563,10 @@ export default function Checkout() {
         // Auto-contract proxy if this is a proxy purchase
         await contractProxyIfNeeded();
 
+        const isProxyPurchase = !!sessionStorage.getItem("proxy_purchase");
+        sessionStorage.removeItem("proxy_purchase");
         toast.success("Pedido realizado com sucesso!");
-        navigate("/orders");
+        navigate(isProxyPurchase ? "/subscriptions" : "/orders");
 
       } else if (paymentMethod === "pix") {
         updateData.status = "processing";

@@ -531,6 +531,7 @@ Deno.serve(async (req) => {
               status: "active",
               end_date: endDate || null,
               auto_renew: contractData.auto_renew_active ?? false,
+              raw_data: contractData,
             }).eq("id", existingSub.id);
           } else {
             await supabaseAdmin.from("subscriptions").insert({
@@ -541,6 +542,7 @@ Deno.serve(async (req) => {
               start_date: new Date().toISOString(),
               end_date: endDate || null,
               auto_renew: contractData.auto_renew_active ?? false,
+              raw_data: contractData,
             });
           }
           console.log(`Saved subscription ${subCode} linked to user ${user.id}`);
