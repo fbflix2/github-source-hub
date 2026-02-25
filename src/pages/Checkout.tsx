@@ -21,6 +21,7 @@ interface DbProduct {
   available: boolean;
   category_id: string | null;
   icon_type: string | null;
+  external_id: string | null;
   tags: string[] | null;
 }
 
@@ -86,7 +87,7 @@ export default function Checkout() {
           if (mainItem.product_id) {
             const { data: prod } = await supabase
               .from("products")
-              .select("id, name, description, price, image_url, stock, available, category_id, icon_type, tags")
+              .select("id, name, description, price, image_url, stock, available, category_id, icon_type, external_id, tags")
               .eq("id", mainItem.product_id)
               .single();
             if (prod) setProduct(prod);
@@ -101,6 +102,7 @@ export default function Checkout() {
               available: true,
               category_id: null,
               icon_type: null,
+              external_id: null,
               tags: null,
             });
           }
@@ -125,15 +127,19 @@ export default function Checkout() {
           // Try to fetch product from DB for description
           let dbDescription: string | null = null;
           let dbTags: string[] | null = null;
+          let dbIconType: string | null = null;
+          let dbExternalId: string | null = null;
           const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cartItems[0].productId);
           if (isValidUUID) {
             const { data: dbProd } = await supabase
               .from("products")
-              .select("description, tags")
+              .select("description, tags, icon_type, external_id")
               .eq("id", cartItems[0].productId)
               .single();
             dbDescription = dbProd?.description || null;
             dbTags = dbProd?.tags || null;
+            dbIconType = dbProd?.icon_type || null;
+            dbExternalId = dbProd?.external_id || null;
           }
 
           setProduct({
@@ -145,7 +151,8 @@ export default function Checkout() {
             stock: 999,
             available: true,
             category_id: null,
-            icon_type: null,
+            icon_type: dbIconType,
+            external_id: dbExternalId,
             tags: dbTags,
           });
         }
@@ -155,7 +162,7 @@ export default function Checkout() {
 
       const { data } = await supabase
         .from("products")
-        .select("id, name, description, price, image_url, stock, available, category_id, icon_type, tags")
+        .select("id, name, description, price, image_url, stock, available, category_id, icon_type, external_id, tags")
         .eq("id", productId)
         .single();
 
@@ -483,8 +490,35 @@ export default function Checkout() {
         }
 
         // Check if this is a proxy purchase FIRST - handle entirely server-side
+        // Detect by icon_type (reliable) OR sessionStorage (user variant choice)
+        const isProxyProduct = product?.icon_type === 'proxy';
         const proxyData = getProxyPurchaseData();
-        if (proxyData?.product_variant_id) {
+        if (isProxyProduct || proxyData?.product_variant_id) {
+          // Build proxy params: prefer sessionStorage variant, fallback to product external_id
+          let variantId = proxyData?.product_variant_id;
+          let proxyQuantity = proxyData?.quantity || quantity || 1;
+          let proxyInterval = proxyData?.interval || "monthly";
+
+          // If no variant from sessionStorage, fetch first available variant from ProxyBR
+          if (!variantId && product?.external_id) {
+            toast.info("Buscando variante do proxy...");
+            const { data: productsResult } = await supabase.functions.invoke("proxybr-api", {
+              body: { action: "get-products" },
+            });
+            if (productsResult && Array.isArray(productsResult)) {
+              const apiProduct = productsResult.find((p: any) => String(p.id) === String(product.external_id));
+              if (apiProduct?.variant?.length > 0) {
+                // Pick first variant with stock
+                const availableVariant = apiProduct.variant.find((v: any) => v.stocks > 0) || apiProduct.variant[0];
+                variantId = availableVariant.id;
+              }
+            }
+          }
+
+          if (!variantId) {
+            toast.error("Não foi possível identificar a variante do proxy. Tente novamente pela loja.");
+            return;
+          }
           // Update order with payment info but DON'T complete or debit - server does it all
           updateData.status = "processing";
           await supabase.from("orders").update(updateData).eq("id", orderId);
@@ -494,9 +528,9 @@ export default function Checkout() {
             body: {
               action: "purchase-proxy-with-balance",
               order_id: orderId,
-              product_variant_id: proxyData.product_variant_id,
-              quantity: proxyData.quantity || 1,
-              interval: proxyData.interval || "monthly",
+              product_variant_id: variantId,
+              quantity: proxyQuantity,
+              interval: proxyInterval,
               total,
             },
           });
@@ -570,15 +604,32 @@ export default function Checkout() {
 
         // Pass proxy_data to create-pix-payment so server persists delivery_data
         const proxyDataForPix = getProxyPurchaseData();
+        const isProxyPix = product?.icon_type === 'proxy';
         const pixBody: any = { amount: total, order_id: orderId };
-        if (proxyDataForPix?.product_variant_id) {
-          pixBody.proxy_data = {
-            product_variant_id: proxyDataForPix.product_variant_id,
-            api_product_id: proxyDataForPix.api_product_id,
-            variant_location: proxyDataForPix.variant_location,
-            quantity: proxyDataForPix.quantity || 1,
-            interval: proxyDataForPix.interval || "monthly",
-          };
+        if (proxyDataForPix?.product_variant_id || isProxyPix) {
+          let pixVariantId = proxyDataForPix?.product_variant_id;
+          // Fallback: fetch variant from ProxyBR products API
+          if (!pixVariantId && product?.external_id) {
+            const { data: productsResult } = await supabase.functions.invoke("proxybr-api", {
+              body: { action: "get-products" },
+            });
+            if (productsResult && Array.isArray(productsResult)) {
+              const apiProduct = productsResult.find((p: any) => String(p.id) === String(product.external_id));
+              if (apiProduct?.variant?.length > 0) {
+                const availableVariant = apiProduct.variant.find((v: any) => v.stocks > 0) || apiProduct.variant[0];
+                pixVariantId = availableVariant.id;
+              }
+            }
+          }
+          if (pixVariantId) {
+            pixBody.proxy_data = {
+              product_variant_id: pixVariantId,
+              api_product_id: proxyDataForPix?.api_product_id || product?.external_id,
+              variant_location: proxyDataForPix?.variant_location,
+              quantity: proxyDataForPix?.quantity || quantity || 1,
+              interval: proxyDataForPix?.interval || "monthly",
+            };
+          }
         }
         const { data: pixResult, error: pixError } = await supabase.functions.invoke("create-pix-payment", {
           body: pixBody,
