@@ -79,20 +79,20 @@ export default function SubscriptionCard({
             <span className="material-symbols-outlined">dns</span>
           </div>
           <div>
-            <h3 className="text-foreground font-bold text-lg leading-tight">{sub.name || sub.code}</h3>
+            <h3 className="text-foreground font-bold text-sm leading-tight truncate">{sub.name || sub.code}</h3>
             <span className="text-text-secondary text-xs">{sub.product_name || sub.code}</span>
           </div>
         </div>
-        {getStatusBadge(status)}
+        <div className="flex items-center gap-2 shrink-0">
+          {profileTag && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-foreground/10 backdrop-blur-sm border border-foreground/20 text-foreground text-[10px] font-bold">
+              <span className="material-symbols-outlined text-xs">person_pin</span>
+              {profileTag}
+            </span>
+          )}
+          {getStatusBadge(status)}
+        </div>
       </div>
-
-      {/* Profile Tag */}
-      {profileTag && (
-        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-foreground/10 backdrop-blur-sm border border-foreground/20 text-foreground text-[11px] font-semibold w-fit">
-          <span className="material-symbols-outlined text-sm text-primary">verified</span>
-          {profileTag}
-        </span>
-      )}
 
       {/* Status Info */}
       <div className="flex flex-col gap-1">
