@@ -1,121 +1,55 @@
 
 
-## Diagnosis
+## Investigacao: Vinculacao de Proxies aos Clientes via API ProxyBR
 
-I queried the database directly and found the root causes:
+### O que ja existe
 
-### Finding 1: `delivery_data` is NULL for every single proxy order
+O sistema de sincronizacao **ja possui** logica de vinculacao automatica baseada no campo `notes` da API ProxyBR. Quando uma assinatura e comprada pela plataforma, o email do cliente e gravado no campo `notes` da assinatura na ProxyBR (linha 305 do `proxybr-api/index.ts`). Na sincronizacao (cron ou manual), o sistema compara esse `notes` com os emails e nomes dos usuarios locais para fazer o match.
+
+### Por que nao esta funcionando para proxies antigos
+
+O problema e que **proxies comprados diretamente no painel ProxyBR** (antes da plataforma) podem ter o campo `notes` vazio ou com informacao diferente do email cadastrado na plataforma. O sync so re-vincula quando `existing.user_id === fallbackUserId` (admin), entao se ja foi vinculado ao admin, a logica tenta fazer match -- mas sem `notes` populado, nao encontra o usuario correto.
+
+### O que os screenshots mostram
+
+Nos screenshots do painel ProxyBR, cada assinatura mostra nome, email e dominio do cliente. Esses dados podem estar em campos da API como `user`, `client`, `customer` ou similar -- **nao apenas no campo `notes`**.
+
+### Plano de acao
+
+1. **Investigar a estrutura completa da resposta da API ProxyBR** -- adicionar logging temporario na edge function para capturar todos os campos retornados em uma assinatura (especialmente campos como `user`, `client`, `customer`, `owner`, etc.)
+
+2. **Melhorar a logica de matching no sync** para usar todos os campos disponiveis de identificacao do cliente:
+   - `notes` (ja usado)
+   - `user.email` ou `client.email` (se existir)
+   - `user.name` ou `client.name` (se existir)
+   
+3. **Remover a restricao de re-link apenas para fallback** -- atualmente, se a assinatura ja esta vinculada ao admin, ela tenta re-vincular. Mas se o `notes` estiver vazio e houver outro campo com o email, o sistema nao usa. O plano e expandir o matching.
+
+4. **Criar uma acao admin de "re-vincular tudo"** que force a re-vinculacao de TODAS as assinaturas que estao no admin, usando todos os campos disponiveis.
+
+### Proximo passo imediato
+
+Preciso investigar a resposta real da API ProxyBR para ver quais campos de usuario estao disponiveis. Posso fazer isso de duas formas:
+- Consultar os dados ja salvos no `raw_data` de assinaturas existentes no banco
+- Adicionar logging na edge function e rodar um teste
+
+### Detalhes tecnicos
+
+Arquivos afetados:
+- `supabase/functions/sync-subscriptions-cron/index.ts` -- melhorar logica de matching
+- `supabase/functions/proxybr-api/index.ts` -- mesma melhoria na sync manual
+
+A mudanca principal e no bloco de matching (linhas 175-184 do cron):
+
+```text
+Atual:
+  notes -> email match -> name match -> partial email match
+
+Proposto:
+  notes -> email match -> name match -> partial email match
+  + sub.user?.email -> match
+  + sub.client?.email -> match  
+  + sub.customer?.email -> match
+  (campos reais a confirmar apos investigacao)
 ```
-order_id: 81f66f08... | delivery_data: NULL | status: completed (PIX)
-order_id: 4ad6050b... | delivery_data: NULL | status: processing (Balance)
-order_id: b510c32c... | delivery_data: NULL | status: processing (Balance)
-... all 10 recent proxy orders have NULL delivery_data
-```
-
-The client-side code that saves `delivery_data` during draft order creation appears correct, but the data never reaches the database. This means the webhook cannot detect proxy orders and never calls the ProxyBR API.
-
-### Finding 2: RLS blocks users from updating their own orders
-The `orders` table has NO UPDATE policy for regular users — only admins can update. When the balance flow calls `supabase.from("orders").update({status: "completed"})`, it silently fails due to RLS. That is why balance purchases stay as "Pendente" (status "processing").
-
-The same is true for `order_items` — no user UPDATE policy.
-
-### Finding 3: Webhook skips proxy contracting
-The webhook for the PIX order `81f66f08` called `fulfill_order_item` (regular stock fulfillment) instead of the ProxyBR contract path, because `delivery_data.type` was not `"proxy_contract"` — it was NULL.
-
----
-
-## Plan
-
-The fix has two pillars: (A) move proxy purchasing to server-side edge functions so it bypasses RLS and sessionStorage issues entirely, and (B) add missing RLS policies as a general fix.
-
-### 1. Add RLS UPDATE policy on `orders` table
-
-**Migration file.** Allow users to update their own orders:
-```sql
-CREATE POLICY "Users can update own orders" ON orders
-FOR UPDATE USING (auth.uid() = user_id);
-```
-
-This fixes balance payments silently failing to mark orders as "completed."
-
-### 2. New action in `proxybr-api`: `purchase-proxy-with-balance`
-
-**File:** `supabase/functions/proxybr-api/index.ts`
-
-Add a new action that handles the ENTIRE balance payment flow server-side:
-
-1. Verify user auth
-2. Receive: `order_id`, `product_variant_id`, `quantity`, `interval`, `total`
-3. Check user balance >= total (using service_role)
-4. Debit balance
-5. Call ProxyBR API `POST /subscriptions/contract`
-6. Save subscription in `subscriptions` table with `raw_data`
-7. Update order status to "completed"
-8. Create `wallet_transactions` record
-9. Update order_item `delivery_data` with `{type: "proxy_contract", fulfilled: true, subscription_code: ...}`
-10. Set ProxyBR notes to user email
-11. Return the subscription data
-
-This bypasses all RLS and sessionStorage issues since it runs with service_role.
-
-### 3. Modify `create-pix-payment` to persist proxy data server-side
-
-**File:** `supabase/functions/create-pix-payment/index.ts`
-
-Accept optional `proxy_data` in the request body (containing `product_variant_id`, `quantity`, `interval`). When present, use service_role to UPDATE the order_item's `delivery_data` with `{type: "proxy_contract", product_variant_id, quantity, interval}`.
-
-This ensures the webhook can detect and contract proxy orders for PIX payments, regardless of what happened client-side.
-
-### 4. Update `Checkout.tsx` payment flows
-
-**File:** `src/pages/Checkout.tsx`
-
-**Balance flow:**
-- At the start of `handlePay`, read `proxy_purchase` from sessionStorage
-- If proxy product AND balance payment: call the new `purchase-proxy-with-balance` action via `supabase.functions.invoke("proxybr-api", ...)` passing `order_id`, `product_variant_id`, `quantity`, `interval`, `total`
-- Skip all client-side balance debit, fulfillment, and `contractProxyIfNeeded`
-- On success, clear sessionStorage and redirect to `/subscriptions`
-
-**PIX flow:**
-- Pass `proxy_data` to `create-pix-payment` so the server stores it in delivery_data
-- When PIX is confirmed (poll detects "completed"), redirect to `/subscriptions` if proxy purchase, `/orders` otherwise
-
-**Remove `contractProxyIfNeeded`** entirely — all proxy contracting is now server-side.
-
-### 5. Filter proxy orders from the Orders page
-
-**File:** `src/pages/Orders.tsx`
-
-After fetching orders, filter out orders where all items are proxy products. Check by joining with the `products` table and checking `icon_type = 'proxy'`:
-
-```typescript
-// In the fetch query, get product icon_type
-const { data: itemsData } = await supabase
-  .from("order_items")
-  .select("*, products:product_id(icon_type)")
-  .in("order_id", orderIds);
-
-// Filter: exclude orders where ALL items are proxy type
-const nonProxyOrders = ordersData.filter(order => {
-  const items = (itemsData || []).filter(i => i.order_id === order.id);
-  const allProxy = items.length > 0 && items.every(i => i.products?.icon_type === 'proxy');
-  return !allProxy;
-});
-```
-
-### 6. Deploy edge functions
-
-Deploy `proxybr-api` and `create-pix-payment` after changes.
-
----
-
-## Summary of changes
-
-| File | Change |
-|------|--------|
-| **Migration (new)** | Add RLS UPDATE policy on `orders` for users |
-| `supabase/functions/proxybr-api/index.ts` | Add `purchase-proxy-with-balance` action (server-side balance debit + proxy contract) |
-| `supabase/functions/create-pix-payment/index.ts` | Accept `proxy_data` param and save to `order_items.delivery_data` using service_role |
-| `src/pages/Checkout.tsx` | Balance: call new server-side action. PIX: pass proxy_data. Remove `contractProxyIfNeeded`. Both: redirect to `/subscriptions` for proxy |
-| `src/pages/Orders.tsx` | Filter out orders where all items are proxy products |
 
