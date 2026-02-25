@@ -186,7 +186,6 @@ export default function AdminAssinaturas() {
         const { data } = await supabase
           .from("subscriptions")
           .select("*")
-          .eq("type", "proxybr")
           .range(from, from + pageSize - 1);
         if (!data?.length) break;
         all = [...all, ...data];
