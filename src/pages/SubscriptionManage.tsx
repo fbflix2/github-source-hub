@@ -48,10 +48,9 @@ export default function SubscriptionManage() {
   });
 
 
-  const [note, setNote] = useState("");
-  const [notes, setNotes] = useState<{ text: string; date: string }[]>([]);
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
-  const [editText, setEditText] = useState("");
+  const [profileName, setProfileName] = useState("");
+  const [savedProfile, setSavedProfile] = useState<string | null>(null);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
   const sub = (subscriptions as ProxySubscription[] | undefined)?.find((s) => s.code === code);
@@ -86,11 +85,11 @@ export default function SubscriptionManage() {
   const progress = totalDays > 0 ? Math.min(100, Math.max(0, (elapsed / totalDays) * 100)) : 0;
 
 
-  const handleAddNote = () => {
-    if (!note.trim()) return;
-    setNotes((prev) => [{ text: note.trim(), date: new Date().toISOString() }, ...prev]);
-    setNote("");
-    toast.success("Nota adicionada!");
+  const handleSaveProfile = () => {
+    const trimmed = profileName.trim();
+    setSavedProfile(trimmed || null);
+    setIsEditingProfile(false);
+    toast.success(trimmed ? "Perfil salvo!" : "Perfil removido!");
   };
 
   const copyToClipboard = (text: string, field: string) => {
@@ -200,41 +199,49 @@ export default function SubscriptionManage() {
             </div>
           )}
 
-          {/* Notes */}
+          {/* Perfil Vinculado */}
           <div className="glass-card rounded-xl p-4 space-y-2">
             <h2 className="text-foreground font-bold text-sm flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-primary text-base">sticky_note_2</span>
-              Notas
+              <span className="material-symbols-outlined text-primary text-base">person_pin</span>
+              Perfil Vinculado
             </h2>
-            <div className="flex gap-2">
-              <Input placeholder="Adicionar uma nota..." value={note} onChange={(e) => setNote(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleAddNote()} className="bg-muted border-border text-foreground h-8 text-xs" />
-              <Button size="sm" onClick={handleAddNote} disabled={!note.trim()} className="bg-primary hover:bg-[#00c968] text-background font-bold shrink-0 text-xs h-8">Salvar</Button>
-            </div>
-            {notes.length === 0 ? (
-              <p className="text-text-secondary text-xs text-center py-3">Nenhuma nota adicionada ainda.</p>
-            ) : (
-              <div className="space-y-1.5 max-h-32 overflow-y-auto">
-                {notes.map((n, i) => (
-                  <div key={i} className="p-2 rounded-lg bg-muted/50 border border-border group/note">
-                    {editingIndex === i ? (
-                      <div className="flex gap-1.5">
-                        <Input value={editText} onChange={(e) => setEditText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { setNotes(prev => prev.map((x, j) => j === i ? { ...x, text: editText } : x)); setEditingIndex(null); toast.success("Nota atualizada!"); } if (e.key === "Escape") setEditingIndex(null); }} className="bg-muted border-border text-foreground h-7 text-xs flex-1" autoFocus />
-                        <Button size="sm" className="h-7 text-[10px] bg-primary text-background" onClick={() => { setNotes(prev => prev.map((x, j) => j === i ? { ...x, text: editText } : x)); setEditingIndex(null); toast.success("Nota atualizada!"); }}>OK</Button>
-                      </div>
-                    ) : (
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <p className="text-foreground text-xs">{n.text}</p>
-                          <p className="text-text-secondary text-[9px] mt-0.5">{format(parseISO(n.date), "dd/MM/yyyy HH:mm")}</p>
-                        </div>
-                        <button onClick={() => { setEditingIndex(i); setEditText(n.text); }} className="opacity-0 group-hover/note:opacity-100 transition-opacity text-text-secondary hover:text-foreground shrink-0 mt-0.5">
-                          <span className="material-symbols-outlined text-sm">edit</span>
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ))}
+            {savedProfile && !isEditingProfile ? (
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/50 border border-border group/profile">
+                <div className="min-w-0">
+                  <p className="text-text-secondary text-[9px] uppercase tracking-wider font-semibold">Nome / Código do Perfil</p>
+                  <p className="text-foreground font-medium text-xs mt-0.5 truncate">{savedProfile}</p>
+                </div>
+                <div className="flex items-center gap-1 opacity-0 group-hover/profile:opacity-100 transition-opacity">
+                  <button onClick={() => { setProfileName(savedProfile); setIsEditingProfile(true); }} className="text-text-secondary hover:text-foreground">
+                    <span className="material-symbols-outlined text-sm">edit</span>
+                  </button>
+                  <button onClick={() => copyToClipboard(savedProfile, "profile")} className="text-text-secondary hover:text-foreground">
+                    <span className="material-symbols-outlined text-sm">{copiedField === "profile" ? "check" : "content_copy"}</span>
+                  </button>
+                </div>
               </div>
+            ) : (
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Ex: Perfil 01 ou BM-1234"
+                  value={profileName}
+                  onChange={(e) => setProfileName(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleSaveProfile()}
+                  className="bg-muted border-border text-foreground h-8 text-xs"
+                  autoFocus={isEditingProfile}
+                />
+                <Button size="sm" onClick={handleSaveProfile} className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold shrink-0 text-xs h-8">
+                  Salvar
+                </Button>
+                {isEditingProfile && (
+                  <Button size="sm" variant="outline" onClick={() => setIsEditingProfile(false)} className="shrink-0 text-xs h-8">
+                    Cancelar
+                  </Button>
+                )}
+              </div>
+            )}
+            {!savedProfile && !isEditingProfile && (
+              <p className="text-text-secondary text-[10px] text-center">Opcional — informe em qual perfil este proxy está sendo usado.</p>
             )}
           </div>
         </div>
