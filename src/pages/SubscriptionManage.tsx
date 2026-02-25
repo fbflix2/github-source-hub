@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useProxyBRSubscriptions, useExchangeProxy, useRenewSubscription, useToggleAutoRenew } from "@/hooks/useProxyBR";
 import { Switch } from "@/components/ui/switch";
@@ -30,6 +30,7 @@ export default function SubscriptionManage() {
   const exchangeMutation = useExchangeProxy();
   const renewMutation = useRenewSubscription();
   const autoRenewMutation = useToggleAutoRenew();
+  const queryClient = useQueryClient();
 
   // Fetch the price the customer actually paid from order_items
   const { data: customerPrice } = useQuery({
@@ -47,13 +48,21 @@ export default function SubscriptionManage() {
     enabled: !!code,
   });
 
-
   const [profileName, setProfileName] = useState("");
   const [savedProfile, setSavedProfile] = useState<string | null>(null);
+  const [profileLoaded, setProfileLoaded] = useState(false);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
   const sub = (subscriptions as ProxySubscription[] | undefined)?.find((s) => s.code === code);
+
+  // Load profile_tag from subscription data
+  useEffect(() => {
+    if (sub && !profileLoaded) {
+      setSavedProfile(sub.profile_tag || null);
+      setProfileLoaded(true);
+    }
+  }, [sub, profileLoaded]);
 
   if (isLoading) {
     return (
@@ -85,11 +94,50 @@ export default function SubscriptionManage() {
   const progress = totalDays > 0 ? Math.min(100, Math.max(0, (elapsed / totalDays) * 100)) : 0;
 
 
-  const handleSaveProfile = () => {
+  const handleSaveProfile = async () => {
     const trimmed = profileName.trim();
     setSavedProfile(trimmed || null);
     setIsEditingProfile(false);
+
+    // Persist to DB in raw_data
+    if (code) {
+      const { data: subRow } = await supabase
+        .from("subscriptions")
+        .select("id, raw_data")
+        .eq("name", code)
+        .eq("type", "proxybr")
+        .maybeSingle();
+
+      if (subRow) {
+        const updatedRaw = { ...((subRow.raw_data as Record<string, unknown>) || {}), profile_tag: trimmed || null };
+        await supabase.from("subscriptions").update({ raw_data: updatedRaw }).eq("id", subRow.id);
+        queryClient.invalidateQueries({ queryKey: ["proxybr-subscriptions"] });
+      }
+    }
+
     toast.success(trimmed ? "Perfil salvo!" : "Perfil removido!");
+  };
+
+  const handleRemoveProfile = async () => {
+    setSavedProfile(null);
+    setProfileName("");
+
+    if (code) {
+      const { data: subRow } = await supabase
+        .from("subscriptions")
+        .select("id, raw_data")
+        .eq("name", code)
+        .eq("type", "proxybr")
+        .maybeSingle();
+
+      if (subRow) {
+        const updatedRaw = { ...((subRow.raw_data as Record<string, unknown>) || {}), profile_tag: null };
+        await supabase.from("subscriptions").update({ raw_data: updatedRaw }).eq("id", subRow.id);
+        queryClient.invalidateQueries({ queryKey: ["proxybr-subscriptions"] });
+      }
+    }
+
+    toast.success("Perfil removido!");
   };
 
   const copyToClipboard = (text: string, field: string) => {
@@ -211,7 +259,7 @@ export default function SubscriptionManage() {
                   <span className="material-symbols-outlined text-sm text-primary">verified</span>
                   {savedProfile}
                   <button
-                    onClick={() => { setSavedProfile(null); setProfileName(""); }}
+                    onClick={handleRemoveProfile}
                     className="ml-0.5 text-text-secondary hover:text-foreground transition-colors"
                   >
                     <span className="material-symbols-outlined text-sm">close</span>

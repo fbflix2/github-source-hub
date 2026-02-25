@@ -23,6 +23,7 @@ export interface ProxySubscription {
     password?: string;
     protocol?: string;
   };
+  profile_tag?: string | null;
   [key: string]: unknown;
 }
 
@@ -239,6 +240,7 @@ export default function Subscriptions() {
               formattedEnd={sub.formattedEnd}
               onRenew={() => handleRenew(sub.code)}
               isRenewing={renewMutation.isPending}
+              profileTag={sub.profile_tag}
             />
           ))}
         </div>
