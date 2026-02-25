@@ -185,8 +185,6 @@ export default function AdminCentralProxy() {
     saveDiscounts.mutate(discountMap);
   };
 
-  // Group rows by apiProductId to show discount input only once per product
-  const seenProducts = new Set<number>();
 
   return (
     <div className="space-y-6">
@@ -291,9 +289,6 @@ export default function AdminCentralProxy() {
                 </TableRow>
               ) : (
                 computedRows.map((row, i) => {
-                  const isFirstOfProduct = !seenProducts.has(row.apiProductId);
-                  if (isFirstOfProduct) seenProducts.add(row.apiProductId);
-                  const variantsCount = computedRows.filter(r => r.apiProductId === row.apiProductId).length;
 
                   return (
                     <TableRow key={i} className="border-border/20">
@@ -308,21 +303,17 @@ export default function AdminCentralProxy() {
                         R$ {row.apiPrice.toFixed(2)}
                       </TableCell>
                       <TableCell className="text-center">
-                        {isFirstOfProduct ? (
-                          <div className="flex items-center justify-center">
-                            <Input
-                              type="number"
-                              min={0}
-                              max={100}
-                              value={discountMap[String(row.apiProductId)] || ""}
-                              onChange={e => handleDiscountChange(row.apiProductId, e.target.value)}
-                              placeholder="0"
-                              className="w-16 h-7 text-xs text-center px-1"
-                            />
-                          </div>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">{row.discount > 0 ? `${row.discount}%` : "—"}</span>
-                        )}
+                        <div className="flex items-center justify-center">
+                          <Input
+                            type="number"
+                            min={0}
+                            max={100}
+                            value={discountMap[String(row.apiProductId)] || ""}
+                            onChange={e => handleDiscountChange(row.apiProductId, e.target.value)}
+                            placeholder="0"
+                            className="w-16 h-7 text-xs text-center px-1"
+                          />
+                        </div>
                       </TableCell>
                       <TableCell className="text-right font-mono text-sm font-medium text-foreground">
                         R$ {row.realCost.toFixed(2)}
