@@ -140,7 +140,7 @@ export default function Dashboard() {
     if (product.stock <= 10) {
       return { status: "Últimas unidades", statusColor: "text-destructive", percentage: 15, sold: `${product.stock} restantes` };
     }
-    return { status: "Em estoque", statusColor: "text-primary", percentage: Math.min(90, product.stock), sold: `${product.stock} em estoque` };
+    return { status: "Disponível", statusColor: "text-emerald-500", percentage: Math.min(90, product.stock), sold: `${product.stock} em estoque` };
   };
 
   if (loading) {
@@ -253,6 +253,41 @@ export default function Dashboard() {
               <span className="material-symbols-outlined text-[48px] text-muted-foreground mb-4">inventory_2</span>
               <p className="text-muted-foreground">Nenhum proxy disponível no momento.</p>
             </div>
+          ) : viewMode === "list" ? (
+            <div className="flex flex-col gap-3">
+              {proxyProducts.map((product: any) => {
+                const local = getLocalProxyData(product);
+                const variants = product.variants?.data || product.variants || [];
+                const cheapestVariant = variants.length
+                  ? variants.reduce((min: any, v: any) => ((v.price || 0) < (min.price || 0) ? v : min), variants[0])
+                  : null;
+                const price = (local?.price != null && local.price > 0) ? local.price : (cheapestVariant?.price || product.price || 0);
+                const asProduct: Product = {
+                  id: local?.id || String(product.id),
+                  name: local?.name || product.name,
+                  description: local?.description || product.description || null,
+                  price: Number(price),
+                  price_label: "mensal",
+                  image_url: local?.image_url || getProxyImage(product.name),
+                  badge_text: local?.badge_text || null,
+                  badge_color: local?.badge_color || null,
+                  badge_icon: local?.badge_icon || null,
+                  stock: local?.stock ?? 999,
+                  available: true,
+                  category_id: null,
+                  tags: local?.tags || null,
+                };
+                return (
+                  <ProductListItem
+                    key={product.id}
+                    product={asProduct}
+                    quantity={getProxyQty(String(product.id))}
+                    onQuantityChange={(id, delta, max) => updateProxyQty(String(product.id), delta)}
+                    onReadMore={setDetailProduct}
+                  />
+                );
+              })}
+            </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {proxyProducts.map((product: any) => (
@@ -358,7 +393,7 @@ export default function Dashboard() {
                           {stockInfo.percentage > 0 && (
                             <span
                               className={`w-1.5 h-1.5 rounded-full ${
-                                stockInfo.statusColor === "text-primary" ? "bg-primary animate-pulse" : "bg-destructive"
+                                stockInfo.statusColor === "text-emerald-500" ? "bg-emerald-500 animate-pulse" : "bg-destructive"
                               }`}
                             />
                           )}
@@ -369,7 +404,7 @@ export default function Dashboard() {
                       <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
                         <div
                           className={`h-full rounded-full ${
-                            stockInfo.statusColor === "text-primary"
+                            stockInfo.statusColor === "text-emerald-500"
                               ? "bg-gradient-to-r from-green-400 to-green-600"
                               : stockInfo.statusColor === "text-destructive"
                               ? "bg-gradient-to-r from-red-500 to-orange-500"
