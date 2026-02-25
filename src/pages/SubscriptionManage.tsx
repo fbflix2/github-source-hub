@@ -263,7 +263,7 @@ export default function SubscriptionManage() {
                       size="sm"
                       onClick={() => exchangeMutation.mutate({ subscriptionCode: sub.code })}
                       disabled={exchangeMutation.isPending}
-                      className="w-full bg-primary hover:bg-[#00c968] text-background font-bold text-xs h-8"
+                      className="w-full bg-green-600 hover:bg-green-500 text-white font-bold text-xs h-8"
                     >
                       <span className="material-symbols-outlined text-sm mr-1">swap_horiz</span>
                       {exchangeMutation.isPending ? "Trocando..." : "Trocar Proxy (Grátis)"}
