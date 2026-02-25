@@ -12,6 +12,37 @@ function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+/** Tries to match a ProxyBR subscription to a local user using all available fields */
+function matchUserFromSub(
+  sub: any,
+  emailToUserId: Map<string, string>,
+  nameToUserId: Map<string, string>,
+): string | undefined {
+  const notes = (sub.notes || "").toLowerCase().trim();
+
+  // 1. Exact email match on notes
+  if (notes && emailToUserId.has(notes)) return emailToUserId.get(notes);
+
+  // 2. Exact name match on notes
+  if (notes && nameToUserId.has(notes)) return nameToUserId.get(notes);
+
+  // 3. Partial email match in notes (e.g. notes contains email somewhere)
+  if (notes) {
+    for (const [email, uid] of emailToUserId.entries()) {
+      if (notes.includes(email)) return uid;
+    }
+  }
+
+  // 4. Partial name match in notes
+  if (notes) {
+    for (const [name, uid] of nameToUserId.entries()) {
+      if (name.length >= 4 && notes.includes(name)) return uid;
+    }
+  }
+
+  return undefined;
+}
+
 async function proxyFetch(url: string, apiKey: string) {
   return fetch(url, {
     method: "GET",
@@ -172,16 +203,7 @@ Deno.serve(async (req) => {
             const code = sub.code;
             if (!code) continue;
 
-            const notes = (sub.notes || "").toLowerCase().trim();
-            let matchedUserId: string | undefined;
-
-            if (notes && emailToUserId.has(notes)) matchedUserId = emailToUserId.get(notes);
-            if (!matchedUserId && notes && nameToUserId.has(notes)) matchedUserId = nameToUserId.get(notes);
-            if (!matchedUserId && notes) {
-              for (const [email, uid] of emailToUserId.entries()) {
-                if (notes.includes(email)) { matchedUserId = uid; break; }
-              }
-            }
+            const matchedUserId = matchUserFromSub(sub, emailToUserId, nameToUserId);
 
             const endDateStr = sub.due_date || sub.end_date || new Date().toISOString();
             const startDateStr = sub.created_at || sub.start_date || new Date().toISOString();
