@@ -44,8 +44,11 @@ export function ProxyProductCard({ product, proxyImage, quantity, onQuantityChan
   const description = localData?.description || product.description;
   const tags = localData?.tags || [];
   const imageUrl = localData?.image_url || proxyImage;
-  const stockCount = localData?.stock ?? 999;
+  // Use real stock from API variants instead of local DB
+  const totalApiStock = variants.reduce((sum: number, v: any) => sum + (v.stocks ?? 0), 0);
+  const stockCount = totalApiStock > 0 ? totalApiStock : (localData?.stock ?? 0);
   const stockLabel = `${stockCount} em estoque`;
+  const stockPercent = Math.min(100, Math.max(5, (stockCount / (stockCount + 50)) * 100));
 
   return (
     <article className="glass-card rounded-2xl overflow-hidden flex flex-col group h-full">
@@ -109,7 +112,7 @@ export function ProxyProductCard({ product, proxyImage, quantity, onQuantityChan
             <span className="text-muted-foreground">{stockLabel}</span>
           </div>
           <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-            <div className="h-full rounded-full bg-gradient-to-r from-green-400 to-green-600 w-[80%]" />
+            <div className="h-full rounded-full bg-gradient-to-r from-green-400 to-green-600" style={{ width: `${stockPercent}%` }} />
           </div>
         </div>
 
