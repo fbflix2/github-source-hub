@@ -21,6 +21,7 @@ interface DbProduct {
   available: boolean;
   category_id: string | null;
   icon_type: string | null;
+  tags: string[] | null;
 }
 
 interface OrderBump {
@@ -85,7 +86,7 @@ export default function Checkout() {
           if (mainItem.product_id) {
             const { data: prod } = await supabase
               .from("products")
-              .select("id, name, description, price, image_url, stock, available, category_id, icon_type")
+              .select("id, name, description, price, image_url, stock, available, category_id, icon_type, tags")
               .eq("id", mainItem.product_id)
               .single();
             if (prod) setProduct(prod);
@@ -100,6 +101,7 @@ export default function Checkout() {
               available: true,
               category_id: null,
               icon_type: null,
+              tags: null,
             });
           }
         }
@@ -122,14 +124,16 @@ export default function Checkout() {
 
           // Try to fetch product from DB for description
           let dbDescription: string | null = null;
+          let dbTags: string[] | null = null;
           const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cartItems[0].productId);
           if (isValidUUID) {
             const { data: dbProd } = await supabase
               .from("products")
-              .select("description")
+              .select("description, tags")
               .eq("id", cartItems[0].productId)
               .single();
             dbDescription = dbProd?.description || null;
+            dbTags = dbProd?.tags || null;
           }
 
           setProduct({
@@ -142,6 +146,7 @@ export default function Checkout() {
             available: true,
             category_id: null,
             icon_type: null,
+            tags: dbTags,
           });
         }
         setLoading(false);
@@ -150,7 +155,7 @@ export default function Checkout() {
 
       const { data } = await supabase
         .from("products")
-        .select("id, name, description, price, image_url, stock, available, category_id, icon_type")
+        .select("id, name, description, price, image_url, stock, available, category_id, icon_type, tags")
         .eq("id", productId)
         .single();
 
@@ -585,6 +590,27 @@ export default function Checkout() {
       <div className="w-full max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* Left Column - Payment & Order Bumps */}
         <div className="lg:col-span-8 flex flex-col gap-4 order-2 lg:order-1">
+          {/* Product Info Section */}
+          <section className="glass-panel rounded-xl p-5 flex flex-col gap-4">
+            <div className="flex gap-4 items-start">
+              <div className="w-16 h-16 rounded-lg bg-surface border border-border shrink-0 bg-cover bg-center" style={{ backgroundImage: `url('${product.image_url || "/placeholder.svg"}')` }} />
+              <div className="flex-1 min-w-0">
+                <h2 className="text-base font-bold text-foreground leading-tight">{product.name}</h2>
+                <p className="text-sm text-primary font-semibold mt-0.5">R$ {(product.price * quantity).toFixed(2).replace(".", ",")} {quantity > 1 && `(x${quantity})`}</p>
+              </div>
+            </div>
+            {product.description && (
+              <p className="text-xs text-muted-foreground leading-relaxed">{product.description}</p>
+            )}
+            {product.tags && product.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {product.tags.map((tag, i) => (
+                  <span key={i} className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">{tag}</span>
+                ))}
+              </div>
+            )}
+          </section>
+
           {/* Payment Section */}
           <section className="glass-panel rounded-xl p-5 flex flex-col gap-4">
             <div>
@@ -737,12 +763,6 @@ export default function Checkout() {
                   </div>
                 </div>
 
-                {/* Product description */}
-                {product.description && (
-                  <div className="p-3 rounded-lg bg-secondary/50 border border-border">
-                    <p className="text-xs text-muted-foreground leading-relaxed">{product.description}</p>
-                  </div>
-                )}
 
                 {!upsellAdded && selectedBumps.map((bumpId) => {
                   const bump = availableOrderBumps.find((b) => b.id === bumpId);
