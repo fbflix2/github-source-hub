@@ -4,6 +4,7 @@ import { Wallet, QrCode, CreditCard, Lock, ChevronLeft, User, Calendar, Flame, L
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useCart } from "@/contexts/CartContext";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
@@ -53,7 +54,7 @@ export default function Checkout() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { items: cartItems } = useCart();
-  
+  const queryClient = useQueryClient();
   const productId = searchParams.get("product") || "";
   const existingOrderId = searchParams.get("order") || "";
   const quantity = parseInt(searchParams.get("qty") || "1");
@@ -281,6 +282,9 @@ export default function Checkout() {
         sessionStorage.removeItem("proxy_purchase");
         
         toast.success("Pagamento confirmado! Pedido criado.");
+        if (isProxyPurchase) {
+          queryClient.invalidateQueries({ queryKey: ["proxybr-subscriptions"] });
+        }
         setTimeout(() => {
           setPixModal(false);
           navigate(isProxyPurchase ? "/subscriptions" : "/orders");
@@ -550,6 +554,7 @@ export default function Checkout() {
 
           sessionStorage.removeItem("proxy_purchase");
           toast.success("Proxy ativado com sucesso!");
+          queryClient.invalidateQueries({ queryKey: ["proxybr-subscriptions"] });
           navigate("/subscriptions");
           return;
         }
