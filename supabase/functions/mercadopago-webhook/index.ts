@@ -314,6 +314,115 @@ Deno.serve(async (req) => {
             continue; // Skip normal fulfillment for proxy items
           }
           
+          // FALLBACK: detect proxy product by icon_type when delivery_data is missing
+          if (!dd && oi.product_id) {
+            const { data: productInfo } = await supabase
+              .from("products")
+              .select("icon_type, external_id")
+              .eq("id", oi.product_id)
+              .single();
+            
+            if (productInfo?.icon_type === 'proxy' && productInfo.external_id) {
+              console.log(`[webhook-fallback] Proxy product detected by icon_type for item ${oi.id}, external_id=${productInfo.external_id}`);
+              const PROXYBR_API_KEY = Deno.env.get("PROXYBR_API_KEY");
+              if (PROXYBR_API_KEY) {
+                try {
+                  // Fetch products to find a variant
+                  const productsResp = await fetch(`${PROXYBR_BASE || "https://painel.proxybr.com.br/api"}/products`, {
+                    headers: { "Accept": "application/json", "X-API-Key": PROXYBR_API_KEY },
+                  });
+                  const productsData = await productsResp.json();
+                  const apiProduct = Array.isArray(productsData) ? productsData.find((p: any) => String(p.id) === String(productInfo.external_id)) : null;
+                  
+                  if (apiProduct?.variant?.length > 0) {
+                    const variant = apiProduct.variant.find((v: any) => v.stocks > 0) || apiProduct.variant[0];
+                    console.log(`[webhook-fallback] Using variant ${variant.id} (${variant.location}) for product ${productInfo.external_id}`);
+                    
+                    const contractResp = await fetch("https://painel.proxybr.com.br/api/subscriptions/contract", {
+                      method: "POST",
+                      headers: {
+                        "Accept": "application/json",
+                        "Content-Type": "application/json",
+                        "X-API-Key": PROXYBR_API_KEY,
+                      },
+                      body: JSON.stringify({
+                        quantity: 1,
+                        interval: "monthly",
+                        product_variant_id: variant.id,
+                      }),
+                    });
+                    const contractText = await contractResp.text();
+                    console.log(`[webhook-fallback] ProxyBR contract response [${contractResp.status}]: ${contractText.substring(0, 500)}`);
+                    
+                    if (contractResp.ok) {
+                      let contractData: any;
+                      try { contractData = JSON.parse(contractText); } catch { contractData = {}; }
+                      
+                      const subCode = contractData.code || contractData.data?.code;
+                      const endDate = contractData.due_date || contractData.end_date || null;
+                      
+                      if (subCode) {
+                        const { data: existingSub } = await supabase
+                          .from("subscriptions")
+                          .select("id")
+                          .eq("name", subCode)
+                          .eq("type", "proxybr")
+                          .maybeSingle();
+
+                        if (existingSub) {
+                          await supabase.from("subscriptions").update({
+                            user_id: userId,
+                            status: "active",
+                            end_date: endDate || null,
+                            auto_renew: contractData.auto_renew_active ?? false,
+                            raw_data: contractData,
+                          }).eq("id", existingSub.id);
+                        } else {
+                          await supabase.from("subscriptions").insert({
+                            name: subCode,
+                            type: "proxybr",
+                            status: "active",
+                            user_id: userId,
+                            start_date: new Date().toISOString(),
+                            end_date: endDate || null,
+                            auto_renew: contractData.auto_renew_active ?? false,
+                            raw_data: contractData,
+                          });
+                        }
+                        console.log(`[webhook-fallback] Saved proxy subscription ${subCode} for user ${userId}`);
+                        
+                        // Set notes
+                        const { data: { user: buyerUser } } = await supabase.auth.admin.getUserById(userId);
+                        if (buyerUser?.email) {
+                          try {
+                            await fetch(`https://painel.proxybr.com.br/api/subscriptions/${subCode}`, {
+                              method: "PUT",
+                              headers: {
+                                "Accept": "application/json",
+                                "Content-Type": "application/json",
+                                "X-API-Key": PROXYBR_API_KEY,
+                              },
+                              body: JSON.stringify({ notes: buyerUser.email }),
+                            });
+                          } catch (e) {
+                            console.error("Failed to set ProxyBR notes:", e);
+                          }
+                        }
+                        
+                        await supabase.from("order_items").update({
+                          delivery_data: { type: "proxy_contract", fulfilled: true, subscription_code: subCode, fallback: true },
+                        }).eq("id", oi.id);
+                      }
+                    }
+                  }
+                } catch (err) {
+                  console.error(`[webhook-fallback] Error contracting proxy for item ${oi.id}:`, err);
+                }
+              }
+              continue;
+            }
+          }
+          
           if (!oi.product_id) continue;
 
           // Use the atomic fulfillment function
