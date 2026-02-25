@@ -255,7 +255,7 @@ export default function SubscriptionManage() {
             </h2>
             {savedProfile ? (
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-foreground/10 backdrop-blur-sm border border-foreground/10 text-foreground text-xs font-semibold">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-foreground/10 backdrop-blur-sm border border-foreground/20 text-foreground text-xs font-semibold">
                   <span className="material-symbols-outlined text-sm text-primary">verified</span>
                   {savedProfile}
                   <button
