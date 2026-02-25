@@ -112,7 +112,7 @@ export function ProductListItem({ product, quantity, onQuantityChange, onReadMor
                 {stockInfo.percentage > 0 && (
                   <span
                     className={`w-1.5 h-1.5 rounded-full ${
-                      stockInfo.statusColor === "text-primary" ? "bg-primary animate-pulse" : "bg-destructive"
+                      stockInfo.statusColor === "text-emerald-500" ? "bg-emerald-500 animate-pulse" : "bg-destructive"
                     }`}
                   />
                 )}
@@ -123,7 +123,7 @@ export function ProductListItem({ product, quantity, onQuantityChange, onReadMor
             <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden min-w-[40px]">
               <div
                 className={`h-full rounded-full ${
-                  stockInfo.statusColor === "text-primary"
+                  stockInfo.statusColor === "text-emerald-500"
                     ? "bg-gradient-to-r from-green-400 to-green-600"
                     : stockInfo.statusColor === "text-destructive"
                     ? "bg-gradient-to-r from-red-500 to-orange-500"
