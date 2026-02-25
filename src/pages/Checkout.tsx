@@ -715,6 +715,13 @@ export default function Checkout() {
                   </div>
                 </div>
 
+                {/* Product description */}
+                {product.description && (
+                  <div className="p-3 rounded-lg bg-secondary/50 border border-border">
+                    <p className="text-xs text-muted-foreground leading-relaxed">{product.description}</p>
+                  </div>
+                )}
+
                 {!upsellAdded && selectedBumps.map((bumpId) => {
                   const bump = availableOrderBumps.find((b) => b.id === bumpId);
                   if (!bump) return null;

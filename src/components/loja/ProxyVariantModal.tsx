@@ -34,19 +34,8 @@ export function ProxyVariantModal({ open, onClose, product, localData, proxyImag
 
   const variants: Variant[] = product?.variants?.data || product?.variants || [];
   const displayName = localData?.name || product?.name || "Proxy";
-  const categoryName = product?.category?.name || "";
-  const description = localData?.description || product?.description || categoryName || null;
-  const tags: string[] = localData?.tags || [];
   const imageUrl = localData?.image_url || proxyImage;
   const typeLabel = product?.type || "Proxy";
-
-  // Build feature list from product info
-  const features: string[] = [];
-  if (typeLabel) features.push(`Protocolo: ${typeLabel}`);
-  if (categoryName) features.push(categoryName);
-  if (variants.length > 0) features.push(`${variants.length} localização${variants.length > 1 ? "ões" : ""} disponível${variants.length > 1 ? "eis" : ""}`);
-  const totalStock = variants.reduce((sum: number, v: Variant) => sum + v.stocks, 0);
-  if (totalStock > 0) features.push(`${totalStock} proxies em estoque`);
 
   const handleBuy = () => {
     if (!selectedVariant) {
@@ -99,34 +88,7 @@ export function ProxyVariantModal({ open, onClose, product, localData, proxyImag
         </DialogHeader>
 
         <div className="space-y-5 mt-2">
-          {/* Product details */}
-          <div className="space-y-3 p-4 rounded-xl bg-secondary/50 border border-border">
-            {description && (
-              <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
-            )}
-            {features.length > 0 && (
-              <div className="flex flex-col gap-1.5">
-                {features.map((feat, i) => (
-                  <div key={i} className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span className="material-symbols-outlined text-[14px] text-primary">check_circle</span>
-                    {feat}
-                  </div>
-                ))}
-              </div>
-            )}
-            {tags.length > 0 && (
-              <div className="flex items-center gap-1.5 flex-wrap pt-1">
-                {tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="text-[10px] px-2 py-0.5 rounded-full bg-foreground text-background font-medium"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
+          {/* Variant selection */}
 
           {/* Variant selection */}
           <div className="space-y-2">
