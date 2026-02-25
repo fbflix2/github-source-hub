@@ -137,10 +137,13 @@ function enrichSubFromLocal(
     ? (typeof raw.status === "object" ? (raw.status.name || JSON.stringify(raw.status)) : String(raw.status))
     : dbSub.status;
 
+  // For platform subscriptions, use the DB name directly
+  const productName = raw.product?.name || dbSub.name || code;
+
   return {
     code,
-    name: raw.product?.name || code,
-    product_name: raw.product?.name,
+    name: productName,
+    product_name: raw.product?.name || (dbSub.type !== "proxybr" ? dbSub.name : undefined),
     status: rawApiStatus,
     rawApiStatus,
     mappedStatus: mapped,
@@ -157,6 +160,7 @@ function enrichSubFromLocal(
     clientName,
     clientEmail: "",
     userId: dbSub.user_id,
+    type: dbSub.type,
   };
 }
 
@@ -186,6 +190,7 @@ export default function AdminAssinaturas() {
         const { data } = await supabase
           .from("subscriptions")
           .select("*")
+          .order("created_at", { ascending: false })
           .range(from, from + pageSize - 1);
         if (!data?.length) break;
         all = [...all, ...data];
