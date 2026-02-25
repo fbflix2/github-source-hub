@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Globe, TrendingUp, Package, Warehouse, RefreshCw, Save, Percent } from "lucide-react";
+import { Globe, TrendingUp, Package, Warehouse, RefreshCw, Save } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -38,10 +38,7 @@ interface MergedRow {
   productType: string;
   variantName: string;
   apiPrice: number;
-  realCost: number;
   salePrice: number | null;
-  margin: number | null;
-  marginPercent: number | null;
   stock: number;
   apiProductId: number;
   localProductId: string | null;
@@ -58,43 +55,54 @@ async function callProxyBR(action: string, params: Record<string, unknown> = {})
 
 export default function AdminCentralProxy() {
   const queryClient = useQueryClient();
-  const [discountInput, setDiscountInput] = useState<string>("");
+  // discountMap: { [apiProductId]: discountPercent }
+  const [discountMap, setDiscountMap] = useState<Record<string, string>>({});
   const [discountLoaded, setDiscountLoaded] = useState(false);
 
   const { data: discountSetting } = useQuery({
-    queryKey: ["proxybr-reseller-discount"],
+    queryKey: ["proxybr-reseller-discounts"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("site_settings")
         .select("value")
-        .eq("key", "proxybr_reseller_discount")
+        .eq("key", "proxybr_reseller_discounts")
         .maybeSingle();
       if (error) throw error;
-      const val = data?.value || "0";
-      if (!discountLoaded) {
-        setDiscountInput(val);
-        setDiscountLoaded(true);
-      }
-      return val;
+      return data?.value || "{}";
     },
     staleTime: 60_000,
   });
 
-  const discount = parseFloat(discountSetting || "0") || 0;
+  useEffect(() => {
+    if (discountSetting && !discountLoaded) {
+      try {
+        const parsed = JSON.parse(discountSetting);
+        setDiscountMap(parsed);
+      } catch {
+        setDiscountMap({});
+      }
+      setDiscountLoaded(true);
+    }
+  }, [discountSetting, discountLoaded]);
 
-  const saveDiscount = useMutation({
-    mutationFn: async (value: string) => {
+  const getDiscount = (apiProductId: number): number => {
+    const val = parseFloat(discountMap[String(apiProductId)] || "0");
+    return isNaN(val) ? 0 : val;
+  };
+
+  const saveDiscounts = useMutation({
+    mutationFn: async (map: Record<string, string>) => {
       const { error } = await supabase
         .from("site_settings")
-        .upsert({ key: "proxybr_reseller_discount", value } as any, { onConflict: "key" });
+        .upsert({ key: "proxybr_reseller_discounts", value: JSON.stringify(map) } as any, { onConflict: "key" });
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["proxybr-reseller-discount"] });
-      toast({ title: "Desconto salvo com sucesso!" });
+      queryClient.invalidateQueries({ queryKey: ["proxybr-reseller-discounts"] });
+      toast({ title: "Descontos salvos com sucesso!" });
     },
     onError: () => {
-      toast({ title: "Erro ao salvar desconto", variant: "destructive" });
+      toast({ title: "Erro ao salvar descontos", variant: "destructive" });
     },
   });
 
@@ -134,21 +142,12 @@ export default function AdminCentralProxy() {
       const localMatch = localMap.get(String(prod.id).trim().toLowerCase());
 
       for (const v of variants) {
-        const apiPrice = v.price;
-        const realCost = apiPrice * (1 - discount / 100);
-        const sale = localMatch?.price ?? null;
-        const margin = sale !== null ? sale - realCost : null;
-        const marginPercent = sale !== null && sale > 0 ? ((margin! / sale) * 100) : null;
-
         rows.push({
           productName: prod.name,
           productType: prod.type || "—",
           variantName: v.location || v.name || `Variante ${v.id}`,
-          apiPrice,
-          realCost,
-          salePrice: sale,
-          margin,
-          marginPercent,
+          apiPrice: v.price,
+          salePrice: localMatch?.price ?? null,
           stock: v.stocks ?? 0,
           apiProductId: prod.id,
           localProductId: localMatch?.id || null,
@@ -157,9 +156,18 @@ export default function AdminCentralProxy() {
     }
   }
 
-  const totalProducts = new Set(rows.map(r => r.apiProductId)).size;
-  const totalStock = rows.reduce((s, r) => s + r.stock, 0);
-  const rowsWithMargin = rows.filter(r => r.marginPercent !== null);
+  // Compute derived values using discountMap
+  const computedRows = rows.map(row => {
+    const disc = getDiscount(row.apiProductId);
+    const realCost = row.apiPrice * (1 - disc / 100);
+    const margin = row.salePrice !== null ? row.salePrice - realCost : null;
+    const marginPercent = row.salePrice !== null && row.salePrice > 0 ? ((margin! / row.salePrice) * 100) : null;
+    return { ...row, realCost, margin, marginPercent, discount: disc };
+  });
+
+  const totalProducts = new Set(computedRows.map(r => r.apiProductId)).size;
+  const totalStock = computedRows.reduce((s, r) => s + r.stock, 0);
+  const rowsWithMargin = computedRows.filter(r => r.marginPercent !== null);
   const avgMargin = rowsWithMargin.length > 0
     ? rowsWithMargin.reduce((s, r) => s + r.marginPercent!, 0) / rowsWithMargin.length
     : 0;
@@ -169,14 +177,16 @@ export default function AdminCentralProxy() {
     refetchLocal();
   };
 
-  const handleSaveDiscount = () => {
-    const val = parseFloat(discountInput);
-    if (isNaN(val) || val < 0 || val > 100) {
-      toast({ title: "Informe um valor entre 0 e 100", variant: "destructive" });
-      return;
-    }
-    saveDiscount.mutate(String(val));
+  const handleDiscountChange = (apiProductId: number, value: string) => {
+    setDiscountMap(prev => ({ ...prev, [String(apiProductId)]: value }));
   };
+
+  const handleSaveDiscounts = () => {
+    saveDiscounts.mutate(discountMap);
+  };
+
+  // Group rows by apiProductId to show discount input only once per product
+  const seenProducts = new Set<number>();
 
   return (
     <div className="space-y-6">
@@ -191,29 +201,11 @@ export default function AdminCentralProxy() {
             <p className="text-xs text-muted-foreground">Gestão de custos, margens e estoque</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center gap-1.5 bg-card border border-border/40 rounded-lg px-3 py-1.5">
-            <Percent className="size-3.5 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground whitespace-nowrap">Desconto Revenda:</span>
-            <Input
-              type="number"
-              min={0}
-              max={100}
-              value={discountInput}
-              onChange={e => setDiscountInput(e.target.value)}
-              className="w-16 h-7 text-xs text-center px-1"
-            />
-            <span className="text-xs text-muted-foreground">%</span>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 px-2"
-              onClick={handleSaveDiscount}
-              disabled={saveDiscount.isPending}
-            >
-              <Save className="size-3.5" />
-            </Button>
-          </div>
+        <div className="flex items-center gap-2">
+          <Button variant="default" size="sm" onClick={handleSaveDiscounts} disabled={saveDiscounts.isPending}>
+            <Save className="size-4 mr-2" />
+            Salvar Descontos
+          </Button>
           <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isLoading}>
             <RefreshCw className={`size-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
             Atualizar
@@ -275,6 +267,7 @@ export default function AdminCentralProxy() {
                 <TableHead>Produto</TableHead>
                 <TableHead>Variante</TableHead>
                 <TableHead className="text-right">Preço API</TableHead>
+                <TableHead className="text-center">Desconto %</TableHead>
                 <TableHead className="text-right">Custo Real</TableHead>
                 <TableHead className="text-right">Venda</TableHead>
                 <TableHead className="text-right">Margem</TableHead>
@@ -285,61 +278,84 @@ export default function AdminCentralProxy() {
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={i} className="border-border/20">
-                    {Array.from({ length: 7 }).map((_, j) => (
+                    {Array.from({ length: 8 }).map((_, j) => (
                       <TableCell key={j}><Skeleton className="h-4 w-20" /></TableCell>
                     ))}
                   </TableRow>
                 ))
-              ) : rows.length === 0 ? (
+              ) : computedRows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                     Nenhum produto encontrado
                   </TableCell>
                 </TableRow>
               ) : (
-                rows.map((row, i) => (
-                  <TableRow key={i} className="border-border/20">
-                    <TableCell>
-                      <div>
-                        <span className="font-medium text-foreground text-sm">{row.productName}</span>
-                        <span className="text-xs text-muted-foreground ml-2">{row.productType}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{row.variantName}</TableCell>
-                    <TableCell className="text-right font-mono text-xs text-muted-foreground">
-                      R$ {row.apiPrice.toFixed(2)}
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-sm font-medium text-foreground">
-                      R$ {row.realCost.toFixed(2)}
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-sm">
-                      {row.salePrice !== null ? (
-                        <span className="text-foreground">R$ {row.salePrice.toFixed(2)}</span>
-                      ) : (
-                        <Badge variant="outline" className="text-xs">Não vinculado</Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {row.margin !== null ? (
-                        <div className="flex items-center justify-end gap-1.5">
-                          <span className={`font-mono text-sm font-medium ${row.margin > 0 ? "text-green-500" : "text-destructive"}`}>
-                            R$ {row.margin.toFixed(2)}
-                          </span>
-                          <Badge variant={row.margin > 0 ? "default" : "destructive"} className="text-[10px] px-1.5 py-0">
-                            {row.marginPercent!.toFixed(0)}%
-                          </Badge>
+                computedRows.map((row, i) => {
+                  const isFirstOfProduct = !seenProducts.has(row.apiProductId);
+                  if (isFirstOfProduct) seenProducts.add(row.apiProductId);
+                  const variantsCount = computedRows.filter(r => r.apiProductId === row.apiProductId).length;
+
+                  return (
+                    <TableRow key={i} className="border-border/20">
+                      <TableCell>
+                        <div>
+                          <span className="font-medium text-foreground text-sm">{row.productName}</span>
+                          <span className="text-xs text-muted-foreground ml-2">{row.productType}</span>
                         </div>
-                      ) : (
-                        <span className="text-muted-foreground text-xs">—</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Badge variant={row.stock > 0 ? "outline" : "destructive"} className="font-mono">
-                        {row.stock}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{row.variantName}</TableCell>
+                      <TableCell className="text-right font-mono text-xs text-muted-foreground">
+                        R$ {row.apiPrice.toFixed(2)}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {isFirstOfProduct ? (
+                          <div className="flex items-center justify-center">
+                            <Input
+                              type="number"
+                              min={0}
+                              max={100}
+                              value={discountMap[String(row.apiProductId)] || ""}
+                              onChange={e => handleDiscountChange(row.apiProductId, e.target.value)}
+                              placeholder="0"
+                              className="w-16 h-7 text-xs text-center px-1"
+                            />
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">{row.discount > 0 ? `${row.discount}%` : "—"}</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-sm font-medium text-foreground">
+                        R$ {row.realCost.toFixed(2)}
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-sm">
+                        {row.salePrice !== null ? (
+                          <span className="text-foreground">R$ {row.salePrice.toFixed(2)}</span>
+                        ) : (
+                          <Badge variant="outline" className="text-xs">Não vinculado</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {row.margin !== null ? (
+                          <div className="flex items-center justify-end gap-1.5">
+                            <span className={`font-mono text-sm font-medium ${row.margin > 0 ? "text-green-500" : "text-destructive"}`}>
+                              R$ {row.margin.toFixed(2)}
+                            </span>
+                            <Badge variant={row.margin > 0 ? "default" : "destructive"} className="text-[10px] px-1.5 py-0">
+                              {row.marginPercent!.toFixed(0)}%
+                            </Badge>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Badge variant={row.stock > 0 ? "outline" : "destructive"} className="font-mono">
+                          {row.stock}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
