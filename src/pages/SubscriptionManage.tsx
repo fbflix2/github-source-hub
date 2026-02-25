@@ -30,6 +30,8 @@ export default function SubscriptionManage() {
   const [newProxyId, setNewProxyId] = useState("");
   const [note, setNote] = useState("");
   const [notes, setNotes] = useState<{ text: string; date: string }[]>([]);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editText, setEditText] = useState("");
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
   const sub = (subscriptions as ProxySubscription[] | undefined)?.find((s) => s.code === code);
@@ -183,17 +185,6 @@ export default function SubscriptionManage() {
                   </div>
                 ))}
               </div>
-              <div className="p-2 rounded-lg bg-muted/50 border border-border group">
-                <p className="text-text-secondary text-[9px] uppercase tracking-wider font-semibold mb-0.5">String de Conexão</p>
-                <div className="flex items-center justify-between gap-2">
-                  <code className="text-foreground font-mono text-[11px] break-all">
-                    {sub.proxy.ip}:{sub.proxy.port}:{sub.proxy.username || ""}:{sub.proxy.password || ""}
-                  </code>
-                  <button onClick={() => copyToClipboard(`${sub.proxy!.ip}:${sub.proxy!.port}:${sub.proxy!.username || ""}:${sub.proxy!.password || ""}`, "conn")} className="opacity-0 group-hover:opacity-100 transition-opacity text-text-secondary hover:text-foreground shrink-0">
-                    <span className="material-symbols-outlined text-sm">{copiedField === "conn" ? "check" : "content_copy"}</span>
-                  </button>
-                </div>
-              </div>
             </div>
           )}
 
@@ -212,9 +203,23 @@ export default function SubscriptionManage() {
             ) : (
               <div className="space-y-1.5 max-h-32 overflow-y-auto">
                 {notes.map((n, i) => (
-                  <div key={i} className="p-2 rounded-lg bg-muted/50 border border-border">
-                    <p className="text-foreground text-xs">{n.text}</p>
-                    <p className="text-text-secondary text-[9px] mt-0.5">{format(parseISO(n.date), "dd/MM/yyyy HH:mm")}</p>
+                  <div key={i} className="p-2 rounded-lg bg-muted/50 border border-border group/note">
+                    {editingIndex === i ? (
+                      <div className="flex gap-1.5">
+                        <Input value={editText} onChange={(e) => setEditText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { setNotes(prev => prev.map((x, j) => j === i ? { ...x, text: editText } : x)); setEditingIndex(null); toast.success("Nota atualizada!"); } if (e.key === "Escape") setEditingIndex(null); }} className="bg-muted border-border text-foreground h-7 text-xs flex-1" autoFocus />
+                        <Button size="sm" className="h-7 text-[10px] bg-primary text-background" onClick={() => { setNotes(prev => prev.map((x, j) => j === i ? { ...x, text: editText } : x)); setEditingIndex(null); toast.success("Nota atualizada!"); }}>OK</Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="text-foreground text-xs">{n.text}</p>
+                          <p className="text-text-secondary text-[9px] mt-0.5">{format(parseISO(n.date), "dd/MM/yyyy HH:mm")}</p>
+                        </div>
+                        <button onClick={() => { setEditingIndex(i); setEditText(n.text); }} className="opacity-0 group-hover/note:opacity-100 transition-opacity text-text-secondary hover:text-foreground shrink-0 mt-0.5">
+                          <span className="material-symbols-outlined text-sm">edit</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
