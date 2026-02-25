@@ -200,25 +200,30 @@ export default function SubscriptionManage() {
           )}
 
           {/* Perfil Vinculado */}
-          <div className="glass-card rounded-xl p-4 space-y-2">
+          <div className="glass-card rounded-xl p-4 space-y-3">
             <h2 className="text-foreground font-bold text-sm flex items-center gap-1.5">
               <span className="material-symbols-outlined text-primary text-base">person_pin</span>
               Perfil Vinculado
             </h2>
-            {savedProfile && !isEditingProfile ? (
-              <div className="flex items-center justify-between p-2.5 rounded-lg bg-muted/50 border border-border group/profile">
-                <div className="min-w-0">
-                  <p className="text-text-secondary text-[9px] uppercase tracking-wider font-semibold">Nome / Código do Perfil</p>
-                  <p className="text-foreground font-medium text-xs mt-0.5 truncate">{savedProfile}</p>
-                </div>
-                <div className="flex items-center gap-1 opacity-0 group-hover/profile:opacity-100 transition-opacity">
-                  <button onClick={() => { setProfileName(savedProfile); setIsEditingProfile(true); }} className="text-text-secondary hover:text-foreground">
-                    <span className="material-symbols-outlined text-sm">edit</span>
+            {savedProfile ? (
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-foreground/10 backdrop-blur-sm border border-foreground/10 text-foreground text-xs font-semibold">
+                  <span className="material-symbols-outlined text-sm text-primary">verified</span>
+                  {savedProfile}
+                  <button
+                    onClick={() => { setSavedProfile(null); setProfileName(""); }}
+                    className="ml-0.5 text-text-secondary hover:text-foreground transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-sm">close</span>
                   </button>
-                  <button onClick={() => copyToClipboard(savedProfile, "profile")} className="text-text-secondary hover:text-foreground">
-                    <span className="material-symbols-outlined text-sm">{copiedField === "profile" ? "check" : "content_copy"}</span>
-                  </button>
-                </div>
+                </span>
+                <button
+                  onClick={() => { setProfileName(savedProfile); setIsEditingProfile(true); }}
+                  className="text-text-secondary hover:text-foreground transition-colors"
+                  title="Editar"
+                >
+                  <span className="material-symbols-outlined text-sm">edit</span>
+                </button>
               </div>
             ) : (
               <div className="flex gap-2">
@@ -230,18 +235,13 @@ export default function SubscriptionManage() {
                   className="bg-muted border-border text-foreground h-8 text-xs"
                   autoFocus={isEditingProfile}
                 />
-                <Button size="sm" onClick={handleSaveProfile} className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold shrink-0 text-xs h-8">
-                  Salvar
+                <Button size="sm" onClick={handleSaveProfile} disabled={!profileName.trim()} className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold shrink-0 text-xs h-8">
+                  Adicionar
                 </Button>
-                {isEditingProfile && (
-                  <Button size="sm" variant="outline" onClick={() => setIsEditingProfile(false)} className="shrink-0 text-xs h-8">
-                    Cancelar
-                  </Button>
-                )}
               </div>
             )}
             {!savedProfile && !isEditingProfile && (
-              <p className="text-text-secondary text-[10px] text-center">Opcional — informe em qual perfil este proxy está sendo usado.</p>
+              <p className="text-text-secondary text-[10px]">Opcional — informe em qual perfil este proxy está sendo usado.</p>
             )}
           </div>
         </div>

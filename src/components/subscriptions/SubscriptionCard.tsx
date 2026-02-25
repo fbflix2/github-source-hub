@@ -11,6 +11,7 @@ interface SubscriptionCardProps {
   formattedEnd: string;
   onRenew: () => void;
   isRenewing: boolean;
+  profileTag?: string | null;
 }
 
 function getStatusBadge(status: SubscriptionStatus) {
@@ -54,6 +55,7 @@ export default function SubscriptionCard({
   formattedEnd,
   onRenew,
   isRenewing,
+  profileTag,
 }: SubscriptionCardProps) {
   const navigate = useNavigate();
   return (
@@ -83,6 +85,14 @@ export default function SubscriptionCard({
         </div>
         {getStatusBadge(status)}
       </div>
+
+      {/* Profile Tag */}
+      {profileTag && (
+        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-foreground/10 backdrop-blur-sm border border-foreground/10 text-foreground text-[11px] font-semibold w-fit">
+          <span className="material-symbols-outlined text-sm text-primary">verified</span>
+          {profileTag}
+        </span>
+      )}
 
       {/* Status Info */}
       <div className="flex flex-col gap-1">
