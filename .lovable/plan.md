@@ -1,27 +1,36 @@
 
-## Tela de Assinaturas: Mostrar produtos disponíveis quando não há assinaturas
 
-Quando o cliente não possui nenhuma assinatura de proxy, em vez de exibir a tela vazia com filtros e "Nenhuma assinatura encontrada", a página mostrará os planos de proxy disponíveis da ProxyBR para que ele possa contratar diretamente.
+## Diagnosis
 
-### O que vai mudar
+The root cause is clear from the database evidence:
 
-**Página `/subscriptions` (`src/pages/Subscriptions.tsx`)**
+- **Payment `6f32de42`** is marked `status: completed` with metadata `{mp_status: approved, ...}`
+- **Balance** for the user is still `0.00`
+- **No `wallet_transactions`** record exists for this payment
 
-- Quando o carregamento terminar e a lista de assinaturas estiver vazia (0 itens), toda a interface atual (stats, filtros, cards vazios, banner CTA) será substituída por uma nova seção de "vitrine de planos".
-- Essa vitrine vai:
-  - Usar o hook `useProxyBRProducts()` (já existente em `useProxyBR.ts`) para buscar os produtos disponíveis na API ProxyBR.
-  - Exibir um header convidativo tipo "Escolha seu plano de Proxy" com subtítulo explicativo.
-  - Listar os produtos retornados em cards estilizados (seguindo o visual glass/dark do projeto), mostrando nome, descrição/tipo e preço de cada plano.
-  - Cada card terá um botão "Assinar" que redireciona para `/loja` ou abre o fluxo de contratação.
-- Quando o cliente **já tem** assinaturas (1 ou mais), a tela continua exatamente como está hoje (filtros, cards, modal de detalhes, banner CTA).
+**Root cause (line 93-96 of `mercadopago-webhook/index.ts`)**: When the first webhook arrives with status `pending`, the code overwrites the entire `metadata` column with `{mp_status: "pending", mp_status_detail: "..."}`, **destroying the `type: "wallet_recharge"` field** that was set during payment creation.
 
-### Detalhes técnicos
+Later, when the `approved` webhook arrives, it reads the payment and checks:
+```
+const isWalletRecharge = metadataObj.type === "wallet_recharge" && !orderId;
+```
+Since `type` was erased, `isWalletRecharge` is `false`. And `orderId` is `null`, so the order branch is also skipped. **Neither branch executes**, so the balance is never credited.
 
-1. No `Subscriptions.tsx`, importar `useProxyBRProducts` de `@/hooks/useProxyBR`.
-2. Chamar o hook no componente.
-3. Adicionar uma condição: se `!isLoading && !error && subscriptions.length === 0`, renderizar a seção de produtos em vez do conteúdo atual.
-4. A seção de produtos mostrará um grid de cards com os dados retornados pela API (`data` do hook), com skeleton durante carregamento dos produtos.
-5. O botão de cada produto levará o usuário para `/loja` para completar a compra.
+## Plan
 
-### Arquivo impactado
-- `src/pages/Subscriptions.tsx` -- adição de lógica condicional e novo bloco de UI para estado vazio com produtos.
+### 1. Fix the pending metadata update (line 89-98)
+Preserve existing metadata fields when updating for non-approved statuses by spreading the current metadata before adding new fields. This prevents the `type` field from being erased.
+
+### 2. Simplify the wallet recharge detection
+Instead of relying solely on `metadata.type`, determine wallet recharge based on `!orderId` (if there's no `order_id`, it's a wallet recharge). This is more robust and doesn't depend on metadata integrity.
+
+### 3. Fix the immediate balance credit
+After fixing the webhook, manually credit the user's balance for the already-completed payment `6f32de42` (R$ 2.10 to user `448f4563`) using a database insert to `wallet_transactions` and updating `profiles.balance`.
+
+### Files to modify
+- `supabase/functions/mercadopago-webhook/index.ts` -- Fix metadata preservation and wallet detection logic
+
+### Database fix needed
+- Update `profiles.balance` for user `448f4563-dd6a-44ea-9238-3c668ba6ea15` to credit the R$ 2.10
+- Insert corresponding `wallet_transactions` record
+
