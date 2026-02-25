@@ -201,6 +201,7 @@ export type Database = {
           expires_at: string | null
           id: string
           max_uses: number
+          product_id: string | null
           status: string
           used_count: number
         }
@@ -213,6 +214,7 @@ export type Database = {
           expires_at?: string | null
           id?: string
           max_uses?: number
+          product_id?: string | null
           status?: string
           used_count?: number
         }
@@ -225,10 +227,19 @@ export type Database = {
           expires_at?: string | null
           id?: string
           max_uses?: number
+          product_id?: string | null
           status?: string
           used_count?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "coupons_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notifications: {
         Row: {
