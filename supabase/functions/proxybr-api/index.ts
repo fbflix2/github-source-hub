@@ -25,7 +25,7 @@ async function fetchAllSubscriptions(apiKey: string, statusFilter?: string) {
   let allSubs: any[] = [];
   let page = 1;
   const maxPages = 300;
-  const DELAY_BETWEEN_PAGES = 2000; // 2s between requests
+  const DELAY_BETWEEN_PAGES = 2000;
   const MAX_RETRIES = 5;
 
   while (page <= maxPages) {
@@ -43,7 +43,6 @@ async function fetchAllSubscriptions(apiKey: string, statusFilter?: string) {
 
       if (response.status === 429) {
         const retryAfter = response.headers.get("Retry-After");
-        // Exponential backoff: 3s, 6s, 12s, 24s, 48s
         const waitMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : 3000 * Math.pow(2, attempt - 1);
         console.warn(`Rate limited on page ${page}, attempt ${attempt}/${MAX_RETRIES}. Waiting ${waitMs}ms...`);
         await sleep(waitMs);
@@ -54,7 +53,6 @@ async function fetchAllSubscriptions(apiKey: string, statusFilter?: string) {
     }
 
     if (!success || !response || !response.ok) {
-      // If rate limited after all retries, return what we have instead of crashing
       if (response?.status === 429) {
         console.warn(`Persistent rate limit after ${MAX_RETRIES} retries on page ${page}. Returning ${allSubs.length} subs fetched so far.`);
         break;
@@ -86,13 +84,11 @@ async function fetchAllSubscriptions(apiKey: string, statusFilter?: string) {
       break;
     }
 
-    // Delay between pages to respect rate limits
     await sleep(DELAY_BETWEEN_PAGES);
   }
 
   console.log(`Total subscriptions fetched: ${allSubs.length}`);
 
-  // Parse proxy codes into structured objects
   return allSubs.map((sub: any) => {
     if (sub.proxies?.data && Array.isArray(sub.proxies.data)) {
       sub.proxies.data = sub.proxies.data.map((p: any) => {
@@ -152,6 +148,150 @@ Deno.serve(async (req) => {
 
     const { action, ...params } = await req.json();
 
+    // =============================================
+    // NEW: Purchase proxy with balance (server-side)
+    // =============================================
+    if (action === "purchase-proxy-with-balance") {
+      const { order_id, product_variant_id, quantity, interval, total } = params as {
+        order_id: string;
+        product_variant_id: number;
+        quantity: number;
+        interval: string;
+        total: number;
+      };
+
+      if (!order_id || !product_variant_id || !total) {
+        throw new Error("Parâmetros obrigatórios: order_id, product_variant_id, total");
+      }
+
+      const supabaseAdmin = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+
+      // 1. Check balance
+      const { data: profile, error: profileError } = await supabaseAdmin
+        .from("profiles")
+        .select("balance")
+        .eq("user_id", user.id)
+        .single();
+
+      if (profileError || !profile) throw new Error("Perfil não encontrado");
+      if (profile.balance < total) {
+        throw new Error(`Saldo insuficiente. Você tem R$ ${profile.balance.toFixed(2)} e precisa de R$ ${total.toFixed(2)}`);
+      }
+
+      // 2. Contract proxy via ProxyBR API
+      console.log(`[purchase-proxy-with-balance] Contracting proxy: variant=${product_variant_id}, qty=${quantity || 1}, interval=${interval || "monthly"}`);
+      const contractUrl = `${PROXYBR_BASE}/subscriptions/contract`;
+      const contractResp = await proxyFetch(contractUrl, PROXYBR_API_KEY, "POST", JSON.stringify({
+        quantity: quantity || 1,
+        interval: interval || "monthly",
+        product_variant_id,
+      }));
+      const contractText = await contractResp.text();
+      console.log(`[purchase-proxy-with-balance] ProxyBR response [${contractResp.status}]: ${contractText.substring(0, 500)}`);
+
+      if (!contractResp.ok) {
+        let errDetails: any;
+        try { errDetails = JSON.parse(contractText); } catch { errDetails = contractText; }
+        throw new Error(`Erro ao contratar proxy: ${JSON.stringify(errDetails)}`);
+      }
+
+      let contractData: any;
+      try { contractData = JSON.parse(contractText); } catch { contractData = {}; }
+
+      const subCode = contractData.code || contractData.data?.code;
+      const endDate = contractData.due_date || contractData.end_date || null;
+
+      // 3. Debit balance
+      const newBalance = profile.balance - total;
+      await supabaseAdmin.from("profiles").update({ balance: newBalance }).eq("user_id", user.id);
+
+      // 4. Create wallet transaction
+      await supabaseAdmin.from("wallet_transactions").insert({
+        user_id: user.id,
+        type: "purchase",
+        title: `Compra Proxy #${subCode || order_id.slice(0, 8)}`,
+        amount: -total,
+        balance_after: newBalance,
+        reference_id: order_id,
+      });
+
+      // 5. Update order status to completed
+      await supabaseAdmin.from("orders").update({
+        status: "completed",
+        payment_method: "saldo",
+      }).eq("id", order_id);
+
+      // 6. Save subscription locally
+      if (subCode) {
+        const { data: existingSub } = await supabaseAdmin
+          .from("subscriptions")
+          .select("id")
+          .eq("name", subCode)
+          .eq("type", "proxybr")
+          .maybeSingle();
+
+        if (existingSub) {
+          await supabaseAdmin.from("subscriptions").update({
+            user_id: user.id,
+            status: "active",
+            end_date: endDate || null,
+            auto_renew: contractData.auto_renew_active ?? false,
+            raw_data: contractData,
+          }).eq("id", existingSub.id);
+        } else {
+          await supabaseAdmin.from("subscriptions").insert({
+            name: subCode,
+            type: "proxybr",
+            status: "active",
+            user_id: user.id,
+            start_date: new Date().toISOString(),
+            end_date: endDate || null,
+            auto_renew: contractData.auto_renew_active ?? false,
+            raw_data: contractData,
+          });
+        }
+        console.log(`[purchase-proxy-with-balance] Saved subscription ${subCode} for user ${user.id}`);
+
+        // 7. Set ProxyBR notes to user email
+        try {
+          const notesUrl = `${PROXYBR_BASE}/subscriptions/${subCode}`;
+          await proxyFetch(notesUrl, PROXYBR_API_KEY, "PUT", JSON.stringify({ notes: user.email }));
+          console.log(`[purchase-proxy-with-balance] Set notes for ${subCode} to ${user.email}`);
+        } catch (e) {
+          console.error(`Failed to set ProxyBR notes: ${e}`);
+        }
+      }
+
+      // 8. Update order_item delivery_data
+      const { data: orderItems } = await supabaseAdmin
+        .from("order_items")
+        .select("id")
+        .eq("order_id", order_id);
+
+      if (orderItems && orderItems.length > 0) {
+        await supabaseAdmin.from("order_items").update({
+          delivery_data: {
+            type: "proxy_contract",
+            fulfilled: true,
+            subscription_code: subCode || null,
+            product_variant_id,
+            quantity: quantity || 1,
+            interval: interval || "monthly",
+          },
+        }).eq("id", orderItems[0].id);
+      }
+
+      console.log(`[purchase-proxy-with-balance] Complete for order ${order_id}`);
+
+      return new Response(
+        JSON.stringify({ success: true, subscription_code: subCode, contract_data: contractData }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Update notes on a ProxyBR subscription
     if (action === "update-subscription-notes") {
       const { subscriptionCode, notes } = params as { subscriptionCode: string; notes: string };
@@ -183,7 +323,7 @@ Deno.serve(async (req) => {
     if (action === "get-all-subscriptions") {
       const statusFilter = (params as any).status || undefined;
       const startPage = (params as any).startPage || 1;
-      const maxPages = 1; // single page per call to stay within compute limits
+      const maxPages = 1;
 
       let subs: any[] = [];
       let page = startPage;
@@ -214,7 +354,6 @@ Deno.serve(async (req) => {
         }
 
         if (!success || !response || !response.ok) {
-          // Return what we have so far
           console.warn(`Stopping at page ${page} due to error ${response?.status}. Returning ${subs.length} subs.`);
           hitEnd = true;
           break;
@@ -225,7 +364,6 @@ Deno.serve(async (req) => {
 
         if (Array.isArray(parsed)) {
           if (parsed.length === 0) { hitEnd = true; break; }
-          // Parse proxy codes
           for (const sub of parsed) {
             if (sub.proxies?.data && Array.isArray(sub.proxies.data)) {
               sub.proxies.data = sub.proxies.data.map((p: any) => {
@@ -271,10 +409,8 @@ Deno.serve(async (req) => {
       const { data: isAdmin } = await supabaseAdmin.rpc("has_role", { _user_id: user.id, _role: "admin" });
       if (!isAdmin) throw new Error("Sem permissão de administrador");
 
-      // Background sync: fetch pages one at a time and upsert
       const doSync = async () => {
         try {
-          // Build email -> user_id map
           const emailToUserId = new Map<string, string>();
           let pg = 1;
           const perPage = 1000;
@@ -404,7 +540,6 @@ Deno.serve(async (req) => {
 
           console.log(`Sync complete: ${synced} synced, ${linked} linked`);
 
-          // Store result in site_settings for frontend polling
           await supabaseAdmin.from("site_settings").upsert({
             key: "sync_result",
             value: JSON.stringify({ synced, linked, total: synced, status: "done", timestamp: Date.now() }),
@@ -420,13 +555,11 @@ Deno.serve(async (req) => {
         }
       };
 
-      // Store "in_progress" status
       await supabaseAdmin.from("site_settings").upsert({
         key: "sync_result",
         value: JSON.stringify({ status: "in_progress", timestamp: Date.now() }),
       }, { onConflict: "key" });
 
-      // Run in background
       (globalThis as any).EdgeRuntime.waitUntil(doSync());
 
       return new Response(
@@ -435,7 +568,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Quick count check - lightweight, only fetches page 1 to get total
+    // Quick count check
     if (action === "check-subscription-count") {
       const url = `${PROXYBR_BASE}/subscriptions?page=1`;
       const resp = await proxyFetch(url, PROXYBR_API_KEY);
@@ -444,14 +577,11 @@ Deno.serve(async (req) => {
       let parsed: any;
       try { parsed = JSON.parse(text); } catch { throw new Error("Invalid JSON from ProxyBR"); }
       
-      // Try to get total from paginated response or array length
       let apiTotal = 0;
       if (parsed?.total) apiTotal = parsed.total;
       else if (parsed?.meta?.total) apiTotal = parsed.meta.total;
       else if (Array.isArray(parsed)) {
-        // If array, we need last_page info - estimate from first page
-        // This is a rough estimate; the real total comes from pagination metadata
-        apiTotal = parsed.length; // At least this many
+        apiTotal = parsed.length;
       } else if (parsed?.data) {
         apiTotal = parsed.total || parsed.meta?.total || parsed.data.length;
       }
@@ -494,7 +624,6 @@ Deno.serve(async (req) => {
           discount_coupon: params.discount_coupon || null,
         });
 
-        // Make the API call here to save locally with user_id
         console.log(`ProxyBR API call: POST ${url}`);
         const contractResponse = await proxyFetch(url, PROXYBR_API_KEY, "POST", body);
         const contractText = await contractResponse.text();
@@ -510,7 +639,6 @@ Deno.serve(async (req) => {
           );
         }
 
-        // Save subscription locally with the buyer's user_id
         const subCode = contractData.code || contractData.data?.code;
         const endDate = contractData.due_date || contractData.end_date || null;
         if (subCode) {
@@ -547,7 +675,6 @@ Deno.serve(async (req) => {
           }
           console.log(`Saved subscription ${subCode} linked to user ${user.id}`);
 
-          // Push buyer's email to ProxyBR notes for future sync matching
           try {
             const notesUrl = `${PROXYBR_BASE}/subscriptions/${subCode}`;
             console.log(`Setting ProxyBR notes for ${subCode} to "${user.email}"`);

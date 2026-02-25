@@ -91,7 +91,7 @@ export default function Orders() {
       const orderIds = ordersData.map((o) => o.id);
       const { data: itemsData } = await supabase
         .from("order_items")
-        .select("*")
+        .select("*, products:product_id(icon_type)")
         .in("order_id", orderIds.length > 0 ? orderIds : ["__none__"]);
 
       // Fetch stock_items to check blocked status
@@ -105,9 +105,16 @@ export default function Orders() {
         (stockItems || []).filter((s) => s.status === "bloqueado").map((s) => s.order_item_id)
       );
 
-      const enriched: Order[] = ordersData.map((order) => ({
+      // Filter out proxy-only orders
+      const nonProxyOrders = ordersData.filter((order) => {
+        const items = (itemsData || []).filter((i: any) => i.order_id === order.id);
+        const allProxy = items.length > 0 && items.every((i: any) => i.products?.icon_type === 'proxy');
+        return !allProxy;
+      });
+
+      const enriched: Order[] = nonProxyOrders.map((order) => ({
         ...order,
-        items: (itemsData || []).filter((i) => i.order_id === order.id).map((i) => ({
+        items: (itemsData || []).filter((i: any) => i.order_id === order.id).map((i: any) => ({
           ...i,
           isBlocked: blockedItemIds.has(i.id),
         })),
