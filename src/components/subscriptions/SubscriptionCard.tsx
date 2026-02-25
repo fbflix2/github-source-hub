@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import type { SubscriptionStatus, ProxySubscription } from "@/pages/Subscriptions";
 
 interface SubscriptionCardProps {
@@ -9,7 +10,6 @@ interface SubscriptionCardProps {
   formattedStart: string;
   formattedEnd: string;
   onRenew: () => void;
-  onManage: () => void;
   isRenewing: boolean;
 }
 
@@ -53,9 +53,9 @@ export default function SubscriptionCard({
   formattedStart,
   formattedEnd,
   onRenew,
-  onManage,
   isRenewing,
 }: SubscriptionCardProps) {
+  const navigate = useNavigate();
   return (
     <div
       className={`glass-card rounded-2xl p-6 flex flex-col gap-6 relative overflow-hidden group ${
@@ -160,7 +160,7 @@ export default function SubscriptionCard({
         )}
         {status === "active" && (
           <button
-            onClick={onManage}
+            onClick={() => navigate(`/subscriptions/${sub.code}`)}
             className="flex-1 border border-border hover:border-foreground text-foreground bg-transparent hover:bg-muted h-10 rounded-lg text-sm font-bold transition-all"
           >
             Gerenciar
