@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useProxyBRSubscriptions, useExchangeProxy, useRenewSubscription, useToggleAutoRenew } from "@/hooks/useProxyBR";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
@@ -29,7 +31,23 @@ export default function SubscriptionManage() {
   const renewMutation = useRenewSubscription();
   const autoRenewMutation = useToggleAutoRenew();
 
-  
+  // Fetch the price the customer actually paid from order_items
+  const { data: customerPrice } = useQuery({
+    queryKey: ["subscription-customer-price", code],
+    queryFn: async () => {
+      if (!code) return null;
+      const { data } = await supabase
+        .from("order_items")
+        .select("price, order_id")
+        .contains("delivery_data", { subscription_code: code })
+        .limit(1)
+        .maybeSingle();
+      return data?.price ?? null;
+    },
+    enabled: !!code,
+  });
+
+
   const [note, setNote] = useState("");
   const [notes, setNotes] = useState<{ text: string; date: string }[]>([]);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -127,7 +145,7 @@ export default function SubscriptionManage() {
                 { label: "Início", value: format(startDate, "dd MMM yyyy", { locale: ptBR }) },
                 { label: "Vencimento", value: format(endDate, "dd MMM yyyy", { locale: ptBR }) },
                 { label: "Dias Restantes", value: String(daysLeft), highlight: true },
-                { label: "Valor", value: `R$ ${((sub.raw_data as Record<string, any>)?.total_price ?? 0).toFixed(2).replace('.', ',')}` },
+                { label: "Valor Pago", value: customerPrice != null ? `R$ ${Number(customerPrice).toFixed(2).replace('.', ',')}` : "—" },
               ].map((item) => (
                 <div key={item.label} className="bg-muted/50 rounded-lg p-2.5 border border-border">
                   <p className="text-text-secondary text-[10px] uppercase tracking-wider font-semibold">{item.label}</p>
