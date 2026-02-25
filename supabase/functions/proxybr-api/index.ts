@@ -336,6 +336,39 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Toggle auto-renew on a ProxyBR subscription
+    if (action === "toggle-auto-renew") {
+      const { subscriptionCode, auto_renew } = params as { subscriptionCode: string; auto_renew: boolean };
+      if (!subscriptionCode) throw new Error("subscriptionCode é obrigatório");
+
+      const updateUrl = `${PROXYBR_BASE}/subscriptions/${subscriptionCode}`;
+      console.log(`Toggling auto_renew for ${subscriptionCode} to ${auto_renew}`);
+      const updateResp = await proxyFetch(updateUrl, PROXYBR_API_KEY, "PUT", JSON.stringify({ auto_renew_active: auto_renew }));
+      const updateText = await updateResp.text();
+      console.log(`ProxyBR toggle-auto-renew response [${updateResp.status}]: ${updateText.substring(0, 300)}`);
+
+      if (!updateResp.ok) {
+        return new Response(
+          JSON.stringify({ error: `ProxyBR API error [${updateResp.status}]`, details: updateText }),
+          { status: updateResp.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Update local DB
+      const supabaseAdmin = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+      await supabaseAdmin.from("subscriptions").update({ auto_renew }).eq("name", subscriptionCode).eq("type", "proxybr");
+
+      let updateData;
+      try { updateData = JSON.parse(updateText); } catch { updateData = { raw: updateText }; }
+      return new Response(
+        JSON.stringify(updateData),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Update notes on a ProxyBR subscription
     if (action === "update-subscription-notes") {
       const { subscriptionCode, notes } = params as { subscriptionCode: string; notes: string };
