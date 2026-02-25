@@ -110,10 +110,32 @@ export default function Checkout() {
       // Normal flow
       if (!productId) {
         if (cartItems.length > 0) {
+          // Try to get description from proxy_purchase sessionStorage
+          const proxyPurchaseStr = sessionStorage.getItem("proxy_purchase");
+          let proxyDescription: string | null = null;
+          if (proxyPurchaseStr) {
+            try {
+              const pp = JSON.parse(proxyPurchaseStr);
+              proxyDescription = pp.description || null;
+            } catch {}
+          }
+
+          // Try to fetch product from DB for description
+          let dbDescription: string | null = null;
+          const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cartItems[0].productId);
+          if (isValidUUID) {
+            const { data: dbProd } = await supabase
+              .from("products")
+              .select("description")
+              .eq("id", cartItems[0].productId)
+              .single();
+            dbDescription = dbProd?.description || null;
+          }
+
           setProduct({
             id: cartItems[0].productId,
             name: cartItems[0].name,
-            description: null,
+            description: dbDescription || proxyDescription,
             price: cartItems[0].price,
             image_url: cartItems[0].image,
             stock: 999,
