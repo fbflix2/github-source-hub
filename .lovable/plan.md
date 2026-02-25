@@ -2,35 +2,54 @@
 
 ## Diagnosis
 
-The root cause is clear from the database evidence:
+There are **three problems** causing proxy purchases to not appear in the Subscriptions tab:
 
-- **Payment `6f32de42`** is marked `status: completed` with metadata `{mp_status: approved, ...}`
-- **Balance** for the user is still `0.00`
-- **No `wallet_transactions`** record exists for this payment
+### Problem 1: `raw_data` not saved on contract (both flows)
 
-**Root cause (line 93-96 of `mercadopago-webhook/index.ts`)**: When the first webhook arrives with status `pending`, the code overwrites the entire `metadata` column with `{mp_status: "pending", mp_status_detail: "..."}`, **destroying the `type: "wallet_recharge"` field** that was set during payment creation.
+In `proxybr-api/index.ts` (lines 536-544), when `contract-subscription` creates a new subscription in the DB, it does **not** include `raw_data: contractData`. The `useProxyBRSubscriptions` hook reads `raw_data` to extract proxy IP/port/credentials and product name. Without `raw_data`, the subscription either doesn't render properly or is missing key fields.
 
-Later, when the `approved` webhook arrives, it reads the payment and checks:
-```
-const isWalletRecharge = metadataObj.type === "wallet_recharge" && !orderId;
-```
-Since `type` was erased, `isWalletRecharge` is `false`. And `orderId` is `null`, so the order branch is also skipped. **Neither branch executes**, so the balance is never credited.
+The same issue exists in the webhook (`mercadopago-webhook/index.ts`): when contracting server-side for PIX payments, the `raw_data` is saved, but only from the contract response which may not include `proxies.data` (the proxy details come from a separate GET call).
+
+### Problem 2: Balance payment calls `contractProxyIfNeeded` client-side, which depends on `sessionStorage`
+
+For balance payments (line 562 in Checkout.tsx), `contractProxyIfNeeded()` reads `sessionStorage("proxy_purchase")`. This works if the user stays on the page, but is fragile. More importantly, this duplicates contracting logic -- the `delivery_data` is also stored in `order_items` for webhook use, but the webhook path is only triggered for PIX payments.
+
+### Problem 3: Redirect goes to `/orders` instead of `/subscriptions`
+
+After successful balance payment (line 565), the user is redirected to `/orders`. Proxy purchases should redirect to `/subscriptions` instead.
+
+---
 
 ## Plan
 
-### 1. Fix the pending metadata update (line 89-98)
-Preserve existing metadata fields when updating for non-approved statuses by spreading the current metadata before adding new fields. This prevents the `type` field from being erased.
+### 1. Fix `raw_data` storage in `proxybr-api/index.ts` contract-subscription handler
 
-### 2. Simplify the wallet recharge detection
-Instead of relying solely on `metadata.type`, determine wallet recharge based on `!orderId` (if there's no `order_id`, it's a wallet recharge). This is more robust and doesn't depend on metadata integrity.
+When saving the subscription (both insert and update), include `raw_data: contractData` so the Subscriptions page can read proxy details and product name.
 
-### 3. Fix the immediate balance credit
-After fixing the webhook, manually credit the user's balance for the already-completed payment `6f32de42` (R$ 2.10 to user `448f4563`) using a database insert to `wallet_transactions` and updating `profiles.balance`.
+**File:** `supabase/functions/proxybr-api/index.ts`
+- Line 529-534 (update): add `raw_data: contractData`
+- Line 536-544 (insert): add `raw_data: contractData`
 
-### Files to modify
-- `supabase/functions/mercadopago-webhook/index.ts` -- Fix metadata preservation and wallet detection logic
+### 2. Redirect proxy purchases to `/subscriptions` instead of `/orders`
 
-### Database fix needed
-- Update `profiles.balance` for user `448f4563-dd6a-44ea-9238-3c668ba6ea15` to credit the R$ 2.10
-- Insert corresponding `wallet_transactions` record
+**File:** `src/pages/Checkout.tsx`
+- After balance payment success (line 562-565): check if this is a proxy purchase (`sessionStorage` has `proxy_purchase`) and redirect to `/subscriptions` instead of `/orders`
+- After PIX confirmation (line 314-317): same logic -- redirect to `/subscriptions` for proxy purchases
+
+### 3. Clean up `sessionStorage` after successful contract
+
+Ensure `sessionStorage.removeItem("proxy_purchase")` is called after the redirect target is determined but before navigation.
+
+### 4. No database changes needed
+
+The `subscriptions` table already has the `raw_data` JSONB column. The fix is purely in the edge function and checkout page code.
+
+---
+
+## Summary of file changes
+
+| File | Change |
+|------|--------|
+| `supabase/functions/proxybr-api/index.ts` | Add `raw_data: contractData` to both insert and update in `contract-subscription` handler |
+| `src/pages/Checkout.tsx` | Redirect to `/subscriptions` instead of `/orders` for proxy purchases (both saldo and PIX flows) |
 
