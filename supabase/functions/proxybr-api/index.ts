@@ -743,10 +743,9 @@ Deno.serve(async (req) => {
 
       case "exchange-proxy":
         if (!params.subscriptionCode) throw new Error("subscriptionCode é obrigatório");
-        if (!params.proxy_id) throw new Error("proxy_id é obrigatório");
         url = `${PROXYBR_BASE}/subscriptions/${params.subscriptionCode}/exchange-proxy`;
         method = "PUT";
-        body = JSON.stringify({ proxy_id: params.proxy_id });
+        body = params.proxy_id ? JSON.stringify({ proxy_id: params.proxy_id }) : undefined;
         break;
 
       default:

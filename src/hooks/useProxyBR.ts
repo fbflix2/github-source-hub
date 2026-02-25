@@ -150,8 +150,8 @@ export function useRenewSubscription() {
 export function useExchangeProxy() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ subscriptionCode, proxy_id }: { subscriptionCode: string; proxy_id: number }) =>
-      callProxyBR("exchange-proxy", { subscriptionCode, proxy_id }),
+    mutationFn: ({ subscriptionCode, proxy_id }: { subscriptionCode: string; proxy_id?: number }) =>
+      callProxyBR("exchange-proxy", { subscriptionCode, ...(proxy_id ? { proxy_id } : {}) }),
     onSuccess: () => {
       toast.success("Proxy trocado com sucesso!");
       queryClient.invalidateQueries({ queryKey: ["proxybr-subscriptions"] });

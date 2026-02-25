@@ -27,7 +27,7 @@ export default function SubscriptionManage() {
   const exchangeMutation = useExchangeProxy();
   const renewMutation = useRenewSubscription();
 
-  const [newProxyId, setNewProxyId] = useState("");
+  
   const [note, setNote] = useState("");
   const [notes, setNotes] = useState<{ text: string; date: string }[]>([]);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -65,14 +65,6 @@ export default function SubscriptionManage() {
   const elapsed = totalDays - daysLeft;
   const progress = totalDays > 0 ? Math.min(100, Math.max(0, (elapsed / totalDays) * 100)) : 0;
 
-  const handleExchange = () => {
-    const id = parseInt(newProxyId);
-    if (isNaN(id)) return;
-    exchangeMutation.mutate(
-      { subscriptionCode: sub.code, proxy_id: id },
-      { onSuccess: () => setNewProxyId("") }
-    );
-  };
 
   const handleAddNote = () => {
     if (!note.trim()) return;
@@ -256,13 +248,33 @@ export default function SubscriptionManage() {
               <span className="material-symbols-outlined text-primary text-base">swap_horiz</span>
               Trocar Proxy
             </h2>
-            <p className="text-text-secondary text-[10px]">Insira o ID do novo proxy. A troca é imediata.</p>
-            <div className="flex gap-2">
-              <Input placeholder="ID do novo proxy" value={newProxyId} onChange={(e) => setNewProxyId(e.target.value)} className="bg-muted border-border text-foreground h-8 text-xs" />
-              <Button size="sm" onClick={handleExchange} disabled={!newProxyId || exchangeMutation.isPending} className="bg-primary hover:bg-[#00c968] text-background font-bold shrink-0 text-xs h-8">
-                {exchangeMutation.isPending ? "..." : "Trocar"}
-              </Button>
-            </div>
+            {(() => {
+              const raw = (sub.raw_data || {}) as Record<string, any>;
+              const freeExchanges = raw.exchange_quota_free ?? 0;
+              const paidExchanges = raw.exchange_quota_pay ?? 0;
+              return (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-text-secondary">Trocas grátis</span>
+                    <span className={`font-bold ${freeExchanges > 0 ? 'text-green-500' : 'text-text-secondary'}`}>{freeExchanges}</span>
+                  </div>
+                  {freeExchanges > 0 && (
+                    <Button
+                      size="sm"
+                      onClick={() => exchangeMutation.mutate({ subscriptionCode: sub.code })}
+                      disabled={exchangeMutation.isPending}
+                      className="w-full bg-primary hover:bg-[#00c968] text-background font-bold text-xs h-8"
+                    >
+                      <span className="material-symbols-outlined text-sm mr-1">swap_horiz</span>
+                      {exchangeMutation.isPending ? "Trocando..." : "Trocar Proxy (Grátis)"}
+                    </Button>
+                  )}
+                  {freeExchanges === 0 && (
+                    <p className="text-text-secondary text-[10px]">Nenhuma troca grátis disponível.</p>
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
           {/* Quick Actions */}
