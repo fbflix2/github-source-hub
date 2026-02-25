@@ -238,11 +238,16 @@ export default function Checkout() {
   // Contract proxy subscription if this is a proxy purchase
   const contractProxyIfNeeded = async () => {
     const proxyPurchaseStr = sessionStorage.getItem("proxy_purchase");
+    console.log("[Checkout] contractProxyIfNeeded called, proxy_purchase:", proxyPurchaseStr);
     if (!proxyPurchaseStr) return;
     
     try {
       const proxyPurchase = JSON.parse(proxyPurchaseStr);
-      if (!proxyPurchase.product_variant_id) return;
+      console.log("[Checkout] proxy_purchase parsed:", proxyPurchase);
+      if (!proxyPurchase.product_variant_id) {
+        console.warn("[Checkout] No product_variant_id in proxy_purchase");
+        return;
+      }
 
       toast.info("Ativando seu proxy...");
       
