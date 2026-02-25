@@ -109,6 +109,7 @@ export function useProxyBRSubscriptions() {
           auto_renew: sub.auto_renew,
           proxy: proxyInfo,
           raw_data: raw,
+          profile_tag: raw.profile_tag || null,
         };
       });
     },
