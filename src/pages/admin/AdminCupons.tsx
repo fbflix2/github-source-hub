@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { NovoCupomModal } from "@/components/admin/NovoCupomModal";
+import { NovoCupomModal, type CouponData } from "@/components/admin/NovoCupomModal";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -85,6 +85,17 @@ export default function AdminCupons() {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingCoupon, setEditingCoupon] = useState<CouponData | null>(null);
+
+  const handleEdit = (coupon: DbCoupon) => {
+    setEditingCoupon(coupon);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = (open: boolean) => {
+    setIsModalOpen(open);
+    if (!open) setEditingCoupon(null);
+  };
 
   const fetchCoupons = async () => {
     const { data, error } = await supabase
@@ -205,7 +216,7 @@ export default function AdminCupons() {
         </Button>
       </header>
 
-      <NovoCupomModal open={isModalOpen} onOpenChange={setIsModalOpen} onCreated={fetchCoupons} />
+      <NovoCupomModal open={isModalOpen} onOpenChange={handleCloseModal} onCreated={fetchCoupons} editCoupon={editingCoupon} />
 
       {/* Metrics */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
@@ -374,6 +385,9 @@ export default function AdminCupons() {
                       </>
                     ) : (
                       <>
+                        <button onClick={() => handleEdit(coupon)} className="p-2 rounded-lg bg-white/5 hover:bg-blue-500/20 text-white/60 hover:text-blue-400 transition-colors" title="Editar">
+                          <Edit className="w-5 h-5" />
+                        </button>
                         <button onClick={() => handleStatusChange(coupon.id, "paused")} className="p-2 rounded-lg bg-white/5 hover:bg-yellow-500/20 text-white/60 hover:text-yellow-400 transition-colors" title="Pausar">
                           <Pause className="w-5 h-5" />
                         </button>
