@@ -1,12 +1,10 @@
 import { useState } from "react";
-import { useProxyBRSubscriptions, useRenewSubscription, useExchangeProxy } from "@/hooks/useProxyBR";
+import { useProxyBRSubscriptions, useRenewSubscription } from "@/hooks/useProxyBR";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { differenceInDays, parseISO, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import SubscriptionCard from "@/components/subscriptions/SubscriptionCard";
-import SubscriptionDetailModal from "@/components/subscriptions/SubscriptionDetailModal";
-
 
 export type SubscriptionStatus = "active" | "expiring" | "cancelled" | "expired";
 
@@ -62,7 +60,6 @@ function getDaysInfo(sub: ProxySubscription) {
 
 export default function Subscriptions() {
   const [activeFilter, setActiveFilter] = useState<string>("all");
-  const [selectedSub, setSelectedSub] = useState<ProxySubscription | null>(null);
   const { data: subscriptionsRaw, isLoading, error } = useProxyBRSubscriptions();
   const renewMutation = useRenewSubscription();
 
@@ -241,7 +238,6 @@ export default function Subscriptions() {
               formattedStart={sub.formattedStart}
               formattedEnd={sub.formattedEnd}
               onRenew={() => handleRenew(sub.code)}
-              onManage={() => setSelectedSub(sub)}
               isRenewing={renewMutation.isPending}
             />
           ))}
@@ -272,14 +268,6 @@ export default function Subscriptions() {
         </a>
       </div>
 
-      {/* Detail Modal */}
-      {selectedSub && (
-        <SubscriptionDetailModal
-          subscription={selectedSub}
-          open={!!selectedSub}
-          onClose={() => setSelectedSub(null)}
-        />
-      )}
     </div>
   );
 }

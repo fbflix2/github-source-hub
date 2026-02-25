@@ -13,6 +13,7 @@ import Auth from "./pages/Auth";
 import Loja from "./pages/Loja";
 import Checkout from "./pages/Checkout";
 import Subscriptions from "./pages/Subscriptions";
+import SubscriptionManage from "./pages/SubscriptionManage";
 import Orders from "./pages/Orders";
 import ItemDetails from "./pages/ItemDetails";
 import ItemDetailsHashRedirect from "./pages/ItemDetailsHashRedirect";
@@ -82,6 +83,7 @@ function AuthenticatedApp({ user, onLogout }: { user: User; onLogout: () => void
         <Route path="/loja" element={<Loja />} />
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/subscriptions" element={<Subscriptions />} />
+        <Route path="/subscriptions/:code" element={<SubscriptionManage />} />
         <Route path="/orders" element={<Orders />} />
         <Route path="/item-details" element={<ItemDetailsHashRedirect />} />
         <Route path="/item-details/:orderId/:itemId" element={<ItemDetails />} />
