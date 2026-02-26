@@ -212,9 +212,9 @@ export default function Wallet() {
                 R$ {balance.toFixed(2).replace(".", ",")}
               </h2>
               {todayDeposits > 0 && (
-                <div className="flex items-center gap-1.5 mt-2 text-primary font-medium bg-primary/5 w-fit px-2 py-1 rounded-md border border-primary/10 text-xs">
+                <div className="flex items-center gap-1.5 mt-2 text-emerald-400 font-medium bg-emerald-500/10 w-fit px-2 py-1 rounded-md border border-emerald-500/20 text-xs">
                   <span className="material-symbols-outlined text-[16px]">trending_up</span>
-                  <span>+R$ {todayDeposits.toFixed(2).replace(".", ",")} recebidos hoje</span>
+                  <span>+R$ {todayDeposits.toFixed(2).replace(".", ",")} adicionados hoje</span>
                 </div>
               )}
             </div>
