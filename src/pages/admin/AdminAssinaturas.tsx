@@ -193,6 +193,7 @@ export default function AdminAssinaturas() {
         const { data } = await supabase
           .from("subscriptions")
           .select("*")
+          .neq("status", "cancelled")
           .order("created_at", { ascending: false })
           .range(from, from + pageSize - 1);
         if (!data?.length) break;
