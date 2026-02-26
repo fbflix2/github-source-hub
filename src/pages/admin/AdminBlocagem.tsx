@@ -52,7 +52,7 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
   const [showImagePicker, setShowImagePicker] = useState(false);
   const [formData, setFormData] = useState({
     linkPerfil: "", idPerfil: "", emailAcesso: "", emailAlternativo: "",
-    senha: "", token2fa: "", tempoPlataforma: "3-meses", statusAtual: "aquecido",
+    senha: "", senhaEmail: "", token2fa: "", tempoPlataforma: "3-meses", statusAtual: "aquecido",
     cookies: "", descricao: "", nomePerfil: "", dataNascimento: "", genero: "masculino",
     linkDocumento: "", fotoUrl: "", preco: "", categoryId: "", tags: [] as string[], nomeProduto: ""
   });
@@ -81,6 +81,7 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
         dataNascimento: formData.dataNascimento,
         genero: formData.genero,
         linkDocumento: formData.linkDocumento,
+        senhaEmail: formData.senhaEmail,
         emailAcesso: formData.emailAcesso,
         emailAlternativo: formData.emailAlternativo,
         senha: formData.senha,
@@ -103,7 +104,7 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
     toast.success("Perfil adicionado à pasta! Formulário pronto para novo cadastro.");
     setFormData({
       linkPerfil: "", idPerfil: "", emailAcesso: "", emailAlternativo: "",
-      senha: "", token2fa: "", tempoPlataforma: "3-meses", statusAtual: "aquecido",
+      senha: "", senhaEmail: "", token2fa: "", tempoPlataforma: "3-meses", statusAtual: "aquecido",
       cookies: "", descricao: "", nomePerfil: "", dataNascimento: "", genero: "masculino",
       linkDocumento: "", fotoUrl: "", preco: "", categoryId: "", tags: [] as string[], nomeProduto: ""
     });
@@ -178,7 +179,24 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
                 </div>
               </div>
               {[
-                { label: "Email de Acesso", icon: Mail, key: "emailAcesso", placeholder: "exemplo@fbflix.com", type: "email" },
+                { label: "Email FB", icon: Mail, key: "emailAcesso", placeholder: "exemplo@fbflix.com", type: "email" },
+              ].map(f => (
+                <div key={f.key} className="flex flex-col gap-1 group">
+                  <label className="text-xs font-medium text-zinc-400 group-focus-within:text-white transition-colors">{f.label}</label>
+                  <div className="relative">
+                    <f.icon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                    <Input type={f.type} placeholder={f.placeholder} value={(formData as any)[f.key]} onChange={e => setFormData({ ...formData, [f.key]: e.target.value })} className={`pl-10 bg-black/30 border-white/5 text-white placeholder:text-zinc-600`} />
+                  </div>
+                </div>
+              ))}
+              <div className="flex flex-col gap-1 group">
+                <label className="text-xs font-medium text-zinc-400 group-focus-within:text-white transition-colors">Senha Email</label>
+                <div className="relative">
+                  <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                  <Input type="text" placeholder="Senha do email" value={formData.senhaEmail} onChange={e => setFormData({ ...formData, senhaEmail: e.target.value })} className="pl-10 bg-black/30 border-white/5 text-white placeholder:text-zinc-600" />
+                </div>
+              </div>
+              {[
                 { label: "Email Alternativo", icon: AtSign, key: "emailAlternativo", placeholder: "recuperacao@email.com", type: "email" },
               ].map(f => (
                 <div key={f.key} className="flex flex-col gap-1 group">
