@@ -179,7 +179,7 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
                 </div>
               </div>
               {[
-                { label: "Email FB", icon: Mail, key: "emailAcesso", placeholder: "exemplo@fbflix.com", type: "email" },
+                { label: "E-mail", icon: Mail, key: "emailAcesso", placeholder: "exemplo@fbflix.com", type: "email" },
               ].map(f => (
                 <div key={f.key} className="flex flex-col gap-1 group">
                   <label className="text-xs font-medium text-zinc-400 group-focus-within:text-white transition-colors">{f.label}</label>
