@@ -76,14 +76,11 @@ export function AdminSidebar() {
       <div className="flex flex-col h-full overflow-hidden">
         {/* Logo */}
         <div className="flex-none flex items-center gap-2 px-4 py-5">
-          <img src={logoFbflix} alt="FBFLIX" className="size-8 object-contain" />
+          <img src={logoFbflix} alt="FBFLIX" className="h-9 w-auto object-contain" />
           {!collapsed && (
-            <div className="flex flex-col">
-              <h1 className="text-white text-sm font-bold tracking-tight">
-                FBFLIX <span className="text-primary">Admin</span>
-              </h1>
-              <p className="text-white/40 text-[10px] font-medium">v2.0 Dashboard</p>
-            </div>
+            <h1 className="text-white text-sm font-bold tracking-tight">
+              FBFLIX <span className="text-primary">Admin</span>
+            </h1>
           )}
         </div>
 
