@@ -35,13 +35,13 @@ export function Navbar({ userName, balance, avatarUrl, onLogout, unreadTickets =
     <header className="fixed top-0 left-0 right-0 z-50 glass-panel border-b border-white/5">
       <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
         {/* Logo */}
-        <NavLink to="/loja" className="flex items-center gap-2 select-none cursor-pointer mr-6">
+        <NavLink to="/loja" className="flex items-center gap-2 select-none cursor-pointer mr-4 shrink-0">
           <img src={logoFbflix} alt="FBFLIX" className="w-8 h-8 object-contain" />
           <h1 className="text-xl font-bold tracking-tight text-foreground">FBFLIX</h1>
         </NavLink>
 
         {/* Navigation Links */}
-        <nav className="hidden md:flex items-center gap-8">
+        <nav className="hidden md:flex items-center gap-6 whitespace-nowrap">
           {navLinks.map((link) => {
             const isActive = location.pathname === link.url;
             return (
@@ -64,7 +64,7 @@ export function Navbar({ userName, balance, avatarUrl, onLogout, unreadTickets =
         </nav>
 
         {/* Right Actions */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 shrink-0 whitespace-nowrap">
           {/* Tickets Button */}
           <NavLink
             to="/tickets"
