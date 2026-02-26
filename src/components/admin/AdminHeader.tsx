@@ -82,8 +82,6 @@ export function AdminHeader() {
       <AdminProfileModal
         open={showProfile}
         onOpenChange={setShowProfile}
-        currentName={userName}
-        currentAvatar={avatarUrl}
         onProfileUpdated={(name, avatar) => {
           setUserName(name);
           setAvatarUrl(avatar);

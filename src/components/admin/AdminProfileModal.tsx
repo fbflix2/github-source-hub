@@ -11,25 +11,36 @@ import { toast } from "sonner";
 interface AdminProfileModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  currentName: string;
-  currentAvatar: string | null;
   onProfileUpdated: (name: string, avatar: string | null) => void;
 }
 
-export function AdminProfileModal({ open, onOpenChange, currentName, currentAvatar, onProfileUpdated }: AdminProfileModalProps) {
-  const [name, setName] = useState(currentName);
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(currentAvatar);
+export function AdminProfileModal({ open, onOpenChange, onProfileUpdated }: AdminProfileModalProps) {
+  const [name, setName] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  // Sync state when modal opens
+  // Load profile data directly when modal opens
   useEffect(() => {
-    if (open) {
-      setName(currentName);
-      setAvatarUrl(currentAvatar);
-    }
-  }, [open, currentName, currentAvatar]);
+    if (!open) return;
+    setLoading(true);
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setLoading(false); return; }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name, avatar_url")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      setName(profile?.full_name || user.user_metadata?.full_name || user.email?.split("@")[0] || "");
+      setAvatarUrl(profile?.avatar_url || user.user_metadata?.avatar_url || null);
+      setLoading(false);
+    })();
+  }, [open]);
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -102,51 +113,57 @@ export function AdminProfileModal({ open, onOpenChange, currentName, currentAvat
           <DialogTitle>Editar Perfil</DialogTitle>
         </DialogHeader>
 
-        <div className="flex flex-col items-center gap-4 py-4">
-          {/* Avatar */}
-          <div className="relative group cursor-pointer" onClick={() => fileRef.current?.click()}>
-            <Avatar className="size-24 border-2 border-border">
-              <AvatarImage src={avatarUrl || undefined} />
-              <AvatarFallback className="text-2xl font-bold bg-primary/20 text-primary">
-                {(name || "?").charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-              {uploading ? (
-                <Loader2 className="size-6 text-white animate-spin" />
-              ) : (
-                <Camera className="size-6 text-white" />
-              )}
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="size-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <>
+            <div className="flex flex-col items-center gap-4 py-4">
+              <div className="relative group cursor-pointer" onClick={() => fileRef.current?.click()}>
+                <Avatar className="size-24 border-2 border-border">
+                  <AvatarImage src={avatarUrl || undefined} />
+                  <AvatarFallback className="text-2xl font-bold bg-primary/20 text-primary">
+                    {(name || "?").charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  {uploading ? (
+                    <Loader2 className="size-6 text-white animate-spin" />
+                  ) : (
+                    <Camera className="size-6 text-white" />
+                  )}
+                </div>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAvatarUpload}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">Clique para trocar a foto</p>
+
+              <div className="w-full space-y-2">
+                <Label htmlFor="profile-name">Nome</Label>
+                <Input
+                  id="profile-name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Seu nome"
+                />
+              </div>
             </div>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleAvatarUpload}
-            />
-          </div>
-          <p className="text-xs text-muted-foreground">Clique para trocar a foto</p>
 
-          {/* Name */}
-          <div className="w-full space-y-2">
-            <Label htmlFor="profile-name">Nome</Label>
-            <Input
-              id="profile-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Seu nome"
-            />
-          </div>
-        </div>
-
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleSave} disabled={saving}>
-            {saving ? <Loader2 className="size-4 animate-spin mr-2" /> : null}
-            Salvar
-          </Button>
-        </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+              <Button onClick={handleSave} disabled={saving}>
+                {saving ? <Loader2 className="size-4 animate-spin mr-2" /> : null}
+                Salvar
+              </Button>
+            </div>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );
