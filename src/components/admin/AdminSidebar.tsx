@@ -80,7 +80,7 @@ export function AdminSidebar() {
   const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>(allMenuItems);
   const location = useLocation();
-  const { hasUnread } = useTeamChatNotifications();
+  const { hasUnread, unreadCount } = useTeamChatNotifications();
 
   useEffect(() => {
     checkPermissions();
@@ -187,11 +187,17 @@ export function AdminSidebar() {
                   >
                     <item.icon className={cn(
                       "size-4 transition-colors",
-                      isActive && !hasSubItems ? "text-white" : "group-hover:text-primary"
+                      isActive && !hasSubItems ? "text-white" : "group-hover:text-primary",
+                      item.path === "/admin/chat" && hasUnread && "animate-bounce text-green-400"
                     )} />
                     {!collapsed && (
                       <>
-                        <span className="text-xs font-medium flex-1">{item.title}</span>
+                        <span className={cn(
+                          "text-xs font-medium flex-1",
+                          item.path === "/admin/chat" && hasUnread && "text-green-400 font-bold"
+                        )}>
+                          {item.title}
+                        </span>
                         {hasSubItems && (
                           <ChevronDown className={cn(
                             "size-3 transition-transform duration-200",
@@ -200,11 +206,11 @@ export function AdminSidebar() {
                         )}
                       </>
                     )}
-                    {/* Chat unread indicator */}
+                    {/* Chat unread badge */}
                     {item.path === "/admin/chat" && hasUnread && (
-                      <span className="relative flex size-2.5">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                        <span className="relative inline-flex rounded-full size-2.5 bg-green-500" />
+                      <span className="relative flex items-center justify-center min-w-[20px] h-5 px-1 rounded-full bg-green-500 text-white text-[10px] font-bold shadow-lg shadow-green-500/40">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-40" />
+                        <span className="relative">{unreadCount > 99 ? "99+" : unreadCount}</span>
                       </span>
                     )}
                   </NavLink>
