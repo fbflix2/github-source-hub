@@ -1,3 +1,4 @@
+// Admin layout wrapper with auth check
 import { Outlet, useLocation } from "react-router-dom";
 import { AdminSidebar } from "./AdminSidebar";
 import { AdminHeader } from "./AdminHeader";
