@@ -58,6 +58,14 @@ Deno.serve(async (req) => {
       return await handleToggleStatus(supabaseAdmin, body);
     }
 
+    if (req.method === "POST" && body.action === "get_permissions") {
+      return await handleGetPermissions(supabaseAdmin, body);
+    }
+
+    if (req.method === "POST" && body.action === "set_permissions") {
+      return await handleSetPermissions(supabaseAdmin, body);
+    }
+
     throw new Error("Ação não reconhecida");
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Erro desconhecido";
@@ -227,6 +235,37 @@ async function handleToggleStatus(sb: any, body: any) {
     .from("profiles")
     .update({ status: new_status })
     .eq("user_id", user_id);
+
+  if (error) throw new Error(error.message);
+
+  return jsonResponse({ success: true });
+}
+
+async function handleGetPermissions(sb: any, body: any) {
+  const { user_id } = body;
+  if (!user_id) throw new Error("user_id é obrigatório");
+
+  const { data, error } = await sb
+    .from("moderator_permissions")
+    .select("allowed_paths")
+    .eq("user_id", user_id)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+
+  return jsonResponse({ allowed_paths: data?.allowed_paths || [] });
+}
+
+async function handleSetPermissions(sb: any, body: any) {
+  const { user_id, allowed_paths } = body;
+  if (!user_id || !Array.isArray(allowed_paths)) throw new Error("Dados incompletos");
+
+  const { error } = await sb
+    .from("moderator_permissions")
+    .upsert(
+      { user_id, allowed_paths, updated_at: new Date().toISOString() },
+      { onConflict: "user_id" }
+    );
 
   if (error) throw new Error(error.message);
 
