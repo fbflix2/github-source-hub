@@ -257,6 +257,8 @@ Deno.serve(async (req) => {
 
             const existing = existingMap.get(code);
             if (existing) {
+              // Always include user_id for updates (required NOT NULL column)
+              record.user_id = existing.user_id;
               if (matchedUserId && existing.user_id === fallbackUserId) {
                 record.user_id = matchedUserId;
                 linked++;
