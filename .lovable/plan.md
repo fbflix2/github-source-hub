@@ -1,54 +1,34 @@
 
 
-## Plano: Corrigir calculo de custo real na Central Proxy
+## Diagnosis: Sync Incomplete — ProxyBR has 2458 records, local DB only has 1160
 
-### Problema
+### Root Cause
 
-Atualmente a Central Proxy usa `variant[].price` da API ProxyBR como custo. Porem esse valor (ex: R$ 15,00) e o **preco sugerido de venda**, nao o custo real de revenda. O custo real e o valor com o desconto de revendedor aplicado (no seu caso, 46% de desconto, resultando em R$ 8,10).
+The ProxyBR API returns **10 items per page** (fixed). With 2458 subscriptions, that's **~246 pages**. The sync function uses a **1 second delay** between pages, meaning a full sync requires ~246 seconds minimum. However, Supabase Edge Functions have a **~150 second wall clock limit** (even with `waitUntil`), so the sync **consistently times out around page 100-120** (~1000-1200 records), never reaching the remaining ~1300 records.
 
-A API ProxyBR nao retorna o percentual de desconto do revendedor. Portanto, esse valor precisa ser configurado localmente.
+The logs confirm this: the function boots, processes through page 100+, then shuts down without reaching completion or writing the "done" status — leaving the lock stuck at `in_progress`.
 
-### Solucao
+### Solution: Resumable Chunked Sync
 
-Adicionar um campo editavel de **"Desconto de Revenda (%)"** na pagina Central Proxy, persistido na tabela `site_settings` (chave `proxybr_reseller_discount`). O calculo de custo passara a ser:
+Modify `sync-subscriptions-cron` to **resume from where it left off** instead of restarting from page 1 each time:
 
-```text
-custo_real = preco_api * (1 - desconto/100)
+1. **Persist progress** — Save the last successfully processed page number in `site_settings` (key: `sync_progress`) after each batch of pages
+2. **Resume on next run** — On startup, read the last page and continue from there instead of page 1
+3. **Reduce delay** — Drop inter-page delay from 1000ms to 400ms (the API allows this based on rate limit behavior)
+4. **Process in chunks of ~80 pages per run** (~80 seconds) — well within the timeout limit
+5. **Mark "done" only when API returns empty** — then reset progress to page 1 for next full cycle
+6. **Fix stuck lock** — Reset `sync_result` to idle when resuming, so cron runs aren't blocked
 
-Exemplo: R$ 15,00 * (1 - 46/100) = R$ 8,10
-```
+### Changes
 
-### Alteracoes
+**File: `supabase/functions/sync-subscriptions-cron/index.ts`**
+- Read `sync_progress` from `site_settings` to get `lastPage` (default: 1)
+- Change `let page = 1` to `let page = lastPage`
+- Reduce `DELAY` from 1000 to 400
+- Add `MAX_PAGES_PER_RUN = 80` limit per execution
+- After processing each batch of 10 pages, persist current page to `sync_progress`
+- When API returns empty (all pages done), reset `sync_progress` to 1 and mark status "done"
+- When hitting `MAX_PAGES_PER_RUN`, save progress and mark status "partial_done" so next cron picks up
 
-**`src/pages/admin/AdminCentralProxy.tsx`**:
-1. Buscar o valor de `proxybr_reseller_discount` da tabela `site_settings` ao carregar
-2. Adicionar um input editavel no header para o percentual de desconto (com botao salvar)
-3. Na tabela, mostrar 3 colunas de preco:
-   - **Preco API** (valor original da API, em cinza/menor - informativo)
-   - **Custo Real** (preco API com desconto aplicado - coluna principal)
-   - **Venda** (preco local)
-4. Recalcular margem como: `margem = preco_venda - custo_real`
-5. O card de resumo "Margem Media" usara o custo real
-
-### Detalhes tecnicos
-
-- Leitura: `supabase.from("site_settings").select("value").eq("key", "proxybr_reseller_discount").single()`
-- Escrita: `supabase.from("site_settings").upsert({ key: "proxybr_reseller_discount", value: "46" })`
-- O desconto sera aplicado uniformemente a todas as variantes (conforme funciona no painel ProxyBR)
-- Default: 0% se nao configurado (comportamento atual preservado)
-
-### Interface
-
-```text
-+------------------------------------------------------------------+
-| Central Proxy                          [Desconto Revenda: 46% ✏️] |
-+------------------------------------------------------------------+
-| [Produtos: 5] [Margem Media: 62%] [Estoque: 259]                |
-+------------------------------------------------------------------+
-| Produto      | Variante       | API   | Custo  | Venda | Margem | Estoque |
-|--------------|----------------|-------|--------|-------|--------|---------|
-| IPV6 HTTP    | SUDESTE/CENTRAL| R$15  | R$8,10 | R$21  | R$12,90 61%| 126 |
-| IPV4 SOCKS5  | GERAL/OUTROS   | R$22  | R$11,88| R$30  | R$18,12 60%| 40  |
-+------------------------------------------------------------------+
-```
+This means a full sync of 246 pages will complete across **3 cron runs** (~3 minutes total with 10-minute cron interval = ~30 minutes for full sync), but each run stays safely within timeout limits.
 
