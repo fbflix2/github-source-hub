@@ -369,7 +369,7 @@ export default function AdminAssinaturas() {
     }
   }, [queryClient]);
 
-  // Generate credentials for active subscribers & export xlsx
+  // Generate credentials for all clients & export xlsx (background job)
   const handleGenerateCredentials = useCallback(async () => {
     setGeneratingCredentials(true);
     try {
@@ -378,47 +378,80 @@ export default function AdminAssinaturas() {
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(data.error);
 
-      const creds = data.credentials || [];
-      if (creds.length === 0) {
-        toast.warning(`Nenhuma credencial gerada. ${data.skipped || 0} assinaturas sem email identificável.`);
+      if (data?.status === "in_progress") {
+        toast.info(`Já em andamento (${data.progress || 0}%)...`);
+      } else {
+        toast.info("Gerando credenciais em segundo plano...");
+      }
+
+      // Poll for completion
+      const poll = async () => {
+        for (let i = 0; i < 180; i++) {
+          await new Promise(r => setTimeout(r, 3000));
+          const { data: setting } = await supabase
+            .from("site_settings")
+            .select("value")
+            .eq("key", "credentials_job")
+            .maybeSingle();
+          if (!setting?.value) continue;
+          try {
+            const result = JSON.parse(setting.value);
+            if (result.status === "in_progress") {
+              if (i % 5 === 0) toast.info(`Progresso: ${result.progress || 0}% (${result.processed || 0}/${result.total || "?"})`);
+              continue;
+            }
+            if (result.status === "done") {
+              const creds = result.credentials || [];
+              if (creds.length === 0) {
+                toast.warning("Nenhuma credencial gerada.");
+                setGeneratingCredentials(false);
+                return;
+              }
+
+              // Build xlsx
+              const loginUrl = "https://fbflix.com.br/auth";
+              const rows = creds.map((c: any) => ({
+                "Nome": c.full_name || "",
+                "Email": c.email,
+                "Senha": c.password,
+                "Telefone": c.phone || "",
+                "Link de Login": loginUrl,
+                "Assinaturas Ativas": c.active_subscriptions || 0,
+                "Produtos": c.subscription_products || "",
+                "Status": c.status || "",
+              }));
+
+              const ws = XLSX.utils.json_to_sheet(rows);
+              const wb = XLSX.utils.book_new();
+              XLSX.utils.book_append_sheet(wb, ws, "Credenciais");
+              const colWidths = Object.keys(rows[0] || {}).map(key => ({
+                wch: Math.max(key.length, ...rows.map((r: any) => String(r[key] || "").length)) + 2
+              }));
+              ws["!cols"] = colWidths;
+              XLSX.writeFile(wb, `credenciais_clientes_${new Date().toISOString().slice(0, 10)}.xlsx`);
+
+              toast.success(`${creds.length} credenciais geradas!`);
+              if (result.errors?.length) {
+                console.warn("Erros:", result.errors);
+                toast.info(`${result.errors.length} clientes com problemas. Veja o console.`);
+              }
+              queryClient.invalidateQueries({ queryKey: ["admin-subscriptions-cached"] });
+              setGeneratingCredentials(false);
+              return;
+            }
+            if (result.status === "error") {
+              toast.error(`Erro: ${result.error}`);
+              setGeneratingCredentials(false);
+              return;
+            }
+          } catch {}
+        }
+        toast.error("Timeout aguardando geração de credenciais");
         setGeneratingCredentials(false);
-        return;
-      }
-
-      // Build xlsx
-      const loginUrl = "https://fbflix.com.br/auth";
-      const rows = creds.map((c: any) => ({
-        "Nome": c.full_name || "",
-        "Email": c.email,
-        "Senha": c.password,
-        "Telefone": c.phone || "",
-        "Link de Login": loginUrl,
-        "Assinaturas Ativas": c.active_subscriptions || 0,
-        "Produtos": c.subscription_products || "",
-        "Status": c.status || "",
-      }));
-
-      const ws = XLSX.utils.json_to_sheet(rows);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Credenciais");
-      
-      // Auto-size columns
-      const colWidths = Object.keys(rows[0] || {}).map(key => ({
-        wch: Math.max(key.length, ...rows.map((r: any) => String(r[key] || "").length)) + 2
-      }));
-      ws["!cols"] = colWidths;
-
-      XLSX.writeFile(wb, `credenciais_clientes_${new Date().toISOString().slice(0, 10)}.xlsx`);
-
-      toast.success(`${creds.length} credenciais geradas! ${data.passwords_reset} senhas resetadas.`);
-      if (data.errors?.length) {
-        console.warn("Erros:", data.errors);
-        toast.info(`${data.errors.length} clientes com problemas. Veja o console.`);
-      }
-      queryClient.invalidateQueries({ queryKey: ["admin-subscriptions-cached"] });
+      };
+      poll();
     } catch (err: any) {
       toast.error(`Erro: ${err.message}`);
-    } finally {
       setGeneratingCredentials(false);
     }
   }, [queryClient]);
