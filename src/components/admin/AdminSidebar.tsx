@@ -3,6 +3,7 @@ import logoFbflix from "@/assets/logo-fbflix.png";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { useTeamChatNotifications } from "@/hooks/useTeamChatNotifications";
 import { 
   LayoutDashboard, 
   Package, 
@@ -79,6 +80,7 @@ export function AdminSidebar() {
   const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>(allMenuItems);
   const location = useLocation();
+  const { hasUnread } = useTeamChatNotifications();
 
   useEffect(() => {
     checkPermissions();
@@ -197,6 +199,13 @@ export function AdminSidebar() {
                           )} />
                         )}
                       </>
+                    )}
+                    {/* Chat unread indicator */}
+                    {item.path === "/admin/chat" && hasUnread && (
+                      <span className="relative flex size-2.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                        <span className="relative inline-flex rounded-full size-2.5 bg-green-500" />
+                      </span>
                     )}
                   </NavLink>
                 </div>

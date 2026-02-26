@@ -57,14 +57,34 @@ export default function AdminTeamChat() {
   const [message, setMessage] = useState("");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [userProfiles, setUserProfiles] = useState<Record<string, UserInfo>>({});
+  const profilesRef = useRef<Record<string, UserInfo>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const isInitialLoad = useRef(true);
 
-  // Get current user
+  // Keep ref in sync
+  useEffect(() => { profilesRef.current = userProfiles; }, [userProfiles]);
+
+  // Get current user and their profile
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) setCurrentUserId(user.id);
+      if (user) {
+        setCurrentUserId(user.id);
+        // Load own profile immediately
+        supabase
+          .from("profiles")
+          .select("user_id, full_name, avatar_url")
+          .eq("user_id", user.id)
+          .maybeSingle()
+          .then(({ data }) => {
+            if (data) {
+              setUserProfiles(prev => ({
+                ...prev,
+                [data.user_id]: { full_name: data.full_name, avatar_url: data.avatar_url }
+              }));
+            }
+          });
+      }
     });
   }, []);
 
@@ -81,12 +101,12 @@ export default function AdminTeamChat() {
       return (data || []) as TeamMessage[];
     },
     staleTime: 5_000,
-    refetchInterval: 10_000, // Poll every 10s as fallback
+    refetchInterval: 10_000,
   });
 
   // Load user profiles for messages
   const loadProfiles = useCallback(async (userIds: string[]) => {
-    const missing = userIds.filter(id => !userProfiles[id]);
+    const missing = userIds.filter(id => !profilesRef.current[id]);
     if (missing.length === 0) return;
 
     const { data } = await supabase
@@ -95,21 +115,20 @@ export default function AdminTeamChat() {
       .in("user_id", missing);
 
     if (data) {
-      const newProfiles: Record<string, UserInfo> = { ...userProfiles };
-      data.forEach(p => {
-        newProfiles[p.user_id] = {
-          full_name: p.full_name,
-          avatar_url: p.avatar_url,
-        };
+      setUserProfiles(prev => {
+        const updated = { ...prev };
+        data.forEach(p => {
+          updated[p.user_id] = { full_name: p.full_name, avatar_url: p.avatar_url };
+        });
+        return updated;
       });
-      setUserProfiles(newProfiles);
     }
-  }, [userProfiles]);
+  }, []);
 
   useEffect(() => {
     const userIds = [...new Set(messages.map(m => m.user_id))];
     if (userIds.length > 0) loadProfiles(userIds);
-  }, [messages]);
+  }, [messages, loadProfiles]);
 
   // Realtime subscription
   useEffect(() => {
@@ -127,15 +146,13 @@ export default function AdminTeamChat() {
             return [...old, newMsg];
           });
 
-          // Play sound
           if (newMsg.user_id === currentUserId) {
             playNotificationSound("send");
           } else {
             playNotificationSound("receive");
           }
 
-          // Load profile if missing
-          if (!userProfiles[newMsg.user_id]) {
+          if (!profilesRef.current[newMsg.user_id]) {
             loadProfiles([newMsg.user_id]);
           }
         }
@@ -153,15 +170,11 @@ export default function AdminTeamChat() {
         }
       )
       .subscribe((status) => {
-        console.log("Team chat realtime status:", status);
-        if (status === "SUBSCRIBED") {
-          // Refetch to ensure we have latest data
-          refetch();
-        }
+        if (status === "SUBSCRIBED") refetch();
       });
 
     return () => { supabase.removeChannel(channel); };
-  }, [currentUserId, queryClient, refetch]);
+  }, [currentUserId, queryClient, refetch, loadProfiles]);
 
   // Auto-scroll
   useEffect(() => {
@@ -240,7 +253,6 @@ export default function AdminTeamChat() {
 
         {groupedMessages.map((group) => (
           <div key={group.date}>
-            {/* Date separator */}
             <div className="flex items-center gap-3 my-4">
               <div className="flex-1 h-px bg-white/10" />
               <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{group.date}</span>
@@ -262,7 +274,6 @@ export default function AdminTeamChat() {
                     showAvatar ? "mt-3" : "mt-0.5"
                   )}
                 >
-                  {/* Avatar */}
                   <div className="w-8 flex-shrink-0">
                     {showAvatar && (
                       <Avatar className="size-8">
@@ -274,7 +285,6 @@ export default function AdminTeamChat() {
                     )}
                   </div>
 
-                  {/* Bubble */}
                   <div className={cn("max-w-[70%] flex flex-col", isMe ? "items-end" : "items-start")}>
                     {showAvatar && (
                       <span className={cn(
