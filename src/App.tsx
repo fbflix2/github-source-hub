@@ -123,56 +123,37 @@ const App = () => {
 
         // On sign-in (including OAuth), check if user is admin/moderator and redirect
         if (event === 'SIGNED_IN' && session?.user) {
-          const userId = session.user.id;
-          const { data: isAdmin } = await supabase.rpc('has_role', {
-            _user_id: userId,
-            _role: 'admin' as const,
-          });
-          if (isAdmin) {
-            if (!window.location.pathname.startsWith('/admin')) {
+          // Prevent redirect loop: only redirect once per session
+          const redirectKey = `staff_redirect_${session.user.id}`;
+          if (sessionStorage.getItem(redirectKey)) return;
+
+          if (!window.location.pathname.startsWith('/admin')) {
+            const userId = session.user.id;
+            const { data: isAdmin } = await supabase.rpc('has_role', {
+              _user_id: userId,
+              _role: 'admin' as const,
+            });
+            let isStaff = !!isAdmin;
+            if (!isStaff) {
+              const { data: isMod } = await supabase.rpc('has_role', {
+                _user_id: userId,
+                _role: 'moderator' as const,
+              });
+              isStaff = !!isMod;
+            }
+            if (isStaff) {
+              sessionStorage.setItem(redirectKey, 'true');
               window.location.href = '/admin';
             }
-            return;
-          }
-          const { data: isMod } = await supabase.rpc('has_role', {
-            _user_id: userId,
-            _role: 'moderator' as const,
-          });
-          if (isMod) {
-            if (!window.location.pathname.startsWith('/admin')) {
-              window.location.href = '/admin';
-            }
-            return;
           }
         }
       }
     );
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
-
-      // On initial load, redirect staff to admin if on client routes
-      if (session?.user && !window.location.pathname.startsWith('/admin')) {
-        const userId = session.user.id;
-        const { data: isAdmin } = await supabase.rpc('has_role', {
-          _user_id: userId,
-          _role: 'admin' as const,
-        });
-        if (isAdmin) {
-          window.location.href = '/admin';
-          return;
-        }
-        const { data: isMod } = await supabase.rpc('has_role', {
-          _user_id: userId,
-          _role: 'moderator' as const,
-        });
-        if (isMod) {
-          window.location.href = '/admin';
-          return;
-        }
-      }
     });
 
     return () => subscription.unsubscribe();
