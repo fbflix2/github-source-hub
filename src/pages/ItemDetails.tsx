@@ -501,31 +501,39 @@ export default function ItemDetails() {
                   {isConfirmedOk ? 'Confirmado' : 'OK'}
                 </button>
               </div>
-              {/* Feedback Timer */}
-              <div className="p-3 rounded-lg bg-gradient-to-br from-muted/30 to-primary/5 border border-primary/20">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="material-symbols-outlined text-primary text-[16px]">timer</span>
-                  <span className="text-foreground text-xs font-bold">Tempo de Feedback</span>
+              {/* Feedback Timer or Thank You */}
+              {isConfirmedOk ? (
+                <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-center">
+                  <span className="material-symbols-outlined text-emerald-400 text-[28px] mb-1">sentiment_very_satisfied</span>
+                  <p className="text-emerald-400 text-sm font-bold">Obrigado pelo feedback!</p>
+                  <p className="text-emerald-400/70 text-[10px] mt-1">Você confirmou que o item está funcionando corretamente.</p>
                 </div>
-                <p className="text-[10px] text-text-secondary mb-2">24h para testar e reportar problemas.</p>
-                <div className="flex justify-center gap-2 mb-2">
-                  {[
-                    { val: countdown.hours, label: 'Horas' },
-                    { val: countdown.minutes, label: 'Min' },
-                    { val: countdown.seconds, label: 'Seg' },
-                  ].map((t) => (
-                    <div key={t.label} className="flex flex-col items-center">
-                      <div className="w-10 h-10 rounded-lg bg-background/50 border border-border flex items-center justify-center text-base font-mono font-bold text-foreground">
-                        {t.val.toString().padStart(2, '0')}
+              ) : (
+                <div className="p-3 rounded-lg bg-gradient-to-br from-muted/30 to-primary/5 border border-primary/20">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="material-symbols-outlined text-primary text-[16px]">timer</span>
+                    <span className="text-foreground text-xs font-bold">Tempo de Feedback</span>
+                  </div>
+                  <p className="text-[10px] text-text-secondary mb-2">24h para testar e reportar problemas.</p>
+                  <div className="flex justify-center gap-2 mb-2">
+                    {[
+                      { val: countdown.hours, label: 'Horas' },
+                      { val: countdown.minutes, label: 'Min' },
+                      { val: countdown.seconds, label: 'Seg' },
+                    ].map((t) => (
+                      <div key={t.label} className="flex flex-col items-center">
+                        <div className="w-10 h-10 rounded-lg bg-background/50 border border-border flex items-center justify-center text-base font-mono font-bold text-foreground">
+                          {t.val.toString().padStart(2, '0')}
+                        </div>
+                        <span className="text-[8px] uppercase text-text-secondary mt-0.5">{t.label}</span>
                       </div>
-                      <span className="text-[8px] uppercase text-text-secondary mt-0.5">{t.label}</span>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+                  <div className="h-1 w-full bg-muted rounded-full overflow-hidden">
+                    <div className="h-full bg-primary rounded-full shadow-glow transition-all duration-1000" style={{ width: `${progressPercent}%` }}></div>
+                  </div>
                 </div>
-                <div className="h-1 w-full bg-muted rounded-full overflow-hidden">
-                  <div className="h-full bg-primary rounded-full shadow-glow transition-all duration-1000" style={{ width: `${progressPercent}%` }}></div>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
