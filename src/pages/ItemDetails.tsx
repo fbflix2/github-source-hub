@@ -17,6 +17,7 @@ interface StockData {
   emailAcesso?: string;
   emailAlternativo?: string;
   senha?: string;
+  senhaEmail?: string;
   token2fa?: string;
   cookies?: string;
   descricao?: string;
@@ -27,6 +28,8 @@ interface StockData {
   tempoPlataforma?: string;
   statusAtual?: string;
   foto_url?: string;
+  linkPerfil?: string;
+  idPerfil?: string;
 }
 
 export default function ItemDetails() {
@@ -101,9 +104,11 @@ export default function ItemDetails() {
         setStockItemId(stockItem.id);
         if (stockItem.status === "bloqueado") setIsBlocked(true);
         if (stockItem.status === "ok") setIsConfirmedOk(true);
-        if (stockItem.data && typeof stockItem.data === "object") {
-          setStockData(stockItem.data as StockData);
-        }
+        const baseData = (stockItem.data && typeof stockItem.data === "object") ? stockItem.data as StockData : {} as StockData;
+        // Merge top-level stock_items fields into stockData for template replacement
+        if (stockItem.identification_link) baseData.linkPerfil = stockItem.identification_link;
+        if (stockItem.identification) baseData.idPerfil = stockItem.identification;
+        setStockData(baseData);
       }
 
       // Fetch product info
@@ -232,6 +237,7 @@ export default function ItemDetails() {
         "{{emailAcesso}}": email,
         "{{emailAlternativo}}": stockData.emailAlternativo || "—",
         "{{senha}}": senha,
+        "{{senhaEmail}}": stockData.senhaEmail || "—",
         "{{token2fa}}": token2fa,
         "{{dataNascimento}}": stockData.dataNascimento || "—",
         "{{genero}}": stockData.genero || "—",
@@ -240,6 +246,8 @@ export default function ItemDetails() {
         "{{descricao}}": descricao || "—",
         "{{cookies}}": stockData.cookies || "—",
         "{{linkDocumento}}": stockData.linkDocumento || "—",
+        "{{linkPerfil}}": stockData.linkPerfil || "—",
+        "{{idPerfil}}": stockData.idPerfil || "—",
         "{{pedido}}": order?.code || "—",
         "{{data}}": order?.created_at ? formatDate(order.created_at) : "—",
         "{{nomeProduto}}": itemName,
