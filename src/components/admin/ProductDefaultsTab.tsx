@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Trash2, SquarePen, Save, Loader2, PackageOpen, X, Tag, Download, AlertTriangle, DollarSign, Clock, FileText, ImageIcon } from "lucide-react";
+import { Plus, Trash2, SquarePen, Save, Loader2, PackageOpen, X, Tag, Download, AlertTriangle, DollarSign, Clock, FileText, ImageIcon, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -43,6 +43,7 @@ export default function ProductDefaultsTab({ searchTerm }: ProductDefaultsTabPro
   const [formTempo, setFormTempo] = useState("");
   const [formDescription, setFormDescription] = useState("");
   const [formImage, setFormImage] = useState("");
+  const [activeFilter, setActiveFilter] = useState<string>("todos");
   const [tagInput, setTagInput] = useState("");
   const [saving, setSaving] = useState(false);
   const [importingProxy, setImportingProxy] = useState(false);
@@ -227,10 +228,28 @@ export default function ProductDefaultsTab({ searchTerm }: ProductDefaultsTabPro
     }
   };
 
-  const filtered = items.filter((i) =>
-    i.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    i.tags.some((t) => t.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const categorizeItem = (item: ProductDefault): string => {
+    const nameLower = item.name.toLowerCase();
+    const hasProxyTag = item.tags.some(t => t.toLowerCase() === "proxy");
+    if (nameLower.startsWith("proxy") || hasProxyTag) return "proxy";
+    if (nameLower.startsWith("perfil") || nameLower.includes("perfil")) return "perfil";
+    return "outro";
+  };
+
+  const filtered = items.filter((i) => {
+    const matchesSearch = i.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      i.tags.some((t) => t.toLowerCase().includes(searchTerm.toLowerCase()));
+    if (!matchesSearch) return false;
+    if (activeFilter === "todos") return true;
+    return categorizeItem(i) === activeFilter;
+  });
+
+  const counts = {
+    todos: items.length,
+    perfil: items.filter(i => categorizeItem(i) === "perfil").length,
+    proxy: items.filter(i => categorizeItem(i) === "proxy").length,
+    outro: items.filter(i => categorizeItem(i) === "outro").length,
+  };
 
   return (
     <>
@@ -262,6 +281,33 @@ export default function ProductDefaultsTab({ searchTerm }: ProductDefaultsTabPro
         <p className="text-muted-foreground text-sm mb-6">
           Crie nomes padrão de produtos com tags pré-definidas. Na blocagem, ao selecionar um padrão, as tags serão vinculadas automaticamente.
         </p>
+
+        {/* Filter tabs */}
+        {!loading && items.length > 0 && (
+          <div className="flex items-center gap-2 mb-6 flex-wrap">
+            <Filter className="w-4 h-4 text-muted-foreground" />
+            {([
+              { key: "todos", label: "Todos" },
+              { key: "perfil", label: "Perfis" },
+              { key: "proxy", label: "Proxys" },
+              { key: "outro", label: "Outros" },
+            ] as const).map(({ key, label }) => (
+              counts[key] > 0 && (
+                <button
+                  key={key}
+                  onClick={() => setActiveFilter(key)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    activeFilter === key
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "bg-white/5 text-muted-foreground hover:bg-white/10 hover:text-foreground"
+                  }`}
+                >
+                  {label} ({counts[key]})
+                </button>
+              )
+            ))}
+          </div>
+        )}
 
         {loading ? (
           <div className="flex items-center justify-center py-12">
