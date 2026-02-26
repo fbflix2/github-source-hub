@@ -4,6 +4,7 @@ import { Navbar } from "./Navbar";
 import { Headphones, MessageCircleQuestion, Ticket } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { WaitlistStockAlert } from "@/components/WaitlistStockAlert";
 
 interface MainLayoutProps {
   userName: string;
@@ -71,6 +72,9 @@ export function MainLayout({ userName, userEmail, onLogout, unreadTickets = 0 }:
       <main className="pt-28 pb-20 px-6 max-w-7xl mx-auto">
         <Outlet />
       </main>
+
+      {/* Waitlist stock alert popup */}
+      <WaitlistStockAlert />
 
       {/* Floating Help Button with Dropdown */}
       <div className="fixed bottom-6 right-6 z-40" ref={supportMenuRef}>
