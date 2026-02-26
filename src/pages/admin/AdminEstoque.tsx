@@ -120,36 +120,68 @@ export default function AdminEstoque() {
       return;
     }
     const selectedStockItems = items.filter(i => selectedItems.includes(i.id));
-    const productsToCreate = selectedStockItems.map(item => {
+    let successCount = 0;
+
+    for (const item of selectedStockItems) {
       const data = item.data || {};
-      return {
-        name: data.nomeProduto || item.name,
-        price: data.preco ? parseFloat(data.preco) : 0,
-        stock: 1,
-        description: data.descricao || null,
-        category_id: data.categoryId || null,
-        icon_type: item.type === "bm" ? "bm" : item.type === "perfil" ? "perfil" : "page",
-        tags: data.tags && data.tags.length > 0 ? data.tags : null,
-        image_url: data.foto_url || null,
-        status: "estoque_interno",
-        available: false,
-      };
-    });
-    const { data: createdProducts, error: productError } = await supabase
-      .from("products")
-      .insert(productsToCreate)
-      .select("id");
-    if (productError || !createdProducts) {
-      toast.error("Erro ao criar produtos: " + (productError?.message || "Erro desconhecido"));
-      return;
-    }
-    for (let i = 0; i < selectedStockItems.length; i++) {
+      const productName = data.nomeProduto || item.name;
+      const iconType = item.type === "bm" ? "bm" : item.type === "perfil" ? "perfil" : "page";
+
+      // Check if a product with the same name and icon_type already exists
+      const { data: existingProducts } = await supabase
+        .from("products")
+        .select("id, stock")
+        .eq("name", productName)
+        .eq("icon_type", iconType)
+        .limit(1);
+
+      let productId: string;
+
+      if (existingProducts && existingProducts.length > 0) {
+        // Product exists — increment stock
+        const existing = existingProducts[0];
+        const newStock = (existing.stock || 0) + 1;
+        await supabase
+          .from("products")
+          .update({ stock: newStock, available: true })
+          .eq("id", existing.id);
+        productId = existing.id;
+      } else {
+        // Create new product
+        const { data: created, error: productError } = await supabase
+          .from("products")
+          .insert({
+            name: productName,
+            price: data.preco ? parseFloat(data.preco) : 0,
+            stock: 1,
+            description: data.descricao || null,
+            category_id: data.categoryId || null,
+            icon_type: iconType,
+            tags: data.tags && data.tags.length > 0 ? data.tags : null,
+            image_url: data.foto_url || null,
+            status: "estoque_interno",
+            available: false,
+          })
+          .select("id")
+          .single();
+        if (productError || !created) {
+          toast.error(`Erro ao criar produto "${productName}": ${productError?.message || "Erro"}`);
+          continue;
+        }
+        productId = created.id;
+      }
+
+      // Link stock item to the product
       await supabase
         .from("stock_items")
-        .update({ status: "revisado", product_id: createdProducts[i].id })
-        .eq("id", selectedStockItems[i].id);
+        .update({ status: "revisado", product_id: productId })
+        .eq("id", item.id);
+      successCount++;
     }
-    toast.success(`${selectedItems.length} item(ns) enviado(s) para Produtos!`);
+
+    if (successCount > 0) {
+      toast.success(`${successCount} item(ns) sincronizado(s) com Produtos!`);
+    }
     setSelectedItems([]);
     fetchItems();
   };
