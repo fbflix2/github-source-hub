@@ -51,8 +51,8 @@ const menuItems = [
     { title: "Tutoriais", icon: GraduationCap, path: "/admin/tutoriais" },
     { title: "Termos de uso", icon: FileText, path: "/admin/termos" },
     { title: "Usuários e Acessos", icon: ShieldCheck, path: "/admin/configuracoes/usuarios" },
+    { title: "API | Token", icon: Key, path: "/admin/api" },
   ]},
-  { title: "API | Token", icon: Key, path: "/admin/api" },
 ];
 
 export function AdminSidebar() {
