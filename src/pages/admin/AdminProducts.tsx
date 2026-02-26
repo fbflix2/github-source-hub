@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { 
   Search, Plus, Upload, User, Briefcase, Globe, Server, Tag, Save, X,
   Filter, ChevronLeft, ChevronRight, Edit, Trash2, Image as ImageIcon, Loader2, ImagePlus,
-  BarChart3, Download, BellRing, Clock
+  BarChart3, Download, BellRing, Clock, CheckSquare, Square, CheckCheck
 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -86,7 +87,9 @@ export default function AdminProducts() {
   // Table state
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // Category management
   const [newCategory, setNewCategory] = useState("");
@@ -284,6 +287,31 @@ export default function AdminProducts() {
     fetchData();
   };
 
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0) return;
+    if (!window.confirm(`Tem certeza que deseja excluir ${selectedIds.size} produto(s)?`)) return;
+    
+    for (const id of selectedIds) {
+      await supabase.from("stock_items").update({ product_id: null }).eq("product_id", id);
+      await supabase.from("order_items").update({ product_id: null }).eq("product_id", id);
+      await supabase.from("subscriptions").update({ product_id: null }).eq("product_id", id);
+      await supabase.from("products").delete().eq("id", id);
+    }
+    toast.success(`${selectedIds.size} produto(s) excluído(s)!`);
+    setSelectedIds(new Set());
+    fetchData();
+  };
+
+  const handleBulkStatusChange = async (newStatus: string) => {
+    if (selectedIds.size === 0) return;
+    for (const id of selectedIds) {
+      await supabase.from("products").update({ status: newStatus, available: newStatus === "active" }).eq("id", id);
+    }
+    toast.success(`${selectedIds.size} produto(s) atualizado(s) para "${newStatus === "active" ? "Ativo" : newStatus === "estoque_interno" ? "Estoque Interno" : "Inativo"}"!`);
+    setSelectedIds(new Set());
+    fetchData();
+  };
+
   const handleAddCategory = async () => {
     if (!newCategory.trim()) return;
     const slug = newCategory.trim().toLowerCase().replace(/\s+/g, "-");
@@ -329,11 +357,39 @@ export default function AdminProducts() {
   const filtered = products.filter(p => {
     const matchesSearch = !searchTerm || p.name.toLowerCase().includes(searchTerm.toLowerCase()) || p.tags?.some(t => t.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesCategory = filterCategory === "all" || p.category_id === filterCategory;
-    return matchesSearch && matchesCategory;
+    const matchesStatus = filterStatus === "all" || p.status === filterStatus;
+    return matchesSearch && matchesCategory && matchesStatus;
   });
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
   const paginated = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
+  const allPageSelected = paginated.length > 0 && paginated.every(p => selectedIds.has(p.id));
+  const someSelected = selectedIds.size > 0;
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (allPageSelected) {
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        paginated.forEach(p => next.delete(p.id));
+        return next;
+      });
+    } else {
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        paginated.forEach(p => next.add(p.id));
+        return next;
+      });
+    }
+  };
 
   if (loading) {
     return (
@@ -530,13 +586,50 @@ export default function AdminProducts() {
                     {categories.map(cat => <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
+                <Select value={filterStatus} onValueChange={v => { setFilterStatus(v); setCurrentPage(1); }}>
+                  <SelectTrigger className="bg-zinc-900/50 border-zinc-700 text-white w-[160px] text-sm"><SelectValue placeholder="Todos Status" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos Status</SelectItem>
+                    <SelectItem value="active">Ativo</SelectItem>
+                    <SelectItem value="estoque_interno">Estoque Interno</SelectItem>
+                    <SelectItem value="inactive">Inativo</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
+
+            {/* Bulk Actions Bar */}
+            {someSelected && (
+              <div className="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-primary/10 border border-primary/20">
+                <CheckCheck className="h-4 w-4 text-primary" />
+                <span className="text-sm text-white font-medium">{selectedIds.size} selecionado(s)</span>
+                <div className="flex items-center gap-2 ml-auto">
+                  <Select onValueChange={handleBulkStatusChange}>
+                    <SelectTrigger className="bg-zinc-900/80 border-zinc-700 text-white w-[170px] text-xs h-8"><SelectValue placeholder="Alterar status..." /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Marcar como Ativo</SelectItem>
+                      <SelectItem value="estoque_interno">Marcar como Estoque Interno</SelectItem>
+                      <SelectItem value="inactive">Marcar como Inativo</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button size="sm" variant="ghost" className="text-red-400 hover:text-red-300 hover:bg-red-500/10 gap-1.5 h-8 text-xs" onClick={handleBulkDelete}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Excluir
+                  </Button>
+                  <Button size="sm" variant="ghost" className="text-zinc-400 hover:text-white h-8 text-xs" onClick={() => setSelectedIds(new Set())}>
+                    Limpar seleção
+                  </Button>
+                </div>
+              </div>
+            )}
 
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="border-zinc-800 hover:bg-transparent">
+                    <TableHead className="w-10">
+                      <Checkbox checked={allPageSelected} onCheckedChange={toggleSelectAll} className="border-zinc-600 data-[state=checked]:bg-primary data-[state=checked]:border-primary" />
+                    </TableHead>
                     <TableHead className="text-zinc-400 text-xs font-medium">IMAGEM</TableHead>
                     <TableHead className="text-zinc-400 text-xs font-medium">NOME DO PRODUTO</TableHead>
                     <TableHead className="text-zinc-400 text-xs font-medium">CATEGORIA</TableHead>
@@ -550,14 +643,18 @@ export default function AdminProducts() {
                 <TableBody>
                   {paginated.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center text-zinc-500 py-12">
+                      <TableCell colSpan={9} className="text-center text-zinc-500 py-12">
                         Nenhum produto cadastrado ainda.
                       </TableCell>
                     </TableRow>
                   ) : paginated.map(product => {
                     const iconKey = (product.icon_type as ProductIcon) || "perfil";
+                    const isSelected = selectedIds.has(product.id);
                     return (
-                      <TableRow key={product.id} className="border-zinc-800 hover:bg-zinc-800/30">
+                      <TableRow key={product.id} className={`border-zinc-800 hover:bg-zinc-800/30 ${isSelected ? "bg-primary/5" : ""}`}>
+                        <TableCell>
+                          <Checkbox checked={isSelected} onCheckedChange={() => toggleSelect(product.id)} className="border-zinc-600 data-[state=checked]:bg-primary data-[state=checked]:border-primary" />
+                        </TableCell>
                         <TableCell>
                           {product.image_url ? (
                             <div className="w-10 h-10 rounded-lg overflow-hidden bg-zinc-800">
