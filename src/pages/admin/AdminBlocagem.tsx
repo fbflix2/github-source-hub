@@ -275,7 +275,14 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
                   <label className="text-xs font-medium text-zinc-400">Nome do Produto</label>
                   <Select value={formData.nomeProduto} onValueChange={v => {
                     const def = productDefaults.find(d => d.name === v);
-                    setFormData({ ...formData, nomeProduto: v, tags: def?.tags ?? [] });
+                    setFormData({
+                      ...formData,
+                      nomeProduto: v,
+                      tags: def?.tags ?? [],
+                      preco: (def as any)?.price ? String((def as any).price) : formData.preco,
+                      tempoPlataforma: (def as any)?.tempo_plataforma || formData.tempoPlataforma,
+                      descricao: (def as any)?.description || formData.descricao,
+                    });
                   }}>
                     <SelectTrigger className="bg-black/30 border-white/5 text-white text-xs"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                     <SelectContent>
