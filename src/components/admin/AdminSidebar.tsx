@@ -28,7 +28,8 @@ import {
   Headphones,
   Palette,
   Megaphone,
-  ShieldCheck
+  ShieldCheck,
+  MessageCircle
 } from "lucide-react";
 
 interface SubItem {
@@ -60,6 +61,7 @@ const allMenuItems: MenuItem[] = [
   { title: "Cupons", icon: Ticket, path: "/admin/cupons" },
   { title: "Anúncios", icon: Megaphone, path: "/admin/anuncios" },
   { title: "Notificações", icon: Bell, path: "/admin/notificacoes" },
+  { title: "Chat Equipe", icon: MessageCircle, path: "/admin/chat" },
   { title: "Configurações", icon: Settings, path: "/admin/configuracoes", subItems: [
     { title: "Plataforma", icon: Palette, path: "/admin/configuracoes/plataforma" },
     { title: "Banners", icon: Image, path: "/admin/banners" },
