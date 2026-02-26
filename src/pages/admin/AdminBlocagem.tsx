@@ -60,7 +60,7 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
   useEffect(() => {
     supabase.from("product_categories").select("id, name").then(({ data }) => setCategories(data ?? []));
     supabase.from("product_images").select("id, name, url").eq("category", "perfil").order("created_at", { ascending: false }).then(({ data }) => setProductImages(data ?? []));
-    supabase.from("product_defaults").select("id, name, tags").order("name").then(({ data }) => setProductDefaults((data as any) ?? []));
+    supabase.from("product_defaults").select("id, name, tags, price, tempo_plataforma, description").order("name").then(({ data }) => setProductDefaults((data as any) ?? []));
   }, []);
 
   const handleSave = async () => {
