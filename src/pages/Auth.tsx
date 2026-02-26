@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import logoFbflix from "@/assets/logo-fbflix.png";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -111,7 +112,7 @@ export default function Auth() {
           {/* Header & Logo */}
           <div className="flex flex-col items-center gap-2">
             <div className="flex items-center gap-2 mb-2">
-              <span className="material-symbols-outlined text-primary text-3xl">play_circle</span>
+              <img src={logoFbflix} alt="FBFLIX" className="w-10 h-10 object-contain" />
               <h1 className="text-2xl font-bold tracking-tight text-foreground">
                 FBFLIX <span className="text-primary">2.0</span>
               </h1>

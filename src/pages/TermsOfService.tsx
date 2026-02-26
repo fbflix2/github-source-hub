@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import logoFbflix from "@/assets/logo-fbflix.png";
 
 export default function TermsOfService() {
   const navigate = useNavigate();
@@ -15,7 +16,7 @@ export default function TermsOfService() {
             <span className="material-symbols-outlined text-foreground text-[20px]">arrow_back</span>
           </button>
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary text-2xl">play_circle</span>
+            <img src={logoFbflix} alt="FBFLIX" className="w-7 h-7 object-contain" />
             <h1 className="text-lg font-bold">FBFLIX <span className="text-primary">2.0</span></h1>
           </div>
         </div>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import logoFbflix from "@/assets/logo-fbflix.png";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { 
@@ -75,9 +76,7 @@ export function AdminSidebar() {
       <div className="flex flex-col h-full overflow-hidden">
         {/* Logo */}
         <div className="flex-none flex items-center gap-2 px-4 py-5">
-          <div className="relative flex items-center justify-center size-8 rounded-lg bg-gradient-to-br from-primary to-red-900 shadow-lg shadow-primary/20">
-            <Play className="text-white size-4" />
-          </div>
+          <img src={logoFbflix} alt="FBFLIX" className="size-8 object-contain" />
           {!collapsed && (
             <div className="flex flex-col">
               <h1 className="text-white text-sm font-bold tracking-tight">
