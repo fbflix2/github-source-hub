@@ -514,27 +514,6 @@ export default function AdminProducts() {
         </TabsList>
 
         <TabsContent value="produtos" className="space-y-4">
-          {/* Categories Management */}
-          <div className="glass-panel rounded-xl p-4 space-y-3">
-            <div className="flex items-center gap-2 text-white">
-              <Briefcase className="h-4 w-4 text-zinc-400" />
-              <h3 className="font-medium text-sm">Gerenciar Categorias</h3>
-            </div>
-            <div className="flex gap-2">
-              <Input placeholder="Nome da nova categoria..." value={newCategory} onChange={e => setNewCategory(e.target.value)} onKeyDown={e => e.key === "Enter" && handleAddCategory()} className="bg-zinc-900/50 border-zinc-700 text-white placeholder:text-zinc-500 text-sm" />
-              <Button size="sm" variant="secondary" className="bg-zinc-700 hover:bg-zinc-600 px-3" onClick={handleAddCategory}>
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
-            {categories.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {categories.map(cat => (
-                  <Badge key={cat.id} className="bg-zinc-800 text-zinc-300 text-xs">{cat.name}</Badge>
-                ))}
-              </div>
-            )}
-          </div>
-
           {/* Products Table */}
           <div className="glass-panel rounded-xl p-4 space-y-4">
             <div className="flex items-center justify-between flex-wrap gap-3">
