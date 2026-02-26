@@ -403,14 +403,15 @@ export default function AdminAssinaturas() {
                 lastProgress = progress;
               }
               
-              // If needs_continue, trigger next chunk
+              // If needs_continue, trigger next chunk immediately
               if (result.needs_continue) {
-                const elapsed = Date.now() - (result.timestamp || 0);
-                // Wait a bit after last update before continuing
-                if (elapsed > 3000) {
+                console.log("Triggering continue chunk...", result.processed, "/", result.total);
+                try {
                   await supabase.functions.invoke("generate-client-credentials", {
                     body: { action: "continue" },
                   });
+                } catch (e) {
+                  console.warn("Continue call failed, will retry:", e);
                 }
               }
               continue;
