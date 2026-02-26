@@ -283,7 +283,7 @@ export default function ItemDetails() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `bloco_${orderItem?.id || "item"}.txt`;
+    a.download = `bloco_${order?.code || orderItem?.id || "item"}.txt`;
     a.click();
     URL.revokeObjectURL(url);
   };
