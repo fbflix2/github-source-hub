@@ -127,47 +127,39 @@ async function handleAdd(sb: any, body: any) {
   if (!email || !role) throw new Error("Email e role são obrigatórios");
   if (!["admin", "moderator"].includes(role)) throw new Error("Role inválida");
 
-  // Find user by email - first try direct fetch, then search via Supabase Admin API
   const targetEmail = email.trim().toLowerCase();
-  
-  // Use the Admin API endpoint directly for email lookup (avoids pagination issues)
-  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  
-  const listRes = await fetch(
-    `${supabaseUrl}/auth/v1/admin/users?page=1&per_page=1&filter=${encodeURIComponent(targetEmail)}`,
-    {
-      headers: {
-        Authorization: `Bearer ${serviceKey}`,
-        apikey: serviceKey,
-      },
-    }
-  );
-  
+  console.log("Looking for email:", targetEmail);
+
   let foundUser: any = null;
-  
-  if (listRes.ok) {
-    const listData = await listRes.json();
-    const users = listData.users || listData;
-    if (Array.isArray(users)) {
-      foundUser = users.find((u: any) => u.email?.toLowerCase() === targetEmail);
+
+  // Paginated search through all auth users
+  let page = 1;
+  let totalChecked = 0;
+  while (!foundUser) {
+    const { data, error: listError } = await sb.auth.admin.listUsers({ page, perPage: 1000 });
+    if (listError) {
+      console.error("listUsers error on page", page, ":", listError.message);
+      throw new Error(listError.message);
     }
-  }
-  
-  // Fallback: paginated search
-  if (!foundUser) {
-    let page = 1;
-    while (!foundUser) {
-      const { data: { users }, error: listError } = await sb.auth.admin.listUsers({ page, perPage: 1000 });
-      if (listError) throw new Error(listError.message);
-      if (!users || users.length === 0) break;
-      foundUser = users.find((u: any) => u.email?.toLowerCase() === targetEmail);
-      if (users.length < 1000) break;
-      page++;
+    const users = data?.users || [];
+    console.log(`Page ${page}: got ${users.length} users`);
+    if (users.length === 0) break;
+    
+    for (const u of users) {
+      if (u.email?.toLowerCase() === targetEmail) {
+        foundUser = u;
+        break;
+      }
     }
+    totalChecked += users.length;
+    
+    if (users.length < 1000) break;
+    page++;
   }
 
-  if (!foundUser) throw new Error("Usuário não encontrado com esse email");
+  console.log(`Checked ${totalChecked} users across ${page} pages. Found:`, !!foundUser);
+
+  if (!foundUser) throw new Error(`Usuário não encontrado com esse email (verificados: ${totalChecked})`);
   // Check if already has role
   const { data: existing } = await sb
     .from("user_roles")
