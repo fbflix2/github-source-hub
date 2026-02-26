@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { 
   Search, Plus, Upload, User, Briefcase, Globe, Server, Tag, Save, X,
   Filter, ChevronLeft, ChevronRight, Edit, Trash2, Image as ImageIcon, Loader2, ImagePlus,
-  BarChart3, Download, BellRing, Clock, CheckSquare, Square, CheckCheck
+  BarChart3, Download, BellRing, Clock, CheckSquare, Square, CheckCheck, Store
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
@@ -604,6 +604,10 @@ export default function AdminProducts() {
                 <CheckCheck className="h-4 w-4 text-primary" />
                 <span className="text-sm text-white font-medium">{selectedIds.size} selecionado(s)</span>
                 <div className="flex items-center gap-2 ml-auto">
+                  <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white gap-1.5 h-8 text-xs" onClick={() => handleBulkStatusChange("active")}>
+                    <Store className="h-3.5 w-3.5" />
+                    Enviar para Loja
+                  </Button>
                   <Select onValueChange={handleBulkStatusChange}>
                     <SelectTrigger className="bg-zinc-900/80 border-zinc-700 text-white w-[170px] text-xs h-8"><SelectValue placeholder="Alterar status..." /></SelectTrigger>
                     <SelectContent>
