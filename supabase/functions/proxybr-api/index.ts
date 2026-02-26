@@ -707,7 +707,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Quick count check
     if (action === "check-subscription-count") {
       const url = `${PROXYBR_BASE}/subscriptions?page=1`;
       const resp = await proxyFetch(url, PROXYBR_API_KEY);
