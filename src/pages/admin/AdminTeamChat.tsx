@@ -69,7 +69,7 @@ export default function AdminTeamChat() {
   }, []);
 
   // Fetch messages
-  const { data: messages = [] } = useQuery({
+  const { data: messages = [], refetch } = useQuery({
     queryKey: ["team-messages"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -80,7 +80,8 @@ export default function AdminTeamChat() {
       if (error) throw error;
       return (data || []) as TeamMessage[];
     },
-    staleTime: 10_000,
+    staleTime: 5_000,
+    refetchInterval: 10_000, // Poll every 10s as fallback
   });
 
   // Load user profiles for messages
@@ -112,39 +113,55 @@ export default function AdminTeamChat() {
 
   // Realtime subscription
   useEffect(() => {
+    if (!currentUserId) return;
+
     const channel = supabase
       .channel("team-chat-realtime")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "team_messages" },
+        { event: "INSERT", schema: "public", table: "team_messages" },
         (payload) => {
-          if (payload.eventType === "INSERT") {
-            const newMsg = payload.new as TeamMessage;
-            queryClient.setQueryData<TeamMessage[]>(["team-messages"], (old = []) => {
-              if (old.some(m => m.id === newMsg.id)) return old;
-              return [...old, newMsg];
-            });
+          const newMsg = payload.new as TeamMessage;
+          queryClient.setQueryData<TeamMessage[]>(["team-messages"], (old = []) => {
+            if (old.some(m => m.id === newMsg.id)) return old;
+            return [...old, newMsg];
+          });
 
-            // Play sound
-            if (newMsg.user_id === currentUserId) {
-              playNotificationSound("send");
-            } else {
-              playNotificationSound("receive");
-            }
-          } else if (payload.eventType === "DELETE") {
-            const deletedId = payload.old?.id;
-            if (deletedId) {
-              queryClient.setQueryData<TeamMessage[]>(["team-messages"], (old = []) =>
-                old.filter(m => m.id !== deletedId)
-              );
-            }
+          // Play sound
+          if (newMsg.user_id === currentUserId) {
+            playNotificationSound("send");
+          } else {
+            playNotificationSound("receive");
+          }
+
+          // Load profile if missing
+          if (!userProfiles[newMsg.user_id]) {
+            loadProfiles([newMsg.user_id]);
           }
         }
       )
-      .subscribe();
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "team_messages" },
+        (payload) => {
+          const deletedId = payload.old?.id;
+          if (deletedId) {
+            queryClient.setQueryData<TeamMessage[]>(["team-messages"], (old = []) =>
+              old.filter(m => m.id !== deletedId)
+            );
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log("Team chat realtime status:", status);
+        if (status === "SUBSCRIBED") {
+          // Refetch to ensure we have latest data
+          refetch();
+        }
+      });
 
     return () => { supabase.removeChannel(channel); };
-  }, [currentUserId, queryClient]);
+  }, [currentUserId, queryClient, refetch]);
 
   // Auto-scroll
   useEffect(() => {
