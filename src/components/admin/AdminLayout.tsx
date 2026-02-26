@@ -1,17 +1,62 @@
 // Admin layout wrapper with auth check
-import { Outlet, useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { AdminSidebar } from "./AdminSidebar";
 import { AdminHeader } from "./AdminHeader";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { ProxyBRLowBalanceAlert } from "./ProxyBRLowBalanceAlert";
 import { Play } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 export function AdminLayout() {
-  const { isAdmin, loading } = useAdminAuth();
+  const { isAdmin, loading, role } = useAdminAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+  const [permChecked, setPermChecked] = useState(false);
   const hideHeader = location.pathname === "/admin/blocagem" || location.pathname === "/admin/clientes";
 
-  if (loading || !isAdmin) {
+  // For moderators: check if current path is allowed, redirect to first allowed if not
+  useEffect(() => {
+    if (loading || !isAdmin) return;
+
+    if (role !== "moderator") {
+      setPermChecked(true);
+      return;
+    }
+
+    const checkAndRedirect = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { setPermChecked(true); return; }
+
+        const { data: perms } = await supabase
+          .from("moderator_permissions")
+          .select("allowed_paths")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (!perms?.allowed_paths?.length) {
+          setPermChecked(true);
+          return;
+        }
+
+        const allowed = perms.allowed_paths as string[];
+        const currentAllowed = allowed.some(p => location.pathname === p || location.pathname.startsWith(p + "/"));
+
+        if (!currentAllowed) {
+          navigate(allowed[0], { replace: true });
+        }
+      } catch (err) {
+        console.error("Error checking mod permissions:", err);
+      } finally {
+        setPermChecked(true);
+      }
+    };
+
+    checkAndRedirect();
+  }, [loading, isAdmin, role, location.pathname, navigate]);
+
+  if (loading || !isAdmin || !permChecked) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0a0505]">
         <div className="flex items-center gap-2">
@@ -32,10 +77,8 @@ export function AdminLayout() {
         <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] bg-blue-900/10 rounded-full blur-[100px]" />
       </div>
 
-      {/* Sidebar */}
       <AdminSidebar />
 
-      {/* Main Content */}
       <main className="relative z-10 flex-1 flex flex-col h-full overflow-hidden">
         {!hideHeader && <AdminHeader />}
         <div className={`flex-1 ${hideHeader ? 'overflow-hidden' : 'overflow-y-auto'} px-6 pb-6`}>
