@@ -56,13 +56,35 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Check for cleanup action
+    let bodyAction = "";
+    try {
+      const body = await req.json();
+      bodyAction = body?.action || "";
+    } catch { }
+
     const PROXYBR_API_KEY = Deno.env.get("PROXYBR_API_KEY");
-    if (!PROXYBR_API_KEY) throw new Error("PROXYBR_API_KEY not configured");
+    if (!PROXYBR_API_KEY && bodyAction !== "cleanup-cancelled") throw new Error("PROXYBR_API_KEY not configured");
 
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+
+    // Cleanup cancelled subscriptions
+    if (bodyAction === "cleanup-cancelled") {
+      const { count, error } = await supabaseAdmin
+        .from("subscriptions")
+        .delete({ count: "exact" })
+        .eq("type", "proxybr")
+        .eq("status", "cancelled");
+      if (error) throw new Error(`Cleanup error: ${error.message}`);
+      return new Response(
+        JSON.stringify({ deleted: count, message: `Removed ${count} cancelled subscriptions` }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
 
     // Read sync_progress to know where to resume
     const { data: progressRow } = await supabaseAdmin
@@ -171,6 +193,7 @@ Deno.serve(async (req) => {
         const SAVE_PROGRESS_EVERY = 10;
         const toInsert: any[] = [];
         const toUpdate: { id: string; record: Record<string, any> }[] = [];
+        const toDelete: string[] = [];
         let pagesProcessed = 0;
         let reachedEnd = false;
 
@@ -240,7 +263,17 @@ Deno.serve(async (req) => {
             const apiStatus = rawStatus.toLowerCase().trim();
 
             let mappedStatus = "active";
-            if (["cancelled", "cancelado", "canceled", "not active"].includes(apiStatus)) mappedStatus = "cancelled";
+            const isCancelled = ["cancelled", "cancelado", "canceled", "not active"].includes(apiStatus);
+            
+            if (isCancelled) {
+              // If it exists locally, mark for deletion
+              const existing = existingMap.get(code);
+              if (existing) {
+                toDelete.push(existing.id);
+              }
+              // Skip — don't insert or update cancelled subs
+              continue;
+            }
             else if (["expired", "vencido", "expirado"].includes(apiStatus)) mappedStatus = "expired";
             else if (["pending_renewal", "renovação pendente", "renewal_pending", "pending", "pendente"].includes(apiStatus)) mappedStatus = "pending_renewal";
             else if (["active", "ativo", "enabled"].includes(apiStatus)) {
@@ -314,6 +347,16 @@ Deno.serve(async (req) => {
             if (error) console.error(`Upsert batch error at ${i}:`, error.message);
           }
           console.log(`Updated ${toUpdate.length} existing subscriptions`);
+        }
+
+        // 6. Batch deletes (cancelled subs)
+        if (toDelete.length > 0) {
+          for (let i = 0; i < toDelete.length; i += BATCH_SIZE) {
+            const batch = toDelete.slice(i, i + BATCH_SIZE);
+            const { error } = await sb.from("subscriptions").delete().in("id", batch);
+            if (error) console.error(`Delete batch error at ${i}:`, error.message);
+          }
+          console.log(`Deleted ${toDelete.length} cancelled subscriptions`);
         }
 
         if (reachedEnd) {

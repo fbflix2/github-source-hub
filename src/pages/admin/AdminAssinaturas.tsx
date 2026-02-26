@@ -417,12 +417,13 @@ export default function AdminAssinaturas() {
     return profiles.filter((p: any) => p.full_name?.toLowerCase().includes(term));
   }, [profiles, linkSearch]);
 
+  const totalWithoutCancelled = counts.active + counts.pending_renewal + counts.expired;
   const stats = [
     { label: "Ativo", value: counts.active.toString(), icon: CheckCircle, iconColor: "text-green-400", glowColor: "bg-primary/10" },
     { label: "Renovação pendente", value: counts.pending_renewal.toString(), icon: AlertTriangle, iconColor: "text-yellow-400", glowColor: "bg-yellow-500/10" },
     { label: "Vencido", value: counts.expired.toString(), icon: RefreshCw, iconColor: "text-orange-400", glowColor: "bg-orange-500/10" },
     { label: "Cancelado", value: counts.cancelled.toString(), icon: XCircle, iconColor: "text-red-500", glowColor: "bg-red-500/10" },
-    { label: "Total", value: subscriptions.length.toString(), icon: Globe, iconColor: "text-emerald-400", glowColor: "bg-emerald-500/10" },
+    { label: "Total", value: totalWithoutCancelled.toString(), icon: Globe, iconColor: "text-emerald-400", glowColor: "bg-emerald-500/10" },
   ];
 
   const getStatusBadge = (status: MappedStatus) => {
