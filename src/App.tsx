@@ -30,6 +30,7 @@ import NotFound from "./pages/NotFound";
 import Welcome from "./pages/Welcome";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
+import Sobre from "./pages/Sobre";
 
 // Admin Pages
 import AdminLogin from "./pages/admin/AdminLogin";
@@ -165,6 +166,7 @@ const App = () => {
                 />
                 <Route path="/privacidade" element={<PrivacyPolicy />} />
                 <Route path="/termos" element={<TermsOfService />} />
+                <Route path="/sobre" element={<Sobre />} />
 
                 {/* Admin routes */}
                 <Route path="/admin/login" element={<AdminLogin />} />
