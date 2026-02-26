@@ -37,6 +37,9 @@ export default function Suporte() {
   const [urgency, setUrgency] = useState("medium");
   const [link, setLink] = useState(pedidoParam ? window.location.origin + `/orders/${encodeURIComponent(pedidoParam)}` : "");
   const [orderCode, setOrderCode] = useState(pedidoParam || "");
+  const [orderCodeError, setOrderCodeError] = useState("");
+  const [validatingOrder, setValidatingOrder] = useState(false);
+  const [orderValidated, setOrderValidated] = useState(!!pedidoParam);
   const [description, setDescription] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [createdCode, setCreatedCode] = useState("");
@@ -110,9 +113,48 @@ export default function Suporte() {
     return urls;
   };
 
+  const validateOrderCode = async (code: string) => {
+    if (!code.trim()) {
+      setOrderCodeError("Código do pedido é obrigatório.");
+      setOrderValidated(false);
+      return false;
+    }
+    setValidatingOrder(true);
+    setOrderCodeError("");
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setOrderCodeError("Você precisa estar logado.");
+      setValidatingOrder(false);
+      setOrderValidated(false);
+      return false;
+    }
+    const { data } = await supabase
+      .from("orders")
+      .select("id")
+      .eq("code", code.trim())
+      .eq("user_id", user.id)
+      .limit(1);
+    
+    if (!data || data.length === 0) {
+      setOrderCodeError("Código de pedido não encontrado. Verifique e tente novamente.");
+      setValidatingOrder(false);
+      setOrderValidated(false);
+      return false;
+    }
+    setOrderCodeError("");
+    setValidatingOrder(false);
+    setOrderValidated(true);
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !description.trim() || !orderCode.trim()) return;
+
+    if (!orderValidated) {
+      const valid = await validateOrderCode(orderCode);
+      if (!valid) return;
+    }
 
     setSubmitting(true);
     const { data: { user } } = await supabase.auth.getUser();
@@ -270,14 +312,39 @@ export default function Suporte() {
                 <label className="text-xs font-medium text-muted-foreground">
                   Código do Pedido
                 </label>
-                <input 
-                  className="w-full rounded-lg px-3 py-2.5 placeholder-muted-foreground/50 bg-card border border-border text-foreground text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all" 
-                  placeholder="Ex: ORD-MLVP10XS"
-                  type="text"
-                  required
-                  value={orderCode}
-                  onChange={(e) => setOrderCode(e.target.value)}
-                />
+                <div className="relative">
+                  <input 
+                    className={cn(
+                      "w-full rounded-lg px-3 py-2.5 placeholder-muted-foreground/50 bg-card border text-foreground text-sm focus:outline-none focus:ring-1 transition-all",
+                      orderCodeError 
+                        ? "border-destructive focus:border-destructive focus:ring-destructive" 
+                        : orderValidated 
+                          ? "border-green-500/50 focus:border-green-500 focus:ring-green-500/30" 
+                          : "border-border focus:border-primary focus:ring-primary"
+                    )}
+                    placeholder="Ex: ORD-MLVP10XS"
+                    type="text"
+                    required
+                    value={orderCode}
+                    onChange={(e) => {
+                      setOrderCode(e.target.value);
+                      setOrderValidated(false);
+                      setOrderCodeError("");
+                    }}
+                    onBlur={() => {
+                      if (orderCode.trim()) validateOrderCode(orderCode);
+                    }}
+                  />
+                  {validatingOrder && (
+                    <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground animate-spin" />
+                  )}
+                  {orderValidated && !validatingOrder && (
+                    <CheckCircle className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-green-500" />
+                  )}
+                </div>
+                {orderCodeError && (
+                  <p className="text-[11px] text-destructive">{orderCodeError}</p>
+                )}
               </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-muted-foreground">
