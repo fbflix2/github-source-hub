@@ -60,7 +60,7 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
   useEffect(() => {
     supabase.from("product_categories").select("id, name").then(({ data }) => setCategories(data ?? []));
     supabase.from("product_images").select("id, name, url").eq("category", "perfil").order("created_at", { ascending: false }).then(({ data }) => setProductImages(data ?? []));
-    supabase.from("product_defaults").select("id, name, tags, price, tempo_plataforma, description").order("name").then(({ data }) => setProductDefaults((data as any) ?? []));
+    supabase.from("product_defaults").select("id, name, tags, price, tempo_plataforma, description, default_image").order("name").then(({ data }) => setProductDefaults((data as any) ?? []));
   }, []);
 
   const handleSave = async () => {
@@ -282,6 +282,7 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
                       preco: (def as any)?.price ? String((def as any).price) : formData.preco,
                       tempoPlataforma: (def as any)?.tempo_plataforma || formData.tempoPlataforma,
                       descricao: (def as any)?.description || formData.descricao,
+                      fotoUrl: (def as any)?.default_image || formData.fotoUrl,
                     });
                   }}>
                     <SelectTrigger className="bg-black/30 border-white/5 text-white text-xs"><SelectValue placeholder="Selecione..." /></SelectTrigger>
