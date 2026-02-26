@@ -1,34 +1,38 @@
 
 
-## Diagnosis: Sync Incomplete — ProxyBR has 2458 records, local DB only has 1160
+## Diagnosis: Sync Updates Failing Due to Missing `user_id`
 
-### Root Cause
+The edge function logs show the root cause clearly:
 
-The ProxyBR API returns **10 items per page** (fixed). With 2458 subscriptions, that's **~246 pages**. The sync function uses a **1 second delay** between pages, meaning a full sync requires ~246 seconds minimum. However, Supabase Edge Functions have a **~150 second wall clock limit** (even with `waitUntil`), so the sync **consistently times out around page 100-120** (~1000-1200 records), never reaching the remaining ~1300 records.
+```
+Upsert batch error at 0: null value in column "user_id" violates not-null constraint
+Upsert batch error at 50: null value in column "user_id" violates not-null constraint
+... (repeating for every batch)
+```
 
-The logs confirm this: the function boots, processes through page 100+, then shuts down without reaching completion or writing the "done" status — leaving the lock stuck at `in_progress`.
+**What's happening:** When updating existing subscriptions (line 264), the `record` object only gets `user_id` set if a new user match is found AND the current user is the fallback admin. Otherwise, `user_id` is omitted. But the upsert operation (line 311) requires `user_id` since the column is `NOT NULL`. This means **every single update batch is failing** -- status changes, end dates, and raw_data are never being updated for existing records.
 
-### Solution: Resumable Chunked Sync
+New subscriptions insert fine (they always get a `user_id`), but existing ones never get their status updated. That's why your local DB shows fewer active/expired -- records that changed status on ProxyBR aren't being reflected locally.
 
-Modify `sync-subscriptions-cron` to **resume from where it left off** instead of restarting from page 1 each time:
-
-1. **Persist progress** — Save the last successfully processed page number in `site_settings` (key: `sync_progress`) after each batch of pages
-2. **Resume on next run** — On startup, read the last page and continue from there instead of page 1
-3. **Reduce delay** — Drop inter-page delay from 1000ms to 400ms (the API allows this based on rate limit behavior)
-4. **Process in chunks of ~80 pages per run** (~80 seconds) — well within the timeout limit
-5. **Mark "done" only when API returns empty** — then reset progress to page 1 for next full cycle
-6. **Fix stuck lock** — Reset `sync_result` to idle when resuming, so cron runs aren't blocked
-
-### Changes
+## Fix
 
 **File: `supabase/functions/sync-subscriptions-cron/index.ts`**
-- Read `sync_progress` from `site_settings` to get `lastPage` (default: 1)
-- Change `let page = 1` to `let page = lastPage`
-- Reduce `DELAY` from 1000 to 400
-- Add `MAX_PAGES_PER_RUN = 80` limit per execution
-- After processing each batch of 10 pages, persist current page to `sync_progress`
-- When API returns empty (all pages done), reset `sync_progress` to 1 and mark status "done"
-- When hitting `MAX_PAGES_PER_RUN`, save progress and mark status "partial_done" so next cron picks up
 
-This means a full sync of 246 pages will complete across **3 cron runs** (~3 minutes total with 10-minute cron interval = ~30 minutes for full sync), but each run stays safely within timeout limits.
+On line 258-264, when an existing subscription is found, always carry over the existing `user_id` into the record so the upsert doesn't fail:
+
+```typescript
+const existing = existingMap.get(code);
+if (existing) {
+  // Always include user_id for updates (required NOT NULL column)
+  record.user_id = existing.user_id;
+  // Override with matched user only if currently assigned to fallback
+  if (matchedUserId && existing.user_id === fallbackUserId) {
+    record.user_id = matchedUserId;
+    linked++;
+  }
+  toUpdate.push({ id: existing.id, record });
+}
+```
+
+This is a one-line addition (`record.user_id = existing.user_id;`) that ensures the NOT NULL constraint is satisfied. After deploying, the next cron run will successfully update all existing subscriptions, syncing the status counts to match ProxyBR.
 
