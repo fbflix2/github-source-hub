@@ -15,6 +15,7 @@ interface ClientEditModalProps {
     id: string;
     user_id: string;
     full_name: string | null;
+    email?: string;
     phone: string | null;
     balance: number;
     status: string;
@@ -73,6 +74,12 @@ export default function ClientEditModal({ open, onClose, client, onUpdate }: Cli
           <DialogTitle className="text-lg font-bold">Editar Cliente</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 pt-2">
+          {client.email && (
+            <div className="space-y-2">
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">E-mail</Label>
+              <Input value={client.email} readOnly className="opacity-70 cursor-default" />
+            </div>
+          )}
           <div className="space-y-2">
             <Label className="text-xs uppercase tracking-wider text-muted-foreground">Nome Completo</Label>
             <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Nome do cliente" />
