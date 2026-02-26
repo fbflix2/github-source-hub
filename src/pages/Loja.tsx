@@ -498,7 +498,21 @@ export default function Dashboard() {
                           </button>
                         </>
                       ) : (
-                        <button className="w-full bg-secondary hover:bg-secondary/80 text-foreground font-bold text-sm h-10 rounded-lg border border-border transition-all flex items-center justify-center gap-2">
+                        <button
+                          onClick={async () => {
+                            const { data: { user } } = await supabase.auth.getUser();
+                            if (!user) return;
+                            const { error } = await supabase.from("product_waitlist" as any).insert({ user_id: user.id, product_id: product.id } as any);
+                            if (error && error.code === '23505') {
+                              toast.info("Você já será notificado quando este produto chegar!");
+                            } else if (error) {
+                              toast.error("Erro ao registrar interesse");
+                            } else {
+                              toast.success("Você será notificado quando este produto estiver disponível!");
+                            }
+                          }}
+                          className="w-full bg-secondary hover:bg-secondary/80 text-foreground font-bold text-sm h-10 rounded-lg border border-border transition-all flex items-center justify-center gap-2"
+                        >
                           <span className="material-symbols-outlined text-[18px]">notifications_active</span>
                           Avise-me quando chegar
                         </button>
