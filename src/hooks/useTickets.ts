@@ -91,8 +91,10 @@ export function useTickets() {
       console.error(error);
       return false;
     }
+    // Refetch immediately so the user sees their own message
+    await fetchTickets();
     return true;
-  }, []);
+  }, [fetchTickets]);
 
   const markAsRead = useCallback(async (ticketId: string) => {
     const { error } = await supabase
