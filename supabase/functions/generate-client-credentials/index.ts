@@ -248,14 +248,33 @@ Deno.serve(async (req) => {
           }
         }
 
-        // 7. Save final result
+        // 7. Upload credentials JSON to storage and save reference
+        const fileName = `credentials_${Date.now()}.json`;
+        const jsonBlob = new Blob([JSON.stringify(credentials)], { type: "application/json" });
+        
+        const { error: uploadError } = await sb.storage
+          .from("documents")
+          .upload(`credentials/${fileName}`, jsonBlob, {
+            contentType: "application/json",
+            upsert: true,
+          });
+        
+        if (uploadError) {
+          console.error("Upload error:", uploadError.message);
+          throw new Error(`Falha ao salvar arquivo: ${uploadError.message}`);
+        }
+
+        const { data: urlData } = sb.storage
+          .from("documents")
+          .getPublicUrl(`credentials/${fileName}`);
+
         await sb.from("site_settings").upsert({
           key: "credentials_job",
           value: JSON.stringify({
             status: "done",
             timestamp: Date.now(),
             total_clients: credentials.length,
-            credentials,
+            file_path: `credentials/${fileName}`,
             errors: errors.slice(0, 50),
           }),
         }, { onConflict: "key" });
