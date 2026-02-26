@@ -1,38 +1,46 @@
 
 
-## Diagnosis: Sync Updates Failing Due to Missing `user_id`
+## Plan: Bloco Padrão (Template de Download para Perfis)
 
-The edge function logs show the root cause clearly:
+### Concept
+Admins upload a `.txt` template with placeholders (e.g., `{{email}}`, `{{senha}}`, `{{token2fa}}`). When a customer who bought a **perfil** item downloads their "bloco de notas", the system replaces the placeholders with the actual profile data, delivering a formatted file based on the selected template.
 
-```
-Upsert batch error at 0: null value in column "user_id" violates not-null constraint
-Upsert batch error at 50: null value in column "user_id" violates not-null constraint
-... (repeating for every batch)
-```
+### Database Changes
+**New table `block_templates`:**
+- `id` (uuid, PK)
+- `name` (text) - template name
+- `content` (text) - the raw .txt content with placeholders
+- `is_default` (boolean, default false) - marks the active template
+- `created_at`, `updated_at` (timestamptz)
 
-**What's happening:** When updating existing subscriptions (line 264), the `record` object only gets `user_id` set if a new user match is found AND the current user is the fallback admin. Otherwise, `user_id` is omitted. But the upsert operation (line 311) requires `user_id` since the column is `NOT NULL`. This means **every single update batch is failing** -- status changes, end dates, and raw_data are never being updated for existing records.
+RLS: Staff can manage, anyone can read the default template (needed for client-side download).
 
-New subscriptions insert fine (they always get a `user_id`), but existing ones never get their status updated. That's why your local DB shows fewer active/expired -- records that changed status on ProxyBR aren't being reflected locally.
+### Available Placeholders
+Based on the `StockData` fields and order data:
+- `{{nomePerfil}}`, `{{emailAcesso}}`, `{{emailAlternativo}}`, `{{senha}}`, `{{token2fa}}`
+- `{{dataNascimento}}`, `{{genero}}`, `{{tempoPlataforma}}`, `{{statusAtual}}`
+- `{{descricao}}`, `{{cookies}}`, `{{linkDocumento}}`
+- `{{pedido}}`, `{{data}}`, `{{nomeProduto}}`
 
-## Fix
+### New Admin Page: `AdminBlocoPadrao.tsx`
+- Located at `/admin/configuracoes/bloco-padrao`
+- Upload .txt file or paste template content directly in a textarea
+- Live preview panel showing how placeholders will render with sample data
+- List of saved templates with ability to set one as default
+- Reference card listing all available placeholders
 
-**File: `supabase/functions/sync-subscriptions-cron/index.ts`**
+### Sidebar Change
+Add "Bloco Padrão" sub-item under "Configurações" in `AdminSidebar.tsx` with `FileText` icon.
 
-On line 258-264, when an existing subscription is found, always carry over the existing `user_id` into the record so the upsert doesn't fail:
+### Client Download Change: `ItemDetails.tsx`
+- Modify the `downloadBloco` function (currently hardcoded at lines 218-244)
+- Fetch the default `block_template` from Supabase
+- If a template exists, replace all `{{placeholder}}` tokens with actual stock data
+- If no template exists, fall back to the current hardcoded format
 
-```typescript
-const existing = existingMap.get(code);
-if (existing) {
-  // Always include user_id for updates (required NOT NULL column)
-  record.user_id = existing.user_id;
-  // Override with matched user only if currently assigned to fallback
-  if (matchedUserId && existing.user_id === fallbackUserId) {
-    record.user_id = matchedUserId;
-    linked++;
-  }
-  toUpdate.push({ id: existing.id, record });
-}
-```
-
-This is a one-line addition (`record.user_id = existing.user_id;`) that ensures the NOT NULL constraint is satisfied. After deploying, the next cron run will successfully update all existing subscriptions, syncing the status counts to match ProxyBR.
+### Implementation Steps
+1. Create `block_templates` migration with RLS policies
+2. Create `AdminBlocoPadrao.tsx` page with template CRUD and .txt upload
+3. Add route and sidebar entry for the new page
+4. Update `downloadBloco` in `ItemDetails.tsx` to use the template
 
