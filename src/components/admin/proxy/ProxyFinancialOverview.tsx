@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Wallet, TrendingUp, ShoppingBag, BarChart3, RefreshCw } from "lucide-react";
+import { Wallet, TrendingUp, ShoppingBag, BarChart3, RefreshCw, ExternalLink } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -164,18 +164,29 @@ export default function ProxyFinancialOverview() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* ProxyBR Balance */}
         <Card className="border-primary/30 bg-card/60 backdrop-blur-sm shadow-lg shadow-primary/5">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="flex items-center justify-center size-10 rounded-lg bg-primary/10">
-              <Wallet className="size-5 text-primary" />
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center size-10 rounded-lg bg-primary/10">
+                <Wallet className="size-5 text-primary" />
+              </div>
+              <div className="flex-1">
+                <p className="text-xs text-muted-foreground">Saldo ProxyBR</p>
+                {meLoading ? <Skeleton className="h-6 w-20" /> : (
+                  <p className="text-xl font-bold text-foreground">
+                    {balance !== null ? formatCurrency(balance) : "—"}
+                  </p>
+                )}
+              </div>
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Saldo ProxyBR</p>
-              {meLoading ? <Skeleton className="h-6 w-20" /> : (
-                <p className="text-xl font-bold text-foreground">
-                  {balance !== null ? formatCurrency(balance) : "—"}
-                </p>
-              )}
-            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full mt-3 text-xs"
+              onClick={() => window.open("https://painel.proxybr.com.br", "_blank")}
+            >
+              <ExternalLink className="size-3.5 mr-1.5" />
+              Recarregar na ProxyBR
+            </Button>
           </CardContent>
         </Card>
 
