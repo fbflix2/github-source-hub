@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Bell, ChevronDown, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,21 +11,36 @@ import {
 
 export function AdminHeader() {
   const navigate = useNavigate();
+  const [userName, setUserName] = useState("Carregando...");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Try profile name/avatar first
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name, avatar_url")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      const name = profile?.full_name || user.user_metadata?.full_name || user.email?.split("@")[0] || "Usuário";
+      setUserName(name);
+      setAvatarUrl(profile?.avatar_url || user.user_metadata?.avatar_url || null);
+    };
+    loadUser();
+  }, []);
 
   const handleLogout = async () => {
+    sessionStorage.clear();
     await supabase.auth.signOut();
     navigate("/admin/login");
   };
 
   return (
-    <header className="flex-none px-6 py-4 flex items-center justify-between z-20">
-      <div className="flex flex-col">
-        <h2 className="text-xl font-bold text-white tracking-tight">Visão Geral</h2>
-        <p className="text-white/40 text-xs">
-          Bem-vindo de volta, Admin. Monitoramento em tempo real.
-        </p>
-      </div>
-
+    <header className="flex-none px-6 py-4 flex items-center justify-end z-20">
       <div className="flex items-center gap-3">
         {/* Notifications */}
         <div className="glass-panel rounded-full p-1.5 relative cursor-pointer hover:bg-white/10 transition-colors">
@@ -36,8 +52,14 @@ export function AdminHeader() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <div className="flex items-center gap-2 glass-panel pl-1.5 pr-3 py-1 rounded-full cursor-pointer hover:bg-white/10 transition-colors">
-              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-gray-700 to-gray-900 border border-white/10" />
-              <span className="text-xs font-medium text-white/90">Admin User</span>
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="" className="w-6 h-6 rounded-full object-cover border border-white/10" />
+              ) : (
+                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-gray-700 to-gray-900 border border-white/10 flex items-center justify-center text-[10px] font-bold text-white/70">
+                  {userName.charAt(0).toUpperCase()}
+                </div>
+              )}
+              <span className="text-xs font-medium text-white/90 max-w-[120px] truncate">{userName}</span>
               <ChevronDown className="size-3 text-white/50" />
             </div>
           </DropdownMenuTrigger>
