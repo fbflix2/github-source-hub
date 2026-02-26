@@ -28,6 +28,7 @@ import Tickets from "./pages/Tickets";
 import NotFound from "./pages/NotFound";
 import Welcome from "./pages/Welcome";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
 
 // Admin Pages
 import AdminLogin from "./pages/admin/AdminLogin";
@@ -164,6 +165,7 @@ const App = () => {
                   element={user ? <Welcome /> : <Navigate to="/auth" replace />}
                 />
                 <Route path="/privacidade" element={<PrivacyPolicy />} />
+                <Route path="/termos" element={<TermsOfService />} />
 
                 {/* Admin routes */}
                 <Route path="/admin/login" element={<AdminLogin />} />

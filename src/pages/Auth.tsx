@@ -362,8 +362,15 @@ export default function Auth() {
             </div>
           </div>
 
-          {/* Footer - Privacy Policy */}
-          <div className="text-center pt-2">
+          {/* Footer - Legal Links */}
+          <div className="flex items-center justify-center gap-3 pt-2">
+            <Link
+              to="/termos"
+              className="text-xs text-muted-foreground hover:text-primary transition-colors underline underline-offset-2"
+            >
+              Termos de Serviço
+            </Link>
+            <span className="text-muted-foreground/40 text-xs">•</span>
             <Link
               to="/privacidade"
               className="text-xs text-muted-foreground hover:text-primary transition-colors underline underline-offset-2"
