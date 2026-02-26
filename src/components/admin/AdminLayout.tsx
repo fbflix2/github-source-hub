@@ -41,10 +41,14 @@ export function AdminLayout() {
         }
 
         const allowed = perms.allowed_paths as string[];
-        // Blocagem is a sub-feature of estoque — allow automatically
+        // Auto-allow linked paths for all moderators
         const effectiveAllowed = [...allowed];
         if (allowed.includes("/admin/estoque") && !allowed.includes("/admin/blocagem")) {
           effectiveAllowed.push("/admin/blocagem");
+        }
+        // Chat is available to all staff
+        if (!effectiveAllowed.includes("/admin/chat")) {
+          effectiveAllowed.push("/admin/chat");
         }
         const currentAllowed = effectiveAllowed.some(p => location.pathname === p || location.pathname.startsWith(p + "/"));
 

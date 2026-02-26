@@ -112,6 +112,8 @@ export function AdminSidebar() {
       const allowed = new Set(perms.allowed_paths as string[]);
       // Blocagem is a sub-feature of estoque
       if (allowed.has("/admin/estoque")) allowed.add("/admin/blocagem");
+      // Chat is available to all staff
+      allowed.add("/admin/chat");
 
       // Filter menu items
       const filtered = allMenuItems
