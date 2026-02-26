@@ -30,6 +30,7 @@ export default function Profile() {
   const [userId, setUserId] = useState<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -59,6 +60,20 @@ export default function Profile() {
         setDocumentUrl((profile as any).document_url || null);
         setAvatarUrl(profile.avatar_url || null);
       }
+
+      // Fetch user role
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", session.user.id)
+        .in("role", ["admin", "moderator"]);
+
+      if (roles && roles.length > 0) {
+        // Prefer admin over moderator
+        const hasAdmin = roles.some(r => r.role === "admin");
+        setUserRole(hasAdmin ? "admin" : "moderator");
+      }
+
       setLoading(false);
     };
     loadProfile();
@@ -206,7 +221,7 @@ export default function Profile() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column - Profile Card */}
         <div className="lg:col-span-1">
-          <ProfileCard verified={verified} fullName={formData.full_name} avatarUrl={avatarUrl} onAvatarChange={handleAvatarUpload} uploadingAvatar={uploadingAvatar} />
+          <ProfileCard verified={verified} fullName={formData.full_name} avatarUrl={avatarUrl} onAvatarChange={handleAvatarUpload} uploadingAvatar={uploadingAvatar} userRole={userRole} />
         </div>
 
         {/* Right Column - Form */}
@@ -372,9 +387,10 @@ export default function Profile() {
   );
 }
 
-function ProfileCard({ verified, fullName, avatarUrl, onAvatarChange, uploadingAvatar }: { 
+function ProfileCard({ verified, fullName, avatarUrl, onAvatarChange, uploadingAvatar, userRole }: { 
   verified: boolean; fullName: string; avatarUrl: string | null; 
   onAvatarChange: (e: React.ChangeEvent<HTMLInputElement>) => void; uploadingAvatar: boolean;
+  userRole: string | null;
 }) {
   const initials = fullName
     ? fullName.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()
@@ -410,7 +426,19 @@ function ProfileCard({ verified, fullName, avatarUrl, onAvatarChange, uploadingA
       </div>
 
       <h2 className="text-xl font-bold text-foreground">{fullName || "Sem nome"}</h2>
-      <p className="text-primary font-medium text-sm mb-6">
+      {userRole && (
+        <span className={`inline-flex items-center gap-1 text-xs font-semibold px-3 py-1 rounded-full mt-1 ${
+          userRole === "admin" 
+            ? "bg-primary/10 text-primary border border-primary/20" 
+            : "bg-blue-500/10 text-blue-400 border border-blue-500/20"
+        }`}>
+          <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>
+            {userRole === "admin" ? "admin_panel_settings" : "shield"}
+          </span>
+          {userRole === "admin" ? "Administrador" : "Moderador"}
+        </span>
+      )}
+      <p className="text-primary font-medium text-sm mb-6 mt-1">
         {verified ? "Membro Verificado ✅" : "Membro Premium"}
       </p>
 
