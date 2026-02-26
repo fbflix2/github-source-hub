@@ -110,7 +110,7 @@ export function Navbar({ userName, balance, avatarUrl, onLogout, unreadTickets =
             <DropdownMenuTrigger asChild>
               <div className="flex items-center gap-3 cursor-pointer pl-4 border-l border-border">
                 <div className="text-right hidden lg:block">
-                  <p className="text-sm font-semibold text-foreground">{userName}</p>
+                  <p className="text-sm font-semibold text-foreground">{userName.split(' ')[0]}</p>
                 </div>
                 <div className="relative w-10 h-10 rounded-full overflow-hidden border-2 border-primary/30 ring-2 ring-transparent hover:ring-primary/50 transition-all">
                   {avatarUrl ? (
