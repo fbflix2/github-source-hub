@@ -279,7 +279,7 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
                   }}>
                     <SelectTrigger className="bg-black/30 border-white/5 text-white text-xs"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                     <SelectContent>
-                      {productDefaults.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}
+                      {productDefaults.filter(d => !d.name.toLowerCase().includes('proxy')).map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
@@ -503,7 +503,7 @@ function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => voi
                 }}>
                   <SelectTrigger className="bg-zinc-900/50 border-zinc-700 text-white"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                   <SelectContent>
-                    {productDefaults.map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}
+                    {productDefaults.filter(d => !d.name.toLowerCase().includes('proxy')).map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
