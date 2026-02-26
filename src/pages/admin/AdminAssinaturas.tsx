@@ -401,12 +401,32 @@ export default function AdminAssinaturas() {
               continue;
             }
             if (result.status === "done") {
-              const creds = result.credentials || [];
-              if (creds.length === 0) {
+              const totalClients = result.total_clients || 0;
+              if (totalClients === 0) {
                 toast.warning("Nenhuma credencial gerada.");
                 setGeneratingCredentials(false);
                 return;
               }
+
+              // Download credentials JSON from storage
+              const filePath = result.file_path;
+              if (!filePath) {
+                toast.error("Arquivo de credenciais não encontrado.");
+                setGeneratingCredentials(false);
+                return;
+              }
+
+              const { data: fileData, error: dlError } = await supabase.storage
+                .from("documents")
+                .download(filePath);
+              
+              if (dlError || !fileData) {
+                toast.error("Erro ao baixar credenciais: " + (dlError?.message || "arquivo não encontrado"));
+                setGeneratingCredentials(false);
+                return;
+              }
+
+              const creds = JSON.parse(await fileData.text());
 
               // Build xlsx
               const loginUrl = "https://fbflix.com.br/auth";
@@ -430,7 +450,7 @@ export default function AdminAssinaturas() {
               ws["!cols"] = colWidths;
               XLSX.writeFile(wb, `credenciais_clientes_${new Date().toISOString().slice(0, 10)}.xlsx`);
 
-              toast.success(`${creds.length} credenciais geradas!`);
+              toast.success(`${creds.length} credenciais geradas e baixadas!`);
               if (result.errors?.length) {
                 console.warn("Erros:", result.errors);
                 toast.info(`${result.errors.length} clientes com problemas. Veja o console.`);
