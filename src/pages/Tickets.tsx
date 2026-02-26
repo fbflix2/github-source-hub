@@ -68,11 +68,16 @@ export default function Tickets() {
   const [filter, setFilter] = useState<"all" | "open" | "answered" | "closed" | "in_progress" | "resolved">("all");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Keep selectedTicket in sync with fetched data
+  // Keep selectedTicket in sync with fetched data, preserving optimistic messages
   useEffect(() => {
     if (selectedTicket) {
       const updated = tickets.find(t => t.id === selectedTicket.id);
-      if (updated) setSelectedTicket(updated);
+      if (updated) {
+        // Merge: keep any optimistic (temp) messages not yet confirmed by server
+        const serverMsgIds = new Set(updated.messages.map(m => m.id));
+        const optimisticMsgs = selectedTicket.messages.filter(m => m.id.startsWith("temp-") && !serverMsgIds.has(m.id));
+        setSelectedTicket({ ...updated, messages: [...updated.messages, ...optimisticMsgs] });
+      }
     }
   }, [tickets]);
 
