@@ -470,18 +470,28 @@ export default function ItemDetails() {
           <div className="glass-panel rounded-xl p-4">
             <h3 className="text-sm font-bold text-foreground mb-3">Gerenciamento do Item</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border">
-                <div>
-                  <span className="block text-foreground text-xs font-medium">Status do Item</span>
-                  <span className="text-[10px] text-text-secondary">Marcar como bloqueado</span>
+              <div className="p-3 rounded-lg bg-muted/30 border border-border space-y-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="block text-foreground text-xs font-medium">Status do Item</span>
+                    <span className="text-[10px] text-text-secondary">Marcar como bloqueado</span>
+                  </div>
+                  <button 
+                    onClick={handleMarkBlocked} 
+                    disabled={isBlocked}
+                    className={`relative w-10 h-5 rounded-full transition-colors ${isBlocked ? 'bg-destructive' : 'bg-muted-foreground/30'}`}
+                  >
+                    <span className={`absolute top-0.5 w-4 h-4 bg-foreground rounded-full transition-all ${isBlocked ? 'right-0.5' : 'left-0.5'}`}></span>
+                  </button>
                 </div>
-                <button 
-                  onClick={handleMarkBlocked} 
-                  disabled={isBlocked}
-                  className={`relative w-10 h-5 rounded-full transition-colors ${isBlocked ? 'bg-destructive' : 'bg-muted-foreground/30'}`}
-                >
-                  <span className={`absolute top-0.5 w-4 h-4 bg-foreground rounded-full transition-all ${isBlocked ? 'right-0.5' : 'left-0.5'}`}></span>
-                </button>
+                {isBlocked && (
+                  <div className="flex items-start gap-2 p-2 rounded-md bg-destructive/10 border border-destructive/20">
+                    <span className="material-symbols-outlined text-destructive text-[14px] mt-0.5 shrink-0">info</span>
+                    <p className="text-[10px] text-destructive/90 leading-relaxed">
+                      Perfis marcados como bloqueados desaparecerão da sua lista de pedidos em 7 dias, para manter tudo organizado.
+                    </p>
+                  </div>
+                )}
               </div>
               <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border">
                 <div>
