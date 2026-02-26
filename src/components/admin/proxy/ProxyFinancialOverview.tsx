@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Wallet, TrendingUp, ShoppingBag, BarChart3, RefreshCw } from "lucide-react";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 const formatCurrency = (value: number) =>
   value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -52,7 +53,7 @@ export default function ProxyFinancialOverview() {
       const { data: orders, error: ordersErr } = await ordersQuery;
       if (ordersErr) throw ordersErr;
 
-      if (!orders || orders.length === 0) return { totalRevenue: 0, totalOrders: 0, productBreakdown: [] };
+      if (!orders || orders.length === 0) return { totalRevenue: 0, totalOrders: 0, productBreakdown: [], dailyData: [] };
 
       // Get order items for these orders that have delivery_data with proxy_contract
       const orderIds = orders.map(o => o.id);
@@ -78,6 +79,21 @@ export default function ProxyFinancialOverview() {
       const proxyOrders = orders.filter(o => proxyOrderIds.has(o.id));
       const totalRevenue = proxyItems.reduce((sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 1), 0);
 
+      // Build daily time-series from proxy orders
+      const orderItemMap = new Map<string, { revenue: number; qty: number }>();
+      for (const item of proxyItems) {
+        const order = orders.find(o => o.id === item.order_id);
+        if (!order) continue;
+        const day = order.created_at.substring(0, 10); // YYYY-MM-DD
+        const existing = orderItemMap.get(day) || { revenue: 0, qty: 0 };
+        existing.revenue += Number(item.price || 0) * Number(item.quantity || 1);
+        existing.qty += Number(item.quantity || 1);
+        orderItemMap.set(day, existing);
+      }
+      const dailyData = Array.from(orderItemMap.entries())
+        .map(([date, val]) => ({ date, receita: val.revenue, vendas: val.qty }))
+        .sort((a, b) => a.date.localeCompare(b.date));
+
       // Product breakdown
       const breakdown = new Map<string, { name: string; qty: number; revenue: number }>();
       for (const item of proxyItems) {
@@ -92,6 +108,7 @@ export default function ProxyFinancialOverview() {
         totalRevenue,
         totalOrders: proxyOrders.length,
         productBreakdown: Array.from(breakdown.values()).sort((a, b) => b.revenue - a.revenue),
+        dailyData,
       };
     },
     staleTime: 60_000,
@@ -205,6 +222,72 @@ export default function ProxyFinancialOverview() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Sales Evolution Chart */}
+      <Card className="border-border/40 bg-card/60 backdrop-blur-sm overflow-hidden">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-semibold text-foreground">Evolução de Vendas</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          {salesLoading ? (
+            <Skeleton className="h-[250px] w-full" />
+          ) : !salesData?.dailyData?.length ? (
+            <div className="h-[250px] flex items-center justify-center text-muted-foreground text-sm">
+              Sem dados de vendas no período
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={250}>
+              <AreaChart data={salesData.dailyData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="proxyRevenueGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                <XAxis
+                  dataKey="date"
+                  tickFormatter={(v) => { const [, m, d] = v.split("-"); return `${d}/${m}`; }}
+                  stroke="hsl(var(--muted-foreground))"
+                  fontSize={11}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <YAxis
+                  stroke="hsl(var(--muted-foreground))"
+                  fontSize={11}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(v) => `R$${v}`}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "hsl(var(--card))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "8px",
+                    fontSize: "12px",
+                    color: "hsl(var(--foreground))",
+                  }}
+                  formatter={(value: number, name: string) => [
+                    name === "receita" ? formatCurrency(value) : value,
+                    name === "receita" ? "Receita" : "Vendas",
+                  ]}
+                  labelFormatter={(label) => { const [y, m, d] = label.split("-"); return `${d}/${m}/${y}`; }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="receita"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth={2}
+                  fill="url(#proxyRevenueGradient)"
+                  dot={{ r: 3, fill: "hsl(var(--primary))", strokeWidth: 0 }}
+                  activeDot={{ r: 5, fill: "hsl(var(--primary))", strokeWidth: 2, stroke: "hsl(var(--background))" }}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Product Breakdown */}
       <Card className="border-border/40 bg-card/60 backdrop-blur-sm overflow-hidden">
