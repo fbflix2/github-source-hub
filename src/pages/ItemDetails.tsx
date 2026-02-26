@@ -373,11 +373,17 @@ export default function ItemDetails() {
                   </button>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="flex items-center gap-1 px-2 py-1 rounded-md bg-green-500/10 text-green-400 border border-green-500/20 text-[10px] font-bold uppercase">
                   <span className="w-1.5 h-1.5 rounded-full bg-green-400"></span>
                   {order.status === "completed" ? "Entregue" : order.status}
                 </span>
+                {isConfirmedOk && (
+                  <span className="flex items-center gap-1 px-2 py-1 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold uppercase">
+                    <span className="material-symbols-outlined text-[12px]">check_circle</span>
+                    Funcionando
+                  </span>
+                )}
                 <span className="text-xs text-text-secondary">{formatDate(order.created_at)}</span>
               </div>
             </div>

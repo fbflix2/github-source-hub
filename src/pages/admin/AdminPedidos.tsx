@@ -36,6 +36,7 @@ interface OrderWithDetails {
   created_at: string;
   user_id: string;
   items: { id: string; name: string; description: string | null; price: number; quantity: number; product_id: string | null }[];
+  feedbackOk: boolean;
   profile: { full_name: string | null; } | null;
   email: string;
 }
@@ -88,15 +89,30 @@ export default function AdminPedidos() {
       supabase.from("profiles").select("user_id, full_name").in("user_id", userIds.length > 0 ? userIds : ["__none__"]),
     ]);
 
+    // Fetch stock items with 'ok' status to know which orders got positive feedback
+    const orderItemIds = (itemsRes.data || []).map(i => i.id);
+    const { data: okStockItems } = await supabase
+      .from("stock_items")
+      .select("order_item_id")
+      .in("order_item_id", orderItemIds.length > 0 ? orderItemIds : ["__none__"])
+      .eq("status", "ok");
+
+    const okOrderItemIds = new Set((okStockItems || []).map(s => s.order_item_id));
+
     // Fetch emails from auth via a simple approach - use user_id mapping
     const profileMap = new Map((profilesRes.data || []).map((p) => [p.user_id, p]));
 
-    const enriched: OrderWithDetails[] = ordersData.map((order) => ({
-      ...order,
-      items: (itemsRes.data || []).filter((i) => i.order_id === order.id),
-      profile: profileMap.get(order.user_id) || null,
-      email: "",
-    }));
+    const enriched: OrderWithDetails[] = ordersData.map((order) => {
+      const items = (itemsRes.data || []).filter((i) => i.order_id === order.id);
+      const feedbackOk = items.some(i => okOrderItemIds.has(i.id));
+      return {
+        ...order,
+        items,
+        feedbackOk,
+        profile: profileMap.get(order.user_id) || null,
+        email: "",
+      };
+    });
 
     setOrders(enriched);
     setLoading(false);
@@ -346,7 +362,15 @@ export default function AdminPedidos() {
                 </div>
                 <div>
                   <p className="text-muted-foreground">Status</p>
-                  <div className="mt-1">{getStatusBadge(selectedOrder.status)}</div>
+                  <div className="mt-1 flex items-center gap-2 flex-wrap">
+                    {getStatusBadge(selectedOrder.status)}
+                    {selectedOrder.feedbackOk && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold uppercase">
+                        <Package className="size-3" />
+                        Funcionando
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Data</p>
