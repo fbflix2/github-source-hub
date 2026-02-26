@@ -26,7 +26,7 @@ function matchUserFromSub(
   // 2. Exact name match on notes
   if (notes && nameToUserId.has(notes)) return nameToUserId.get(notes);
 
-  // 3. Partial email match in notes (e.g. notes contains email somewhere)
+  // 3. Partial email match in notes
   if (notes) {
     for (const [email, uid] of emailToUserId.entries()) {
       if (notes.includes(email)) return uid;
@@ -64,7 +64,24 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Check if a sync is already in progress
+    // Read sync_progress to know where to resume
+    const { data: progressRow } = await supabaseAdmin
+      .from("site_settings")
+      .select("value")
+      .eq("key", "sync_progress")
+      .maybeSingle();
+
+    let startPage = 1;
+    if (progressRow?.value) {
+      try {
+        const prog = JSON.parse(progressRow.value);
+        if (prog.lastPage && typeof prog.lastPage === "number" && prog.lastPage > 1) {
+          startPage = prog.lastPage;
+        }
+      } catch { }
+    }
+
+    // Check if a sync is already in progress (but allow resume if stuck)
     const { data: currentStatus } = await supabaseAdmin
       .from("site_settings")
       .select("value")
@@ -76,13 +93,16 @@ Deno.serve(async (req) => {
         const parsed = JSON.parse(currentStatus.value);
         if (parsed.status === "in_progress") {
           const elapsed = Date.now() - (parsed.timestamp || 0);
-          if (elapsed < 5 * 60 * 1000) {
+          // Only skip if less than 3 minutes old (reduced from 5 to handle stuck locks faster)
+          if (elapsed < 3 * 60 * 1000) {
             console.log("Sync already in progress, skipping cron run");
             return new Response(
               JSON.stringify({ status: "skipped", reason: "sync already in progress" }),
               { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
           }
+          // If older than 3 min, it's stuck — proceed and reset
+          console.log(`Stuck lock detected (${Math.round(elapsed / 1000)}s old), forcing resume from page ${startPage}`);
         }
       } catch { }
     }
@@ -90,7 +110,7 @@ Deno.serve(async (req) => {
     // Mark as in_progress
     await supabaseAdmin.from("site_settings").upsert({
       key: "sync_result",
-      value: JSON.stringify({ status: "in_progress", timestamp: Date.now(), source: "cron" }),
+      value: JSON.stringify({ status: "in_progress", timestamp: Date.now(), source: "cron", startPage }),
     }, { onConflict: "key" });
 
     // Run sync in background
@@ -140,17 +160,21 @@ Deno.serve(async (req) => {
           offset += 1000;
         }
 
-        console.log(`Cron sync: ${emailToUserId.size} emails, ${nameToUserId.size} names, ${existingMap.size} existing subs`);
+        console.log(`Cron sync: ${emailToUserId.size} emails, ${nameToUserId.size} names, ${existingMap.size} existing subs, resuming from page ${startPage}`);
 
-        // 3. Fetch all API pages and build batch arrays
-        let synced = 0, linked = 0, page = 1;
-        const DELAY = 1000;
+        // 3. Fetch API pages starting from startPage with chunked limit
+        let synced = 0, linked = 0, page = startPage;
+        const DELAY = 400;
         const MAX_RETRIES = 5;
         const BATCH_SIZE = 50;
+        const MAX_PAGES_PER_RUN = 80;
+        const SAVE_PROGRESS_EVERY = 10;
         const toInsert: any[] = [];
         const toUpdate: { id: string; record: Record<string, any> }[] = [];
+        let pagesProcessed = 0;
+        let reachedEnd = false;
 
-        while (true) {
+        while (pagesProcessed < MAX_PAGES_PER_RUN) {
           const url = `${PROXYBR_BASE}/subscriptions?page=${page}`;
           let response: Response | null = null;
           let text = "";
@@ -178,10 +202,13 @@ Deno.serve(async (req) => {
           try { parsed = JSON.parse(text); } catch { break; }
 
           const items = Array.isArray(parsed) ? parsed : parsed?.data;
-          if (!items?.length) break;
+          if (!items?.length) {
+            reachedEnd = true;
+            break;
+          }
 
-          if (page % 25 === 0 || page === 1) {
-            console.log(`Cron sync page ${page}, items: ${items.length}`);
+          if (pagesProcessed % 25 === 0 || pagesProcessed === 0) {
+            console.log(`Cron sync page ${page}, items: ${items.length}, pagesProcessed: ${pagesProcessed}`);
           }
 
           // Parse proxy codes in-place
@@ -244,9 +271,26 @@ Deno.serve(async (req) => {
           }
 
           const lastPage = parsed?.last_page || parsed?.meta?.last_page;
-          if (lastPage && page >= lastPage) break;
-          if (Array.isArray(parsed) && parsed.length === 0) break;
+          if (lastPage && page >= lastPage) {
+            reachedEnd = true;
+            break;
+          }
+          if (Array.isArray(parsed) && parsed.length === 0) {
+            reachedEnd = true;
+            break;
+          }
+
           page++;
+          pagesProcessed++;
+
+          // Save progress every N pages
+          if (pagesProcessed % SAVE_PROGRESS_EVERY === 0) {
+            await sb.from("site_settings").upsert({
+              key: "sync_progress",
+              value: JSON.stringify({ lastPage: page, timestamp: Date.now() }),
+            }, { onConflict: "key" });
+          }
+
           await sleep(DELAY);
         }
 
@@ -270,15 +314,33 @@ Deno.serve(async (req) => {
           console.log(`Updated ${toUpdate.length} existing subscriptions`);
         }
 
-        console.log(`Cron sync complete: ${synced} synced, ${linked} linked`);
-
-        await sb.from("site_settings").upsert({
-          key: "sync_result",
-          value: JSON.stringify({ synced, linked, total: synced, status: "done", timestamp: Date.now(), source: "cron" }),
-        }, { onConflict: "key" });
+        if (reachedEnd) {
+          // Full sync complete — reset progress to page 1
+          console.log(`Cron sync COMPLETE: ${synced} synced, ${linked} linked (started from page ${startPage})`);
+          await sb.from("site_settings").upsert({
+            key: "sync_progress",
+            value: JSON.stringify({ lastPage: 1, timestamp: Date.now(), completed: true }),
+          }, { onConflict: "key" });
+          await sb.from("site_settings").upsert({
+            key: "sync_result",
+            value: JSON.stringify({ synced, linked, total: synced, status: "done", timestamp: Date.now(), source: "cron", startPage }),
+          }, { onConflict: "key" });
+        } else {
+          // Partial sync — save where we stopped so next run continues
+          console.log(`Cron sync PARTIAL: ${synced} synced, ${linked} linked, stopped at page ${page} (started from ${startPage})`);
+          await sb.from("site_settings").upsert({
+            key: "sync_progress",
+            value: JSON.stringify({ lastPage: page, timestamp: Date.now() }),
+          }, { onConflict: "key" });
+          await sb.from("site_settings").upsert({
+            key: "sync_result",
+            value: JSON.stringify({ synced, linked, status: "partial_done", timestamp: Date.now(), source: "cron", startPage, stoppedAt: page }),
+          }, { onConflict: "key" });
+        }
 
       } catch (err: any) {
         console.error("Cron sync error:", err.message);
+        // Save progress even on error so we can resume
         await sb.from("site_settings").upsert({
           key: "sync_result",
           value: JSON.stringify({ status: "error", error: err.message, timestamp: Date.now(), source: "cron" }),
@@ -289,7 +351,7 @@ Deno.serve(async (req) => {
     (globalThis as any).EdgeRuntime.waitUntil(doSync());
 
     return new Response(
-      JSON.stringify({ status: "started", message: "Cron sync iniciado em segundo plano" }),
+      JSON.stringify({ status: "started", message: `Cron sync iniciado em segundo plano (página ${startPage})` }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
