@@ -1,0 +1,1 @@
+ALTER TABLE public.team_messages REPLICA IDENTITY FULL;
