@@ -21,9 +21,12 @@ export function MainLayout({ userName, userEmail, onLogout, unreadTickets = 0 }:
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
+    let userId: string | null = null;
+
     async function fetchProfile() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+      userId = user.id;
       const { data } = await supabase.from("profiles").select("balance, avatar_url").eq("user_id", user.id).maybeSingle();
       if (data) {
         setBalance(data.balance);
@@ -31,6 +34,21 @@ export function MainLayout({ userName, userEmail, onLogout, unreadTickets = 0 }:
       }
     }
     fetchProfile();
+
+    // Realtime subscription for instant balance updates
+    const channel = supabase
+      .channel("profile-balance")
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "profiles" }, (payload) => {
+        if (userId && payload.new && (payload.new as any).user_id === userId) {
+          setBalance((payload.new as any).balance ?? 0);
+          if ((payload.new as any).avatar_url !== undefined) {
+            setAvatarUrl((payload.new as any).avatar_url);
+          }
+        }
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, []);
   const [showSupportMenu, setShowSupportMenu] = useState(false);
   const supportMenuRef = useRef<HTMLDivElement>(null);
