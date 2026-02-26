@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLocation } from "react-router-dom";
 
@@ -27,13 +27,52 @@ export function useTeamChatNotifications() {
   const [unreadCount, setUnreadCount] = useState(0);
   const location = useLocation();
   const isOnChatPage = location.pathname === "/admin/chat";
+  const loopIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Stop loop sound
+  const stopLoop = useCallback(() => {
+    if (loopIntervalRef.current) {
+      clearInterval(loopIntervalRef.current);
+      loopIntervalRef.current = null;
+    }
+  }, []);
+
+  // Start loop sound (every 8s)
+  const startLoop = useCallback(() => {
+    stopLoop();
+    playAlertSound();
+    loopIntervalRef.current = setInterval(() => {
+      if (window.location.pathname.includes("/admin/chat")) {
+        stopLoop();
+        return;
+      }
+      playAlertSound();
+    }, 8000);
+  }, [stopLoop]);
 
   // Clear when on chat page
   useEffect(() => {
     if (isOnChatPage) {
       setUnreadCount(0);
+      stopLoop();
     }
-  }, [isOnChatPage]);
+  }, [isOnChatPage, stopLoop]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => stopLoop();
+  }, [stopLoop]);
+
+  // When unreadCount changes, manage loop
+  useEffect(() => {
+    if (unreadCount > 0 && !isOnChatPage) {
+      if (!loopIntervalRef.current) {
+        startLoop();
+      }
+    } else {
+      stopLoop();
+    }
+  }, [unreadCount, isOnChatPage, startLoop, stopLoop]);
 
   useEffect(() => {
     let userId: string | null = null;
@@ -50,7 +89,6 @@ export function useTeamChatNotifications() {
           const msg = payload.new as { user_id: string };
           if (msg.user_id !== userId && !window.location.pathname.includes("/admin/chat")) {
             setUnreadCount(prev => prev + 1);
-            playAlertSound();
           }
         }
       )
