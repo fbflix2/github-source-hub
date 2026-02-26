@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { 
   Search, Plus, Upload, User, Briefcase, Globe, Server, Tag, Save, X,
   Filter, ChevronLeft, ChevronRight, Edit, Trash2, Image as ImageIcon, Loader2, ImagePlus,
-  BarChart3, Download
+  BarChart3, Download, BellRing, Clock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useProxyBRProducts } from "@/hooks/useProxyBR";
+import { WaitlistTab } from "@/components/admin/WaitlistTab";
 
 interface Product {
   id: string;
@@ -506,6 +507,10 @@ export default function AdminProducts() {
             <BarChart3 className="h-3.5 w-3.5" />
             Visão de Vendas
           </TabsTrigger>
+          <TabsTrigger value="espera" className="data-[state=active]:bg-primary data-[state=active]:text-white text-zinc-400 gap-1.5">
+            <BellRing className="h-3.5 w-3.5" />
+            Produtos em Espera
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="produtos" className="space-y-4">
@@ -722,6 +727,10 @@ export default function AdminProducts() {
               </Table>
             </div>
           </div>
+        </TabsContent>
+
+        <TabsContent value="espera">
+          <WaitlistTab />
         </TabsContent>
       </Tabs>
     </div>
