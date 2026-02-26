@@ -79,11 +79,13 @@ export function WaitlistStockAlert() {
     return () => { cancelled = true; clearTimeout(timer); };
   }, []);
 
-  const handleDismiss = () => {
+  const handleDismiss = async () => {
     if (product) {
-      const dismissed: string[] = JSON.parse(sessionStorage.getItem(DISMISS_KEY) || "[]");
-      dismissed.push(product.productId);
-      sessionStorage.setItem(DISMISS_KEY, JSON.stringify(dismissed));
+      // Mark as dismissed permanently so it never shows again
+      await supabase
+        .from("product_waitlist")
+        .update({ status: "dismissed" })
+        .eq("id", product.waitlistId);
     }
     setOpen(false);
   };
