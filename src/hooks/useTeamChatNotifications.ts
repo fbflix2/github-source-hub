@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLocation } from "react-router-dom";
 
-// Sound for sidebar notification
 function playAlertSound() {
   try {
     const ctx = new AudioContext();
@@ -25,20 +24,17 @@ function playAlertSound() {
 }
 
 export function useTeamChatNotifications() {
-  const [hasUnread, setHasUnread] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const location = useLocation();
-  const lastSeenRef = useRef<string>(new Date().toISOString());
   const isOnChatPage = location.pathname === "/admin/chat";
 
-  // Clear unread when on chat page
+  // Clear when on chat page
   useEffect(() => {
     if (isOnChatPage) {
-      setHasUnread(false);
-      lastSeenRef.current = new Date().toISOString();
+      setUnreadCount(0);
     }
   }, [isOnChatPage]);
 
-  // Listen for new messages via realtime
   useEffect(() => {
     let userId: string | null = null;
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -51,10 +47,9 @@ export function useTeamChatNotifications() {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "team_messages" },
         (payload) => {
-          const msg = payload.new as { user_id: string; created_at: string };
-          // Only notify for messages from others and when not on chat page
+          const msg = payload.new as { user_id: string };
           if (msg.user_id !== userId && !window.location.pathname.includes("/admin/chat")) {
-            setHasUnread(true);
+            setUnreadCount(prev => prev + 1);
             playAlertSound();
           }
         }
@@ -64,5 +59,5 @@ export function useTeamChatNotifications() {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
-  return { hasUnread, clearUnread: () => setHasUnread(false) };
+  return { hasUnread: unreadCount > 0, unreadCount };
 }
