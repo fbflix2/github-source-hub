@@ -128,24 +128,26 @@ const App = () => {
           const redirectKey = `staff_redirect_${session.user.id}`;
           if (sessionStorage.getItem(redirectKey)) return;
 
-          if (!window.location.pathname.startsWith('/admin')) {
-            const userId = session.user.id;
-            const { data: isAdmin } = await supabase.rpc('has_role', {
+          // Don't redirect if user is already on admin or explicitly visiting client pages
+          const currentPath = window.location.pathname;
+          if (currentPath.startsWith('/admin') || currentPath === '/loja' || currentPath === '/profile' || currentPath === '/wallet' || currentPath.startsWith('/subscriptions') || currentPath.startsWith('/orders') || currentPath.startsWith('/item-details')) return;
+
+          const userId = session.user.id;
+          const { data: isAdmin } = await supabase.rpc('has_role', {
+            _user_id: userId,
+            _role: 'admin' as const,
+          });
+          let isStaff = !!isAdmin;
+          if (!isStaff) {
+            const { data: isMod } = await supabase.rpc('has_role', {
               _user_id: userId,
-              _role: 'admin' as const,
+              _role: 'moderator' as const,
             });
-            let isStaff = !!isAdmin;
-            if (!isStaff) {
-              const { data: isMod } = await supabase.rpc('has_role', {
-                _user_id: userId,
-                _role: 'moderator' as const,
-              });
-              isStaff = !!isMod;
-            }
-            if (isStaff) {
-              sessionStorage.setItem(redirectKey, 'true');
-              window.location.href = '/admin';
-            }
+            isStaff = !!isMod;
+          }
+          if (isStaff) {
+            sessionStorage.setItem(redirectKey, 'true');
+            window.location.href = '/admin';
           }
         }
       }

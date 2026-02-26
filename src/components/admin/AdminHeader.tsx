@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Bell, ChevronDown, LogOut, UserCog } from "lucide-react";
+import { Bell, ChevronDown, LogOut, UserCog, Store } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -68,6 +68,10 @@ export function AdminHeader() {
               <DropdownMenuItem onClick={() => setShowProfile(true)} className="cursor-pointer text-sm">
                 <UserCog className="mr-2 size-3.5" />
                 Editar Perfil
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => window.open("/loja", "_blank")} className="cursor-pointer text-sm">
+                <Store className="mr-2 size-3.5" />
+                Visitar Loja
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-sm">
