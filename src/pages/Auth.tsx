@@ -50,11 +50,20 @@ export default function Auth() {
         _role: 'admin' as const,
       });
 
+      let isStaff = isAdmin;
+      if (!isStaff) {
+        const { data: isMod } = await supabase.rpc('has_role', {
+          _user_id: data.user.id,
+          _role: 'moderator' as const,
+        });
+        isStaff = isMod;
+      }
+
       toast({
         title: "Bem-vindo!",
         description: "Login realizado com sucesso.",
       });
-      navigate(isAdmin ? "/admin" : "/loja");
+      navigate(isStaff ? "/admin" : "/loja");
     }
 
     setLoading(false);
