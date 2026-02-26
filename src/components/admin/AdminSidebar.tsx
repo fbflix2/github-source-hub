@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import logoFbflix from "@/assets/logo-fbflix.png";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   LayoutDashboard, 
   Package, 
@@ -30,7 +31,20 @@ import {
   ShieldCheck
 } from "lucide-react";
 
-const menuItems = [
+interface SubItem {
+  title: string;
+  icon: any;
+  path: string;
+}
+
+interface MenuItem {
+  title: string;
+  icon: any;
+  path: string;
+  subItems?: SubItem[];
+}
+
+const allMenuItems: MenuItem[] = [
   { title: "Dashboard", icon: LayoutDashboard, path: "/admin" },
   { title: "Suporte", icon: Headphones, path: "/admin/suporte" },
   { title: "Auditoria", icon: ClipboardCheck, path: "/admin/auditoria" },
@@ -59,13 +73,64 @@ const menuItems = [
 export function AdminSidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>(allMenuItems);
   const location = useLocation();
+
+  useEffect(() => {
+    checkPermissions();
+  }, []);
+
+  const checkPermissions = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Check if user is admin
+      const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" as any });
+      if (isAdmin) {
+        setMenuItems(allMenuItems);
+        return;
+      }
+
+      // Check if moderator - fetch permissions
+      const { data: perms } = await supabase
+        .from("moderator_permissions")
+        .select("allowed_paths")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!perms || !perms.allowed_paths || perms.allowed_paths.length === 0) {
+        // No permissions set = show all (backwards compatible)
+        setMenuItems(allMenuItems);
+        return;
+      }
+
+      const allowed = new Set(perms.allowed_paths as string[]);
+
+      // Filter menu items
+      const filtered = allMenuItems
+        .map(item => {
+          if (item.subItems) {
+            const filteredSubs = item.subItems.filter(sub => allowed.has(sub.path));
+            if (filteredSubs.length === 0) return null;
+            return { ...item, subItems: filteredSubs };
+          }
+          return allowed.has(item.path) ? item : null;
+        })
+        .filter(Boolean) as MenuItem[];
+
+      setMenuItems(filtered);
+    } catch (err) {
+      console.error("Error checking permissions:", err);
+    }
+  };
 
   const toggleExpanded = (path: string) => {
     setExpandedMenus(prev => 
       prev.includes(path) ? prev.filter(p => p !== path) : [...prev, path]
     );
   };
+
   return (
     <aside 
       className={cn(
@@ -83,7 +148,6 @@ export function AdminSidebar() {
             </h1>
           )}
         </div>
-
 
         {/* Navigation */}
         <nav className="flex-1 px-2 space-y-0.5 overflow-y-auto">
@@ -132,7 +196,7 @@ export function AdminSidebar() {
                 {/* Sub Items */}
                 {hasSubItems && isExpanded && !collapsed && (
                   <div className="ml-4 mt-0.5 space-y-0.5 border-l border-white/10 pl-2">
-                    {item.subItems.map((sub) => {
+                    {item.subItems!.map((sub) => {
                       const isSubActive = location.pathname === sub.path;
                       return (
                         <NavLink

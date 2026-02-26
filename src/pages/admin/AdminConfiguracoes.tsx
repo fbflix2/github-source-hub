@@ -12,6 +12,7 @@ import {
   Loader2,
   Crown,
   UserCog,
+  KeyRound,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,7 +36,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-
+import ModeratorPermissionsModal from "@/components/admin/ModeratorPermissionsModal";
 interface TeamMember {
   user_id: string;
   name: string;
@@ -75,6 +76,9 @@ export default function AdminConfiguracoes() {
 
   // Remove confirm
   const [removeMember, setRemoveMember] = useState<TeamMember | null>(null);
+
+  // Permissions modal
+  const [permsMember, setPermsMember] = useState<TeamMember | null>(null);
 
   const filters = [
     { key: "all", label: "Todos" },
@@ -338,6 +342,15 @@ export default function AdminConfiguracoes() {
                     </td>
                     <td className="p-4 text-right">
                       <div className="flex justify-end gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                        {member.role === "moderator" && (
+                          <button
+                            onClick={() => setPermsMember(member)}
+                            className="p-2 hover:bg-blue-500/20 rounded-lg text-gray-400 hover:text-blue-400 transition-colors"
+                            title="Configurar Permissões"
+                          >
+                            <KeyRound className="w-5 h-5" />
+                          </button>
+                        )}
                         <button
                           onClick={() => {
                             setEditMember(member);
@@ -599,6 +612,13 @@ export default function AdminConfiguracoes() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Moderator Permissions Modal */}
+      <ModeratorPermissionsModal
+        open={!!permsMember}
+        onClose={() => setPermsMember(null)}
+        member={permsMember}
+      />
     </div>
   );
 }

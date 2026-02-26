@@ -241,6 +241,30 @@ export type Database = {
           },
         ]
       }
+      moderator_permissions: {
+        Row: {
+          allowed_paths: string[]
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          allowed_paths?: string[]
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          allowed_paths?: string[]
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string
