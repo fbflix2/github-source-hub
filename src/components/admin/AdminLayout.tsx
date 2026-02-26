@@ -41,7 +41,12 @@ export function AdminLayout() {
         }
 
         const allowed = perms.allowed_paths as string[];
-        const currentAllowed = allowed.some(p => location.pathname === p || location.pathname.startsWith(p + "/"));
+        // Blocagem is a sub-feature of estoque — allow automatically
+        const effectiveAllowed = [...allowed];
+        if (allowed.includes("/admin/estoque") && !allowed.includes("/admin/blocagem")) {
+          effectiveAllowed.push("/admin/blocagem");
+        }
+        const currentAllowed = effectiveAllowed.some(p => location.pathname === p || location.pathname.startsWith(p + "/"));
 
         if (!currentAllowed) {
           navigate(allowed[0], { replace: true });

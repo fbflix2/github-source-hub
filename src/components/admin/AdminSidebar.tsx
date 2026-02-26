@@ -29,7 +29,8 @@ import {
   Palette,
   Megaphone,
   ShieldCheck,
-  MessageCircle
+  MessageCircle,
+  Shield
 } from "lucide-react";
 
 interface SubItem {
@@ -50,6 +51,7 @@ const allMenuItems: MenuItem[] = [
   { title: "Suporte", icon: Headphones, path: "/admin/suporte" },
   { title: "Auditoria", icon: ClipboardCheck, path: "/admin/auditoria" },
   { title: "Estoque", icon: Warehouse, path: "/admin/estoque" },
+  { title: "Blocagem", icon: Shield, path: "/admin/blocagem" },
   { title: "Produtos", icon: Package, path: "/admin/produtos" },
   { title: "Pedidos", icon: ShoppingCart, path: "/admin/pedidos" },
   { title: "Pagamentos", icon: CreditCard, path: "/admin/pagamentos" },
@@ -108,6 +110,8 @@ export function AdminSidebar() {
       }
 
       const allowed = new Set(perms.allowed_paths as string[]);
+      // Blocagem is a sub-feature of estoque
+      if (allowed.has("/admin/estoque")) allowed.add("/admin/blocagem");
 
       // Filter menu items
       const filtered = allMenuItems
