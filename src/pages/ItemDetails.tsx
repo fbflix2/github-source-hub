@@ -215,26 +215,63 @@ export default function ItemDetails() {
     URL.revokeObjectURL(url);
   };
 
-  const downloadBloco = () => {
-    const lines = [
-      `=== ${itemName} ===`,
-      `Pedido: ${order?.code || "—"}`,
-      `Data: ${order?.created_at ? formatDate(order.created_at) : "—"}`,
-      "",
-      "--- Dados de Acesso ---",
-      `Login / Email: ${email}`,
-      `Senha: ${senha}`,
-      `Código 2FA: ${token2fa}`,
-    ];
-    if (stockData.emailAlternativo) lines.push(`Email Alternativo: ${stockData.emailAlternativo}`);
-    if (stockData.nomePerfil) lines.push(`Nome do Perfil: ${stockData.nomePerfil}`);
-    if (stockData.dataNascimento) lines.push(`Data de Nascimento: ${stockData.dataNascimento}`);
-    if (stockData.genero) lines.push(`Gênero: ${stockData.genero}`);
-    if (stockData.tempoPlataforma) lines.push(`Tempo de Plataforma: ${stockData.tempoPlataforma}`);
-    if (stockData.statusAtual) lines.push(`Status Atual: ${stockData.statusAtual}`);
-    if (descricao) { lines.push("", "--- Descrição ---", descricao); }
-    if (stockData.cookies) { lines.push("", "--- Cookies ---", stockData.cookies); }
-    const blob = new Blob([lines.join("\n")], { type: "text/plain" });
+  const downloadBloco = async () => {
+    let finalContent = "";
+
+    // Try to fetch default template
+    const { data: tpl } = await supabase
+      .from("block_templates" as any)
+      .select("content")
+      .eq("is_default", true)
+      .maybeSingle();
+
+    if (tpl && (tpl as any).content) {
+      // Use template with placeholder replacement
+      const replacements: Record<string, string> = {
+        "{{nomePerfil}}": stockData.nomePerfil || "—",
+        "{{emailAcesso}}": email,
+        "{{emailAlternativo}}": stockData.emailAlternativo || "—",
+        "{{senha}}": senha,
+        "{{token2fa}}": token2fa,
+        "{{dataNascimento}}": stockData.dataNascimento || "—",
+        "{{genero}}": stockData.genero || "—",
+        "{{tempoPlataforma}}": stockData.tempoPlataforma || "—",
+        "{{statusAtual}}": stockData.statusAtual || "—",
+        "{{descricao}}": descricao || "—",
+        "{{cookies}}": stockData.cookies || "—",
+        "{{linkDocumento}}": stockData.linkDocumento || "—",
+        "{{pedido}}": order?.code || "—",
+        "{{data}}": order?.created_at ? formatDate(order.created_at) : "—",
+        "{{nomeProduto}}": itemName,
+      };
+      finalContent = (tpl as any).content;
+      for (const [key, val] of Object.entries(replacements)) {
+        finalContent = finalContent.split(key).join(val);
+      }
+    } else {
+      // Fallback to hardcoded format
+      const lines = [
+        `=== ${itemName} ===`,
+        `Pedido: ${order?.code || "—"}`,
+        `Data: ${order?.created_at ? formatDate(order.created_at) : "—"}`,
+        "",
+        "--- Dados de Acesso ---",
+        `Login / Email: ${email}`,
+        `Senha: ${senha}`,
+        `Código 2FA: ${token2fa}`,
+      ];
+      if (stockData.emailAlternativo) lines.push(`Email Alternativo: ${stockData.emailAlternativo}`);
+      if (stockData.nomePerfil) lines.push(`Nome do Perfil: ${stockData.nomePerfil}`);
+      if (stockData.dataNascimento) lines.push(`Data de Nascimento: ${stockData.dataNascimento}`);
+      if (stockData.genero) lines.push(`Gênero: ${stockData.genero}`);
+      if (stockData.tempoPlataforma) lines.push(`Tempo de Plataforma: ${stockData.tempoPlataforma}`);
+      if (stockData.statusAtual) lines.push(`Status Atual: ${stockData.statusAtual}`);
+      if (descricao) { lines.push("", "--- Descrição ---", descricao); }
+      if (stockData.cookies) { lines.push("", "--- Cookies ---", stockData.cookies); }
+      finalContent = lines.join("\n");
+    }
+
+    const blob = new Blob([finalContent], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;

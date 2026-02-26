@@ -70,6 +70,7 @@ const allMenuItems: MenuItem[] = [
     { title: "Banners", icon: Image, path: "/admin/banners" },
     { title: "Tutoriais", icon: GraduationCap, path: "/admin/tutoriais" },
     { title: "Termos de uso", icon: FileText, path: "/admin/termos" },
+    { title: "Bloco Padrão", icon: FileText, path: "/admin/configuracoes/bloco-padrao" },
     { title: "Usuários e Acessos", icon: ShieldCheck, path: "/admin/configuracoes/usuarios" },
     { title: "API | Token", icon: Key, path: "/admin/api" },
   ]},
