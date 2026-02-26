@@ -23,6 +23,7 @@ function playAlertSound() {
   }
 }
 
+// Team chat notification hook with looping alert sound
 export function useTeamChatNotifications() {
   const [unreadCount, setUnreadCount] = useState(0);
   const location = useLocation();
