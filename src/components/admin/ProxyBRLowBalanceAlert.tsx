@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { AlertTriangle, Wallet, X } from "lucide-react";
+import { AlertTriangle, Wallet, ExternalLink } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -67,13 +67,19 @@ export function ProxyBRLowBalanceAlert() {
             Recarregue sua carteira no painel da ProxyBR para garantir que novas contratações de proxy não sejam interrompidas.
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter className="gap-2">
+        <AlertDialogFooter className="gap-2 sm:flex-row">
           <AlertDialogAction
-            onClick={handleDismiss}
+            onClick={() => { window.open("https://painel.proxybr.com.br", "_blank"); handleDismiss(); }}
             className="bg-primary text-primary-foreground hover:bg-primary/90"
           >
-            <Wallet className="size-4 mr-2" />
-            Entendi, vou recarregar
+            <ExternalLink className="size-4 mr-2" />
+            Recarregar na ProxyBR
+          </AlertDialogAction>
+          <AlertDialogAction
+            onClick={handleDismiss}
+            className="bg-muted text-muted-foreground hover:bg-muted/80"
+          >
+            Fechar
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
