@@ -127,16 +127,44 @@ async function handleAdd(sb: any, body: any) {
   if (!email || !role) throw new Error("Email e role são obrigatórios");
   if (!["admin", "moderator"].includes(role)) throw new Error("Role inválida");
 
-  // Find user by email (paginated search)
+  // Find user by email - first try direct fetch, then search via Supabase Admin API
+  const targetEmail = email.trim().toLowerCase();
+  
+  // Use the Admin API endpoint directly for email lookup (avoids pagination issues)
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  
+  const listRes = await fetch(
+    `${supabaseUrl}/auth/v1/admin/users?page=1&per_page=1&filter=${encodeURIComponent(targetEmail)}`,
+    {
+      headers: {
+        Authorization: `Bearer ${serviceKey}`,
+        apikey: serviceKey,
+      },
+    }
+  );
+  
   let foundUser: any = null;
-  let page = 1;
-  while (!foundUser) {
-    const { data: { users }, error: listError } = await sb.auth.admin.listUsers({ page, perPage: 1000 });
-    if (listError) throw new Error(listError.message);
-    if (!users || users.length === 0) break;
-    foundUser = users.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
-    if (users.length < 1000) break;
-    page++;
+  
+  if (listRes.ok) {
+    const listData = await listRes.json();
+    const users = listData.users || listData;
+    if (Array.isArray(users)) {
+      foundUser = users.find((u: any) => u.email?.toLowerCase() === targetEmail);
+    }
+  }
+  
+  // Fallback: paginated search
+  if (!foundUser) {
+    let page = 1;
+    while (!foundUser) {
+      const { data: { users }, error: listError } = await sb.auth.admin.listUsers({ page, perPage: 1000 });
+      if (listError) throw new Error(listError.message);
+      if (!users || users.length === 0) break;
+      foundUser = users.find((u: any) => u.email?.toLowerCase() === targetEmail);
+      if (users.length < 1000) break;
+      page++;
+    }
   }
 
   if (!foundUser) throw new Error("Usuário não encontrado com esse email");
