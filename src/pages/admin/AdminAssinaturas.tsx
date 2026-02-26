@@ -13,6 +13,7 @@ import {
   Loader2,
   Clock,
   AlertCircle,
+  FileSpreadsheet,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -31,6 +32,7 @@ import { differenceInDays, parseISO, format, formatDistanceToNow } from "date-fn
 import { ptBR } from "date-fns/locale";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import LinkSubscriptionsModal from "@/components/admin/LinkSubscriptionsModal";
 
 type MappedStatus = "active" | "pending_renewal" | "expired" | "cancelled";
 
@@ -176,6 +178,7 @@ export default function AdminAssinaturas() {
   const [linkSearch, setLinkSearch] = useState("");
   const [syncing, setSyncing] = useState(false);
   const [relinking, setRelinking] = useState(false);
+  const [linkModalOpen, setLinkModalOpen] = useState(false);
   const queryClient = useQueryClient();
   const renewMutation = useRenewSubscription();
 
@@ -495,6 +498,14 @@ export default function AdminAssinaturas() {
         </div>
         <div className="flex gap-2">
           <Button
+            onClick={() => setLinkModalOpen(true)}
+            variant="outline"
+            className="gap-2"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            Vincular via Planilha
+          </Button>
+          <Button
             onClick={handleRelinkAll}
             disabled={relinking || syncing || isLoading}
             variant="outline"
@@ -513,6 +524,12 @@ export default function AdminAssinaturas() {
           </Button>
         </div>
       </div>
+
+      <LinkSubscriptionsModal
+        open={linkModalOpen}
+        onClose={() => setLinkModalOpen(false)}
+        onLinked={() => queryClient.invalidateQueries({ queryKey: ["admin-subscriptions-cached"] })}
+      />
 
       {/* Sync Banner */}
       {hasChanges && !syncing && (
