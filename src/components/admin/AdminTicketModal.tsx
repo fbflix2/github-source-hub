@@ -117,17 +117,23 @@ export default function AdminTicketModal({ ticket, profileName, mode, onClose, o
             </p>
           </div>
           <div className="flex items-center gap-2">
-            {ticket.status !== "resolved" && ticket.status !== "closed" && (
+            {ticket.status !== "closed" && (
               <button
                 onClick={async () => {
+                  if (ticket.status === "resolved") return;
                   await supabase.from("tickets").update({ status: "resolved" }).eq("id", ticket.id);
                   onStatusChange?.();
                   toast.success("Ticket marcado como resolvido!");
                   onClose();
                 }}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 transition-colors"
+                disabled={ticket.status === "resolved"}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+                  ticket.status === "resolved"
+                    ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30 cursor-default"
+                    : "bg-white/5 text-white/60 border-white/10 hover:bg-white/10 hover:text-white"
+                }`}
               >
-                ✓ Resolvido
+                {ticket.status === "resolved" ? "✓ Resolvido" : "Marcar como Resolvido"}
               </button>
             )}
             <button onClick={onClose} className="text-white/30 hover:text-white transition-colors">
