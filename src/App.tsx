@@ -148,10 +148,31 @@ const App = () => {
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+
+      // On initial load, redirect staff to admin if on client routes
+      if (session?.user && !window.location.pathname.startsWith('/admin')) {
+        const userId = session.user.id;
+        const { data: isAdmin } = await supabase.rpc('has_role', {
+          _user_id: userId,
+          _role: 'admin' as const,
+        });
+        if (isAdmin) {
+          window.location.href = '/admin';
+          return;
+        }
+        const { data: isMod } = await supabase.rpc('has_role', {
+          _user_id: userId,
+          _role: 'moderator' as const,
+        });
+        if (isMod) {
+          window.location.href = '/admin';
+          return;
+        }
+      }
     });
 
     return () => subscription.unsubscribe();
