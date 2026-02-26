@@ -386,7 +386,7 @@ export default function AdminAssinaturas() {
       }
 
       // Build xlsx
-      const loginUrl = `${window.location.origin}/auth`;
+      const loginUrl = "https://fbflix.com.br/auth";
       const rows = creds.map((c: any) => ({
         "Nome": c.full_name || "",
         "Email": c.email,

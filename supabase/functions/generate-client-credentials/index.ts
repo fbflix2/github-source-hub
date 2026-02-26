@@ -6,10 +6,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-function generatePasswordFromEmail(email: string): string {
-  const local = email.split("@")[0] || "user";
-  const base = local.charAt(0).toUpperCase() + local.slice(1, 6);
-  return `${base}@Proxy1`;
+function generatePassword(): string {
+  return "mudar@123";
 }
 
 Deno.serve(async (req) => {
@@ -124,7 +122,7 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      const password = generatePasswordFromEmail(email);
+      const password = generatePassword();
       const subs = subsByUser.get(profile.user_id) || [];
 
       // Reset password and set must_change_password flag
@@ -174,7 +172,7 @@ Deno.serve(async (req) => {
       // Skip if already processed
       if (credentials.some(c => c.email === email)) continue;
 
-      const password = generatePasswordFromEmail(email);
+      const password = generatePassword();
       const existingUserId = emailToUserId.get(email);
 
       if (existingUserId) {
