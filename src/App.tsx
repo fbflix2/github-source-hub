@@ -37,6 +37,7 @@ import AdminBlocagem from "./pages/admin/AdminBlocagem";
 import AdminSuporte from "./pages/admin/AdminSuporte";
 import AdminAuditoria from "./pages/admin/AdminAuditoria";
 import AdminNovaCompra from "./pages/admin/AdminNovaCompra";
+import AdminNovaVenda from "./pages/admin/AdminNovaVenda";
 import AdminBalanco from "./pages/admin/AdminBalanco";
 import AdminClientes from "./pages/admin/AdminClientes";
 import AdminAfiliados from "./pages/admin/AdminAfiliados";
@@ -172,6 +173,7 @@ const App = () => {
                   <Route path="suporte" element={<AdminSuporte />} />
                   <Route path="auditoria" element={<AdminAuditoria />} />
                   <Route path="auditoria/nova-compra" element={<AdminNovaCompra />} />
+                  <Route path="auditoria/nova-venda" element={<AdminNovaVenda />} />
                   <Route path="auditoria/balanco" element={<AdminBalanco />} />
                   <Route path="pedidos" element={<AdminPedidos />} />
                   <Route path="pagamentos" element={<AdminPagamentos />} />
