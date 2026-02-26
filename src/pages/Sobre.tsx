@@ -72,7 +72,8 @@ export default function Sobre() {
             <a href="#servicos" className="hover:text-foreground transition-colors">Serviços</a>
             <a href="#sobre" className="hover:text-foreground transition-colors">Sobre</a>
             <a href="#depoimentos" className="hover:text-foreground transition-colors">Depoimentos</a>
-            <a href="#termos" className="hover:text-foreground transition-colors">Termos</a>
+            <NavLink to="/termos" className="hover:text-foreground transition-colors">Termos</NavLink>
+            <NavLink to="/privacidade" className="hover:text-foreground transition-colors">Privacidade</NavLink>
           </nav>
           <NavLink
             to="/auth"
@@ -396,8 +397,8 @@ export default function Sobre() {
             <div className="flex flex-wrap justify-center gap-6 text-xs text-muted-foreground">
               <a href="#servicos" className="hover:text-foreground transition-colors">Serviços</a>
               <a href="#sobre" className="hover:text-foreground transition-colors">Sobre</a>
-              <a href="#termos-de-servico" className="hover:text-foreground transition-colors">Termos de Serviço</a>
-              <a href="#politica-privacidade" className="hover:text-foreground transition-colors">Privacidade</a>
+              <NavLink to="/termos" className="hover:text-foreground transition-colors">Termos de Serviço</NavLink>
+              <NavLink to="/privacidade" className="hover:text-foreground transition-colors">Política de Privacidade</NavLink>
               <NavLink to="/auth" className="hover:text-foreground transition-colors">Login</NavLink>
             </div>
           </div>
