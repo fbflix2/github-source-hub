@@ -190,6 +190,7 @@ export default function ProxyUnlinkedList() {
             <tr className="border-b border-border text-muted-foreground text-xs bg-muted/30">
               <th className="text-left p-3">Código</th>
               <th className="text-left p-3">Produto</th>
+              <th className="text-left p-3">Status</th>
               <th className="text-left p-3">IP</th>
               <th className="text-left p-3">Vencimento</th>
               <th className="text-left p-3">Notas (API)</th>
@@ -200,7 +201,7 @@ export default function ProxyUnlinkedList() {
             {isLoading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={i} className="border-b border-border/50">
-                  {Array.from({ length: 6 }).map((_, j) => (
+                  {Array.from({ length: 7 }).map((_, j) => (
                     <td key={j} className="p-3"><div className="h-4 bg-muted rounded animate-pulse" /></td>
                   ))}
                 </tr>
@@ -217,6 +218,23 @@ export default function ProxyUnlinkedList() {
                   </button>
                 </td>
                 <td className="p-3 text-foreground">{sub.product_name}</td>
+                <td className="p-3">
+                  {sub.status === "active" ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/20">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                      Ativo
+                    </span>
+                  ) : sub.status === "pending_renewal" ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">
+                      <span className="w-1.5 h-1.5 rounded-full bg-yellow-500" />
+                      Pendente
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground border border-border">
+                      {sub.status}
+                    </span>
+                  )}
+                </td>
                 <td className="p-3 font-mono text-xs text-muted-foreground">
                   {sub.proxy_ip ? `${sub.proxy_ip}:${sub.proxy_port}` : "—"}
                 </td>
