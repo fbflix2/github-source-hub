@@ -2,6 +2,7 @@ import { Outlet, useLocation } from "react-router-dom";
 import { AdminSidebar } from "./AdminSidebar";
 import { AdminHeader } from "./AdminHeader";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
+import { ProxyBRLowBalanceAlert } from "./ProxyBRLowBalanceAlert";
 import { Play } from "lucide-react";
 
 export function AdminLayout() {
@@ -41,6 +42,7 @@ export function AdminLayout() {
             <Outlet />
           </div>
         </div>
+        <ProxyBRLowBalanceAlert />
       </main>
     </div>
   );
