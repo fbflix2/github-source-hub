@@ -14,6 +14,8 @@ import {
   Clock,
   AlertCircle,
   FileSpreadsheet,
+  UserPlus,
+  Download,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -33,6 +35,7 @@ import { ptBR } from "date-fns/locale";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import LinkSubscriptionsModal from "@/components/admin/LinkSubscriptionsModal";
+import * as XLSX from "xlsx";
 
 type MappedStatus = "active" | "pending_renewal" | "expired" | "cancelled";
 
@@ -179,6 +182,7 @@ export default function AdminAssinaturas() {
   const [syncing, setSyncing] = useState(false);
   const [relinking, setRelinking] = useState(false);
   const [linkModalOpen, setLinkModalOpen] = useState(false);
+  const [generatingCredentials, setGeneratingCredentials] = useState(false);
   const queryClient = useQueryClient();
   const renewMutation = useRenewSubscription();
 
@@ -365,6 +369,60 @@ export default function AdminAssinaturas() {
     }
   }, [queryClient]);
 
+  // Generate credentials for active subscribers & export xlsx
+  const handleGenerateCredentials = useCallback(async () => {
+    setGeneratingCredentials(true);
+    try {
+      await supabase.auth.refreshSession();
+      const { data, error } = await supabase.functions.invoke("generate-client-credentials");
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+
+      const creds = data.credentials || [];
+      if (creds.length === 0) {
+        toast.warning(`Nenhuma credencial gerada. ${data.skipped || 0} assinaturas sem email identificável.`);
+        setGeneratingCredentials(false);
+        return;
+      }
+
+      // Build xlsx
+      const loginUrl = `${window.location.origin}/auth`;
+      const rows = creds.map((c: any) => ({
+        "Nome": c.full_name || "",
+        "Email": c.email,
+        "Senha": c.password,
+        "Link de Login": loginUrl,
+        "Produto": c.product_name || "",
+        "Código Assinatura": c.subscription_code || "",
+        "Status": c.status === "active" ? "Ativo" : c.status,
+        "Conta": c.already_existed ? "Já existia" : "Criada agora",
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(rows);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Credenciais");
+      
+      // Auto-size columns
+      const colWidths = Object.keys(rows[0] || {}).map(key => ({
+        wch: Math.max(key.length, ...rows.map((r: any) => String(r[key] || "").length)) + 2
+      }));
+      ws["!cols"] = colWidths;
+
+      XLSX.writeFile(wb, `credenciais_clientes_${new Date().toISOString().slice(0, 10)}.xlsx`);
+
+      toast.success(`${creds.length} credenciais geradas! (${data.created} novos, ${data.existing} existentes)`);
+      if (data.errors?.length) {
+        console.warn("Erros:", data.errors);
+        toast.info(`${data.errors.length} assinaturas com problemas. Veja o console.`);
+      }
+      queryClient.invalidateQueries({ queryKey: ["admin-subscriptions-cached"] });
+    } catch (err: any) {
+      toast.error(`Erro: ${err.message}`);
+    } finally {
+      setGeneratingCredentials(false);
+    }
+  }, [queryClient]);
+
   // Link subscription to a client (also pushes email to ProxyBR notes)
   const handleLinkClient = useCallback(async (subCode: string, userId: string) => {
     try {
@@ -497,7 +555,16 @@ export default function AdminAssinaturas() {
             Sincronização automática ativa (a cada 10 min)
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap justify-end">
+          <Button
+            onClick={handleGenerateCredentials}
+            disabled={generatingCredentials || syncing || isLoading}
+            variant="outline"
+            className="gap-2"
+          >
+            {generatingCredentials ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            Gerar Credenciais
+          </Button>
           <Button
             onClick={() => setLinkModalOpen(true)}
             variant="outline"

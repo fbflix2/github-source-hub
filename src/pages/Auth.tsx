@@ -35,6 +35,14 @@ export default function Auth() {
         variant: "destructive",
       });
     } else {
+      // Check if user must change password (first login)
+      const mustChange = data.user.user_metadata?.must_change_password === true;
+      if (mustChange) {
+        navigate("/welcome");
+        setLoading(false);
+        return;
+      }
+
       // Check if user has admin role
       const { data: isAdmin } = await supabase.rpc('has_role', {
         _user_id: data.user.id,

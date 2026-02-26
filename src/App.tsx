@@ -26,6 +26,7 @@ import ComoFunciona from "./pages/ComoFunciona";
 import Suporte from "./pages/Suporte";
 import Tickets from "./pages/Tickets";
 import NotFound from "./pages/NotFound";
+import Welcome from "./pages/Welcome";
 
 // Admin Pages
 import AdminLogin from "./pages/admin/AdminLogin";
@@ -155,6 +156,10 @@ const App = () => {
                 <Route
                   path="/auth"
                   element={user ? <Navigate to="/loja" replace /> : <Auth />}
+                />
+                <Route
+                  path="/welcome"
+                  element={user ? <Welcome /> : <Navigate to="/auth" replace />}
                 />
 
                 {/* Admin routes */}

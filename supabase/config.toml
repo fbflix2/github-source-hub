@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.sync-subscriptions-cron]
 verify_jwt = false
+
+[functions.generate-client-credentials]
+verify_jwt = false
