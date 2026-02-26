@@ -2,6 +2,7 @@ import { Globe } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ProxyCostManagement from "@/components/admin/proxy/ProxyCostManagement";
 import ProxyFinancialOverview from "@/components/admin/proxy/ProxyFinancialOverview";
+import ProxyUnlinkedList from "@/components/admin/proxy/ProxyUnlinkedList";
 
 export default function AdminCentralProxy() {
   return (
@@ -22,6 +23,7 @@ export default function AdminCentralProxy() {
         <TabsList className="bg-card/60 border border-border/40">
           <TabsTrigger value="costs">Custos & Estoque</TabsTrigger>
           <TabsTrigger value="financial">Balanço Financeiro</TabsTrigger>
+          <TabsTrigger value="unlinked">Sem Cliente</TabsTrigger>
         </TabsList>
 
         <TabsContent value="costs">
@@ -30,6 +32,10 @@ export default function AdminCentralProxy() {
 
         <TabsContent value="financial">
           <ProxyFinancialOverview />
+        </TabsContent>
+
+        <TabsContent value="unlinked">
+          <ProxyUnlinkedList />
         </TabsContent>
       </Tabs>
     </div>
