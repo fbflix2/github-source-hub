@@ -246,7 +246,7 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
                 <h2 className="text-sm font-bold text-white">Segurança & Status</h2>
               </div>
               <div className="flex flex-col gap-1 group">
-                <label className="text-xs font-medium text-zinc-400">Senha de Acesso</label>
+                <label className="text-xs font-medium text-zinc-400">Senha FB</label>
                 <div className="relative">
                   <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
                   <Input type="text" placeholder="Cole a senha aqui" value={formData.senha} onChange={e => setFormData({ ...formData, senha: e.target.value })} className="pl-10 pr-10 bg-black/30 border-white/5 text-white" />
