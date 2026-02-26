@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export function useAdminAuth() {
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [role, setRole] = useState<"admin" | "moderator" | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -16,19 +17,34 @@ export function useAdminAuth() {
         return;
       }
 
-      const { data } = await supabase.rpc('has_role', {
+      // Check admin first
+      const { data: isAdminRole } = await supabase.rpc('has_role', {
         _user_id: session.user.id,
         _role: 'admin' as const,
       });
 
-      if (!data) {
-        await supabase.auth.signOut();
-        navigate("/admin/login");
+      if (isAdminRole) {
+        setIsAdmin(true);
+        setRole("admin");
+        setLoading(false);
         return;
       }
 
-      setIsAdmin(true);
-      setLoading(false);
+      // Check moderator
+      const { data: isModRole } = await supabase.rpc('has_role', {
+        _user_id: session.user.id,
+        _role: 'moderator' as const,
+      });
+
+      if (isModRole) {
+        setIsAdmin(true);
+        setRole("moderator");
+        setLoading(false);
+        return;
+      }
+
+      await supabase.auth.signOut();
+      navigate("/admin/login");
     };
 
     checkAdmin();
@@ -42,5 +58,5 @@ export function useAdminAuth() {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  return { isAdmin, loading };
+  return { isAdmin, loading, role };
 }
