@@ -1,4 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
+import logoFbflix from "@/assets/logo-fbflix.png";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,6 +36,7 @@ export function Navbar({ userName, balance, avatarUrl, onLogout, unreadTickets =
       <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
         {/* Logo */}
         <NavLink to="/loja" className="flex items-center gap-2 select-none cursor-pointer">
+          <img src={logoFbflix} alt="FBFLIX" className="w-8 h-8 object-contain" />
           <h1 className="text-xl font-bold tracking-tight text-foreground">FBFLIX</h1>
         </NavLink>
 

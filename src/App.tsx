@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
 import { ThemeProvider } from "next-themes";
 import { useTickets } from "@/hooks/useTickets";
+import logoFbflix from "@/assets/logo-fbflix.png";
 // Pages
 import Auth from "./pages/Auth";
 import Loja from "./pages/Loja";
@@ -138,9 +139,7 @@ const App = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex items-center gap-2">
-          <div className="w-10 h-10 rounded bg-gradient-to-br from-red-500 to-red-800 flex items-center justify-center animate-pulse">
-            <span className="material-symbols-outlined text-primary-foreground text-[24px]">play_arrow</span>
-          </div>
+          <img src={logoFbflix} alt="FBFLIX" className="w-10 h-10 object-contain animate-pulse" />
           <span className="text-xl font-bold text-foreground">FBFLIX</span>
         </div>
       </div>
