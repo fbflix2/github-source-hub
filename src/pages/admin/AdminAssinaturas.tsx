@@ -391,11 +391,11 @@ export default function AdminAssinaturas() {
         "Nome": c.full_name || "",
         "Email": c.email,
         "Senha": c.password,
+        "Telefone": c.phone || "",
         "Link de Login": loginUrl,
-        "Produto": c.product_name || "",
-        "Código Assinatura": c.subscription_code || "",
-        "Status": c.status === "active" ? "Ativo" : c.status,
-        "Conta": c.already_existed ? "Já existia" : "Criada agora",
+        "Assinaturas Ativas": c.active_subscriptions || 0,
+        "Produtos": c.subscription_products || "",
+        "Status": c.status || "",
       }));
 
       const ws = XLSX.utils.json_to_sheet(rows);
@@ -410,10 +410,10 @@ export default function AdminAssinaturas() {
 
       XLSX.writeFile(wb, `credenciais_clientes_${new Date().toISOString().slice(0, 10)}.xlsx`);
 
-      toast.success(`${creds.length} credenciais geradas! (${data.created} novos, ${data.existing} existentes)`);
+      toast.success(`${creds.length} credenciais geradas! ${data.passwords_reset} senhas resetadas.`);
       if (data.errors?.length) {
         console.warn("Erros:", data.errors);
-        toast.info(`${data.errors.length} assinaturas com problemas. Veja o console.`);
+        toast.info(`${data.errors.length} clientes com problemas. Veja o console.`);
       }
       queryClient.invalidateQueries({ queryKey: ["admin-subscriptions-cached"] });
     } catch (err: any) {
