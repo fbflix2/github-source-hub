@@ -19,10 +19,10 @@ interface BlockTemplate {
 
 const PLACEHOLDERS = [
   { tag: "{{nomePerfil}}", desc: "Nome do perfil" },
-  { tag: "{{emailAcesso}}", desc: "Email de acesso" },
+  { tag: "{{emailAcesso}}", desc: "E-mail" },
   { tag: "{{emailAlternativo}}", desc: "Email alternativo" },
-  { tag: "{{senha}}", desc: "Senha" },
-  { tag: "{{senhaEmail}}", desc: "Senha do e-mail" },
+  { tag: "{{senha}}", desc: "Senha FB" },
+  { tag: "{{senhaEmail}}", desc: "Senha Email" },
   { tag: "{{token2fa}}", desc: "Código 2FA" },
   { tag: "{{dataNascimento}}", desc: "Data de nascimento" },
   { tag: "{{genero}}", desc: "Gênero" },
