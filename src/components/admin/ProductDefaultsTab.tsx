@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Trash2, SquarePen, Save, Loader2, PackageOpen, X, Tag, Download, AlertTriangle, DollarSign, Clock, FileText } from "lucide-react";
+import { Plus, Trash2, SquarePen, Save, Loader2, PackageOpen, X, Tag, Download, AlertTriangle, DollarSign, Clock, FileText, ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,7 +17,15 @@ interface ProductDefault {
   price: number;
   tempo_plataforma: string | null;
   description: string | null;
+  default_image: string | null;
   created_at: string;
+}
+
+interface ProductImage {
+  id: string;
+  name: string;
+  url: string;
+  category: string;
 }
 
 interface ProductDefaultsTabProps {
@@ -34,15 +42,18 @@ export default function ProductDefaultsTab({ searchTerm }: ProductDefaultsTabPro
   const [formPrice, setFormPrice] = useState("");
   const [formTempo, setFormTempo] = useState("");
   const [formDescription, setFormDescription] = useState("");
+  const [formImage, setFormImage] = useState("");
   const [tagInput, setTagInput] = useState("");
   const [saving, setSaving] = useState(false);
   const [importingProxy, setImportingProxy] = useState(false);
   const { data: proxyData } = useProxyBRProducts();
   const [localProducts, setLocalProducts] = useState<{ id: string; name: string }[]>([]);
+  const [productImages, setProductImages] = useState<ProductImage[]>([]);
 
   useEffect(() => {
     fetchItems();
     fetchLocalProducts();
+    fetchProductImages();
   }, []);
 
   const fetchItems = async () => {
@@ -64,6 +75,11 @@ export default function ProductDefaultsTab({ searchTerm }: ProductDefaultsTabPro
       .select("id, name")
       .eq("category_id", catRes.data.id);
     if (data) setLocalProducts(data);
+  };
+
+  const fetchProductImages = async () => {
+    const { data } = await supabase.from("product_images").select("*").order("name");
+    if (data) setProductImages(data as ProductImage[]);
   };
 
   const getProductDivergence = (defaultName: string): string | null => {
@@ -88,6 +104,7 @@ export default function ProductDefaultsTab({ searchTerm }: ProductDefaultsTabPro
     setFormPrice("");
     setFormTempo("");
     setFormDescription("");
+    setFormImage("");
     setTagInput("");
     setModalOpen(true);
   };
@@ -99,6 +116,7 @@ export default function ProductDefaultsTab({ searchTerm }: ProductDefaultsTabPro
     setFormPrice(item.price ? item.price.toFixed(2) : "");
     setFormTempo(item.tempo_plataforma || "");
     setFormDescription(item.description || "");
+    setFormImage(item.default_image || "");
     setTagInput("");
     setModalOpen(true);
   };
@@ -131,6 +149,7 @@ export default function ProductDefaultsTab({ searchTerm }: ProductDefaultsTabPro
       price: parseFloat(formPrice) || 0,
       tempo_plataforma: formTempo || null,
       description: formDescription.trim() || null,
+      default_image: formImage || null,
     };
 
     if (editing) {
@@ -386,7 +405,41 @@ export default function ProductDefaultsTab({ searchTerm }: ProductDefaultsTabPro
                     <SelectItem value="10-anos">10+ anos</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
+            </div>
+            {/* Image selector */}
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
+                <ImageIcon className="w-3.5 h-3.5" /> Imagem Padrão
+              </label>
+              {formImage && (
+                <div className="relative mb-2 w-16 h-16 rounded-lg overflow-hidden border border-white/10">
+                  <img src={formImage} alt="" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setFormImage("")}
+                    className="absolute top-0.5 right-0.5 p-0.5 rounded-full bg-black/60 hover:bg-black/80 text-white"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              )}
+              {productImages.length > 0 ? (
+                <div className="grid grid-cols-6 gap-1.5 max-h-[120px] overflow-y-auto rounded-lg border border-white/10 p-2 bg-black/20">
+                  {productImages.map((img) => (
+                    <button
+                      key={img.id}
+                      type="button"
+                      onClick={() => setFormImage(img.url)}
+                      className={`w-full aspect-square rounded-md overflow-hidden border-2 transition-all ${formImage === img.url ? "border-primary ring-1 ring-primary" : "border-transparent hover:border-white/30"}`}
+                    >
+                      <img src={img.url} alt={img.name} className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">Nenhuma imagem cadastrada. Adicione imagens na seção de Imagens.</p>
+              )}
+            </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center gap-1.5">
