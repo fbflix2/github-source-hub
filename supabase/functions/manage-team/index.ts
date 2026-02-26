@@ -127,18 +127,24 @@ async function handleAdd(sb: any, body: any) {
   if (!email || !role) throw new Error("Email e role são obrigatórios");
   if (!["admin", "moderator"].includes(role)) throw new Error("Role inválida");
 
-  // Find user by email
-  const { data: { users }, error: listError } = await sb.auth.admin.listUsers({ perPage: 1000 });
-  if (listError) throw new Error(listError.message);
+  // Find user by email (paginated search)
+  let foundUser: any = null;
+  let page = 1;
+  while (!foundUser) {
+    const { data: { users }, error: listError } = await sb.auth.admin.listUsers({ page, perPage: 1000 });
+    if (listError) throw new Error(listError.message);
+    if (!users || users.length === 0) break;
+    foundUser = users.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
+    if (users.length < 1000) break;
+    page++;
+  }
 
-  const user = (users || []).find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
-  if (!user) throw new Error("Usuário não encontrado com esse email");
-
+  if (!foundUser) throw new Error("Usuário não encontrado com esse email");
   // Check if already has role
   const { data: existing } = await sb
     .from("user_roles")
     .select("id")
-    .eq("user_id", user.id)
+    .eq("user_id", foundUser.id)
     .eq("role", role)
     .maybeSingle();
 
@@ -147,7 +153,7 @@ async function handleAdd(sb: any, body: any) {
   // Insert role
   const { error: insertError } = await sb
     .from("user_roles")
-    .insert({ user_id: user.id, role });
+    .insert({ user_id: foundUser.id, role });
 
   if (insertError) throw new Error(insertError.message);
 
