@@ -36,17 +36,17 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check admin role
+    // Check staff role (admin or moderator)
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
     const { data: roleData } = await adminClient
       .from("user_roles")
       .select("role")
       .eq("user_id", caller.id)
-      .eq("role", "admin")
+      .in("role", ["admin", "moderator"])
       .maybeSingle();
 
     if (!roleData) {
-      return new Response(JSON.stringify({ error: "Acesso negado: apenas admins" }), {
+      return new Response(JSON.stringify({ error: "Acesso negado: apenas staff" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
