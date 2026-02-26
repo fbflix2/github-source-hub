@@ -83,12 +83,35 @@ export default function AdminClientes() {
 
     const activeSubUserIds = new Set((activeSubs || []).map(s => s.user_id));
 
+    // Fetch emails from auth via edge function
+    let emailMap: Record<string, string> = {};
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.access_token) {
+        const res = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL || "https://mxnlerkeygfvdnznoxld.supabase.co"}/functions/v1/list-user-emails`,
+          {
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+        if (res.ok) {
+          const json = await res.json();
+          emailMap = json.emails || {};
+        }
+      }
+    } catch (e) {
+      console.error("Failed to fetch emails:", e);
+    }
+
     // Build client list
     const clientList: Client[] = allProfiles.map((p) => ({
       id: p.id,
       user_id: p.user_id,
       full_name: p.full_name,
-      email: "",
+      email: emailMap[p.user_id] || "",
       phone: p.phone,
       balance: p.balance ?? 0,
       status: p.status ?? "active",
