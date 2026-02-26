@@ -1,0 +1,1 @@
+ALTER TABLE public.product_defaults ADD COLUMN default_image text DEFAULT NULL;
