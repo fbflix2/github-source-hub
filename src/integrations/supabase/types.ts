@@ -471,23 +471,32 @@ export type Database = {
       product_defaults: {
         Row: {
           created_at: string
+          description: string | null
           id: string
           name: string
+          price: number
           tags: string[]
+          tempo_plataforma: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
+          description?: string | null
           id?: string
           name: string
+          price?: number
           tags?: string[]
+          tempo_plataforma?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
+          description?: string | null
           id?: string
           name?: string
+          price?: number
           tags?: string[]
+          tempo_plataforma?: string | null
           updated_at?: string
         }
         Relationships: []

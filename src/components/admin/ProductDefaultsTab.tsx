@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
-import { Plus, Trash2, SquarePen, Save, Loader2, PackageOpen, X, Tag, Download, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, SquarePen, Save, Loader2, PackageOpen, X, Tag, Download, AlertTriangle, DollarSign, Clock, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
@@ -12,6 +14,9 @@ interface ProductDefault {
   id: string;
   name: string;
   tags: string[];
+  price: number;
+  tempo_plataforma: string | null;
+  description: string | null;
   created_at: string;
 }
 
@@ -26,6 +31,9 @@ export default function ProductDefaultsTab({ searchTerm }: ProductDefaultsTabPro
   const [editing, setEditing] = useState<ProductDefault | null>(null);
   const [formName, setFormName] = useState("");
   const [formTags, setFormTags] = useState<string[]>([]);
+  const [formPrice, setFormPrice] = useState("");
+  const [formTempo, setFormTempo] = useState("");
+  const [formDescription, setFormDescription] = useState("");
   const [tagInput, setTagInput] = useState("");
   const [saving, setSaving] = useState(false);
   const [importingProxy, setImportingProxy] = useState(false);
@@ -77,6 +85,9 @@ export default function ProductDefaultsTab({ searchTerm }: ProductDefaultsTabPro
     setEditing(null);
     setFormName("");
     setFormTags([]);
+    setFormPrice("");
+    setFormTempo("");
+    setFormDescription("");
     setTagInput("");
     setModalOpen(true);
   };
@@ -85,6 +96,9 @@ export default function ProductDefaultsTab({ searchTerm }: ProductDefaultsTabPro
     setEditing(item);
     setFormName(item.name);
     setFormTags([...item.tags]);
+    setFormPrice(item.price ? item.price.toFixed(2) : "");
+    setFormTempo(item.tempo_plataforma || "");
+    setFormDescription(item.description || "");
     setTagInput("");
     setModalOpen(true);
   };
@@ -111,17 +125,25 @@ export default function ProductDefaultsTab({ searchTerm }: ProductDefaultsTabPro
     }
     setSaving(true);
 
+    const payload = {
+      name: formName.trim(),
+      tags: formTags,
+      price: parseFloat(formPrice) || 0,
+      tempo_plataforma: formTempo || null,
+      description: formDescription.trim() || null,
+    };
+
     if (editing) {
       const { error } = await supabase
         .from("product_defaults")
-        .update({ name: formName.trim(), tags: formTags } as any)
+        .update(payload as any)
         .eq("id", editing.id);
       if (error) toast.error("Erro ao atualizar");
       else toast.success("Padrão atualizado!");
     } else {
       const { error } = await supabase
         .from("product_defaults")
-        .insert({ name: formName.trim(), tags: formTags } as any);
+        .insert(payload as any);
       if (error) toast.error("Erro ao criar");
       else toast.success("Padrão criado!");
     }
@@ -258,6 +280,26 @@ export default function ProductDefaultsTab({ searchTerm }: ProductDefaultsTabPro
                     </button>
                   </div>
                 </div>
+                {/* Price & Tempo info */}
+                {(item.price > 0 || item.tempo_plataforma) && (
+                  <div className="flex items-center gap-3 mb-3 text-xs text-muted-foreground">
+                    {item.price > 0 && (
+                      <span className="flex items-center gap-1">
+                        <DollarSign className="w-3 h-3" />
+                        R$ {item.price.toFixed(2)}
+                      </span>
+                    )}
+                    {item.tempo_plataforma && (
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {item.tempo_plataforma}
+                      </span>
+                    )}
+                  </div>
+                )}
+                {item.description && (
+                  <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{item.description}</p>
+                )}
                 {divergence && (
                   <TooltipProvider>
                     <Tooltip>
@@ -309,6 +351,53 @@ export default function ProductDefaultsTab({ searchTerm }: ProductDefaultsTabPro
                 onChange={(e) => setFormName(e.target.value)}
                 placeholder="Ex: Perfil BR Marketplace"
                 className="bg-black/30 border-white/10 focus:border-primary"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center gap-1.5">
+                  <DollarSign className="w-3.5 h-3.5" /> Preço (R$)
+                </label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formPrice}
+                  onChange={(e) => setFormPrice(e.target.value)}
+                  placeholder="0.00"
+                  className="bg-black/30 border-white/10 focus:border-primary"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5" /> Tempo Plataforma
+                </label>
+                <Select value={formTempo} onValueChange={setFormTempo}>
+                  <SelectTrigger className="bg-black/30 border-white/10">
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0-1-mes">0-1 mês</SelectItem>
+                    <SelectItem value="3-meses">3 meses</SelectItem>
+                    <SelectItem value="6-meses">6 meses</SelectItem>
+                    <SelectItem value="1-ano">1 ano</SelectItem>
+                    <SelectItem value="2-anos">2+ anos</SelectItem>
+                    <SelectItem value="5-anos">5+ anos</SelectItem>
+                    <SelectItem value="10-anos">10+ anos</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2 flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5" /> Descrição
+              </label>
+              <Textarea
+                value={formDescription}
+                onChange={(e) => setFormDescription(e.target.value)}
+                placeholder="Descrição do produto..."
+                rows={3}
+                className="bg-black/30 border-white/10 focus:border-primary resize-none"
               />
             </div>
             <div>
