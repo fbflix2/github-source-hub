@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -360,6 +360,16 @@ export default function Auth() {
                 </svg>
               </button>
             </div>
+          </div>
+
+          {/* Footer - Privacy Policy */}
+          <div className="text-center pt-2">
+            <Link
+              to="/privacidade"
+              className="text-xs text-muted-foreground hover:text-primary transition-colors underline underline-offset-2"
+            >
+              Política de Privacidade
+            </Link>
           </div>
         </div>
       </div>

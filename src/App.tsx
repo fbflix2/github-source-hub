@@ -27,6 +27,7 @@ import Suporte from "./pages/Suporte";
 import Tickets from "./pages/Tickets";
 import NotFound from "./pages/NotFound";
 import Welcome from "./pages/Welcome";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 
 // Admin Pages
 import AdminLogin from "./pages/admin/AdminLogin";
@@ -162,6 +163,7 @@ const App = () => {
                   path="/welcome"
                   element={user ? <Welcome /> : <Navigate to="/auth" replace />}
                 />
+                <Route path="/privacidade" element={<PrivacyPolicy />} />
 
                 {/* Admin routes */}
                 <Route path="/admin/login" element={<AdminLogin />} />
