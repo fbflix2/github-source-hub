@@ -369,25 +369,24 @@ export default function AdminAssinaturas() {
     }
   }, [queryClient]);
 
-  // Generate credentials for all clients & export xlsx (background job)
+  // Generate credentials for all clients & export xlsx (chunked job)
   const handleGenerateCredentials = useCallback(async () => {
     setGeneratingCredentials(true);
     try {
       await supabase.auth.refreshSession();
+      
+      // Start the job
       const { data, error } = await supabase.functions.invoke("generate-client-credentials");
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(data.error);
 
-      if (data?.status === "in_progress") {
-        toast.info(`Já em andamento (${data.progress || 0}%)...`);
-      } else {
-        toast.info("Gerando credenciais em segundo plano...");
-      }
+      toast.info("Gerando credenciais...");
 
-      // Poll for completion
+      // Poll and auto-continue chunks
       const poll = async () => {
-        for (let i = 0; i < 180; i++) {
-          await new Promise(r => setTimeout(r, 3000));
+        let lastProgress = -1;
+        for (let i = 0; i < 600; i++) {
+          await new Promise(r => setTimeout(r, 2000));
           const { data: setting } = await supabase
             .from("site_settings")
             .select("value")
@@ -396,10 +395,27 @@ export default function AdminAssinaturas() {
           if (!setting?.value) continue;
           try {
             const result = JSON.parse(setting.value);
+            
             if (result.status === "in_progress") {
-              if (i % 5 === 0) toast.info(`Progresso: ${result.progress || 0}% (${result.processed || 0}/${result.total || "?"})`);
+              const progress = result.progress || 0;
+              if (progress !== lastProgress) {
+                toast.info(`Progresso: ${progress}% (${result.processed || 0}/${result.total || "?"})`, { id: "cred-progress" });
+                lastProgress = progress;
+              }
+              
+              // If needs_continue, trigger next chunk
+              if (result.needs_continue) {
+                const elapsed = Date.now() - (result.timestamp || 0);
+                // Wait a bit after last update before continuing
+                if (elapsed > 3000) {
+                  await supabase.functions.invoke("generate-client-credentials", {
+                    body: { action: "continue" },
+                  });
+                }
+              }
               continue;
             }
+            
             if (result.status === "done") {
               const totalClients = result.total_clients || 0;
               if (totalClients === 0) {
@@ -408,7 +424,6 @@ export default function AdminAssinaturas() {
                 return;
               }
 
-              // Download credentials JSON from storage
               const filePath = result.file_path;
               if (!filePath) {
                 toast.error("Arquivo de credenciais não encontrado.");
@@ -428,7 +443,6 @@ export default function AdminAssinaturas() {
 
               const creds = JSON.parse(await fileData.text());
 
-              // Build xlsx
               const loginUrl = "https://fbflix.com.br/auth";
               const rows = creds.map((c: any) => ({
                 "Nome": c.full_name || "",
