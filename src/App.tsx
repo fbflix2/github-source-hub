@@ -59,6 +59,7 @@ import AdminPedidos from "./pages/admin/AdminPedidos";
 import AdminCarrinhosAbandonados from "./pages/admin/AdminCarrinhosAbandonados";
 import AdminAnuncios from "./pages/admin/AdminAnuncios";
 import AdminCentralProxy from "./pages/admin/AdminCentralProxy";
+import AdminTeamChat from "./pages/admin/AdminTeamChat";
 import { AdminLayout } from "./components/admin/AdminLayout";
 
 // Layout
@@ -224,6 +225,7 @@ const App = () => {
                   <Route path="configuracoes/usuarios" element={<AdminConfiguracoes />} />
                   <Route path="api" element={<AdminApi />} />
                   <Route path="anuncios" element={<AdminAnuncios />} />
+                  <Route path="chat" element={<AdminTeamChat />} />
                 </Route>
 
                 {/* Protected routes */}
