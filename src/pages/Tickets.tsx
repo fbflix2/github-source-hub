@@ -90,9 +90,22 @@ export default function Tickets() {
 
   const handleSendReply = async () => {
     if (!replyMessage.trim() || !selectedTicket) return;
+    const msgText = replyMessage.trim();
+    setReplyMessage("");
     setSending(true);
-    const success = await sendReply(selectedTicket.id, replyMessage.trim());
-    if (success) setReplyMessage("");
+
+    // Optimistic update: add message to UI immediately
+    const optimisticMsg = {
+      id: `temp-${Date.now()}`,
+      content: msgText,
+      sender: "user" as const,
+      created_at: new Date().toISOString(),
+      read: true,
+      ticket_id: selectedTicket.id,
+    };
+    setSelectedTicket(prev => prev ? { ...prev, messages: [...prev.messages, optimisticMsg] } : prev);
+
+    await sendReply(selectedTicket.id, msgText);
     setSending(false);
   };
 
