@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
 import { toast } from "sonner";
@@ -54,21 +54,30 @@ export default function Dashboard() {
   const [proxyQuantities, setProxyQuantities] = useState<Record<string, number>>({});
   const [proxyImages, setProxyImages] = useState<ProxyImage[]>([]);
 
-  useEffect(() => {
-    async function fetchData() {
-      const [productsRes, categoriesRes, proxyImagesRes] = await Promise.all([
-        supabase.from("products").select("*").eq("status", "active").order("created_at", { ascending: false }),
-        supabase.from("product_categories").select("*"),
-        supabase.from("product_images").select("name, url").eq("category", "proxy"),
-      ]);
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    const [productsRes, categoriesRes, proxyImagesRes] = await Promise.all([
+      supabase.from("products").select("*").eq("status", "active").order("created_at", { ascending: false }),
+      supabase.from("product_categories").select("*"),
+      supabase.from("product_images").select("name, url").eq("category", "proxy"),
+    ]);
 
-      if (productsRes.data) setProducts(productsRes.data);
-      if (categoriesRes.data) setCategories(categoriesRes.data);
-      if (proxyImagesRes.data) setProxyImages(proxyImagesRes.data);
-      setLoading(false);
-    }
-    fetchData();
+    if (productsRes.data) setProducts(productsRes.data);
+    if (categoriesRes.data) setCategories(categoriesRes.data);
+    if (proxyImagesRes.data) setProxyImages(proxyImagesRes.data);
+    setLoading(false);
   }, []);
+
+  // Refetch every time the page is visited or becomes visible
+  useEffect(() => {
+    fetchData();
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") fetchData();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, [fetchData]);
 
   const proxyProducts: any[] = Array.isArray(proxyProductsData?.data)
     ? proxyProductsData.data
