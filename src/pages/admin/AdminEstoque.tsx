@@ -71,7 +71,7 @@ export default function AdminEstoque() {
     const { data } = await supabase
       .from("stock_items")
       .select("*")
-      .neq("status", "revisado")
+      .is("product_id", null)
       .order("created_at", { ascending: false });
     setItems(data ?? []);
     setLoading(false);
