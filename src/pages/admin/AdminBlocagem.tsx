@@ -408,7 +408,7 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
 
 // ─── Página Form ───
 function PaginaForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => void; onSaved: () => void }) {
-  const [nomePagina, setNomePagina] = useState("");
+  const [nomes, setNomes] = useState("");
   const [saving, setSaving] = useState(false);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [productDefaults, setProductDefaults] = useState<any[]>([]);
@@ -424,16 +424,27 @@ function PaginaForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
     supabase.from("product_defaults").select("id, name, tags, price, default_image, description").order("name").then(({ data }) => setProductDefaults(data ?? []));
   }, []);
 
+  const lines = useMemo(() => {
+    const l = nomes.split("\n").filter(l => l.trim());
+    const seen = new Set<string>();
+    return l.filter(l => {
+      const n = l.trim().toLowerCase();
+      if (seen.has(n)) return false;
+      seen.add(n);
+      return true;
+    });
+  }, [nomes]);
+
   const handleSave = async () => {
-    if (!nomePagina.trim()) { toast.error("Preencha o nome da página"); return; }
+    if (lines.length === 0) { toast.error("Adicione ao menos um nome de página"); return; }
     setSaving(true);
-    const { error } = await supabase.from("stock_items").insert({
-      name: nomePagina.trim(),
+    const items = lines.map((nome) => ({
+      name: nome.trim(),
       type: "pagina",
       status: "aguardando",
       folder: folder.id,
       data: {
-        nomePagina: nomePagina.trim(),
+        nomePagina: nome.trim(),
         descricao: formData.descricao || undefined,
         preco: formData.preco ? parseFloat(formData.preco) : undefined,
         categoryId: formData.categoryId || undefined,
@@ -441,11 +452,12 @@ function PaginaForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
         foto_url: formData.fotoUrl || undefined,
         nomeProduto: formData.nomeProduto || undefined,
       },
-    });
+    }));
+    const { error } = await supabase.from("stock_items").insert(items);
     setSaving(false);
     if (error) { toast.error("Erro: " + error.message); return; }
-    toast.success("Página adicionada à pasta! Formulário pronto para novo cadastro.");
-    setNomePagina("");
+    toast.success(`${lines.length} página(s) adicionada(s)! Formulário pronto para novo cadastro.`);
+    setNomes("");
     setFormData({ descricao: "", preco: "", categoryId: "", tags: [], nomeProduto: "", fotoUrl: "" });
   };
 
@@ -467,20 +479,19 @@ function PaginaForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
         </div>
 
         <form className="flex flex-col gap-4" onSubmit={e => { e.preventDefault(); handleSave(); }}>
-          {/* Nome da Página */}
+          {/* Nomes das Páginas - múltiplas linhas */}
           <div className="flex flex-col gap-1 group">
-            <label className="text-xs font-medium text-zinc-400 group-focus-within:text-white transition-colors">Nome da Página</label>
-            <div className="relative">
-              <Flag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-              <Input
-                type="text"
-                placeholder="Ex: Página de Anúncios Premium"
-                value={nomePagina}
-                onChange={e => setNomePagina(e.target.value)}
-                className="pl-10 bg-black/30 border-white/5 text-white placeholder:text-zinc-600"
-                autoFocus
-              />
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-medium text-zinc-400 group-focus-within:text-white transition-colors">Nome do Produto</label>
+              <span className="text-[10px] text-zinc-500">{lines.length} página(s)</span>
             </div>
+            <Textarea
+              placeholder={"Digite um nome por linha:\nPágina Premium 1\nPágina Premium 2\nPágina Premium 3"}
+              value={nomes}
+              onChange={e => setNomes(e.target.value)}
+              className="h-28 bg-black/30 border-white/5 text-white placeholder:text-zinc-600 resize-none"
+              autoFocus
+            />
           </div>
 
           {/* Product config */}
