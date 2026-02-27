@@ -7,6 +7,11 @@ interface ProfileFormData {
   cpf: string;
   birth_date: string;
   address: string;
+  rua: string;
+  numero: string;
+  bairro: string;
+  cidade: string;
+  estado: string;
   cep: string;
   whatsapp: string;
   email: string;
@@ -18,6 +23,11 @@ export default function Profile() {
     cpf: "",
     birth_date: "",
     address: "",
+    rua: "",
+    numero: "",
+    bairro: "",
+    cidade: "",
+    estado: "",
     cep: "",
     whatsapp: "",
     email: "",
@@ -52,6 +62,11 @@ export default function Profile() {
           cpf: (profile as any).cpf || "",
           birth_date: (profile as any).birth_date || "",
           address: profile.address || "",
+          rua: (profile as any).rua || "",
+          numero: (profile as any).numero || "",
+          bairro: (profile as any).bairro || "",
+          cidade: (profile as any).cidade || "",
+          estado: (profile as any).estado || "",
           cep: profile.cep || "",
           whatsapp: profile.phone || "",
           email: session.user.email || "",
@@ -103,6 +118,11 @@ export default function Profile() {
         cpf: formData.cpf,
         birth_date: formData.birth_date || null,
         address: formData.address,
+        rua: formData.rua,
+        numero: formData.numero,
+        bairro: formData.bairro,
+        cidade: formData.cidade,
+        estado: formData.estado,
         cep: formData.cep,
         phone: formData.whatsapp,
         document_url: documentUrl,
@@ -272,12 +292,46 @@ export default function Profile() {
                   </div>
                 </div>
 
-                {/* Address */}
+                {/* Rua */}
                 <div className="md:col-span-2 space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground ml-1">Endereço Completo</label>
+                  <label className="text-sm font-medium text-muted-foreground ml-1">Rua</label>
                   <div className="relative">
                     <span className="material-symbols-outlined absolute left-4 top-3.5 text-muted-foreground text-lg">location_on</span>
-                    <input type="text" value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} placeholder="Digite seu endereço" className="input-field pl-12" />
+                    <input type="text" value={formData.rua} onChange={(e) => setFormData({ ...formData, rua: e.target.value })} placeholder="Nome da rua" className="input-field pl-12" />
+                  </div>
+                </div>
+
+                {/* Número + Bairro */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-muted-foreground ml-1">Número</label>
+                  <div className="relative">
+                    <span className="material-symbols-outlined absolute left-4 top-3.5 text-muted-foreground text-lg">pin</span>
+                    <input type="text" value={formData.numero} onChange={(e) => setFormData({ ...formData, numero: e.target.value })} placeholder="Nº" className="input-field pl-12" />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-muted-foreground ml-1">Bairro</label>
+                  <div className="relative">
+                    <span className="material-symbols-outlined absolute left-4 top-3.5 text-muted-foreground text-lg">holiday_village</span>
+                    <input type="text" value={formData.bairro} onChange={(e) => setFormData({ ...formData, bairro: e.target.value })} placeholder="Bairro" className="input-field pl-12" />
+                  </div>
+                </div>
+
+                {/* Cidade + Estado */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-muted-foreground ml-1">Cidade</label>
+                  <div className="relative">
+                    <span className="material-symbols-outlined absolute left-4 top-3.5 text-muted-foreground text-lg">location_city</span>
+                    <input type="text" value={formData.cidade} onChange={(e) => setFormData({ ...formData, cidade: e.target.value })} placeholder="Cidade" className="input-field pl-12" />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-muted-foreground ml-1">Estado</label>
+                  <div className="relative">
+                    <span className="material-symbols-outlined absolute left-4 top-3.5 text-muted-foreground text-lg">map</span>
+                    <input type="text" value={formData.estado} onChange={(e) => setFormData({ ...formData, estado: e.target.value })} placeholder="UF" className="input-field pl-12" maxLength={2} />
                   </div>
                 </div>
 
@@ -285,7 +339,7 @@ export default function Profile() {
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-muted-foreground ml-1">CEP</label>
                   <div className="relative">
-                    <span className="material-symbols-outlined absolute left-4 top-3.5 text-muted-foreground text-lg">map</span>
+                    <span className="material-symbols-outlined absolute left-4 top-3.5 text-muted-foreground text-lg">markunread_mailbox</span>
                     <input type="text" value={formData.cep} onChange={(e) => setFormData({ ...formData, cep: e.target.value })} placeholder="00000-000" className="input-field pl-12" />
                   </div>
                 </div>
