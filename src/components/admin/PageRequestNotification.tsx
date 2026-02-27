@@ -35,7 +35,7 @@ export function PageRequestNotification() {
 
   const fetchRequests = useCallback(async () => {
     const { data } = await supabase
-      .from("page_requests")
+      .from("page_requests" as any)
       .select("*")
       .eq("status", "pending")
       .order("created_at", { ascending: false });
@@ -90,25 +90,28 @@ export function PageRequestNotification() {
 
   // Fetch email for selected request
   useEffect(() => {
-    if (!selectedRequest || clientEmails[selectedRequest.user_id]) return;
+    if (!selectedRequest) return;
+    const userId = selectedRequest.user_id;
+    if (clientEmails[userId]) return;
     (async () => {
       try {
         const { data } = await supabase.functions.invoke("list-user-emails", {
-          body: { user_ids: [selectedRequest.user_id] },
+          body: { user_ids: [userId] },
         });
         if (data?.emails) {
           setClientEmails(prev => ({ ...prev, ...data.emails }));
         }
       } catch {}
     })();
-  }, [selectedRequest, clientEmails]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedRequest?.user_id]);
 
   const handleConfirm = async (req: PageRequest) => {
     setConfirming(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       await supabase
-        .from("page_requests")
+        .from("page_requests" as any)
         .update({
           status: "confirmed",
           confirmed_at: new Date().toISOString(),
