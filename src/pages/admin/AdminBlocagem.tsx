@@ -1040,7 +1040,7 @@ export default function AdminBlocagem() {
           </Button>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-auto space-y-1">
+        <div className="flex-1 min-h-0 overflow-y-auto space-y-1 max-h-[calc(100vh-380px)]">
           {loading ? (
             <div className="flex justify-center py-8"><Loader2 className="size-6 text-primary animate-spin" /></div>
           ) : folders.length === 0 ? (
