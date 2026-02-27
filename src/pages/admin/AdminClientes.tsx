@@ -136,6 +136,9 @@ export default function AdminClientes() {
   const handleImpersonate = async (userId: string) => {
     setImpersonating(userId);
     try {
+      // Open window BEFORE async call to avoid popup blocker
+      const newWindow = window.open("about:blank", "_blank");
+      
       const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/impersonate-user`,
@@ -151,7 +154,12 @@ export default function AdminClientes() {
       );
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || "Erro ao acessar conta");
-      window.open(result.url, "_blank");
+      
+      if (newWindow) {
+        newWindow.location.href = result.url;
+      } else {
+        window.open(result.url, "_blank");
+      }
       toast.success("Link de acesso aberto em nova aba");
     } catch (err: any) {
       toast.error(err.message || "Erro ao acessar conta do cliente");
