@@ -68,6 +68,7 @@ interface EnrichedSubscription {
   clientEmail?: string;
   userId?: string;
   rawApiStatus?: string;
+  paidPrice?: number;
   [key: string]: unknown;
 }
 
@@ -251,6 +252,44 @@ export default function AdminAssinaturas() {
     },
   });
 
+  // Fetch proxy order prices (subscription_code -> paid price)
+  const { data: proxyOrderPrices } = useQuery({
+    queryKey: ["admin-proxy-order-prices"],
+    queryFn: async () => {
+      // Get completed proxy order items with delivery_data
+      const { data: orderItems } = await supabase
+        .from("order_items")
+        .select("delivery_data, price, quantity, order_id");
+      if (!orderItems?.length) return new Map<string, number>();
+
+      // Get completed order IDs
+      const orderIds = [...new Set(orderItems.map(i => i.order_id))];
+      const completedIds = new Set<string>();
+      // Fetch in chunks
+      for (let i = 0; i < orderIds.length; i += 500) {
+        const chunk = orderIds.slice(i, i + 500);
+        const { data: orders } = await supabase
+          .from("orders")
+          .select("id, total, status")
+          .in("id", chunk)
+          .in("status", ["completed", "delivered"]);
+        orders?.forEach(o => completedIds.add(o.id));
+      }
+
+      const priceMap = new Map<string, number>();
+      for (const item of orderItems) {
+        if (!completedIds.has(item.order_id)) continue;
+        const dd = item.delivery_data as any;
+        if (dd?.subscription_code) {
+          // Use total from order divided by items count for accuracy
+          priceMap.set(String(dd.subscription_code), item.price * item.quantity);
+        }
+      }
+      return priceMap;
+    },
+    staleTime: 60_000,
+  });
+
   // Build userId -> name map
   const profilesMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -264,8 +303,15 @@ export default function AdminAssinaturas() {
 
   const subscriptions: EnrichedSubscription[] = useMemo(() => {
     if (!localDbSubs?.length) return [];
-    return localDbSubs.map((s: any) => enrichSubFromLocal(s, profilesMap));
-  }, [localDbSubs, profilesMap]);
+    return localDbSubs.map((s: any) => {
+      const enriched = enrichSubFromLocal(s, profilesMap);
+      // Match price by subscription code (name field = code)
+      if (proxyOrderPrices?.has(enriched.code)) {
+        enriched.paidPrice = proxyOrderPrices.get(enriched.code);
+      }
+      return enriched;
+    });
+  }, [localDbSubs, profilesMap, proxyOrderPrices]);
 
   const counts = useMemo(() => ({
     active: subscriptions.filter((s) => s.mappedStatus === "active").length,
@@ -787,9 +833,10 @@ export default function AdminAssinaturas() {
             <table className="w-full text-sm text-left">
               <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border">
                 <tr>
-                  <th className="px-4 py-4 font-medium">Código</th>
+              <th className="px-4 py-4 font-medium">Código</th>
                   <th className="px-4 py-4 font-medium">Proxy</th>
                   <th className="px-4 py-4 font-medium">Cliente</th>
+                  <th className="px-4 py-4 font-medium">Valor Pago</th>
                   <th className="px-4 py-4 font-medium">Status</th>
                   <th className="px-4 py-4 font-medium">Vencimento</th>
                   <th className="px-4 py-4 font-medium">Renovação</th>
@@ -827,6 +874,15 @@ export default function AdminAssinaturas() {
                         >
                           <Link2 className="w-3 h-3" /> Vincular
                         </button>
+                      )}
+                    </td>
+                    <td className="px-4 py-4">
+                      {sub.paidPrice != null ? (
+                        <span className="font-semibold text-emerald-400 text-sm">
+                          R$ {sub.paidPrice.toFixed(2).replace(".", ",")}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">—</span>
                       )}
                     </td>
                     <td className="px-4 py-4">{getStatusBadge(sub.mappedStatus)}</td>
