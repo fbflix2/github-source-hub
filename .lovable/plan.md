@@ -1,26 +1,22 @@
 
 
-## Root Cause Analysis
+## Root Cause
 
-The dashboard loading spinner persists because of two interacting issues:
+`useAdminAuth` uses a `useRef(false)` guard (`checkedRef`) to ensure `checkAdmin` runs only once. However, in React 18 strict mode (dev), React mounts → unmounts → remounts. On remount, `checkedRef.current` is still `true` from the first mount (refs persist across strict mode cycles), so `checkAdmin` never executes on the second mount, and `loading` stays `true` permanently.
 
-1. **ProxyBRLowBalanceAlert calls `refreshSession()` on every query**, which triggers `TOKEN_REFRESHED` events in `useAdminAuth`, causing re-verification of admin role. This creates a cascade of auth state changes during dashboard load.
+## Fix
 
-2. **The session keep-alive in `client.ts`** also calls `refreshSession()`, which triggers additional `TOKEN_REFRESHED` events, compounding the issue.
+**File: `src/hooks/useAdminAuth.ts`**
 
-3. **The `page_requests` query using `as any`** can throw runtime errors if the Supabase types don't include the table, potentially crashing the component tree.
+Reset `checkedRef.current = false` in the cleanup function so it can run again on remount:
 
-## Implementation Plan
+```typescript
+return () => {
+  cancelled = true;
+  checkedRef.current = false;  // <-- add this line
+  subscription.unsubscribe();
+};
+```
 
-### 1. Fix ProxyBRLowBalanceAlert - Remove redundant refreshSession()
-- Remove the manual `await supabase.auth.refreshSession()` call from the queryFn since the client.ts keep-alive already handles this
-- The `retry: false` and error handling already cover 401 errors adequately
-
-### 2. Fix useAdminAuth - Don't re-verify on TOKEN_REFRESHED
-- Remove or simplify the `TOKEN_REFRESHED` handler in `onAuthStateChange` to avoid re-running `verifyRole` on every token refresh
-- Once the role is verified on mount, trust it until SIGNED_OUT
-
-### 3. Harden PageRequestNotification
-- Wrap the `from("page_requests" as any)` query more defensively
-- Ensure runtime errors don't propagate and crash the admin layout
+This single line fix ensures the auth check runs correctly after React strict mode remount while still preventing duplicate concurrent checks.
 
