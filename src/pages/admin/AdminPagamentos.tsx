@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Search, Download, ChevronLeft, ChevronRight, Eye, Receipt, TrendingUp, TrendingDown, QrCode, CreditCard, Wallet, Calendar, Loader2 } from "lucide-react";
+import { useProxyRevenue } from "@/hooks/useProxyRevenue";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -94,6 +95,7 @@ export default function AdminPagamentos() {
   const [statusFilter, setStatusFilter] = useState("todos");
   const [gatewayFilter, setGatewayFilter] = useState("todos");
   const [currentPage, setCurrentPage] = useState(1);
+  const { totalRevenue: proxyRevenue } = useProxyRevenue();
 
   useEffect(() => {
     async function fetchPayments() {
@@ -137,7 +139,7 @@ export default function AdminPagamentos() {
   const totalAll = payments.reduce((sum, p) => sum + p.amount, 0);
   const totalReceived = payments
     .filter(p => p.status === "completed")
-    .reduce((sum, p) => sum + p.amount, 0);
+    .reduce((sum, p) => sum + p.amount, 0) + proxyRevenue;
   const approvedCount = payments.filter(p => p.status === "completed").length;
   const pendingCount = payments.filter(p => p.status === "pending").length;
 
