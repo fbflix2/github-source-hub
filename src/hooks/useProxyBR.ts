@@ -7,6 +7,20 @@ async function callProxyBR(action: string, params: Record<string, unknown> = {})
   const { data, error } = await supabase.functions.invoke("proxybr-api", {
     body: { action, ...params },
   });
+
+  // If token expired, refresh session and retry once
+  if (error && (error.message?.includes("401") || data?.error?.includes("Token inválido"))) {
+    const { error: refreshError } = await supabase.auth.refreshSession();
+    if (!refreshError) {
+      const retry = await supabase.functions.invoke("proxybr-api", {
+        body: { action, ...params },
+      });
+      if (retry.error) throw new Error(retry.error.message || "Erro ao chamar ProxyBR API");
+      if (retry.data?.error && !retry.data?.data) throw new Error(retry.data.error);
+      return retry.data;
+    }
+  }
+
   if (error) throw new Error(error.message || "Erro ao chamar ProxyBR API");
   if (data?.error && !data?.data) throw new Error(data.error);
   return data;
