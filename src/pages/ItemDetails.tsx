@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { toast } from "sonner";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
@@ -59,6 +60,10 @@ export default function ItemDetails() {
   const [profileLinks, setProfileLinks] = useState<string[]>(['']);
   const [allOnOneProfile, setAllOnOneProfile] = useState(false);
   const [pageRequested, setPageRequested] = useState(false);
+  const [pageConfirmedByAdmin, setPageConfirmedByAdmin] = useState(false);
+  const [pageName, setPageName] = useState<string | null>(null);
+  const [pageReceivedByClient, setPageReceivedByClient] = useState(false);
+  const [confirmingReceipt, setConfirmingReceipt] = useState(false);
   const [requestingPage, setRequestingPage] = useState(false);
 
   // Countdown from order created_at + 24h
@@ -96,24 +101,31 @@ export default function ItemDetails() {
       // Check delivery_data on order_item first
       if (itemData.delivery_data && typeof itemData.delivery_data === "object") {
         setStockData(itemData.delivery_data as StockData);
-        // Check if page was already requested
         const dd = itemData.delivery_data as any;
         if (dd.pageRequestedAt) {
           setPageRequested(true);
           if (dd.pageProfileLinks) setProfileLinks(dd.pageProfileLinks);
           if (dd.allOnOneProfile) setAllOnOneProfile(dd.allOnOneProfile);
         }
+        if (dd.pageConfirmedAt) {
+          setPageConfirmedByAdmin(true);
+          if (dd.pageName) setPageName(dd.pageName);
+        }
+        if (dd.pageReceivedByClient) {
+          setPageReceivedByClient(true);
+        }
       }
 
       // Double-check page_requests table as fallback
-      if (!pageRequested) {
-        const { data: existingReq } = await supabase
-          .from("page_requests")
-          .select("id")
-          .eq("order_item_id", itemId)
-          .limit(1);
-        if (existingReq && existingReq.length > 0) {
-          setPageRequested(true);
+      const { data: existingReq } = await supabase
+        .from("page_requests")
+        .select("id, status")
+        .eq("order_item_id", itemId)
+        .limit(1);
+      if (existingReq && existingReq.length > 0) {
+        setPageRequested(true);
+        if (existingReq[0].status === 'confirmed') {
+          setPageConfirmedByAdmin(true);
         }
       }
 
@@ -235,6 +247,24 @@ export default function ItemDetails() {
     }
     fetchData();
   }, [orderId, itemId]);
+
+  // Realtime: listen for delivery_data updates (admin confirming page)
+  useEffect(() => {
+    if (!itemId) return;
+    const channel = supabase
+      .channel(`order-item-${itemId}`)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "order_items", filter: `id=eq.${itemId}` }, (payload) => {
+        const dd = (payload.new as any).delivery_data;
+        if (dd && typeof dd === "object") {
+          if (dd.pageConfirmedAt && !pageConfirmedByAdmin) {
+            setPageConfirmedByAdmin(true);
+            if (dd.pageName) setPageName(dd.pageName);
+          }
+        }
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [itemId, pageConfirmedByAdmin]);
 
   // Countdown timer
   useEffect(() => {
@@ -550,11 +580,114 @@ export default function ItemDetails() {
                 ) : isPage ? (
                   <>
                     {pageRequested ? (
-                      <div className="text-center py-4 space-y-2">
-                        <span className="material-symbols-outlined text-primary text-[32px]">check_circle</span>
-                        <h3 className="text-sm font-bold text-foreground">Solicitação Enviada!</h3>
-                        <p className="text-xs text-text-secondary">Sua página será enviada para o perfil informado. Aguarde a transferência ser concluída.</p>
-                      </div>
+                      pageReceivedByClient ? (
+                        <div className="text-center py-4 space-y-2">
+                          <span className="material-symbols-outlined text-green-500 text-[32px]">verified</span>
+                          <h3 className="text-sm font-bold text-foreground">Página Recebida!</h3>
+                          <p className="text-xs text-muted-foreground">Você confirmou o recebimento da página{pageName ? ` "${pageName}"` : ''}. Obrigado!</p>
+                        </div>
+                      ) : pageConfirmedByAdmin ? (
+                        <div className="space-y-3">
+                          {/* Success header */}
+                          <div className="text-center py-3 space-y-1">
+                            <span className="material-symbols-outlined text-green-500 text-[28px]">send</span>
+                            <h3 className="text-sm font-bold text-foreground">Página Enviada!</h3>
+                            <p className="text-xs text-muted-foreground">
+                              {pageName ? (
+                                <>A página <strong className="text-foreground">"{pageName}"</strong> foi enviada para o perfil informado.</>
+                              ) : (
+                                <>Sua página foi enviada para o perfil informado.</>
+                              )}
+                            </p>
+                          </div>
+
+                          {/* Tutorial to accept */}
+                          <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
+                            <div className="flex items-start gap-2">
+                              <span className="material-symbols-outlined text-primary text-[18px] mt-0.5 shrink-0">school</span>
+                              <div>
+                                <h3 className="text-xs font-bold text-foreground mb-1.5">Como aceitar sua página</h3>
+                                <ol className="text-[11px] text-muted-foreground space-y-1.5 list-decimal list-inside">
+                                  <li>Acesse o <strong className="text-foreground">Facebook</strong> e verifique o <strong className="text-foreground">sino de notificações</strong> 🔔. Procure por um convite da página{pageName ? ` "${pageName}"` : ''} e clique para aceitar.</li>
+                                  <li>Se não encontrar na notificação, vá em <strong className="text-foreground">Páginas → Convites</strong> e verifique se o convite aparece lá.</li>
+                                  <li>Após aceitar o convite, volte aqui e clique em <strong className="text-foreground">"Confirmar Recebimento"</strong>.</li>
+                                </ol>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Warning */}
+                          <div className="p-2.5 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+                            <div className="flex items-start gap-2">
+                              <span className="material-symbols-outlined text-yellow-500 text-[16px] mt-0.5 shrink-0">warning</span>
+                              <p className="text-[11px] text-muted-foreground">
+                                Se não encontrar o convite em nenhum dos locais acima, abra um <strong className="text-foreground">chamado de suporte</strong> pelo botão no canto inferior direito.
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Confirm receipt button */}
+                          <button
+                            onClick={async () => {
+                              setConfirmingReceipt(true);
+                              try {
+                                const { data: item } = await supabase
+                                  .from("order_items")
+                                  .select("delivery_data")
+                                  .eq("id", itemId)
+                                  .single();
+                                await supabase
+                                  .from("order_items")
+                                  .update({
+                                    delivery_data: {
+                                      ...(item?.delivery_data as any || {}),
+                                      pageReceivedByClient: true,
+                                      pageReceivedAt: new Date().toISOString(),
+                                    },
+                                  })
+                                  .eq("id", itemId);
+
+                                // Notify admin via notifications table
+                                const { data: { user } } = await supabase.auth.getUser();
+                                const { data: profile } = await supabase
+                                  .from("profiles")
+                                  .select("full_name")
+                                  .eq("user_id", user?.id || '')
+                                  .maybeSingle();
+                                const clientName = profile?.full_name || 'Cliente';
+                                await supabase.from("notifications").insert({
+                                  title: "✅ Página recebida pelo cliente",
+                                  message: `${clientName} confirmou o recebimento da página${pageName ? ` "${pageName}"` : ''} no pedido ${order?.code || ''}.`,
+                                  type: "success",
+                                  global: true,
+                                });
+
+                                setPageReceivedByClient(true);
+                                toast.success("Recebimento confirmado! Obrigado.");
+                              } catch (err) {
+                                toast.error("Erro ao confirmar recebimento.");
+                              } finally {
+                                setConfirmingReceipt(false);
+                              }
+                            }}
+                            disabled={confirmingReceipt}
+                            className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50"
+                          >
+                            {confirmingReceipt ? (
+                              <span className="material-symbols-outlined text-[18px] animate-spin">progress_activity</span>
+                            ) : (
+                              <span className="material-symbols-outlined text-[18px]">check_circle</span>
+                            )}
+                            Confirmar Recebimento da Página
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="text-center py-4 space-y-2">
+                          <span className="material-symbols-outlined text-primary text-[32px] animate-pulse">hourglass_top</span>
+                          <h3 className="text-sm font-bold text-foreground">Solicitação Enviada!</h3>
+                          <p className="text-xs text-muted-foreground">Sua página está sendo preparada. Você será notificado quando a transferência for concluída.</p>
+                        </div>
+                      )
                     ) : (
                       <>
                         {/* Tutorial */}
