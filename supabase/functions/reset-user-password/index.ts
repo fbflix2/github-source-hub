@@ -43,7 +43,7 @@ Deno.serve(async (req) => {
       throw new Error("A senha deve ter pelo menos 6 caracteres");
     }
 
-    const { error } = await supabaseAdmin.auth.admin.updateUser(target_user_id, {
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(target_user_id, {
       password: new_password,
     });
 
