@@ -77,6 +77,7 @@ export default function AdminEstoque() {
       .select("*")
       .is("product_id", null)
       .neq("status", "vendido")
+      .neq("status", "revisado")
       .order("created_at", { ascending: false });
     setItems(data ?? []);
 
