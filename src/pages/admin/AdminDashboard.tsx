@@ -100,7 +100,7 @@ export default function AdminDashboard() {
         supabase.from("products").select("id, available"),
         supabase.from("orders").select("id, status, total, created_at"),
         supabase.from("order_items").select("product_id, price, quantity, created_at, order_id"),
-        supabase.from("product_categories").select("id, name"),
+        supabase.from("product_categories").select("id, name, slug"),
         supabase.from("payments").select("id", { count: "exact", head: true }).eq("status", "pending"),
       ]);
 
@@ -134,7 +134,7 @@ export default function AdminDashboard() {
 
       // Category stats from order items (only completed orders)
       const cats = categoriesRes.data ?? [];
-      const prodsByCat = await supabase.from("products").select("id, category_id");
+      const prodsByCat = await supabase.from("products").select("id, category_id, name, price, external_id");
       const prodCatMap: Record<string, string> = {};
       (prodsByCat.data ?? []).forEach(p => {
         if (p.category_id) prodCatMap[p.id] = p.category_id;
@@ -158,7 +158,6 @@ export default function AdminDashboard() {
         if (catId) {
           if (!catStats[catId]) catStats[catId] = { sales: 0, revenue: 0 };
           catStats[catId].sales += item.quantity;
-          // Use actual order total divided by number of items in that order
           const itemCount = orderItemCounts[item.order_id] || 1;
           catStats[catId].revenue += (orderTotalMap[item.order_id] || 0) / itemCount;
         }
@@ -166,6 +165,63 @@ export default function AdminDashboard() {
 
       // Zero out test categories (Perfis, Bm) but keep cards visible
       const zeroedCategories = ["perfis", "bm", "perfil"];
+
+      // Find the proxy category by slug
+      const proxyCat = cats.find(c => c.slug === "proxy") || cats.find(c => c.name.toLowerCase().includes("proxy"));
+      
+      // For proxy category: use ALL active subscriptions instead of just local orders
+      if (proxyCat) {
+        // Fetch all active proxy subscriptions
+        let allSubs: any[] = [];
+        let from = 0;
+        const pageSize = 1000;
+        while (true) {
+          const { data: subs } = await supabase
+            .from("subscriptions")
+            .select("name, status, end_date, raw_data")
+            .eq("status", "active")
+            .range(from, from + pageSize - 1);
+          if (!subs?.length) break;
+          allSubs = [...allSubs, ...subs];
+          if (subs.length < pageSize) break;
+          from += pageSize;
+        }
+
+        // Also include non-cancelled with valid end_date
+        const now = new Date();
+        const activeSubs = allSubs.filter(s => {
+          if (!s.end_date) return true;
+          return new Date(s.end_date) >= now;
+        });
+
+        // Build price maps from local products with external_id (proxy products)
+        const proxyProducts = (prodsByCat.data ?? []).filter(p => p.external_id);
+        const extIdPriceMap = new Map<string, number>();
+        const namePriceMap = new Map<string, number>();
+        proxyProducts.forEach(p => {
+          if (p.external_id) extIdPriceMap.set(String(p.external_id), p.price);
+          namePriceMap.set(p.name.toLowerCase().trim(), p.price);
+        });
+
+        // Calculate proxy revenue from all active subs
+        let proxyRevenue = 0;
+        let proxySales = activeSubs.length;
+        activeSubs.forEach(sub => {
+          const raw = sub.raw_data || {};
+          const productId = raw.product?.id;
+          const productName = raw.product?.name || sub.name || "";
+          
+          if (productId && extIdPriceMap.has(String(productId))) {
+            proxyRevenue += extIdPriceMap.get(String(productId))!;
+          } else if (namePriceMap.has(productName.toLowerCase().trim())) {
+            proxyRevenue += namePriceMap.get(productName.toLowerCase().trim())!;
+          }
+        });
+
+        // Override the proxy category stats
+        catStats[proxyCat.id] = { sales: proxySales, revenue: proxyRevenue };
+      }
+
       setCategoryStats(cats.map(c => {
         const shouldZero = zeroedCategories.includes(c.name.toLowerCase().trim());
         return {
