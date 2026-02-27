@@ -335,15 +335,19 @@ export default function AdminAssinaturas() {
       if (proxyOrderPrices?.has(enriched.code)) {
         enriched.paidPrice = proxyOrderPrices.get(enriched.code);
       }
-      // Priority 2: match by ProxyBR product ID -> local external_id
+      // Priority 2: match by ProxyBR product ID -> local external_id (multiply by quantity)
       else if (raw.product?.id && externalIdPriceMap.has(String(raw.product.id))) {
-        enriched.paidPrice = externalIdPriceMap.get(String(raw.product.id));
+        const unitPrice = externalIdPriceMap.get(String(raw.product.id))!;
+        const qty = enriched.quantity || 1;
+        enriched.paidPrice = unitPrice * qty;
       }
-      // Priority 3: match product name to local configured sale price
+      // Priority 3: match product name to local configured sale price (multiply by quantity)
       else if (enriched.product_name && productPriceMap.size > 0) {
         const normalized = enriched.product_name.toLowerCase().trim();
         if (productPriceMap.has(normalized)) {
-          enriched.paidPrice = productPriceMap.get(normalized);
+          const unitPrice = productPriceMap.get(normalized)!;
+          const qty = enriched.quantity || 1;
+          enriched.paidPrice = unitPrice * qty;
         }
       }
       return enriched;
