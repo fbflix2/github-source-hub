@@ -56,6 +56,10 @@ export default function ItemDetails() {
   const [stockData, setStockData] = useState<StockData>({});
   const [product, setProduct] = useState<any>(null);
   const [bmLinks, setBmLinks] = useState<string[]>([]);
+  const [profileLinks, setProfileLinks] = useState<string[]>(['']);
+  const [allOnOneProfile, setAllOnOneProfile] = useState(false);
+  const [pageRequested, setPageRequested] = useState(false);
+  const [requestingPage, setRequestingPage] = useState(false);
 
   // Countdown from order created_at + 24h
   const [countdown, setCountdown] = useState({ hours: 0, minutes: 0, seconds: 0 });
@@ -92,6 +96,13 @@ export default function ItemDetails() {
       // Check delivery_data on order_item first
       if (itemData.delivery_data && typeof itemData.delivery_data === "object") {
         setStockData(itemData.delivery_data as StockData);
+        // Check if page was already requested
+        const dd = itemData.delivery_data as any;
+        if (dd.pageRequestedAt) {
+          setPageRequested(true);
+          if (dd.pageProfileLinks) setProfileLinks(dd.pageProfileLinks);
+          if (dd.allOnOneProfile) setAllOnOneProfile(dd.allOnOneProfile);
+        }
       }
 
       // Fetch linked stock_item
@@ -275,6 +286,8 @@ export default function ItemDetails() {
   const descricao = stockData.descricao || product?.description || "";
   const tags = product?.tags || [];
   const isBM = product?.icon_type === "bm";
+  const isPage = product?.icon_type === "page";
+  const itemQuantity = orderItem?.quantity || 1;
 
   const downloadBmBloco = () => {
     const content = bmLinks.map((link, i) => `BM #${i + 1}: ${link}`).join("\n");
@@ -520,6 +533,100 @@ export default function ItemDetails() {
                           Baixar todas as BMs ({bmLinks.length})
                         </button>
                       </div>
+                    )}
+                  </>
+                ) : isPage ? (
+                  <>
+                    {pageRequested ? (
+                      <div className="text-center py-4 space-y-2">
+                        <span className="material-symbols-outlined text-primary text-[32px]">check_circle</span>
+                        <h3 className="text-sm font-bold text-foreground">Solicitação Enviada!</h3>
+                        <p className="text-xs text-text-secondary">Sua página será enviada para o perfil informado. Aguarde a transferência ser concluída.</p>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Tutorial */}
+                        <div className="mb-3 p-2.5 rounded-lg bg-primary/5 border border-primary/20">
+                          <div className="flex items-start gap-2">
+                            <span className="material-symbols-outlined text-primary text-[18px] mt-0.5 shrink-0">school</span>
+                            <div>
+                              <h3 className="text-xs font-bold text-foreground mb-1">Como receber sua página</h3>
+                              <ol className="text-[11px] text-text-secondary space-y-1 list-decimal list-inside">
+                                <li>Informe abaixo o <strong className="text-foreground">link do perfil</strong> que deseja receber a página.</li>
+                                <li>Clique em <strong className="text-foreground">"Solicitar Página"</strong> para enviar.</li>
+                                <li>Aguarde a transferência — você será notificado quando concluída.</li>
+                              </ol>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Multiple pages option */}
+                        {itemQuantity > 1 && (
+                          <div className="mb-3 flex items-center gap-2">
+                            <Checkbox
+                              id="allOnOne"
+                              checked={allOnOneProfile}
+                              onCheckedChange={(v) => {
+                                setAllOnOneProfile(!!v);
+                                if (v) setProfileLinks([profileLinks[0] || '']);
+                                else setProfileLinks(Array.from({ length: itemQuantity }, (_, i) => profileLinks[i] || ''));
+                              }}
+                            />
+                            <label htmlFor="allOnOne" className="text-[11px] text-text-secondary cursor-pointer">
+                              Receber todas as {itemQuantity} páginas em um único perfil
+                            </label>
+                          </div>
+                        )}
+
+                        {/* Profile link inputs */}
+                        <div className="space-y-2">
+                          {(itemQuantity > 1 && !allOnOneProfile ? Array.from({ length: itemQuantity }) : [0]).map((_, i) => (
+                            <div key={i}>
+                              <label className="text-[10px] text-text-secondary mb-0.5 block">
+                                {itemQuantity > 1 && !allOnOneProfile ? `Link do Perfil — Página ${i + 1}` : 'Link do Perfil'}
+                              </label>
+                              <input
+                                type="url"
+                                placeholder="https://facebook.com/seu-perfil"
+                                value={profileLinks[i] || ''}
+                                onChange={(e) => {
+                                  const newLinks = [...profileLinks];
+                                  newLinks[i] = e.target.value;
+                                  setProfileLinks(newLinks);
+                                }}
+                                className="w-full bg-background/50 px-2 py-1.5 rounded border border-border text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                              />
+                            </div>
+                          ))}
+                        </div>
+
+                        <button
+                          onClick={async () => {
+                            const links = profileLinks.filter(l => l.trim());
+                            if (links.length === 0) return;
+                            setRequestingPage(true);
+                            // Save profile links to delivery_data on order_item
+                            const deliveryUpdate = {
+                              ...(orderItem.delivery_data || {}),
+                              pageProfileLinks: links,
+                              allOnOneProfile,
+                              pageRequestedAt: new Date().toISOString(),
+                            };
+                            await supabase.from("order_items").update({ delivery_data: deliveryUpdate }).eq("id", itemId);
+                            setPageRequested(true);
+                            setRequestingPage(false);
+                          }}
+                          disabled={requestingPage || profileLinks.every(l => !l.trim())}
+                          className="w-full mt-3 py-2 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-primary/90 transition-all flex items-center justify-center gap-1.5 text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {requestingPage ? (
+                            <span className="material-symbols-outlined text-[14px] animate-spin">progress_activity</span>
+                          ) : (
+                            <span className="material-symbols-outlined text-[14px]">send</span>
+                          )}
+                          {requestingPage ? 'Enviando...' : 'Solicitar Página'}
+                        </button>
+                      </>
                     )}
                   </>
                 ) : (
