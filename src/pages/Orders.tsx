@@ -12,6 +12,7 @@ interface OrderItem {
   price: number;
   quantity: number;
   isBlocked?: boolean;
+  iconType?: string;
 }
 
 interface Order {
@@ -117,6 +118,7 @@ export default function Orders() {
         items: (itemsData || []).filter((i: any) => i.order_id === order.id).map((i: any) => ({
           ...i,
           isBlocked: blockedItemIds.has(i.id),
+          iconType: i.products?.icon_type,
         })),
       }));
 
@@ -262,12 +264,48 @@ export default function Orders() {
                   </h4>
 
                     <div className="flex flex-col gap-2">
-                      {selectedOrder.items.flatMap((item) => {
-                        // Expand items with quantity > 1 into individual rows
-                        const count = item.quantity > 1 ? item.quantity : 1;
-                        return Array.from({ length: count }, (_, idx) => (
+                      {(() => {
+                        // Group BM items into a single row, expand others individually
+                        const bmItems = selectedOrder.items.filter(i => i.iconType === 'bm');
+                        const otherItems = selectedOrder.items.filter(i => i.iconType !== 'bm');
+                        const rows: { key: string; name: string; subtitle: string; price: number; totalPrice: number; itemId: string; isBlocked: boolean; isBm: boolean }[] = [];
+
+                        // BM: single grouped row
+                        if (bmItems.length > 0) {
+                          const totalBmPrice = bmItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
+                          const totalBmQty = bmItems.reduce((sum, i) => sum + i.quantity, 0);
+                          rows.push({
+                            key: 'bm-group',
+                            name: bmItems[0].name,
+                            subtitle: totalBmQty > 1 ? `${totalBmQty} BMs neste pedido` : 'Unidade 1 de 1',
+                            price: totalBmPrice,
+                            totalPrice: totalBmPrice,
+                            itemId: bmItems[0].id,
+                            isBlocked: bmItems.some(i => i.isBlocked),
+                            isBm: true,
+                          });
+                        }
+
+                        // Others: expand as before
+                        otherItems.forEach(item => {
+                          const count = item.quantity > 1 ? item.quantity : 1;
+                          for (let idx = 0; idx < count; idx++) {
+                            rows.push({
+                              key: `${item.id}-${idx}`,
+                              name: item.name,
+                              subtitle: item.description || `Unidade ${idx + 1} de ${count}`,
+                              price: item.price,
+                              totalPrice: item.price,
+                              itemId: item.id,
+                              isBlocked: !!item.isBlocked,
+                              isBm: false,
+                            });
+                          }
+                        });
+
+                        return rows.map(row => (
                           <div
-                            key={`${item.id}-${idx}`}
+                            key={row.key}
                             className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-border hover:border-primary/20 transition-colors"
                           >
                             <div className="w-10 h-10 rounded-lg shrink-0 flex items-center justify-center border bg-blue-500/10 border-blue-500/20">
@@ -275,24 +313,21 @@ export default function Orders() {
                             </div>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-1.5">
-                                <h5 className="text-foreground font-bold text-sm truncate">{item.name}</h5>
-                                {count > 1 && (
-                                  <span className="text-[10px] text-muted-foreground font-mono">#{idx + 1}</span>
-                                )}
-                                {item.isBlocked && (
+                                <h5 className="text-foreground font-bold text-sm truncate">{row.name}</h5>
+                                {row.isBlocked && (
                                   <span className="flex items-center gap-0.5 px-1 py-0.5 rounded bg-destructive/20 text-destructive border border-destructive/30 text-[8px] font-bold uppercase">
                                     <span className="material-symbols-outlined text-[9px]">block</span>
                                     Bloqueado
                                   </span>
                                 )}
                               </div>
-                              <p className="text-muted-foreground text-xs">{item.description || `Unidade ${idx + 1} de ${count}`}</p>
+                              <p className="text-muted-foreground text-xs">{row.subtitle}</p>
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
-                              <span className="text-foreground font-bold text-sm">R$ {item.price.toFixed(2).replace(".", ",")}</span>
+                              <span className="text-foreground font-bold text-sm">R$ {row.price.toFixed(2).replace(".", ",")}</span>
                               {selectedOrder.status === "completed" && (
                                 <button
-                                  onClick={() => navigate(`/item-details/${encodeURIComponent(selectedOrder.code)}/${item.id}`)}
+                                  onClick={() => navigate(`/item-details/${encodeURIComponent(selectedOrder.code)}/${row.itemId}`)}
                                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white text-black font-semibold hover:bg-white/90 transition-colors text-xs shadow-sm"
                                 >
                                   <span className="material-symbols-outlined text-[14px]">visibility</span>
@@ -302,7 +337,7 @@ export default function Orders() {
                             </div>
                           </div>
                         ));
-                      })}
+                      })()}
                     </div>
 
                   {/* Payment & Summary */}
