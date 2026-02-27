@@ -423,7 +423,7 @@ function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => voi
   useEffect(() => {
     supabase.from("product_categories").select("id, name").then(({ data }) => setCategories(data ?? []));
     supabase.from("product_images").select("id, name, url").eq("category", "bm").order("created_at", { ascending: false }).then(({ data }) => setProductImages(data ?? []));
-    supabase.from("product_defaults").select("id, name, tags").order("name").then(({ data }) => setProductDefaults((data as any) ?? []));
+    supabase.from("product_defaults").select("id, name, tags, price, default_image").order("name").then(({ data }) => setProductDefaults((data as any) ?? []));
   }, []);
 
   const urlLines = useMemo(() => {
@@ -551,10 +551,12 @@ function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => voi
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><PackageOpen className="h-3 w-3" />Nome do Produto</label>
-                <Select value={nomeProduto} onValueChange={v => {
-                  const def = productDefaults.find(d => d.name === v);
+              <Select value={nomeProduto} onValueChange={v => {
+                  const def = productDefaults.find(d => d.name === v) as any;
                   setNomeProduto(v);
                   setTags(def?.tags ?? []);
+                  if (def?.price) setPreco(String(def.price));
+                  if (def?.default_image) setSelectedImageUrl(def.default_image);
                 }}>
                   <SelectTrigger className="bg-zinc-900/50 border-zinc-700 text-white"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                   <SelectContent>
