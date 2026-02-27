@@ -460,7 +460,7 @@ export default function ItemDetails() {
                           <div key={i}>
                             <label className="text-[10px] text-text-secondary mb-0.5 block">BM #{i + 1}</label>
                             <div className="flex items-center gap-1">
-                              <code className="flex-1 bg-background/50 px-2 py-1.5 rounded border border-border text-xs font-mono text-primary truncate">
+                              <code className="flex-1 bg-background/50 px-2 py-1.5 rounded border border-border text-xs font-mono text-green-400 truncate">
                                 {link}
                               </code>
                               <button onClick={() => copyToClipboard(link, `bm-${i}`)} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
