@@ -120,11 +120,8 @@ export default function Auth() {
         <div className="glass-card-static w-full max-w-[440px] rounded-3xl p-8 flex flex-col gap-6">
           {/* Header & Logo */}
           <div className="flex flex-col items-center gap-2">
-            <div className="flex items-center gap-2 mb-2">
-              <img src={logoFbflix} alt="FBFLIX" className="w-10 h-10 object-contain" />
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                FBFLIX <span className="text-primary">2.0</span>
-              </h1>
+            <div className="flex items-center justify-center mb-2">
+              <img src={logoFbflix} alt="FBFLIX" className="w-20 h-20 object-contain" />
             </div>
             <p className="text-muted-foreground text-sm font-medium">Bem-vindo de volta</p>
           </div>
