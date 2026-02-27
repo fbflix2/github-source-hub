@@ -31,7 +31,8 @@ import {
   Megaphone,
   ShieldCheck,
   MessageCircle,
-  Shield
+  Shield,
+  Recycle
 } from "lucide-react";
 
 interface SubItem {
@@ -53,6 +54,7 @@ const allMenuItems: MenuItem[] = [
   { title: "Auditoria", icon: ClipboardCheck, path: "/admin/auditoria" },
   { title: "Estoque", icon: Warehouse, path: "/admin/estoque" },
   { title: "Blocagem", icon: Shield, path: "/admin/blocagem" },
+  { title: "Reciclagem", icon: Recycle, path: "/admin/reciclagem" },
   { title: "Produtos", icon: Package, path: "/admin/produtos" },
   { title: "Pedidos", icon: ShoppingCart, path: "/admin/pedidos" },
   { title: "Pagamentos", icon: CreditCard, path: "/admin/pagamentos" },
@@ -113,8 +115,11 @@ export function AdminSidebar() {
       }
 
       const allowed = new Set(perms.allowed_paths as string[]);
-      // Blocagem is a sub-feature of estoque
-      if (allowed.has("/admin/estoque")) allowed.add("/admin/blocagem");
+      // Blocagem and Reciclagem are sub-features of estoque
+      if (allowed.has("/admin/estoque")) {
+        allowed.add("/admin/blocagem");
+        allowed.add("/admin/reciclagem");
+      }
       // Chat is available to all staff
       allowed.add("/admin/chat");
 
