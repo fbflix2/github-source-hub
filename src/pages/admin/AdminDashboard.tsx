@@ -123,14 +123,18 @@ export default function AdminDashboard() {
       const completedOrds = ords.filter(o => completedStatuses.includes(o.status));
       const completedOrderIds = new Set(completedOrds.map(o => o.id));
 
-      // Chart: group completed orders by month
+      // Chart: group completed orders by day
       const monthMap: Record<string, number> = {};
       completedOrds.forEach(o => {
         const d = new Date(o.created_at);
         const key = d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
         monthMap[key] = (monthMap[key] || 0) + (o.total || 0);
       });
-      setChartData(Object.entries(monthMap).slice(-7).map(([name, value]) => ({ name, value })));
+      // Add today's proxy revenue to chart
+      const todayChartKey = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+      // Proxy revenue will be added after we calculate it in the category section
+      // Store monthMap for later use
+      let proxyRevenueForChart = 0;
 
       // Category stats from order items (only completed orders)
       const cats = categoriesRes.data ?? [];
@@ -220,7 +224,13 @@ export default function AdminDashboard() {
 
         // Override the proxy category stats
         catStats[proxyCat.id] = { sales: proxySales, revenue: proxyRevenue };
+        proxyRevenueForChart = proxyRevenue;
       }
+
+      // Add proxy revenue to today's chart entry
+      if (!monthMap[todayChartKey]) monthMap[todayChartKey] = 0;
+      monthMap[todayChartKey] += proxyRevenueForChart;
+      setChartData(Object.entries(monthMap).slice(-7).map(([name, value]) => ({ name, value })));
 
       setCategoryStats(cats.map(c => {
         const shouldZero = zeroedCategories.includes(c.name.toLowerCase().trim());
