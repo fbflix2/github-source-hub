@@ -140,6 +140,17 @@ export default function AdminDashboard() {
         if (p.category_id) prodCatMap[p.id] = p.category_id;
       });
 
+      // Build a map of order_id -> order total for revenue calculation
+      const orderTotalMap: Record<string, number> = {};
+      completedOrds.forEach(o => { orderTotalMap[o.id] = o.total || 0; });
+
+      // Count how many items per order to distribute total proportionally
+      const orderItemCounts: Record<string, number> = {};
+      (orderItemsRes.data ?? []).forEach(item => {
+        if (!completedOrderIds.has(item.order_id)) return;
+        orderItemCounts[item.order_id] = (orderItemCounts[item.order_id] || 0) + 1;
+      });
+
       const catStats: Record<string, { sales: number; revenue: number }> = {};
       (orderItemsRes.data ?? []).forEach(item => {
         if (!completedOrderIds.has(item.order_id)) return;
@@ -147,7 +158,9 @@ export default function AdminDashboard() {
         if (catId) {
           if (!catStats[catId]) catStats[catId] = { sales: 0, revenue: 0 };
           catStats[catId].sales += item.quantity;
-          catStats[catId].revenue += item.price * item.quantity;
+          // Use actual order total divided by number of items in that order
+          const itemCount = orderItemCounts[item.order_id] || 1;
+          catStats[catId].revenue += (orderTotalMap[item.order_id] || 0) / itemCount;
         }
       });
 
