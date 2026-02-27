@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useProxyRevenue } from "@/hooks/useProxyRevenue";
 import { 
   ArrowLeft, ShoppingCart, Wallet, TrendingUp, Percent, Tag, Timer, Download,
   ChevronDown, ChevronLeft, ChevronRight, BarChart3, Search, ArrowUp, ArrowDown, Loader2
@@ -28,6 +29,7 @@ export default function AdminBalanco() {
   const [activeChartFilter, setActiveChartFilter] = useState("Lucro");
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
+  const { totalRevenue: proxyRevenue, count: proxyCount } = useProxyRevenue();
 
   // Real data states
   const [totalCost, setTotalCost] = useState(0);
@@ -59,7 +61,7 @@ export default function AdminBalanco() {
       supabase.from("orders").select("id, total, status, created_at, code").in("status", ["completed", "delivered"]).gte("created_at", since).order("created_at", { ascending: false }),
       supabase.from("purchases").select("*").gte("created_at", since).order("created_at", { ascending: false }),
       supabase.from("order_items").select("product_id, price, quantity, order_id, name, created_at").gte("created_at", since),
-      supabase.from("product_categories").select("id, name"),
+      supabase.from("product_categories").select("id, name, slug"),
       supabase.from("products").select("id, category_id, name"),
     ]);
 
@@ -119,6 +121,11 @@ export default function AdminBalanco() {
       if (!chartMap[key]) chartMap[key] = { revenue: 0, cost: 0 };
       chartMap[key].cost += Number(p.total_value);
     });
+    // Add today's proxy revenue to chart
+    const todayKey = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+    if (!chartMap[todayKey]) chartMap[todayKey] = { revenue: 0, cost: 0 };
+    chartMap[todayKey].revenue += proxyRevenue;
+
     setChartData(
       Object.entries(chartMap).slice(-10).map(([name, d]) => ({
         name,
@@ -139,17 +146,28 @@ export default function AdminBalanco() {
         catMap[catId].revenue += item.price * item.quantity;
       }
     });
-    setCategoryData(categories.map(c => ({
+    // Add proxy revenue to "Proxy" category
+    const proxyCat = categories.find((c: any) => c.slug === "proxy") || categories.find((c: any) => c.name.toLowerCase().includes("proxy"));
+    const catDataList = categories.map((c: any) => ({
       name: c.name,
       cost: catMap[c.id]?.cost ?? 0,
       revenue: catMap[c.id]?.revenue ?? 0,
-    })).filter(c => c.revenue > 0));
+    }));
+    // Override proxy category with proxy subscription revenue
+    if (proxyCat) {
+      const idx = catDataList.findIndex((c: any) => c.name === proxyCat.name);
+      if (idx >= 0) {
+        catDataList[idx].revenue = proxyRevenue;
+      }
+    }
+    setCategoryData(catDataList.filter(c => c.revenue > 0));
 
     setLoading(false);
   };
 
-  const profit = totalRevenue - totalCost;
-  const margin = totalRevenue > 0 ? ((profit / totalRevenue) * 100).toFixed(1) : "0";
+  const combinedRevenue = totalRevenue + proxyRevenue;
+  const profit = combinedRevenue - totalCost;
+  const margin = combinedRevenue > 0 ? ((profit / combinedRevenue) * 100).toFixed(1) : "0";
 
   const filteredTx = transactions.filter(tx =>
     tx.item.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -161,10 +179,10 @@ export default function AdminBalanco() {
 
   const stats = [
     { label: "Custo Total Compras", value: formatCurrency(totalCost), icon: ShoppingCart, iconBg: "bg-primary/10 border-primary/20", iconColor: "text-primary" },
-    { label: "Receita Total Vendas", value: formatCurrency(totalRevenue), icon: Wallet, iconBg: "bg-emerald-500/10 border-emerald-500/20", iconColor: "text-emerald-500" },
+    { label: "Receita Total Vendas", value: formatCurrency(combinedRevenue), icon: Wallet, iconBg: "bg-emerald-500/10 border-emerald-500/20", iconColor: "text-emerald-500" },
     { label: "Lucro Líquido", value: formatCurrency(profit), icon: TrendingUp, iconBg: "bg-white/10 border-white/20", iconColor: "text-white", highlighted: true },
     { label: "Margem Média", value: `${margin}%`, icon: Percent, iconBg: "bg-white/5 border-white/10", iconColor: "text-gray-300" },
-    { label: "Custo Médio / Item", value: formatCurrency(avgCostPerItem), icon: Tag, iconBg: "bg-white/5 border-white/10", iconColor: "text-gray-300" },
+    { label: "Proxies Ativos", value: proxyCount.toString(), icon: Tag, iconBg: "bg-white/5 border-white/10", iconColor: "text-gray-300" },
   ];
 
   if (loading) {

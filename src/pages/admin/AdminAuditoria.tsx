@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useProxyRevenue } from "@/hooks/useProxyRevenue";
 import { 
   ShoppingBag, 
   Wallet, 
@@ -34,6 +35,7 @@ export default function AdminAuditoria() {
   const [showPurchases, setShowPurchases] = useState(false);
   const [projectedProfit, setProjectedProfit] = useState(0);
   const [projectedMargin, setProjectedMargin] = useState(0);
+  const { totalRevenue: proxyRevenue, count: proxyCount } = useProxyRevenue();
 
   const fetchData = async () => {
     setLoading(true);
@@ -95,8 +97,9 @@ export default function AdminAuditoria() {
     fetchData();
   }, []);
 
-  const profit = totalRevenue - totalCost;
-  const margin = totalRevenue > 0 ? Math.round((profit / totalRevenue) * 100) : 0;
+  const combinedRevenue = totalRevenue + proxyRevenue;
+  const profit = combinedRevenue - totalCost;
+  const margin = combinedRevenue > 0 ? Math.round((profit / combinedRevenue) * 100) : 0;
 
   const stats = [
     {
@@ -113,13 +116,13 @@ export default function AdminAuditoria() {
     },
     {
       label: "Receita Total de Vendas",
-      value: loading ? "..." : formatCurrency(totalRevenue),
+      value: loading ? "..." : formatCurrency(combinedRevenue),
       badge: "Entrada",
       badgeColor: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20",
       icon: Wallet,
       iconBg: "bg-white/5 border-white/10",
       iconColor: "text-gray-300",
-      subtitle: "Últimos 30 dias",
+      subtitle: `Pedidos + ${proxyCount} proxies ativos`,
       highlighted: false
     },
     {
