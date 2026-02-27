@@ -898,16 +898,41 @@ export default function AdminBlocagem() {
   const [newFolderName, setNewFolderName] = useState("");
   const [folders, setFolders] = useState<Folder[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showTrash, setShowTrash] = useState(false);
+  const [trashedFolders, setTrashedFolders] = useState<(Folder & { deleted_at: string })[]>([]);
+  const [loadingTrash, setLoadingTrash] = useState(false);
+  const [trashedItems, setTrashedItems] = useState<Record<string, StockItem[]>>({});
 
   const fetchFolders = async () => {
-    const { data: foldersData } = await supabase.from("stock_folders").select("*").order("updated_at", { ascending: false });
+    const { data: foldersData } = await supabase.from("stock_folders").select("*").is("deleted_at", null).order("updated_at", { ascending: false });
     if (!foldersData) { setLoading(false); return; }
     // Count items per folder
-    const { data: itemsData } = await supabase.from("stock_items").select("folder").neq("status", "revisado");
+    const { data: itemsData } = await supabase.from("stock_items").select("folder").is("deleted_at", null).neq("status", "revisado");
     const counts: Record<string, number> = {};
     (itemsData ?? []).forEach(i => { if (i.folder) counts[i.folder] = (counts[i.folder] || 0) + 1; });
     setFolders(foldersData.map(f => ({ ...f, item_count: counts[f.id] || 0 })));
     setLoading(false);
+  };
+
+  const fetchTrash = async () => {
+    setLoadingTrash(true);
+    const { data } = await supabase.from("stock_folders").select("*").not("deleted_at", "is", null).order("deleted_at", { ascending: false });
+    const trashed = (data ?? []) as (Folder & { deleted_at: string })[];
+    setTrashedFolders(trashed);
+    // Fetch items for each trashed folder
+    if (trashed.length > 0) {
+      const folderIds = trashed.map(f => f.id);
+      const { data: items } = await supabase.from("stock_items").select("*").in("folder", folderIds);
+      const grouped: Record<string, StockItem[]> = {};
+      (items ?? []).forEach(item => {
+        if (item.folder) {
+          if (!grouped[item.folder]) grouped[item.folder] = [];
+          grouped[item.folder].push(item as StockItem);
+        }
+      });
+      setTrashedItems(grouped);
+    }
+    setLoadingTrash(false);
   };
 
   useEffect(() => { fetchFolders(); }, []);
@@ -930,6 +955,33 @@ export default function AdminBlocagem() {
     setNewFolderName("");
     toast.success("Pasta renomeada!");
     fetchFolders();
+  };
+
+  const handleSoftDeleteFolder = async (folder: Folder) => {
+    const now = new Date().toISOString();
+    // Soft delete folder
+    await supabase.from("stock_folders").update({ deleted_at: now } as any).eq("id", folder.id);
+    // Soft delete its items
+    await supabase.from("stock_items").update({ deleted_at: now } as any).eq("folder", folder.id);
+    if (selectedFolder?.id === folder.id) setSelectedFolder(null);
+    toast.success("Pasta movida para a lixeira");
+    fetchFolders();
+  };
+
+  const handleRestoreFolder = async (folder: Folder & { deleted_at: string }) => {
+    await supabase.from("stock_folders").update({ deleted_at: null } as any).eq("id", folder.id);
+    await supabase.from("stock_items").update({ deleted_at: null } as any).eq("folder", folder.id);
+    toast.success("Pasta restaurada!");
+    fetchTrash();
+    fetchFolders();
+  };
+
+  const handlePermanentDeleteFolder = async (folder: Folder) => {
+    // Delete items first, then folder
+    await supabase.from("stock_items").delete().eq("folder", folder.id);
+    await supabase.from("stock_folders").delete().eq("id", folder.id);
+    toast.success("Pasta excluída permanentemente");
+    fetchTrash();
   };
 
   const handleSelectTypeAndFolder = (type: string) => {
@@ -1034,10 +1086,16 @@ export default function AdminBlocagem() {
               <p className="text-xs text-zinc-500">Selecione uma pasta para trabalhar.</p>
             </div>
           </div>
-          <Button size="sm" onClick={() => { setIsCreateFolderOpen(true); setNewFolderName(""); }} className="bg-primary hover:bg-primary/90 text-white gap-1.5 text-xs h-8">
-            <FolderPlus className="h-3.5 w-3.5" />
-            Criar Nova Pasta
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="ghost" onClick={() => { setShowTrash(!showTrash); if (!showTrash) fetchTrash(); }} className={`gap-1.5 text-xs h-8 ${showTrash ? 'text-red-400 bg-red-500/10' : 'text-zinc-400 hover:text-white hover:bg-white/5'}`}>
+              <Trash2 className="h-3.5 w-3.5" />
+              Lixeira
+            </Button>
+            <Button size="sm" onClick={() => { setIsCreateFolderOpen(true); setNewFolderName(""); }} className="bg-primary hover:bg-primary/90 text-white gap-1.5 text-xs h-8">
+              <FolderPlus className="h-3.5 w-3.5" />
+              Criar Nova Pasta
+            </Button>
+          </div>
         </div>
 
         <div className="flex-1 min-h-0 overflow-y-auto space-y-1 max-h-[calc(100vh-380px)]">
@@ -1067,6 +1125,9 @@ export default function AdminBlocagem() {
                   <button onClick={e => { e.stopPropagation(); setEditingFolder(folder); setNewFolderName(folder.name); }} className="w-7 h-7 rounded-lg hover:bg-white/10 flex items-center justify-center text-zinc-400 hover:text-white transition-colors">
                     <Pencil className="h-3.5 w-3.5" />
                   </button>
+                  <button onClick={e => { e.stopPropagation(); handleSoftDeleteFolder(folder); }} className="w-7 h-7 rounded-lg hover:bg-red-500/10 flex items-center justify-center text-zinc-400 hover:text-red-400 transition-colors">
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
                   <button onClick={e => { e.stopPropagation(); setViewingFolder(folder); }} className="w-7 h-7 rounded-lg hover:bg-white/10 flex items-center justify-center text-zinc-400 hover:text-white transition-colors">
                     <ChevronRight className="h-3.5 w-3.5" />
                   </button>
@@ -1075,6 +1136,47 @@ export default function AdminBlocagem() {
             ))
           )}
         </div>
+
+        {/* Trash Section */}
+        {showTrash && (
+          <div className="mt-3 border-t border-white/5 pt-3">
+            <div className="flex items-center gap-2 mb-2">
+              <Trash2 className="h-3.5 w-3.5 text-red-400" />
+              <h3 className="text-xs font-semibold text-red-400 uppercase tracking-wider">Lixeira</h3>
+            </div>
+            {loadingTrash ? (
+              <div className="flex justify-center py-4"><Loader2 className="size-5 text-primary animate-spin" /></div>
+            ) : trashedFolders.length === 0 ? (
+              <p className="text-xs text-zinc-500 py-3 text-center">Lixeira vazia.</p>
+            ) : (
+              <div className="space-y-1 max-h-[200px] overflow-y-auto">
+                {trashedFolders.map(folder => (
+                  <div key={folder.id} className="flex items-center justify-between p-2.5 rounded-lg bg-red-500/5 border border-red-500/10">
+                    <div className="flex items-center gap-3">
+                      <div className="w-7 h-7 rounded-lg bg-red-500/10 flex items-center justify-center">
+                        <FolderOpen className="h-3.5 w-3.5 text-red-400" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm text-zinc-300 font-medium">{folder.name}</h4>
+                        <p className="text-[10px] text-zinc-500">
+                          {(trashedItems[folder.id] ?? []).length} itens • Excluída {formatUpdatedAt(folder.deleted_at)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button size="sm" variant="ghost" onClick={() => handleRestoreFolder(folder)} className="h-7 px-2 text-xs text-green-400 hover:text-green-300 hover:bg-green-500/10 gap-1">
+                        <ArrowLeft className="h-3 w-3" /> Restaurar
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => handlePermanentDeleteFolder(folder)} className="h-7 px-2 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 gap-1">
+                        <X className="h-3 w-3" /> Excluir
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Create Folder Dialog */}
