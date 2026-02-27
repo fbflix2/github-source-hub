@@ -32,20 +32,29 @@ export default function SubscriptionManage() {
   const autoRenewMutation = useToggleAutoRenew();
   const queryClient = useQueryClient();
 
+  // Extract the real subscription name (strip __proxy_XXX suffix for multi-proxy codes)
+  const realSubName = code?.includes("__proxy_") ? code.split("__proxy_")[0] : code;
+
+  // Support both simple codes and exploded multi-proxy codes (e.g. "SUB123__proxy_456")
+  const sub = (subscriptions as ProxySubscription[] | undefined)?.find((s) => s.code === code);
+
   // Fetch the price the customer actually paid from order_items
   const { data: customerPrice } = useQuery({
-    queryKey: ["subscription-customer-price", code],
+    queryKey: ["subscription-customer-price", code, sub?.totalProxies],
     queryFn: async () => {
-      if (!code) return null;
+      if (!realSubName) return null;
       const { data } = await supabase
         .from("order_items")
         .select("price, order_id")
-        .contains("delivery_data", { subscription_code: code })
+        .contains("delivery_data", { subscription_code: realSubName })
         .limit(1)
         .maybeSingle();
-      return data?.price ?? null;
+      if (data?.price == null) return null;
+      // For multi-proxy subs, divide the total price by the number of proxies
+      const totalProxies = sub?.totalProxies ?? 1;
+      return Number(data.price) / totalProxies;
     },
-    enabled: !!code,
+    enabled: !!code && !isLoading,
   });
 
   const [profileName, setProfileName] = useState("");
@@ -53,9 +62,6 @@ export default function SubscriptionManage() {
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
-
-  // Support both simple codes and exploded multi-proxy codes (e.g. "SUB123__proxy_456")
-  const sub = (subscriptions as ProxySubscription[] | undefined)?.find((s) => s.code === code);
 
   // Load profile_tag from subscription data
   useEffect(() => {
