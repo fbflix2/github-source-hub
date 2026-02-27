@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useProxyRevenue } from "@/hooks/useProxyRevenue";
 import { Wallet, TrendingUp, ShoppingBag, BarChart3, RefreshCw, ExternalLink } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +27,7 @@ function getPeriodDate(period: Period): string | null {
 
 export default function ProxyFinancialOverview() {
   const [period, setPeriod] = useState<Period>("30d");
+  const proxyRevenue = useProxyRevenue();
 
   // ProxyBR account balance
   const { data: meData, isLoading: meLoading, refetch: refetchMe } = useQuery({
@@ -213,7 +215,7 @@ export default function ProxyFinancialOverview() {
           </CardContent>
         </Card>
 
-        {/* Revenue */}
+        {/* Revenue - from all active subscriptions (exploded) */}
         <Card className="border-border/40 bg-card/60 backdrop-blur-sm">
           <CardContent className="p-4 flex items-center gap-3">
             <div className="flex items-center justify-center size-10 rounded-lg bg-green-500/10">
@@ -221,14 +223,12 @@ export default function ProxyFinancialOverview() {
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Receita Proxies</p>
-              {salesLoading ? <Skeleton className="h-6 w-20" /> : (
-                <p className="text-xl font-bold text-foreground">{formatCurrency(salesData?.totalRevenue || 0)}</p>
-              )}
+              <p className="text-xl font-bold text-foreground">{formatCurrency(proxyRevenue.totalRevenue)}</p>
             </div>
           </CardContent>
         </Card>
 
-        {/* Orders */}
+        {/* Proxies sold (exploded count) */}
         <Card className="border-border/40 bg-card/60 backdrop-blur-sm">
           <CardContent className="p-4 flex items-center gap-3">
             <div className="flex items-center justify-center size-10 rounded-lg bg-blue-500/10">
@@ -236,9 +236,7 @@ export default function ProxyFinancialOverview() {
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Vendas no Período</p>
-              {salesLoading ? <Skeleton className="h-6 w-10" /> : (
-                <p className="text-xl font-bold text-foreground">{salesData?.totalOrders || 0}</p>
-              )}
+              <p className="text-xl font-bold text-foreground">{proxyRevenue.count}</p>
             </div>
           </CardContent>
         </Card>
