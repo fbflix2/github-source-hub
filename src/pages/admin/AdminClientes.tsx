@@ -200,10 +200,12 @@ export default function AdminClientes() {
 
   // Filtering
   const filteredClients = clients.filter((client) => {
-    const matchesSearch =
-      (client.full_name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (client.phone || "").includes(searchTerm);
+    const term = searchTerm.toLowerCase().trim();
+    const matchesSearch = !term ||
+      (client.full_name || "").toLowerCase().includes(term) ||
+      client.email.toLowerCase().includes(term) ||
+      (client.phone || "").includes(term) ||
+      client.user_id.toLowerCase().includes(term);
 
     switch (activeFilter) {
       case "subscribers":
@@ -301,7 +303,7 @@ export default function AdminClientes() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
             <Input
               className="w-full h-12 pl-12 pr-4 bg-white/5 border-none rounded-xl text-white placeholder-white/30 focus:ring-2 focus:ring-primary focus:bg-white/10 transition-all text-sm font-medium"
-              placeholder="Pesquisar por nome ou telefone..."
+              placeholder="Pesquisar por nome, email ou telefone..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
