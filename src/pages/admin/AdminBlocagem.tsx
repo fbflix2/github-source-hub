@@ -408,7 +408,7 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
 // ─── BM Form ───
 function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => void; onSaved: () => void }) {
   const [urls, setUrls] = useState("");
-  const [notes, setNotes] = useState("");
+  const [descricao, setDescricao] = useState("");
   const [saving, setSaving] = useState(false);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [preco, setPreco] = useState("");
@@ -423,7 +423,7 @@ function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => voi
   useEffect(() => {
     supabase.from("product_categories").select("id, name").then(({ data }) => setCategories(data ?? []));
     supabase.from("product_images").select("id, name, url").eq("category", "bm").order("created_at", { ascending: false }).then(({ data }) => setProductImages(data ?? []));
-    supabase.from("product_defaults").select("id, name, tags, price, default_image").order("name").then(({ data }) => setProductDefaults((data as any) ?? []));
+    supabase.from("product_defaults").select("id, name, tags, price, default_image, description").order("name").then(({ data }) => setProductDefaults((data as any) ?? []));
   }, []);
 
   const urlLines = useMemo(() => {
@@ -467,7 +467,7 @@ function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => voi
       status: "aguardando",
       folder: folder.id,
       data: {
-        notes,
+        descricao: descricao || undefined,
         preco: preco ? parseFloat(preco) : undefined,
         categoryId: categoryId || undefined,
         tags: tags.length > 0 ? tags : undefined,
@@ -480,7 +480,7 @@ function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => voi
     if (error) { toast.error("Erro: " + error.message); return; }
     toast.success(`${urlLines.length} BM(s) adicionados! Formulário pronto para novo cadastro.`);
     setUrls("");
-    setNotes("");
+    setDescricao("");
     setPreco("");
     setCategoryId("");
     setTags([]);
@@ -528,13 +528,6 @@ function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => voi
           </div>
 
           <div className="lg:col-span-2 space-y-4">
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-zinc-300">
-                <FileText className="h-4 w-4 text-zinc-500" />
-                <span className="text-sm font-medium">Notas Internas</span>
-              </div>
-              <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Observações sobre origem, fornecedor..." className="min-h-[120px] bg-zinc-900/50 border-zinc-700 text-white resize-none" />
-            </div>
             <div className="space-y-3 pt-2">
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><DollarSign className="h-3 w-3" />Preço (R$)</label>
@@ -557,6 +550,7 @@ function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => voi
                   setTags(def?.tags ?? []);
                   if (def?.price) setPreco(String(def.price));
                   if (def?.default_image) setSelectedImageUrl(def.default_image);
+                  if (def?.description) setDescricao(def.description);
                 }}>
                   <SelectTrigger className="bg-zinc-900/50 border-zinc-700 text-white"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                   <SelectContent>
@@ -608,6 +602,10 @@ function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => voi
                     )}
                   </div>
                 )}
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><FileText className="h-3 w-3" />Descrição</label>
+                <Textarea value={descricao} onChange={e => setDescricao(e.target.value)} placeholder="Descrição do item..." className="min-h-[80px] bg-zinc-900/50 border-zinc-700 text-white resize-none" />
               </div>
               <Button onClick={handleSave} disabled={saving} className="w-full bg-primary hover:bg-primary/90 text-white gap-2 h-12">
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
