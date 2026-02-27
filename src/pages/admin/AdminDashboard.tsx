@@ -159,7 +159,7 @@ export default function AdminDashboard() {
         }
       });
 
-      const zeroedCategories = ["perfis", "bm", "perfil"];
+      const zeroedCategories: string[] = [];
       const proxyCat = cats.find(c => c.slug === "proxy") || cats.find(c => c.name.toLowerCase().includes("proxy"));
       
       if (proxyCat) {
