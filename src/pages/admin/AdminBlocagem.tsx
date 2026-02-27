@@ -426,7 +426,36 @@ function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => voi
     supabase.from("product_defaults").select("id, name, tags").order("name").then(({ data }) => setProductDefaults((data as any) ?? []));
   }, []);
 
-  const urlLines = useMemo(() => urls.split("\n").filter(l => l.trim()), [urls]);
+  const urlLines = useMemo(() => {
+    const lines = urls.split("\n").filter(l => l.trim());
+    // Remove duplicates keeping first occurrence
+    const seen = new Set<string>();
+    return lines.filter(l => {
+      const normalized = l.trim().toLowerCase();
+      if (seen.has(normalized)) return false;
+      seen.add(normalized);
+      return true;
+    });
+  }, [urls]);
+
+  const handleUrlsChange = (value: string) => {
+    const lines = value.split("\n");
+    const seen = new Set<string>();
+    const deduped: string[] = [];
+    let removedCount = 0;
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) { deduped.push(line); continue; }
+      const normalized = trimmed.toLowerCase();
+      if (seen.has(normalized)) { removedCount++; continue; }
+      seen.add(normalized);
+      deduped.push(line);
+    }
+    setUrls(deduped.join("\n"));
+    if (removedCount > 0) {
+      toast.warning(`${removedCount} URL(s) duplicada(s) removida(s)`);
+    }
+  };
 
   const handleSave = async () => {
     if (urlLines.length === 0) { toast.error("Adicione ao menos uma URL"); return; }
@@ -491,7 +520,7 @@ function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => voi
               </div>
               <Badge variant="outline" className="border-green-500/50 text-green-400 text-xs">Aceita múltiplas linhas</Badge>
             </div>
-            <Textarea value={urls} onChange={e => setUrls(e.target.value)} placeholder="https://business.facebook.com/overview..." className="min-h-[280px] bg-zinc-900/50 border-zinc-700 text-white font-mono text-sm resize-none" />
+            <Textarea value={urls} onChange={e => handleUrlsChange(e.target.value)} placeholder="https://business.facebook.com/overview..." className="min-h-[280px] bg-zinc-900/50 border-zinc-700 text-white font-mono text-sm resize-none" />
             <div className="flex items-center justify-between text-sm">
               <span className="text-zinc-500">Pressione Enter para nova linha.</span>
               <span className="text-primary font-medium">Total: {urlLines.length}</span>
