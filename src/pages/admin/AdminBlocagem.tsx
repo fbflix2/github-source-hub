@@ -425,14 +425,7 @@ function PaginaForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
   }, []);
 
   const lines = useMemo(() => {
-    const l = nomes.split("\n").filter(l => l.trim());
-    const seen = new Set<string>();
-    return l.filter(l => {
-      const n = l.trim().toLowerCase();
-      if (seen.has(n)) return false;
-      seen.add(n);
-      return true;
-    });
+    return nomes.split("\n").filter(l => l.trim());
   }, [nomes]);
 
   const handleSave = async () => {
