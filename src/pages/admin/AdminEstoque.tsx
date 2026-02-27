@@ -6,7 +6,6 @@ import {
   Trash2, X
 } from "lucide-react";
 import { toast } from "sonner";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -68,7 +67,7 @@ export default function AdminEstoque() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [bulkStatusChanging, setBulkStatusChanging] = useState(false);
 
-  const [chartStats, setChartStats] = useState<{ name: string; value: number; fill: string }[]>([]);
+  
 
   const fetchItems = async () => {
     // Fetch pending items (not sold, not linked to product)
@@ -81,19 +80,6 @@ export default function AdminEstoque() {
       .order("created_at", { ascending: false });
     setItems(data ?? []);
 
-    // Fetch all items for chart stats
-    const { data: allData } = await supabase
-      .from("stock_items")
-      .select("status, type");
-    const all = allData ?? [];
-    const countByStatus = (s: string) => all.filter((i: any) => i.status === s).length;
-    setChartStats([
-      { name: "Aguardando", value: countByStatus("aguardando"), fill: "hsl(45, 93%, 47%)" },
-      { name: "Revisado", value: countByStatus("revisado"), fill: "hsl(142, 71%, 45%)" },
-      { name: "Vendido", value: countByStatus("vendido"), fill: "hsl(217, 91%, 60%)" },
-      { name: "Bloqueado", value: countByStatus("bloqueado"), fill: "hsl(0, 84%, 60%)" },
-      { name: "Erro", value: countByStatus("erro"), fill: "hsl(0, 72%, 51%)" },
-    ].filter(s => s.value > 0));
 
     setLoading(false);
   };
@@ -294,44 +280,8 @@ export default function AdminEstoque() {
         ))}
       </div>
 
-      {/* Chart - Balanço de Status */}
-      {chartStats.length > 0 && (
-        <div className="glass-panel rounded-xl p-6 border border-border/30">
-          <h2 className="text-lg font-semibold text-foreground mb-4">Balanço do Estoque por Status</h2>
-          <div className="h-[280px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={chartStats}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={70}
-                  outerRadius={110}
-                  paddingAngle={4}
-                  dataKey="value"
-                  stroke="none"
-                >
-                  {chartStats.map((entry, index) => (
-                    <Cell key={index} fill={entry.fill} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px", color: "hsl(var(--foreground))" }}
-                  formatter={(value: number, name: string) => [`${value} itens`, name]}
-                />
-                <Legend
-                  verticalAlign="middle"
-                  align="right"
-                  layout="vertical"
-                  iconType="circle"
-                  iconSize={10}
-                  formatter={(value: string) => <span className="text-sm text-muted-foreground">{value}</span>}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      )}
+
+
 
       <div className="glass-panel rounded-xl p-4 space-y-3">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
