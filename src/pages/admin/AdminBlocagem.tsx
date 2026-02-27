@@ -406,6 +406,185 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
   );
 }
 
+// ─── Página Form ───
+function PaginaForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => void; onSaved: () => void }) {
+  const [nomePagina, setNomePagina] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [productDefaults, setProductDefaults] = useState<any[]>([]);
+  const [productImages, setProductImages] = useState<{ id: string; name: string; url: string }[]>([]);
+  const [showImagePicker, setShowImagePicker] = useState(false);
+  const [formData, setFormData] = useState({
+    descricao: "", preco: "", categoryId: "", tags: [] as string[], nomeProduto: "", fotoUrl: "",
+  });
+
+  useEffect(() => {
+    supabase.from("product_categories").select("id, name").then(({ data }) => setCategories(data ?? []));
+    supabase.from("product_images").select("id, name, url").eq("category", "pagina").order("created_at", { ascending: false }).then(({ data }) => setProductImages(data ?? []));
+    supabase.from("product_defaults").select("id, name, tags, price, default_image, description").order("name").then(({ data }) => setProductDefaults(data ?? []));
+  }, []);
+
+  const handleSave = async () => {
+    if (!nomePagina.trim()) { toast.error("Preencha o nome da página"); return; }
+    setSaving(true);
+    const { error } = await supabase.from("stock_items").insert({
+      name: nomePagina.trim(),
+      type: "pagina",
+      status: "aguardando",
+      folder: folder.id,
+      data: {
+        nomePagina: nomePagina.trim(),
+        descricao: formData.descricao || undefined,
+        preco: formData.preco ? parseFloat(formData.preco) : undefined,
+        categoryId: formData.categoryId || undefined,
+        tags: formData.tags.length > 0 ? formData.tags : undefined,
+        foto_url: formData.fotoUrl || undefined,
+        nomeProduto: formData.nomeProduto || undefined,
+      },
+    });
+    setSaving(false);
+    if (error) { toast.error("Erro: " + error.message); return; }
+    toast.success("Página adicionada à pasta! Formulário pronto para novo cadastro.");
+    setNomePagina("");
+    setFormData({ descricao: "", preco: "", categoryId: "", tags: [], nomeProduto: "", fotoUrl: "" });
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-2 text-sm">
+        <button onClick={onBack} className="flex items-center gap-1.5 text-zinc-400 hover:text-white transition-colors">
+          <ArrowLeft className="h-4 w-4" />Voltar
+        </button>
+        <span className="text-zinc-600">/</span>
+        <span className="text-primary font-medium">Blocagem de Página</span>
+      </div>
+
+      <div className="glass-panel rounded-xl p-4 md:p-5 max-w-2xl mx-auto">
+        <div className="flex items-center gap-2 pb-3 border-b border-white/10 mb-4">
+          <Flag className="h-4 w-4 text-purple-400" />
+          <h2 className="text-sm font-bold text-white">Nova Página</h2>
+          <span className="ml-auto text-xs text-zinc-500">Pasta: {folder.name}</span>
+        </div>
+
+        <form className="flex flex-col gap-4" onSubmit={e => { e.preventDefault(); handleSave(); }}>
+          {/* Nome da Página */}
+          <div className="flex flex-col gap-1 group">
+            <label className="text-xs font-medium text-zinc-400 group-focus-within:text-white transition-colors">Nome da Página</label>
+            <div className="relative">
+              <Flag className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+              <Input
+                type="text"
+                placeholder="Ex: Página de Anúncios Premium"
+                value={nomePagina}
+                onChange={e => setNomePagina(e.target.value)}
+                className="pl-10 bg-black/30 border-white/5 text-white placeholder:text-zinc-600"
+                autoFocus
+              />
+            </div>
+          </div>
+
+          {/* Product config */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-zinc-400">Nome do Produto</label>
+              <Select value={formData.nomeProduto} onValueChange={v => {
+                const def = productDefaults.find((d: any) => d.name === v);
+                setFormData({
+                  ...formData,
+                  nomeProduto: v,
+                  tags: def?.tags ?? [],
+                  preco: def?.price ? String(def.price) : formData.preco,
+                  descricao: def?.description || formData.descricao,
+                  fotoUrl: def?.default_image || formData.fotoUrl,
+                });
+              }}>
+                <SelectTrigger className="bg-black/30 border-white/5 text-white text-xs"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                <SelectContent>
+                  {productDefaults.filter((d: any) => !d.name.toLowerCase().includes('proxy')).map((d: any) => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><DollarSign className="h-3 w-3" />Preço (R$)</label>
+              <Input type="number" step="0.01" min="0" placeholder="0.00" value={formData.preco} onChange={e => setFormData({ ...formData, preco: e.target.value })} className="bg-black/30 border-white/5 text-white" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><FolderOpen className="h-3 w-3" />Categoria</label>
+              <Select value={formData.categoryId} onValueChange={v => setFormData({ ...formData, categoryId: v })}>
+                <SelectTrigger className="bg-black/30 border-white/5 text-white"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                <SelectContent>
+                  {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {formData.tags.length > 0 && (
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><Tag className="h-3 w-3" />Tags</label>
+              <div className="flex flex-wrap gap-1">
+                {formData.tags.map(tag => (
+                  <Badge key={tag} className="bg-primary/20 text-primary text-xs">{tag}</Badge>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Image Picker */}
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><ImageIcon className="h-3 w-3" />Foto do Produto</label>
+            {formData.fotoUrl ? (
+              <div className="flex items-center gap-2">
+                <img src={formData.fotoUrl} alt="Produto" className="w-12 h-12 rounded-lg object-cover border border-white/10" />
+                <Button type="button" variant="ghost" size="sm" className="text-xs text-zinc-400" onClick={() => setFormData({ ...formData, fotoUrl: "" })}>
+                  <X className="h-3 w-3 mr-1" /> Remover
+                </Button>
+              </div>
+            ) : (
+              <Button type="button" variant="outline" size="sm" className="w-full bg-black/30 border-white/5 text-zinc-400 hover:text-white" onClick={() => setShowImagePicker(true)}>
+                <ImageIcon className="h-3.5 w-3.5 mr-2" /> Selecionar imagem
+              </Button>
+            )}
+            {showImagePicker && (
+              <div className="mt-2 p-3 rounded-lg bg-black/40 border border-white/10 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-zinc-400">Imagens cadastradas</span>
+                  <button type="button" onClick={() => setShowImagePicker(false)} className="text-zinc-500 hover:text-white"><X className="h-3.5 w-3.5" /></button>
+                </div>
+                {productImages.length === 0 ? (
+                  <p className="text-xs text-zinc-500 text-center py-4">Nenhuma imagem cadastrada para páginas.</p>
+                ) : (
+                  <div className="grid grid-cols-4 gap-2 max-h-40 overflow-y-auto">
+                    {productImages.map(img => (
+                      <button key={img.id} type="button" onClick={() => { setFormData({ ...formData, fotoUrl: img.url }); setShowImagePicker(false); }} className="aspect-square rounded-lg overflow-hidden border border-white/10 hover:border-primary/50 transition-all">
+                        <img src={img.url} alt={img.name} className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Descrição */}
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><FileText className="h-3 w-3" />Descrição</label>
+            <Textarea placeholder="Notas sobre a página..." value={formData.descricao} onChange={e => setFormData({ ...formData, descricao: e.target.value })} className="h-20 bg-black/30 border-white/5 text-white resize-none" />
+          </div>
+
+          <div className="flex items-center justify-between pt-3 border-t border-white/10">
+            <Button type="button" variant="ghost" onClick={onBack} className="text-zinc-400 hover:text-white hover:bg-white/5">Voltar</Button>
+            <Button type="submit" disabled={saving} className="bg-primary hover:bg-primary/90 text-white gap-2">
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              Adicionar à Pasta
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // ─── BM Form ───
 function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => void; onSaved: () => void }) {
   const [urls, setUrls] = useState("");
@@ -780,6 +959,15 @@ export default function AdminBlocagem() {
     return (
       <div className="py-6">
         <PerfilForm folder={selectedFolder} onBack={() => setSelectedType(null)} onSaved={() => { setSelectedType(null); fetchFolders(); }} />
+      </div>
+    );
+  }
+
+  // Show Página form
+  if (selectedType === "pagina" && selectedFolder) {
+    return (
+      <div className="py-6">
+        <PaginaForm folder={selectedFolder} onBack={() => setSelectedType(null)} onSaved={() => { setSelectedType(null); fetchFolders(); }} />
       </div>
     );
   }
