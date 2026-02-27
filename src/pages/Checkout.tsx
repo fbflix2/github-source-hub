@@ -200,7 +200,7 @@ export default function Checkout() {
     const checkFirstPurchase = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const { count } = await supabase.from("orders").select("id", { count: "exact", head: true }).eq("user_id", user.id).eq("status", "completed");
+      const { count } = await supabase.from("orders").select("id", { count: "exact", head: true }).eq("user_id", user.id).in("status", ["completed", "paid"]);
       setIsFirstPurchase((count ?? 0) === 0);
     };
     checkFirstPurchase();
