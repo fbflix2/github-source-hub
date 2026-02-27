@@ -31,6 +31,7 @@ export function PageRequestNotification() {
   const [confirming, setConfirming] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [clientEmails, setClientEmails] = useState<Record<string, string>>({});
+  const [pageNames, setPageNames] = useState<Record<string, string>>({});
   const { toast } = useToast();
 
   const fetchRequests = useCallback(async () => {
@@ -120,6 +121,11 @@ export function PageRequestNotification() {
   }, [selectedRequest?.user_id]);
 
   const handleConfirm = async (req: PageRequest) => {
+    const pageName = pageNames[req.id]?.trim();
+    if (!pageName) {
+      toast({ title: "Informe o nome da página enviada", variant: "destructive" });
+      return;
+    }
     setConfirming(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -132,7 +138,7 @@ export function PageRequestNotification() {
         })
         .eq("id", req.id);
 
-      // Update delivery_data on order_item to mark as confirmed
+      // Update delivery_data on order_item with page name
       const { data: item } = await supabase
         .from("order_items")
         .select("delivery_data")
@@ -146,12 +152,13 @@ export function PageRequestNotification() {
             delivery_data: {
               ...(item.delivery_data as any || {}),
               pageConfirmedAt: new Date().toISOString(),
+              pageName: pageName,
             },
           })
           .eq("id", req.order_item_id);
       }
 
-      toast({ title: "Página confirmada!", description: `Pedido ${req.order_code} marcado como enviado.` });
+      toast({ title: "Página confirmada!", description: `Pedido ${req.order_code} — Página: ${pageName}` });
       setRequests(prev => prev.filter(r => r.id !== req.id));
       setSelectedRequest(null);
       setOpen(false);
@@ -268,10 +275,25 @@ export function PageRequestNotification() {
                     ))}
                   </div>
 
+                  {/* Page Name Input */}
+                  <div className="mt-2 pt-2 border-t border-border">
+                    <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-1 block">
+                      Nome da Página Enviada *
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Ex: Página Loja do João"
+                      value={pageNames[req.id] || ""}
+                      onChange={(e) => setPageNames(prev => ({ ...prev, [req.id]: e.target.value }))}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-full px-3 py-2 rounded-md bg-muted/50 border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                    />
+                  </div>
+
                   {/* Confirm Button */}
                   <Button
                     onClick={(e) => { e.stopPropagation(); handleConfirm(req); }}
-                    disabled={confirming}
+                    disabled={confirming || !pageNames[req.id]?.trim()}
                     className="w-full mt-3"
                     size="sm"
                   >
