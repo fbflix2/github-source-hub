@@ -321,7 +321,7 @@ export default function ProxyFinancialOverview() {
         </CardContent>
       </Card>
 
-      {/* Product Breakdown */}
+      {/* Product Breakdown - from active subscriptions (exploded) */}
       <Card className="border-border/40 bg-card/60 backdrop-blur-sm overflow-hidden">
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-semibold text-foreground">Vendas por Produto</CardTitle>
@@ -338,17 +338,27 @@ export default function ProxyFinancialOverview() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {salesLoading ? (
-                  Array.from({ length: 3 }).map((_, i) => (
-                    <TableRow key={i} className="border-border/20">
-                      {Array.from({ length: 4 }).map((_, j) => (<TableCell key={j}><Skeleton className="h-4 w-20" /></TableCell>))}
-                    </TableRow>
-                  ))
-                ) : !salesData?.productBreakdown?.length ? (
-                  <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">Nenhuma venda de proxy no período</TableCell></TableRow>
-                ) : (
-                  salesData.productBreakdown.map((item, i) => {
-                    const pct = salesData.totalRevenue > 0 ? (item.revenue / salesData.totalRevenue) * 100 : 0;
+                {(() => {
+                  // Build product breakdown from subscriptions (exploded)
+                  const breakdown = new Map<string, { name: string; qty: number; revenue: number }>();
+                  for (const sub of proxyRevenue.subsWithPrices) {
+                    const raw = sub.raw_data || {};
+                    const productName = raw.product?.name || sub.name || "Proxy";
+                    const existing = breakdown.get(productName) || { name: productName, qty: 0, revenue: 0 };
+                    existing.qty += sub.proxyCount;
+                    existing.revenue += sub.price * sub.proxyCount;
+                    breakdown.set(productName, existing);
+                  }
+                  const items = Array.from(breakdown.values()).sort((a, b) => b.revenue - a.revenue);
+
+                  if (!items.length) {
+                    return (
+                      <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">Nenhuma venda de proxy ativa</TableCell></TableRow>
+                    );
+                  }
+
+                  return items.map((item, i) => {
+                    const pct = proxyRevenue.totalRevenue > 0 ? (item.revenue / proxyRevenue.totalRevenue) * 100 : 0;
                     return (
                       <TableRow key={i} className="border-border/20">
                         <TableCell className="font-medium text-foreground text-sm">{item.name}</TableCell>
@@ -359,8 +369,8 @@ export default function ProxyFinancialOverview() {
                         </TableCell>
                       </TableRow>
                     );
-                  })
-                )}
+                  });
+                })()}
               </TableBody>
             </Table>
           </div>
