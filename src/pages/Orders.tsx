@@ -261,42 +261,49 @@ export default function Orders() {
                     <span className="material-symbols-outlined text-primary text-[16px]">shopping_bag</span> Itens do Pedido
                   </h4>
 
-                  <div className="flex flex-col gap-2">
-                    {selectedOrder.items.map((item) => (
-                      <div
-                        key={item.id}
-                        className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-border hover:border-primary/20 transition-colors"
-                      >
-                        <div className="w-10 h-10 rounded-lg shrink-0 flex items-center justify-center border bg-blue-500/10 border-blue-500/20">
-                          <span className="material-symbols-outlined text-lg text-blue-400">inventory_2</span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <h5 className="text-foreground font-bold text-sm truncate">{item.name}</h5>
-                            {item.isBlocked && (
-                              <span className="flex items-center gap-0.5 px-1 py-0.5 rounded bg-destructive/20 text-destructive border border-destructive/30 text-[8px] font-bold uppercase">
-                                <span className="material-symbols-outlined text-[9px]">block</span>
-                                Bloqueado
-                              </span>
-                            )}
+                    <div className="flex flex-col gap-2">
+                      {selectedOrder.items.flatMap((item) => {
+                        // Expand items with quantity > 1 into individual rows
+                        const count = item.quantity > 1 ? item.quantity : 1;
+                        return Array.from({ length: count }, (_, idx) => (
+                          <div
+                            key={`${item.id}-${idx}`}
+                            className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border border-border hover:border-primary/20 transition-colors"
+                          >
+                            <div className="w-10 h-10 rounded-lg shrink-0 flex items-center justify-center border bg-blue-500/10 border-blue-500/20">
+                              <span className="material-symbols-outlined text-lg text-blue-400">inventory_2</span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <h5 className="text-foreground font-bold text-sm truncate">{item.name}</h5>
+                                {count > 1 && (
+                                  <span className="text-[10px] text-muted-foreground font-mono">#{idx + 1}</span>
+                                )}
+                                {item.isBlocked && (
+                                  <span className="flex items-center gap-0.5 px-1 py-0.5 rounded bg-destructive/20 text-destructive border border-destructive/30 text-[8px] font-bold uppercase">
+                                    <span className="material-symbols-outlined text-[9px]">block</span>
+                                    Bloqueado
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-muted-foreground text-xs">{item.description || `Unidade ${idx + 1} de ${count}`}</p>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="text-foreground font-bold text-sm">R$ {item.price.toFixed(2).replace(".", ",")}</span>
+                              {selectedOrder.status === "completed" && (
+                                <button
+                                  onClick={() => navigate(`/item-details/${encodeURIComponent(selectedOrder.code)}/${item.id}`)}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white text-black font-semibold hover:bg-white/90 transition-colors text-xs shadow-sm"
+                                >
+                                  <span className="material-symbols-outlined text-[14px]">visibility</span>
+                                  Detalhes
+                                </button>
+                              )}
+                            </div>
                           </div>
-                          <p className="text-muted-foreground text-xs">{item.description || `Qtd: ${item.quantity}`}</p>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className="text-foreground font-bold text-sm">R$ {(item.price * item.quantity).toFixed(2).replace(".", ",")}</span>
-                          {selectedOrder.status === "completed" && (
-                            <button
-                              onClick={() => navigate(`/item-details/${encodeURIComponent(selectedOrder.code)}/${item.id}`)}
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white text-black font-semibold hover:bg-white/90 transition-colors text-xs shadow-sm"
-                            >
-                              <span className="material-symbols-outlined text-[14px]">visibility</span>
-                              Detalhes
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                        ));
+                      })}
+                    </div>
 
                   {/* Payment & Summary */}
                   <div className="flex flex-col md:flex-row gap-4 pt-3 border-t border-border">
