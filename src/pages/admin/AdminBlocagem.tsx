@@ -4,7 +4,7 @@ import {
   Building2, CircleUser, PackageOpen, FolderOpen, FolderPlus, Pencil,
   ChevronRight, ChevronDown, Shield, ArrowLeft, Link, FileText, Info,
   AlertTriangle, Save, Copy, Hash, Mail, AtSign, KeyRound, Clock,
-  BadgeCheck, Cookie, Eye, EyeOff, Plus, X, Loader2, Trash2, DollarSign, Tag
+  BadgeCheck, Cookie, Eye, EyeOff, Plus, X, Loader2, Trash2, DollarSign, Tag, Flag
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -39,6 +39,7 @@ interface StockItem {
 const itemTypes = [
   { id: "bm", icon: Building2, title: "BM", subtitle: "BUSINESS MANAGER" },
   { id: "perfil", icon: CircleUser, title: "Perfil", subtitle: "CONTAS DE USUÁRIO" },
+  { id: "pagina", icon: Flag, title: "Página", subtitle: "PÁGINAS DO FACEBOOK" },
   { id: "combo", icon: PackageOpen, title: "Combo ou Kit", subtitle: "PACOTE DE PRODUTOS" },
 ];
 
