@@ -303,7 +303,7 @@ export default function Suporte() {
                   >
                     <option value="low">Baixa (Dúvidas gerais)</option>
                     <option value="medium">Média (Problemas de uso)</option>
-                    <option value="high">Alta (Sistema inoperante)</option>
+                    <option value="high">Alta (Item veio bloqueado)</option>
                   </select>
                   <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground size-4" />
                 </div>
