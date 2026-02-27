@@ -61,6 +61,7 @@ import AdminAnuncios from "./pages/admin/AdminAnuncios";
 import AdminCentralProxy from "./pages/admin/AdminCentralProxy";
 import AdminTeamChat from "./pages/admin/AdminTeamChat";
 import AdminBlocoPadrao from "./pages/admin/AdminBlocoPadrao";
+import AdminReciclagem from "./pages/admin/AdminReciclagem";
 import { AdminLayout } from "./components/admin/AdminLayout";
 
 // Layout
@@ -206,6 +207,7 @@ const App = () => {
                   <Route path="produtos" element={<AdminProducts />} />
                   <Route path="estoque" element={<AdminEstoque />} />
                   <Route path="blocagem" element={<AdminBlocagem />} />
+                  <Route path="reciclagem" element={<AdminReciclagem />} />
                   <Route path="suporte" element={<AdminSuporte />} />
                   <Route path="auditoria" element={<AdminAuditoria />} />
                   <Route path="auditoria/nova-compra" element={<AdminNovaCompra />} />
