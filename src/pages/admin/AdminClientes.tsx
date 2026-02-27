@@ -10,6 +10,7 @@ import ResetPasswordModal from "@/components/admin/ResetPasswordModal";
 import AdjustBalanceModal from "@/components/admin/AdjustBalanceModal";
 import ImportClientsModal from "@/components/admin/ImportClientsModal";
 import ExportClientsModal from "@/components/admin/ExportClientsModal";
+import NewClientModal from "@/components/admin/NewClientModal";
 
 type ClientStatus = "active" | "inactive" | "blocked";
 
@@ -43,6 +44,7 @@ export default function AdminClientes() {
   const [balanceClient, setBalanceClient] = useState<Client | null>(null);
   const [showImport, setShowImport] = useState(false);
   const [showExport, setShowExport] = useState(false);
+  const [showNewClient, setShowNewClient] = useState(false);
 
   // Stats
   const [totalClients, setTotalClients] = useState(0);
@@ -245,7 +247,7 @@ export default function AdminClientes() {
               <Download className="w-4 h-4" />
               Exportar
             </Button>
-            <Button className="bg-primary hover:bg-primary/80 text-white px-6 py-3 h-auto rounded-xl font-bold flex items-center gap-2 shadow-[0_0_20px_rgba(249,6,6,0.4)] transition-all hover:scale-105">
+            <Button onClick={() => setShowNewClient(true)} className="bg-primary hover:bg-primary/80 text-white px-6 py-3 h-auto rounded-xl font-bold flex items-center gap-2 shadow-[0_0_20px_rgba(249,6,6,0.4)] transition-all hover:scale-105">
               <UserPlus className="w-5 h-5" />
               Novo Cliente
             </Button>
@@ -515,6 +517,11 @@ export default function AdminClientes() {
       <ExportClientsModal
         open={showExport}
         onClose={() => setShowExport(false)}
+      />
+      <NewClientModal
+        open={showNewClient}
+        onClose={() => setShowNewClient(false)}
+        onCreated={fetchClients}
       />
     </div>
   );
