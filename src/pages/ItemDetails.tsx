@@ -105,6 +105,18 @@ export default function ItemDetails() {
         }
       }
 
+      // Double-check page_requests table as fallback
+      if (!pageRequested) {
+        const { data: existingReq } = await supabase
+          .from("page_requests")
+          .select("id")
+          .eq("order_item_id", itemId)
+          .limit(1);
+        if (existingReq && existingReq.length > 0) {
+          setPageRequested(true);
+        }
+      }
+
       // Fetch linked stock_item
       const { data: stockItem } = await supabase
         .from("stock_items")
