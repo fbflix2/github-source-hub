@@ -134,7 +134,8 @@ export default function AdminPagamentos() {
   }, []);
 
   // Stats
-  const totalProcessed = payments
+  const totalAll = payments.reduce((sum, p) => sum + p.amount, 0);
+  const totalReceived = payments
     .filter(p => p.status === "completed")
     .reduce((sum, p) => sum + p.amount, 0);
   const approvedCount = payments.filter(p => p.status === "completed").length;
@@ -192,12 +193,20 @@ export default function AdminPagamentos() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
         <div className="glass-panel relative overflow-hidden rounded-2xl p-6 transition-transform hover:-translate-y-1">
           <div className="absolute -right-4 -top-4 rounded-full bg-primary/10 p-8 blur-2xl"></div>
           <div className="relative z-10 flex flex-col gap-1">
             <p className="text-sm font-medium text-gray-400">Total Processado</p>
-            <h2 className="text-3xl font-bold text-white">{formatCurrency(totalProcessed)}</h2>
+            <h2 className="text-3xl font-bold text-white">{formatCurrency(totalAll)}</h2>
+          </div>
+        </div>
+
+        <div className="glass-panel relative overflow-hidden rounded-2xl p-6 transition-transform hover:-translate-y-1">
+          <div className="absolute -right-4 -top-4 rounded-full bg-emerald-500/10 p-8 blur-2xl"></div>
+          <div className="relative z-10 flex flex-col gap-1">
+            <p className="text-sm font-medium text-gray-400">Total Recebido</p>
+            <h2 className="text-3xl font-bold text-emerald-400">{formatCurrency(totalReceived)}</h2>
           </div>
         </div>
 
