@@ -19,18 +19,34 @@ export function AdminHeader() {
 
   useEffect(() => {
     const loadUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          setUserName("Usuário");
+          return;
+        }
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("full_name, avatar_url")
-        .eq("user_id", user.id)
-        .maybeSingle();
+        const fallbackName = user.user_metadata?.full_name || user.email?.split("@")[0] || "Usuário";
+        const fallbackAvatar = user.user_metadata?.avatar_url || null;
 
-      const name = profile?.full_name || user.user_metadata?.full_name || user.email?.split("@")[0] || "Usuário";
-      setUserName(name);
-      setAvatarUrl(profile?.avatar_url || user.user_metadata?.avatar_url || null);
+        // Set fallback immediately so it never stays on "Carregando..."
+        setUserName(fallbackName);
+        setAvatarUrl(fallbackAvatar);
+
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name, avatar_url")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (profile) {
+          setUserName(profile.full_name || fallbackName);
+          setAvatarUrl(profile.avatar_url || fallbackAvatar);
+        }
+      } catch (err) {
+        console.error("Error loading user profile:", err);
+        setUserName("Usuário");
+      }
     };
     loadUser();
   }, []);
