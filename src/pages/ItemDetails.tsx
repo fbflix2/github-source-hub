@@ -55,6 +55,7 @@ export default function ItemDetails() {
   const [orderItem, setOrderItem] = useState<any>(null);
   const [stockData, setStockData] = useState<StockData>({});
   const [product, setProduct] = useState<any>(null);
+  const [bmLinks, setBmLinks] = useState<string[]>([]);
 
   // Countdown from order created_at + 24h
   const [countdown, setCountdown] = useState({ hours: 0, minutes: 0, seconds: 0 });
@@ -118,7 +119,30 @@ export default function ItemDetails() {
           .select("*")
           .eq("id", itemData.product_id)
           .single();
-        if (prod) setProduct(prod);
+        if (prod) {
+          setProduct(prod);
+
+          // If product is BM type, fetch all BM links for this order
+          if (prod.icon_type === "bm") {
+            const { data: allOrderItems } = await supabase
+              .from("order_items")
+              .select("id")
+              .eq("order_id", orderData.id);
+
+            if (allOrderItems?.length) {
+              const itemIds = allOrderItems.map((oi: any) => oi.id);
+              const { data: bmStockItems } = await supabase
+                .from("stock_items")
+                .select("identification_link")
+                .in("order_item_id", itemIds)
+                .eq("type", "bm");
+
+              if (bmStockItems?.length) {
+                setBmLinks(bmStockItems.map((s: any) => s.identification_link).filter(Boolean));
+              }
+            }
+          }
+        }
       }
 
       // Calculate countdown (24h from order creation)
@@ -208,6 +232,18 @@ export default function ItemDetails() {
   const token2fa = stockData.token2fa || "—";
   const descricao = stockData.descricao || product?.description || "";
   const tags = product?.tags || [];
+  const isBM = product?.icon_type === "bm";
+
+  const downloadBmBloco = () => {
+    const content = bmLinks.map((link, i) => `BM #${i + 1}: ${link}`).join("\n");
+    const blob = new Blob([content], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${order?.code || "bm-links"}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const downloadCookies = () => {
     if (!stockData.cookies) return;
@@ -413,56 +449,91 @@ export default function ItemDetails() {
 
               {/* Access Data */}
               <div className="bg-muted/30 rounded-lg p-3 border border-border">
-                <h3 className="text-[10px] font-bold text-foreground mb-2 uppercase tracking-wider">Dados de Acesso</h3>
-                <div className="space-y-2">
-                  <div>
-                    <label className="text-[10px] text-text-secondary mb-0.5 block">Login / Email</label>
-                    <div className="flex items-center gap-1">
-                      <code className="flex-1 bg-background/50 px-2 py-1.5 rounded border border-border text-xs font-mono text-foreground truncate">{email}</code>
-                      <button onClick={() => copyToClipboard(email, 'email')} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
-                        <span className="material-symbols-outlined text-[14px]">{copied === 'email' ? 'check' : 'content_copy'}</span>
+                {isBM ? (
+                  <>
+                    <h3 className="text-[10px] font-bold text-foreground mb-2 uppercase tracking-wider">Links das BMs</h3>
+                    {bmLinks.length === 0 ? (
+                      <p className="text-text-secondary text-xs">Nenhum link disponível ainda.</p>
+                    ) : bmLinks.length <= 3 ? (
+                      <div className="space-y-2">
+                        {bmLinks.map((link, i) => (
+                          <div key={i}>
+                            <label className="text-[10px] text-text-secondary mb-0.5 block">BM #{i + 1}</label>
+                            <div className="flex items-center gap-1">
+                              <code className="flex-1 bg-background/50 px-2 py-1.5 rounded border border-border text-xs font-mono text-primary truncate">
+                                {link}
+                              </code>
+                              <button onClick={() => copyToClipboard(link, `bm-${i}`)} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
+                                <span className="material-symbols-outlined text-[14px]">{copied === `bm-${i}` ? 'check' : 'content_copy'}</span>
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <p className="text-text-secondary text-xs">{bmLinks.length} BMs neste pedido</p>
+                        <button onClick={downloadBmBloco} className="w-full py-2 bg-muted/50 border border-border text-foreground font-semibold rounded-lg hover:bg-muted transition-all flex items-center justify-center gap-1.5 text-xs">
+                          <span className="material-symbols-outlined text-[14px]">download</span>
+                          Baixar todas as BMs ({bmLinks.length})
+                        </button>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <h3 className="text-[10px] font-bold text-foreground mb-2 uppercase tracking-wider">Dados de Acesso</h3>
+                    <div className="space-y-2">
+                      <div>
+                        <label className="text-[10px] text-text-secondary mb-0.5 block">Login / Email</label>
+                        <div className="flex items-center gap-1">
+                          <code className="flex-1 bg-background/50 px-2 py-1.5 rounded border border-border text-xs font-mono text-foreground truncate">{email}</code>
+                          <button onClick={() => copyToClipboard(email, 'email')} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
+                            <span className="material-symbols-outlined text-[14px]">{copied === 'email' ? 'check' : 'content_copy'}</span>
+                          </button>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-text-secondary mb-0.5 block">Senha</label>
+                        <div className="flex items-center gap-1">
+                          <code className="flex-1 bg-background/50 px-2 py-1.5 rounded border border-border text-xs font-mono text-foreground">{showPassword ? senha : "•••••••••"}</code>
+                          <button onClick={() => setShowPassword(!showPassword)} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
+                            <span className="material-symbols-outlined text-[14px]">{showPassword ? 'visibility_off' : 'visibility'}</span>
+                          </button>
+                          <button onClick={() => copyToClipboard(senha, 'password')} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
+                            <span className="material-symbols-outlined text-[14px]">{copied === 'password' ? 'check' : 'content_copy'}</span>
+                          </button>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-text-secondary mb-0.5 block">Código 2FA</label>
+                        <div className="flex items-center gap-1">
+                          <code className="flex-1 bg-background/50 px-2 py-1.5 rounded border border-border text-xs font-mono text-foreground">
+                            {showToken ? token2fa : "•••••••••"}
+                          </code>
+                          <button onClick={() => requireDisclaimer(() => setShowToken(!showToken))} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
+                            <span className="material-symbols-outlined text-[14px]">{showToken ? 'visibility_off' : 'visibility'}</span>
+                          </button>
+                          <button onClick={() => requireDisclaimer(() => copyToClipboard(token2fa, '2fa'))} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
+                            <span className="material-symbols-outlined text-[14px]">{copied === '2fa' ? 'check' : 'content_copy'}</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-2 pt-2 border-t border-border flex gap-2">
+                      {stockData.cookies && (
+                        <button onClick={() => requireDisclaimer(() => { navigator.clipboard.writeText(stockData.cookies!); setCopied('cookies'); setTimeout(() => setCopied(null), 2000); })} className="flex-1 py-1.5 bg-muted/50 border border-border text-foreground font-semibold rounded-lg hover:bg-muted transition-all flex items-center justify-center gap-1.5 text-xs">
+                          <span className="material-symbols-outlined text-[14px]">{copied === 'cookies' ? 'check' : 'cookie'}</span>
+                          {copied === 'cookies' ? 'Copiado!' : 'Copiar Cookies'}
+                        </button>
+                      )}
+                      <button onClick={() => requireDisclaimer(downloadBloco)} className="flex-1 py-1.5 bg-muted/50 border border-border text-foreground font-semibold rounded-lg hover:bg-muted transition-all flex items-center justify-center gap-1.5 text-xs">
+                        <span className="material-symbols-outlined text-[14px]">download</span>
+                        Baixar Bloco
                       </button>
                     </div>
-                  </div>
-                  <div>
-                    <label className="text-[10px] text-text-secondary mb-0.5 block">Senha</label>
-                    <div className="flex items-center gap-1">
-                      <code className="flex-1 bg-background/50 px-2 py-1.5 rounded border border-border text-xs font-mono text-foreground">{showPassword ? senha : "•••••••••"}</code>
-                      <button onClick={() => setShowPassword(!showPassword)} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
-                        <span className="material-symbols-outlined text-[14px]">{showPassword ? 'visibility_off' : 'visibility'}</span>
-                      </button>
-                      <button onClick={() => copyToClipboard(senha, 'password')} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
-                        <span className="material-symbols-outlined text-[14px]">{copied === 'password' ? 'check' : 'content_copy'}</span>
-                      </button>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-[10px] text-text-secondary mb-0.5 block">Código 2FA</label>
-                    <div className="flex items-center gap-1">
-                      <code className="flex-1 bg-background/50 px-2 py-1.5 rounded border border-border text-xs font-mono text-foreground">
-                        {showToken ? token2fa : "•••••••••"}
-                      </code>
-                      <button onClick={() => requireDisclaimer(() => setShowToken(!showToken))} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
-                        <span className="material-symbols-outlined text-[14px]">{showToken ? 'visibility_off' : 'visibility'}</span>
-                      </button>
-                      <button onClick={() => requireDisclaimer(() => copyToClipboard(token2fa, '2fa'))} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
-                        <span className="material-symbols-outlined text-[14px]">{copied === '2fa' ? 'check' : 'content_copy'}</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              <div className="mt-2 pt-2 border-t border-border flex gap-2">
-                  {stockData.cookies && (
-                    <button onClick={() => requireDisclaimer(() => { navigator.clipboard.writeText(stockData.cookies!); setCopied('cookies'); setTimeout(() => setCopied(null), 2000); })} className="flex-1 py-1.5 bg-muted/50 border border-border text-foreground font-semibold rounded-lg hover:bg-muted transition-all flex items-center justify-center gap-1.5 text-xs">
-                      <span className="material-symbols-outlined text-[14px]">{copied === 'cookies' ? 'check' : 'cookie'}</span>
-                      {copied === 'cookies' ? 'Copiado!' : 'Copiar Cookies'}
-                    </button>
-                  )}
-                  <button onClick={() => requireDisclaimer(downloadBloco)} className="flex-1 py-1.5 bg-muted/50 border border-border text-foreground font-semibold rounded-lg hover:bg-muted transition-all flex items-center justify-center gap-1.5 text-xs">
-                    <span className="material-symbols-outlined text-[14px]">download</span>
-                    Baixar Bloco
-                  </button>
-                </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
