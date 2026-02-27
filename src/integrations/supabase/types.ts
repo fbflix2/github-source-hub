@@ -662,15 +662,20 @@ export type Database = {
         Row: {
           address: string | null
           avatar_url: string | null
+          bairro: string | null
           balance: number
           birth_date: string | null
           cep: string | null
+          cidade: string | null
           cpf: string | null
           created_at: string
           document_url: string | null
+          estado: string | null
           full_name: string | null
           id: string
+          numero: string | null
           phone: string | null
+          rua: string | null
           status: string
           updated_at: string
           user_id: string
@@ -679,15 +684,20 @@ export type Database = {
         Insert: {
           address?: string | null
           avatar_url?: string | null
+          bairro?: string | null
           balance?: number
           birth_date?: string | null
           cep?: string | null
+          cidade?: string | null
           cpf?: string | null
           created_at?: string
           document_url?: string | null
+          estado?: string | null
           full_name?: string | null
           id?: string
+          numero?: string | null
           phone?: string | null
+          rua?: string | null
           status?: string
           updated_at?: string
           user_id: string
@@ -696,15 +706,20 @@ export type Database = {
         Update: {
           address?: string | null
           avatar_url?: string | null
+          bairro?: string | null
           balance?: number
           birth_date?: string | null
           cep?: string | null
+          cidade?: string | null
           cpf?: string | null
           created_at?: string
           document_url?: string | null
+          estado?: string | null
           full_name?: string | null
           id?: string
+          numero?: string | null
           phone?: string | null
+          rua?: string | null
           status?: string
           updated_at?: string
           user_id?: string

@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,6 +13,11 @@ interface ClientData {
   cpf?: string;
   cep?: string;
   address?: string;
+  rua?: string;
+  numero?: string;
+  bairro?: string;
+  cidade?: string;
+  estado?: string;
   birth_date?: string;
 }
 
@@ -51,6 +56,7 @@ Deno.serve(async (req) => {
     }
 
     let success = 0;
+    let updated = 0;
     let failed = 0;
     const errors: string[] = [];
     const credentials: { email: string; password: string; full_name: string }[] = [];
@@ -63,7 +69,21 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Create user with email_confirm: true (account is active immediately)
+        // Build profile fields from spreadsheet data
+        const profileFields: Record<string, string | undefined> = {};
+        if (client.phone) profileFields.phone = client.phone;
+        if (client.cpf) profileFields.cpf = client.cpf;
+        if (client.cep) profileFields.cep = client.cep;
+        if (client.address) profileFields.address = client.address;
+        if (client.rua) profileFields.rua = client.rua;
+        if (client.numero) profileFields.numero = client.numero;
+        if (client.bairro) profileFields.bairro = client.bairro;
+        if (client.cidade) profileFields.cidade = client.cidade;
+        if (client.estado) profileFields.estado = client.estado;
+        if (client.birth_date) profileFields.birth_date = client.birth_date;
+        if (client.full_name) profileFields.full_name = client.full_name;
+
+        // Try to create user first — if exists, we'll get an error
         const password = crypto.randomUUID().slice(0, 8) + "A1!";
         const { data: userData, error: createError } = await supabaseAdmin.auth.admin.createUser({
           email: client.email,
@@ -73,24 +93,65 @@ Deno.serve(async (req) => {
         });
 
         if (createError) {
+          // Check if user already exists
+          const isExisting = createError.message?.includes("already been registered") ||
+            createError.message?.includes("already exists") ||
+            createError.status === 422;
+
+          if (isExisting) {
+            // Find user by email using admin API
+            const { data: userList } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
+            const existingUser = userList?.users?.find(
+              (u) => u.email?.toLowerCase() === client.email.toLowerCase()
+            );
+
+            if (existingUser) {
+              const { data: profile } = await supabaseAdmin
+                .from("profiles")
+                .select("*")
+                .eq("user_id", existingUser.id)
+                .single();
+
+              if (profile) {
+                const updateData: Record<string, string> = {};
+                for (const [key, value] of Object.entries(profileFields)) {
+                  if (value && (!profile[key] || profile[key] === "")) {
+                    updateData[key] = value;
+                  }
+                }
+
+                if (Object.keys(updateData).length > 0) {
+                  const { error: updateError } = await supabaseAdmin
+                    .from("profiles")
+                    .update(updateData)
+                    .eq("user_id", existingUser.id);
+
+                  if (updateError) {
+                    errors.push(`${client.email}: erro ao atualizar perfil: ${updateError.message}`);
+                  }
+                }
+              }
+
+              updated++;
+              success++;
+            } else {
+              failed++;
+              errors.push(`${client.email}: usuário existe mas não foi encontrado`);
+            }
+            continue;
+          }
+
           failed++;
           errors.push(`${client.email}: ${createError.message}`);
           continue;
         }
 
-        // Update profile with extra fields if any exist
-        const profileUpdate: Record<string, string | undefined> = {};
-        if (client.phone) profileUpdate.phone = client.phone;
-        if (client.cpf) profileUpdate.cpf = client.cpf;
-        if (client.cep) profileUpdate.cep = client.cep;
-        if (client.address) profileUpdate.address = client.address;
-        if (client.birth_date) profileUpdate.birth_date = client.birth_date;
-
-        if (Object.keys(profileUpdate).length > 0 && userData.user) {
+        // New user created — update profile with extra fields
+        if (Object.keys(profileFields).length > 0 && userData.user) {
           await new Promise((r) => setTimeout(r, 200));
           const { error: updateError } = await supabaseAdmin
             .from("profiles")
-            .update(profileUpdate)
+            .update(profileFields)
             .eq("user_id", userData.user.id);
 
           if (updateError) {
@@ -111,7 +172,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success, failed, errors, credentials }),
+      JSON.stringify({ success, updated, failed, errors, credentials }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {

@@ -20,6 +20,11 @@ interface ClientRow {
   cpf?: string;
   cep?: string;
   address?: string;
+  rua?: string;
+  numero?: string;
+  bairro?: string;
+  cidade?: string;
+  estado?: string;
   birth_date?: string;
 }
 
@@ -42,6 +47,8 @@ const COLUMN_MAP: Record<string, keyof ClientRow> = {
   cpf: "cpf",
   documento: "cpf",
   doc: "cpf",
+  "numero do documento": "cpf",
+  "número do documento": "cpf",
   cep: "cep",
   zip: "cep",
   "codigo postal": "cep",
@@ -49,6 +56,19 @@ const COLUMN_MAP: Record<string, keyof ClientRow> = {
   endereço: "address",
   address: "address",
   "endereço completo": "address",
+  rua: "rua",
+  street: "rua",
+  numero: "numero",
+  número: "numero",
+  number: "numero",
+  num: "numero",
+  bairro: "bairro",
+  neighborhood: "bairro",
+  cidade: "cidade",
+  city: "cidade",
+  estado: "estado",
+  state: "estado",
+  uf: "estado",
   nascimento: "birth_date",
   birth: "birth_date",
   "data nascimento": "birth_date",
@@ -66,6 +86,11 @@ const FIELD_LABELS: Record<keyof ClientRow, string> = {
   cpf: "CPF",
   cep: "CEP",
   address: "Endereço",
+  rua: "Rua",
+  numero: "Número",
+  bairro: "Bairro",
+  cidade: "Cidade",
+  estado: "Estado",
   birth_date: "Nascimento",
 };
 
@@ -116,7 +141,7 @@ export default function ImportClientsModal({ open, onClose, onImported }: Import
   const [fileName, setFileName] = useState("");
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
-  const [importResult, setImportResult] = useState<{ success: number; failed: number; errors: string[] } | null>(null);
+  const [importResult, setImportResult] = useState<{ success: number; updated: number; failed: number; errors: string[] } | null>(null);
   const [allCredentials, setAllCredentials] = useState<CredentialRow[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -197,6 +222,7 @@ export default function ImportClientsModal({ open, onClose, onImported }: Import
 
     const batchSize = 20;
     let totalSuccess = 0;
+    let totalUpdated = 0;
     let totalFailed = 0;
     const allErrors: string[] = [];
     const creds: CredentialRow[] = [];
@@ -214,6 +240,7 @@ export default function ImportClientsModal({ open, onClose, onImported }: Import
           allErrors.push(`Lote ${Math.floor(i / batchSize) + 1}: ${error.message}`);
         } else {
           totalSuccess += data.success || 0;
+          totalUpdated += data.updated || 0;
           totalFailed += data.failed || 0;
           if (data.errors?.length) allErrors.push(...data.errors);
           if (data.credentials?.length) creds.push(...data.credentials);
@@ -226,7 +253,7 @@ export default function ImportClientsModal({ open, onClose, onImported }: Import
       setProgress({ current: Math.min(i + batchSize, parsedClients.length), total: parsedClients.length });
     }
 
-    setImportResult({ success: totalSuccess, failed: totalFailed, errors: allErrors });
+    setImportResult({ success: totalSuccess, updated: totalUpdated, failed: totalFailed, errors: allErrors });
     setAllCredentials(creds);
     setImporting(false);
     if (totalSuccess > 0) onImported();
@@ -373,7 +400,13 @@ export default function ImportClientsModal({ open, onClose, onImported }: Import
               <CheckCircle className="w-12 h-12 text-green-400" />
               <p className="text-lg font-bold text-white">Importação Concluída</p>
               <div className="flex gap-4 text-sm">
-                <span className="text-green-400 font-semibold">{importResult.success} importados</span>
+                <span className="text-green-400 font-semibold">{importResult.success} processados</span>
+                {importResult.updated > 0 && (
+                  <span className="text-blue-400 font-semibold">{importResult.updated} atualizados</span>
+                )}
+                {allCredentials.length > 0 && (
+                  <span className="text-yellow-400 font-semibold">{allCredentials.length} novos</span>
+                )}
                 {importResult.failed > 0 && (
                   <span className="text-red-400 font-semibold">{importResult.failed} falharam</span>
                 )}
