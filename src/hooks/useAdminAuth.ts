@@ -89,6 +89,7 @@ export function useAdminAuth() {
 
     return () => {
       cancelled = true;
+      checkedRef.current = false;
       subscription.unsubscribe();
     };
   }, [navigate]);
