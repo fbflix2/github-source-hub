@@ -580,6 +580,7 @@ export default function Checkout() {
         const { data: createdOrderItems } = await supabase.from("order_items").select("id, product_id").eq("order_id", orderId);
 
         // Fulfill atomically using DB function
+        let fulfillmentFailed = false;
         if (createdOrderItems) {
           for (const oi of createdOrderItems) {
             if (!oi.product_id) continue;
@@ -591,11 +592,19 @@ export default function Checkout() {
 
             if (rpcError) {
               console.error("Fulfillment error:", rpcError);
+              fulfillmentFailed = true;
             } else if (result && typeof result === 'object' && !Array.isArray(result) && !(result as any).success) {
               console.warn("Fulfillment warning:", (result as any).error);
-              toast.error(`Erro no estoque de "${product?.name}": ${(result as any).error}`);
+              fulfillmentFailed = true;
             }
           }
+        }
+
+        // If fulfillment failed, mark order appropriately so admin can fix
+        if (fulfillmentFailed) {
+          await supabase.from("orders").update({ status: "pending_fulfillment" }).eq("id", orderId);
+          toast.error("Pedido criado mas houve um problema na entrega. Nossa equipe será notificada.");
+          // Still debit balance since payment was made - admin will resolve fulfillment
         }
 
         const newBalance = profile.balance - total;
