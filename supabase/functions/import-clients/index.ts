@@ -93,10 +93,15 @@ Deno.serve(async (req) => {
         });
 
         if (createError) {
-          // Check if user already exists
-          const isExisting = createError.message?.includes("already been registered") ||
-            createError.message?.includes("already exists") ||
-            createError.status === 422;
+          console.log(`createError for ${client.email}:`, JSON.stringify(createError));
+          
+          // Check if user already exists - be broad in detection
+          const errMsg = (createError.message || "").toLowerCase();
+          const isExisting = errMsg.includes("already") ||
+            errMsg.includes("registered") ||
+            errMsg.includes("exists") ||
+            errMsg.includes("duplicate") ||
+            (createError as any).status === 422;
 
           if (isExisting) {
             // Find user by email using GoTrue admin REST API directly
@@ -105,7 +110,7 @@ Deno.serve(async (req) => {
             
             let existingUserId: string | null = null;
             let page = 1;
-            const perPage = 100;
+            const perPage = 500;
             
             while (!existingUserId) {
               const res = await fetch(
@@ -117,14 +122,19 @@ Deno.serve(async (req) => {
                   },
                 }
               );
-              if (!res.ok) break;
+              if (!res.ok) {
+                console.log(`GoTrue fetch failed page ${page}: ${res.status}`);
+                break;
+              }
               const result = await res.json();
               const users = result.users || [];
+              console.log(`GoTrue page ${page}: ${users.length} users`);
               const found = users.find(
                 (u: any) => u.email?.toLowerCase() === client.email.toLowerCase()
               );
               if (found) {
                 existingUserId = found.id;
+                console.log(`Found user ${client.email} -> ${existingUserId}`);
                 break;
               }
               if (users.length < perPage) break;
