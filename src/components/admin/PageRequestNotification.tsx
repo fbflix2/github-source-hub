@@ -34,12 +34,20 @@ export function PageRequestNotification() {
   const { toast } = useToast();
 
   const fetchRequests = useCallback(async () => {
-    const { data } = await supabase
-      .from("page_requests" as any)
-      .select("*")
-      .eq("status", "pending")
-      .order("created_at", { ascending: false });
-    if (data) setRequests(data as unknown as PageRequest[]);
+    try {
+      const { data, error } = await supabase
+        .from("page_requests" as any)
+        .select("*")
+        .eq("status", "pending")
+        .order("created_at", { ascending: false });
+      if (error) {
+        console.error("Error fetching page_requests:", error);
+        return;
+      }
+      if (data) setRequests(data as unknown as PageRequest[]);
+    } catch (err) {
+      console.error("Error fetching page_requests:", err);
+    }
   }, []);
 
   // Initial fetch

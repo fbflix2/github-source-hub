@@ -93,6 +93,7 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     async function fetchStats() {
+      try {
       const [profilesRes, transactionsRes, balanceRes, productsRes, ordersRes, orderItemsRes, categoriesRes, pendingPaymentsRes] = await Promise.all([
         supabase.from("profiles").select("id", { count: "exact", head: true }).limit(0),
         supabase.from("wallet_transactions").select("id", { count: "exact", head: true }),
@@ -106,7 +107,6 @@ export default function AdminDashboard() {
 
       setTotalClients(profilesRes.count ?? 0);
       setTotalTransactions(transactionsRes.count ?? 0);
-
       setTotalBalance(balanceRes.data ?? 0);
 
       const prods = productsRes.data ?? [];
@@ -118,25 +118,19 @@ export default function AdminDashboard() {
       setPendingOrders(ords.filter(o => o.status === "processing").length + (pendingPaymentsRes.count ?? 0));
       setCancelledOrders(ords.filter(o => o.status === "cancelled").length);
 
-      // Only count completed/delivered orders as received revenue
       const completedStatuses = ["completed", "delivered"];
       const completedOrds = ords.filter(o => completedStatuses.includes(o.status));
       const completedOrderIds = new Set(completedOrds.map(o => o.id));
 
-      // Chart: group completed orders by day
       const monthMap: Record<string, number> = {};
       completedOrds.forEach(o => {
         const d = new Date(o.created_at);
         const key = d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
         monthMap[key] = (monthMap[key] || 0) + (o.total || 0);
       });
-      // Add today's proxy revenue to chart
       const todayChartKey = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
-      // Proxy revenue will be added after we calculate it in the category section
-      // Store monthMap for later use
       let proxyRevenueForChart = 0;
 
-      // Category stats from order items (only completed orders)
       const cats = categoriesRes.data ?? [];
       const prodsByCat = await supabase.from("products").select("id, category_id, name, price, external_id");
       const prodCatMap: Record<string, string> = {};
@@ -144,11 +138,9 @@ export default function AdminDashboard() {
         if (p.category_id) prodCatMap[p.id] = p.category_id;
       });
 
-      // Build a map of order_id -> order total for revenue calculation
       const orderTotalMap: Record<string, number> = {};
       completedOrds.forEach(o => { orderTotalMap[o.id] = o.total || 0; });
 
-      // Count how many items per order to distribute total proportionally
       const orderItemCounts: Record<string, number> = {};
       (orderItemsRes.data ?? []).forEach(item => {
         if (!completedOrderIds.has(item.order_id)) return;
@@ -167,15 +159,10 @@ export default function AdminDashboard() {
         }
       });
 
-      // Zero out test categories (Perfis, Bm) but keep cards visible
       const zeroedCategories = ["perfis", "bm", "perfil"];
-
-      // Find the proxy category by slug
       const proxyCat = cats.find(c => c.slug === "proxy") || cats.find(c => c.name.toLowerCase().includes("proxy"));
       
-      // For proxy category: use ALL active subscriptions instead of just local orders
       if (proxyCat) {
-        // Fetch all active proxy subscriptions
         let allSubs: any[] = [];
         let from = 0;
         const pageSize = 1000;
@@ -191,14 +178,12 @@ export default function AdminDashboard() {
           from += pageSize;
         }
 
-        // Also include non-cancelled with valid end_date
         const now = new Date();
         const activeSubs = allSubs.filter(s => {
           if (!s.end_date) return true;
           return new Date(s.end_date) >= now;
         });
 
-        // Build price maps from local products with external_id (proxy products)
         const proxyProducts = (prodsByCat.data ?? []).filter(p => p.external_id);
         const extIdPriceMap = new Map<string, number>();
         const namePriceMap = new Map<string, number>();
@@ -207,7 +192,6 @@ export default function AdminDashboard() {
           namePriceMap.set(p.name.toLowerCase().trim(), p.price);
         });
 
-        // Calculate proxy revenue from all active subs (accounting for multi-proxy)
         let proxyRevenue = 0;
         let proxySales = 0;
         activeSubs.forEach(sub => {
@@ -227,12 +211,10 @@ export default function AdminDashboard() {
           proxySales += proxyCount;
         });
 
-        // Override the proxy category stats
         catStats[proxyCat.id] = { sales: proxySales, revenue: proxyRevenue };
         proxyRevenueForChart = proxyRevenue;
       }
 
-      // Add proxy revenue to today's chart entry
       if (!monthMap[todayChartKey]) monthMap[todayChartKey] = 0;
       monthMap[todayChartKey] += proxyRevenueForChart;
       setChartData(Object.entries(monthMap).slice(-7).map(([name, value]) => ({ name, value })));
@@ -245,8 +227,11 @@ export default function AdminDashboard() {
           revenue: shouldZero ? 0 : (catStats[c.id]?.revenue ?? 0),
         };
       }));
-
-      setLoading(false);
+      } catch (err) {
+        console.error("Dashboard fetchStats error:", err);
+      } finally {
+        setLoading(false);
+      }
     }
     fetchStats();
   }, []);
