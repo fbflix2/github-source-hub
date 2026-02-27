@@ -80,7 +80,17 @@ Deno.serve(async (req) => {
         if (client.bairro) profileFields.bairro = client.bairro;
         if (client.cidade) profileFields.cidade = client.cidade;
         if (client.estado) profileFields.estado = client.estado;
-        if (client.birth_date) profileFields.birth_date = client.birth_date;
+        if (client.birth_date) {
+          // Convert BR date format (dd/mm/yyyy) to ISO (yyyy-mm-dd)
+          const bd = client.birth_date.trim();
+          const brMatch = bd.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+          if (brMatch) {
+            profileFields.birth_date = `${brMatch[3]}-${brMatch[2].padStart(2, "0")}-${brMatch[1].padStart(2, "0")}`;
+          } else if (/^\d{4}-\d{2}-\d{2}$/.test(bd)) {
+            profileFields.birth_date = bd;
+          }
+          // skip invalid formats silently
+        }
         if (client.full_name) profileFields.full_name = client.full_name;
 
         // Try to create user first — if exists, we'll get an error
