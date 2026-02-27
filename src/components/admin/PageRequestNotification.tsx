@@ -53,9 +53,11 @@ export function PageRequestNotification() {
     }
   }, []);
 
-  // Initial fetch
+  // Initial fetch + polling fallback every 15s
   useEffect(() => {
     fetchRequests();
+    const interval = setInterval(fetchRequests, 15000);
+    return () => clearInterval(interval);
   }, [fetchRequests]);
 
   // Real-time subscription
