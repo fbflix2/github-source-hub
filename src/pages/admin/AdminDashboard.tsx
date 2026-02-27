@@ -164,11 +164,15 @@ export default function AdminDashboard() {
         }
       });
 
-      setCategoryStats(cats.map(c => ({
-        name: c.name,
-        sales: catStats[c.id]?.sales ?? 0,
-        revenue: catStats[c.id]?.revenue ?? 0,
-      })));
+      // Filter out non-proxy categories (Perfis, Bm were test data)
+      const excludedCategories = ["perfis", "bm", "perfil"];
+      setCategoryStats(cats
+        .filter(c => !excludedCategories.includes(c.name.toLowerCase().trim()))
+        .map(c => ({
+          name: c.name,
+          sales: catStats[c.id]?.sales ?? 0,
+          revenue: catStats[c.id]?.revenue ?? 0,
+        })));
 
       setLoading(false);
     }

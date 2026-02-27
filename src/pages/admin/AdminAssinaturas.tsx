@@ -265,16 +265,20 @@ export default function AdminAssinaturas() {
     staleTime: 60_000,
   });
 
-  // Build product name -> price map (normalized)
-  const productPriceMap = useMemo(() => {
-    const map = new Map<string, number>();
+  // Build product name -> price map (normalized) + external_id -> price map
+  const { productPriceMap, externalIdPriceMap } = useMemo(() => {
+    const nameMap = new Map<string, number>();
+    const extMap = new Map<string, number>();
     if (localProducts) {
       for (const p of localProducts) {
         const normalized = p.name.toLowerCase().trim();
-        map.set(normalized, p.price);
+        nameMap.set(normalized, p.price);
+        if (p.external_id) {
+          extMap.set(String(p.external_id), p.price);
+        }
       }
     }
-    return map;
+    return { productPriceMap: nameMap, externalIdPriceMap: extMap };
   }, [localProducts]);
 
   // Fetch proxy order prices (subscription_code -> paid price)
@@ -326,11 +330,16 @@ export default function AdminAssinaturas() {
     if (!localDbSubs?.length) return [];
     return localDbSubs.map((s: any) => {
       const enriched = enrichSubFromLocal(s, profilesMap);
+      const raw = s.raw_data || {};
       // Priority 1: actual paid price from order
       if (proxyOrderPrices?.has(enriched.code)) {
         enriched.paidPrice = proxyOrderPrices.get(enriched.code);
       }
-      // Priority 2: match product name to local configured sale price
+      // Priority 2: match by ProxyBR product ID -> local external_id
+      else if (raw.product?.id && externalIdPriceMap.has(String(raw.product.id))) {
+        enriched.paidPrice = externalIdPriceMap.get(String(raw.product.id));
+      }
+      // Priority 3: match product name to local configured sale price
       else if (enriched.product_name && productPriceMap.size > 0) {
         const normalized = enriched.product_name.toLowerCase().trim();
         if (productPriceMap.has(normalized)) {
@@ -339,7 +348,7 @@ export default function AdminAssinaturas() {
       }
       return enriched;
     });
-  }, [localDbSubs, profilesMap, proxyOrderPrices, productPriceMap]);
+  }, [localDbSubs, profilesMap, proxyOrderPrices, productPriceMap, externalIdPriceMap]);
 
   const counts = useMemo(() => ({
     active: subscriptions.filter((s) => s.mappedStatus === "active").length,
