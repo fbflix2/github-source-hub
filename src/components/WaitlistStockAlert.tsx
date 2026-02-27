@@ -12,8 +12,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 
-const DISMISS_KEY = "waitlist_alert_dismissed";
-
 interface AvailableProduct {
   waitlistId: string;
   productId: string;
@@ -34,10 +32,8 @@ export function WaitlistStockAlert() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Check dismissed cache (per session, per product)
-      const dismissed: string[] = JSON.parse(sessionStorage.getItem(DISMISS_KEY) || "[]");
-
-      // Fetch user's waiting items
+      // Only fetch entries still "waiting" — once user clicks a button,
+      // status changes in DB so it won't appear again
       const { data: waitlist } = await supabase
         .from("product_waitlist")
         .select("id, product_id")
@@ -46,8 +42,7 @@ export function WaitlistStockAlert() {
 
       if (!waitlist || waitlist.length === 0) return;
 
-      // Filter out already-dismissed ones this session
-      const pending = waitlist.filter(w => !dismissed.includes(w.product_id));
+      const pending = waitlist;
       if (pending.length === 0) return;
 
       const productIds = pending.map(w => w.product_id);
