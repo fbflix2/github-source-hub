@@ -93,6 +93,8 @@ export default function AdminEstoque() {
       { name: "Bloqueado", value: countByStatus("bloqueado"), fill: "hsl(0, 84%, 60%)" },
       { name: "Erro", value: countByStatus("erro"), fill: "hsl(0, 72%, 51%)" },
     ].filter(s => s.value > 0));
+
+    setLoading(false);
   };
 
   useEffect(() => {
