@@ -15,3 +15,36 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     autoRefreshToken: true,
   }
 });
+
+// Proactive session keep-alive: refresh token before it expires
+// This prevents "JWT expired" errors across all requests
+let refreshInterval: ReturnType<typeof setInterval> | null = null;
+
+async function startSessionKeepAlive() {
+  if (refreshInterval) clearInterval(refreshInterval);
+  
+  // Refresh every 50 minutes (tokens expire after 60 min by default)
+  refreshInterval = setInterval(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      const expiresAt = session.expires_at ? session.expires_at * 1000 : 0;
+      const now = Date.now();
+      // If token expires within 5 minutes, refresh proactively
+      if (expiresAt - now < 5 * 60 * 1000) {
+        console.log('[auth] Proactively refreshing session token');
+        await supabase.auth.refreshSession();
+      }
+    }
+  }, 60 * 1000); // Check every minute
+}
+
+supabase.auth.onAuthStateChange((event, session) => {
+  if (session) {
+    startSessionKeepAlive();
+  } else if (event === 'SIGNED_OUT') {
+    if (refreshInterval) {
+      clearInterval(refreshInterval);
+      refreshInterval = null;
+    }
+  }
+});
