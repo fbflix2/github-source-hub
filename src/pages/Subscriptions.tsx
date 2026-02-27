@@ -24,6 +24,9 @@ export interface ProxySubscription {
     protocol?: string;
   };
   profile_tag?: string | null;
+  proxyIndex?: number;
+  totalProxies?: number;
+  proxyLabel?: string;
   [key: string]: unknown;
 }
 
@@ -95,8 +98,9 @@ export default function Subscriptions() {
     return s.mappedStatus === activeFilter;
   });
 
-  const handleRenew = (code: string) => {
-    renewMutation.mutate(code);
+  const handleRenew = (sub: ProxySubscription) => {
+    // Use the real subscription name (not the exploded code) for renewal
+    renewMutation.mutate(sub.name);
   };
 
   // Show CTA when user has no subscriptions
@@ -238,7 +242,7 @@ export default function Subscriptions() {
               progressPercent={sub.progressPercent}
               formattedStart={sub.formattedStart}
               formattedEnd={sub.formattedEnd}
-              onRenew={() => handleRenew(sub.code)}
+              onRenew={() => handleRenew(sub)}
               isRenewing={renewMutation.isPending}
               profileTag={sub.profile_tag}
             />

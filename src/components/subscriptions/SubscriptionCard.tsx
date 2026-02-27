@@ -86,12 +86,20 @@ export default function SubscriptionCard({
           </div>
           {getStatusBadge(status)}
         </div>
-        {profileTag && (
-          <span className="inline-flex items-center gap-1.5 self-start px-2.5 py-1 rounded-md bg-foreground/10 border border-foreground/20 text-foreground text-[11px] font-bold">
-            <span className="material-symbols-outlined text-sm">person_pin</span>
-            {profileTag}
-          </span>
-        )}
+        <div className="flex items-center gap-2 flex-wrap">
+          {sub.proxyLabel && (
+            <span className="inline-flex items-center gap-1 self-start px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20 text-primary text-[10px] font-bold uppercase tracking-wide">
+              <span className="material-symbols-outlined text-xs">lan</span>
+              {sub.proxyLabel}
+            </span>
+          )}
+          {profileTag && (
+            <span className="inline-flex items-center gap-1.5 self-start px-2.5 py-1 rounded-md bg-foreground/10 border border-foreground/20 text-foreground text-[11px] font-bold">
+              <span className="material-symbols-outlined text-sm">person_pin</span>
+              {profileTag}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Status Info */}
@@ -170,7 +178,7 @@ export default function SubscriptionCard({
         )}
         {status === "active" && (
           <button
-            onClick={() => navigate(`/subscriptions/${sub.code}`)}
+            onClick={() => navigate(`/subscriptions/${encodeURIComponent(sub.code)}`)}
             className="flex-1 border border-border hover:border-foreground text-foreground bg-transparent hover:bg-muted h-10 rounded-lg text-sm font-bold transition-all"
           >
             Gerenciar

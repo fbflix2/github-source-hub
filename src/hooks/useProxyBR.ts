@@ -91,29 +91,31 @@ export function useProxyBRSubscriptions() {
       if (error) throw new Error(error.message);
 
       // Map local DB records to the format the UI expects
-      return (data || []).map((sub: any) => {
-        const raw = sub.raw_data || {};
-        const proxy = raw.proxies?.data?.[0] || null;
-        let proxyInfo = undefined;
-        if (proxy) {
-          // Try parsed first, then parse from code string
+      // "Explode" multi-proxy subscriptions into individual entries
+      const results: any[] = [];
+      for (const sub of (data || [])) {
+        const raw = (sub.raw_data || {}) as Record<string, any>;
+        const proxies = raw.proxies?.data || [];
+        const isMulti = proxies.length > 1;
+
+        const buildProxyInfo = (proxy: any) => {
           const parsed = proxy.parsed || (() => {
             const parts = proxy.code?.split(":");
             if (parts?.length >= 4) return { ip: parts[0], port: parts[1], username: parts[2], password: parts[3] };
             return null;
           })();
-          if (parsed) {
-            proxyInfo = {
-              id: proxy.id,
-              ip: parsed.ip,
-              port: parsed.port,
-              username: parsed.username,
-              password: parsed.password,
-              protocol: raw.product?.type || "SOCKS5",
-            };
-          }
-        }
-        return {
+          if (!parsed) return undefined;
+          return {
+            id: proxy.id,
+            ip: parsed.ip,
+            port: parsed.port,
+            username: parsed.username,
+            password: parsed.password,
+            protocol: raw.product?.type || "SOCKS5",
+          };
+        };
+
+        const baseEntry = {
           code: sub.name,
           name: sub.name,
           product_name: raw.product?.name || raw.product_name || undefined,
@@ -121,11 +123,32 @@ export function useProxyBRSubscriptions() {
           start_date: sub.start_date,
           end_date: sub.end_date || sub.start_date,
           auto_renew: sub.auto_renew,
-          proxy: proxyInfo,
           raw_data: raw,
           profile_tag: raw.profile_tag || null,
         };
-      });
+
+        if (proxies.length === 0) {
+          // No proxies — emit one entry without proxy info
+          results.push({ ...baseEntry, proxy: undefined });
+        } else if (!isMulti) {
+          // Single proxy — same as before
+          results.push({ ...baseEntry, proxy: buildProxyInfo(proxies[0]) });
+        } else {
+          // Multiple proxies — emit one entry per proxy
+          proxies.forEach((proxy: any, index: number) => {
+            results.push({
+              ...baseEntry,
+              code: `${sub.name}__proxy_${proxy.id}`,
+              name: sub.name,
+              proxy: buildProxyInfo(proxy),
+              proxyIndex: index + 1,
+              totalProxies: proxies.length,
+              proxyLabel: `Proxy ${index + 1}/${proxies.length}`,
+            });
+          });
+        }
+      }
+      return results;
     },
     staleTime: 30_000,
   });

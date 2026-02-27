@@ -54,6 +54,7 @@ export default function SubscriptionManage() {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
+  // Support both simple codes and exploded multi-proxy codes (e.g. "SUB123__proxy_456")
   const sub = (subscriptions as ProxySubscription[] | undefined)?.find((s) => s.code === code);
 
   // Load profile_tag from subscription data
@@ -166,6 +167,11 @@ export default function SubscriptionManage() {
         </button>
         <div className="flex-1 flex items-center gap-3 flex-wrap">
           <h1 className="text-lg font-black text-foreground tracking-tight">{sub.name || sub.code}</h1>
+          {sub.proxyLabel && (
+            <span className="text-[9px] uppercase font-bold px-2 py-0.5 rounded-md border bg-primary/10 text-primary border-primary/20">
+              {sub.proxyLabel}
+            </span>
+          )}
           <span className={`text-[9px] uppercase font-bold px-2 py-0.5 rounded-md border ${statusBadge}`}>
             {label}
           </span>
@@ -209,7 +215,7 @@ export default function SubscriptionManage() {
               />
             </div>
             {(status === "expiring" || status === "expired") && (
-              <Button size="sm" onClick={() => renewMutation.mutate(sub.code)} disabled={renewMutation.isPending} className="bg-primary hover:bg-[#00c968] text-background font-bold text-xs">
+              <Button size="sm" onClick={() => renewMutation.mutate(sub.name)} disabled={renewMutation.isPending} className="bg-primary hover:bg-[#00c968] text-background font-bold text-xs">
                 <span className="material-symbols-outlined mr-1 text-sm">replay</span>
                 {renewMutation.isPending ? "Renovando..." : "Renovar"}
               </Button>
@@ -324,7 +330,7 @@ export default function SubscriptionManage() {
                 checked={!!sub.auto_renew}
                 disabled={autoRenewMutation.isPending}
                 onCheckedChange={(checked) =>
-                  autoRenewMutation.mutate({ subscriptionCode: sub.code, auto_renew: checked })
+                  autoRenewMutation.mutate({ subscriptionCode: sub.name, auto_renew: checked })
                 }
               />
             </div>
@@ -349,7 +355,7 @@ export default function SubscriptionManage() {
                   {freeExchanges > 0 && (
                     <Button
                       size="sm"
-                      onClick={() => exchangeMutation.mutate({ subscriptionCode: sub.code })}
+                      onClick={() => exchangeMutation.mutate({ subscriptionCode: sub.name, ...(sub.proxy?.id ? { proxy_id: sub.proxy.id } : {}) })}
                       disabled={exchangeMutation.isPending}
                       className="w-full bg-green-600 hover:bg-green-500 text-white font-bold text-xs h-8"
                     >
