@@ -252,20 +252,42 @@ export default function AdminAssinaturas() {
     },
   });
 
+  // Fetch local product prices (name -> sale price)
+  const { data: localProducts } = useQuery({
+    queryKey: ["admin-local-proxy-products"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("products")
+        .select("name, price, external_id")
+        .not("external_id", "is", null);
+      return data ?? [];
+    },
+    staleTime: 60_000,
+  });
+
+  // Build product name -> price map (normalized)
+  const productPriceMap = useMemo(() => {
+    const map = new Map<string, number>();
+    if (localProducts) {
+      for (const p of localProducts) {
+        const normalized = p.name.toLowerCase().trim();
+        map.set(normalized, p.price);
+      }
+    }
+    return map;
+  }, [localProducts]);
+
   // Fetch proxy order prices (subscription_code -> paid price)
   const { data: proxyOrderPrices } = useQuery({
     queryKey: ["admin-proxy-order-prices"],
     queryFn: async () => {
-      // Get completed proxy order items with delivery_data
       const { data: orderItems } = await supabase
         .from("order_items")
         .select("delivery_data, price, quantity, order_id");
       if (!orderItems?.length) return new Map<string, number>();
 
-      // Get completed order IDs
       const orderIds = [...new Set(orderItems.map(i => i.order_id))];
       const completedIds = new Set<string>();
-      // Fetch in chunks
       for (let i = 0; i < orderIds.length; i += 500) {
         const chunk = orderIds.slice(i, i + 500);
         const { data: orders } = await supabase
@@ -281,7 +303,6 @@ export default function AdminAssinaturas() {
         if (!completedIds.has(item.order_id)) continue;
         const dd = item.delivery_data as any;
         if (dd?.subscription_code) {
-          // Use total from order divided by items count for accuracy
           priceMap.set(String(dd.subscription_code), item.price * item.quantity);
         }
       }
@@ -305,13 +326,20 @@ export default function AdminAssinaturas() {
     if (!localDbSubs?.length) return [];
     return localDbSubs.map((s: any) => {
       const enriched = enrichSubFromLocal(s, profilesMap);
-      // Match price by subscription code (name field = code)
+      // Priority 1: actual paid price from order
       if (proxyOrderPrices?.has(enriched.code)) {
         enriched.paidPrice = proxyOrderPrices.get(enriched.code);
       }
+      // Priority 2: match product name to local configured sale price
+      else if (enriched.product_name && productPriceMap.size > 0) {
+        const normalized = enriched.product_name.toLowerCase().trim();
+        if (productPriceMap.has(normalized)) {
+          enriched.paidPrice = productPriceMap.get(normalized);
+        }
+      }
       return enriched;
     });
-  }, [localDbSubs, profilesMap, proxyOrderPrices]);
+  }, [localDbSubs, profilesMap, proxyOrderPrices, productPriceMap]);
 
   const counts = useMemo(() => ({
     active: subscriptions.filter((s) => s.mappedStatus === "active").length,
