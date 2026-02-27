@@ -424,6 +424,57 @@ export type Database = {
         }
         Relationships: []
       }
+      page_requests: {
+        Row: {
+          all_on_one_profile: boolean
+          client_name: string | null
+          confirmed_at: string | null
+          confirmed_by: string | null
+          created_at: string
+          id: string
+          order_code: string
+          order_item_id: string
+          product_name: string
+          profile_links: string[]
+          quantity: number
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          all_on_one_profile?: boolean
+          client_name?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          id?: string
+          order_code: string
+          order_item_id: string
+          product_name: string
+          profile_links?: string[]
+          quantity?: number
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          all_on_one_profile?: boolean
+          client_name?: string | null
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          id?: string
+          order_code?: string
+          order_item_id?: string
+          product_name?: string
+          profile_links?: string[]
+          quantity?: number
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount: number

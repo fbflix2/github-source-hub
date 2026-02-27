@@ -5,6 +5,7 @@ import { AdminSidebar } from "./AdminSidebar";
 import { AdminHeader } from "./AdminHeader";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { ProxyBRLowBalanceAlert } from "./ProxyBRLowBalanceAlert";
+import { PageRequestNotification } from "./PageRequestNotification";
 import { Play } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -96,6 +97,7 @@ export function AdminLayout() {
           </div>
         </div>
         <ProxyBRLowBalanceAlert />
+        <PageRequestNotification />
       </main>
     </div>
   );
