@@ -60,6 +60,7 @@ export function useProxyRevenue() {
     });
 
     let totalRevenue = 0;
+    let totalCount = 0;
     const subsWithPrices = activeSubs.map(sub => {
       const raw = sub.raw_data || {};
       const productId = raw.product?.id;
@@ -72,10 +73,15 @@ export function useProxyRevenue() {
         price = nameMap.get(productName.toLowerCase().trim())!;
       }
 
-      totalRevenue += price;
-      return { ...sub, price };
+      // Count individual proxies in multi-proxy subscriptions
+      const proxies = raw.proxies?.data;
+      const proxyCount = (Array.isArray(proxies) && proxies.length > 1) ? proxies.length : 1;
+
+      totalRevenue += price * proxyCount;
+      totalCount += proxyCount;
+      return { ...sub, price, proxyCount };
     });
 
-    return { totalRevenue, count: activeSubs.length, subsWithPrices };
+    return { totalRevenue, count: totalCount, subsWithPrices };
   }, [subs, products]);
 }

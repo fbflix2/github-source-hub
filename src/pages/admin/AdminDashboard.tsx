@@ -207,19 +207,24 @@ export default function AdminDashboard() {
           namePriceMap.set(p.name.toLowerCase().trim(), p.price);
         });
 
-        // Calculate proxy revenue from all active subs
+        // Calculate proxy revenue from all active subs (accounting for multi-proxy)
         let proxyRevenue = 0;
-        let proxySales = activeSubs.length;
+        let proxySales = 0;
         activeSubs.forEach(sub => {
           const raw = sub.raw_data || {};
           const productId = raw.product?.id;
           const productName = raw.product?.name || sub.name || "";
+          const proxies = raw.proxies?.data;
+          const proxyCount = (Array.isArray(proxies) && proxies.length > 1) ? proxies.length : 1;
           
+          let price = 0;
           if (productId && extIdPriceMap.has(String(productId))) {
-            proxyRevenue += extIdPriceMap.get(String(productId))!;
+            price = extIdPriceMap.get(String(productId))!;
           } else if (namePriceMap.has(productName.toLowerCase().trim())) {
-            proxyRevenue += namePriceMap.get(productName.toLowerCase().trim())!;
+            price = namePriceMap.get(productName.toLowerCase().trim())!;
           }
+          proxyRevenue += price * proxyCount;
+          proxySales += proxyCount;
         });
 
         // Override the proxy category stats

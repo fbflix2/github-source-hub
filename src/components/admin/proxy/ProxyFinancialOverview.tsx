@@ -125,13 +125,36 @@ export default function ProxyFinancialOverview() {
     staleTime: 60_000,
   });
 
-  // Active subscriptions count
+  // Active subscriptions count (exploded: count individual proxies in multi-proxy subs)
   const { data: subsCount } = useQuery({
-    queryKey: ["proxy-active-subs-count"],
+    queryKey: ["proxy-active-subs-count-exploded"],
     queryFn: async () => {
-      const { count, error } = await supabase.from("subscriptions").select("id", { count: "exact", head: true }).eq("type", "proxybr").eq("status", "active");
-      if (error) throw error;
-      return count || 0;
+      let all: any[] = [];
+      let from = 0;
+      const pageSize = 1000;
+      while (true) {
+        const { data } = await supabase
+          .from("subscriptions")
+          .select("raw_data")
+          .eq("type", "proxybr")
+          .eq("status", "active")
+          .range(from, from + pageSize - 1);
+        if (!data?.length) break;
+        all = [...all, ...data];
+        if (data.length < pageSize) break;
+        from += pageSize;
+      }
+      // Count individual proxies: if raw_data.proxies.data is array with >1, count each
+      let total = 0;
+      for (const sub of all) {
+        const proxies = sub.raw_data?.proxies?.data;
+        if (Array.isArray(proxies) && proxies.length > 1) {
+          total += proxies.length;
+        } else {
+          total += 1;
+        }
+      }
+      return total;
     },
     staleTime: 60_000,
   });
