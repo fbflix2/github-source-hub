@@ -605,16 +605,46 @@ export default function ItemDetails() {
                             const links = profileLinks.filter(l => l.trim());
                             if (links.length === 0) return;
                             setRequestingPage(true);
-                            // Save profile links to delivery_data on order_item
-                            const deliveryUpdate = {
-                              ...(orderItem.delivery_data || {}),
-                              pageProfileLinks: links,
-                              allOnOneProfile,
-                              pageRequestedAt: new Date().toISOString(),
-                            };
-                            await supabase.from("order_items").update({ delivery_data: deliveryUpdate }).eq("id", itemId);
-                            setPageRequested(true);
-                            setRequestingPage(false);
+                            try {
+                              // Save profile links to delivery_data on order_item
+                              const deliveryUpdate = {
+                                ...(orderItem.delivery_data || {}),
+                                pageProfileLinks: links,
+                                allOnOneProfile,
+                                pageRequestedAt: new Date().toISOString(),
+                              };
+                              await supabase.from("order_items").update({ delivery_data: deliveryUpdate }).eq("id", itemId);
+
+                              // Get current user profile for client name
+                              const { data: { user } } = await supabase.auth.getUser();
+                              let clientName = null;
+                              if (user) {
+                                const { data: profile } = await supabase
+                                  .from("profiles")
+                                  .select("full_name")
+                                  .eq("user_id", user.id)
+                                  .maybeSingle();
+                                clientName = profile?.full_name || null;
+                              }
+
+                              // Create page request for admin notification
+                              await supabase.from("page_requests" as any).insert({
+                                order_item_id: itemId,
+                                order_code: order.code,
+                                user_id: user?.id,
+                                client_name: clientName,
+                                product_name: itemName,
+                                profile_links: links,
+                                all_on_one_profile: allOnOneProfile,
+                                quantity: itemQuantity,
+                              });
+
+                              setPageRequested(true);
+                            } catch (err) {
+                              console.error("Error requesting page:", err);
+                            } finally {
+                              setRequestingPage(false);
+                            }
                           }}
                           disabled={requestingPage || profileLinks.every(l => !l.trim())}
                           className="w-full mt-3 py-2 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-primary/90 transition-all flex items-center justify-center gap-1.5 text-xs disabled:opacity-50 disabled:cursor-not-allowed"
