@@ -24,14 +24,31 @@ export function ProxyBRLowBalanceAlert() {
   const { data: meData } = useQuery({
     queryKey: ["proxybr-me"],
     queryFn: async () => {
+      // Check if user is authenticated before calling
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return null;
+
       const { data, error } = await supabase.functions.invoke("proxybr-api", {
         body: { action: "get-me" },
       });
-      if (error) throw new Error(error.message);
+      if (error) {
+        // If token expired, try refreshing and retrying once
+        if (error.message?.includes("401") || error.message?.includes("Token")) {
+          const { error: refreshErr } = await supabase.auth.refreshSession();
+          if (refreshErr) return null;
+          const retry = await supabase.functions.invoke("proxybr-api", {
+            body: { action: "get-me" },
+          });
+          if (retry.error) return null;
+          return retry.data;
+        }
+        return null;
+      }
       return data;
     },
     staleTime: 120_000,
-    refetchInterval: 300_000, // check every 5 min
+    refetchInterval: 300_000,
+    retry: false,
   });
 
   const balance = meData?.current_balance ?? meData?.data?.current_balance ?? null;
