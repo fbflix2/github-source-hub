@@ -126,47 +126,61 @@ export default function ItemDetails() {
           if (prod.icon_type === "bm") {
             const collectedLinks: string[] = [];
 
-            // 1. Fetch ALL BM stock_items linked to any order_item in this order
+            // 1. Check delivery_data.bmLinks array (new fulfillment format)
             const { data: allOrderItems } = await supabase
               .from("order_items")
               .select("id, delivery_data")
               .eq("order_id", orderData.id);
 
             if (allOrderItems?.length) {
-              const itemIds = allOrderItems.map((oi: any) => oi.id);
-              const { data: bmStockItems } = await supabase
-                .from("stock_items")
-                .select("identification_link")
-                .in("order_item_id", itemIds)
-                .eq("type", "bm");
-
-              if (bmStockItems?.length) {
-                bmStockItems.forEach((s: any) => {
-                  if (s.identification_link) {
-                    // Split by newlines in case multiple URLs in one field
-                    s.identification_link.split("\n").forEach((line: string) => {
-                      const trimmed = line.trim();
+              allOrderItems.forEach((oi: any) => {
+                const dd = oi.delivery_data;
+                if (dd && typeof dd === "object") {
+                  // New format: bmLinks array
+                  if (Array.isArray(dd.bmLinks)) {
+                    dd.bmLinks.forEach((link: string) => {
+                      const trimmed = link.trim();
                       if (trimmed) collectedLinks.push(trimmed);
                     });
                   }
-                });
+                }
+              });
+
+              // 2. Fallback: fetch from stock_items identification_link
+              if (collectedLinks.length === 0) {
+                const itemIds = allOrderItems.map((oi: any) => oi.id);
+                const { data: bmStockItems } = await supabase
+                  .from("stock_items")
+                  .select("identification_link")
+                  .in("order_item_id", itemIds)
+                  .eq("type", "bm");
+
+                if (bmStockItems?.length) {
+                  bmStockItems.forEach((s: any) => {
+                    if (s.identification_link) {
+                      s.identification_link.split("\n").forEach((line: string) => {
+                        const trimmed = line.trim();
+                        if (trimmed) collectedLinks.push(trimmed);
+                      });
+                    }
+                  });
+                }
               }
 
-              // 2. Also check delivery_data.linkPerfil from all order_items
+              // 3. Fallback: check delivery_data.linkPerfil
               if (collectedLinks.length === 0) {
                 allOrderItems.forEach((oi: any) => {
                   const dd = oi.delivery_data;
                   if (dd && typeof dd === "object" && dd.linkPerfil) {
                     dd.linkPerfil.split("\n").forEach((line: string) => {
                       const trimmed = line.trim();
-                      if (trimmed && !collectedLinks.includes(trimmed)) collectedLinks.push(trimmed);
+                      if (trimmed) collectedLinks.push(trimmed);
                     });
                   }
                 });
               }
             }
 
-            // Deduplicate
             const unique = [...new Set(collectedLinks)];
             if (unique.length > 0) setBmLinks(unique);
           }
