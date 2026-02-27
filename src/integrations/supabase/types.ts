@@ -850,18 +850,21 @@ export type Database = {
       stock_folders: {
         Row: {
           created_at: string
+          deleted_at: string | null
           id: string
           name: string
           updated_at: string
         }
         Insert: {
           created_at?: string
+          deleted_at?: string | null
           id?: string
           name: string
           updated_at?: string
         }
         Update: {
           created_at?: string
+          deleted_at?: string | null
           id?: string
           name?: string
           updated_at?: string
@@ -872,6 +875,7 @@ export type Database = {
         Row: {
           created_at: string
           data: Json | null
+          deleted_at: string | null
           folder: string | null
           id: string
           identification: string | null
@@ -886,6 +890,7 @@ export type Database = {
         Insert: {
           created_at?: string
           data?: Json | null
+          deleted_at?: string | null
           folder?: string | null
           id?: string
           identification?: string | null
@@ -900,6 +905,7 @@ export type Database = {
         Update: {
           created_at?: string
           data?: Json | null
+          deleted_at?: string | null
           folder?: string | null
           id?: string
           identification?: string | null

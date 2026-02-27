@@ -86,7 +86,7 @@ export default function AdminEstoque() {
 
   useEffect(() => {
     fetchItems();
-    supabase.from("stock_folders").select("id, name").order("name").then(({ data }) => setFolders(data ?? []));
+    supabase.from("stock_folders").select("id, name").is("deleted_at", null).order("name").then(({ data }) => setFolders(data ?? []));
   }, []);
 
   const toggleItem = (id: string) => {
