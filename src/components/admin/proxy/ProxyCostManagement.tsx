@@ -26,6 +26,7 @@ export default function ProxyCostManagement() {
   const queryClient = useQueryClient();
   const [discountMap, setDiscountMap] = useState<Record<string, string>>({});
   const [discountLoaded, setDiscountLoaded] = useState(false);
+  const [salePriceOverrides, setSalePriceOverrides] = useState<Record<string, string>>({});
 
   const { data: discountSetting } = useQuery({
     queryKey: ["proxybr-reseller-discounts"],
@@ -54,9 +55,36 @@ export default function ProxyCostManagement() {
       const { error } = await supabase.from("site_settings").upsert({ key: "proxybr_reseller_discounts", value: JSON.stringify(map) } as any, { onConflict: "key" });
       if (error) throw error;
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["proxybr-reseller-discounts"] }); toast({ title: "Descontos salvos com sucesso!" }); },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["proxybr-reseller-discounts"] }); },
     onError: () => { toast({ title: "Erro ao salvar descontos", variant: "destructive" }); },
   });
+
+  const saveSalePrices = useMutation({
+    mutationFn: async (overrides: Record<string, string>) => {
+      const updates = Object.entries(overrides)
+        .filter(([, val]) => val !== "" && !isNaN(parseFloat(val)))
+        .map(([productId, val]) => ({ id: productId, price: parseFloat(val) }));
+      for (const u of updates) {
+        const { error } = await supabase.from("products").update({ price: u.price }).eq("id", u.id);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["local-products-proxy"] }); },
+    onError: () => { toast({ title: "Erro ao salvar preços", variant: "destructive" }); },
+  });
+
+  const handleSaveAll = async () => {
+    try {
+      await saveDiscounts.mutateAsync(discountMap);
+      if (Object.keys(salePriceOverrides).length > 0) {
+        await saveSalePrices.mutateAsync(salePriceOverrides);
+        setSalePriceOverrides({});
+      }
+      toast({ title: "Alterações salvas com sucesso!" });
+    } catch {
+      // errors handled individually
+    }
+  };
 
   const { data: apiData, isLoading: apiLoading, refetch: refetchApi } = useQuery({
     queryKey: ["proxybr-products-central"],
@@ -107,8 +135,8 @@ export default function ProxyCostManagement() {
     <div className="space-y-6">
       {/* Actions */}
       <div className="flex items-center justify-end gap-2">
-        <Button variant="default" size="sm" onClick={() => saveDiscounts.mutate(discountMap)} disabled={saveDiscounts.isPending}>
-          <Save className="size-4 mr-2" />Salvar Descontos
+        <Button variant="default" size="sm" onClick={handleSaveAll} disabled={saveDiscounts.isPending || saveSalePrices.isPending}>
+          <Save className="size-4 mr-2" />Salvar Alterações
         </Button>
         <Button variant="outline" size="sm" onClick={() => { refetchApi(); refetchLocal(); }} disabled={isLoading}>
           <RefreshCw className={`size-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />Atualizar
