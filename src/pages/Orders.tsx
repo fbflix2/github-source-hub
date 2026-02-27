@@ -265,10 +265,11 @@ export default function Orders() {
 
                     <div className="flex flex-col gap-2">
                       {(() => {
-                        // Group BM items into a single row, expand others individually
+                        // Group BM and Page items into single rows, expand others individually
                         const bmItems = selectedOrder.items.filter(i => i.iconType === 'bm');
-                        const otherItems = selectedOrder.items.filter(i => i.iconType !== 'bm');
-                        const rows: { key: string; name: string; subtitle: string; price: number; totalPrice: number; itemId: string; isBlocked: boolean; isBm: boolean }[] = [];
+                        const pageItems = selectedOrder.items.filter(i => i.iconType === 'page');
+                        const otherItems = selectedOrder.items.filter(i => i.iconType !== 'bm' && i.iconType !== 'page');
+                        const rows: { key: string; name: string; subtitle: string; price: number; totalPrice: number; itemId: string; isBlocked: boolean; isBm: boolean; isPage: boolean }[] = [];
 
                         // BM: single grouped row
                         if (bmItems.length > 0) {
@@ -283,6 +284,24 @@ export default function Orders() {
                             itemId: bmItems[0].id,
                             isBlocked: bmItems.some(i => i.isBlocked),
                             isBm: true,
+                            isPage: false,
+                          });
+                        }
+
+                        // Page: single grouped row
+                        if (pageItems.length > 0) {
+                          const totalPageQty = pageItems.reduce((sum, i) => sum + i.quantity, 0);
+                          const totalPagePrice = pageItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
+                          rows.push({
+                            key: 'page-group',
+                            name: pageItems[0].name,
+                            subtitle: totalPageQty > 1 ? `${totalPageQty} páginas neste pedido` : 'Unidade 1 de 1',
+                            price: totalPagePrice,
+                            totalPrice: totalPagePrice,
+                            itemId: pageItems[0].id,
+                            isBlocked: pageItems.some(i => i.isBlocked),
+                            isBm: false,
+                            isPage: true,
                           });
                         }
 
@@ -299,6 +318,7 @@ export default function Orders() {
                               itemId: item.id,
                               isBlocked: !!item.isBlocked,
                               isBm: false,
+                              isPage: false,
                             });
                           }
                         });
