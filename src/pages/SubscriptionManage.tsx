@@ -38,23 +38,39 @@ export default function SubscriptionManage() {
   // Support both simple codes and exploded multi-proxy codes (e.g. "SUB123__proxy_456")
   const sub = (subscriptions as ProxySubscription[] | undefined)?.find((s) => s.code === code);
 
-  // Fetch the price the customer actually paid from order_items
+  // Fetch the price: first try order_items, then fallback to product catalog price
   const { data: customerPrice } = useQuery({
-    queryKey: ["subscription-customer-price", code, sub?.totalProxies],
+    queryKey: ["subscription-customer-price", code, sub?.totalProxies, sub?.product_name],
     queryFn: async () => {
       if (!realSubName) return null;
-      const { data } = await supabase
+      const totalProxies = sub?.totalProxies ?? 1;
+
+      // Try order_items first
+      const { data: orderItem } = await supabase
         .from("order_items")
-        .select("price, order_id")
+        .select("price")
         .contains("delivery_data", { subscription_code: realSubName })
         .limit(1)
         .maybeSingle();
-      if (data?.price == null) return null;
-      // For multi-proxy subs, divide the total price by the number of proxies
-      const totalProxies = sub?.totalProxies ?? 1;
-      return Number(data.price) / totalProxies;
+      if (orderItem?.price != null) {
+        return Number(orderItem.price) / totalProxies;
+      }
+
+      // Fallback: find product by external_id (API product id) or name match
+      const raw = (sub?.raw_data || {}) as Record<string, any>;
+      const apiProductId = raw?.product?.id;
+      if (apiProductId) {
+        const { data: product } = await supabase
+          .from("products")
+          .select("price")
+          .eq("external_id", String(apiProductId))
+          .maybeSingle();
+        if (product?.price != null) return Number(product.price);
+      }
+
+      return null;
     },
-    enabled: !!code && !isLoading,
+    enabled: !!code && !isLoading && !!sub,
   });
 
   const [profileName, setProfileName] = useState("");
