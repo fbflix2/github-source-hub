@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Users, Wallet, CheckCircle, Search, LogIn, KeyRound, Pencil, ChevronLeft, ChevronRight, UserPlus, TrendingUp, Minus, X, Ban, Clock, Loader2, Mail, Phone, Squirrel, DollarSign, Upload, Download } from "lucide-react";
+import { Users, Wallet, CheckCircle, Search, LogIn, KeyRound, Pencil, ChevronLeft, ChevronRight, UserPlus, TrendingUp, Minus, X, Ban, Clock, Loader2, Mail, Phone, Squirrel, DollarSign, Upload, Download, BadgeCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,6 +25,7 @@ interface Client {
   avatar_url: string | null;
   created_at: string;
   has_active_subscription: boolean;
+  profile_complete: boolean;
 }
 
 type FilterType = "all" | "subscribers" | "with-balance" | "blocked";
@@ -109,18 +110,26 @@ export default function AdminClientes() {
     }
 
     // Build client list
-    const clientList: Client[] = allProfiles.map((p) => ({
-      id: p.id,
-      user_id: p.user_id,
-      full_name: p.full_name,
-      email: emailMap[p.user_id] || "",
-      phone: p.phone,
-      balance: p.balance ?? 0,
-      status: p.status ?? "active",
-      avatar_url: p.avatar_url,
-      created_at: p.created_at,
-      has_active_subscription: activeSubUserIds.has(p.user_id),
-    }));
+    const clientList: Client[] = allProfiles.map((p) => {
+      const isComplete = !!(
+        p.full_name && p.cpf && p.birth_date &&
+        p.rua && p.numero && p.bairro && p.cidade && p.estado &&
+        p.cep && p.phone
+      );
+      return {
+        id: p.id,
+        user_id: p.user_id,
+        full_name: p.full_name,
+        email: emailMap[p.user_id] || "",
+        phone: p.phone,
+        balance: p.balance ?? 0,
+        status: p.status ?? "active",
+        avatar_url: p.avatar_url,
+        created_at: p.created_at,
+        has_active_subscription: activeSubUserIds.has(p.user_id),
+        profile_complete: isComplete,
+      };
+    });
 
     setClients(clientList);
     setTotalClients(clientList.length);
@@ -375,9 +384,14 @@ export default function AdminClientes() {
                     </div>
                   )}
                   <div>
-                    <h3 className="text-white font-bold text-lg leading-tight group-hover:text-primary transition-colors cursor-pointer">
-                      {client.full_name || "Sem nome"}
-                    </h3>
+                    <div className="flex items-center gap-1.5">
+                      <h3 className="text-white font-bold text-lg leading-tight group-hover:text-primary transition-colors cursor-pointer">
+                        {client.full_name || "Sem nome"}
+                      </h3>
+                      {client.profile_complete && (
+                        <span title="Perfil completo"><BadgeCheck className="w-5 h-5 text-[#0bda0b] flex-shrink-0" /></span>
+                      )}
+                    </div>
                     {getStatusBadge(client)}
                   </div>
                 </div>
