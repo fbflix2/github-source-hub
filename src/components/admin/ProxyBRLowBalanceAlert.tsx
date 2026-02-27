@@ -28,9 +28,6 @@ export function ProxyBRLowBalanceAlert() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return null;
 
-      // Proactively refresh to avoid expired token errors
-      await supabase.auth.refreshSession();
-
       const { data, error } = await supabase.functions.invoke("proxybr-api", {
         body: { action: "get-me" },
       });

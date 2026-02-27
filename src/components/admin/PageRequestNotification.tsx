@@ -35,8 +35,11 @@ export function PageRequestNotification() {
 
   const fetchRequests = useCallback(async () => {
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
       const { data, error } = await supabase
-        .from("page_requests" as any)
+        .from("page_requests")
         .select("*")
         .eq("status", "pending")
         .order("created_at", { ascending: false });
@@ -119,12 +122,12 @@ export function PageRequestNotification() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       await supabase
-        .from("page_requests" as any)
+        .from("page_requests")
         .update({
           status: "confirmed",
           confirmed_at: new Date().toISOString(),
           confirmed_by: user?.id || null,
-        } as any)
+        })
         .eq("id", req.id);
 
       // Update delivery_data on order_item to mark as confirmed

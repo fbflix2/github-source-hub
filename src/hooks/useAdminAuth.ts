@@ -78,17 +78,11 @@ export function useAdminAuth() {
       checkAdmin();
     }
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_OUT') {
         if (!cancelled) {
           setState({ isAdmin: null, loading: false, role: null });
           navigate("/admin/login");
-        }
-      } else if (event === 'TOKEN_REFRESHED' && session) {
-        // Re-verify role on token refresh to keep state fresh
-        const role = await verifyRole(session.user.id);
-        if (!cancelled && role) {
-          setState({ isAdmin: true, loading: false, role });
         }
       }
     });
