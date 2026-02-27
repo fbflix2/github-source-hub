@@ -99,18 +99,44 @@ Deno.serve(async (req) => {
             createError.status === 422;
 
           if (isExisting) {
-            // Find user by email using admin API
-            const { data: userList } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
-            const existingUser = userList?.users?.find(
-              (u) => u.email?.toLowerCase() === client.email.toLowerCase()
-            );
+            // Find user by email using GoTrue admin REST API directly
+            const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+            const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+            
+            let existingUserId: string | null = null;
+            let page = 1;
+            const perPage = 100;
+            
+            while (!existingUserId) {
+              const res = await fetch(
+                `${supabaseUrl}/auth/v1/admin/users?page=${page}&per_page=${perPage}`,
+                {
+                  headers: {
+                    Authorization: `Bearer ${serviceKey}`,
+                    apikey: serviceKey,
+                  },
+                }
+              );
+              if (!res.ok) break;
+              const result = await res.json();
+              const users = result.users || [];
+              const found = users.find(
+                (u: any) => u.email?.toLowerCase() === client.email.toLowerCase()
+              );
+              if (found) {
+                existingUserId = found.id;
+                break;
+              }
+              if (users.length < perPage) break;
+              page++;
+            }
 
-            if (existingUser) {
+            if (existingUserId) {
               const { data: profile } = await supabaseAdmin
                 .from("profiles")
                 .select("*")
-                .eq("user_id", existingUser.id)
-                .single();
+                .eq("user_id", existingUserId)
+                .maybeSingle();
 
               if (profile) {
                 const updateData: Record<string, string> = {};
@@ -124,7 +150,7 @@ Deno.serve(async (req) => {
                   const { error: updateError } = await supabaseAdmin
                     .from("profiles")
                     .update(updateData)
-                    .eq("user_id", existingUser.id);
+                    .eq("user_id", existingUserId);
 
                   if (updateError) {
                     errors.push(`${client.email}: erro ao atualizar perfil: ${updateError.message}`);
