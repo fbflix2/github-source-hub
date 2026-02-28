@@ -620,6 +620,14 @@ export default function Checkout() {
           if (cpn) await supabase.from("coupons").update({ used_count: cpn.used_count + 1 }).eq("code", coupon.trim().toUpperCase());
         }
 
+        // Notify admin about completed order
+        await supabase.from("notifications").insert({
+          title: "Pedido Concluído",
+          message: `Pedido #${orderCode} finalizado — R$ ${total.toFixed(2)} (Saldo)`,
+          type: "order",
+          global: true,
+        });
+
         toast.success("Pedido realizado com sucesso!");
         navigate("/orders");
 

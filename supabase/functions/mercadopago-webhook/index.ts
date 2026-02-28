@@ -205,6 +205,14 @@ Deno.serve(async (req) => {
         reference_id: paymentId,
       });
 
+      // Notify admin about wallet recharge
+      await supabase.from("notifications").insert({
+        title: "Recarga de Saldo",
+        message: `Cliente recarregou R$ ${amount.toFixed(2)} via PIX. Novo saldo: R$ ${newBalance.toFixed(2)}`,
+        type: "wallet",
+        global: true,
+      });
+
       console.log(`Credited R$ ${amount} to user ${userId}. New balance: ${newBalance}`);
     } else if (orderId) {
       // ========== ORDER PAYMENT FLOW ==========
@@ -449,6 +457,15 @@ Deno.serve(async (req) => {
           }
         }
       }
+
+      // Notify admin about completed order via PIX
+      const { data: orderData } = await supabase.from("orders").select("code").eq("id", orderId).single();
+      await supabase.from("notifications").insert({
+        title: "Pedido Concluído",
+        message: `Pedido ${orderData?.code || orderId} finalizado — R$ ${amount.toFixed(2)} (PIX)`,
+        type: "order",
+        global: true,
+      });
 
       console.log(`Order ${orderId} fulfilled successfully`);
     }

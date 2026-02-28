@@ -204,6 +204,14 @@ export default function Suporte() {
         attachment_url: attachmentUrls[0] || null,
       });
 
+    // Create global notification for admin team
+    await supabase.from("notifications").insert({
+      title: "Novo Ticket de Suporte",
+      message: `${title.trim()} — Prioridade: ${urgency === "high" ? "Alta" : urgency === "medium" ? "Média" : "Baixa"} (${code})`,
+      type: "ticket",
+      global: true,
+    });
+
     setCreatedCode(code);
     setShowModal(true);
     setTitle("");
