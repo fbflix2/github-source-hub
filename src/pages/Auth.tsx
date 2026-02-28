@@ -164,22 +164,7 @@ export default function Auth() {
     setLoading(false);
   };
 
-    if (error) {
-      toast({
-        title: "Erro ao criar conta",
-        description: error.message,
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "Conta criada!",
-        description: "Você já pode fazer login.",
-      });
-      navigate("/loja");
-    }
 
-    setLoading(false);
-  };
 
   return (
     <div className="bg-background min-h-screen flex items-center justify-center relative overflow-hidden text-foreground">
