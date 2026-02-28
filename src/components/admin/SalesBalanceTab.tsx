@@ -236,16 +236,23 @@ export default function SalesBalanceTab() {
       {chartData.length > 0 && (
         <div className="glass-panel rounded-2xl border border-border p-6">
           <h3 className="text-sm font-semibold text-foreground mb-4">Receita por Dia</h3>
-          <div className="h-48">
+        <div className="h-56">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} barCategoryGap="20%">
-                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} tickFormatter={v => `R$${(v / 1000).toFixed(0)}k`} />
+              <BarChart data={chartData} barCategoryGap="25%">
+                <defs>
+                  <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.9} />
+                    <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0.4} />
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} dy={8} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 11 }} tickFormatter={v => v >= 1000 ? `R$${(v / 1000).toFixed(1)}k` : `R$${v.toFixed(0)}`} width={70} />
                 <Tooltip
-                  contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px', color: 'hsl(var(--foreground))' }}
+                  cursor={{ fill: 'hsl(var(--muted) / 0.3)', radius: 4 }}
+                  contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: '10px', fontSize: '12px', color: 'hsl(var(--foreground))', boxShadow: '0 8px 24px rgba(0,0,0,0.3)' }}
                   formatter={(value: number) => [formatCurrency(value), "Receita"]}
                 />
-                <Bar dataKey="revenue" radius={[4, 4, 0, 0]} fill="hsl(var(--primary))" />
+                <Bar dataKey="revenue" radius={[6, 6, 0, 0]} fill="url(#barGradient)" />
               </BarChart>
             </ResponsiveContainer>
           </div>
