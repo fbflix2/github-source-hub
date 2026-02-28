@@ -94,12 +94,12 @@ Deno.serve(async (req) => {
         if (client.full_name) profileFields.full_name = client.full_name;
 
         // Try to create user first — if exists, we'll get an error
-        const password = crypto.randomUUID().slice(0, 8) + "A1!";
+        const password = "mudar@123";
         const { data: userData, error: createError } = await supabaseAdmin.auth.admin.createUser({
           email: client.email,
           password,
           email_confirm: true,
-          user_metadata: { full_name: client.full_name || "" },
+          user_metadata: { full_name: client.full_name || "", must_change_password: true },
         });
 
         if (createError) {
@@ -176,6 +176,26 @@ Deno.serve(async (req) => {
                     errors.push(`${client.email}: erro ao atualizar perfil: ${updateError.message}`);
                   }
                 }
+              }
+
+              // Reset password and return credentials for existing users too
+              const newPassword = "mudar@123";
+              const { error: resetError } = await supabaseAdmin.auth.admin.updateUser(
+                existingUserId,
+                {
+                  password: newPassword,
+                  user_metadata: { must_change_password: true },
+                }
+              );
+
+              if (!resetError) {
+                credentials.push({
+                  email: client.email,
+                  password: newPassword,
+                  full_name: client.full_name || profile?.full_name || "",
+                });
+              } else {
+                errors.push(`${client.email}: atualizado mas erro ao resetar senha: ${resetError.message}`);
               }
 
               updated++;
