@@ -166,17 +166,17 @@ Deno.serve(async (req) => {
         const fallbackUserId = adminRoles?.[0]?.user_id || "00000000-0000-0000-0000-000000000000";
 
         // 2. Load ALL existing subscriptions from DB at once
-        const existingMap = new Map<string, { id: string; user_id: string }>();
+        const existingMap = new Map<string, { id: string; user_id: string; status: string; cancelled_at: string | null }>();
         let offset = 0;
         while (true) {
           const { data: batch } = await sb
             .from("subscriptions")
-            .select("id, name, user_id")
+            .select("id, name, user_id, status, cancelled_at")
             .eq("type", "proxybr")
             .range(offset, offset + 999);
           if (!batch?.length) break;
           for (const s of batch) {
-            existingMap.set(s.name, { id: s.id, user_id: s.user_id });
+            existingMap.set(s.name, { id: s.id, user_id: s.user_id, status: s.status, cancelled_at: s.cancelled_at });
           }
           if (batch.length < 1000) break;
           offset += 1000;
@@ -268,7 +268,22 @@ Deno.serve(async (req) => {
             if (isCancelled) {
               const existing = existingMap.get(code);
               if (existing) {
-                toDelete.push(existing.id);
+                // Mark as cancelled with timestamp if not already cancelled
+                if (existing.status !== "cancelled") {
+                  toUpdate.push({ id: existing.id, record: { 
+                    name: code, type: "proxybr", status: "cancelled", 
+                    cancelled_at: new Date().toISOString(),
+                    user_id: existing.user_id, raw_data: sub 
+                  }});
+                }
+                // If already cancelled for 10+ days, mark for deletion
+                else if (existing.cancelled_at) {
+                  const cancelledMs = new Date(existing.cancelled_at).getTime();
+                  const daysSinceCancelled = (Date.now() - cancelledMs) / (1000 * 60 * 60 * 24);
+                  if (daysSinceCancelled >= 10) {
+                    toDelete.push(existing.id);
+                  }
+                }
               }
               continue;
             }
@@ -345,14 +360,14 @@ Deno.serve(async (req) => {
           console.log(`Updated ${toUpdate.length} existing subscriptions`);
         }
 
-        // 6. Batch deletes (cancelled subs)
+        // 6. Batch deletes (cancelled subs older than 10 days)
         if (toDelete.length > 0) {
           for (let i = 0; i < toDelete.length; i += BATCH_SIZE) {
             const batch = toDelete.slice(i, i + BATCH_SIZE);
             const { error } = await sb.from("subscriptions").delete().in("id", batch);
             if (error) console.error(`Delete batch error at ${i}:`, error.message);
           }
-          console.log(`Deleted ${toDelete.length} cancelled subscriptions`);
+          console.log(`Deleted ${toDelete.length} cancelled subscriptions (10+ days old)`);
         }
 
         if (reachedEnd) {

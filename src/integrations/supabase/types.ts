@@ -937,6 +937,7 @@ export type Database = {
       subscriptions: {
         Row: {
           auto_renew: boolean
+          cancelled_at: string | null
           created_at: string
           end_date: string | null
           id: string
@@ -951,6 +952,7 @@ export type Database = {
         }
         Insert: {
           auto_renew?: boolean
+          cancelled_at?: string | null
           created_at?: string
           end_date?: string | null
           id?: string
@@ -965,6 +967,7 @@ export type Database = {
         }
         Update: {
           auto_renew?: boolean
+          cancelled_at?: string | null
           created_at?: string
           end_date?: string | null
           id?: string
