@@ -86,9 +86,9 @@ export default function Advertise() {
   async function fetchData() {
     const { data: { user } } = await supabase.auth.getUser();
 
-    // Fetch client count
-    const { count } = await supabase.from("profiles").select("id", { count: "exact", head: true });
-    setClientCount(count || 0);
+    // Fetch client count using RPC to bypass RLS
+    const { data: countData } = await supabase.rpc("get_client_count");
+    setClientCount(Number(countData) || 0);
 
     if (user) {
       // Fetch balance
