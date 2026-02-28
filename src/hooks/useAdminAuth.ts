@@ -78,12 +78,20 @@ export function useAdminAuth() {
       checkAdmin();
     }
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (cancelled) return;
+
       if (event === 'SIGNED_OUT') {
-        if (!cancelled) {
-          setState({ isAdmin: null, loading: false, role: null });
-          navigate("/admin/login");
-        }
+        setState({ isAdmin: null, loading: false, role: null });
+        navigate("/admin/login");
+      } else if (event === 'TOKEN_REFRESHED' && session) {
+        // Re-verify role on token refresh to keep session alive
+        verifyRole(session.user.id).then(role => {
+          if (cancelled) return;
+          if (role) {
+            setState({ isAdmin: true, loading: false, role });
+          }
+        }).catch(() => {});
       }
     });
 
