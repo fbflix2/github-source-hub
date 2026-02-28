@@ -266,12 +266,10 @@ Deno.serve(async (req) => {
             const isCancelled = ["cancelled", "cancelado", "canceled", "not active"].includes(apiStatus);
             
             if (isCancelled) {
-              // If it exists locally, mark for deletion
               const existing = existingMap.get(code);
               if (existing) {
                 toDelete.push(existing.id);
               }
-              // Skip — don't insert or update cancelled subs
               continue;
             }
             else if (["expired", "vencido", "expirado"].includes(apiStatus)) mappedStatus = "expired";
@@ -281,16 +279,39 @@ Deno.serve(async (req) => {
               if (endMs < Date.now()) mappedStatus = "expired";
             }
 
+            // For MONTHLY subs, cap the end_date to max ~35 days from start
+            // This prevents accumulated renewals from showing exaggerated remaining days
+            const subType = (sub.type || "").toUpperCase();
+            let finalEndDate = endDateStr;
+            if (subType === "MONTHLY") {
+              const apiEnd = new Date(endDateStr).getTime();
+              const apiStart = new Date(startDateStr).getTime();
+              const daysDuration = (apiEnd - apiStart) / (1000 * 60 * 60 * 24);
+              // If API says more than 35 days total duration for a monthly sub, it's likely accumulated
+              if (daysDuration > 35) {
+                const existing = existingMap.get(code);
+                if (existing) {
+                  // Preserve the existing local end_date instead of using the API's accumulated one
+                  // We'll read it from the existing data in the next step
+                  finalEndDate = "__PRESERVE_LOCAL__";
+                }
+              }
+            }
+
             const record: Record<string, any> = {
               name: code, type: "proxybr", status: mappedStatus,
-              start_date: startDateStr, end_date: endDateStr,
+              start_date: startDateStr, end_date: finalEndDate === "__PRESERVE_LOCAL__" ? undefined : finalEndDate,
               auto_renew: sub.auto_renew_active ?? false,
               raw_data: sub,
             };
 
+            // Remove end_date from record if we want to preserve local value
+            if (finalEndDate === "__PRESERVE_LOCAL__") {
+              delete record.end_date;
+            }
+
             const existing = existingMap.get(code);
             if (existing) {
-              // Always include user_id for updates (required NOT NULL column)
               record.user_id = existing.user_id;
               if (matchedUserId && existing.user_id === fallbackUserId) {
                 record.user_id = matchedUserId;
@@ -298,6 +319,12 @@ Deno.serve(async (req) => {
               }
               toUpdate.push({ id: existing.id, record });
             } else {
+              // For new inserts with accumulated dates, cap to 30 days from now
+              if (finalEndDate === "__PRESERVE_LOCAL__") {
+                const cappedEnd = new Date();
+                cappedEnd.setDate(cappedEnd.getDate() + 30);
+                record.end_date = cappedEnd.toISOString();
+              }
               record.user_id = matchedUserId || fallbackUserId;
               if (matchedUserId) linked++;
               toInsert.push(record);
