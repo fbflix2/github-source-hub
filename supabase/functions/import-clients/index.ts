@@ -180,7 +180,7 @@ Deno.serve(async (req) => {
 
               // Reset password and return credentials for existing users too
               const newPassword = "mudar@123";
-              const { error: resetError } = await supabaseAdmin.auth.admin.updateUser(
+              const { error: resetError } = await supabaseAdmin.auth.admin.updateUserById(
                 existingUserId,
                 {
                   password: newPassword,
