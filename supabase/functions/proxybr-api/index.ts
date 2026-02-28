@@ -837,20 +837,32 @@ Deno.serve(async (req) => {
           Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
         );
 
-        // 1. Find local subscription to get price info
+        // 1. Find local subscription to get price and date info
         const { data: localSub } = await supabaseAdmin
           .from("subscriptions")
-          .select("id, user_id, product_id, raw_data")
+          .select("id, user_id, product_id, end_date, raw_data")
           .eq("name", params.subscriptionCode)
           .eq("type", "proxybr")
           .maybeSingle();
+
+        // GUARD: Prevent renewal if subscription has more than 7 days remaining
+        if (localSub?.end_date) {
+          const endDate = new Date(localSub.end_date);
+          const now = new Date();
+          const daysRemaining = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+          if (daysRemaining > 7) {
+            return new Response(
+              JSON.stringify({ error: `Assinatura ainda tem ${daysRemaining} dias restantes. Renovação disponível apenas nos últimos 7 dias.` }),
+              { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+        }
 
         // Determine renewal price
         let renewalPrice = 0;
         const subUserId = localSub?.user_id || user.id;
 
         if (localSub?.product_id) {
-          // Try order_items price first (what customer actually paid)
           const { data: orderItem } = await supabaseAdmin
             .from("order_items")
             .select("price")
@@ -863,7 +875,6 @@ Deno.serve(async (req) => {
             const totalProxies = rawData?.proxies?.total || 1;
             renewalPrice = Number(orderItem.price) / totalProxies;
           } else {
-            // Fallback to product catalog price
             const { data: product } = await supabaseAdmin
               .from("products")
               .select("price")
@@ -874,7 +885,6 @@ Deno.serve(async (req) => {
         }
 
         if (!renewalPrice && localSub) {
-          // Last fallback: product by external_id from raw_data
           const rawData = localSub.raw_data as Record<string, any> || {};
           const apiProductId = rawData?.product?.id;
           if (apiProductId) {
@@ -903,14 +913,12 @@ Deno.serve(async (req) => {
             );
           }
 
-          // Debit balance
           const newBalance = currentBalance - renewalPrice;
           await supabaseAdmin
             .from("profiles")
             .update({ balance: newBalance })
             .eq("user_id", subUserId);
 
-          // Record wallet transaction
           await supabaseAdmin.from("wallet_transactions").insert({
             user_id: subUserId,
             type: "purchase",
