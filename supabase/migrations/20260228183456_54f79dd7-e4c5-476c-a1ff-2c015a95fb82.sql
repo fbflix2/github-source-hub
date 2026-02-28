@@ -1,0 +1,1 @@
+UPDATE wallet_transactions SET balance_after = 0 WHERE id = 'fc797bf6-4566-42d1-bd64-8b6bbe9911db';
