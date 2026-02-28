@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
-import { Search, ChevronLeft, ChevronRight, Eye, Trash2, Loader2, ShoppingCart, Package } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Eye, Trash2, Loader2, ShoppingCart, Package, BarChart3 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import SalesBalanceTab from "@/components/admin/SalesBalanceTab";
 import {
   Select,
   SelectContent,
@@ -194,6 +196,19 @@ export default function AdminPedidos() {
         </div>
       </div>
 
+      <Tabs defaultValue="pedidos" className="w-full">
+        <TabsList className="bg-muted/50 border border-border">
+          <TabsTrigger value="pedidos" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <ShoppingCart className="size-4" />
+            Pedidos
+          </TabsTrigger>
+          <TabsTrigger value="balanco" className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <BarChart3 className="size-4" />
+            Balanço de Vendas
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="pedidos" className="mt-6 space-y-6">
       {/* Filters */}
       <div className="glass-panel flex flex-col justify-between gap-4 rounded-2xl p-4 lg:flex-row lg:items-center">
         <div className="relative flex w-full max-w-lg items-center">
@@ -343,6 +358,13 @@ export default function AdminPedidos() {
           </div>
         </div>
       </div>
+
+        </TabsContent>
+
+        <TabsContent value="balanco" className="mt-6">
+          <SalesBalanceTab />
+        </TabsContent>
+      </Tabs>
 
       {/* Order Detail Modal */}
       <Dialog open={!!selectedOrder} onOpenChange={(open) => !open && setSelectedOrder(null)}>

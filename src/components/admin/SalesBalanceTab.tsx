@@ -1,0 +1,284 @@
+import { useState, useEffect, useMemo } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useProxyRevenue } from "@/hooks/useProxyRevenue";
+import {
+  Wallet, TrendingUp, ShoppingCart, Package, Loader2, Filter,
+} from "lucide-react";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
+
+const formatCurrency = (v: number) =>
+  v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+type DateFilter = "hoje" | "7dias" | "30dias" | "ano";
+const dateFilters: { value: DateFilter; label: string }[] = [
+  { value: "hoje", label: "Hoje" },
+  { value: "7dias", label: "7 Dias" },
+  { value: "30dias", label: "30 Dias" },
+  { value: "ano", label: "Ano Atual" },
+];
+
+interface SaleRow {
+  category: string;
+  product: string;
+  qty: number;
+  revenue: number;
+  date: string;
+}
+
+export default function SalesBalanceTab() {
+  const [dateFilter, setDateFilter] = useState<DateFilter>("30dias");
+  const [categoryFilter, setCategoryFilter] = useState("todos");
+  const [loading, setLoading] = useState(true);
+  const [sales, setSales] = useState<SaleRow[]>([]);
+  const [categories, setCategories] = useState<{ id: string; name: string; slug: string }[]>([]);
+  const { totalRevenue: proxyRevenue, count: proxyCount, subsWithPrices } = useProxyRevenue();
+
+  const getSince = () => {
+    const now = new Date();
+    switch (dateFilter) {
+      case "hoje": now.setHours(0, 0, 0, 0); break;
+      case "7dias": now.setDate(now.getDate() - 7); break;
+      case "30dias": now.setDate(now.getDate() - 30); break;
+      case "ano": now.setMonth(0, 1); now.setHours(0, 0, 0, 0); break;
+    }
+    return now.toISOString();
+  };
+
+  useEffect(() => { fetchSales(); }, [dateFilter]);
+
+  const fetchSales = async () => {
+    setLoading(true);
+    const since = getSince();
+
+    const [ordersRes, itemsRes, productsRes, catsRes] = await Promise.all([
+      supabase.from("orders").select("id, total, status, created_at")
+        .in("status", ["completed", "delivered"]).gte("created_at", since),
+      supabase.from("order_items").select("order_id, product_id, name, price, quantity, created_at")
+        .gte("created_at", since),
+      supabase.from("products").select("id, name, category_id"),
+      supabase.from("product_categories").select("id, name, slug"),
+    ]);
+
+    const orders = ordersRes.data ?? [];
+    const items = itemsRes.data ?? [];
+    const products = productsRes.data ?? [];
+    const cats = catsRes.data ?? [];
+    setCategories(cats);
+
+    const completedIds = new Set(orders.map(o => o.id));
+    const prodCatMap = new Map(products.map(p => [p.id, p.category_id]));
+    const catNameMap = new Map(cats.map(c => [c.id, c.name]));
+
+    const rows: SaleRow[] = items
+      .filter(i => completedIds.has(i.order_id))
+      .map(i => {
+        const catId = i.product_id ? prodCatMap.get(i.product_id) : null;
+        return {
+          category: catId ? (catNameMap.get(catId) || "Outros") : "Outros",
+          product: i.name,
+          qty: i.quantity,
+          revenue: i.price * i.quantity,
+          date: new Date(i.created_at).toLocaleDateString("pt-BR"),
+        };
+      });
+
+    setSales(rows);
+    setLoading(false);
+  };
+
+  // Proxy sales rows (from subscriptions)
+  const proxySales = useMemo(() => {
+    if (!subsWithPrices?.length) return [];
+    const since = new Date(getSince());
+    return subsWithPrices
+      .filter(s => new Date(s.created_at) >= since)
+      .map(s => ({
+        category: "Proxy",
+        product: s.name || "Proxy",
+        qty: s.proxyCount,
+        revenue: s.price * s.proxyCount,
+        date: new Date(s.created_at).toLocaleDateString("pt-BR"),
+      }));
+  }, [subsWithPrices, dateFilter]);
+
+  const allSales = useMemo(() => [...sales, ...proxySales], [sales, proxySales]);
+
+  const filtered = useMemo(() =>
+    categoryFilter === "todos"
+      ? allSales
+      : allSales.filter(s => s.category === categoryFilter),
+    [allSales, categoryFilter]
+  );
+
+  const totalRev = useMemo(() => filtered.reduce((s, r) => s + r.revenue, 0), [filtered]);
+  const totalQty = useMemo(() => filtered.reduce((s, r) => s + r.qty, 0), [filtered]);
+
+  // Group by product
+  const byProduct = useMemo(() => {
+    const map = new Map<string, { qty: number; revenue: number; category: string }>();
+    filtered.forEach(r => {
+      const existing = map.get(r.product) || { qty: 0, revenue: 0, category: r.category };
+      existing.qty += r.qty;
+      existing.revenue += r.revenue;
+      map.set(r.product, existing);
+    });
+    return [...map.entries()]
+      .map(([name, d]) => ({ name, ...d }))
+      .sort((a, b) => b.revenue - a.revenue);
+  }, [filtered]);
+
+  // Chart: group by date
+  const chartData = useMemo(() => {
+    const map = new Map<string, number>();
+    filtered.forEach(r => {
+      map.set(r.date, (map.get(r.date) || 0) + r.revenue);
+    });
+    return [...map.entries()]
+      .map(([date, revenue]) => ({ date, revenue }))
+      .sort((a, b) => {
+        const [da, ma, ya] = a.date.split("/");
+        const [db, mb, yb] = b.date.split("/");
+        return `${ya}${ma}${da}`.localeCompare(`${yb}${mb}${db}`);
+      })
+      .slice(-15);
+  }, [filtered]);
+
+  // All unique categories from sales
+  const availableCategories = useMemo(() => {
+    const set = new Set(allSales.map(s => s.category));
+    return [...set].sort();
+  }, [allSales]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="size-8 text-primary animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Filters */}
+      <div className="glass-panel flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 rounded-2xl p-4">
+        <div className="flex items-center gap-2">
+          <Filter className="size-4 text-muted-foreground" />
+          <span className="text-sm font-medium text-muted-foreground">Filtros:</span>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          <div className="flex bg-muted/50 p-1 rounded-lg border border-border">
+            {dateFilters.map(f => (
+              <button
+                key={f.value}
+                onClick={() => setDateFilter(f.value)}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                  dateFilter === f.value
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+            <SelectTrigger className="h-9 w-[180px] rounded-lg border-border bg-background text-sm">
+              <SelectValue placeholder="Categoria" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todas Categorias</SelectItem>
+              {availableCategories.map(c => (
+                <SelectItem key={c} value={c}>{c}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {[
+          { label: "Receita Total", value: formatCurrency(totalRev), icon: Wallet, color: "text-emerald-500", bg: "bg-emerald-500/10 border-emerald-500/20" },
+          { label: "Itens Vendidos", value: totalQty.toString(), icon: Package, color: "text-primary", bg: "bg-primary/10 border-primary/20" },
+          { label: "Ticket Médio", value: formatCurrency(totalQty > 0 ? totalRev / totalQty : 0), icon: TrendingUp, color: "text-amber-400", bg: "bg-amber-400/10 border-amber-400/20" },
+        ].map((stat, i) => (
+          <div key={i} className="glass-panel rounded-xl p-5 border border-border">
+            <div className="flex items-center gap-3 mb-2">
+              <div className={`p-2 rounded-lg border ${stat.bg}`}>
+                <stat.icon className={`size-4 ${stat.color}`} />
+              </div>
+              <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{stat.label}</span>
+            </div>
+            <p className="text-2xl font-black text-foreground">{stat.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Chart */}
+      {chartData.length > 0 && (
+        <div className="glass-panel rounded-2xl border border-border p-6">
+          <h3 className="text-sm font-semibold text-foreground mb-4">Receita por Dia</h3>
+          <div className="h-48">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData} barCategoryGap="20%">
+                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} tickFormatter={v => `R$${(v / 1000).toFixed(0)}k`} />
+                <Tooltip
+                  contentStyle={{ background: 'hsl(var(--popover))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px', color: 'hsl(var(--foreground))' }}
+                  formatter={(value: number) => [formatCurrency(value), "Receita"]}
+                />
+                <Bar dataKey="revenue" radius={[4, 4, 0, 0]} fill="hsl(var(--primary))" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
+      {/* Product breakdown table */}
+      <div className="glass-panel rounded-2xl border border-border overflow-hidden">
+        <div className="px-6 py-4 border-b border-border bg-muted/30">
+          <h3 className="text-sm font-semibold text-foreground">Detalhamento por Produto</h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/50 text-xs uppercase font-semibold text-muted-foreground">
+              <tr>
+                <th className="px-6 py-3 text-left">Produto</th>
+                <th className="px-6 py-3 text-left">Categoria</th>
+                <th className="px-6 py-3 text-center">Qtd</th>
+                <th className="px-6 py-3 text-right">Receita</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {byProduct.length > 0 ? byProduct.map((row, i) => (
+                <tr key={i} className="hover:bg-muted/30 transition-colors">
+                  <td className="px-6 py-3 font-medium text-foreground">{row.name}</td>
+                  <td className="px-6 py-3">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold bg-primary/10 text-primary border border-primary/20">
+                      {row.category}
+                    </span>
+                  </td>
+                  <td className="px-6 py-3 text-center text-muted-foreground">{row.qty}</td>
+                  <td className="px-6 py-3 text-right font-bold text-emerald-400">{formatCurrency(row.revenue)}</td>
+                </tr>
+              )) : (
+                <tr>
+                  <td colSpan={4} className="px-6 py-10 text-center text-muted-foreground">
+                    Nenhuma venda encontrada no período.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+        <div className="px-6 py-3 border-t border-border bg-muted/30 flex justify-between text-xs text-muted-foreground">
+          <span>{byProduct.length} produtos</span>
+          <span className="font-bold text-foreground">Total: {formatCurrency(totalRev)}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
