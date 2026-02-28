@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Upload, FileSpreadsheet, CheckCircle, Loader2, X, AlertCircle, Download } from "lucide-react";
+import { Upload, FileSpreadsheet, CheckCircle, Loader2, X, AlertCircle, Download, Copy, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
@@ -143,7 +143,30 @@ export default function ImportClientsModal({ open, onClose, onImported }: Import
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [importResult, setImportResult] = useState<{ success: number; updated: number; failed: number; errors: string[] } | null>(null);
   const [allCredentials, setAllCredentials] = useState<CredentialRow[]>([]);
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [copiedAll, setCopiedAll] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const PLATFORM_URL = "https://fbflix.com.br/auth";
+
+  const buildCredentialMessage = (cred: CredentialRow) =>
+    `Olá${cred.full_name ? ` ${cred.full_name.split(" ")[0]}` : ""}! 🎉\n\nSua conta na FBFlix está pronta.\n\n🔗 Acesse: ${PLATFORM_URL}\n📧 Email: ${cred.email}\n🔑 Senha: ${cred.password}\n\n⚠️ Essa é uma senha de acesso único. Após o login, você será solicitado a criar uma nova senha.\n\nQualquer dúvida, estamos à disposição!`;
+
+  const handleCopyMessage = (index: number) => {
+    const msg = buildCredentialMessage(allCredentials[index]);
+    navigator.clipboard.writeText(msg);
+    setCopiedIndex(index);
+    toast.success("Mensagem copiada!");
+    setTimeout(() => setCopiedIndex(null), 2000);
+  };
+
+  const handleCopyAll = () => {
+    const all = allCredentials.map(c => buildCredentialMessage(c)).join("\n\n---\n\n");
+    navigator.clipboard.writeText(all);
+    setCopiedAll(true);
+    toast.success("Todas as mensagens copiadas!");
+    setTimeout(() => setCopiedAll(false), 2000);
+  };
 
   const reset = () => {
     setParsedClients([]);
@@ -151,6 +174,8 @@ export default function ImportClientsModal({ open, onClose, onImported }: Import
     setFileName("");
     setImportResult(null);
     setAllCredentials([]);
+    setCopiedIndex(null);
+    setCopiedAll(false);
     setProgress({ current: 0, total: 0 });
   };
 
@@ -412,7 +437,43 @@ export default function ImportClientsModal({ open, onClose, onImported }: Import
                 )}
               </div>
 
-              {allCredentials.length > 0 && (
+              {allCredentials.length > 0 && allCredentials.length <= 3 && (
+                <div className="w-full space-y-3">
+                  <p className="text-sm font-semibold text-primary text-center">Credenciais de Acesso</p>
+                  {allCredentials.map((cred, i) => (
+                    <div key={i} className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-white/90">{cred.full_name || cred.email}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleCopyMessage(i)}
+                          className="h-7 text-xs text-primary hover:text-primary/80"
+                        >
+                          {copiedIndex === i ? <Check className="w-3.5 h-3.5 mr-1" /> : <Copy className="w-3.5 h-3.5 mr-1" />}
+                          {copiedIndex === i ? "Copiado!" : "Copiar Mensagem"}
+                        </Button>
+                      </div>
+                      <div className="bg-black/30 rounded-lg p-3 text-xs text-white/60 whitespace-pre-line font-mono leading-relaxed">
+                        {buildCredentialMessage(cred)}
+                      </div>
+                    </div>
+                  ))}
+                  {allCredentials.length > 1 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCopyAll}
+                      className="w-full border-white/20 text-white/70 text-xs"
+                    >
+                      {copiedAll ? <Check className="w-3.5 h-3.5 mr-1" /> : <Copy className="w-3.5 h-3.5 mr-1" />}
+                      {copiedAll ? "Todas copiadas!" : "Copiar Todas as Mensagens"}
+                    </Button>
+                  )}
+                </div>
+              )}
+
+              {allCredentials.length > 3 && (
                 <div className="w-full bg-primary/10 border border-primary/20 rounded-xl p-4 flex flex-col gap-2">
                   <p className="text-sm font-semibold text-primary flex items-center gap-2">
                     <Download className="w-4 h-4" />
