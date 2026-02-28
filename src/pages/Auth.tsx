@@ -16,9 +16,40 @@ export default function Auth() {
 
   // Register state
   const [registerName, setRegisterName] = useState("");
+  const [registerCpf, setRegisterCpf] = useState("");
   const [registerEmail, setRegisterEmail] = useState("");
   const [registerPassword, setRegisterPassword] = useState("");
   const [acceptTerms, setAcceptTerms] = useState(false);
+
+  // CPF mask helper
+  const formatCpf = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 11);
+    return digits
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+  };
+
+  const validateCpf = (cpf: string) => {
+    const digits = cpf.replace(/\D/g, "");
+    if (digits.length !== 11) return false;
+    if (/^(\d)\1+$/.test(digits)) return false;
+    let sum = 0;
+    for (let i = 0; i < 9; i++) sum += parseInt(digits[i]) * (10 - i);
+    let rest = (sum * 10) % 11;
+    if (rest === 10) rest = 0;
+    if (rest !== parseInt(digits[9])) return false;
+    sum = 0;
+    for (let i = 0; i < 10; i++) sum += parseInt(digits[i]) * (11 - i);
+    rest = (sum * 10) % 11;
+    if (rest === 10) rest = 0;
+    return rest === parseInt(digits[10]);
+  };
+
+  const validateFullName = (name: string) => {
+    const parts = name.trim().split(/\s+/);
+    return parts.length >= 2 && parts.every(p => p.length >= 2);
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,6 +102,22 @@ export default function Auth() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validateFullName(registerName)) {
+      toast({
+        title: "Nome inválido",
+        description: "Informe seu nome completo (nome e sobrenome).",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!validateCpf(registerCpf)) {
+      toast({
+        title: "CPF inválido",
+        description: "Informe um CPF válido.",
+        variant: "destructive",
+      });
+      return;
+    }
     if (!acceptTerms) {
       toast({
         title: "Termos obrigatórios",
@@ -81,16 +128,41 @@ export default function Auth() {
     }
     setLoading(true);
 
-    const { error } = await supabase.auth.signUp({
+    const { data: signUpData, error } = await supabase.auth.signUp({
       email: registerEmail,
       password: registerPassword,
       options: {
         emailRedirectTo: `${window.location.origin}/dashboard`,
         data: {
           full_name: registerName,
+          cpf: registerCpf.replace(/\D/g, ""),
         },
       },
     });
+
+    if (error) {
+      toast({
+        title: "Erro ao criar conta",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      // Save CPF to profile
+      if (signUpData?.user) {
+        await supabase.from("profiles").update({ 
+          cpf: registerCpf.replace(/\D/g, ""),
+          full_name: registerName.trim(),
+        }).eq("user_id", signUpData.user.id);
+      }
+      toast({
+        title: "Conta criada!",
+        description: "Você já pode fazer login.",
+      });
+      navigate("/loja");
+    }
+
+    setLoading(false);
+  };
 
     if (error) {
       toast({
@@ -255,7 +327,28 @@ export default function Auth() {
                       value={registerName}
                       onChange={(e) => setRegisterName(e.target.value)}
                       className="w-full bg-card border border-border rounded-xl py-3.5 pl-10 pr-4 text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all text-sm font-medium"
-                      placeholder="Seu nome"
+                      placeholder="Nome e Sobrenome"
+                      required
+                    />
+                  </div>
+                </div>
+
+                {/* CPF Input */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium text-muted-foreground pl-1">CPF</label>
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <span className="material-symbols-outlined text-muted-foreground group-focus-within:text-primary transition-colors text-[20px]">
+                        badge
+                      </span>
+                    </div>
+                    <input
+                      type="text"
+                      value={registerCpf}
+                      onChange={(e) => setRegisterCpf(formatCpf(e.target.value))}
+                      className="w-full bg-card border border-border rounded-xl py-3.5 pl-10 pr-4 text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all text-sm font-medium"
+                      placeholder="000.000.000-00"
+                      maxLength={14}
                       required
                     />
                   </div>
