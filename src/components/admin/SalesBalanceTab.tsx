@@ -54,7 +54,7 @@ export default function SalesBalanceTab() {
     const since = getSince();
 
     const [ordersRes, itemsRes, productsRes, catsRes] = await Promise.all([
-      supabase.from("orders").select("id, total, status, created_at")
+      supabase.from("orders").select("id, total, subtotal, discount, status, created_at")
         .in("status", ["completed", "delivered"]).gte("created_at", since),
       supabase.from("order_items").select("order_id, product_id, name, price, quantity, created_at")
         .gte("created_at", since),
@@ -68,22 +68,37 @@ export default function SalesBalanceTab() {
     const cats = catsRes.data ?? [];
     setCategories(cats);
 
-    const completedIds = new Set(orders.map(o => o.id));
+    const completedOrders = new Map(orders.map(o => [o.id, o]));
     const prodCatMap = new Map(products.map(p => [p.id, p.category_id]));
     const catNameMap = new Map(cats.map(c => [c.id, c.name]));
 
-    const rows: SaleRow[] = items
-      .filter(i => completedIds.has(i.order_id))
-      .map(i => {
+    // Group items by order to calculate discount ratio
+    const itemsByOrder = new Map<string, typeof items>();
+    items.forEach(i => {
+      if (!completedOrders.has(i.order_id)) return;
+      const list = itemsByOrder.get(i.order_id) || [];
+      list.push(i);
+      itemsByOrder.set(i.order_id, list);
+    });
+
+    const rows: SaleRow[] = [];
+    itemsByOrder.forEach((orderItems, orderId) => {
+      const order = completedOrders.get(orderId)!;
+      // Calculate ratio of actual paid vs subtotal to distribute discount
+      const subtotal = order.subtotal || orderItems.reduce((s, i) => s + i.price * i.quantity, 0);
+      const discountRatio = subtotal > 0 ? (order.total / subtotal) : 1;
+
+      orderItems.forEach(i => {
         const catId = i.product_id ? prodCatMap.get(i.product_id) : null;
-        return {
+        rows.push({
           category: catId ? (catNameMap.get(catId) || "Outros") : "Outros",
           product: i.name,
           qty: i.quantity,
-          revenue: i.price * i.quantity,
+          revenue: i.price * i.quantity * discountRatio,
           date: new Date(i.created_at).toLocaleDateString("pt-BR"),
-        };
+        });
       });
+    });
 
     setSales(rows);
     setLoading(false);
