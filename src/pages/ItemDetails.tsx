@@ -647,6 +647,12 @@ export default function ItemDetails() {
                                   })
                                   .eq("id", itemId);
 
+                                // Mark page_request as completed so floating button disappears
+                                await supabase
+                                  .from("page_requests")
+                                  .update({ status: "completed" })
+                                  .eq("order_item_id", itemId);
+
                                 // Notify admin via notifications table
                                 const { data: { user } } = await supabase.auth.getUser();
                                 const { data: profile } = await supabase
