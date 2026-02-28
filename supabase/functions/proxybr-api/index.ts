@@ -829,11 +829,107 @@ Deno.serve(async (req) => {
         );
       }
 
-      case "renew-subscription":
+      case "renew-subscription": {
         if (!params.subscriptionCode) throw new Error("subscriptionCode é obrigatório");
+
+        const supabaseAdmin = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+        );
+
+        // 1. Find local subscription to get price info
+        const { data: localSub } = await supabaseAdmin
+          .from("subscriptions")
+          .select("id, user_id, product_id, raw_data")
+          .eq("name", params.subscriptionCode)
+          .eq("type", "proxybr")
+          .maybeSingle();
+
+        // Determine renewal price
+        let renewalPrice = 0;
+        const subUserId = localSub?.user_id || user.id;
+
+        if (localSub?.product_id) {
+          // Try order_items price first (what customer actually paid)
+          const { data: orderItem } = await supabaseAdmin
+            .from("order_items")
+            .select("price")
+            .contains("delivery_data", { subscription_code: params.subscriptionCode })
+            .limit(1)
+            .maybeSingle();
+
+          if (orderItem?.price != null) {
+            const rawData = localSub.raw_data as Record<string, any> || {};
+            const totalProxies = rawData?.proxies?.total || 1;
+            renewalPrice = Number(orderItem.price) / totalProxies;
+          } else {
+            // Fallback to product catalog price
+            const { data: product } = await supabaseAdmin
+              .from("products")
+              .select("price")
+              .eq("id", localSub.product_id)
+              .maybeSingle();
+            if (product?.price != null) renewalPrice = Number(product.price);
+          }
+        }
+
+        if (!renewalPrice && localSub) {
+          // Last fallback: product by external_id from raw_data
+          const rawData = localSub.raw_data as Record<string, any> || {};
+          const apiProductId = rawData?.product?.id;
+          if (apiProductId) {
+            const { data: product } = await supabaseAdmin
+              .from("products")
+              .select("price")
+              .eq("external_id", String(apiProductId))
+              .maybeSingle();
+            if (product?.price != null) renewalPrice = Number(product.price);
+          }
+        }
+
+        // 2. Check and debit balance
+        if (renewalPrice > 0) {
+          const { data: profile } = await supabaseAdmin
+            .from("profiles")
+            .select("balance")
+            .eq("user_id", subUserId)
+            .single();
+
+          const currentBalance = Number(profile?.balance || 0);
+          if (currentBalance < renewalPrice) {
+            return new Response(
+              JSON.stringify({ error: `Saldo insuficiente. Necessário: R$ ${renewalPrice.toFixed(2)}, disponível: R$ ${currentBalance.toFixed(2)}` }),
+              { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+
+          // Debit balance
+          const newBalance = currentBalance - renewalPrice;
+          await supabaseAdmin
+            .from("profiles")
+            .update({ balance: newBalance })
+            .eq("user_id", subUserId);
+
+          // Record wallet transaction
+          await supabaseAdmin.from("wallet_transactions").insert({
+            user_id: subUserId,
+            type: "purchase",
+            title: `Renovação Proxy - ${params.subscriptionCode}`,
+            amount: -renewalPrice,
+            balance_after: newBalance,
+            reference_id: localSub?.id || null,
+          });
+
+          console.log(`Debited R$ ${renewalPrice.toFixed(2)} from user ${subUserId} for renewal of ${params.subscriptionCode}`);
+        } else {
+          console.warn(`Could not determine renewal price for ${params.subscriptionCode}, proceeding without debit`);
+        }
+
+        // 3. Call ProxyBR API to renew
         url = `${PROXYBR_BASE}/subscriptions/${params.subscriptionCode}/renew`;
         method = "POST";
         break;
+      }
 
       case "exchange-proxy":
         if (!params.subscriptionCode) throw new Error("subscriptionCode é obrigatório");
