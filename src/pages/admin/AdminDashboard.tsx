@@ -215,8 +215,8 @@ export default function AdminDashboard() {
         proxyRevenueForChart = proxyRevenue;
       }
 
+      // Chart shows only actual order revenue per day (no proxy recurring total)
       if (!monthMap[todayChartKey]) monthMap[todayChartKey] = 0;
-      monthMap[todayChartKey] += proxyRevenueForChart;
       setChartData(Object.entries(monthMap).slice(-7).map(([name, value]) => ({ name, value })));
 
       setCategoryStats(cats.map(c => {
