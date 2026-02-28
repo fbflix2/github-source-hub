@@ -294,12 +294,38 @@ Deno.serve(async (req) => {
               if (endMs < Date.now()) mappedStatus = "expired";
             }
 
+            // For MONTHLY subs, cap end_date to ~35 days from start to prevent accumulated renewals
+            const subType = (sub.type || "").toUpperCase();
+            let finalEndDate = endDateStr;
+            if (subType === "MONTHLY") {
+              const apiEnd = new Date(endDateStr).getTime();
+              const apiStart = new Date(startDateStr).getTime();
+              const daysDuration = (apiEnd - apiStart) / (1000 * 60 * 60 * 24);
+              if (daysDuration > 35) {
+                const existing = existingMap.get(code);
+                if (existing) {
+                  // Preserve local end_date instead of API's accumulated one
+                  finalEndDate = "__PRESERVE_LOCAL__";
+                } else {
+                  // New insert: cap to 30 days from now
+                  const cappedEnd = new Date();
+                  cappedEnd.setDate(cappedEnd.getDate() + 30);
+                  finalEndDate = cappedEnd.toISOString();
+                }
+              }
+            }
+
             const record: Record<string, any> = {
               name: code, type: "proxybr", status: mappedStatus,
-              start_date: startDateStr, end_date: endDateStr,
+              start_date: startDateStr, end_date: finalEndDate === "__PRESERVE_LOCAL__" ? undefined : finalEndDate,
               auto_renew: sub.auto_renew_active ?? false,
               raw_data: sub,
             };
+
+            // Remove end_date from record if preserving local value
+            if (finalEndDate === "__PRESERVE_LOCAL__") {
+              delete record.end_date;
+            }
 
             const existing = existingMap.get(code);
             if (existing) {
