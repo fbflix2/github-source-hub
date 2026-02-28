@@ -928,7 +928,33 @@ Deno.serve(async (req) => {
             reference_id: localSub?.id || null,
           });
 
-          console.log(`Debited R$ ${renewalPrice.toFixed(2)} from user ${subUserId} for renewal of ${params.subscriptionCode}`);
+          // Create order record so renewal appears in financial reports
+          const orderCode = `REN-${params.subscriptionCode}-${Date.now().toString(36).toUpperCase()}`;
+          const rawData = localSub?.raw_data as Record<string, any> || {};
+          const productName = rawData?.product?.name || `Proxy ${params.subscriptionCode}`;
+
+          const { data: newOrder } = await supabaseAdmin.from("orders").insert({
+            user_id: subUserId,
+            code: orderCode,
+            subtotal: renewalPrice,
+            discount: 0,
+            total: renewalPrice,
+            status: "completed",
+            payment_method: "saldo",
+          }).select("id").single();
+
+          if (newOrder?.id) {
+            await supabaseAdmin.from("order_items").insert({
+              order_id: newOrder.id,
+              product_id: localSub?.product_id || null,
+              name: `Renovação - ${productName}`,
+              price: renewalPrice,
+              quantity: 1,
+              delivery_data: { subscription_code: params.subscriptionCode, type: "proxy_renewal" },
+            });
+          }
+
+          console.log(`Debited R$ ${renewalPrice.toFixed(2)} from user ${subUserId} for renewal of ${params.subscriptionCode}, order: ${orderCode}`);
         } else {
           console.warn(`Could not determine renewal price for ${params.subscriptionCode}, proceeding without debit`);
         }
