@@ -200,29 +200,46 @@ export default function AdminBalanco() {
       }))
     );
 
-    // Category breakdown
+    // Category breakdown - using net revenue (after discounts/coupons)
     const prodCatMap: Record<string, string> = {};
     products.forEach(p => { if (p.category_id) prodCatMap[p.id] = p.category_id; });
+    
+    // Build order subtotal map for proportional discount distribution
+    const orderSubtotalMap: Record<string, number> = {};
+    const orderTotalMap: Record<string, number> = {};
+    orders.forEach(o => {
+      orderTotalMap[o.id] = Number(o.total || 0);
+    });
+    // Calculate subtotal per order from items
+    orderItems.filter(i => completedOrderIds.has(i.order_id)).forEach(item => {
+      orderSubtotalMap[item.order_id] = (orderSubtotalMap[item.order_id] || 0) + (item.price * item.quantity);
+    });
+
     const catMap: Record<string, { cost: number; revenue: number }> = {};
     orderItems.filter(i => completedOrderIds.has(i.order_id)).forEach(item => {
       const catId = item.product_id ? prodCatMap[item.product_id] : null;
       if (catId) {
         if (!catMap[catId]) catMap[catId] = { cost: 0, revenue: 0 };
-        catMap[catId].revenue += item.price * item.quantity;
+        // Apply proportional discount: item_net = item_gross * (order_total / order_subtotal)
+        const subtotal = orderSubtotalMap[item.order_id] || 1;
+        const total = orderTotalMap[item.order_id] || 0;
+        const ratio = subtotal > 0 ? total / subtotal : 1;
+        catMap[catId].revenue += (item.price * item.quantity) * ratio;
       }
     });
-    // Add proxy revenue to "Proxy" category
+    
     const proxyCat = categories.find((c: any) => c.slug === "proxy") || categories.find((c: any) => c.name.toLowerCase().includes("proxy"));
     const catDataList = categories.map((c: any) => ({
       name: c.name,
       cost: catMap[c.id]?.cost ?? 0,
       revenue: catMap[c.id]?.revenue ?? 0,
     }));
-    // Override proxy category with proxy subscription revenue
+    // For proxy category: combine order-based revenue + subscription-based revenue
     if (proxyCat) {
       const idx = catDataList.findIndex((c: any) => c.name === proxyCat.name);
       if (idx >= 0) {
-        catDataList[idx].revenue = proxyRevenue;
+        // Keep the order-based net revenue (renewals etc.) + add recurring proxy revenue
+        catDataList[idx].revenue += proxyRevenue;
       }
     }
     setCategoryData(catDataList.filter(c => c.revenue > 0));
