@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useProxyRevenue } from "@/hooks/useProxyRevenue";
-import { Wallet, TrendingUp, ShoppingBag, BarChart3, RefreshCw, ExternalLink } from "lucide-react";
+import { Wallet, TrendingUp, TrendingDown, ShoppingBag, BarChart3, RefreshCw, ExternalLink, DollarSign } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -40,18 +40,7 @@ export default function ProxyFinancialOverview() {
     staleTime: 120_000,
   });
 
-  // (sales data now comes from useProxyRevenue hook)
-
-  // Get reseller discounts for cost calculation
-  const { data: discountSetting } = useQuery({
-    queryKey: ["proxybr-reseller-discounts"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("site_settings").select("value").eq("key", "proxybr_reseller_discounts").maybeSingle();
-      if (error) throw error;
-      return data?.value || "{}";
-    },
-    staleTime: 60_000,
-  });
+  // (cost data now comes from useProxyRevenue hook)
 
   // Active subscriptions count (exploded: count individual proxies in multi-proxy subs)
   const { data: subsCount } = useQuery({
@@ -112,7 +101,7 @@ export default function ProxyFinancialOverview() {
       </div>
 
       {/* Top Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* ProxyBR Balance */}
         <Card className="border-primary/30 bg-card/60 backdrop-blur-sm shadow-lg shadow-primary/5">
           <CardContent className="p-4">
@@ -141,7 +130,7 @@ export default function ProxyFinancialOverview() {
           </CardContent>
         </Card>
 
-        {/* Revenue - from all active subscriptions (exploded) */}
+        {/* Revenue */}
         <Card className="border-border/40 bg-card/60 backdrop-blur-sm">
           <CardContent className="p-4 flex items-center gap-3">
             <div className="flex items-center justify-center size-10 rounded-lg bg-green-500/10">
@@ -154,14 +143,47 @@ export default function ProxyFinancialOverview() {
           </CardContent>
         </Card>
 
-        {/* Proxies sold (exploded count) */}
+        {/* Real Cost */}
+        <Card className="border-border/40 bg-card/60 backdrop-blur-sm">
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="flex items-center justify-center size-10 rounded-lg bg-red-500/10">
+              <TrendingDown className="size-5 text-red-500" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Custo Real</p>
+              <p className="text-xl font-bold text-foreground">{formatCurrency(proxyRevenue.totalCost)}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Net Profit */}
+        <Card className={`border-border/40 bg-card/60 backdrop-blur-sm ${proxyRevenue.totalProfit > 0 ? "border-green-500/30" : "border-destructive/30"}`}>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className={`flex items-center justify-center size-10 rounded-lg ${proxyRevenue.totalProfit > 0 ? "bg-green-500/10" : "bg-destructive/10"}`}>
+              <DollarSign className={`size-5 ${proxyRevenue.totalProfit > 0 ? "text-green-500" : "text-destructive"}`} />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Lucro Líquido</p>
+              <p className={`text-xl font-bold ${proxyRevenue.totalProfit > 0 ? "text-green-500" : "text-destructive"}`}>
+                {formatCurrency(proxyRevenue.totalProfit)}
+              </p>
+              {proxyRevenue.totalRevenue > 0 && (
+                <p className="text-[10px] text-muted-foreground">
+                  Margem: {((proxyRevenue.totalProfit / proxyRevenue.totalRevenue) * 100).toFixed(1)}%
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Proxies sold */}
         <Card className="border-border/40 bg-card/60 backdrop-blur-sm">
           <CardContent className="p-4 flex items-center gap-3">
             <div className="flex items-center justify-center size-10 rounded-lg bg-blue-500/10">
               <ShoppingBag className="size-5 text-blue-500" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Vendas no Período</p>
+              <p className="text-xs text-muted-foreground">Proxies Ativos</p>
               <p className="text-xl font-bold text-foreground">{proxyRevenue.count}</p>
             </div>
           </CardContent>
@@ -276,40 +298,51 @@ export default function ProxyFinancialOverview() {
               <TableHeader>
                 <TableRow className="border-border/30">
                   <TableHead>Produto</TableHead>
-                  <TableHead className="text-right">Qtd. Vendida</TableHead>
+                  <TableHead className="text-right">Qtd.</TableHead>
                   <TableHead className="text-right">Receita</TableHead>
-                  <TableHead className="text-right">% do Total</TableHead>
+                  <TableHead className="text-right">Custo</TableHead>
+                  <TableHead className="text-right">Lucro</TableHead>
+                  <TableHead className="text-right">Margem</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {(() => {
-                  // Build product breakdown from subscriptions (exploded)
-                  const breakdown = new Map<string, { name: string; qty: number; revenue: number }>();
+                  const breakdown = new Map<string, { name: string; qty: number; revenue: number; cost: number }>();
                   for (const sub of proxyRevenue.subsWithPrices) {
                     const raw = sub.raw_data || {};
                     const productName = raw.product?.name || sub.name || "Proxy";
-                    const existing = breakdown.get(productName) || { name: productName, qty: 0, revenue: 0 };
+                    const existing = breakdown.get(productName) || { name: productName, qty: 0, revenue: 0, cost: 0 };
                     existing.qty += sub.proxyCount;
                     existing.revenue += sub.price * sub.proxyCount;
+                    existing.cost += sub.unitCost * sub.proxyCount;
                     breakdown.set(productName, existing);
                   }
                   const items = Array.from(breakdown.values()).sort((a, b) => b.revenue - a.revenue);
 
                   if (!items.length) {
                     return (
-                      <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">Nenhuma venda de proxy ativa</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhuma venda de proxy ativa</TableCell></TableRow>
                     );
                   }
 
                   return items.map((item, i) => {
-                    const pct = proxyRevenue.totalRevenue > 0 ? (item.revenue / proxyRevenue.totalRevenue) * 100 : 0;
+                    const profit = item.revenue - item.cost;
+                    const margin = item.revenue > 0 ? (profit / item.revenue) * 100 : 0;
                     return (
                       <TableRow key={i} className="border-border/20">
                         <TableCell className="font-medium text-foreground text-sm">{item.name}</TableCell>
                         <TableCell className="text-right font-mono text-sm">{item.qty}</TableCell>
                         <TableCell className="text-right font-mono text-sm text-foreground">{formatCurrency(item.revenue)}</TableCell>
+                        <TableCell className="text-right font-mono text-sm text-muted-foreground">{formatCurrency(item.cost)}</TableCell>
                         <TableCell className="text-right">
-                          <Badge variant="outline" className="font-mono text-xs">{pct.toFixed(0)}%</Badge>
+                          <span className={`font-mono text-sm font-medium ${profit > 0 ? "text-green-500" : "text-destructive"}`}>
+                            {formatCurrency(profit)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Badge variant={profit > 0 ? "default" : "destructive"} className="font-mono text-xs">
+                            {margin.toFixed(0)}%
+                          </Badge>
                         </TableCell>
                       </TableRow>
                     );
