@@ -57,12 +57,13 @@ export default function AdminBalanco() {
     setLoading(true);
     const since = getSinceDate();
 
-    const [ordersRes, purchasesRes, orderItemsRes, categoriesRes, productsRes] = await Promise.all([
+    const [ordersRes, purchasesRes, orderItemsRes, categoriesRes, productsRes, discountRes] = await Promise.all([
       supabase.from("orders").select("id, total, status, created_at, code").in("status", ["completed", "delivered"]).gte("created_at", since).order("created_at", { ascending: false }),
       supabase.from("purchases").select("*").gte("created_at", since).order("created_at", { ascending: false }),
       supabase.from("order_items").select("product_id, price, quantity, order_id, name, created_at").gte("created_at", since),
       supabase.from("product_categories").select("id, name, slug"),
-      supabase.from("products").select("id, category_id, name"),
+      supabase.from("products").select("id, category_id, name, price, external_id"),
+      supabase.from("site_settings").select("value").eq("key", "proxybr_reseller_discounts").maybeSingle(),
     ]);
 
     const orders = ordersRes.data ?? [];
@@ -76,12 +77,76 @@ export default function AdminBalanco() {
 
     // Revenue = sum of completed orders
     const revenue = orders.reduce((s, o) => s + Number(o.total || 0), 0);
-    // Cost = sum of purchases
-    const cost = purchases.reduce((s, p) => s + Number(p.total_value || 0), 0);
+    // Cost = sum of purchases (manual entries)
+    const purchaseCost = purchases.reduce((s, p) => s + Number(p.total_value || 0), 0);
 
+    // Calculate proxy cost from active subscriptions using API prices with reseller discounts
+    let proxyCost = 0;
+    const discountMap: Record<string, number> = {};
+    try {
+      const parsed = JSON.parse(discountRes.data?.value || "{}");
+      Object.entries(parsed).forEach(([k, v]) => { discountMap[k] = parseFloat(String(v)) || 0; });
+    } catch {}
+
+    // Get API prices for proxy products
+    try {
+      const { data: apiData } = await supabase.functions.invoke("proxybr-api", { body: { action: "get-products" } });
+      const apiProducts = apiData?.data || apiData || [];
+      const apiPriceMap = new Map<string, number>();
+      
+      if (Array.isArray(apiProducts)) {
+        apiProducts.forEach((p: any) => {
+          const variants = p.variant || p.variants || [];
+          if (Array.isArray(variants)) {
+            variants.forEach((v: any) => {
+              const discount = discountMap[String(p.id)] || 0;
+              const realCost = v.price * (1 - discount / 100);
+              apiPriceMap.set(`${p.id}`, realCost);
+            });
+          }
+          if (!apiPriceMap.has(`${p.id}`)) {
+            const discount = discountMap[String(p.id)] || 0;
+            apiPriceMap.set(`${p.id}`, (p.price || 0) * (1 - discount / 100));
+          }
+        });
+      }
+
+      // Calculate cost for each active proxy subscription
+      const { subsWithPrices } = { subsWithPrices: [] as any[] };
+      // Use proxyRevenue hook data - but we need to calculate cost separately
+      let allSubs: any[] = [];
+      let from = 0;
+      while (true) {
+        const { data: batch } = await supabase
+          .from("subscriptions")
+          .select("name, status, end_date, raw_data")
+          .eq("status", "active")
+          .range(from, from + 999);
+        if (!batch?.length) break;
+        allSubs = [...allSubs, ...batch];
+        if (batch.length < 1000) break;
+        from += 1000;
+      }
+
+      const now = new Date();
+      allSubs.filter(s => !s.end_date || new Date(s.end_date) >= now).forEach(sub => {
+        const raw = sub.raw_data || {};
+        const productId = raw.product?.id;
+        const proxies = raw.proxies?.data;
+        const proxyCount = (Array.isArray(proxies) && proxies.length > 1) ? proxies.length : 1;
+        
+        if (productId && apiPriceMap.has(`${productId}`)) {
+          proxyCost += apiPriceMap.get(`${productId}`)! * proxyCount;
+        }
+      });
+    } catch (err) {
+      console.warn("Could not fetch proxy costs:", err);
+    }
+
+    const totalCostCombined = purchaseCost + proxyCost;
     setTotalRevenue(revenue);
-    setTotalCost(cost);
-    setAvgCostPerItem(purchases.length > 0 ? cost / purchases.reduce((s, p) => s + (p.quantity || 1), 0) : 0);
+    setTotalCost(totalCostCombined);
+    setAvgCostPerItem(purchases.length > 0 ? purchaseCost / purchases.reduce((s, p) => s + (p.quantity || 1), 0) : 0);
 
     // Build transactions list (mixed sales + purchases)
     const txList: Transaction[] = [
