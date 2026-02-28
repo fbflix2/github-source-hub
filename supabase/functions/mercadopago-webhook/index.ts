@@ -151,8 +151,8 @@ Deno.serve(async (req) => {
     const userId = existingPayment.user_id;
     const orderId = existingPayment.order_id;
 
-    // Mark payment as completed
-    await supabase
+    // Atomic update: only mark as completed if still pending (prevents race condition duplicates)
+    const { data: updatedPayment, error: updateError } = await supabase
       .from("payments")
       .update({
         status: "completed",
@@ -162,7 +162,18 @@ Deno.serve(async (req) => {
           mp_payment_id: String(mpPaymentId),
         },
       })
-      .eq("id", paymentId);
+      .eq("id", paymentId)
+      .neq("status", "completed")
+      .select("id")
+      .maybeSingle();
+
+    if (!updatedPayment) {
+      console.log("Payment was already completed by another request (race condition prevented):", paymentId);
+      return new Response(JSON.stringify({ received: true, already_processed: true }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Check if this is a wallet recharge or an order payment
     const metadataObj = typeof existingPayment.metadata === 'object' && existingPayment.metadata ? existingPayment.metadata : {};
