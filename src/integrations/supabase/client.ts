@@ -23,19 +23,23 @@ let refreshInterval: ReturnType<typeof setInterval> | null = null;
 async function startSessionKeepAlive() {
   if (refreshInterval) clearInterval(refreshInterval);
   
-  // Refresh every 50 minutes (tokens expire after 60 min by default)
+  // Refresh every 4 minutes to prevent any chance of expiration
   refreshInterval = setInterval(async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-      const expiresAt = session.expires_at ? session.expires_at * 1000 : 0;
-      const now = Date.now();
-      // If token expires within 5 minutes, refresh proactively
-      if (expiresAt - now < 5 * 60 * 1000) {
-        console.log('[auth] Proactively refreshing session token');
-        await supabase.auth.refreshSession();
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const expiresAt = session.expires_at ? session.expires_at * 1000 : 0;
+        const now = Date.now();
+        // If token expires within 10 minutes, refresh proactively
+        if (expiresAt - now < 10 * 60 * 1000) {
+          console.log('[auth] Proactively refreshing session token');
+          await supabase.auth.refreshSession();
+        }
       }
+    } catch (err) {
+      console.warn('[auth] Keep-alive refresh failed:', err);
     }
-  }, 60 * 1000); // Check every minute
+  }, 4 * 60 * 1000); // Check every 4 minutes
 }
 
 supabase.auth.onAuthStateChange((event, session) => {
