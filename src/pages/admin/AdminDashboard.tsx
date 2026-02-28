@@ -207,7 +207,7 @@ export default function AdminDashboard() {
           } else if (namePriceMap.has(productName.toLowerCase().trim())) {
             price = namePriceMap.get(productName.toLowerCase().trim())!;
           }
-          proxyRevenue += price; // 1 subscription = 1 price (not multiplied by proxy count)
+          proxyRevenue += price * proxyCount;
           proxySales += proxyCount;
         });
 
