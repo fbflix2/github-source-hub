@@ -73,12 +73,12 @@ export function useProxyRevenue() {
         price = nameMap.get(productName.toLowerCase().trim())!;
       }
 
-      // Count individual proxies in multi-proxy subscriptions
+      // Multi-proxy subscriptions: price is for the whole package, not per proxy
       const proxies = raw.proxies?.data;
       const proxyCount = (Array.isArray(proxies) && proxies.length > 1) ? proxies.length : 1;
 
-      totalRevenue += price * proxyCount;
-      totalCount += proxyCount;
+      totalRevenue += price; // 1 subscription = 1 price (regardless of proxy count)
+      totalCount += proxyCount; // Count individual proxies for display
       return { ...sub, price, proxyCount };
     });
 
