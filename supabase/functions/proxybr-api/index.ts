@@ -971,14 +971,46 @@ Deno.serve(async (req) => {
         break;
       }
 
-      case "exchange-proxy":
+      case "exchange-proxy": {
         if (!params.subscriptionCode) throw new Error("subscriptionCode é obrigatório");
+
+        // Fetch current subscription data from ProxyBR to get the real/fresh proxy_id
+        const subDetailUrl = `${PROXYBR_BASE}/subscriptions/${params.subscriptionCode}`;
+        console.log(`Exchange proxy: fetching fresh data for ${params.subscriptionCode}`);
+        const subDetailResp = await proxyFetch(subDetailUrl, PROXYBR_API_KEY);
+        const subDetailText = await subDetailResp.text();
+
+        let freshProxyId = params.proxy_id;
+        if (subDetailResp.ok) {
+          try {
+            const subDetail = JSON.parse(subDetailText);
+            const proxies = subDetail?.proxies?.data || [];
+            if (proxies.length === 1) {
+              freshProxyId = proxies[0].id;
+            } else if (proxies.length > 1 && params.proxy_id) {
+              // For multi-proxy, check if the provided proxy_id exists; if not, log warning
+              const match = proxies.find((p: any) => p.id === params.proxy_id);
+              if (!match) {
+                console.warn(`Provided proxy_id ${params.proxy_id} not found in subscription proxies, using first: ${proxies[0].id}`);
+                freshProxyId = proxies[0].id;
+              }
+            } else if (proxies.length > 0) {
+              freshProxyId = proxies[0].id;
+            }
+            console.log(`Exchange proxy: fresh proxy_id=${freshProxyId} (client sent=${params.proxy_id || 'none'})`);
+          } catch (e) {
+            console.warn(`Failed to parse subscription detail, using client proxy_id: ${params.proxy_id}`);
+          }
+        } else {
+          console.warn(`Failed to fetch subscription detail [${subDetailResp.status}], using client proxy_id: ${params.proxy_id}`);
+        }
+
         url = `${PROXYBR_BASE}/subscriptions/${params.subscriptionCode}/exchange-proxy`;
         method = "PUT";
-        // Only send proxy_id if explicitly provided (for multi-proxy subscriptions)
-        body = params.proxy_id ? JSON.stringify({ proxy_id: params.proxy_id }) : JSON.stringify({});
-        console.log(`Exchange proxy: code=${params.subscriptionCode}, proxy_id=${params.proxy_id || 'not sent (single proxy)'}`);
+        body = freshProxyId ? JSON.stringify({ proxy_id: freshProxyId }) : JSON.stringify({});
+        console.log(`Exchange proxy: code=${params.subscriptionCode}, proxy_id=${freshProxyId || 'none'}`);
         break;
+      }
 
       default:
         throw new Error(`Ação desconhecida: ${action}`);
