@@ -396,12 +396,10 @@ export default function SubscriptionManage() {
                     <Button
                       size="sm"
                       onClick={() => {
-                        const totalProxies = sub.totalProxies ?? (sub.raw_data as any)?.proxies?.data?.length ?? 1;
-                        const shouldSendProxyId = totalProxies > 1 && sub.proxy?.id;
                         const oldProxyString = sub.proxy ? `${sub.proxy.ip}:${sub.proxy.port}:${sub.proxy.username || ""}:${sub.proxy.password || ""}` : undefined;
                         exchangeMutation.mutate({
                           subscriptionCode: sub.name,
-                          ...(shouldSendProxyId ? { proxy_id: sub.proxy!.id } : {}),
+                          proxy_id: sub.proxy?.id,
                           oldProxyString,
                         });
                       }}
