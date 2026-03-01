@@ -1009,7 +1009,50 @@ Deno.serve(async (req) => {
         method = "PUT";
         body = freshProxyId ? JSON.stringify({ proxy_id: freshProxyId }) : JSON.stringify({});
         console.log(`Exchange proxy: code=${params.subscriptionCode}, proxy_id=${freshProxyId || 'none'}`);
-        break;
+
+        // Execute exchange inline so we can update local DB after success
+        console.log(`ProxyBR API call: ${method} ${url}`);
+        const exchangeResp = await proxyFetch(url, PROXYBR_API_KEY, method, body);
+        const exchangeText = await exchangeResp.text();
+        console.log(`ProxyBR response [${exchangeResp.status}]: ${exchangeText.substring(0, 500)}`);
+
+        let exchangeData;
+        try { exchangeData = JSON.parse(exchangeText); } catch { exchangeData = { raw: exchangeText }; }
+
+        if (!exchangeResp.ok) {
+          return new Response(
+            JSON.stringify({ error: `ProxyBR API error [${exchangeResp.status}]`, details: exchangeData }),
+            { status: exchangeResp.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        // After successful exchange, fetch updated subscription and update local DB
+        try {
+          const freshUrl = `${PROXYBR_BASE}/subscriptions/${params.subscriptionCode}`;
+          const freshResp = await proxyFetch(freshUrl, PROXYBR_API_KEY);
+          if (freshResp.ok) {
+            const freshText = await freshResp.text();
+            const freshData = JSON.parse(freshText);
+            const supabaseAdmin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+            const { error: updateErr } = await supabaseAdmin
+              .from("subscriptions")
+              .update({ raw_data: freshData, updated_at: new Date().toISOString() })
+              .eq("name", params.subscriptionCode)
+              .eq("type", "proxybr");
+            if (updateErr) {
+              console.warn(`Failed to update local DB after exchange: ${updateErr.message}`);
+            } else {
+              console.log(`Updated local DB raw_data for ${params.subscriptionCode} after exchange`);
+            }
+          }
+        } catch (e) {
+          console.warn(`Error updating local DB after exchange: ${e}`);
+        }
+
+        return new Response(
+          JSON.stringify(exchangeData),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
 
       default:
