@@ -811,6 +811,37 @@ export default function Checkout() {
         {/* Right Column - Upsell & Order Summary */}
         <div className="lg:col-span-4 relative order-1 lg:order-2">
           <div className="sticky top-24 flex flex-col gap-3">
+            {/* Upsell Offer */}
+            {relevantBumps.length > 0 && (() => {
+              const upsell = relevantBumps.find(b => !selectedBumps.includes(b.id));
+              if (!upsell) return null;
+              return (
+                <div className="rounded-xl border-2 border-primary bg-gradient-to-b from-primary/10 to-background p-4 flex flex-col gap-2 relative overflow-hidden">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-500 text-white w-fit">
+                    <Flame className="w-3 h-3" />
+                    OPORTUNIDADE ÚNICA
+                  </span>
+                  <div>
+                    <h3 className="text-sm font-bold text-foreground">Complete sua compra!</h3>
+                    <p className="text-xs text-muted-foreground">
+                      Leve <span className="font-bold text-foreground">{upsell.name}</span> com <span className="text-primary font-bold">20% off!</span>
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between bg-secondary/80 border border-border rounded-lg p-3">
+                    <div>
+                      <p className="text-[10px] text-muted-foreground line-through">De R$ {(upsell.price * 1.25).toFixed(2).replace(".", ",")}</p>
+                      <p className="text-lg font-black text-foreground">R$ {upsell.price.toFixed(2).replace(".", ",")}</p>
+                    </div>
+                    <button
+                      onClick={() => toggleBump(upsell.id)}
+                      className="bg-foreground text-background text-xs font-bold px-4 py-2 rounded-full hover:opacity-90 transition-opacity"
+                    >
+                      Adicionar
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
             {/* Order Summary */}
             <div className="glass-panel rounded-xl p-5 flex flex-col gap-4">
               <h3 className="text-base font-bold text-foreground">Resumo do Pedido</h3>
