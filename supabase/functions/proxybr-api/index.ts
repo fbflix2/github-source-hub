@@ -1027,26 +1027,44 @@ Deno.serve(async (req) => {
         }
 
         // After successful exchange, fetch updated subscription and update local DB
+        // Small delay to let ProxyBR propagate the new proxy
+        await sleep(1500);
+        console.log(`Exchange: fetching updated subscription data for ${params.subscriptionCode}`);
         try {
           const freshUrl = `${PROXYBR_BASE}/subscriptions/${params.subscriptionCode}`;
           const freshResp = await proxyFetch(freshUrl, PROXYBR_API_KEY);
+          const freshText = await freshResp.text();
+          console.log(`Exchange: fresh data fetch status=${freshResp.status}, length=${freshText.length}`);
           if (freshResp.ok) {
-            const freshText = await freshResp.text();
             const freshData = JSON.parse(freshText);
-            const supabaseAdmin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-            const { error: updateErr } = await supabaseAdmin
+            const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+            const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+            console.log(`Exchange: SUPABASE_URL=${SUPABASE_URL ? 'set' : 'MISSING'}, SERVICE_KEY=${SERVICE_KEY ? 'set' : 'MISSING'}`);
+            const supabaseAdmin = createClient(SUPABASE_URL!, SERVICE_KEY!);
+            // Preserve profile_tag if it exists
+            const { data: existingRow } = await supabaseAdmin
               .from("subscriptions")
-              .update({ raw_data: freshData, updated_at: new Date().toISOString() })
+              .select("raw_data")
+              .eq("name", params.subscriptionCode)
+              .eq("type", "proxybr")
+              .maybeSingle();
+            const existingRaw = (existingRow?.raw_data || {}) as Record<string, any>;
+            const mergedData = { ...freshData, profile_tag: existingRaw.profile_tag || null };
+            const { error: updateErr, count } = await supabaseAdmin
+              .from("subscriptions")
+              .update({ raw_data: mergedData, updated_at: new Date().toISOString() })
               .eq("name", params.subscriptionCode)
               .eq("type", "proxybr");
             if (updateErr) {
-              console.warn(`Failed to update local DB after exchange: ${updateErr.message}`);
+              console.error(`Exchange: DB update FAILED: ${updateErr.message}`);
             } else {
-              console.log(`Updated local DB raw_data for ${params.subscriptionCode} after exchange`);
+              console.log(`Exchange: DB updated successfully for ${params.subscriptionCode}`);
             }
+          } else {
+            console.error(`Exchange: fresh data fetch failed: ${freshText.substring(0, 200)}`);
           }
-        } catch (e) {
-          console.warn(`Error updating local DB after exchange: ${e}`);
+        } catch (e: any) {
+          console.error(`Exchange: error updating local DB: ${e.message || e}`);
         }
 
         return new Response(
