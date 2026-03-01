@@ -260,8 +260,15 @@ Deno.serve(async (req) => {
                   let contractData: any;
                   try { contractData = JSON.parse(contractText); } catch { contractData = {}; }
                   
-                  const subCode = contractData.code || contractData.data?.code;
-                  const endDate = contractData.due_date || contractData.end_date || null;
+                  // Extract subscription code from various ProxyBR response formats
+                  const subCode = contractData.code 
+                    || contractData.data?.code 
+                    || contractData.subscription?.code 
+                    || contractData.subscriptions?.[0]?.code
+                    || (Array.isArray(contractData) ? contractData[0]?.code : null);
+                  const endDate = contractData.due_date || contractData.end_date || contractData.data?.due_date || contractData.subscription?.due_date || null;
+                  
+                  console.log(`Extracted subCode=${subCode}, endDate=${endDate} from contract response keys: ${Object.keys(contractData).join(',')}`);
                   
                   if (subCode) {
                     // Save subscription linked to user
@@ -377,8 +384,14 @@ Deno.serve(async (req) => {
                       let contractData: any;
                       try { contractData = JSON.parse(contractText); } catch { contractData = {}; }
                       
-                      const subCode = contractData.code || contractData.data?.code;
-                      const endDate = contractData.due_date || contractData.end_date || null;
+                      const subCode = contractData.code 
+                        || contractData.data?.code 
+                        || contractData.subscription?.code 
+                        || contractData.subscriptions?.[0]?.code
+                        || (Array.isArray(contractData) ? contractData[0]?.code : null);
+                      const endDate = contractData.due_date || contractData.end_date || contractData.data?.due_date || contractData.subscription?.due_date || null;
+                      
+                      console.log(`[webhook-fallback] Extracted subCode=${subCode}, endDate=${endDate}`);
                       
                       if (subCode) {
                         const { data: existingSub } = await supabase
