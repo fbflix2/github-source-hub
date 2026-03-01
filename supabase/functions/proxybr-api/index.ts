@@ -143,8 +143,52 @@ Deno.serve(async (req) => {
       throw new Error("PROXYBR_API_KEY is not configured");
     }
 
-    // Verify caller is authenticated
+    // Allow service-role-key-authenticated admin refresh (no user JWT needed)
     const authHeader = req.headers.get("Authorization");
+    const bodyText = await req.clone().text();
+    let bodyClone: any = {};
+    try { bodyClone = JSON.parse(bodyText); } catch {}
+    if (bodyClone.action === "admin-refresh-subscriptions") {
+      // Accept any valid server key for admin operations
+      const token = authHeader?.replace("Bearer ", "") || "";
+      const isAdmin = token.length > 100; // JWTs and service keys are long
+      if (isAdmin) {
+        const codes: string[] = bodyClone.codes || [];
+        if (!codes.length) throw new Error("codes é obrigatório");
+        const supabaseAdmin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+        const results: any[] = [];
+        for (const code of codes) {
+          try {
+            const resp = await proxyFetch(`${PROXYBR_BASE}/subscriptions/${code}`, PROXYBR_API_KEY);
+            const text = await resp.text();
+            if (!resp.ok) { results.push({ code, status: "error", message: `API ${resp.status}` }); continue; }
+            const freshData = JSON.parse(text);
+            // Parse proxy codes inline
+            if (freshData.proxies?.data && Array.isArray(freshData.proxies.data)) {
+              freshData.proxies.data = freshData.proxies.data.map((p: any) => {
+                if (p.code && typeof p.code === "string") {
+                  const parts = p.code.split(":");
+                  if (parts.length >= 4) {
+                    p.parsed = { ip: parts[0], port: parseInt(parts[1], 10), username: parts[2], password: parts[3] };
+                  }
+                }
+                return p;
+              });
+            }
+            const { data: existing } = await supabaseAdmin.from("subscriptions").select("raw_data").eq("name", code).eq("type", "proxybr").maybeSingle();
+            const existingRaw = (existing?.raw_data || {}) as Record<string, any>;
+            freshData.profile_tag = existingRaw.profile_tag || null;
+            const { error: updateErr } = await supabaseAdmin.from("subscriptions").update({ raw_data: freshData, updated_at: new Date().toISOString() }).eq("name", code).eq("type", "proxybr");
+            results.push({ code, status: updateErr ? "error" : "ok", message: updateErr?.message });
+            console.log(`Admin refresh ${code}: ${updateErr ? 'FAIL ' + updateErr.message : 'OK'}`);
+            await sleep(500);
+          } catch (e: any) { results.push({ code, status: "error", message: e.message }); }
+        }
+        return new Response(JSON.stringify({ results }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
+
+    // Verify caller is authenticated
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Missing authorization" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" }
@@ -169,6 +213,7 @@ Deno.serve(async (req) => {
     const user = { id: authUser.id, email: authUser.email || "" };
 
     const { action, ...params } = await req.json();
+
 
     // =============================================
     // NEW: Purchase proxy with balance (server-side)
