@@ -37,7 +37,7 @@ interface OrderWithDetails {
   payment_method: string | null;
   created_at: string;
   user_id: string;
-  items: { id: string; name: string; description: string | null; price: number; quantity: number; product_id: string | null }[];
+  items: { id: string; name: string; description: string | null; price: number; quantity: number; product_id: string | null; delivery_data: any }[];
   feedbackOk: boolean;
   profile: { full_name: string | null; } | null;
   email: string;
@@ -407,15 +407,23 @@ export default function AdminPedidos() {
               <div className="border-t border-border pt-4">
                 <h4 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3">Itens do Pedido</h4>
                 <div className="space-y-3">
-                  {selectedOrder.items.map((item) => (
-                    <div key={item.id} className="flex items-center justify-between rounded-xl bg-muted/50 p-4 border border-border">
-                      <div>
-                        <p className="font-medium text-foreground">{item.name}</p>
-                        <p className="text-xs text-muted-foreground">Qtd: {item.quantity}</p>
+                  {selectedOrder.items.map((item) => {
+                    const subCode = item.delivery_data?.subscription_code;
+                    return (
+                      <div key={item.id} className="flex items-center justify-between rounded-xl bg-muted/50 p-4 border border-border">
+                        <div>
+                          <p className="font-medium text-foreground">{item.name}</p>
+                          <p className="text-xs text-muted-foreground">Qtd: {item.quantity}</p>
+                          {subCode && (
+                            <p className="text-xs text-primary/80 mt-1 font-mono">
+                              Assinatura: {subCode}
+                            </p>
+                          )}
+                        </div>
+                        <p className="font-bold text-primary">R$ {(item.price * item.quantity).toFixed(2).replace(".", ",")}</p>
                       </div>
-                      <p className="font-bold text-primary">R$ {(item.price * item.quantity).toFixed(2).replace(".", ",")}</p>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
