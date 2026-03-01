@@ -223,12 +223,41 @@ export function useExchangeProxy() {
       return { result, oldProxyString, subscriptionCode };
     },
     onSuccess: ({ result, oldProxyString, subscriptionCode }) => {
-      const newProxy = result?.subscription?.new_proxy || result?.new_proxy || "desconhecido";
-      if (oldProxyString) {
-        saveExchangeRecord(subscriptionCode, oldProxyString, newProxy);
+      const newProxyStr = result?.subscription?.new_proxy || result?.new_proxy || "";
+      if (oldProxyString && newProxyStr) {
+        saveExchangeRecord(subscriptionCode, oldProxyString, newProxyStr);
       }
+
+      // Optimistically update cache with new proxy data from exchange response
+      if (newProxyStr && newProxyStr !== "desconhecido") {
+        const parts = newProxyStr.split(":");
+        if (parts.length >= 4) {
+          queryClient.setQueryData(["proxybr-subscriptions"], (old: any[] | undefined) => {
+            if (!old) return old;
+            return old.map((sub: any) => {
+              // Match by subscription name (strip __proxy_ suffix)
+              const subName = sub.name || sub.code?.split("__proxy_")[0];
+              if (subName !== subscriptionCode) return sub;
+              return {
+                ...sub,
+                proxy: {
+                  ...sub.proxy,
+                  ip: parts[0],
+                  port: parts[1],
+                  username: parts[2],
+                  password: parts[3],
+                },
+              };
+            });
+          });
+        }
+      }
+
       toast.success("Proxy trocado com sucesso!");
-      queryClient.invalidateQueries({ queryKey: ["proxybr-subscriptions"] });
+      // Also refetch from DB after a delay (edge function updates DB in background)
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["proxybr-subscriptions"] });
+      }, 3000);
     },
     onError: (err: Error) => {
       toast.error(`Erro ao trocar proxy: ${err.message}`);
