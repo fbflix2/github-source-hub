@@ -195,12 +195,38 @@ export function useRenewSubscription() {
   });
 }
 
+export interface ProxyExchangeRecord {
+  date: string;
+  oldProxy: string;
+  newProxy: string;
+}
+
+export function getExchangeHistory(subscriptionCode: string): ProxyExchangeRecord[] {
+  try {
+    const key = `proxy-exchange-history-${subscriptionCode}`;
+    return JSON.parse(localStorage.getItem(key) || "[]");
+  } catch { return []; }
+}
+
+function saveExchangeRecord(subscriptionCode: string, oldProxy: string, newProxy: string) {
+  const key = `proxy-exchange-history-${subscriptionCode}`;
+  const history = getExchangeHistory(subscriptionCode);
+  history.unshift({ date: new Date().toISOString(), oldProxy, newProxy });
+  localStorage.setItem(key, JSON.stringify(history.slice(0, 20)));
+}
+
 export function useExchangeProxy() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ subscriptionCode, proxy_id }: { subscriptionCode: string; proxy_id?: number }) =>
-      callProxyBR("exchange-proxy", { subscriptionCode, ...(proxy_id ? { proxy_id } : {}) }),
-    onSuccess: () => {
+    mutationFn: async ({ subscriptionCode, proxy_id, oldProxyString }: { subscriptionCode: string; proxy_id?: number; oldProxyString?: string }) => {
+      const result = await callProxyBR("exchange-proxy", { subscriptionCode, ...(proxy_id ? { proxy_id } : {}) });
+      return { result, oldProxyString, subscriptionCode };
+    },
+    onSuccess: ({ result, oldProxyString, subscriptionCode }) => {
+      const newProxy = result?.subscription?.new_proxy || result?.new_proxy || "desconhecido";
+      if (oldProxyString) {
+        saveExchangeRecord(subscriptionCode, oldProxyString, newProxy);
+      }
       toast.success("Proxy trocado com sucesso!");
       queryClient.invalidateQueries({ queryKey: ["proxybr-subscriptions"] });
     },
