@@ -777,8 +777,14 @@ Deno.serve(async (req) => {
           );
         }
 
-        const subCode = contractData.code || contractData.data?.code;
-        const endDate = contractData.due_date || contractData.end_date || null;
+        const subCode = contractData.code 
+          || contractData.data?.code 
+          || contractData.subscription?.code 
+          || contractData.subscriptions?.[0]?.code
+          || (Array.isArray(contractData) ? contractData[0]?.code : null);
+        const endDate = contractData.due_date || contractData.end_date || contractData.data?.due_date || contractData.subscription?.due_date || null;
+        console.log(`Extracted subCode=${subCode}, endDate=${endDate} from keys: ${Object.keys(contractData).join(',')}`);
+
         if (subCode) {
           const supabaseAdmin = createClient(
             Deno.env.get("SUPABASE_URL")!,
