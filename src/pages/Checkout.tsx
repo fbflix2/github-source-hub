@@ -26,29 +26,13 @@ interface DbProduct {
   tags: string[] | null;
 }
 
-interface OrderBump {
+interface BumpProduct {
   id: string;
   name: string;
-  description: string;
+  description: string | null;
   price: number;
-  category: "bm" | "proxy" | "pagina";
+  image_url: string | null;
 }
-
-// Order bumps available
-const availableOrderBumps: OrderBump[] = [
-  { id: "bm", name: "Adicionar BM Verificada", description: "Conta de anúncios pronta para escalar sem bloqueios imediatos.", price: 50.0, category: "bm" },
-  { id: "proxy", name: "Proxy Residencial 4G", description: "Navegue com IP limpo e evite checkpoint na conta.", price: 30.0, category: "proxy" },
-  { id: "pagina", name: "Página de Anúncios Ativa", description: "Fanpage pronta para veicular campanhas imediatamente.", price: 40.0, category: "pagina" },
-];
-
-// Upsell offer (combo)
-const upsellOffer = {
-  title: "Complete sua compra!",
-  description: "Leve BM + Proxy com 20% de desconto!",
-  originalPrice: 100.0,
-  discountedPrice: 80.0,
-  items: ["bm", "proxy"],
-};
 
 export default function Checkout() {
   const [searchParams] = useSearchParams();
@@ -175,7 +159,8 @@ export default function Checkout() {
 
   const [paymentMethod, setPaymentMethod] = useState<"saldo" | "pix" | "cartao">("saldo");
   const [selectedBumps, setSelectedBumps] = useState<string[]>([]);
-  const [upsellAdded, setUpsellAdded] = useState(false);
+  const [bumpProducts, setBumpProducts] = useState<BumpProduct[]>([]);
+  
   const [coupon, setCoupon] = useState("");
   const [discount, setDiscount] = useState(0);
   const [couponApplied, setCouponApplied] = useState(false);
@@ -205,6 +190,23 @@ export default function Checkout() {
     };
     checkFirstPurchase();
   }, []);
+
+  // Fetch available bump products from DB (excluding main product)
+  useEffect(() => {
+    if (!product) return;
+    const fetchBumps = async () => {
+      const { data } = await supabase
+        .from("products")
+        .select("id, name, description, price, image_url")
+        .eq("available", true)
+        .gt("stock", 0)
+        .neq("id", product.id)
+        .order("price", { ascending: true })
+        .limit(5);
+      setBumpProducts(data || []);
+    };
+    fetchBumps();
+  }, [product]);
 
   // Create draft order when entering checkout (for abandoned cart tracking)
   // Skip if resuming an existing order
@@ -306,42 +308,20 @@ export default function Checkout() {
     return () => clearInterval(interval);
   }, [pixModal, pixPaymentId]);
 
-  const productType = product?.icon_type || "perfil";
 
-  const relevantBumps = useMemo(() => {
-    if (!product) return [];
-    const bumps: OrderBump[] = [];
-    if (productType === "perfil") {
-      bumps.push(...availableOrderBumps);
-    } else if (productType === "bm") {
-      bumps.push(...availableOrderBumps.filter((b) => b.category !== "bm"));
-    } else if (productType === "proxy") {
-      bumps.push(...availableOrderBumps.filter((b) => b.category !== "proxy"));
-    }
-    return bumps;
-  }, [productType, product]);
-
-  const showUpsell = useMemo(() => {
-    if (productType !== "perfil") return false;
-    const hasBothItems = selectedBumps.includes("bm") && selectedBumps.includes("proxy");
-    return !hasBothItems && !upsellAdded;
-  }, [productType, selectedBumps, upsellAdded]);
+  const relevantBumps = bumpProducts;
 
   const subtotal = useMemo(() => {
     if (!product) return 0;
     let total = product.price * quantity;
 
-    if (!upsellAdded) {
-      selectedBumps.forEach((bumpId) => {
-        const bump = availableOrderBumps.find((b) => b.id === bumpId);
-        if (bump) total += bump.price;
-      });
-    } else {
-      total += upsellOffer.discountedPrice;
-    }
+    selectedBumps.forEach((bumpId) => {
+      const bump = bumpProducts.find((b) => b.id === bumpId);
+      if (bump) total += bump.price;
+    });
 
     return total;
-  }, [product, quantity, selectedBumps, upsellAdded]);
+  }, [product, quantity, selectedBumps, bumpProducts]);
 
   const total = subtotal - discount;
 
@@ -366,11 +346,6 @@ export default function Checkout() {
     setSelectedBumps((prev) =>
       prev.includes(bumpId) ? prev.filter((id) => id !== bumpId) : [...prev, bumpId]
     );
-  };
-
-  const handleAddUpsell = () => {
-    setUpsellAdded(true);
-    setSelectedBumps((prev) => prev.filter((id) => !upsellOffer.items.includes(id)));
   };
 
   const applyCoupon = async () => {
@@ -484,16 +459,12 @@ export default function Checkout() {
         coupon_code: couponApplied ? coupon.trim().toUpperCase() : null,
       };
 
-      // Add bump/upsell order items if any
+      // Add bump order items if any
       const extraItems: any[] = [];
-      if (upsellAdded) {
-        extraItems.push({ order_id: orderId, name: "BM + Proxy (Combo)", price: upsellOffer.discountedPrice, quantity: 1 });
-      } else {
-        selectedBumps.forEach(bumpId => {
-          const bump = availableOrderBumps.find(b => b.id === bumpId);
-          if (bump) extraItems.push({ order_id: orderId, name: bump.name, price: bump.price, quantity: 1 });
-        });
-      }
+      selectedBumps.forEach(bumpId => {
+        const bump = bumpProducts.find(b => b.id === bumpId);
+        if (bump) extraItems.push({ order_id: orderId, product_id: bump.id, name: bump.name, price: bump.price, quantity: 1 });
+      });
       if (extraItems.length > 0) {
         await supabase.from("order_items").insert(extraItems);
       }
@@ -803,7 +774,7 @@ export default function Checkout() {
           </section>
 
           {/* Order Bumps Section */}
-          {relevantBumps.length > 0 && !upsellAdded && (
+          {relevantBumps.length > 0 && (
             <section className="glass-panel rounded-xl p-5 flex flex-col gap-3 relative overflow-hidden">
               <div className="flex flex-col gap-0.5 z-10">
                 <h2 className="text-sm font-bold flex items-center gap-2 text-foreground">
@@ -840,35 +811,6 @@ export default function Checkout() {
         {/* Right Column - Upsell & Order Summary */}
         <div className="lg:col-span-4 relative order-1 lg:order-2">
           <div className="sticky top-24 flex flex-col gap-3">
-            {/* Upsell Card */}
-            {showUpsell && (
-              <div className="rounded-xl p-4 relative overflow-hidden border-2 border-primary/60 bg-gradient-to-b from-[#1a0a0a] via-surface to-surface">
-                <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent" />
-                <div className="relative z-10 flex flex-col gap-2">
-                  <div className="bg-green-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full w-fit flex items-center gap-1">
-                    <Flame className="w-3 h-3" />
-                    OPORTUNIDADE ÚNICA
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-foreground">{upsellOffer.title}</h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Leve <span className="text-foreground font-semibold">BM + Proxy</span> com{" "}
-                      <span className="text-primary font-semibold">20% off!</span>
-                    </p>
-                  </div>
-                  <div className="bg-black/40 rounded-lg p-2.5 border border-border/50 flex items-center justify-between gap-3">
-                    <div className="flex flex-col">
-                      <span className="text-[10px] text-muted-foreground line-through">De R$ {upsellOffer.originalPrice.toFixed(2).replace(".", ",")}</span>
-                      <span className="text-lg font-black text-foreground">R$ {upsellOffer.discountedPrice.toFixed(2).replace(".", ",")}</span>
-                    </div>
-                    <button onClick={handleAddUpsell} className="bg-foreground text-background hover:bg-muted-foreground font-bold text-[11px] py-2 px-3 rounded-lg whitespace-nowrap transition-colors">
-                      Adicionar
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* Order Summary */}
             <div className="glass-panel rounded-xl p-5 flex flex-col gap-4">
               <h3 className="text-base font-bold text-foreground">Resumo do Pedido</h3>
@@ -881,15 +823,13 @@ export default function Checkout() {
                     <p className="text-xs text-muted-foreground">R$ {(product.price * quantity).toFixed(2).replace(".", ",")}</p>
                   </div>
                 </div>
-
-
-                {!upsellAdded && selectedBumps.map((bumpId) => {
-                  const bump = availableOrderBumps.find((b) => b.id === bumpId);
+                {selectedBumps.map((bumpId) => {
+                  const bump = bumpProducts.find((b) => b.id === bumpId);
                   if (!bump) return null;
                   return (
                     <div key={bumpId} className="flex gap-3 items-center border-t border-border pt-2">
-                      <div className="w-12 h-12 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
-                        <Flame className="w-4 h-4 text-primary/50" />
+                      <div className="w-12 h-12 rounded-lg bg-primary/10 border border-primary/20 shrink-0 bg-cover bg-center" style={{ backgroundImage: bump.image_url ? `url('${bump.image_url}')` : undefined }}>
+                        {!bump.image_url && <Flame className="w-4 h-4 text-primary/50 m-auto mt-4" />}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-foreground leading-tight truncate">{bump.name}</p>
@@ -898,18 +838,6 @@ export default function Checkout() {
                     </div>
                   );
                 })}
-
-                {upsellAdded && (
-                  <div className="flex gap-3 items-center border-t border-border pt-2">
-                    <div className="w-12 h-12 rounded-lg bg-green-500/10 border border-green-500/20 flex items-center justify-center shrink-0">
-                      <Flame className="w-4 h-4 text-green-500/50" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-foreground leading-tight">BM + Proxy (Combo)</p>
-                      <p className="text-xs text-green-400">R$ {upsellOffer.discountedPrice.toFixed(2).replace(".", ",")}</p>
-                    </div>
-                  </div>
-                )}
               </div>
 
               {/* Coupon */}
