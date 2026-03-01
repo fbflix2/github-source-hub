@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { Plus, Search, Trash2, SquarePen, Tag, FolderTree, Palette, X, Save, User, Briefcase, Server, Globe, Flag, CircleUser, Building2, PackageOpen, Shield, Wifi, Key, Monitor, Smartphone, CreditCard, Mail, Lock, Loader2, ImageIcon, Upload, type LucideIcon } from "lucide-react";
+import { Plus, Search, Trash2, SquarePen, Tag, FolderTree, Palette, X, Save, User, Briefcase, Server, Globe, Flag, CircleUser, Building2, PackageOpen, Shield, Wifi, Key, Monitor, Smartphone, CreditCard, Mail, Lock, Loader2, ImageIcon, Upload, Menu, type LucideIcon } from "lucide-react";
 import ProductDefaultsTab from "@/components/admin/ProductDefaultsTab";
+import NavMenuVisibilityManager from "@/components/admin/NavMenuVisibilityManager";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -66,7 +67,7 @@ const platformIcons: PlatformIcon[] = [
 ];
 
 export default function AdminPlataforma() {
-  const [activeTab, setActiveTab] = useState<"tags" | "categorias" | "icones" | "imagens" | "padroes">("tags");
+  const [activeTab, setActiveTab] = useState<"tags" | "categorias" | "icones" | "imagens" | "padroes" | "menu">("tags");
   const [statusTags, setStatusTags] = useState<TagItem[]>(defaultStatusTags);
   const [productTags, setProductTags] = useState<TagItem[]>(defaultProductTags);
   const [searchTerm, setSearchTerm] = useState("");
@@ -206,6 +207,7 @@ export default function AdminPlataforma() {
     { key: "imagens" as const, label: "Imagens de Produtos", icon: ImageIcon },
     { key: "icones" as const, label: "Banco de Ícones", icon: Palette },
     { key: "padroes" as const, label: "Padrão Produtos", icon: PackageOpen },
+    { key: "menu" as const, label: "Menu do Cliente", icon: Menu },
   ];
 
   const handleOpenCreate = (type: "status" | "product") => {
@@ -608,6 +610,9 @@ export default function AdminPlataforma() {
 
       {/* Padrões Tab */}
       {activeTab === "padroes" && <ProductDefaultsTab searchTerm={searchTerm} />}
+
+      {/* Menu Visibility Tab */}
+      {activeTab === "menu" && <NavMenuVisibilityManager />}
 
       {/* Tag Create/Edit Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>

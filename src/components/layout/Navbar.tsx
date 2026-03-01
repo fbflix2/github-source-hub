@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Ticket } from "lucide-react";
+import { useNavVisibility } from "@/hooks/useNavVisibility";
 
 interface NavbarProps {
   userName: string;
@@ -19,17 +20,19 @@ interface NavbarProps {
   unreadTickets?: number;
 }
 
-const navLinks = [
-  { title: "Loja", url: "/loja" },
-  { title: "Assinaturas", url: "/subscriptions" },
-  { title: "Pedidos", url: "/orders" },
-  { title: "Tutoriais", url: "/tutorials" },
-  { title: "Anuncie Aqui", url: "/advertise" },
-  { title: "Ganhe Aqui", url: "/ganhe-aqui" },
+const allNavLinks = [
+  { key: "loja", title: "Loja", url: "/loja" },
+  { key: "subscriptions", title: "Assinaturas", url: "/subscriptions" },
+  { key: "orders", title: "Pedidos", url: "/orders" },
+  { key: "tutorials", title: "Tutoriais", url: "/tutorials" },
+  { key: "advertise", title: "Anuncie Aqui", url: "/advertise" },
+  { key: "ganhe-aqui", title: "Ganhe Aqui", url: "/ganhe-aqui" },
 ];
 
 export function Navbar({ userName, balance, avatarUrl, onLogout, unreadTickets = 0 }: NavbarProps) {
   const location = useLocation();
+  const { hiddenLinks } = useNavVisibility();
+  const navLinks = allNavLinks.filter(link => !hiddenLinks.includes(link.key));
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 glass-panel border-b border-white/5">
