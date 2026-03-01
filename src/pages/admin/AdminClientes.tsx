@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Users, Wallet, CheckCircle, Search, LogIn, KeyRound, Pencil, ChevronLeft, ChevronRight, UserPlus, TrendingUp, Minus, X, Ban, Clock, Loader2, Mail, Phone, Squirrel, DollarSign, Upload, Download, BadgeCheck } from "lucide-react";
+import { Users, Wallet, CheckCircle, Search, LogIn, KeyRound, Pencil, ChevronLeft, ChevronRight, UserPlus, TrendingUp, Minus, X, Ban, Clock, Loader2, Mail, Phone, Squirrel, DollarSign, Upload, Download, BadgeCheck, LayoutGrid, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,6 +33,7 @@ type FilterType = "all" | "subscribers" | "with-balance" | "blocked";
 const ITEMS_PER_PAGE = 12;
 
 export default function AdminClientes() {
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   const [currentPage, setCurrentPage] = useState(1);
@@ -347,6 +348,22 @@ export default function AdminClientes() {
               </Button>
             ))}
           </div>
+          <div className="flex gap-1 ml-auto">
+            <button
+              onClick={() => setViewMode("grid")}
+              className={`h-12 w-12 flex items-center justify-center rounded-xl transition-colors ${viewMode === "grid" ? "bg-primary text-white" : "bg-white/5 text-white/50 hover:bg-white/10 hover:text-white"}`}
+              title="Visualização em grade"
+            >
+              <LayoutGrid className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => setViewMode("list")}
+              className={`h-12 w-12 flex items-center justify-center rounded-xl transition-colors ${viewMode === "list" ? "bg-primary text-white" : "bg-white/5 text-white/50 hover:bg-white/10 hover:text-white"}`}
+              title="Visualização em lista"
+            >
+              <List className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       </section>
 
@@ -361,7 +378,7 @@ export default function AdminClientes() {
           <Users className="w-12 h-12 text-gray-600 mx-auto mb-3" />
           <p className="text-gray-400">Nenhum cliente encontrado.</p>
         </div>
-      ) : (
+      ) : viewMode === "grid" ? (
         <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-20 pr-1">
           {paginated.map((client) => (
             <div
@@ -453,6 +470,87 @@ export default function AdminClientes() {
               </div>
             </div>
           ))}
+        </section>
+        ) : (
+        <section className="pb-20 pr-1">
+          <div className="bg-[rgba(30,15,15,0.4)] backdrop-blur-xl border border-white/[0.08] rounded-2xl overflow-hidden shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-white/[0.08]">
+                  <th className="text-left text-[10px] uppercase tracking-wider text-white/40 font-bold px-4 py-3">Cliente</th>
+                  <th className="text-left text-[10px] uppercase tracking-wider text-white/40 font-bold px-4 py-3 hidden md:table-cell">Contato</th>
+                  <th className="text-left text-[10px] uppercase tracking-wider text-white/40 font-bold px-4 py-3 hidden lg:table-cell">Status</th>
+                  <th className="text-right text-[10px] uppercase tracking-wider text-white/40 font-bold px-4 py-3">Saldo</th>
+                  <th className="text-right text-[10px] uppercase tracking-wider text-white/40 font-bold px-4 py-3">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginated.map((client) => (
+                  <tr key={client.id} className="border-b border-white/[0.04] hover:bg-white/[0.03] transition-colors group">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        {client.avatar_url ? (
+                          <div
+                            className="size-9 bg-center bg-no-repeat bg-cover rounded-lg shadow-inner border border-white/10 flex-shrink-0"
+                            style={{ backgroundImage: `url(${client.avatar_url})` }}
+                          />
+                        ) : (
+                          <div className="size-9 rounded-lg bg-gradient-to-br from-zinc-700 to-zinc-900 flex items-center justify-center text-white font-bold text-xs border border-white/10 shadow-inner flex-shrink-0">
+                            {getInitials(client.full_name)}
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-white font-semibold text-sm truncate">{client.full_name || "Sem nome"}</span>
+                            {client.profile_complete && <BadgeCheck className="w-4 h-4 text-[#0bda0b] flex-shrink-0" />}
+                          </div>
+                          <span className="text-white/30 text-xs truncate block">ID: {client.user_id.substring(0, 8)}...</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 hidden md:table-cell">
+                      <div className="flex flex-col gap-0.5">
+                        {client.phone && <span className="text-white/60 text-xs">{client.phone}</span>}
+                        {client.email && <span className="text-white/40 text-xs truncate max-w-[180px]">{client.email}</span>}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 hidden lg:table-cell">
+                      {getStatusBadge(client)}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <span className={`text-sm font-bold ${client.balance > 0 ? "text-primary" : "text-white/50"}`}>
+                        R$ {formatCurrency(client.balance)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-1 justify-end">
+                        <button
+                          onClick={() => handleImpersonate(client.user_id)}
+                          disabled={impersonating === client.user_id}
+                          className="size-7 flex items-center justify-center rounded-md bg-white/5 hover:bg-white/10 text-white/70 hover:text-primary border border-white/5 transition-all disabled:opacity-50"
+                          title="Acessar Conta"
+                        >
+                          {impersonating === client.user_id ? <Loader2 className="w-3 h-3 animate-spin" /> : <LogIn className="w-3 h-3" />}
+                        </button>
+                        <button onClick={() => setResetClient(client)} className="size-7 flex items-center justify-center rounded-md bg-white/5 hover:bg-white/10 text-white/70 hover:text-primary border border-white/5 transition-all" title="Resetar Senha">
+                          <KeyRound className="w-3 h-3" />
+                        </button>
+                        <button onClick={() => setBalanceClient(client)} className="size-7 flex items-center justify-center rounded-md bg-white/5 hover:bg-white/10 text-white/70 hover:text-green-400 border border-white/5 transition-all" title="Ajustar Saldo">
+                          <DollarSign className="w-3 h-3" />
+                        </button>
+                        <button onClick={() => setEditClient(client)} className="size-7 flex items-center justify-center rounded-md bg-primary/20 hover:bg-primary text-primary hover:text-white border border-primary/20 transition-all" title="Editar">
+                          <Pencil className="w-3 h-3" />
+                        </button>
+                        <button onClick={() => setHistoryClient(client)} className="size-7 flex items-center justify-center rounded-md bg-white/5 hover:bg-white/10 text-white/40 hover:text-white border border-white/5 transition-all" title="Histórico">
+                          <Squirrel className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
       )}
       </div>
