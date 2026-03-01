@@ -377,7 +377,12 @@ export default function SubscriptionManage() {
                   {freeExchanges > 0 && (
                     <Button
                       size="sm"
-                      onClick={() => exchangeMutation.mutate({ subscriptionCode: sub.name, ...(sub.proxy?.id ? { proxy_id: sub.proxy.id } : {}) })}
+                      onClick={() => {
+                        // Only send proxy_id for multi-proxy subscriptions
+                        const totalProxies = sub.totalProxies ?? (sub.raw_data as any)?.proxies?.data?.length ?? 1;
+                        const shouldSendProxyId = totalProxies > 1 && sub.proxy?.id;
+                        exchangeMutation.mutate({ subscriptionCode: sub.name, ...(shouldSendProxyId ? { proxy_id: sub.proxy!.id } : {}) });
+                      }}
                       disabled={exchangeMutation.isPending}
                       className="w-full bg-green-600 hover:bg-green-500 text-white font-bold text-xs h-8"
                     >
