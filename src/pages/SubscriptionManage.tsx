@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useProxyBRSubscriptions, useExchangeProxy, useRenewSubscription, useToggleAutoRenew } from "@/hooks/useProxyBR";
+import { useProxyBRSubscriptions, useExchangeProxy, useRenewSubscription, useToggleAutoRenew, getExchangeHistory } from "@/hooks/useProxyBR";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,7 @@ export default function SubscriptionManage() {
   const renewMutation = useRenewSubscription();
   const autoRenewMutation = useToggleAutoRenew();
   const queryClient = useQueryClient();
+  const [showExchangeHistory, setShowExchangeHistory] = useState(false);
 
   // Extract the real subscription name (strip __proxy_XXX suffix for multi-proxy codes)
   const realSubName = code?.includes("__proxy_") ? code.split("__proxy_")[0] : code;
@@ -360,10 +362,26 @@ export default function SubscriptionManage() {
 
           {/* Exchange */}
           <div className="glass-card rounded-xl p-4 space-y-2">
-            <h2 className="text-foreground font-bold text-sm flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-primary text-base">swap_horiz</span>
-              Trocar Proxy
-            </h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-foreground font-bold text-sm flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-primary text-base">swap_horiz</span>
+                Trocar Proxy
+              </h2>
+              {(() => {
+                const history = getExchangeHistory(sub.name);
+                if (history.length === 0) return null;
+                return (
+                  <button
+                    onClick={() => setShowExchangeHistory(true)}
+                    className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                    title="Histórico de trocas"
+                  >
+                    <span className="material-symbols-outlined text-sm">history</span>
+                    {history.length}
+                  </button>
+                );
+              })()}
+            </div>
             {(() => {
               const raw = (sub.raw_data || {}) as Record<string, any>;
               const freeExchanges = raw.exchange_quota_free ?? 0;
@@ -378,10 +396,14 @@ export default function SubscriptionManage() {
                     <Button
                       size="sm"
                       onClick={() => {
-                        // Only send proxy_id for multi-proxy subscriptions
                         const totalProxies = sub.totalProxies ?? (sub.raw_data as any)?.proxies?.data?.length ?? 1;
                         const shouldSendProxyId = totalProxies > 1 && sub.proxy?.id;
-                        exchangeMutation.mutate({ subscriptionCode: sub.name, ...(shouldSendProxyId ? { proxy_id: sub.proxy!.id } : {}) });
+                        const oldProxyString = sub.proxy ? `${sub.proxy.ip}:${sub.proxy.port}:${sub.proxy.username || ""}:${sub.proxy.password || ""}` : undefined;
+                        exchangeMutation.mutate({
+                          subscriptionCode: sub.name,
+                          ...(shouldSendProxyId ? { proxy_id: sub.proxy!.id } : {}),
+                          oldProxyString,
+                        });
                       }}
                       disabled={exchangeMutation.isPending}
                       className="w-full bg-green-600 hover:bg-green-500 text-white font-bold text-xs h-8"
@@ -418,6 +440,45 @@ export default function SubscriptionManage() {
           </div>
         </div>
       </div>
+
+      {/* Exchange History Dialog */}
+      <Dialog open={showExchangeHistory} onOpenChange={setShowExchangeHistory}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-sm">
+              <span className="material-symbols-outlined text-primary">history</span>
+              Histórico de Trocas — {sub.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 max-h-[400px] overflow-y-auto">
+            {getExchangeHistory(sub.name).length === 0 ? (
+              <p className="text-muted-foreground text-xs text-center py-4">Nenhuma troca registrada.</p>
+            ) : (
+              getExchangeHistory(sub.name).map((record, i) => (
+                <div key={i} className="glass-card rounded-lg p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] text-muted-foreground">
+                      {format(parseISO(record.date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                    </span>
+                    <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full">Troca #{getExchangeHistory(sub.name).length - i}</span>
+                  </div>
+                  <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                    <div className="bg-destructive/10 rounded p-2">
+                      <p className="text-[9px] text-muted-foreground mb-0.5">ANTIGO</p>
+                      <p className="text-[10px] text-foreground font-mono break-all">{record.oldProxy}</p>
+                    </div>
+                    <span className="material-symbols-outlined text-primary text-lg">arrow_forward</span>
+                    <div className="bg-green-500/10 rounded p-2">
+                      <p className="text-[9px] text-muted-foreground mb-0.5">NOVO</p>
+                      <p className="text-[10px] text-foreground font-mono break-all">{record.newProxy}</p>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
