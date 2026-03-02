@@ -218,6 +218,42 @@ export type Database = {
         }
         Relationships: []
       }
+      cost_center: {
+        Row: {
+          active: boolean
+          amount: number
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          recurrence: string | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          amount?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          recurrence?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          amount?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          recurrence?: string | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       coupons: {
         Row: {
           code: string
