@@ -41,6 +41,7 @@ export default function AdminClientesAtivos() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [topClients, setTopClients] = useState<TopClient[]>([]);
+  const [otherClients, setOtherClients] = useState<TopClient[]>([]);
   const [totalActive, setTotalActive] = useState(0);
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
@@ -69,29 +70,34 @@ export default function AdminClientesAtivos() {
     }
 
     const sortedUsers = Object.entries(userMap)
-      .sort((a, b) => b[1].total - a[1].total)
-      .slice(0, 10);
+      .sort((a, b) => b[1].total - a[1].total);
 
-    const userIds = sortedUsers.map(([uid]) => uid);
+    const allUserIds = sortedUsers.map(([uid]) => uid);
     let profileMap: Record<string, { name: string; avatar: string | null }> = {};
-    if (userIds.length > 0) {
+    
+    // Fetch profiles in batches (supabase .in() limit)
+    for (let i = 0; i < allUserIds.length; i += 50) {
+      const batch = allUserIds.slice(i, i + 50);
       const { data: profiles } = await supabase
         .from("profiles")
         .select("user_id, full_name, avatar_url")
-        .in("user_id", userIds);
+        .in("user_id", batch);
       for (const p of profiles || []) {
         profileMap[p.user_id] = { name: p.full_name || "Sem nome", avatar: p.avatar_url };
       }
     }
 
-    setTopClients(sortedUsers.map(([uid, data], idx) => ({
+    const allMapped = sortedUsers.map(([uid, data], idx) => ({
       rank: idx + 1,
       userId: uid,
       name: profileMap[uid]?.name || "Sem nome",
       avatar: profileMap[uid]?.avatar || null,
       totalSpent: data.total,
       orderCount: data.count,
-    })));
+    }));
+
+    setTopClients(allMapped.slice(0, 10));
+    setOtherClients(allMapped.slice(10));
     setTotalActive(Object.keys(userMap).length);
     setTotalRevenue(allOrders.reduce((s, o) => s + Number(o.total), 0));
     setLoading(false);
@@ -294,6 +300,80 @@ export default function AdminClientesAtivos() {
           </div>
         )}
       </div>
+
+      {/* Other Active Clients */}
+      {!loading && otherClients.length > 0 && (
+        <div className="bg-[rgba(30,15,15,0.4)] backdrop-blur-xl border border-white/[0.08] rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-white/[0.06] flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Users className="w-4 h-4 text-white/40" />
+              <h2 className="text-sm font-bold text-white">Outros Clientes Ativos</h2>
+            </div>
+            <span className="text-[10px] text-white/30 bg-white/5 px-2 py-0.5 rounded-full">{otherClients.length}</span>
+          </div>
+          <div className="divide-y divide-white/[0.04]">
+            {otherClients.map((c) => (
+              <div key={c.userId}>
+                <div
+                  onClick={() => toggleExpand(c.userId)}
+                  className={`flex items-center gap-3 px-4 py-2 cursor-pointer transition-all hover:bg-white/[0.04] ${
+                    expandedUser === c.userId ? "bg-white/[0.03]" : ""
+                  }`}
+                >
+                  <span className="text-[10px] text-white/25 w-5 text-center shrink-0">{c.rank}º</span>
+                  {c.avatar ? (
+                    <div className="size-7 rounded-md bg-center bg-cover border border-white/10 shrink-0" style={{ backgroundImage: `url(${c.avatar})` }} />
+                  ) : (
+                    <div className="size-7 rounded-md bg-gradient-to-br from-zinc-700 to-zinc-900 flex items-center justify-center text-white font-bold text-[9px] border border-white/10 shrink-0">
+                      {getInitials(c.name)}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white/80 font-medium text-xs truncate">{c.name}</p>
+                  </div>
+                  <span className="text-white/30 text-[10px] shrink-0">{c.orderCount}x</span>
+                  <p className="text-xs font-bold text-green-400/80 shrink-0">{formatCurrency(c.totalSpent)}</p>
+                  <ChevronDown className={`w-3 h-3 text-white/20 shrink-0 transition-transform ${expandedUser === c.userId ? "rotate-180" : ""}`} />
+                </div>
+                {expandedUser === c.userId && (
+                  <div className="bg-black/20 border-t border-white/[0.04] px-4 py-3">
+                    {loadingOrders ? (
+                      <div className="flex items-center justify-center py-3">
+                        <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                      </div>
+                    ) : userOrders.length === 0 ? (
+                      <p className="text-white/30 text-xs text-center py-2">Nenhum pedido encontrado.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {userOrders.map((order) => (
+                          <div key={order.id} className="bg-white/[0.03] rounded-lg p-2.5 border border-white/[0.06]">
+                            <div className="flex items-center justify-between mb-1.5">
+                              <div className="flex items-center gap-2">
+                                <Package className="w-3 h-3 text-primary" />
+                                <span className="text-[11px] font-bold text-white">{order.code}</span>
+                              </div>
+                              <span className="text-[11px] font-bold text-white">{formatCurrency(order.total)}</span>
+                            </div>
+                            {order.items.map((item, idx) => (
+                              <div key={idx} className="flex items-center justify-between text-[10px]">
+                                <span className="text-white/50">{item.quantity}x {item.name}</span>
+                                <span className="text-white/40">{formatCurrency(item.price * item.quantity)}</span>
+                              </div>
+                            ))}
+                            <p className="text-[9px] text-white/20 mt-1">
+                              {new Date(order.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
