@@ -16,7 +16,10 @@ import {
   Plus,
   X,
   FileText,
-  Package
+  Package,
+  Copy,
+  QrCode,
+  Loader2
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -58,6 +61,12 @@ export default function AdminNovaVenda() {
   ]);
   const [products, setProducts] = useState<any[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  
+  // PIX generation state
+  const [pixQrCode, setPixQrCode] = useState<string | null>(null);
+  const [pixCopyPaste, setPixCopyPaste] = useState<string | null>(null);
+  const [generatingPix, setGeneratingPix] = useState(false);
+  const [pixGenerated, setPixGenerated] = useState(false);
 
   // Load products for selection
   useEffect(() => {
@@ -117,6 +126,44 @@ export default function AdminNovaVenda() {
             : i
         )
       );
+    }
+  };
+
+  const handleGeneratePix = async () => {
+    if (!selectedClient) {
+      toast.error("Selecione um cliente primeiro");
+      return;
+    }
+    if (totalValue < 1) {
+      toast.error("O valor mínimo para PIX é R$ 1,00");
+      return;
+    }
+
+    setGeneratingPix(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-pix-payment", {
+        body: { amount: totalValue },
+      });
+
+      if (error) throw new Error(error.message || "Erro ao gerar PIX");
+      if (data?.error) throw new Error(data.error);
+
+      setPixCopyPaste(data.qr_code || null);
+      setPixQrCode(data.qr_code_base64 || null);
+      setPixGenerated(true);
+      toast.success("Código PIX gerado com sucesso!");
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Erro ao gerar PIX: " + (err.message || ""));
+    } finally {
+      setGeneratingPix(false);
+    }
+  };
+
+  const handleCopyPix = () => {
+    if (pixCopyPaste) {
+      navigator.clipboard.writeText(pixCopyPaste);
+      toast.success("Código PIX copiado!");
     }
   };
 
@@ -216,6 +263,9 @@ export default function AdminNovaVenda() {
     setDeliveryMethod("manual");
     setNotes("");
     setItems([{ id: crypto.randomUUID(), name: "", quantity: 1, price: 0, productId: null }]);
+    setPixQrCode(null);
+    setPixCopyPaste(null);
+    setPixGenerated(false);
   };
 
   return (
@@ -503,6 +553,69 @@ export default function AdminNovaVenda() {
                 </span>
               </div>
             </div>
+
+            {/* PIX Generation Section */}
+            {paymentMethod === "pix" && totalValue >= 1 && (
+              <>
+                <div className="h-px w-full bg-white/5" />
+                <div className="space-y-4">
+                  <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider flex items-center gap-2">
+                    <QrCode className="size-5 text-primary" />
+                    Cobrança PIX
+                  </h2>
+
+                  {!pixGenerated ? (
+                    <button
+                      type="button"
+                      onClick={handleGeneratePix}
+                      disabled={generatingPix}
+                      className="flex items-center gap-2 px-5 py-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold disabled:opacity-50 transition-all w-full justify-center"
+                    >
+                      {generatingPix ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <QrCode className="size-4" />
+                      )}
+                      {generatingPix ? "Gerando..." : `Gerar Código PIX — ${totalValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`}
+                    </button>
+                  ) : (
+                    <div className="space-y-4 p-4 rounded-xl bg-white/[0.03] border border-white/10">
+                      {pixQrCode && (
+                        <div className="flex justify-center">
+                          <img
+                            src={`data:image/png;base64,${pixQrCode}`}
+                            alt="QR Code PIX"
+                            className="w-48 h-48 rounded-lg bg-white p-2"
+                          />
+                        </div>
+                      )}
+                      {pixCopyPaste && (
+                        <div className="space-y-2">
+                          <label className="text-xs text-gray-400 font-medium">Código Copia e Cola</label>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              readOnly
+                              value={pixCopyPaste}
+                              className="flex-1 rounded-lg py-2.5 px-3 text-xs bg-black/30 border border-white/10 text-gray-300 font-mono truncate"
+                            />
+                            <button
+                              type="button"
+                              onClick={handleCopyPix}
+                              className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-white text-xs font-bold transition-all whitespace-nowrap"
+                            >
+                              <Copy className="size-3.5" />
+                              Copiar
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      <p className="text-xs text-gray-500 text-center">Envie o QR Code ou código acima para o cliente efetuar o pagamento.</p>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
 
             {/* Divider */}
             <div className="h-px w-full bg-white/5" />
