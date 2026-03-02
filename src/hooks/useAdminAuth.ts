@@ -39,17 +39,25 @@ export function useAdminAuth() {
       return null;
     };
 
-    const checkAdmin = async () => {
+    const checkAdmin = async (retryCount = 0) => {
       try {
         let { data: { session } } = await supabase.auth.getSession();
 
-        // If no session or token looks expired, try refreshing
+        // If no session, try refreshing (token may have expired in background)
         if (!session) {
           const { data: refreshData } = await supabase.auth.refreshSession();
           session = refreshData.session;
         }
 
+        // Still no session — retry up to 2 times with delay before giving up
         if (!session) {
+          if (retryCount < 2) {
+            console.warn(`[useAdminAuth] No session found, retrying (${retryCount + 1}/2)...`);
+            await new Promise(r => setTimeout(r, 1500));
+            if (!cancelled) return checkAdmin(retryCount + 1);
+            return;
+          }
+          // Only redirect if user truly has no session after retries
           if (!cancelled) navigate("/admin/login");
           return;
         }
@@ -65,7 +73,7 @@ export function useAdminAuth() {
         }
       } catch (err) {
         console.error("useAdminAuth check failed:", err);
-        // Don't logout on transient errors — just stop loading
+        // NEVER logout on transient/network errors — just stop loading
         if (!cancelled) {
           setState(prev => ({ ...prev, loading: false }));
         }
