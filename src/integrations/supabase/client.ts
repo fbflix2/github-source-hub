@@ -26,8 +26,8 @@ async function refreshIfNeeded() {
     if (session) {
       const expiresAt = session.expires_at ? session.expires_at * 1000 : 0;
       const now = Date.now();
-      // If token expires within 15 minutes, refresh proactively
-      if (expiresAt - now < 15 * 60 * 1000) {
+      // If token expires within 30 minutes, refresh proactively
+      if (expiresAt - now < 30 * 60 * 1000) {
         console.log('[auth] Proactively refreshing session token');
         await supabase.auth.refreshSession();
       }
@@ -40,8 +40,8 @@ async function refreshIfNeeded() {
 function startSessionKeepAlive() {
   if (refreshInterval) clearInterval(refreshInterval);
   
-  // Check every 2 minutes to prevent any chance of expiration
-  refreshInterval = setInterval(refreshIfNeeded, 2 * 60 * 1000);
+  // Check every 1 minute to prevent any chance of expiration
+  refreshInterval = setInterval(refreshIfNeeded, 60 * 1000);
 }
 
 // Refresh session when tab becomes visible again (user returns to tab)
