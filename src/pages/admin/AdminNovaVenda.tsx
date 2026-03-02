@@ -19,7 +19,10 @@ import {
   Package,
   Copy,
   QrCode,
-  Loader2
+  Loader2,
+  CheckCircle,
+  XCircle,
+  Clock
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -67,6 +70,10 @@ export default function AdminNovaVenda() {
   const [pixCopyPaste, setPixCopyPaste] = useState<string | null>(null);
   const [generatingPix, setGeneratingPix] = useState(false);
   const [pixGenerated, setPixGenerated] = useState(false);
+  const [pixPaymentId, setPixPaymentId] = useState<string | null>(null);
+  const [pixOrderId, setPixOrderId] = useState<string | null>(null);
+  const [pixStatus, setPixStatus] = useState<string | null>(null);
+  const [pollingPix, setPollingPix] = useState(false);
 
   // Load products for selection
   useEffect(() => {
@@ -95,6 +102,31 @@ export default function AdminNovaVenda() {
     }, 300);
     return () => clearTimeout(timeout);
   }, [clientSearch]);
+
+  // Poll for PIX payment status
+  useEffect(() => {
+    if (!pixPaymentId || pixStatus === "completed") return;
+    setPollingPix(true);
+    const interval = setInterval(async () => {
+      const { data } = await supabase
+        .from("payments")
+        .select("status")
+        .eq("id", pixPaymentId)
+        .single();
+      if (data?.status === "completed") {
+        setPixStatus("completed");
+        setPollingPix(false);
+        clearInterval(interval);
+        toast.success("Pagamento PIX confirmado! Venda registrada automaticamente.");
+      } else if (data?.status === "failed" || data?.status === "expired") {
+        setPixStatus(data.status);
+        setPollingPix(false);
+        clearInterval(interval);
+        toast.error("Pagamento PIX " + (data.status === "failed" ? "recusado" : "expirado"));
+      }
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [pixPaymentId, pixStatus]);
 
   const totalValue = items.reduce((sum, item) => sum + item.quantity * item.price, 0);
 
@@ -138,11 +170,52 @@ export default function AdminNovaVenda() {
       toast.error("O valor mínimo para PIX é R$ 1,00");
       return;
     }
+    if (items.some((i) => !i.name || i.price <= 0)) {
+      toast.error("Preencha todos os itens corretamente");
+      return;
+    }
 
     setGeneratingPix(true);
     try {
+      // 1. Create order with pending_payment status
+      const code = generateCode();
+      const subtotal = totalValue;
+
+      const { data: order, error: orderError } = await supabase
+        .from("orders")
+        .insert({
+          code,
+          user_id: selectedClient.user_id,
+          subtotal,
+          total: subtotal,
+          discount: 0,
+          status: "pending_payment",
+          payment_method: "pix",
+        })
+        .select("id")
+        .single();
+
+      if (orderError) throw orderError;
+
+      // 2. Create order items
+      const orderItemsData = items.map((item) => ({
+        order_id: order.id,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        product_id: item.productId || null,
+        description: `${notes ? notes + " | " : ""}Entrega: ${deliveryMethods.find(d => d.value === deliveryMethod)?.label || deliveryMethod}`,
+      }));
+
+      const { error: itemsError } = await supabase
+        .from("order_items")
+        .insert(orderItemsData);
+
+      if (itemsError) throw itemsError;
+
+      // 3. Generate PIX payment linked to the order
       const { data, error } = await supabase.functions.invoke("create-pix-payment", {
-        body: { amount: totalValue },
+        body: { amount: subtotal, order_id: order.id },
       });
 
       if (error) throw new Error(error.message || "Erro ao gerar PIX");
@@ -150,8 +223,11 @@ export default function AdminNovaVenda() {
 
       setPixCopyPaste(data.qr_code || null);
       setPixQrCode(data.qr_code_base64 || null);
+      setPixPaymentId(data.payment_id || null);
+      setPixOrderId(order.id);
+      setPixStatus("pending");
       setPixGenerated(true);
-      toast.success("Código PIX gerado com sucesso!");
+      toast.success("Código PIX gerado! Aguardando pagamento...");
     } catch (err: any) {
       console.error(err);
       toast.error("Erro ao gerar PIX: " + (err.message || ""));
@@ -266,6 +342,10 @@ export default function AdminNovaVenda() {
     setPixQrCode(null);
     setPixCopyPaste(null);
     setPixGenerated(false);
+    setPixPaymentId(null);
+    setPixOrderId(null);
+    setPixStatus(null);
+    setPollingPix(false);
   };
 
   return (
@@ -610,6 +690,23 @@ export default function AdminNovaVenda() {
                           </div>
                         </div>
                       )}
+                      {/* Payment status indicator */}
+                      {pixStatus === "completed" ? (
+                        <div className="flex items-center justify-center gap-2 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                          <CheckCircle className="size-5 text-emerald-400" />
+                          <span className="text-sm font-bold text-emerald-400">Pagamento confirmado! Venda registrada.</span>
+                        </div>
+                      ) : pixStatus === "failed" || pixStatus === "expired" ? (
+                        <div className="flex items-center justify-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                          <XCircle className="size-5 text-red-400" />
+                          <span className="text-sm font-bold text-red-400">Pagamento {pixStatus === "failed" ? "recusado" : "expirado"}.</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center gap-2 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+                          <Loader2 className="size-4 animate-spin text-yellow-400" />
+                          <span className="text-sm font-medium text-yellow-400">Aguardando pagamento...</span>
+                        </div>
+                      )}
                       <p className="text-xs text-gray-500 text-center">Envie o QR Code ou código acima para o cliente efetuar o pagamento.</p>
                     </div>
                   )}
@@ -637,16 +734,19 @@ export default function AdminNovaVenda() {
                   onClick={() => navigate("/admin/auditoria")}
                   className="px-5 py-2.5 rounded-lg bg-white/5 border border-white/10 text-gray-300 text-sm font-medium hover:bg-white/10 transition-all"
                 >
-                  Cancelar
+                  {pixStatus === "completed" ? "Voltar à Auditoria" : "Cancelar"}
                 </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-primary text-white text-sm font-bold shadow-lg shadow-primary/20 hover:bg-primary/90 disabled:opacity-50 transition-all"
-                >
-                  <Save className="size-4" />
-                  {submitting ? "Salvando..." : "Registrar Venda"}
-                </button>
+                {/* Hide submit when PIX flow is active */}
+                {!(paymentMethod === "pix" && pixGenerated) && (
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-primary text-white text-sm font-bold shadow-lg shadow-primary/20 hover:bg-primary/90 disabled:opacity-50 transition-all"
+                  >
+                    <Save className="size-4" />
+                    {submitting ? "Salvando..." : "Registrar Venda"}
+                  </button>
+                )}
               </div>
             </div>
           </form>
