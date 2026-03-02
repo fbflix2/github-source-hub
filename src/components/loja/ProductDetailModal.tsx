@@ -143,7 +143,7 @@ export function ProductDetailModal({ product, open, onOpenChange, quantity, onQu
           <div className="flex items-center justify-between gap-4 pt-3 border-t border-border">
             <div>
               <p className="text-2xl font-bold text-foreground">
-                {product.available ? `R$ ${product.price.toFixed(2).replace(".", ",")}` : "---"}
+                R$ {product.price.toFixed(2).replace(".", ",")}
               </p>
               {product.price_label && (
                 <p className="text-xs text-muted-foreground">{product.price_label}</p>

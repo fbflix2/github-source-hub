@@ -397,7 +397,7 @@ export default function Dashboard() {
                       </div>
                       <div className="text-right shrink-0 whitespace-nowrap">
                         <p className="text-xl font-bold text-foreground">
-                          {product.available ? `R$ ${product.price.toFixed(2).replace(".", ",")}` : "---"}
+                          R$ {product.price.toFixed(2).replace(".", ",")}
                         </p>
                         {product.price_label && (
                           <p className="text-[10px] text-muted-foreground">{product.price_label}</p>

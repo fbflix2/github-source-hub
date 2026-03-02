@@ -140,7 +140,7 @@ export function ProductListItem({ product, quantity, onQuantityChange, onReadMor
       <div className="shrink-0 p-4 flex items-center gap-3 border-t sm:border-t-0 sm:border-l border-border bg-secondary/30">
         <div className="text-right mr-2 whitespace-nowrap">
           <p className="text-base font-bold text-foreground">
-            {product.available ? `R$ ${product.price.toFixed(2).replace(".", ",")}` : "---"}
+            R$ {product.price.toFixed(2).replace(".", ",")}
           </p>
           {product.price_label && (
             <p className="text-[10px] text-muted-foreground">{product.price_label}</p>
