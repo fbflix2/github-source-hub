@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import PurchasesListModal from "@/components/admin/PurchasesListModal";
-import CostCenterModal from "@/components/admin/CostCenterModal";
+
 
 const formatCurrency = (value: number) =>
   value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -35,7 +35,7 @@ export default function AdminAuditoria() {
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [showPurchases, setShowPurchases] = useState(false);
-  const [showCostCenter, setShowCostCenter] = useState(false);
+  
   const [projectedProfit, setProjectedProfit] = useState(0);
   const [projectedMargin, setProjectedMargin] = useState(0);
   const [totalMonthlyCosts, setTotalMonthlyCosts] = useState(0);
@@ -114,6 +114,18 @@ export default function AdminAuditoria() {
 
   const stats = [
     {
+      label: "Centro de Custos",
+      value: loading ? "..." : formatCurrency(totalMonthlyCosts),
+      badge: "Operacional",
+      badgeColor: "text-amber-400 bg-amber-400/10 border-amber-400/20",
+      icon: Building2,
+      iconBg: "bg-white/5 border-white/10",
+      iconColor: "text-amber-400",
+      subtitle: "Custos fixos + variáveis",
+      highlighted: false,
+      onClick: () => navigate("/admin/auditoria/centro-custos"),
+    },
+    {
       label: "Central de Investimentos",
       value: loading ? "..." : formatCurrency(totalCost),
       badge: "Saída",
@@ -135,18 +147,6 @@ export default function AdminAuditoria() {
       iconColor: "text-gray-300",
       subtitle: `Pedidos + ${proxyCount} proxies ativos`,
       highlighted: false
-    },
-    {
-      label: "Centro de Custos",
-      value: loading ? "..." : formatCurrency(totalMonthlyCosts),
-      badge: "Operacional",
-      badgeColor: "text-amber-400 bg-amber-400/10 border-amber-400/20",
-      icon: Building2,
-      iconBg: "bg-white/5 border-white/10",
-      iconColor: "text-amber-400",
-      subtitle: "Custos fixos + variáveis",
-      highlighted: false,
-      onClick: () => setShowCostCenter(true),
     },
     {
       label: "Projeção de Lucro",
@@ -285,11 +285,6 @@ export default function AdminAuditoria() {
       <PurchasesListModal
         open={showPurchases}
         onClose={() => setShowPurchases(false)}
-        onUpdate={fetchData}
-      />
-      <CostCenterModal
-        open={showCostCenter}
-        onClose={() => setShowCostCenter(false)}
         onUpdate={fetchData}
       />
     </div>
