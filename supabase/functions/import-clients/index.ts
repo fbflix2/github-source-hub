@@ -30,30 +30,58 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("Não autorizado");
 
+    console.log("[import-clients] Starting request...");
+
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Verify caller is admin
+    // Verify caller is admin or moderator
     const supabaseUser = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: authHeader } } }
     );
-    const { data: { user: caller } } = await supabaseUser.auth.getUser();
+    const { data: { user: caller }, error: userError } = await supabaseUser.auth.getUser();
+    if (userError) {
+      console.error("[import-clients] Auth error:", userError.message);
+      throw new Error("Erro de autenticação: " + userError.message);
+    }
     if (!caller) throw new Error("Não autorizado");
+
+    console.log("[import-clients] Caller:", caller.id);
 
     const { data: isAdmin } = await supabaseAdmin.rpc("has_role", {
       _user_id: caller.id,
       _role: "admin",
     });
-    if (!isAdmin) throw new Error("Sem permissão de administrador");
+    
+    // Also check moderator role
+    const { data: isMod } = await supabaseAdmin.rpc("has_role", {
+      _user_id: caller.id,
+      _role: "moderator",
+    });
+    
+    if (!isAdmin && !isMod) throw new Error("Sem permissão de administrador");
 
-    const { clients } = await req.json() as { clients: ClientData[] };
+    console.log("[import-clients] Authorized, parsing body...");
+
+    let body;
+    try {
+      body = await req.json();
+    } catch (parseErr) {
+      console.error("[import-clients] JSON parse error:", parseErr);
+      throw new Error("Erro ao ler dados da requisição");
+    }
+    
+    const { clients } = body as { clients: ClientData[] };
     if (!clients || !Array.isArray(clients) || clients.length === 0) {
+      console.error("[import-clients] Empty or invalid clients list");
       throw new Error("Lista de clientes vazia");
     }
+
+    console.log(`[import-clients] Processing ${clients.length} clients...`);
 
     let success = 0;
     let updated = 0;
@@ -237,11 +265,14 @@ Deno.serve(async (req) => {
       }
     }
 
+    console.log(`[import-clients] Done: ${success} success, ${updated} updated, ${failed} failed`);
+
     return new Response(
       JSON.stringify({ success, updated, failed, errors, credentials }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
+    console.error("[import-clients] Top-level error:", error);
     const msg = error instanceof Error ? error.message : "Erro desconhecido";
     return new Response(JSON.stringify({ error: msg }), {
       status: 400,
