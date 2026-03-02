@@ -261,8 +261,17 @@ export default function ImportClientsModal({ open, onClose, onImported }: Import
         });
 
         if (error) {
+          console.error("[ImportClients] Batch error:", error);
+          // Try to extract the real error from the response
+          let errorMsg = error.message || "Erro desconhecido";
+          if (typeof error === "object" && (error as any).context?.body) {
+            try {
+              const body = await (error as any).context.json();
+              if (body?.error) errorMsg = body.error;
+            } catch {}
+          }
           totalFailed += batch.length;
-          allErrors.push(`Lote ${Math.floor(i / batchSize) + 1}: ${error.message}`);
+          allErrors.push(`Lote ${Math.floor(i / batchSize) + 1}: ${errorMsg}`);
         } else {
           totalSuccess += data.success || 0;
           totalUpdated += data.updated || 0;
