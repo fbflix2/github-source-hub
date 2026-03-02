@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Send, ShoppingBag, Wallet, Clock, StickyNote, Trash2, DollarSign } from "lucide-react";
+import { Loader2, Send, ShoppingBag, Wallet, Clock, StickyNote, Trash2, DollarSign, UserRound } from "lucide-react";
 import AdjustBalanceModal from "./AdjustBalanceModal";
 
 interface ClientHistoryModalProps {
@@ -161,7 +161,7 @@ export default function ClientHistoryModal({ open, onClose, onBalanceUpdate, cli
       <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="text-lg font-bold flex items-center gap-2">
-            🦫 Perfil do Cliente
+            <UserRound className="size-5 text-primary" /> Perfil do Cliente
           </DialogTitle>
         </DialogHeader>
 
@@ -174,7 +174,7 @@ export default function ClientHistoryModal({ open, onClose, onBalanceUpdate, cli
             />
           ) : (
             <div className="size-14 rounded-xl bg-gradient-to-br from-primary/30 to-primary/10 flex items-center justify-center text-xl font-bold text-primary border border-border">
-              🦫
+              <UserRound className="size-7 text-primary" />
             </div>
           )}
           <div className="flex-1 min-w-0">
