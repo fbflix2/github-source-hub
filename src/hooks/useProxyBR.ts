@@ -95,7 +95,7 @@ export function useProxyBRSubscriptions() {
       const results: any[] = [];
       for (const sub of (data || [])) {
         const raw = (sub.raw_data || {}) as Record<string, any>;
-        const proxies = raw.proxies?.data || [];
+        const proxies = raw.proxies?.data || raw.subscription?.proxies?.data || [];
         const isMulti = proxies.length > 1;
 
         const buildProxyInfo = (proxy: any) => {
