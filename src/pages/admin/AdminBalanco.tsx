@@ -14,6 +14,16 @@ const chartFilters = ["Lucro", "Custos", "Receitas"];
 const formatCurrency = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
+// Parse YYYY-MM-DD without timezone shift
+const parseDateOnly = (dateStr: string) => {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("pt-BR");
+};
+const parseDateShort = (dateStr: string) => {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+};
+
 interface Transaction {
   type: "VENDA" | "COMPRA";
   item: string;
@@ -162,7 +172,7 @@ export default function AdminBalanco() {
         type: "COMPRA" as const,
         item: p.item_type,
         partner: p.provider_name,
-        date: new Date(p.purchase_date).toLocaleDateString("pt-BR"),
+        date: parseDateOnly(p.purchase_date),
         value: Number(p.total_value),
         qty: p.quantity,
       })),
@@ -182,7 +192,7 @@ export default function AdminBalanco() {
       chartMap[key].revenue += Number(o.total);
     });
     purchases.forEach(p => {
-      const key = new Date(p.purchase_date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+      const key = parseDateShort(p.purchase_date);
       if (!chartMap[key]) chartMap[key] = { revenue: 0, cost: 0 };
       chartMap[key].cost += Number(p.total_value);
     });
