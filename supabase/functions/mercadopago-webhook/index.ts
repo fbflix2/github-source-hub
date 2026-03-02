@@ -284,7 +284,9 @@ Deno.serve(async (req) => {
                     || contractData.subscription?.code 
                     || contractData.subscriptions?.[0]?.code
                     || (Array.isArray(contractData) ? contractData[0]?.code : null);
-                  const endDate = contractData.due_date || contractData.end_date || contractData.data?.due_date || contractData.subscription?.due_date || null;
+                  const endDateRaw = contractData.due_date || contractData.end_date || contractData.data?.due_date || contractData.subscription?.due_date || null;
+                  // Fallback: if API doesn't return end_date, assume 30 days from now
+                  const endDate = endDateRaw || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
                   
                   console.log(`Extracted subCode=${subCode}, endDate=${endDate} from contract response keys: ${Object.keys(contractData).join(',')}`);
                   
@@ -301,7 +303,7 @@ Deno.serve(async (req) => {
                       await supabase.from("subscriptions").update({
                         user_id: userId,
                         status: "active",
-                        end_date: endDate || null,
+                        end_date: endDate,
                         auto_renew: contractData.auto_renew_active ?? false,
                         raw_data: contractData,
                       }).eq("id", existingSub.id);
@@ -312,7 +314,7 @@ Deno.serve(async (req) => {
                         status: "active",
                         user_id: userId,
                         start_date: new Date().toISOString(),
-                        end_date: endDate || null,
+                        end_date: endDate,
                         auto_renew: contractData.auto_renew_active ?? false,
                         raw_data: contractData,
                       });
@@ -407,7 +409,8 @@ Deno.serve(async (req) => {
                         || contractData.subscription?.code 
                         || contractData.subscriptions?.[0]?.code
                         || (Array.isArray(contractData) ? contractData[0]?.code : null);
-                      const endDate = contractData.due_date || contractData.end_date || contractData.data?.due_date || contractData.subscription?.due_date || null;
+                      const endDateRaw = contractData.due_date || contractData.end_date || contractData.data?.due_date || contractData.subscription?.due_date || null;
+                      const endDate = endDateRaw || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
                       
                       console.log(`[webhook-fallback] Extracted subCode=${subCode}, endDate=${endDate}`);
                       
@@ -423,7 +426,7 @@ Deno.serve(async (req) => {
                           await supabase.from("subscriptions").update({
                             user_id: userId,
                             status: "active",
-                            end_date: endDate || null,
+                            end_date: endDate,
                             auto_renew: contractData.auto_renew_active ?? false,
                             raw_data: contractData,
                           }).eq("id", existingSub.id);
@@ -434,7 +437,7 @@ Deno.serve(async (req) => {
                             status: "active",
                             user_id: userId,
                             start_date: new Date().toISOString(),
-                            end_date: endDate || null,
+                            end_date: endDate,
                             auto_renew: contractData.auto_renew_active ?? false,
                             raw_data: contractData,
                           });
