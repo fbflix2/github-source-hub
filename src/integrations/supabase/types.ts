@@ -561,6 +561,33 @@ export type Database = {
           },
         ]
       }
+      platform_feedback: {
+        Row: {
+          created_at: string
+          id: string
+          label: string
+          rating: number
+          suggestion: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label: string
+          rating: number
+          suggestion?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string
+          rating?: number
+          suggestion?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       product_categories: {
         Row: {
           created_at: string

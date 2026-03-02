@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
+import { PlatformFeedback } from "@/components/PlatformFeedback";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -65,7 +66,7 @@ export default function ItemDetails() {
   const [pageReceivedByClient, setPageReceivedByClient] = useState(false);
   const [confirmingReceipt, setConfirmingReceipt] = useState(false);
   const [requestingPage, setRequestingPage] = useState(false);
-
+  const [clientFullName, setClientFullName] = useState<string | null>(null);
   // Countdown from order created_at + 24h
   const [countdown, setCountdown] = useState({ hours: 0, minutes: 0, seconds: 0 });
   // Warranty countdown from order created_at + 7 days
@@ -242,6 +243,13 @@ export default function ItemDetails() {
         minutes: Math.floor((wTotalSec % 3600) / 60),
         seconds: wTotalSec % 60,
       });
+
+      // Fetch client name for feedback
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profileData } = await supabase.from("profiles").select("full_name").eq("user_id", user.id).maybeSingle();
+        if (profileData?.full_name) setClientFullName(profileData.full_name);
+      }
 
       setLoading(false);
     }
@@ -1007,6 +1015,9 @@ export default function ItemDetails() {
               Abrir Chat de Suporte
             </button>
           </div>
+
+          {/* Platform Feedback */}
+          <PlatformFeedback userName={clientFullName || undefined} />
         </div>
       </div>
       {/* Disclaimer Modal */}
