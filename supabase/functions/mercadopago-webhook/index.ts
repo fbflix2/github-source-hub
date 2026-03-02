@@ -493,10 +493,10 @@ Deno.serve(async (req) => {
       }
 
       // Notify admin about completed order via PIX
-      const { data: orderData } = await supabase.from("orders").select("code").eq("id", orderId).single();
+      const { data: orderNotifData } = await supabase.from("orders").select("code").eq("id", orderId).single();
       await supabase.from("notifications").insert({
         title: "Pedido Concluído",
-        message: `Pedido ${orderData?.code || orderId} finalizado — R$ ${amount.toFixed(2)} (PIX)`,
+        message: `Pedido ${orderNotifData?.code || orderId} finalizado — R$ ${amount.toFixed(2)} (PIX)`,
         type: "order",
         global: true,
       });
