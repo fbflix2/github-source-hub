@@ -293,7 +293,7 @@ export default function PurchasesListModal({ open, onClose, onUpdate }: Props) {
                         <div className="flex items-center gap-3 text-xs text-white/40">
                           <span>{p.quantity}x {formatCurrency(p.unit_value)}</span>
                           <span className="font-semibold text-white/70">{formatCurrency(p.total_value)}</span>
-                          <span>{new Date(p.purchase_date).toLocaleDateString("pt-BR")}</span>
+                          <span>{(() => { const [y,m,d] = p.purchase_date.split("-").map(Number); return new Date(y, m-1, d).toLocaleDateString("pt-BR"); })()}</span>
                         </div>
                       </div>
                       <div className="flex gap-1">
