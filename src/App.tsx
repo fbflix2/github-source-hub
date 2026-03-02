@@ -64,6 +64,7 @@ import AdminBlocoPadrao from "./pages/admin/AdminBlocoPadrao";
 import AdminReciclagem from "./pages/admin/AdminReciclagem";
 import AdminCentroCustos from "./pages/admin/AdminCentroCustos";
 import AdminClientesAtivos from "./pages/admin/AdminClientesAtivos";
+import AdminFeedbacks from "./pages/admin/AdminFeedbacks";
 import { AdminLayout } from "./components/admin/AdminLayout";
 
 // Layout
@@ -233,6 +234,7 @@ const App = () => {
                   <Route path="configuracoes/plataforma" element={<AdminPlataforma />} />
                   <Route path="configuracoes/usuarios" element={<AdminConfiguracoes />} />
                   <Route path="configuracoes/bloco-padrao" element={<AdminBlocoPadrao />} />
+                  <Route path="configuracoes/feedbacks" element={<AdminFeedbacks />} />
                   <Route path="api" element={<AdminApi />} />
                   <Route path="anuncios" element={<AdminAnuncios />} />
                   <Route path="chat" element={<AdminTeamChat />} />

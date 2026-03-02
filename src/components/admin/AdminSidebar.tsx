@@ -32,7 +32,8 @@ import {
   ShieldCheck,
   MessageCircle,
   Shield,
-  Recycle
+  Recycle,
+  Star
 } from "lucide-react";
 
 interface SubItem {
@@ -73,6 +74,7 @@ const allMenuItems: MenuItem[] = [
     { title: "Tutoriais", icon: GraduationCap, path: "/admin/tutoriais" },
     { title: "Termos de uso", icon: FileText, path: "/admin/termos" },
     { title: "Bloco Padrão", icon: FileText, path: "/admin/configuracoes/bloco-padrao" },
+    { title: "Feedbacks", icon: Star, path: "/admin/configuracoes/feedbacks" },
     { title: "Usuários e Acessos", icon: ShieldCheck, path: "/admin/configuracoes/usuarios" },
     { title: "API | Token", icon: Key, path: "/admin/api" },
   ]},
