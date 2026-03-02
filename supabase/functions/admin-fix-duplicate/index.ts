@@ -34,39 +34,27 @@ Deno.serve(async (req) => {
     });
     if (!isAdmin) throw new Error("Sem permissão");
 
-    const KEEP_USER = "2d811ea5-ed52-4b62-ad1c-9757653817f3";
-    const DELETE_USER = "ccee7e3d-395e-416a-9ca5-ede0dbecfe15";
+    const { delete_user_id } = await req.json();
+    if (!delete_user_id) throw new Error("delete_user_id é obrigatório");
 
-    // 1. Update the kept profile with missing data from duplicate
-    const { error: updateErr } = await supabaseAdmin
-      .from("profiles")
-      .update({
-        birth_date: "1964-02-11",
-        cep: "04604006",
-      })
-      .eq("user_id", KEEP_USER);
-
-    if (updateErr) throw new Error("Erro ao atualizar perfil: " + updateErr.message);
-
-    // 2. Delete duplicate profile
+    // 1. Delete profile
     const { error: delProfile } = await supabaseAdmin
       .from("profiles")
       .delete()
-      .eq("user_id", DELETE_USER);
+      .eq("user_id", delete_user_id);
 
-    // 3. Delete duplicate user_roles
+    // 2. Delete user_roles
     const { error: delRoles } = await supabaseAdmin
       .from("user_roles")
       .delete()
-      .eq("user_id", DELETE_USER);
+      .eq("user_id", delete_user_id);
 
-    // 4. Delete duplicate auth user
-    const { error: delUser } = await supabaseAdmin.auth.admin.deleteUser(DELETE_USER);
+    // 3. Delete auth user
+    const { error: delUser } = await supabaseAdmin.auth.admin.deleteUser(delete_user_id);
 
     return new Response(
       JSON.stringify({
         success: true,
-        profile_updated: !updateErr,
         profile_deleted: !delProfile,
         roles_deleted: !delRoles,
         auth_deleted: !delUser,
