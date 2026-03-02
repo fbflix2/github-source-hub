@@ -1,0 +1,202 @@
+import { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Download, Loader2, Package, Eye, EyeOff } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+
+interface StockItem {
+  id: string;
+  name: string;
+  status: string;
+  identification: string | null;
+  identification_link: string | null;
+  data: Record<string, unknown> | null;
+  order_item_id: string | null;
+  created_at: string;
+}
+
+interface StockItemsModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  productId: string;
+  productName: string;
+}
+
+const statusLabels: Record<string, { label: string; color: string }> = {
+  revisado: { label: "Revisado", color: "bg-green-500/20 text-green-400" },
+  vendido: { label: "Vendido", color: "bg-blue-500/20 text-blue-400" },
+  aguardando: { label: "Aguardando", color: "bg-yellow-500/20 text-yellow-400" },
+  bloqueado: { label: "Bloqueado", color: "bg-red-500/20 text-red-400" },
+};
+
+export function StockItemsModal({ open, onOpenChange, productId, productName }: StockItemsModalProps) {
+  const [items, setItems] = useState<StockItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open && productId) {
+      setLoading(true);
+      supabase
+        .from("stock_items")
+        .select("id, name, status, identification, identification_link, data, order_item_id, created_at")
+        .eq("product_id", productId)
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false })
+        .then(({ data }) => {
+          setItems((data as unknown as StockItem[]) ?? []);
+          setLoading(false);
+        });
+    }
+  }, [open, productId]);
+
+  const generateTxt = (item: StockItem) => {
+    const d = item.data as Record<string, unknown> | null;
+    if (!d) return "";
+    
+    const lines: string[] = [];
+    lines.push(`=== ${item.name} ===`);
+    lines.push("");
+    
+    if (d.nomePerfil) lines.push(`Nome do Perfil: ${d.nomePerfil}`);
+    if (d.emailAcesso) lines.push(`Email de Acesso: ${d.emailAcesso}`);
+    if (d.senhaEmail) lines.push(`Senha do Email: ${d.senhaEmail}`);
+    if (d.senha) lines.push(`Senha: ${d.senha}`);
+    if (d.token2fa) lines.push(`Token 2FA: ${d.token2fa}`);
+    if (d.emailAlternativo) lines.push(`Email Alternativo: ${d.emailAlternativo}`);
+    if (item.identification) lines.push(`ID: ${item.identification}`);
+    if (item.identification_link) lines.push(`Link: ${item.identification_link}`);
+    if (d.dataNascimento) lines.push(`Data de Nascimento: ${d.dataNascimento}`);
+    if (d.genero) lines.push(`Gênero: ${d.genero}`);
+    if (d.tempoPlataforma) lines.push(`Tempo de Plataforma: ${d.tempoPlataforma}`);
+    if (d.descricao) lines.push(`\nDescrição:\n${d.descricao}`);
+    
+    // Include cookies if present
+    if (d.cookies) {
+      lines.push(`\nCookies:\n${typeof d.cookies === 'string' ? d.cookies : JSON.stringify(d.cookies, null, 2)}`);
+    }
+    
+    return lines.join("\n");
+  };
+
+  const handleDownloadTxt = (item: StockItem) => {
+    const content = generateTxt(item);
+    if (!content) {
+      return;
+    }
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${item.name.replace(/\s+/g, "_")}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const available = items.filter(i => i.status === "revisado" && !i.order_item_id);
+  const sold = items.filter(i => i.status === "vendido" || i.order_item_id);
+  const blocked = items.filter(i => i.status === "bloqueado");
+  const other = items.filter(i => !["revisado", "vendido", "bloqueado"].includes(i.status) && !i.order_item_id);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto bg-zinc-900 border-zinc-800 text-white">
+        <DialogHeader>
+          <DialogTitle className="text-lg text-white flex items-center gap-2">
+            <Package className="h-5 w-5 text-primary" />
+            Estoque — {productName}
+          </DialogTitle>
+        </DialogHeader>
+
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        ) : items.length === 0 ? (
+          <p className="text-zinc-500 text-center py-8">Nenhum item de estoque encontrado.</p>
+        ) : (
+          <div className="space-y-3">
+            {/* Summary */}
+            <div className="flex gap-3 flex-wrap">
+              <Badge className="bg-green-500/20 text-green-400">{available.length} disponível</Badge>
+              <Badge className="bg-blue-500/20 text-blue-400">{sold.length} vendido(s)</Badge>
+              {blocked.length > 0 && <Badge className="bg-red-500/20 text-red-400">{blocked.length} bloqueado(s)</Badge>}
+              {other.length > 0 && <Badge className="bg-yellow-500/20 text-yellow-400">{other.length} aguardando</Badge>}
+            </div>
+
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-zinc-800 hover:bg-transparent">
+                    <TableHead className="text-zinc-400 text-xs">NOME</TableHead>
+                    <TableHead className="text-zinc-400 text-xs">ID</TableHead>
+                    <TableHead className="text-zinc-400 text-xs">STATUS</TableHead>
+                    <TableHead className="text-zinc-400 text-xs">AÇÕES</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {items.map((item) => {
+                    const st = statusLabels[item.status] || { label: item.status, color: "bg-zinc-600 text-zinc-400" };
+                    const hasData = item.data && Object.keys(item.data).length > 0;
+                    const isExpanded = expandedId === item.id;
+                    
+                    return (
+                      <>
+                        <TableRow key={item.id} className="border-zinc-800 hover:bg-zinc-800/30">
+                          <TableCell className="text-white text-sm font-medium">{item.name}</TableCell>
+                          <TableCell className="text-zinc-400 text-xs font-mono">
+                            {item.identification || "—"}
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={`text-xs ${st.color}`}>● {st.label}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-1">
+                              {hasData && (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-7 px-2 text-zinc-400 hover:text-white gap-1 text-xs"
+                                    onClick={() => setExpandedId(isExpanded ? null : item.id)}
+                                  >
+                                    {isExpanded ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                                    {isExpanded ? "Ocultar" : "Ver"}
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-7 px-2 text-primary hover:text-primary/80 gap-1 text-xs"
+                                    onClick={() => handleDownloadTxt(item)}
+                                  >
+                                    <Download className="h-3.5 w-3.5" />
+                                    TXT
+                                  </Button>
+                                </>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                        {isExpanded && hasData && (
+                          <TableRow key={`${item.id}-detail`} className="border-zinc-800 bg-zinc-800/20">
+                            <TableCell colSpan={4}>
+                              <pre className="text-xs text-zinc-300 whitespace-pre-wrap font-mono p-2 bg-zinc-900/80 rounded-lg max-h-60 overflow-y-auto">
+                                {generateTxt(item)}
+                              </pre>
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}

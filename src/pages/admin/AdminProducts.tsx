@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useProxyBRProducts } from "@/hooks/useProxyBR";
 import { WaitlistTab } from "@/components/admin/WaitlistTab";
+import { StockItemsModal } from "@/components/admin/StockItemsModal";
 
 interface Product {
   id: string;
@@ -96,6 +97,10 @@ export default function AdminProducts() {
 
   // Sales data
   const [salesByProduct, setSalesByProduct] = useState<Record<string, number>>({});
+
+  // Stock items modal
+  const [stockModalOpen, setStockModalOpen] = useState(false);
+  const [stockModalProduct, setStockModalProduct] = useState<{ id: string; name: string } | null>(null);
 
   // Proxy import
   const { data: proxyProductsData } = useProxyBRProducts();
@@ -783,7 +788,10 @@ export default function AdminProducts() {
                         <TableCell className="text-white text-sm font-medium">{product.name}</TableCell>
                         <TableCell className="text-zinc-400 text-sm">{getCategoryName(product.category_id)}</TableCell>
                         <TableCell className="text-white text-sm">R$ {product.price.toFixed(2).replace(".", ",")}</TableCell>
-                        <TableCell className={`text-sm font-medium ${getDisplayStock(product) > 10 ? "text-green-400" : getDisplayStock(product) > 0 ? "text-yellow-400" : "text-red-400"}`}>
+                        <TableCell 
+                          className={`text-sm font-medium cursor-pointer hover:underline ${getDisplayStock(product) > 10 ? "text-green-400" : getDisplayStock(product) > 0 ? "text-yellow-400" : "text-red-400"}`}
+                          onClick={() => { setStockModalProduct({ id: product.id, name: product.name }); setStockModalOpen(true); }}
+                        >
                           {getDisplayStock(product)} un.
                         </TableCell>
                         <TableCell>
@@ -813,6 +821,15 @@ export default function AdminProducts() {
           <WaitlistTab />
         </TabsContent>
       </Tabs>
+
+      {stockModalProduct && (
+        <StockItemsModal
+          open={stockModalOpen}
+          onOpenChange={setStockModalOpen}
+          productId={stockModalProduct.id}
+          productName={stockModalProduct.name}
+        />
+      )}
     </div>
   );
 }
