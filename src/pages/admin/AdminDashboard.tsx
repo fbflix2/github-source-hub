@@ -133,12 +133,18 @@ export default function AdminDashboard() {
       const completedOrderIds = new Set(completedOrds.map(o => o.id));
 
       const monthMap: Record<string, number> = {};
+      const dateKeyMap: Record<string, string> = {}; // ISO date -> display key
       completedOrds.forEach(o => {
         const d = new Date(o.created_at);
-        const key = d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
-        monthMap[key] = (monthMap[key] || 0) + (o.total || 0);
+        const isoKey = d.toISOString().slice(0, 10);
+        const displayKey = d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+        dateKeyMap[isoKey] = displayKey;
+        monthMap[isoKey] = (monthMap[isoKey] || 0) + (o.total || 0);
       });
+      const todayISO = new Date().toISOString().slice(0, 10);
       const todayChartKey = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+      if (!monthMap[todayISO]) monthMap[todayISO] = 0;
+      dateKeyMap[todayISO] = todayChartKey;
       let proxyRevenueForChart = 0;
 
       const cats = categoriesRes.data ?? [];
@@ -226,8 +232,9 @@ export default function AdminDashboard() {
       }
 
       // Chart shows only actual order revenue per day (no proxy recurring total)
-      if (!monthMap[todayChartKey]) monthMap[todayChartKey] = 0;
-      setChartData(Object.entries(monthMap).slice(-7).map(([name, value]) => ({ name, value })));
+      // Sort by ISO date to ensure chronological order, then display with formatted labels
+      const sortedEntries = Object.entries(monthMap).sort(([a], [b]) => a.localeCompare(b)).slice(-7);
+      setChartData(sortedEntries.map(([isoKey, value]) => ({ name: dateKeyMap[isoKey] || isoKey, value })));
 
       setCategoryStats(cats.map(c => {
         const shouldZero = zeroedCategories.includes(c.name.toLowerCase().trim());
