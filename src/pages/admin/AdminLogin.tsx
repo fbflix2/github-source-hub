@@ -4,12 +4,16 @@ import { Play, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 
 export default function AdminLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(() => {
+    return localStorage.getItem("admin_remember_me") !== "false";
+  });
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -18,6 +22,9 @@ export default function AdminLogin() {
     setLoading(true);
 
     try {
+      // Save remember me preference
+      localStorage.setItem("admin_remember_me", rememberMe ? "true" : "false");
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -112,6 +119,17 @@ export default function AdminLogin() {
                   {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                 </button>
               </div>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <Switch
+                  checked={rememberMe}
+                  onCheckedChange={setRememberMe}
+                  className="data-[state=checked]:bg-primary"
+                />
+                <span className="text-sm text-white/60">Manter conectado</span>
+              </label>
             </div>
 
             <Button
