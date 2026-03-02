@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from "react";
-import { Users, Wallet, CheckCircle, Search, LogIn, KeyRound, Pencil, ChevronLeft, ChevronRight, UserPlus, TrendingUp, Minus, X, Ban, Clock, Loader2, Mail, Phone, Squirrel, DollarSign, Upload, Download, BadgeCheck, LayoutGrid, List, Star, Crown } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Users, Wallet, CheckCircle, Search, LogIn, KeyRound, Pencil, ChevronLeft, ChevronRight, UserPlus, TrendingUp, Minus, X, Ban, Clock, Loader2, Mail, Phone, Squirrel, DollarSign, Upload, Download, BadgeCheck, LayoutGrid, List, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -34,6 +34,7 @@ type FilterType = "all" | "subscribers" | "with-balance" | "blocked";
 const ITEMS_PER_PAGE = 12;
 
 export default function AdminClientes() {
+  const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
@@ -48,7 +49,6 @@ export default function AdminClientes() {
   const [showImport, setShowImport] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [showNewClient, setShowNewClient] = useState(false);
-  const [showTopClients, setShowTopClients] = useState(false);
 
   // Stats
   const [totalClients, setTotalClients] = useState(0);
@@ -260,20 +260,6 @@ export default function AdminClientes() {
   const totalPages = Math.max(1, Math.ceil(filteredClients.length / ITEMS_PER_PAGE));
   const paginated = filteredClients.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
-  // Top 10 clients by spending in last 30 days
-  const top10Clients = useMemo(() => {
-    const spendByUser: Record<string, number> = {};
-    for (const o of recentOrders) {
-      spendByUser[o.user_id] = (spendByUser[o.user_id] || 0) + o.total;
-    }
-    return Object.entries(spendByUser)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 10)
-      .map(([userId, total], idx) => {
-        const c = clients.find(cl => cl.user_id === userId);
-        return { rank: idx + 1, userId, total, name: c?.full_name || "Sem nome", avatar: c?.avatar_url };
-      });
-  }, [recentOrders, clients]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -347,7 +333,7 @@ export default function AdminClientes() {
           </div>
 
           <div
-            onClick={() => setShowTopClients(true)}
+            onClick={() => navigate("/admin/clientes/ativos")}
             className="bg-[rgba(30,15,15,0.4)] backdrop-blur-xl border border-white/[0.08] p-4 rounded-2xl flex items-center justify-between group shadow-[0_4px_30px_rgba(0,0,0,0.5)] cursor-pointer hover:border-primary/30 hover:bg-[rgba(45,20,20,0.6)] transition-all"
           >
             <div className="flex flex-col gap-1">
@@ -694,42 +680,6 @@ export default function AdminClientes() {
         onClose={() => setShowNewClient(false)}
         onCreated={fetchClients}
       />
-      <Dialog open={showTopClients} onOpenChange={setShowTopClients}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold flex items-center gap-2">
-              <Crown className="size-5 text-yellow-500" />
-              Top 10 Clientes Ativos (30 dias)
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-2 max-h-[60vh] overflow-y-auto">
-            {top10Clients.length === 0 ? (
-              <p className="text-center text-muted-foreground text-sm py-8">Nenhum cliente ativo nos últimos 30 dias.</p>
-            ) : (
-              top10Clients.map((c) => (
-                <div key={c.userId} className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 border border-border">
-                  <span className={`text-sm font-black w-6 text-center ${c.rank <= 3 ? "text-yellow-500" : "text-muted-foreground"}`}>
-                    {c.rank}º
-                  </span>
-                  {c.avatar ? (
-                    <div className="size-9 rounded-lg bg-center bg-cover border border-border" style={{ backgroundImage: `url(${c.avatar})` }} />
-                  ) : (
-                    <div className="size-9 rounded-lg bg-muted flex items-center justify-center text-xs font-bold text-foreground">
-                      {c.name.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase()}
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-foreground truncate">{c.name}</p>
-                  </div>
-                  <span className="text-sm font-bold text-green-500">
-                    {c.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                  </span>
-                </div>
-              ))
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
