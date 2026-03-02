@@ -55,7 +55,8 @@ export default function SubscriptionManage() {
         .limit(1)
         .maybeSingle();
       if (orderItem?.price != null) {
-        return Number(orderItem.price) / totalProxies;
+        // order_items.price is already the unit price, no need to divide by totalProxies
+        return Number(orderItem.price);
       }
 
       // Fallback: find product by external_id (API product id) or name match
@@ -384,8 +385,9 @@ export default function SubscriptionManage() {
             </div>
             {(() => {
               const raw = (sub.raw_data || {}) as Record<string, any>;
-              const freeExchanges = raw.exchange_quota_free ?? 0;
-              const paidExchanges = raw.exchange_quota_pay ?? 0;
+              // Support both flat and nested (subscription.) structures
+              const freeExchanges = raw.exchange_quota_free ?? raw.subscription?.exchange_quota_free ?? 0;
+              const paidExchanges = raw.exchange_quota_pay ?? raw.subscription?.exchange_quota_pay ?? 0;
               return (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-xs">
