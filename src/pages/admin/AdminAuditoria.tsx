@@ -216,7 +216,7 @@ export default function AdminAuditoria() {
             <div 
               key={index}
               onClick={stat.onClick}
-              className={`bg-white/[0.03] backdrop-blur-2xl border rounded-2xl p-8 relative overflow-hidden group transition-all duration-500 ${
+              className={`bg-white/[0.03] backdrop-blur-2xl border rounded-2xl p-5 relative overflow-hidden group transition-all duration-500 ${
                 stat.highlighted 
                   ? "border-primary/30 shadow-[0_0_40px_-10px_rgba(249,6,6,0.15)]" 
                   : "border-white/10"
@@ -233,7 +233,7 @@ export default function AdminAuditoria() {
               }`} />
 
               <div className="relative z-10">
-                <div className="flex justify-between items-start mb-6">
+                <div className="flex justify-between items-start mb-4">
                   <div className={`p-3 rounded-xl border ${stat.iconBg}`}>
                     <stat.icon className={`size-6 ${stat.iconColor}`} />
                   </div>
@@ -249,8 +249,8 @@ export default function AdminAuditoria() {
                   <div className="flex items-baseline gap-2">
                     <span className={`tracking-tight ${
                       stat.highlighted 
-                        ? "text-4xl lg:text-5xl font-black text-white drop-shadow-lg" 
-                        : "text-3xl lg:text-4xl font-bold text-white"
+                        ? "text-2xl lg:text-3xl font-black text-white drop-shadow-lg" 
+                        : "text-2xl lg:text-3xl font-bold text-white"
                     }`}>
                       {stat.value}
                     </span>
