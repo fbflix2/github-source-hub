@@ -63,6 +63,7 @@ import AdminTeamChat from "./pages/admin/AdminTeamChat";
 import AdminBlocoPadrao from "./pages/admin/AdminBlocoPadrao";
 import AdminReciclagem from "./pages/admin/AdminReciclagem";
 import AdminCentroCustos from "./pages/admin/AdminCentroCustos";
+import AdminClientesAtivos from "./pages/admin/AdminClientesAtivos";
 import { AdminLayout } from "./components/admin/AdminLayout";
 
 // Layout
@@ -221,6 +222,7 @@ const App = () => {
                   <Route path="assinaturas" element={<AdminAssinaturas />} />
                   <Route path="central-proxy" element={<AdminCentralProxy />} />
                   <Route path="clientes" element={<AdminClientes />} />
+                  <Route path="clientes/ativos" element={<AdminClientesAtivos />} />
                   <Route path="afiliados" element={<AdminAfiliados />} />
                   <Route path="cupons" element={<AdminCupons />} />
                   <Route path="tutoriais" element={<AdminTutoriais />} />
