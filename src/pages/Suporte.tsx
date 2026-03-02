@@ -83,12 +83,20 @@ export default function Suporte() {
 
   useEffect(() => { fetchTickets(); }, []);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
-    const validFiles = Array.from(files).filter(f => f.size <= 20 * 1024 * 1024);
-    if (validFiles.length < files.length) toast.error("Alguns arquivos excedem 20MB e foram ignorados.");
-    setAttachedFiles(prev => [...prev, ...validFiles]);
+    const { validateSupportFile } = await import("@/lib/file-validation");
+    const accepted: File[] = [];
+    for (const file of Array.from(files)) {
+      const result = await validateSupportFile(file, 20);
+      if (result.valid) {
+        accepted.push(file);
+      } else {
+        toast.error(`${file.name}: ${result.error}`);
+      }
+    }
+    setAttachedFiles(prev => [...prev, ...accepted]);
   };
 
   const removeFile = (index: number) => {
@@ -391,7 +399,7 @@ export default function Suporte() {
                   className="hidden"
                   multiple
                   type="file"
-                  accept="image/*,video/*,.txt,.pdf,.doc,.docx"
+                  accept=".png,.jpg,.jpeg,.webp,.gif,.bmp,.mp4,.mov,.avi,.mkv,.txt,.pdf,.doc,.docx"
                   ref={fileInputRef}
                   onChange={handleFileChange}
                 />

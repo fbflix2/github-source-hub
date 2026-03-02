@@ -46,8 +46,10 @@ export function AdminProfileModal({ open, onOpenChange, onProfileUpdated }: Admi
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error("Imagem deve ter no máximo 2MB");
+    const { validateImageFile } = await import("@/lib/file-validation");
+    const validation = await validateImageFile(file, 2);
+    if (!validation.valid) {
+      toast.error(validation.error || "Arquivo inválido");
       return;
     }
 

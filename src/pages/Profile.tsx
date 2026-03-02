@@ -177,8 +177,10 @@ export default function Profile() {
     const file = e.target.files?.[0];
     if (!file || !userId) return;
 
-    if (file.size > 2 * 1024 * 1024) {
-      toast({ title: "Arquivo muito grande", description: "O tamanho máximo é 2MB.", variant: "destructive" });
+    const { validateImageFile } = await import("@/lib/file-validation");
+    const validation = await validateImageFile(file, 2);
+    if (!validation.valid) {
+      toast({ title: "Arquivo inválido", description: validation.error, variant: "destructive" });
       return;
     }
 
@@ -475,7 +477,7 @@ function ProfileCard({ verified, fullName, avatarUrl, onAvatarChange, uploadingA
           ) : (
             <span className="material-symbols-outlined text-xl">photo_camera</span>
           )}
-          <input type="file" accept="image/*" onChange={onAvatarChange} className="hidden" disabled={uploadingAvatar} />
+          <input type="file" accept=".png,.jpg,.jpeg,.webp,.gif,.bmp" onChange={onAvatarChange} className="hidden" disabled={uploadingAvatar} />
         </label>
       </div>
 
@@ -526,7 +528,7 @@ function ProfileCard({ verified, fullName, avatarUrl, onAvatarChange, uploadingA
           ) : (
             "Upload Nova Foto"
           )}
-          <input type="file" accept="image/*" onChange={onAvatarChange} className="hidden" disabled={uploadingAvatar} />
+          <input type="file" accept=".png,.jpg,.jpeg,.webp,.gif,.bmp" onChange={onAvatarChange} className="hidden" disabled={uploadingAvatar} />
         </label>
       </div>
     </div>

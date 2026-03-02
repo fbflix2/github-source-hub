@@ -116,6 +116,13 @@ export default function AdminPlataforma() {
   const handleUploadImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const { validateImageFile } = await import("@/lib/file-validation");
+    const validation = await validateImageFile(file, 5);
+    if (!validation.valid) {
+      toast.error(validation.error || "Arquivo inválido");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
     setUploadingImage(true);
     const ext = file.name.split(".").pop();
     const fileName = `${activeImageCategory}/${Date.now()}.${ext}`;
