@@ -20,27 +20,41 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 // This prevents "JWT expired" errors across all requests
 let refreshInterval: ReturnType<typeof setInterval> | null = null;
 
-async function startSessionKeepAlive() {
+async function refreshIfNeeded() {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      const expiresAt = session.expires_at ? session.expires_at * 1000 : 0;
+      const now = Date.now();
+      // If token expires within 15 minutes, refresh proactively
+      if (expiresAt - now < 15 * 60 * 1000) {
+        console.log('[auth] Proactively refreshing session token');
+        await supabase.auth.refreshSession();
+      }
+    }
+  } catch (err) {
+    console.warn('[auth] Keep-alive refresh failed:', err);
+  }
+}
+
+function startSessionKeepAlive() {
   if (refreshInterval) clearInterval(refreshInterval);
   
-  // Refresh every 4 minutes to prevent any chance of expiration
-  refreshInterval = setInterval(async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        const expiresAt = session.expires_at ? session.expires_at * 1000 : 0;
-        const now = Date.now();
-        // If token expires within 10 minutes, refresh proactively
-        if (expiresAt - now < 10 * 60 * 1000) {
-          console.log('[auth] Proactively refreshing session token');
-          await supabase.auth.refreshSession();
-        }
-      }
-    } catch (err) {
-      console.warn('[auth] Keep-alive refresh failed:', err);
-    }
-  }, 4 * 60 * 1000); // Check every 4 minutes
+  // Check every 2 minutes to prevent any chance of expiration
+  refreshInterval = setInterval(refreshIfNeeded, 2 * 60 * 1000);
 }
+
+// Refresh session when tab becomes visible again (user returns to tab)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    refreshIfNeeded();
+  }
+});
+
+// Also refresh on window focus (covers more cases)
+window.addEventListener('focus', () => {
+  refreshIfNeeded();
+});
 
 supabase.auth.onAuthStateChange((event, session) => {
   if (session) {
