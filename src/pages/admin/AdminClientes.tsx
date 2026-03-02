@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Users, Wallet, CheckCircle, Search, LogIn, KeyRound, Pencil, ChevronLeft, ChevronRight, UserPlus, TrendingUp, Minus, X, Ban, Clock, Loader2, Mail, Phone, Squirrel, DollarSign, Upload, Download, BadgeCheck, LayoutGrid, List, Star } from "lucide-react";
+import { Users, Wallet, CheckCircle, Search, LogIn, KeyRound, Pencil, ChevronLeft, ChevronRight, UserPlus, TrendingUp, Minus, X, Ban, Clock, Loader2, Mail, Phone, UserRound, DollarSign, Upload, Download, BadgeCheck, LayoutGrid, List, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -452,7 +452,7 @@ export default function AdminClientes() {
                   className="size-8 flex items-center justify-center rounded-lg text-white/40 hover:text-white transition-colors hover:bg-white/10"
                   title="Histórico do Cliente"
                 >
-                  <Squirrel className="w-5 h-5" />
+                  <UserRound className="w-5 h-5" />
                 </button>
               </div>
 
@@ -577,7 +577,7 @@ export default function AdminClientes() {
                           <Pencil className="w-3 h-3" />
                         </button>
                         <button onClick={() => setHistoryClient(client)} className="size-7 flex items-center justify-center rounded-md bg-white/5 hover:bg-white/10 text-white/40 hover:text-white border border-white/5 transition-all" title="Histórico">
-                          <Squirrel className="w-3 h-3" />
+                          <UserRound className="w-3 h-3" />
                         </button>
                       </div>
                     </td>
