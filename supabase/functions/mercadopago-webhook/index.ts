@@ -218,11 +218,29 @@ Deno.serve(async (req) => {
       // ========== ORDER PAYMENT FLOW ==========
       console.log(`Processing order payment for order ${orderId}`);
 
+      // Fetch order code for the transaction title
+      const { data: orderData } = await supabase
+        .from("orders")
+        .select("code")
+        .eq("id", orderId)
+        .single();
+
       // Mark order as completed
       await supabase
         .from("orders")
         .update({ status: "completed" })
         .eq("id", orderId);
+
+      // Record in wallet_transactions so it appears in client history
+      await supabase.from("wallet_transactions").insert({
+        user_id: userId,
+        type: "debit",
+        title: `Compra via PIX — ${orderData?.code || "pedido"}`,
+        amount: amount,
+        reference_id: paymentId,
+      });
+
+      console.log(`Recorded PIX order payment of R$ ${amount} in wallet_transactions for user ${userId}`);
 
       // Get order items for fulfillment
       const { data: orderItems } = await supabase
