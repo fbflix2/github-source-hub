@@ -130,6 +130,7 @@ export default function AdminClientesAtivos() {
           <div>
             <p className="text-white/50 text-xs uppercase tracking-wider font-medium">Clientes Ativos</p>
             <p className="text-2xl font-black text-white">{loading ? "..." : totalActive}</p>
+            <p className="text-white/30 text-[10px] mt-0.5">Compraram nos últimos 30 dias</p>
           </div>
         </div>
         <div className="bg-[rgba(30,15,15,0.4)] backdrop-blur-xl border border-white/[0.08] p-5 rounded-2xl flex items-center gap-4 shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
@@ -139,6 +140,7 @@ export default function AdminClientesAtivos() {
           <div>
             <p className="text-white/50 text-xs uppercase tracking-wider font-medium">Receita (30 dias)</p>
             <p className="text-2xl font-black text-white">{loading ? "..." : formatCurrency(totalRevenue)}</p>
+            <p className="text-white/30 text-[10px] mt-0.5">Total faturado em pedidos concluídos</p>
           </div>
         </div>
         <div className="bg-[rgba(30,15,15,0.4)] backdrop-blur-xl border border-white/[0.08] p-5 rounded-2xl flex items-center gap-4 shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
@@ -150,6 +152,7 @@ export default function AdminClientesAtivos() {
             <p className="text-2xl font-black text-white">
               {loading ? "..." : formatCurrency(totalActive > 0 ? totalRevenue / totalActive : 0)}
             </p>
+            <p className="text-white/30 text-[10px] mt-0.5">Gasto médio por cliente ativo</p>
           </div>
         </div>
       </div>
