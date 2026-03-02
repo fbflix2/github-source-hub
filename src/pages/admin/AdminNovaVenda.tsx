@@ -15,7 +15,8 @@ import {
   Search,
   Plus,
   X,
-  FileText
+  FileText,
+  Package
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -26,6 +27,12 @@ const paymentMethods = [
   { value: "dinheiro", label: "Dinheiro" },
   { value: "transferencia", label: "Transferência" },
   { value: "outro", label: "Outro" },
+];
+
+const deliveryMethods = [
+  { value: "manual", label: "Entrega Manual" },
+  { value: "automatica", label: "Entrega Automática (Estoque)" },
+  { value: "proxy", label: "Proxy / Assinatura" },
 ];
 
 interface SaleItem {
@@ -44,6 +51,7 @@ export default function AdminNovaVenda() {
   const [showClientDropdown, setShowClientDropdown] = useState(false);
   const [saleDate, setSaleDate] = useState(new Date().toISOString().slice(0, 10));
   const [paymentMethod, setPaymentMethod] = useState("");
+  const [deliveryMethod, setDeliveryMethod] = useState("manual");
   const [notes, setNotes] = useState("");
   const [items, setItems] = useState<SaleItem[]>([
     { id: crypto.randomUUID(), name: "", quantity: 1, price: 0, productId: null },
@@ -163,7 +171,7 @@ export default function AdminNovaVenda() {
         price: item.price,
         quantity: item.quantity,
         product_id: item.productId || null,
-        description: notes || null,
+        description: `${notes ? notes + " | " : ""}Entrega: ${deliveryMethods.find(d => d.value === deliveryMethod)?.label || deliveryMethod}`,
       }));
 
       const { error: itemsError } = await supabase
@@ -171,6 +179,24 @@ export default function AdminNovaVenda() {
         .insert(orderItems);
 
       if (itemsError) throw itemsError;
+
+      // Register wallet transaction for client history
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("balance")
+        .eq("user_id", selectedClient.user_id)
+        .single();
+
+      const currentBalance = profile?.balance || 0;
+
+      await supabase.from("wallet_transactions").insert({
+        user_id: selectedClient.user_id,
+        type: "debit",
+        amount: -subtotal,
+        title: `Compra via ${paymentMethods.find(m => m.value === paymentMethod)?.label || paymentMethod} — ${code}`,
+        reference_id: order.id,
+        balance_after: currentBalance,
+      });
 
       toast.success(`Venda ${code} registrada com sucesso!`);
       navigate("/admin/auditoria");
@@ -187,6 +213,7 @@ export default function AdminNovaVenda() {
     setClientSearch("");
     setSaleDate(new Date().toISOString().slice(0, 10));
     setPaymentMethod("");
+    setDeliveryMethod("manual");
     setNotes("");
     setItems([{ id: crypto.randomUUID(), name: "", quantity: 1, price: 0, productId: null }]);
   };
@@ -331,8 +358,28 @@ export default function AdminNovaVenda() {
                     </div>
                   </div>
                 </div>
+                {/* Delivery Method */}
+                <div className="space-y-2">
+                  <label className="text-sm text-gray-400 font-medium ml-1">Forma de Entrega</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Package className="size-5 text-gray-500" />
+                    </div>
+                    <select
+                      value={deliveryMethod}
+                      onChange={(e) => setDeliveryMethod(e.target.value)}
+                      className="w-full rounded-lg py-3 pl-10 pr-10 text-sm appearance-none cursor-pointer bg-black/20 border border-white/10 text-white focus:bg-black/40 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all"
+                    >
+                      {deliveryMethods.map((d) => (
+                        <option key={d.value} value={d.value} className="bg-gray-900">{d.label}</option>
+                      ))}
+                    </select>
+                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                      <ChevronDown className="size-5 text-gray-500" />
+                    </div>
+                  </div>
+                </div>
 
-                {/* Notes */}
                 <div className="md:col-span-2 space-y-2">
                   <label className="text-sm text-gray-400 font-medium ml-1">Observações</label>
                   <textarea
