@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Download, Loader2, Package, Eye, EyeOff } from "lucide-react";
+import { Download, Loader2, Package, Eye, EyeOff, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface StockItem {
@@ -36,21 +36,29 @@ export function StockItemsModal({ open, onOpenChange, productId, productName }: 
   const [loading, setLoading] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
+  const fetchItems = () => {
+    setLoading(true);
+    supabase
+      .from("stock_items")
+      .select("id, name, status, identification, identification_link, data, order_item_id, created_at")
+      .eq("product_id", productId)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false })
+      .then(({ data }) => {
+        setItems((data as unknown as StockItem[]) ?? []);
+        setLoading(false);
+      });
+  };
+
   useEffect(() => {
-    if (open && productId) {
-      setLoading(true);
-      supabase
-        .from("stock_items")
-        .select("id, name, status, identification, identification_link, data, order_item_id, created_at")
-        .eq("product_id", productId)
-        .is("deleted_at", null)
-        .order("created_at", { ascending: false })
-        .then(({ data }) => {
-          setItems((data as unknown as StockItem[]) ?? []);
-          setLoading(false);
-        });
-    }
+    if (open && productId) fetchItems();
   }, [open, productId]);
+
+  const handleDelete = async (item: StockItem) => {
+    if (!window.confirm(`Excluir "${item.name}" do estoque?`)) return;
+    await supabase.from("stock_items").update({ deleted_at: new Date().toISOString() }).eq("id", item.id);
+    setItems(prev => prev.filter(i => i.id !== item.id));
+  };
 
   const generateTxt = (item: StockItem) => {
     const d = item.data as Record<string, unknown> | null;
@@ -176,6 +184,14 @@ export function StockItemsModal({ open, onOpenChange, productId, productName }: 
                                   </Button>
                                 </>
                               )}
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 px-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 gap-1 text-xs"
+                                onClick={() => handleDelete(item)}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
                             </div>
                           </TableCell>
                         </TableRow>
