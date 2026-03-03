@@ -171,29 +171,48 @@ export default function Mercado() {
             </CardContent>
           </Card>
 
-          {/* Quick Stats Preview */}
-          <Card className="border-border/50 bg-card/80">
-            <CardContent className="p-6 flex flex-col justify-between h-full">
+      {/* Quick Stats Preview — CTA Card */}
+          <Card className="relative overflow-hidden border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-card/90 to-card/80 shadow-lg shadow-amber-500/5 group">
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-amber-400/10 via-transparent to-transparent pointer-events-none" />
+            <CardContent className="p-6 flex flex-col justify-between h-full relative z-10">
               <div>
-                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">Preview</h4>
+                <div className="flex items-center justify-between mb-4">
+                  <Badge variant="outline" className="bg-amber-500/15 text-amber-400 border-amber-500/25 text-[10px] font-bold uppercase tracking-widest">
+                    Token FBX
+                  </Badge>
+                  <div className="size-8 rounded-full bg-amber-400/15 flex items-center justify-center">
+                    <Coins className="size-4 text-amber-400" />
+                  </div>
+                </div>
                 <div className="space-y-4">
                   <div>
-                    <p className="text-xs text-muted-foreground">Seu saldo TokenFb</p>
-                    <p className="text-2xl font-bold text-amber-400">0,00 <span className="text-sm font-normal text-muted-foreground">TFB</span></p>
+                    <p className="text-xs text-muted-foreground">Seu saldo</p>
+                    <p className="text-3xl font-extrabold text-amber-400 tracking-tight">0,00 <span className="text-sm font-normal text-muted-foreground">TFB</span></p>
                   </div>
-                  <Separator className="bg-border/50" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">Cotação estimada</p>
-                    <p className="text-lg font-semibold text-foreground">—</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Status</p>
-                    <Badge variant="outline" className="bg-amber-500/10 text-amber-400 border-amber-500/20 text-xs mt-1">
-                      Em desenvolvimento
-                    </Badge>
+                  <Separator className="bg-amber-500/10" />
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Cotação</p>
+                      <p className="text-base font-semibold text-foreground">— BRL</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-muted-foreground">Status</p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className="size-1.5 rounded-full bg-amber-400 animate-pulse" />
+                        <span className="text-xs font-semibold text-amber-400">Em breve</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
+              <button
+                onClick={() => window.location.href = '/mercado/token-fbx'}
+                className="mt-5 w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-white font-bold text-sm shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 hover:from-amber-400 hover:to-amber-500 transition-all duration-300 flex items-center justify-center gap-2 group-hover:scale-[1.02]"
+              >
+                <TrendingUp className="size-4" />
+                Acessar Mercado FBX
+                <ArrowRight className="size-4" />
+              </button>
             </CardContent>
           </Card>
         </div>
