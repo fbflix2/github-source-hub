@@ -28,31 +28,31 @@ export default function TokenFBX() {
   const [tradeTab, setTradeTab] = useState<"buy" | "sell">("buy");
 
   return (
-    <div className="flex flex-col gap-4 -mt-2">
+    <div className="flex flex-col gap-2 -mt-4" style={{ height: 'calc(100vh - 120px)' }}>
       {/* Stats Header */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
         {/* FBX / BRL */}
         <div
-          className="rounded-xl p-4 flex flex-col justify-between"
+          className="rounded-lg p-2.5 flex flex-col justify-between"
           style={{
             background: "linear-gradient(135deg, rgba(0,238,255,0.08) 0%, rgba(188,19,254,0.08) 100%)",
             border: "1px solid rgba(255,255,255,0.05)",
             backgroundColor: "#111c1d",
           }}
         >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-slate-400 text-xs font-bold uppercase tracking-wider">FBX / BRL</span>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">FBX / BRL</span>
             <span className="bg-[#00ffaa]/20 text-[#00ffaa] px-2 py-0.5 rounded text-[10px] font-bold">+15,42%</span>
           </div>
           <div className="flex items-baseline gap-2">
-            <h3 className="text-2xl font-black text-white">R$ 4,2069</h3>
+            <h3 className="text-xl font-black text-white">R$ 4,2069</h3>
             <span className="text-slate-500 text-sm font-mono">≈ 0,00012 BTC</span>
           </div>
         </div>
 
         {/* 24h Alta / Baixa */}
-        <div className="rounded-xl p-4" style={{ backgroundColor: "#111c1d", border: "1px solid rgba(255,255,255,0.05)" }}>
-          <span className="text-slate-400 text-xs font-bold uppercase tracking-wider block mb-2">Alta / Baixa 24h</span>
+        <div className="rounded-lg p-2.5" style={{ backgroundColor: "#111c1d", border: "1px solid rgba(255,255,255,0.05)" }}>
+          <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block mb-1">Alta / Baixa 24h</span>
           <div className="flex flex-col gap-1">
             <div className="flex justify-between text-sm">
               <span className="text-[#00ffaa] font-mono">R$ 4,85</span>
@@ -65,24 +65,24 @@ export default function TokenFBX() {
         </div>
 
         {/* Volume 24h */}
-        <div className="rounded-xl p-4" style={{ backgroundColor: "#111c1d", border: "1px solid rgba(255,255,255,0.05)" }}>
-          <span className="text-slate-400 text-xs font-bold uppercase tracking-wider block mb-2">Volume 24h</span>
-          <h3 className="text-xl font-bold text-white">R$ 12.450.890</h3>
+        <div className="rounded-lg p-2.5" style={{ backgroundColor: "#111c1d", border: "1px solid rgba(255,255,255,0.05)" }}>
+          <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block mb-1">Volume 24h</span>
+          <h3 className="text-lg font-bold text-white">R$ 12.450.890</h3>
           <span className="text-slate-500 text-xs">2.964.120 FBX</span>
         </div>
 
         {/* Cap. de Mercado */}
-        <div className="rounded-xl p-4" style={{ backgroundColor: "#111c1d", border: "1px solid rgba(255,255,255,0.05)" }}>
-          <span className="text-slate-400 text-xs font-bold uppercase tracking-wider block mb-2">Cap. de Mercado</span>
-          <h3 className="text-xl font-bold text-white">R$ 500.240.000</h3>
+        <div className="rounded-lg p-2.5" style={{ backgroundColor: "#111c1d", border: "1px solid rgba(255,255,255,0.05)" }}>
+          <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block mb-1">Cap. de Mercado</span>
+          <h3 className="text-lg font-bold text-white">R$ 500.240.000</h3>
           <span className="text-[#00eeff] text-xs font-bold">Rank #142</span>
         </div>
       </div>
 
       {/* Chart Area */}
-      <div className="rounded-xl overflow-hidden flex flex-col" style={{ backgroundColor: "#111c1d", border: "1px solid rgba(255,255,255,0.05)" }}>
+      <div className="rounded-lg overflow-hidden flex flex-col flex-1 min-h-0" style={{ backgroundColor: "#111c1d", border: "1px solid rgba(255,255,255,0.05)" }}>
         {/* Toolbar */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-white/5" style={{ backgroundColor: "rgba(8,13,13,0.5)" }}>
+        <div className="flex items-center justify-between px-3 py-2 border-b border-white/5" style={{ backgroundColor: "rgba(8,13,13,0.5)" }}>
           <div className="flex items-center gap-2">
             <div className="flex bg-white/5 rounded-lg p-1">
               {timeframes.map((tf) => (
@@ -123,9 +123,8 @@ export default function TokenFBX() {
 
         {/* Chart */}
         <div
-          className="relative overflow-hidden"
+          className="relative overflow-hidden flex-1 min-h-0"
           style={{
-            height: "320px",
             backgroundImage: "linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.03) 1px, transparent 1px)",
             backgroundSize: "40px 40px",
           }}
@@ -213,7 +212,7 @@ export default function TokenFBX() {
         </div>
 
         {/* Chart Footer */}
-        <div className="px-4 py-2 border-t border-white/5 flex justify-between items-center text-[10px] uppercase font-bold tracking-widest text-slate-600" style={{ backgroundColor: "#080d0d" }}>
+        <div className="px-3 py-1.5 border-t border-white/5 flex justify-between items-center text-[10px] uppercase font-bold tracking-widest text-slate-600" style={{ backgroundColor: "#080d0d" }}>
           <div className="flex gap-4">
             <span>RSI(14): <span className="text-[#00ffaa]">64,2</span></span>
             <span>MACD(12,26,9): <span className="text-[#00eeff]">0,024</span></span>
@@ -229,17 +228,17 @@ export default function TokenFBX() {
       </div>
 
       {/* Bottom Panels: Order Book + Trading + Recent Trades */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
         {/* Order Book */}
-        <div className="rounded-xl overflow-hidden flex flex-col" style={{ backgroundColor: "#111c1d", border: "1px solid rgba(255,255,255,0.05)" }}>
-          <div className="px-4 py-3 border-b border-white/5 flex justify-between items-center">
+        <div className="rounded-lg overflow-hidden flex flex-col" style={{ backgroundColor: "#111c1d", border: "1px solid rgba(255,255,255,0.05)" }}>
+          <div className="px-3 py-2 border-b border-white/5 flex justify-between items-center">
             <h4 className="text-sm font-bold text-white uppercase tracking-wider">Livro de Ofertas</h4>
             <div className="flex gap-1">
               <span className="material-symbols-outlined text-[#ff0055] text-lg cursor-pointer">menu_open</span>
               <span className="material-symbols-outlined text-[#00ffaa] text-lg cursor-pointer">menu_open</span>
             </div>
           </div>
-          <div className="flex-1 p-4 flex flex-col gap-1 text-xs font-mono">
+          <div className="flex-1 p-2.5 flex flex-col gap-0.5 text-xs font-mono">
             {/* Sells */}
             {orderBookSells.map((row, i) => (
               <div key={i} className="flex justify-between relative py-0.5 hover:bg-white/5">
@@ -250,7 +249,7 @@ export default function TokenFBX() {
               </div>
             ))}
             {/* Spread */}
-            <div className="my-2 py-1 border-y border-white/5 flex justify-center gap-4 text-sm font-bold">
+            <div className="my-1 py-1 border-y border-white/5 flex justify-center gap-4 text-xs font-bold">
               <span className="text-white">R$ 4,207</span>
               <span className="text-slate-500 text-[10px]">Spread: 0,002 (0,05%)</span>
             </div>
@@ -267,7 +266,7 @@ export default function TokenFBX() {
         </div>
 
         {/* Trading Terminal */}
-        <div className="rounded-xl p-4 flex flex-col gap-4" style={{ backgroundColor: "#111c1d", border: "1px solid rgba(255,255,255,0.05)" }}>
+        <div className="rounded-lg p-3 flex flex-col gap-2" style={{ backgroundColor: "#111c1d", border: "1px solid rgba(255,255,255,0.05)" }}>
           <div className="flex border-b border-white/5">
             <button
               onClick={() => setTradeTab("buy")}
@@ -286,7 +285,7 @@ export default function TokenFBX() {
               Vender
             </button>
           </div>
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-2">
             <div className="flex flex-col gap-1">
               <label className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Tipo</label>
               <select className="bg-white/5 border-none text-white rounded-lg text-sm focus:ring-1 focus:ring-[#00eeff] py-2 px-3">
@@ -329,7 +328,7 @@ export default function TokenFBX() {
               <span className="text-white">R$ 0,00</span>
             </div>
             <button
-              className={`w-full py-3 font-black rounded-lg transition-all mt-1 ${
+              className={`w-full py-2 font-black rounded-lg transition-all text-sm ${
                 tradeTab === "buy"
                   ? "bg-[#00ffaa] text-[#080d0d] shadow-[0_0_20px_rgba(0,255,170,0.2)] hover:opacity-90"
                   : "bg-[#ff0055] text-white shadow-[0_0_20px_rgba(255,0,85,0.2)] hover:opacity-90"
@@ -341,25 +340,25 @@ export default function TokenFBX() {
         </div>
 
         {/* Recent Trades */}
-        <div className="rounded-xl overflow-hidden flex flex-col" style={{ backgroundColor: "#111c1d", border: "1px solid rgba(255,255,255,0.05)" }}>
-          <div className="px-4 py-3 border-b border-white/5">
+        <div className="rounded-lg overflow-hidden flex flex-col" style={{ backgroundColor: "#111c1d", border: "1px solid rgba(255,255,255,0.05)" }}>
+          <div className="px-3 py-2 border-b border-white/5">
             <h4 className="text-sm font-bold text-white uppercase tracking-wider">Negociações Recentes</h4>
           </div>
-          <div className="flex-1 overflow-y-auto max-h-[300px]">
+          <div className="flex-1 overflow-y-auto max-h-[220px]">
             <table className="w-full text-xs font-mono">
               <thead className="sticky top-0 text-[10px] text-slate-500 text-left uppercase" style={{ backgroundColor: "#111c1d" }}>
                 <tr>
-                  <th className="px-4 py-2 font-bold">Preço</th>
-                  <th className="px-4 py-2 font-bold text-right">Qtd</th>
-                  <th className="px-4 py-2 font-bold text-right">Hora</th>
+                  <th className="px-3 py-1.5 font-bold">Preço</th>
+                  <th className="px-3 py-1.5 font-bold text-right">Qtd</th>
+                  <th className="px-3 py-1.5 font-bold text-right">Hora</th>
                 </tr>
               </thead>
               <tbody>
                 {recentTrades.map((t, i) => (
                   <tr key={i} className="hover:bg-white/5 border-b border-white/5">
-                    <td className={`px-4 py-1.5 ${t.green ? "text-[#00ffaa]" : "text-[#ff0055]"}`}>{t.price}</td>
-                    <td className="px-4 py-1.5 text-right text-slate-300">{t.size}</td>
-                    <td className="px-4 py-1.5 text-right text-slate-500">{t.time}</td>
+                    <td className={`px-3 py-1 ${t.green ? "text-[#00ffaa]" : "text-[#ff0055]"}`}>{t.price}</td>
+                    <td className="px-3 py-1 text-right text-slate-300">{t.size}</td>
+                    <td className="px-3 py-1 text-right text-slate-500">{t.time}</td>
                   </tr>
                 ))}
               </tbody>
