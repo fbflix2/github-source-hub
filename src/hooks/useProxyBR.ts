@@ -134,9 +134,11 @@ export function useProxyBRSubscriptions() {
           // Single proxy — same as before
           results.push({ ...baseEntry, proxy: buildProxyInfo(proxies[0]) });
         } else {
-          // Multiple proxies — each proxy gets the full exchange quota
-          const totalFreeQuota = raw.exchange_quota_free ?? raw.subscription?.exchange_quota_free ?? 0;
-          const totalPaidQuota = raw.exchange_quota_pay ?? raw.subscription?.exchange_quota_pay ?? 0;
+          // Multiple proxies — divide exchange quota equally per proxy
+          const rawFreeQuota = raw.exchange_quota_free ?? raw.subscription?.exchange_quota_free ?? 0;
+          const rawPaidQuota = raw.exchange_quota_pay ?? raw.subscription?.exchange_quota_pay ?? 0;
+          const perProxyFree = Math.floor(rawFreeQuota / proxies.length);
+          const perProxyPaid = Math.floor(rawPaidQuota / proxies.length);
 
           proxies.forEach((proxy: any, index: number) => {
             results.push({
@@ -149,8 +151,8 @@ export function useProxyBRSubscriptions() {
               proxyLabel: `Proxy ${index + 1}/${proxies.length}`,
               raw_data: {
                 ...raw,
-                exchange_quota_free: totalFreeQuota,
-                exchange_quota_pay: totalPaidQuota,
+                exchange_quota_free: perProxyFree,
+                exchange_quota_pay: perProxyPaid,
               },
             });
           });
