@@ -16,28 +16,11 @@ const transactions = [
 
 export default function TokenFBX() {
   const navigate = useNavigate();
-
   return (
-    <div className="max-w-7xl mx-auto space-y-5 pb-10">
-      {/* Back + Balance header */}
-      <div className="flex items-center justify-between">
-        <button
-          onClick={() => navigate("/mercado")}
-          className="flex items-center gap-2 text-sm text-slate-400 hover:text-[#00eeff] transition-colors"
-        >
-          <span className="material-symbols-outlined text-lg">arrow_back</span>
-          Voltar ao Mercado
-        </button>
-        <div className="flex items-center gap-3 px-4 py-2 bg-[#00eeff]/10 rounded-full border border-[#00eeff]/20">
-          <div className="w-5 h-5 rounded-full bg-[#00eeff] flex items-center justify-center text-[#0A0A0A]">
-            <span className="material-symbols-outlined text-[12px] font-bold">account_balance_wallet</span>
-          </div>
-          <span className="text-[#00eeff] font-bold text-sm tracking-tight">1.245,67 FBX</span>
-        </div>
-      </div>
+    <div className="max-w-7xl mx-auto h-[calc(100vh-80px)] overflow-hidden">
 
       {/* Sidebar + Main grid */}
-      <div className="flex gap-5">
+      <div className="flex gap-4 h-full py-3">
         {/* Compact Sidebar */}
         <aside className="w-48 flex-shrink-0 hidden lg:flex flex-col gap-1.5 rounded-2xl p-3 border border-[#00eeff]/10 bg-[#0A0A0A]">
           <div className="flex items-center gap-2 px-3 py-2.5 mb-2 rounded-xl bg-[#00eeff]/5 border border-[#00eeff]/15">
@@ -79,7 +62,7 @@ export default function TokenFBX() {
 
         {/* Main content */}
         <div
-          className="flex-1 min-w-0 space-y-5 rounded-2xl p-5 border border-[#00eeff]/10"
+          className="flex-1 min-w-0 space-y-3 rounded-2xl p-4 border border-[#00eeff]/10 overflow-hidden"
           style={{
             background: "#0A0A0A",
             backgroundImage:
@@ -89,7 +72,7 @@ export default function TokenFBX() {
         >
           {/* Price Chart */}
           <div
-            className="rounded-2xl p-5 relative overflow-hidden"
+            className="rounded-xl p-4 relative overflow-hidden"
             style={{
               background: "rgba(22, 27, 28, 0.7)",
               backdropFilter: "blur(12px)",
@@ -121,7 +104,7 @@ export default function TokenFBX() {
                   </div>
                 </div>
               </div>
-              <div className="flex-1 w-full h-[140px]">
+              <div className="flex-1 w-full h-[100px]">
                 <svg className="w-full h-full" preserveAspectRatio="none" viewBox="0 0 100 40">
                   <defs>
                     <linearGradient id="chartGrad" x1="0" x2="0" y1="0" y2="1">
@@ -144,7 +127,7 @@ export default function TokenFBX() {
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {[
               { icon: "analytics", label: "Market Cap", value: "$12,504,820", change: "+5.2%", changeColor: "text-[#00ff88]", borderColor: "border-l-[#00eeff]/40", barColor: "bg-[#00eeff]", barBg: "bg-[#00eeff]/10", barWidth: "65%", iconBg: "text-[#00eeff]/60 bg-[#00eeff]/5" },
               { icon: "equalizer", label: "24h Volume", value: "$1,245,000", change: "-2.1%", changeColor: "text-[#ff4d4d]", borderColor: "border-l-[#ff4d4d]/40", barColor: "bg-[#ff4d4d]", barBg: "bg-[#ff4d4d]/10", barWidth: "42%", iconBg: "text-[#ff4d4d]/60 bg-[#ff4d4d]/5" },
@@ -152,7 +135,7 @@ export default function TokenFBX() {
             ].map((stat) => (
               <div
                 key={stat.label}
-                className="p-4 rounded-xl border-l-4"
+                className="p-3 rounded-xl border-l-4"
                 style={{
                   background: "rgba(22, 27, 28, 0.7)",
                   backdropFilter: "blur(12px)",
@@ -175,7 +158,7 @@ export default function TokenFBX() {
           </div>
 
           {/* Transactions + CTAs */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
             {/* Transactions Table */}
             <div
               className="lg:col-span-8 rounded-xl overflow-hidden"
