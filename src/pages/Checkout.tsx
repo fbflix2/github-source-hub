@@ -825,12 +825,11 @@ export default function Checkout() {
                   <div>
                     <h3 className="text-sm font-bold text-foreground">Complete sua compra!</h3>
                     <p className="text-xs text-muted-foreground">
-                      Leve <span className="font-bold text-foreground">{upsell.name}</span> com <span className="text-primary font-bold">20% off!</span>
+                      Leve <span className="font-bold text-foreground">{upsell.name}</span> e proteja sua operação!
                     </p>
                   </div>
                   <div className="flex items-center justify-between bg-secondary/80 border border-border rounded-lg p-3">
                     <div>
-                      <p className="text-[10px] text-muted-foreground line-through">De R$ {(upsell.price * 1.25).toFixed(2).replace(".", ",")}</p>
                       <p className="text-lg font-black text-foreground">R$ {upsell.price.toFixed(2).replace(".", ",")}</p>
                     </div>
                     <button
