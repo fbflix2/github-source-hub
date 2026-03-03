@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { RefreshCw, Search, Loader2, Trash2 } from "lucide-react";
+import { RefreshCw, Search, Loader2, Trash2, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +19,7 @@ interface Replacement {
   notes: string | null;
   created_at: string;
   created_by: string;
+  stock_item_id: string | null;
 }
 
 const reasonLabels: Record<string, string> = {
@@ -56,6 +57,56 @@ export default function AdminReposicoes() {
     await supabase.from("replacements").delete().eq("id", id);
     setItems(prev => prev.filter(i => i.id !== id));
     toast.success("Registro excluído");
+  };
+
+  const handleDownloadTxt = async (r: Replacement) => {
+    if (!r.stock_item_id) {
+      toast.error("Item de estoque não vinculado");
+      return;
+    }
+    const { data: stockItem, error } = await supabase
+      .from("stock_items")
+      .select("name, data, identification, identification_link")
+      .eq("id", r.stock_item_id)
+      .single();
+
+    if (error || !stockItem) {
+      toast.error("Erro ao buscar dados do item");
+      return;
+    }
+
+    const d = stockItem.data as Record<string, unknown> | null;
+    const lines: string[] = [];
+    lines.push(`=== ${stockItem.name} ===`);
+    lines.push("");
+    if (d) {
+      if (d.nomePerfil) lines.push(`Nome do Perfil: ${d.nomePerfil}`);
+      if (d.emailAcesso) lines.push(`Email de Acesso: ${d.emailAcesso}`);
+      if (d.senhaEmail) lines.push(`Senha do Email: ${d.senhaEmail}`);
+      if (d.senha) lines.push(`Senha: ${d.senha}`);
+      if (d.token2fa) lines.push(`Token 2FA: ${d.token2fa}`);
+      if (d.emailAlternativo) lines.push(`Email Alternativo: ${d.emailAlternativo}`);
+    }
+    if (stockItem.identification) lines.push(`ID: ${stockItem.identification}`);
+    if (stockItem.identification_link) lines.push(`Link: ${stockItem.identification_link}`);
+    if (d) {
+      if (d.dataNascimento) lines.push(`Data de Nascimento: ${d.dataNascimento}`);
+      if (d.genero) lines.push(`Gênero: ${d.genero}`);
+      if (d.tempoPlataforma) lines.push(`Tempo de Plataforma: ${d.tempoPlataforma}`);
+      if (d.descricao) lines.push(`\nDescrição:\n${d.descricao}`);
+      if (d.cookies) {
+        lines.push(`\nCookies:\n${typeof d.cookies === 'string' ? d.cookies : JSON.stringify(d.cookies, null, 2)}`);
+      }
+    }
+
+    const content = lines.join("\n");
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${r.item_name.replace(/\s+/g, "_")}_reposicao.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const filtered = items.filter(i => {
@@ -170,14 +221,27 @@ export default function AdminReposicoes() {
                     {r.notes || "—"}
                   </TableCell>
                   <TableCell>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-7 px-2 text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                      onClick={() => handleDelete(r.id)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      {r.stock_item_id && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 px-2 text-primary hover:text-primary/80 hover:bg-primary/10"
+                          onClick={() => handleDownloadTxt(r)}
+                          title="Baixar TXT"
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 px-2 text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                        onClick={() => handleDelete(r.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
