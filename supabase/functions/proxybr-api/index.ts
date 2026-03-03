@@ -948,7 +948,7 @@ Deno.serve(async (req) => {
           }
         }
 
-        // 2. Check and debit balance
+        // 2. Check balance (but DON'T debit yet)
         if (renewalPrice > 0) {
           const { data: profile } = await supabaseAdmin
             .from("profiles")
@@ -963,7 +963,37 @@ Deno.serve(async (req) => {
               { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
           }
+        }
 
+        // 3. Call ProxyBR API to renew FIRST
+        const renewUrl = `${PROXYBR_BASE}/subscriptions/${params.subscriptionCode}/renew`;
+        console.log(`ProxyBR API call: POST ${renewUrl}`);
+        const renewResp = await proxyFetch(renewUrl, PROXYBR_API_KEY, "POST");
+        const renewText = await renewResp.text();
+        console.log(`ProxyBR renew response [${renewResp.status}]: ${renewText.substring(0, 500)}`);
+
+        if (!renewResp.ok) {
+          let renewError;
+          try { renewError = JSON.parse(renewText); } catch { renewError = { raw: renewText }; }
+          console.error(`Renewal FAILED for ${params.subscriptionCode} — API returned ${renewResp.status}. NOT debiting balance.`);
+          return new Response(
+            JSON.stringify({ error: `Falha ao renovar na ProxyBR [${renewResp.status}]`, details: renewError }),
+            { status: renewResp.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        let renewData;
+        try { renewData = JSON.parse(renewText); } catch { renewData = { raw: renewText }; }
+
+        // 4. API succeeded — NOW debit balance and create records
+        if (renewalPrice > 0) {
+          const { data: freshProfile } = await supabaseAdmin
+            .from("profiles")
+            .select("balance")
+            .eq("user_id", subUserId)
+            .single();
+
+          const currentBalance = Number(freshProfile?.balance || 0);
           const newBalance = currentBalance - renewalPrice;
           await supabaseAdmin
             .from("profiles")
@@ -1006,14 +1036,35 @@ Deno.serve(async (req) => {
           }
 
           console.log(`Debited R$ ${renewalPrice.toFixed(2)} from user ${subUserId} for renewal of ${params.subscriptionCode}, order: ${orderCode}`);
-        } else {
-          console.warn(`Could not determine renewal price for ${params.subscriptionCode}, proceeding without debit`);
         }
 
-        // 3. Call ProxyBR API to renew
-        url = `${PROXYBR_BASE}/subscriptions/${params.subscriptionCode}/renew`;
-        method = "POST";
-        break;
+        // 5. Update local subscription with fresh data from API
+        try {
+          const freshUrl = `${PROXYBR_BASE}/subscriptions/${params.subscriptionCode}`;
+          const freshResp = await proxyFetch(freshUrl, PROXYBR_API_KEY);
+          if (freshResp.ok) {
+            const freshData = await freshResp.json();
+            const newEndDate = freshData.due_date ? new Date(freshData.due_date).toISOString() : null;
+            await supabaseAdmin
+              .from("subscriptions")
+              .update({
+                raw_data: freshData,
+                status: "active",
+                end_date: newEndDate || undefined,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("name", params.subscriptionCode)
+              .eq("type", "proxybr");
+            console.log(`Renewal: local DB updated for ${params.subscriptionCode}, new end_date: ${newEndDate}`);
+          }
+        } catch (e: any) {
+          console.warn(`Renewal: failed to update local DB after renewal: ${e.message}`);
+        }
+
+        return new Response(
+          JSON.stringify(renewData),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
 
       case "exchange-proxy": {
