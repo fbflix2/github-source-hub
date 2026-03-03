@@ -32,6 +32,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import Sobre from "./pages/Sobre";
 import Mercado from "./pages/Mercado";
+import TokenFBX from "./pages/TokenFBX";
 
 // Admin Pages
 import AdminLogin from "./pages/admin/AdminLogin";
@@ -110,6 +111,7 @@ function AuthenticatedApp({ user, onLogout }: { user: User; onLogout: () => void
         <Route path="/suporte" element={<Suporte />} />
         <Route path="/tickets" element={<Tickets />} />
         <Route path="/mercado" element={<Mercado />} />
+        <Route path="/mercado/token-fbx" element={<TokenFBX />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/" element={<Navigate to="/loja" replace />} />
       </Route>
