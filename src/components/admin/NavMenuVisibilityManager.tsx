@@ -12,6 +12,7 @@ const clientNavLinks = [
   { key: "tutorials", title: "Tutoriais", url: "/tutorials" },
   { key: "advertise", title: "Anuncie Aqui", url: "/advertise" },
   { key: "ganhe-aqui", title: "Ganhe Aqui", url: "/ganhe-aqui" },
+  { key: "mercado", title: "Mercado", url: "/mercado" },
 ];
 
 export default function NavMenuVisibilityManager() {
