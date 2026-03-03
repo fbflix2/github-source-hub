@@ -166,17 +166,17 @@ Deno.serve(async (req) => {
         const fallbackUserId = adminRoles?.[0]?.user_id || "00000000-0000-0000-0000-000000000000";
 
         // 2. Load ALL existing subscriptions from DB at once
-        const existingMap = new Map<string, { id: string; user_id: string; status: string; cancelled_at: string | null }>();
+        const existingMap = new Map<string, { id: string; user_id: string; status: string; cancelled_at: string | null; raw_data: any }>();
         let offset = 0;
         while (true) {
           const { data: batch } = await sb
             .from("subscriptions")
-            .select("id, name, user_id, status, cancelled_at")
+            .select("id, name, user_id, status, cancelled_at, raw_data")
             .eq("type", "proxybr")
             .range(offset, offset + 999);
           if (!batch?.length) break;
           for (const s of batch) {
-            existingMap.set(s.name, { id: s.id, user_id: s.user_id, status: s.status, cancelled_at: s.cancelled_at });
+            existingMap.set(s.name, { id: s.id, user_id: s.user_id, status: s.status, cancelled_at: s.cancelled_at, raw_data: s.raw_data });
           }
           if (batch.length < 1000) break;
           offset += 1000;
@@ -270,10 +270,14 @@ Deno.serve(async (req) => {
               if (existing) {
                 // Mark as cancelled with timestamp if not already cancelled
                 if (existing.status !== "cancelled") {
+                  const existingRawCancelled = (existing.raw_data || {}) as Record<string, any>;
+                  const cancelledRaw = existingRawCancelled.profile_tag
+                    ? { ...sub, profile_tag: existingRawCancelled.profile_tag }
+                    : sub;
                   toUpdate.push({ id: existing.id, record: { 
                     name: code, type: "proxybr", status: "cancelled", 
                     cancelled_at: new Date().toISOString(),
-                    user_id: existing.user_id, raw_data: sub 
+                    user_id: existing.user_id, raw_data: cancelledRaw 
                   }});
                 }
                 // If already cancelled for 10+ days, mark for deletion
@@ -315,11 +319,19 @@ Deno.serve(async (req) => {
               }
             }
 
+            // Preserve user-set fields (like profile_tag) from existing raw_data
+            const existingForRaw = existingMap.get(code);
+            const existingRaw = (existingForRaw?.raw_data || {}) as Record<string, any>;
+            const preservedProfileTag = existingRaw.profile_tag;
+            const mergedRawData = preservedProfileTag
+              ? { ...sub, profile_tag: preservedProfileTag }
+              : sub;
+
             const record: Record<string, any> = {
               name: code, type: "proxybr", status: mappedStatus,
               start_date: startDateStr, end_date: finalEndDate === "__PRESERVE_LOCAL__" ? undefined : finalEndDate,
               auto_renew: sub.auto_renew_active ?? false,
-              raw_data: sub,
+              raw_data: mergedRawData,
             };
 
             // Remove end_date from record if preserving local value
