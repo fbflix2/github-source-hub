@@ -190,8 +190,18 @@ export default function SubscriptionCard({
             disabled={isRenewing}
             className="flex-1 border border-glass-border hover:border-primary hover:text-primary text-text-secondary bg-transparent h-10 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-50"
           >
+            <span className="material-symbols-outlined text-lg">autorenew</span>
+            {isRenewing ? "Renovando..." : "Renovar"}
+          </button>
+        )}
+        {status === "cancelled" && (
+          <button
+            onClick={onRenew}
+            disabled={isRenewing}
+            className="flex-1 border border-glass-border hover:border-primary hover:text-primary text-text-secondary bg-transparent h-10 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+          >
             <span className="material-symbols-outlined text-lg">replay</span>
-            {isRenewing ? "Renovando..." : "Reativar"}
+            {isRenewing ? "Reativando..." : "Reativar"}
           </button>
         )}
       </div>
