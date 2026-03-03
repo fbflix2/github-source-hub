@@ -811,9 +811,10 @@ export default function Checkout() {
         {/* Right Column - Upsell & Order Summary */}
         <div className="lg:col-span-4 relative order-1 lg:order-2">
           <div className="sticky top-24 flex flex-col gap-3">
-            {/* Upsell Offer */}
+            {/* Upsell Offer - prioritize PROXY IPV6 | HTTP */}
             {relevantBumps.length > 0 && (() => {
-              const upsell = relevantBumps.find(b => !selectedBumps.includes(b.id));
+              const proxyIpv6 = relevantBumps.find(b => !selectedBumps.includes(b.id) && b.name.toUpperCase().includes("PROXY IPV6"));
+              const upsell = proxyIpv6 || relevantBumps.find(b => !selectedBumps.includes(b.id));
               if (!upsell) return null;
               return (
                 <div className="rounded-xl border-2 border-primary bg-gradient-to-b from-primary/10 to-background p-4 flex flex-col gap-2 relative overflow-hidden">
