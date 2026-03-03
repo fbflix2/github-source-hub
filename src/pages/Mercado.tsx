@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Newspaper, Coins, TrendingUp, ArrowRight, Clock, Eye, MessageCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -51,6 +51,7 @@ const categoryColors: Record<string, string> = {
 };
 
 export default function Mercado() {
+  const navigate = useNavigate();
   return (
     <div className="max-w-6xl mx-auto space-y-10 pb-12">
       {/* Page Header */}
@@ -206,7 +207,7 @@ export default function Mercado() {
                 </div>
               </div>
               <button
-                onClick={() => window.location.href = '/mercado/token-fbx'}
+                onClick={() => navigate('/mercado/token-fbx')}
                 className="mt-5 w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 text-white font-bold text-sm shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 hover:from-amber-400 hover:to-amber-500 transition-all duration-300 flex items-center justify-center gap-2 group-hover:scale-[1.02]"
               >
                 <TrendingUp className="size-4" />
