@@ -18,7 +18,7 @@ export default function TokenFBX() {
   const navigate = useNavigate();
 
   return (
-    <div className="flex h-[calc(100vh-64px)] overflow-hidden -mx-4 sm:-mx-6 lg:-mx-8 -mb-8">
+    <div className="flex h-screen overflow-hidden bg-[#0A0A0A]">
       {/* Sidebar */}
       <aside className="w-64 flex-shrink-0 border-r border-[#00eeff]/10 bg-[#0A0A0A] flex-col z-50 hidden lg:flex">
         <div className="p-6 flex items-center gap-3">
