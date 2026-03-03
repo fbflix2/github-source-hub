@@ -27,6 +27,7 @@ const allNavLinks = [
   { key: "tutorials", title: "Tutoriais", url: "/tutorials" },
   { key: "advertise", title: "Anuncie Aqui", url: "/advertise" },
   { key: "ganhe-aqui", title: "Ganhe Aqui", url: "/ganhe-aqui" },
+  { key: "mercado", title: "Mercado", url: "/mercado" },
 ];
 
 export function Navbar({ userName, balance, avatarUrl, onLogout, unreadTickets = 0 }: NavbarProps) {

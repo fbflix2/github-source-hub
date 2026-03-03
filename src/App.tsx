@@ -31,6 +31,7 @@ import Welcome from "./pages/Welcome";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import Sobre from "./pages/Sobre";
+import Mercado from "./pages/Mercado";
 
 // Admin Pages
 import AdminLogin from "./pages/admin/AdminLogin";
@@ -108,6 +109,7 @@ function AuthenticatedApp({ user, onLogout }: { user: User; onLogout: () => void
         <Route path="/como-funciona" element={<ComoFunciona />} />
         <Route path="/suporte" element={<Suporte />} />
         <Route path="/tickets" element={<Tickets />} />
+        <Route path="/mercado" element={<Mercado />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/" element={<Navigate to="/loja" replace />} />
       </Route>
