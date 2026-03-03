@@ -6,6 +6,7 @@ import atendenteAvatar from "@/assets/atendente-avatar.jpeg";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { WaitlistStockAlert } from "@/components/WaitlistStockAlert";
+import { MobileBottomNav } from "./MobileBottomNav";
 
 interface MainLayoutProps {
   userName: string;
@@ -88,12 +89,15 @@ export function MainLayout({ userName, userEmail, onLogout, unreadTickets = 0 }:
       />
 
       {/* Main Content */}
-      <main className="pt-28 pb-20 px-6 max-w-7xl mx-auto">
+      <main className="pt-28 pb-24 md:pb-20 px-6 max-w-7xl mx-auto">
         <Outlet />
       </main>
 
       {/* Waitlist stock alert popup */}
       <WaitlistStockAlert />
+
+      {/* Mobile bottom navigation */}
+      <MobileBottomNav />
 
       {/* Floating Help Button with Dropdown */}
       <div className="fixed bottom-6 right-6 z-40" ref={supportMenuRef}>
