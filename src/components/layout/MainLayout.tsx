@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import { Navbar } from "./Navbar";
-import { Headphones, MessageCircleQuestion, Ticket } from "lucide-react";
+import { MessageCircleQuestion, Ticket } from "lucide-react";
+import atendenteAvatar from "@/assets/atendente-avatar.jpeg";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { WaitlistStockAlert } from "@/components/WaitlistStockAlert";
@@ -120,11 +121,12 @@ export function MainLayout({ userName, userEmail, onLogout, unreadTickets = 0 }:
         <button 
           onClick={() => setShowSupportMenu(!showSupportMenu)}
           className={cn(
-            "w-14 h-14 rounded-full bg-primary text-white shadow-[0_0_20px_rgba(249,6,6,0.4)] flex items-center justify-center hover:scale-110 transition-all",
-            showSupportMenu && "scale-110 ring-2 ring-white/20"
+            "w-14 h-14 rounded-full shadow-[0_0_20px_rgba(34,197,94,0.4)] flex items-center justify-center hover:scale-110 transition-all relative",
+            showSupportMenu && "scale-110"
           )}
         >
-          <Headphones className="size-7" />
+          <img src={atendenteAvatar} alt="Atendente" className="w-14 h-14 rounded-full object-cover object-top" />
+          <span className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-background" />
         </button>
       </div>
     </div>
