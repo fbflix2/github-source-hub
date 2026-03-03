@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Download, Loader2, Package, Eye, EyeOff, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { ReplacementDownloadModal } from "./ReplacementDownloadModal";
 
 interface StockItem {
   id: string;
@@ -35,6 +36,7 @@ export function StockItemsModal({ open, onOpenChange, productId, productName }: 
   const [items, setItems] = useState<StockItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [replacementItem, setReplacementItem] = useState<StockItem | null>(null);
 
   const fetchItems = () => {
     setLoading(true);
@@ -177,7 +179,7 @@ export function StockItemsModal({ open, onOpenChange, productId, productName }: 
                                     size="sm"
                                     variant="ghost"
                                     className="h-7 px-2 text-primary hover:text-primary/80 gap-1 text-xs"
-                                    onClick={() => handleDownloadTxt(item)}
+                                    onClick={() => setReplacementItem(item)}
                                   >
                                     <Download className="h-3.5 w-3.5" />
                                     TXT
@@ -213,6 +215,16 @@ export function StockItemsModal({ open, onOpenChange, productId, productName }: 
           </div>
         )}
       </DialogContent>
+
+      {replacementItem && (
+        <ReplacementDownloadModal
+          open={!!replacementItem}
+          onOpenChange={(open) => { if (!open) setReplacementItem(null); }}
+          item={replacementItem}
+          productName={productName}
+          onDownload={() => handleDownloadTxt(replacementItem)}
+        />
+      )}
     </Dialog>
   );
 }
