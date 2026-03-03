@@ -86,6 +86,9 @@ function AuthenticatedApp({ user, onLogout }: { user: User; onLogout: () => void
 
   return (
     <Routes>
+      {/* Standalone full-page route (no MainLayout) */}
+      <Route path="/mercado/token-fbx" element={<TokenFBX />} />
+
       <Route
         element={
           <MainLayout
@@ -111,7 +114,6 @@ function AuthenticatedApp({ user, onLogout }: { user: User; onLogout: () => void
         <Route path="/suporte" element={<Suporte />} />
         <Route path="/tickets" element={<Tickets />} />
         <Route path="/mercado" element={<Mercado />} />
-        <Route path="/mercado/token-fbx" element={<TokenFBX />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/" element={<Navigate to="/loja" replace />} />
       </Route>
