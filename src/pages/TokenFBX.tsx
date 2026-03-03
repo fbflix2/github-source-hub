@@ -16,8 +16,8 @@ const transactions = [
 
 export default function TokenFBX() {
   return (
-    <div className="max-w-7xl mx-auto h-[calc(100vh-80px)] overflow-hidden">
-      <div className="flex gap-4 h-full py-2">
+    <div className="max-w-7xl mx-auto -mt-4 overflow-hidden" style={{ height: 'calc(100vh - 200px)' }}>
+      <div className="flex gap-3 h-full">
         {/* Sidebar */}
         <aside className="w-44 flex-shrink-0 hidden lg:flex flex-col gap-1 rounded-2xl p-2.5 border border-[#00eeff]/10 bg-[#0A0A0A]">
           <div className="flex items-center gap-2 px-3 py-2 mb-1 rounded-xl bg-[#00eeff]/5 border border-[#00eeff]/15">
