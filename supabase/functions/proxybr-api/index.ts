@@ -339,18 +339,21 @@ Deno.serve(async (req) => {
       if (subCode) {
         const { data: existingSub } = await supabaseAdmin
           .from("subscriptions")
-          .select("id")
+          .select("id, raw_data")
           .eq("name", subCode)
           .eq("type", "proxybr")
           .maybeSingle();
 
         if (existingSub) {
+          const prevRaw = (existingSub.raw_data || {}) as Record<string, any>;
+          const newRaw = contractData.subscription || contractData;
+          const mergedRaw = prevRaw.profile_tag ? { ...newRaw, profile_tag: prevRaw.profile_tag } : newRaw;
           await supabaseAdmin.from("subscriptions").update({
             user_id: user.id,
             status: "active",
             end_date: endDate || null,
             auto_renew: contractData.subscription?.auto_renew_active ?? contractData.auto_renew_active ?? false,
-            raw_data: contractData.subscription || contractData,
+            raw_data: mergedRaw,
           }).eq("id", existingSub.id);
         } else {
           await supabaseAdmin.from("subscriptions").insert({
@@ -692,15 +695,18 @@ Deno.serve(async (req) => {
                 mappedStatus = "active";
               }
 
+              const { data: existing } = await supabaseAdmin
+                .from("subscriptions").select("id, user_id, raw_data").eq("name", code).eq("type", "proxybr").maybeSingle();
+
+              const prevRaw = (existing?.raw_data || {}) as Record<string, any>;
+              const mergedSub = prevRaw.profile_tag ? { ...sub, profile_tag: prevRaw.profile_tag } : sub;
+
               const record: Record<string, any> = {
                 name: code, type: "proxybr", status: mappedStatus,
                 start_date: startDateStr, end_date: endDateStr,
                 auto_renew: sub.auto_renew_active ?? false,
-                raw_data: sub,
+                raw_data: mergedSub,
               };
-
-              const { data: existing } = await supabaseAdmin
-                .from("subscriptions").select("id, user_id").eq("name", code).eq("type", "proxybr").maybeSingle();
 
               if (existing) {
                 const keepUserId = existing.user_id !== user.id ? existing.user_id : (matchedUserId || existing.user_id);
@@ -837,18 +843,20 @@ Deno.serve(async (req) => {
           );
           const { data: existingSub } = await supabaseAdmin
             .from("subscriptions")
-            .select("id")
+            .select("id, raw_data")
             .eq("name", subCode)
             .eq("type", "proxybr")
             .maybeSingle();
 
           if (existingSub) {
+            const prevRaw2 = (existingSub.raw_data || {}) as Record<string, any>;
+            const mergedRaw2 = prevRaw2.profile_tag ? { ...contractData, profile_tag: prevRaw2.profile_tag } : contractData;
             await supabaseAdmin.from("subscriptions").update({
               user_id: user.id,
               status: "active",
               end_date: endDate || null,
               auto_renew: contractData.auto_renew_active ?? false,
-              raw_data: contractData,
+              raw_data: mergedRaw2,
             }).eq("id", existingSub.id);
           } else {
             await supabaseAdmin.from("subscriptions").insert({
@@ -1045,10 +1053,14 @@ Deno.serve(async (req) => {
           if (freshResp.ok) {
             const freshData = await freshResp.json();
             const newEndDate = freshData.due_date ? new Date(freshData.due_date).toISOString() : null;
+            // Preserve profile_tag during renewal refresh
+            const { data: renewSub } = await supabaseAdmin.from("subscriptions").select("raw_data").eq("name", params.subscriptionCode).eq("type", "proxybr").maybeSingle();
+            const renewPrevRaw = (renewSub?.raw_data || {}) as Record<string, any>;
+            const renewMerged = renewPrevRaw.profile_tag ? { ...freshData, profile_tag: renewPrevRaw.profile_tag } : freshData;
             await supabaseAdmin
               .from("subscriptions")
               .update({
-                raw_data: freshData,
+                raw_data: renewMerged,
                 status: "active",
                 end_date: newEndDate || undefined,
                 updated_at: new Date().toISOString(),
