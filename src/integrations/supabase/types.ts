@@ -889,6 +889,56 @@ export type Database = {
         }
         Relationships: []
       }
+      replacements: {
+        Row: {
+          client_name: string | null
+          client_user_id: string
+          created_at: string
+          created_by: string
+          id: string
+          item_name: string
+          item_value: number
+          notes: string | null
+          product_name: string
+          reason: string
+          stock_item_id: string | null
+        }
+        Insert: {
+          client_name?: string | null
+          client_user_id: string
+          created_at?: string
+          created_by: string
+          id?: string
+          item_name: string
+          item_value?: number
+          notes?: string | null
+          product_name: string
+          reason: string
+          stock_item_id?: string | null
+        }
+        Update: {
+          client_name?: string | null
+          client_user_id?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          item_name?: string
+          item_value?: number
+          notes?: string | null
+          product_name?: string
+          reason?: string
+          stock_item_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "replacements_stock_item_id_fkey"
+            columns: ["stock_item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       site_settings: {
         Row: {
           id: string
