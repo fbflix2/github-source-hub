@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+
 
 const sidebarItems = [
   { icon: "home", label: "Início", active: true },
@@ -15,7 +15,6 @@ const transactions = [
 ];
 
 export default function TokenFBX() {
-  const navigate = useNavigate();
   return (
     <div className="max-w-7xl mx-auto h-[calc(100vh-80px)] overflow-hidden">
       <div className="flex gap-4 h-full py-2">
@@ -45,16 +44,6 @@ export default function TokenFBX() {
               <span className="material-symbols-outlined text-base">settings</span>
               <span className="font-semibold text-xs">Configurações</span>
             </div>
-          </div>
-          <div className="mt-auto p-2.5 rounded-lg bg-[#00eeff]/5 border border-[#00eeff]/10">
-            <p className="text-[9px] text-slate-500 uppercase font-bold tracking-widest mb-0.5">Suporte</p>
-            <p className="text-[10px] text-slate-300 leading-snug">Precisa de ajuda?</p>
-            <button
-              onClick={() => navigate("/tickets")}
-              className="mt-1.5 w-full py-1 bg-[#00eeff]/10 text-[#00eeff] text-[9px] font-bold uppercase tracking-wider rounded-md hover:bg-[#00eeff]/20 transition-all"
-            >
-              Abrir Ticket
-            </button>
           </div>
         </aside>
 
