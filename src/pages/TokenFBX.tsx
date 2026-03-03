@@ -40,14 +40,11 @@ export default function TokenFBX() {
       <div className="flex gap-5">
         {/* Compact Sidebar */}
         <aside className="w-48 flex-shrink-0 hidden lg:flex flex-col gap-1.5 rounded-2xl p-3 border border-[#00eeff]/10 bg-[#0A0A0A]">
-          <div className="flex items-center gap-2.5 px-3 py-2 mb-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#00eeff] to-blue-600 flex items-center justify-center text-[#0A0A0A] shadow shadow-[#00eeff]/20">
-              <span className="material-symbols-outlined text-base font-bold">token</span>
+          <div className="flex items-center gap-2 px-3 py-2.5 mb-2 rounded-xl bg-[#00eeff]/5 border border-[#00eeff]/15">
+            <div className="w-7 h-7 rounded-lg bg-[#00eeff]/10 flex items-center justify-center">
+              <span className="material-symbols-outlined text-sm text-[#00eeff]">account_balance_wallet</span>
             </div>
-            <div>
-              <p className="text-[#00eeff] text-xs font-extrabold tracking-tighter uppercase leading-none">FBX Token</p>
-              <p className="text-slate-500 text-[8px] font-bold uppercase tracking-widest">Ecosystem</p>
-            </div>
+            <span className="text-[#00eeff] text-sm font-bold tracking-tight">1.245,67 FBX</span>
           </div>
           {sidebarItems.map((item) => (
             <div
