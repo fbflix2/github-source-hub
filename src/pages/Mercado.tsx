@@ -62,63 +62,6 @@ export default function Mercado() {
         </p>
       </div>
 
-      {/* Section: Notícias */}
-      <section>
-        <div className="flex items-center gap-3 mb-5">
-          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10 border border-primary/20">
-            <Newspaper className="size-5 text-primary" />
-          </div>
-          <div>
-            <h2 className="text-xl font-semibold text-foreground">Notícias</h2>
-            <p className="text-sm text-muted-foreground">Atualizações, promoções e novidades da plataforma</p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {mockNews.map((news) => (
-            <Card
-              key={news.id}
-              className="group cursor-pointer border-border/50 hover:border-primary/30 bg-card/80 backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:shadow-primary/5"
-            >
-              <CardContent className="p-5">
-                <div className="flex items-start justify-between gap-3 mb-3">
-                  <Badge
-                    variant="outline"
-                    className={`text-[10px] font-semibold uppercase tracking-wider ${categoryColors[news.category] || ""}`}
-                  >
-                    {news.category}
-                  </Badge>
-                  <span className="text-xs text-muted-foreground whitespace-nowrap">{news.date}</span>
-                </div>
-                <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2 mb-2">
-                  {news.title}
-                </h3>
-                <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
-                  {news.summary}
-                </p>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Clock className="size-3" />
-                      {news.readTime}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Eye className="size-3" />
-                      {news.views}
-                    </span>
-                  </div>
-                  <span className="text-xs text-primary font-medium flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    Ler mais <ArrowRight className="size-3" />
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </section>
-
-      <Separator className="bg-border/50" />
-
       {/* Section: TokenFb */}
       <section>
         <div className="flex items-center gap-3 mb-5">
@@ -172,7 +115,7 @@ export default function Mercado() {
             </CardContent>
           </Card>
 
-      {/* Quick Stats Preview — CTA Card */}
+          {/* Quick Stats Preview — CTA Card */}
           <Card className="relative overflow-hidden border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-card/90 to-card/80 shadow-lg shadow-amber-500/5 group">
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-amber-400/10 via-transparent to-transparent pointer-events-none" />
             <CardContent className="p-6 flex flex-col justify-between h-full relative z-10">
@@ -216,6 +159,63 @@ export default function Mercado() {
               </button>
             </CardContent>
           </Card>
+        </div>
+      </section>
+
+      <Separator className="bg-border/50" />
+
+      {/* Section: Notícias */}
+      <section>
+        <div className="flex items-center gap-3 mb-5">
+          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10 border border-primary/20">
+            <Newspaper className="size-5 text-primary" />
+          </div>
+          <div>
+            <h2 className="text-xl font-semibold text-foreground">Notícias</h2>
+            <p className="text-sm text-muted-foreground">Atualizações, promoções e novidades da plataforma</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {mockNews.map((news) => (
+            <Card
+              key={news.id}
+              className="group cursor-pointer border-border/50 hover:border-primary/30 bg-card/80 backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:shadow-primary/5"
+            >
+              <CardContent className="p-5">
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <Badge
+                    variant="outline"
+                    className={`text-[10px] font-semibold uppercase tracking-wider ${categoryColors[news.category] || ""}`}
+                  >
+                    {news.category}
+                  </Badge>
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">{news.date}</span>
+                </div>
+                <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2 mb-2">
+                  {news.title}
+                </h3>
+                <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
+                  {news.summary}
+                </p>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <Clock className="size-3" />
+                      {news.readTime}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Eye className="size-3" />
+                      {news.views}
+                    </span>
+                  </div>
+                  <span className="text-xs text-primary font-medium flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    Ler mais <ArrowRight className="size-3" />
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </section>
     </div>
