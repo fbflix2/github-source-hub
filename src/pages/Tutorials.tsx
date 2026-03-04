@@ -190,27 +190,78 @@ export default function Tutorials() {
     grouped.push({ name, color: "blue", tutorials: items });
   }
 
+  // Featured tutorial = first tutorial overall
+  const featuredTutorial = tutorials.length > 0 ? tutorials[0] : null;
+  const featuredThumbnail = featuredTutorial
+    ? featuredTutorial.thumbnail_url || getYouTubeThumbnail(featuredTutorial.video_url)
+    : null;
+
   return (
     <div className="animate-fade-in">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">
-          Tutoriais
-        </h1>
-        <p className="text-muted-foreground max-w-xl">
-          Aprenda a usar a plataforma com nossos guias em vídeo.
-        </p>
-      </div>
+      {/* Netflix-style Hero */}
+      {featuredTutorial && (
+        <div
+          className="relative rounded-xl overflow-hidden mb-10 cursor-pointer group"
+          onClick={() => handlePlay(featuredTutorial)}
+        >
+          <div className="aspect-[21/9] md:aspect-[3/1] w-full relative">
+            {featuredThumbnail ? (
+              <img
+                src={featuredThumbnail}
+                alt={featuredTutorial.title}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full bg-muted flex items-center justify-center">
+                <Play className="size-16 text-muted-foreground" />
+              </div>
+            )}
+            {/* Gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-r from-background/80 to-transparent" />
+          </div>
+          {/* Content overlay */}
+          <div className="absolute bottom-0 left-0 p-6 md:p-10 max-w-2xl">
+            {featuredTutorial.category && (
+              <span className="text-xs font-semibold uppercase tracking-wider text-primary mb-2 inline-block">
+                {featuredTutorial.category}
+              </span>
+            )}
+            <h1 className="text-2xl md:text-4xl font-bold text-foreground mb-2 leading-tight">
+              {featuredTutorial.title}
+            </h1>
+            {featuredTutorial.description && (
+              <p className="text-sm md:text-base text-muted-foreground mb-4 line-clamp-2">
+                {featuredTutorial.description}
+              </p>
+            )}
+            <button className="inline-flex items-center gap-2 bg-primary text-primary-foreground px-6 py-3 rounded-lg font-semibold text-sm hover:bg-primary/90 transition-colors group-hover:scale-105 transform duration-200">
+              <Play className="size-5 fill-current" />
+              Assistir agora
+            </button>
+          </div>
+        </div>
+      )}
 
-      {/* Search */}
-      <div className="relative max-w-md mb-8">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-        <Input
-          placeholder="Buscar tutorial..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-10"
-        />
+      {/* Header + Search */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+        <div>
+          <h2 className="text-2xl md:text-3xl font-bold text-foreground">
+            Todos os Tutoriais
+          </h2>
+          <p className="text-muted-foreground text-sm mt-1">
+            Aprenda a usar a plataforma com nossos guias em vídeo.
+          </p>
+        </div>
+        <div className="relative max-w-md w-full md:w-80">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar tutorial..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-10"
+          />
+        </div>
       </div>
 
       {loading ? (
