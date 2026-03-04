@@ -190,8 +190,24 @@ export default function Tutorials() {
     grouped.push({ name, color: "blue", tutorials: items });
   }
 
-  // Featured tutorial = first tutorial overall
-  const featuredTutorial = tutorials.length > 0 ? tutorials[0] : null;
+  // Rotating featured tutorial every 4 seconds
+  const [featuredIndex, setFeaturedIndex] = useState(0);
+
+  useEffect(() => {
+    if (tutorials.length <= 1) return;
+    const interval = setInterval(() => {
+      setFeaturedIndex((prev) => {
+        let next: number;
+        do {
+          next = Math.floor(Math.random() * tutorials.length);
+        } while (next === prev && tutorials.length > 1);
+        return next;
+      });
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [tutorials.length]);
+
+  const featuredTutorial = tutorials.length > 0 ? tutorials[featuredIndex] : null;
   const featuredThumbnail = featuredTutorial
     ? featuredTutorial.thumbnail_url || getYouTubeThumbnail(featuredTutorial.video_url)
     : null;
@@ -204,7 +220,7 @@ export default function Tutorials() {
           className="relative rounded-xl overflow-hidden mb-10 cursor-pointer group"
           onClick={() => handlePlay(featuredTutorial)}
         >
-          <div className="aspect-[21/9] md:aspect-[3/1] w-full relative">
+          <div className="aspect-[21/9] md:aspect-[3/1] w-full relative transition-opacity duration-700" key={featuredTutorial.id}>
             {featuredThumbnail ? (
               <img
                 src={featuredThumbnail}
