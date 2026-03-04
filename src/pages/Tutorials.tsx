@@ -220,7 +220,7 @@ export default function Tutorials() {
           className="relative rounded-xl overflow-hidden mb-10 cursor-pointer group"
           onClick={() => handlePlay(featuredTutorial)}
         >
-          <div className="aspect-[21/9] md:aspect-[3/1] w-full relative transition-opacity duration-700" key={featuredTutorial.id}>
+          <div className="aspect-[21/9] md:aspect-[3/1] w-full relative animate-fade-in" key={featuredTutorial.id}>
             {featuredThumbnail ? (
               <img
                 src={featuredThumbnail}
