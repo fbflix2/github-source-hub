@@ -645,6 +645,99 @@ export type Database = {
         }
         Relationships: []
       }
+      product_exchanges: {
+        Row: {
+          client_name: string | null
+          client_user_id: string
+          created_at: string
+          id: string
+          new_product_id: string | null
+          new_product_name: string
+          new_stock_item_id: string | null
+          order_id: string
+          order_item_id: string
+          original_product_id: string | null
+          original_product_name: string
+          original_stock_item_id: string | null
+          performed_by: string
+          price_difference: number
+          reason: string | null
+          wallet_adjusted: boolean
+        }
+        Insert: {
+          client_name?: string | null
+          client_user_id: string
+          created_at?: string
+          id?: string
+          new_product_id?: string | null
+          new_product_name: string
+          new_stock_item_id?: string | null
+          order_id: string
+          order_item_id: string
+          original_product_id?: string | null
+          original_product_name: string
+          original_stock_item_id?: string | null
+          performed_by: string
+          price_difference?: number
+          reason?: string | null
+          wallet_adjusted?: boolean
+        }
+        Update: {
+          client_name?: string | null
+          client_user_id?: string
+          created_at?: string
+          id?: string
+          new_product_id?: string | null
+          new_product_name?: string
+          new_stock_item_id?: string | null
+          order_id?: string
+          order_item_id?: string
+          original_product_id?: string | null
+          original_product_name?: string
+          original_stock_item_id?: string | null
+          performed_by?: string
+          price_difference?: number
+          reason?: string | null
+          wallet_adjusted?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_exchanges_new_product_id_fkey"
+            columns: ["new_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_exchanges_new_stock_item_id_fkey"
+            columns: ["new_stock_item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_exchanges_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_exchanges_original_product_id_fkey"
+            columns: ["original_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_exchanges_original_stock_item_id_fkey"
+            columns: ["original_stock_item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_images: {
         Row: {
           category: string

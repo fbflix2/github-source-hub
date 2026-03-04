@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Search, ChevronLeft, ChevronRight, Eye, Trash2, Loader2, ShoppingCart, Package, BarChart3 } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, Eye, Trash2, Loader2, ShoppingCart, Package, BarChart3, ArrowRightLeft } from "lucide-react";
+import ProductExchangeModal from "@/components/admin/ProductExchangeModal";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SalesBalanceTab from "@/components/admin/SalesBalanceTab";
@@ -37,7 +38,7 @@ interface OrderWithDetails {
   payment_method: string | null;
   created_at: string;
   user_id: string;
-  items: { id: string; name: string; description: string | null; price: number; quantity: number; product_id: string | null; delivery_data: any }[];
+  items: { id: string; name: string; description: string | null; price: number; quantity: number; product_id: string | null; delivery_data: any; stock_item_id?: string | null }[];
   feedbackOk: boolean;
   profile: { full_name: string | null; } | null;
   email: string;
@@ -64,6 +65,8 @@ export default function AdminPedidos() {
   const [statusFilter, setStatusFilter] = useState("todos");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedOrder, setSelectedOrder] = useState<OrderWithDetails | null>(null);
+  const [exchangeOpen, setExchangeOpen] = useState(false);
+  const [exchangeItem, setExchangeItem] = useState<{ order_item_id: string; product_id: string | null; product_name: string; price: number; stock_item_id: string | null } | null>(null);
 
   useEffect(() => {
     fetchOrders();
@@ -93,19 +96,30 @@ export default function AdminPedidos() {
 
     // Fetch stock items with 'ok' status to know which orders got positive feedback
     const orderItemIds = (itemsRes.data || []).map(i => i.id);
-    const { data: okStockItems } = await supabase
-      .from("stock_items")
-      .select("order_item_id")
-      .in("order_item_id", orderItemIds.length > 0 ? orderItemIds : ["__none__"])
-      .eq("status", "ok");
+    const [okStockRes, stockLinksRes] = await Promise.all([
+      supabase
+        .from("stock_items")
+        .select("order_item_id")
+        .in("order_item_id", orderItemIds.length > 0 ? orderItemIds : ["__none__"])
+        .eq("status", "ok"),
+      supabase
+        .from("stock_items")
+        .select("id, order_item_id")
+        .in("order_item_id", orderItemIds.length > 0 ? orderItemIds : ["__none__"])
+        .in("status", ["vendido", "ok"]),
+    ]);
 
-    const okOrderItemIds = new Set((okStockItems || []).map(s => s.order_item_id));
+    const okOrderItemIds = new Set((okStockRes.data || []).map(s => s.order_item_id));
+    const stockItemMap = new Map((stockLinksRes.data || []).map(s => [s.order_item_id, s.id]));
 
     // Fetch emails from auth via a simple approach - use user_id mapping
     const profileMap = new Map((profilesRes.data || []).map((p) => [p.user_id, p]));
 
     const enriched: OrderWithDetails[] = ordersData.map((order) => {
-      const items = (itemsRes.data || []).filter((i) => i.order_id === order.id);
+      const items = (itemsRes.data || []).filter((i) => i.order_id === order.id).map(i => ({
+        ...i,
+        stock_item_id: stockItemMap.get(i.id) || null,
+      }));
       const feedbackOk = items.some(i => okOrderItemIds.has(i.id));
       return {
         ...order,
@@ -420,7 +434,28 @@ export default function AdminPedidos() {
                             </p>
                           )}
                         </div>
-                        <p className="font-bold text-primary">R$ {(item.price * item.quantity).toFixed(2).replace(".", ",")}</p>
+                        <div className="flex items-center gap-3">
+                          <p className="font-bold text-primary">R$ {(item.price * item.quantity).toFixed(2).replace(".", ",")}</p>
+                          {selectedOrder.status === "completed" && item.product_id && (
+                            <button
+                              onClick={() => {
+                                setExchangeItem({
+                                  order_item_id: item.id,
+                                  product_id: item.product_id,
+                                  product_name: item.name,
+                                  price: item.price,
+                                  stock_item_id: item.stock_item_id || null,
+                                });
+                                setExchangeOpen(true);
+                              }}
+                              className="flex h-7 items-center gap-1 rounded-lg bg-primary/10 px-2 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
+                              title="Trocar Produto"
+                            >
+                              <ArrowRightLeft className="size-3" />
+                              Trocar
+                            </button>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
@@ -447,6 +482,20 @@ export default function AdminPedidos() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Exchange Modal */}
+      <ProductExchangeModal
+        open={exchangeOpen}
+        onOpenChange={setExchangeOpen}
+        orderItem={exchangeItem}
+        orderId={selectedOrder?.id || ""}
+        clientUserId={selectedOrder?.user_id || ""}
+        clientName={selectedOrder?.profile?.full_name || "—"}
+        onExchangeComplete={() => {
+          setSelectedOrder(null);
+          fetchOrders();
+        }}
+      />
     </div>
   );
 }
