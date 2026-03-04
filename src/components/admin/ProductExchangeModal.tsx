@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ArrowRightLeft, Search, Loader2, Package, AlertTriangle } from "lucide-react";
+import { ArrowRightLeft, Search, Loader2, Package, AlertTriangle, ShieldCheck, Lock } from "lucide-react";
 
 interface ExchangeItem {
   order_item_id: string;
@@ -40,15 +40,28 @@ export default function ProductExchangeModal({ open, onOpenChange, orderItem, or
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingProducts, setLoadingProducts] = useState(false);
+  const [adminPassword, setAdminPassword] = useState("");
+  const [showPasswordStep, setShowPasswordStep] = useState(false);
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
 
   useEffect(() => {
     if (open) {
       fetchProducts();
+      checkAdmin();
       setSelectedProduct(null);
       setReason("");
       setSearch("");
+      setAdminPassword("");
+      setShowPasswordStep(false);
     }
   }, [open]);
+
+  async function checkAdmin() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setIsAdmin(false); return; }
+    const { data } = await supabase.from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin").maybeSingle();
+    setIsAdmin(!!data);
+  }
 
   async function fetchProducts() {
     setLoadingProducts(true);
@@ -71,13 +84,29 @@ export default function ProductExchangeModal({ open, onOpenChange, orderItem, or
     ? selectedProduct.price - orderItem.price
     : 0;
 
+  function handleConfirmClick() {
+    if (!selectedProduct) return;
+    setShowPasswordStep(true);
+  }
+
   async function handleExchange() {
-    if (!orderItem || !selectedProduct) return;
+    if (!orderItem || !selectedProduct || !adminPassword) return;
     setLoading(true);
 
     try {
+      // Verify admin password by re-authenticating
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Não autenticado");
+      if (!user?.email) throw new Error("Não autenticado");
+
+      const { error: signInErr } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: adminPassword,
+      });
+      if (signInErr) {
+        toast.error("Senha incorreta");
+        setLoading(false);
+        return;
+      }
 
       // 1. Return original stock_item to inventory (if exists)
       if (orderItem.stock_item_id) {
@@ -215,93 +244,137 @@ export default function ProductExchangeModal({ open, onOpenChange, orderItem, or
         </DialogHeader>
 
         <div className="space-y-4 mt-2">
-          {/* Current item */}
-          <div className="rounded-xl bg-destructive/5 border border-destructive/20 p-3">
-            <p className="text-xs text-muted-foreground font-semibold uppercase mb-1">Produto Atual</p>
-            <p className="font-bold text-foreground">{orderItem.product_name}</p>
-            <p className="text-sm text-primary font-bold">R$ {orderItem.price.toFixed(2).replace(".", ",")}</p>
-          </div>
-
-          {/* Search new product */}
-          <div>
-            <p className="text-xs text-muted-foreground font-semibold uppercase mb-2">Novo Produto</p>
-            <div className="relative mb-2">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar produto..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-
-            {loadingProducts ? (
-              <div className="flex justify-center py-4"><Loader2 className="size-5 animate-spin text-muted-foreground" /></div>
-            ) : (
-              <div className="max-h-48 overflow-y-auto space-y-1 border border-border rounded-lg p-1">
-                {filtered.length === 0 ? (
-                  <p className="text-center text-sm text-muted-foreground py-4">Nenhum produto disponível</p>
-                ) : filtered.map(p => (
-                  <button
-                    key={p.id}
-                    onClick={() => setSelectedProduct(p)}
-                    className={`w-full text-left flex items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors ${
-                      selectedProduct?.id === p.id
-                        ? "bg-primary/10 border border-primary/30"
-                        : "hover:bg-muted/50"
-                    }`}
-                  >
-                    <div>
-                      <span className="font-medium text-foreground">{p.name}</span>
-                      <span className="ml-2 text-xs text-muted-foreground">({p.stock} em estoque)</span>
-                    </div>
-                    <span className="font-bold text-primary text-sm">R$ {p.price.toFixed(2).replace(".", ",")}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Price difference */}
-          {selectedProduct && (
-            <div className={`rounded-xl p-3 border ${
-              priceDiff > 0 ? "bg-orange-500/5 border-orange-500/20" :
-              priceDiff < 0 ? "bg-green-500/5 border-green-500/20" :
-              "bg-muted/50 border-border"
-            }`}>
-              <div className="flex items-center gap-2">
-                {priceDiff !== 0 && <AlertTriangle className="size-4 text-orange-400" />}
-                <Package className="size-4 text-muted-foreground" />
-                <span className="text-sm font-medium text-foreground">
-                  {priceDiff > 0
-                    ? `Débito de R$ ${priceDiff.toFixed(2).replace(".", ",")} na carteira do cliente`
-                    : priceDiff < 0
-                    ? `Crédito de R$ ${Math.abs(priceDiff).toFixed(2).replace(".", ",")} na carteira do cliente`
-                    : "Mesmo valor — sem ajuste na carteira"}
-                </span>
-              </div>
+          {isAdmin === false && (
+            <div className="rounded-xl bg-destructive/10 border border-destructive/20 p-4 text-center">
+              <ShieldCheck className="size-6 mx-auto mb-2 text-destructive" />
+              <p className="text-sm font-medium text-destructive">Apenas administradores podem realizar trocas.</p>
             </div>
           )}
 
-          {/* Reason */}
-          <div>
-            <p className="text-xs text-muted-foreground font-semibold uppercase mb-1">Motivo (opcional)</p>
-            <Textarea
-              placeholder="Ex: Cliente comprou produto errado..."
-              value={reason}
-              onChange={e => setReason(e.target.value)}
-              rows={2}
-            />
-          </div>
+          {isAdmin !== false && !showPasswordStep && (
+            <>
+              {/* Current item */}
+              <div className="rounded-xl bg-destructive/5 border border-destructive/20 p-3">
+                <p className="text-xs text-muted-foreground font-semibold uppercase mb-1">Produto Atual</p>
+                <p className="font-bold text-foreground">{orderItem.product_name}</p>
+                <p className="text-sm text-primary font-bold">R$ {orderItem.price.toFixed(2).replace(".", ",")}</p>
+              </div>
 
-          <Button
-            className="w-full"
-            disabled={!selectedProduct || loading}
-            onClick={handleExchange}
-          >
-            {loading ? <Loader2 className="size-4 animate-spin mr-2" /> : <ArrowRightLeft className="size-4 mr-2" />}
-            Confirmar Troca
-          </Button>
+              {/* Search new product */}
+              <div>
+                <p className="text-xs text-muted-foreground font-semibold uppercase mb-2">Novo Produto</p>
+                <div className="relative mb-2">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar produto..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+
+                {loadingProducts ? (
+                  <div className="flex justify-center py-4"><Loader2 className="size-5 animate-spin text-muted-foreground" /></div>
+                ) : (
+                  <div className="max-h-48 overflow-y-auto space-y-1 border border-border rounded-lg p-1">
+                    {filtered.length === 0 ? (
+                      <p className="text-center text-sm text-muted-foreground py-4">Nenhum produto disponível</p>
+                    ) : filtered.map(p => (
+                      <button
+                        key={p.id}
+                        onClick={() => setSelectedProduct(p)}
+                        className={`w-full text-left flex items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors ${
+                          selectedProduct?.id === p.id
+                            ? "bg-primary/10 border border-primary/30"
+                            : "hover:bg-muted/50"
+                        }`}
+                      >
+                        <div>
+                          <span className="font-medium text-foreground">{p.name}</span>
+                          <span className="ml-2 text-xs text-muted-foreground">({p.stock} em estoque)</span>
+                        </div>
+                        <span className="font-bold text-primary text-sm">R$ {p.price.toFixed(2).replace(".", ",")}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Price difference */}
+              {selectedProduct && (
+                <div className={`rounded-xl p-3 border ${
+                  priceDiff > 0 ? "bg-orange-500/5 border-orange-500/20" :
+                  priceDiff < 0 ? "bg-green-500/5 border-green-500/20" :
+                  "bg-muted/50 border-border"
+                }`}>
+                  <div className="flex items-center gap-2">
+                    {priceDiff !== 0 && <AlertTriangle className="size-4 text-orange-400" />}
+                    <Package className="size-4 text-muted-foreground" />
+                    <span className="text-sm font-medium text-foreground">
+                      {priceDiff > 0
+                        ? `Débito de R$ ${priceDiff.toFixed(2).replace(".", ",")} na carteira do cliente`
+                        : priceDiff < 0
+                        ? `Crédito de R$ ${Math.abs(priceDiff).toFixed(2).replace(".", ",")} na carteira do cliente`
+                        : "Mesmo valor — sem ajuste na carteira"}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Reason */}
+              <div>
+                <p className="text-xs text-muted-foreground font-semibold uppercase mb-1">Motivo (opcional)</p>
+                <Textarea
+                  placeholder="Ex: Cliente comprou produto errado..."
+                  value={reason}
+                  onChange={e => setReason(e.target.value)}
+                  rows={2}
+                />
+              </div>
+
+              <Button
+                className="w-full"
+                disabled={!selectedProduct || isAdmin === null}
+                onClick={handleConfirmClick}
+              >
+                <ArrowRightLeft className="size-4 mr-2" />
+                Prosseguir com Troca
+              </Button>
+            </>
+          )}
+
+          {isAdmin && showPasswordStep && (
+            <div className="space-y-4">
+              <div className="rounded-xl bg-muted/50 border border-border p-4 text-center">
+                <Lock className="size-8 mx-auto mb-2 text-primary" />
+                <p className="font-bold text-foreground">Confirmação de Segurança</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Trocar <span className="font-semibold text-foreground">{orderItem.product_name}</span> → <span className="font-semibold text-primary">{selectedProduct?.name}</span>
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs text-muted-foreground font-semibold uppercase mb-1">Senha do Admin</p>
+                <Input
+                  type="password"
+                  placeholder="Digite sua senha para confirmar..."
+                  value={adminPassword}
+                  onChange={e => setAdminPassword(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && adminPassword && handleExchange()}
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => setShowPasswordStep(false)} disabled={loading}>
+                  Voltar
+                </Button>
+                <Button className="flex-1" disabled={!adminPassword || loading} onClick={handleExchange}>
+                  {loading ? <Loader2 className="size-4 animate-spin mr-2" /> : <ShieldCheck className="size-4 mr-2" />}
+                  Confirmar Troca
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
