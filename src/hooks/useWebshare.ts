@@ -87,3 +87,47 @@ export function useWebshareProxyConfig() {
     retry: false,
   });
 }
+
+/** Get client's Webshare subscriptions from local DB */
+export function useWebshareSubscriptions() {
+  return useQuery({
+    queryKey: ["webshare-subscriptions"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Usuário não autenticado");
+
+      const { data, error } = await supabase
+        .from("subscriptions")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("type", "webshare")
+        .order("created_at", { ascending: false });
+
+      if (error) throw new Error(error.message);
+
+      return (data || []).map((sub) => {
+        const raw = (sub.raw_data || {}) as Record<string, any>;
+        return {
+          code: sub.name,
+          name: sub.name,
+          product_name: "Proxy Webshare",
+          status: sub.status,
+          start_date: sub.start_date,
+          end_date: sub.end_date || sub.start_date,
+          auto_renew: sub.auto_renew,
+          raw_data: raw,
+          provider: "webshare",
+          proxy: raw.proxy_address ? {
+            id: raw.webshare_proxy_id,
+            ip: raw.proxy_address,
+            port: raw.port,
+            username: raw.username,
+            password: raw.password,
+            protocol: "HTTP/SOCKS5",
+          } : undefined,
+        };
+      });
+    },
+    staleTime: 30_000,
+  });
+}

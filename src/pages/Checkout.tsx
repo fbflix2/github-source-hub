@@ -476,7 +476,42 @@ export default function Checkout() {
           return;
         }
 
-        // Check if this is a proxy purchase FIRST - handle entirely server-side
+        // Check if this is a WEBSHARE proxy purchase
+        const isWebshareProduct = product?.tags?.includes('webshare');
+        if (isWebshareProduct) {
+          updateData.status = "processing";
+          await supabase.from("orders").update(updateData).eq("id", orderId);
+
+          toast.info("Ativando seu proxy Webshare...");
+          const { data: wsResult, error: wsError } = await supabase.functions.invoke("webshare-api", {
+            body: {
+              action: "purchase-proxy-with-balance",
+              order_id: orderId,
+              total,
+              product_id: product.id,
+            },
+          });
+
+          if (wsError || wsResult?.error) {
+            console.error("Webshare purchase error:", wsError || wsResult?.error);
+            toast.error(wsResult?.error || "Erro ao ativar proxy Webshare. Contate o suporte.");
+            navigate("/orders");
+            return;
+          }
+
+          if (couponApplied && coupon.trim()) {
+            const { data: cpn } = await supabase.from("coupons").select("used_count").eq("code", coupon.trim().toUpperCase()).single();
+            if (cpn) await supabase.from("coupons").update({ used_count: cpn.used_count + 1 }).eq("code", coupon.trim().toUpperCase());
+          }
+
+          toast.success("Proxy Webshare ativado com sucesso!");
+          queryClient.invalidateQueries({ queryKey: ["webshare-subscriptions"] });
+          queryClient.invalidateQueries({ queryKey: ["proxybr-subscriptions"] });
+          navigate("/subscriptions");
+          return;
+        }
+
+        // Check if this is a ProxyBR proxy purchase - handle entirely server-side
         // Detect by icon_type (reliable) OR sessionStorage (user variant choice)
         const isProxyProduct = product?.icon_type === 'proxy';
         const proxyData = getProxyPurchaseData();
