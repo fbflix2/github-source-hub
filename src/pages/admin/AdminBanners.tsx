@@ -26,6 +26,7 @@ interface Banner {
   created_at: string;
   category: string | null;
   background_color: string | null;
+  image_style: string | null;
 }
 
 export default function AdminBanners() {

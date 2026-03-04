@@ -1,0 +1,1 @@
+ALTER TABLE public.banners ADD COLUMN IF NOT EXISTS image_style text DEFAULT 'contained';
