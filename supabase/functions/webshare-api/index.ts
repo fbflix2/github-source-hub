@@ -261,6 +261,8 @@ Deno.serve(async (req) => {
           country_code: assignedProxy.country_code,
           city_name: assignedProxy.city_name,
           provider: "webshare",
+          exchange_quota_free: 2,
+          exchange_quota_pay: 0,
         },
       });
 
@@ -360,6 +362,171 @@ Deno.serve(async (req) => {
         total: allProxies.length,
         assigned: assignedIds.size,
         available: available.length,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ========== EXCHANGE WEBSHARE PROXY ==========
+    if (action === "exchange-webshare-proxy") {
+      const { subscription_id } = params as { subscription_id: string };
+      if (!subscription_id) throw new Error("subscription_id é obrigatório");
+
+      // 1. Get subscription
+      const { data: subRow, error: subErr } = await supabaseAdmin
+        .from("subscriptions")
+        .select("*")
+        .eq("id", subscription_id)
+        .eq("type", "webshare")
+        .single();
+
+      if (subErr || !subRow) throw new Error("Assinatura não encontrada");
+      if (subRow.user_id !== user.id) {
+        // Check if staff
+        const { data: isStaff } = await supabaseAdmin.rpc("is_staff", { _user_id: user.id });
+        if (!isStaff) throw new Error("Sem permissão");
+      }
+
+      const raw = (subRow.raw_data || {}) as Record<string, any>;
+      const freeLeft = raw.exchange_quota_free ?? 0;
+      if (freeLeft <= 0) throw new Error("Sem cotas de troca disponíveis");
+
+      const currentProxyId = raw.webshare_proxy_id;
+      const oldProxyStr = `${raw.proxy_address || ""}:${raw.port || ""}`;
+      let newProxyData: Record<string, any> | null = null;
+      let method = "api"; // track which method succeeded
+
+      // Try 1: Webshare API replace
+      if (currentProxyId) {
+        try {
+          console.log(`[webshare-exchange] Trying API replace for proxy ${currentProxyId}`);
+          const replaceResp = await webFetch(`/proxy/replace/`, WEBSHARE_API_KEY, "POST", JSON.stringify({
+            proxy_ids: [currentProxyId],
+          }));
+
+          if (replaceResp.ok) {
+            // Wait for propagation
+            await new Promise(r => setTimeout(r, 2000));
+
+            // Fetch updated proxy list to find the new proxy
+            const listResp = await webFetch(`/proxy/list/?mode=direct&page=1&page_size=250`, WEBSHARE_API_KEY);
+            if (listResp.ok) {
+              const listData = await listResp.json();
+              // The replaced proxy should have a new ID or new IP
+              // Find proxy that wasn't the old one by checking all proxies assigned to active subs
+              const { data: allActiveSubs } = await supabaseAdmin
+                .from("subscriptions")
+                .select("raw_data")
+                .eq("type", "webshare")
+                .in("status", ["active", "expiring"])
+                .neq("id", subscription_id);
+
+              const otherAssignedIds = new Set<string>();
+              for (const s of (allActiveSubs || [])) {
+                const r = (s.raw_data || {}) as Record<string, any>;
+                if (r.webshare_proxy_id) otherAssignedIds.add(r.webshare_proxy_id);
+              }
+
+              // Find a valid proxy not assigned to others
+              const candidates = (listData.results || []).filter(
+                (p: any) => p.valid && !otherAssignedIds.has(p.id) && p.id !== currentProxyId
+              );
+
+              if (candidates.length > 0) {
+                const np = candidates[0];
+                newProxyData = {
+                  webshare_proxy_id: np.id,
+                  proxy_address: np.proxy_address,
+                  port: np.port,
+                  username: np.username,
+                  password: np.password,
+                  country_code: np.country_code,
+                  city_name: np.city_name,
+                };
+                console.log(`[webshare-exchange] API replace succeeded: ${np.proxy_address}:${np.port}`);
+              }
+            }
+          } else {
+            const errData = await replaceResp.text();
+            console.warn(`[webshare-exchange] API replace failed [${replaceResp.status}]: ${errData}`);
+          }
+        } catch (e: any) {
+          console.warn(`[webshare-exchange] API replace error: ${e.message}`);
+        }
+      }
+
+      // Try 2: Stock fallback - find available stock_item with same product_id
+      if (!newProxyData && subRow.product_id) {
+        console.log(`[webshare-exchange] Trying stock fallback for product ${subRow.product_id}`);
+        const { data: stockItem } = await supabaseAdmin
+          .from("stock_items")
+          .select("*")
+          .eq("product_id", subRow.product_id)
+          .eq("status", "revisado")
+          .is("order_item_id", null)
+          .is("deleted_at", null)
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+
+        if (stockItem) {
+          const itemData = (stockItem.data || {}) as Record<string, any>;
+          // Mark stock item as consumed
+          await supabaseAdmin
+            .from("stock_items")
+            .update({ status: "vendido", updated_at: new Date().toISOString() })
+            .eq("id", stockItem.id);
+
+          newProxyData = {
+            webshare_proxy_id: raw.webshare_proxy_id, // keep same webshare ID
+            proxy_address: itemData.proxy_address || itemData.ip || raw.proxy_address,
+            port: itemData.port || raw.port,
+            username: itemData.username || raw.username,
+            password: itemData.password || raw.password,
+            country_code: itemData.country_code || raw.country_code,
+            city_name: itemData.city_name || raw.city_name,
+            stock_item_id: stockItem.id,
+          };
+          method = "stock";
+          console.log(`[webshare-exchange] Stock fallback succeeded: item ${stockItem.id}`);
+        }
+      }
+
+      if (!newProxyData) {
+        throw new Error("Não foi possível trocar o proxy. Sem disponibilidade via API ou estoque.");
+      }
+
+      // 3. Update subscription raw_data
+      const updatedRaw = {
+        ...raw,
+        ...newProxyData,
+        provider: "webshare",
+        exchange_quota_free: freeLeft - 1,
+        last_exchange: new Date().toISOString(),
+        last_exchange_method: method,
+      };
+
+      const { error: updateErr } = await supabaseAdmin
+        .from("subscriptions")
+        .update({ raw_data: updatedRaw, updated_at: new Date().toISOString() })
+        .eq("id", subscription_id);
+
+      if (updateErr) throw new Error(`Erro ao atualizar assinatura: ${updateErr.message}`);
+
+      console.log(`[webshare-exchange] Exchange complete. Method=${method}, quota=${freeLeft - 1}`);
+
+      return new Response(JSON.stringify({
+        success: true,
+        method,
+        old_proxy: oldProxyStr,
+        new_proxy: `${newProxyData.proxy_address}:${newProxyData.port}`,
+        exchange_quota_free: freeLeft - 1,
+        proxy: {
+          ip: newProxyData.proxy_address,
+          port: newProxyData.port,
+          username: newProxyData.username,
+          password: newProxyData.password,
+        },
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
