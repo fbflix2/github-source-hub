@@ -257,7 +257,17 @@ export default function Checkout() {
           } catch {}
         }
         
-        const orderItems: any[] = [{ order_id: order.id, product_id: isValidUUID ? product.id : null, name: product.name, price: product.price, quantity, delivery_data: deliveryData }];
+        // For non-proxy products with qty > 1, create separate order_items (1 per unit)
+        // so each gets its own delivery_data during fulfillment
+        const isProxy = product.icon_type === 'proxy' || !!deliveryData;
+        const orderItems: any[] = [];
+        if (isProxy || quantity <= 1) {
+          orderItems.push({ order_id: order.id, product_id: isValidUUID ? product.id : null, name: product.name, price: product.price, quantity, delivery_data: deliveryData });
+        } else {
+          for (let i = 0; i < quantity; i++) {
+            orderItems.push({ order_id: order.id, product_id: isValidUUID ? product.id : null, name: product.name, price: product.price, quantity: 1, delivery_data: null });
+          }
+        }
         const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
         if (itemsError) {
           console.error("Error inserting order items:", itemsError);
