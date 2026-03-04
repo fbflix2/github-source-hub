@@ -56,7 +56,9 @@ export function useProxyRevenue() {
   const { data: apiProducts } = useQuery({
     queryKey: ["proxybr-products-for-cost"],
     queryFn: () => callProxyBR("get-products"),
-    staleTime: 120_000,
+    staleTime: 300_000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   // Fetch reseller discounts
