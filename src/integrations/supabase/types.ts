@@ -136,6 +136,7 @@ export type Database = {
           created_at: string
           cta_text: string | null
           id: string
+          image_style: string | null
           image_url: string | null
           link_url: string | null
           position: number
@@ -149,6 +150,7 @@ export type Database = {
           created_at?: string
           cta_text?: string | null
           id?: string
+          image_style?: string | null
           image_url?: string | null
           link_url?: string | null
           position?: number
@@ -162,6 +164,7 @@ export type Database = {
           created_at?: string
           cta_text?: string | null
           id?: string
+          image_style?: string | null
           image_url?: string | null
           link_url?: string | null
           position?: number

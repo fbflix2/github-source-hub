@@ -17,6 +17,7 @@ interface HeroBanner {
   cta_text: string | null;
   link_url: string | null;
   image_url: string | null;
+  image_style: string | null;
 }
 
 interface ProxyImage {
@@ -213,8 +214,22 @@ export default function Dashboard() {
       {/* Dynamic Hero Banners */}
       {heroBanners.length > 0 && (
         <section className="relative w-full rounded-2xl overflow-hidden glass-card shadow-glass group">
-          <div className="absolute -right-20 -top-20 w-96 h-96 bg-primary/20 rounded-full blur-[100px] pointer-events-none" />
-          <div className="absolute -left-20 -bottom-20 w-80 h-80 bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
+          {/* Cover style: full background image */}
+          {heroBanners[currentBanner]?.image_style === "cover" && heroBanners[currentBanner]?.image_url && (
+            <div
+              className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
+              style={{ backgroundImage: `url('${heroBanners[currentBanner].image_url}')` }}
+            />
+          )}
+          {heroBanners[currentBanner]?.image_style === "cover" && (
+            <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent" />
+          )}
+          {heroBanners[currentBanner]?.image_style !== "cover" && (
+            <>
+              <div className="absolute -right-20 -top-20 w-96 h-96 bg-primary/20 rounded-full blur-[100px] pointer-events-none" />
+              <div className="absolute -left-20 -bottom-20 w-80 h-80 bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
+            </>
+          )}
           <div className="relative z-10 flex flex-col md:flex-row items-center justify-between p-8 md:p-12 gap-8">
             <div className="flex-1 space-y-6">
               {heroBanners[currentBanner]?.cta_text && (
@@ -223,11 +238,11 @@ export default function Dashboard() {
                   <span className="text-xs font-bold text-primary uppercase tracking-wider">Destaque</span>
                 </div>
               )}
-              <h2 className="text-3xl md:text-5xl font-bold leading-tight text-foreground">
+              <h2 className={`text-3xl md:text-5xl font-bold leading-tight ${heroBanners[currentBanner]?.image_style === "cover" ? "text-white" : "text-foreground"}`}>
                 {heroBanners[currentBanner]?.title}
               </h2>
               {heroBanners[currentBanner]?.subtitle && (
-                <p className="text-lg text-muted-foreground max-w-xl">{heroBanners[currentBanner].subtitle}</p>
+                <p className={`text-lg max-w-xl ${heroBanners[currentBanner]?.image_style === "cover" ? "text-gray-300" : "text-muted-foreground"}`}>{heroBanners[currentBanner].subtitle}</p>
               )}
               <div className="flex items-center gap-4 pt-2">
                 {heroBanners[currentBanner]?.cta_text && (
@@ -248,7 +263,7 @@ export default function Dashboard() {
                 )}
               </div>
             </div>
-            {heroBanners[currentBanner]?.image_url && (
+            {heroBanners[currentBanner]?.image_style !== "cover" && heroBanners[currentBanner]?.image_url && (
               <div className="flex-1 w-full max-w-md relative">
                 <div className="absolute inset-0 bg-gradient-to-t from-background/50 to-transparent z-10 rounded-xl" />
                 <div

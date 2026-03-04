@@ -22,6 +22,7 @@ interface Banner {
   created_at: string;
   category: string | null;
   background_color: string | null;
+  image_style: string | null;
 }
 
 interface Props {
@@ -48,6 +49,7 @@ export default function BannerEditorModal({ open, onOpenChange, banner, onSaved 
   const [active, setActive] = useState(true);
   const [category, setCategory] = useState("promo");
   const [backgroundColor, setBackgroundColor] = useState("");
+  const [imageStyle, setImageStyle] = useState("contained");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
 
@@ -62,6 +64,7 @@ export default function BannerEditorModal({ open, onOpenChange, banner, onSaved 
       setActive(banner.active);
       setCategory(banner.category || "promo");
       setBackgroundColor(banner.background_color || "");
+      setImageStyle(banner.image_style || "contained");
     } else {
       setTitle("");
       setSubtitle("");
@@ -72,6 +75,7 @@ export default function BannerEditorModal({ open, onOpenChange, banner, onSaved 
       setActive(true);
       setCategory("promo");
       setBackgroundColor("");
+      setImageStyle("contained");
     }
   }, [banner, open]);
 
@@ -111,6 +115,7 @@ export default function BannerEditorModal({ open, onOpenChange, banner, onSaved 
         active,
         category,
         background_color: backgroundColor.trim() || null,
+        image_style: imageStyle,
       };
 
       if (banner) {
@@ -180,6 +185,41 @@ export default function BannerEditorModal({ open, onOpenChange, banner, onSaved 
             <div>
               <Label>Link do CTA</Label>
               <Input value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="/promo ou https://..." />
+            </div>
+          </div>
+
+          {/* Image Style */}
+          <div>
+            <Label>Estilo da Imagem</Label>
+            <div className="flex gap-3 mt-1.5">
+              <button
+                type="button"
+                onClick={() => setImageStyle("contained")}
+                className={`flex-1 flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all ${imageStyle === "contained" ? "border-primary bg-primary/10" : "border-border hover:border-primary/40"}`}
+              >
+                <div className="w-full h-14 rounded-lg bg-muted flex items-center justify-between px-3 gap-2">
+                  <div className="flex-1 flex flex-col gap-1">
+                    <div className="h-2 w-12 bg-muted-foreground/30 rounded" />
+                    <div className="h-1.5 w-8 bg-muted-foreground/20 rounded" />
+                  </div>
+                  <div className="w-10 h-10 rounded bg-muted-foreground/20 shrink-0" />
+                </div>
+                <span className="text-xs font-medium text-foreground">Contido</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setImageStyle("cover")}
+                className={`flex-1 flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all ${imageStyle === "cover" ? "border-primary bg-primary/10" : "border-border hover:border-primary/40"}`}
+              >
+                <div className="w-full h-14 rounded-lg bg-muted-foreground/20 relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent" />
+                  <div className="absolute bottom-2 left-2 flex flex-col gap-1">
+                    <div className="h-2 w-10 bg-white/60 rounded" />
+                    <div className="h-1.5 w-7 bg-white/40 rounded" />
+                  </div>
+                </div>
+                <span className="text-xs font-medium text-foreground">Capa Completa</span>
+              </button>
             </div>
           </div>
 
