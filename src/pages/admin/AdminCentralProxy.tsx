@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ProxyCostManagement from "@/components/admin/proxy/ProxyCostManagement";
 import ProxyFinancialOverview from "@/components/admin/proxy/ProxyFinancialOverview";
 import ProxyUnlinkedList from "@/components/admin/proxy/ProxyUnlinkedList";
+import WebshareProxyTab from "@/components/admin/proxy/WebshareProxyTab";
 
 export default function AdminCentralProxy() {
   return (
@@ -24,6 +25,7 @@ export default function AdminCentralProxy() {
           <TabsTrigger value="costs">Custos & Estoque</TabsTrigger>
           <TabsTrigger value="financial">Balanço Financeiro</TabsTrigger>
           <TabsTrigger value="unlinked">Sem Cliente</TabsTrigger>
+          <TabsTrigger value="webshare">Webshare</TabsTrigger>
         </TabsList>
 
         <TabsContent value="costs">
@@ -36,6 +38,10 @@ export default function AdminCentralProxy() {
 
         <TabsContent value="unlinked">
           <ProxyUnlinkedList />
+        </TabsContent>
+
+        <TabsContent value="webshare">
+          <WebshareProxyTab />
         </TabsContent>
       </Tabs>
     </div>
