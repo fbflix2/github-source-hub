@@ -46,9 +46,11 @@ export function ProxyBRLowBalanceAlert() {
       }
       return data;
     },
-    staleTime: 120_000,
-    refetchInterval: 300_000,
+    staleTime: 300_000,
+    refetchInterval: 600_000,
     retry: false,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   const balance = meData?.current_balance ?? meData?.data?.current_balance ?? null;
