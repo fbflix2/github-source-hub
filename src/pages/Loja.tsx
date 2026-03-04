@@ -149,10 +149,14 @@ export default function Dashboard() {
     };
   });
 
+  // Local proxy products with 'webshare' tag should show alongside regular products
+  const isWebshareLocal = (p: Product) => p.category_id === proxyCategoryId && p.tags?.includes("webshare");
+
   const filteredProducts = activeFilter === "Todos"
-    ? products.filter((p) => p.category_id !== proxyCategoryId)
+    ? products.filter((p) => p.category_id !== proxyCategoryId || isWebshareLocal(p))
     : products.filter((p) => {
         const cat = categories.find((c) => c.name === activeFilter);
+        if (activeFilter === "Proxy") return p.category_id === proxyCategoryId && isWebshareLocal(p);
         return cat && p.category_id === cat.id;
       });
 
