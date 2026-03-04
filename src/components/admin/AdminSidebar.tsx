@@ -34,7 +34,8 @@ import {
   Shield,
   Recycle,
   Star,
-  RefreshCw
+  RefreshCw,
+  ArrowRightLeft
 } from "lucide-react";
 
 interface SubItem {
@@ -58,6 +59,7 @@ const allMenuItems: MenuItem[] = [
   { title: "Blocagem", icon: Shield, path: "/admin/blocagem" },
   { title: "Reciclagem", icon: Recycle, path: "/admin/reciclagem" },
   { title: "Reposições", icon: RefreshCw, path: "/admin/reposicoes" },
+  { title: "Trocas", icon: ArrowRightLeft, path: "/admin/trocas" },
   { title: "Produtos", icon: Package, path: "/admin/produtos" },
   { title: "Pedidos", icon: ShoppingCart, path: "/admin/pedidos" },
   { title: "Pagamentos", icon: CreditCard, path: "/admin/pagamentos" },
