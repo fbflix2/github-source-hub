@@ -3,12 +3,21 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, LayoutGrid, List } from "lucide-react";
+import { Loader2, LayoutGrid, List, ChevronLeft, ChevronRight } from "lucide-react";
 import { ProductListItem } from "@/components/loja/ProductListItem";
 import { ProductDetailModal } from "@/components/loja/ProductDetailModal";
 import { ProxyProductCard } from "@/components/loja/ProxyProductCard";
 import { useProxyBRProducts } from "@/hooks/useProxyBR";
 import { Skeleton } from "@/components/ui/skeleton";
+
+interface HeroBanner {
+  id: string;
+  title: string;
+  subtitle: string | null;
+  cta_text: string | null;
+  link_url: string | null;
+  image_url: string | null;
+}
 
 interface ProxyImage {
   name: string;
@@ -53,18 +62,22 @@ export default function Dashboard() {
   const { data: proxyProductsData, isLoading: proxyLoading, error: proxyError } = useProxyBRProducts();
   const [proxyQuantities, setProxyQuantities] = useState<Record<string, number>>({});
   const [proxyImages, setProxyImages] = useState<ProxyImage[]>([]);
+  const [heroBanners, setHeroBanners] = useState<HeroBanner[]>([]);
+  const [currentBanner, setCurrentBanner] = useState(0);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const [productsRes, categoriesRes, proxyImagesRes] = await Promise.all([
+    const [productsRes, categoriesRes, proxyImagesRes, bannersRes] = await Promise.all([
       supabase.from("products").select("*").eq("status", "active").order("created_at", { ascending: false }),
       supabase.from("product_categories").select("*"),
       supabase.from("product_images").select("name, url").eq("category", "proxy"),
+      supabase.from("banners").select("*").eq("active", true).order("position", { ascending: true }),
     ]);
 
     if (productsRes.data) setProducts(productsRes.data);
     if (categoriesRes.data) setCategories(categoriesRes.data);
     if (proxyImagesRes.data) setProxyImages(proxyImagesRes.data);
+    if (bannersRes.data) setHeroBanners(bannersRes.data);
     setLoading(false);
   }, []);
 
@@ -197,47 +210,56 @@ export default function Dashboard() {
   return (
     <>
     <div className="space-y-10 animate-fade-in">
-      {/* Hero Section */}
-      <section className="relative w-full rounded-2xl overflow-hidden glass-card shadow-glass group">
-        <div className="absolute -right-20 -top-20 w-96 h-96 bg-primary/20 rounded-full blur-[100px] pointer-events-none" />
-        <div className="absolute -left-20 -bottom-20 w-80 h-80 bg-blue-500/10 rounded-full blur-[100px] pointer-events-none" />
-        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between p-8 md:p-12 gap-8">
-          <div className="flex-1 space-y-6">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-primary/20 to-transparent border border-primary/20">
-              <span className="animate-pulse w-2 h-2 rounded-full bg-primary" />
-              <span className="text-xs font-bold text-primary uppercase tracking-wider">Promoção Limitada</span>
+      {/* Dynamic Hero Banners */}
+      {heroBanners.length > 0 && (
+        <section className="relative w-full rounded-2xl overflow-hidden glass-card shadow-glass group">
+          <div className="absolute -right-20 -top-20 w-96 h-96 bg-primary/20 rounded-full blur-[100px] pointer-events-none" />
+          <div className="absolute -left-20 -bottom-20 w-80 h-80 bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
+          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between p-8 md:p-12 gap-8">
+            <div className="flex-1 space-y-6">
+              {heroBanners[currentBanner]?.cta_text && (
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-primary/20 to-transparent border border-primary/20">
+                  <span className="animate-pulse w-2 h-2 rounded-full bg-primary" />
+                  <span className="text-xs font-bold text-primary uppercase tracking-wider">Destaque</span>
+                </div>
+              )}
+              <h2 className="text-3xl md:text-5xl font-bold leading-tight text-foreground">
+                {heroBanners[currentBanner]?.title}
+              </h2>
+              {heroBanners[currentBanner]?.subtitle && (
+                <p className="text-lg text-muted-foreground max-w-xl">{heroBanners[currentBanner].subtitle}</p>
+              )}
+              <div className="flex items-center gap-4 pt-2">
+                {heroBanners[currentBanner]?.cta_text && (
+                  <button
+                    onClick={() => heroBanners[currentBanner]?.link_url && navigate(heroBanners[currentBanner].link_url!)}
+                    className="btn-primary-glow bg-primary text-primary-foreground font-bold text-sm px-8 py-3.5 rounded-xl transition-all hover:-translate-y-1 flex items-center gap-2"
+                  >
+                    {heroBanners[currentBanner].cta_text}
+                    <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
+                  </button>
+                )}
+                {heroBanners.length > 1 && (
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => setCurrentBanner((p) => (p - 1 + heroBanners.length) % heroBanners.length)} className="p-2 rounded-lg bg-secondary border border-border hover:bg-muted transition-colors"><ChevronLeft className="w-4 h-4" /></button>
+                    <span className="text-xs text-muted-foreground font-medium">{currentBanner + 1}/{heroBanners.length}</span>
+                    <button onClick={() => setCurrentBanner((p) => (p + 1) % heroBanners.length)} className="p-2 rounded-lg bg-secondary border border-border hover:bg-muted transition-colors"><ChevronRight className="w-4 h-4" /></button>
+                  </div>
+                )}
+              </div>
             </div>
-            <h2 className="text-3xl md:text-5xl font-bold leading-tight text-foreground">
-              Recarregue acima de R$200 e <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-red-700">
-                ganhe 15% de bônus
-              </span>
-            </h2>
-            <p className="text-lg text-muted-foreground max-w-xl">
-              Aproveite nossa campanha de recarga para maximizar seu saldo e adquirir mais perfis e proxies com desconto exclusivo.
-            </p>
-            <div className="flex items-center gap-4 pt-2">
-              <button className="btn-primary-glow bg-primary text-primary-foreground font-bold text-sm px-8 py-3.5 rounded-xl transition-all hover:-translate-y-1 flex items-center gap-2">
-                Aproveitar agora
-                <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
-              </button>
-              <button className="bg-secondary hover:bg-secondary/80 text-foreground font-medium text-sm px-6 py-3.5 rounded-xl border border-border transition-all hover:border-border">
-                Ver regulamento
-              </button>
-            </div>
+            {heroBanners[currentBanner]?.image_url && (
+              <div className="flex-1 w-full max-w-md relative">
+                <div className="absolute inset-0 bg-gradient-to-t from-background/50 to-transparent z-10 rounded-xl" />
+                <div
+                  className="rounded-xl overflow-hidden shadow-2xl border border-border aspect-video bg-cover bg-center"
+                  style={{ backgroundImage: `url('${heroBanners[currentBanner].image_url}')` }}
+                />
+              </div>
+            )}
           </div>
-          <div className="flex-1 w-full max-w-md relative">
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0D0D0D]/50 to-transparent z-10" />
-            <div
-              className="rounded-xl overflow-hidden shadow-2xl border border-white/10 aspect-video bg-cover bg-center"
-              style={{
-                backgroundImage:
-                  "url('https://lh3.googleusercontent.com/aida-public/AB6AXuC5nn24ArvW43GzGEjp9Z41AJ6ltA2i2-VmQs8CHMkuo6-8hWz3ognn25PEibRPofOucMtC0MOkISQN6DPlpxA8U_iT2mz9ENwE1-zZbX8A3LDY8EhqtrcrioGGyWujTw6HOwqSAOXKVEMCiaKfAdzyChDMC6XyGSGRCGDgMNuTp2AK3KAu8plItjJxJZ0dLbGttf92tgqYfF8MapFxEjmR7NvOwm25vVAFVv8ZwqXroY4rH0GWmZggdkmDG-KpvWQfVqri9RXO2jw')",
-              }}
-            />
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Filters & Products */}
       <section className="space-y-6">
