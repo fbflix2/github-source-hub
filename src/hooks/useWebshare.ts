@@ -1,5 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 async function callWebshare(action: string, params: Record<string, unknown> = {}) {
   const { data: { session } } = await supabase.auth.getSession();
@@ -108,6 +109,7 @@ export function useWebshareSubscriptions() {
       return (data || []).map((sub) => {
         const raw = (sub.raw_data || {}) as Record<string, any>;
         return {
+          id: sub.id,
           code: sub.name,
           name: sub.name,
           product_name: "Proxy Webshare",
@@ -129,5 +131,48 @@ export function useWebshareSubscriptions() {
       });
     },
     staleTime: 30_000,
+  });
+}
+
+/** Exchange history for Webshare proxies (localStorage) */
+export interface WebshareExchangeRecord {
+  date: string;
+  oldProxy: string;
+  newProxy: string;
+  method: string;
+}
+
+export function getWebshareExchangeHistory(subscriptionId: string): WebshareExchangeRecord[] {
+  try {
+    return JSON.parse(localStorage.getItem(`ws-exchange-history-${subscriptionId}`) || "[]");
+  } catch { return []; }
+}
+
+function saveWebshareExchangeRecord(subscriptionId: string, oldProxy: string, newProxy: string, method: string) {
+  const key = `ws-exchange-history-${subscriptionId}`;
+  const history = getWebshareExchangeHistory(subscriptionId);
+  history.unshift({ date: new Date().toISOString(), oldProxy, newProxy, method });
+  localStorage.setItem(key, JSON.stringify(history.slice(0, 20)));
+}
+
+/** Exchange a Webshare proxy (API first, stock fallback) */
+export function useExchangeWebshareProxy() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ subscriptionId, oldProxyString }: { subscriptionId: string; oldProxyString?: string }) => {
+      const result = await callWebshare("exchange-webshare-proxy", { subscription_id: subscriptionId });
+      return { result, oldProxyString, subscriptionId };
+    },
+    onSuccess: ({ result, oldProxyString, subscriptionId }) => {
+      const newProxy = result?.new_proxy || "";
+      if (oldProxyString && newProxy) {
+        saveWebshareExchangeRecord(subscriptionId, oldProxyString, newProxy, result?.method || "unknown");
+      }
+      toast.success("Proxy trocado com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ["webshare-subscriptions"] });
+    },
+    onError: (err: Error) => {
+      toast.error(`Erro ao trocar proxy: ${err.message}`);
+    },
   });
 }

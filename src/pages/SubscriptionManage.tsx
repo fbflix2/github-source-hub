@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useProxyBRSubscriptions, useExchangeProxy, useRenewSubscription, useToggleAutoRenew, getExchangeHistory } from "@/hooks/useProxyBR";
+import { useWebshareSubscriptions, useExchangeWebshareProxy, getWebshareExchangeHistory } from "@/hooks/useWebshare";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
@@ -28,7 +29,9 @@ export default function SubscriptionManage() {
   const { code } = useParams<{ code: string }>();
   const navigate = useNavigate();
   const { data: subscriptions, isLoading } = useProxyBRSubscriptions();
+  const { data: webshareRaw, isLoading: wsLoading } = useWebshareSubscriptions();
   const exchangeMutation = useExchangeProxy();
+  const wsExchangeMutation = useExchangeWebshareProxy();
   const renewMutation = useRenewSubscription();
   const autoRenewMutation = useToggleAutoRenew();
   const queryClient = useQueryClient();
@@ -37,8 +40,12 @@ export default function SubscriptionManage() {
   // Extract the real subscription name (strip __proxy_XXX suffix for multi-proxy codes)
   const realSubName = code?.includes("__proxy_") ? code.split("__proxy_")[0] : code;
 
-  // Support both simple codes and exploded multi-proxy codes (e.g. "SUB123__proxy_456")
-  const sub = (subscriptions as ProxySubscription[] | undefined)?.find((s) => s.code === code);
+  // Search in both ProxyBR and Webshare subscriptions
+  const proxyBRSub = (subscriptions as ProxySubscription[] | undefined)?.find((s) => s.code === code);
+  const webshareSub = (Array.isArray(webshareRaw) ? webshareRaw : [])?.find((s: any) => s.code === code);
+  const sub = (proxyBRSub || webshareSub) as ProxySubscription | undefined;
+  const isWebshare = !!webshareSub && !proxyBRSub;
+  const combinedLoading = isLoading || wsLoading;
 
   // Fetch the price: first try order_items, then fallback to product catalog price
   const { data: customerPrice } = useQuery({
@@ -73,7 +80,7 @@ export default function SubscriptionManage() {
 
       return null;
     },
-    enabled: !!code && !isLoading && !!sub,
+    enabled: !!code && !combinedLoading && !!sub,
   });
 
   const [profileName, setProfileName] = useState("");
@@ -90,7 +97,7 @@ export default function SubscriptionManage() {
     }
   }, [sub, profileLoaded]);
 
-  if (isLoading) {
+  if (combinedLoading) {
     return (
       <div className="space-y-6 animate-fade-in py-6">
         <Skeleton className="h-10 w-64" />
@@ -127,17 +134,18 @@ export default function SubscriptionManage() {
 
     // Persist to DB in raw_data
     if (code) {
+      const subType = isWebshare ? "webshare" : "proxybr";
       const { data: subRow } = await supabase
         .from("subscriptions")
         .select("id, raw_data")
         .eq("name", code)
-        .eq("type", "proxybr")
+        .eq("type", subType)
         .maybeSingle();
 
       if (subRow) {
         const updatedRaw = { ...((subRow.raw_data as Record<string, unknown>) || {}), profile_tag: trimmed || null };
         await supabase.from("subscriptions").update({ raw_data: updatedRaw }).eq("id", subRow.id);
-        queryClient.invalidateQueries({ queryKey: ["proxybr-subscriptions"] });
+        queryClient.invalidateQueries({ queryKey: isWebshare ? ["webshare-subscriptions"] : ["proxybr-subscriptions"] });
       }
     }
 
@@ -149,17 +157,18 @@ export default function SubscriptionManage() {
     setProfileName("");
 
     if (code) {
+      const subType = isWebshare ? "webshare" : "proxybr";
       const { data: subRow } = await supabase
         .from("subscriptions")
         .select("id, raw_data")
         .eq("name", code)
-        .eq("type", "proxybr")
+        .eq("type", subType)
         .maybeSingle();
 
       if (subRow) {
         const updatedRaw = { ...((subRow.raw_data as Record<string, unknown>) || {}), profile_tag: null };
         await supabase.from("subscriptions").update({ raw_data: updatedRaw }).eq("id", subRow.id);
-        queryClient.invalidateQueries({ queryKey: ["proxybr-subscriptions"] });
+        queryClient.invalidateQueries({ queryKey: isWebshare ? ["webshare-subscriptions"] : ["proxybr-subscriptions"] });
       }
     }
 
@@ -239,8 +248,8 @@ export default function SubscriptionManage() {
                 style={{ width: `${progress}%` }}
               />
             </div>
-            {(status === "expiring" || status === "expired") && (
-              <Button size="sm" onClick={() => renewMutation.mutate(sub.name)} disabled={renewMutation.isPending} className="bg-primary hover:bg-[#00c968] text-background font-bold text-xs">
+            {!isWebshare && (status === "expiring" || status === "expired") && (
+              <Button size="sm" onClick={() => renewMutation.mutate(sub.name)} disabled={renewMutation.isPending} className="bg-primary hover:bg-primary/80 text-primary-foreground font-bold text-xs">
                 <span className="material-symbols-outlined mr-1 text-sm">replay</span>
                 {renewMutation.isPending ? "Renovando..." : "Renovar"}
               </Button>
@@ -346,19 +355,21 @@ export default function SubscriptionManage() {
                 </div>
               ))}
             </div>
-            <div className="flex items-center justify-between pt-2 border-t border-border">
-              <div className="flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-primary text-sm">autorenew</span>
-                <span className="text-xs text-text-secondary">Renovação automática</span>
+            {!isWebshare && (
+              <div className="flex items-center justify-between pt-2 border-t border-border">
+                <div className="flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-primary text-sm">autorenew</span>
+                  <span className="text-xs text-text-secondary">Renovação automática</span>
+                </div>
+                <Switch
+                  checked={!!sub.auto_renew}
+                  disabled={autoRenewMutation.isPending}
+                  onCheckedChange={(checked) =>
+                    autoRenewMutation.mutate({ subscriptionCode: sub.name, auto_renew: checked })
+                  }
+                />
               </div>
-              <Switch
-                checked={!!sub.auto_renew}
-                disabled={autoRenewMutation.isPending}
-                onCheckedChange={(checked) =>
-                  autoRenewMutation.mutate({ subscriptionCode: sub.name, auto_renew: checked })
-                }
-              />
-            </div>
+            )}
           </div>
 
           {/* Exchange */}
@@ -369,7 +380,9 @@ export default function SubscriptionManage() {
                 Trocar Proxy
               </h2>
               {(() => {
-                const history = getExchangeHistory(sub.name);
+                const history = isWebshare
+                  ? getWebshareExchangeHistory((sub as any).id || sub.code)
+                  : getExchangeHistory(sub.name);
                 if (history.length === 0) return null;
                 return (
                   <button
@@ -388,6 +401,7 @@ export default function SubscriptionManage() {
               // Support both flat and nested (subscription.) structures
               const freeExchanges = raw.exchange_quota_free ?? raw.subscription?.exchange_quota_free ?? 0;
               const paidExchanges = raw.exchange_quota_pay ?? raw.subscription?.exchange_quota_pay ?? 0;
+              const activeMutation = isWebshare ? wsExchangeMutation : exchangeMutation;
               return (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-xs">
@@ -399,17 +413,23 @@ export default function SubscriptionManage() {
                       size="sm"
                       onClick={() => {
                         const oldProxyString = sub.proxy ? `${sub.proxy.ip}:${sub.proxy.port}:${sub.proxy.username || ""}:${sub.proxy.password || ""}` : undefined;
-                        exchangeMutation.mutate({
-                          subscriptionCode: sub.name,
-                          proxy_id: sub.proxy?.id,
-                          oldProxyString,
-                        });
+                        if (isWebshare) {
+                          // Get the subscription DB id from raw_data or find by name
+                          const subId = (sub as any).id || sub.code;
+                          wsExchangeMutation.mutate({ subscriptionId: subId, oldProxyString });
+                        } else {
+                          exchangeMutation.mutate({
+                            subscriptionCode: sub.name,
+                            proxy_id: sub.proxy?.id,
+                            oldProxyString,
+                          });
+                        }
                       }}
-                      disabled={exchangeMutation.isPending}
-                      className="w-full bg-green-600 hover:bg-green-500 text-white font-bold text-xs h-8"
+                      disabled={activeMutation.isPending}
+                      className="w-full bg-primary hover:bg-primary/80 text-primary-foreground font-bold text-xs h-8"
                     >
                       <span className="material-symbols-outlined text-sm mr-1">swap_horiz</span>
-                      {exchangeMutation.isPending ? "Trocando..." : "Trocar Proxy (Grátis)"}
+                      {activeMutation.isPending ? "Trocando..." : "Trocar Proxy (Grátis)"}
                     </Button>
                   )}
                   {freeExchanges === 0 && (
@@ -451,31 +471,36 @@ export default function SubscriptionManage() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3 max-h-[400px] overflow-y-auto">
-            {getExchangeHistory(sub.name).length === 0 ? (
-              <p className="text-muted-foreground text-xs text-center py-4">Nenhuma troca registrada.</p>
-            ) : (
-              getExchangeHistory(sub.name).map((record, i) => (
-                <div key={i} className="glass-card rounded-lg p-3 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-muted-foreground">
-                      {format(parseISO(record.date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                    </span>
-                    <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full">Troca #{getExchangeHistory(sub.name).length - i}</span>
-                  </div>
-                  <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
-                    <div className="bg-destructive/10 rounded p-2">
-                      <p className="text-[9px] text-muted-foreground mb-0.5">ANTIGO</p>
-                      <p className="text-[10px] text-foreground font-mono break-all">{record.oldProxy}</p>
+            {(() => {
+              const history = isWebshare
+                ? getWebshareExchangeHistory((sub as any).id || sub.code)
+                : getExchangeHistory(sub.name);
+              return history.length === 0 ? (
+                <p className="text-muted-foreground text-xs text-center py-4">Nenhuma troca registrada.</p>
+              ) : (
+                history.map((record, i) => (
+                  <div key={i} className="glass-card rounded-lg p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-muted-foreground">
+                        {format(parseISO(record.date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                      </span>
+                      <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full">Troca #{history.length - i}</span>
                     </div>
-                    <span className="material-symbols-outlined text-primary text-lg">arrow_forward</span>
-                    <div className="bg-green-500/10 rounded p-2">
-                      <p className="text-[9px] text-muted-foreground mb-0.5">NOVO</p>
-                      <p className="text-[10px] text-foreground font-mono break-all">{record.newProxy}</p>
+                    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                      <div className="bg-destructive/10 rounded p-2">
+                        <p className="text-[9px] text-muted-foreground mb-0.5">ANTIGO</p>
+                        <p className="text-[10px] text-foreground font-mono break-all">{record.oldProxy}</p>
+                      </div>
+                      <span className="material-symbols-outlined text-primary text-lg">arrow_forward</span>
+                      <div className="bg-green-500/10 rounded p-2">
+                        <p className="text-[9px] text-muted-foreground mb-0.5">NOVO</p>
+                        <p className="text-[10px] text-foreground font-mono break-all">{record.newProxy}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))
-            )}
+                ))
+              );
+            })()}
           </div>
         </DialogContent>
       </Dialog>
