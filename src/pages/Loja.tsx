@@ -149,14 +149,14 @@ export default function Dashboard() {
     };
   });
 
-  // Local proxy products with 'webshare' tag should show alongside regular products
+  // Local proxy products with 'webshare' tag should show alongside regular products and in Proxy filter
   const isWebshareLocal = (p: Product) => p.category_id === proxyCategoryId && p.tags?.includes("webshare");
+  const webshareLocalProducts = products.filter(isWebshareLocal);
 
   const filteredProducts = activeFilter === "Todos"
     ? products.filter((p) => p.category_id !== proxyCategoryId || isWebshareLocal(p))
     : products.filter((p) => {
         const cat = categories.find((c) => c.name === activeFilter);
-        if (activeFilter === "Proxy") return p.category_id === proxyCategoryId && isWebshareLocal(p);
         return cat && p.category_id === cat.id;
       });
 
@@ -291,7 +291,7 @@ export default function Dashboard() {
               <p className="text-destructive font-bold">Erro ao carregar proxies</p>
               <p className="text-muted-foreground text-sm mt-1">{(proxyError as Error).message}</p>
             </div>
-          ) : proxyProducts.length === 0 ? (
+          ) : proxyProducts.length === 0 && webshareLocalProducts.length === 0 ? (
             <div className="text-center py-12">
               <span className="material-symbols-outlined text-[48px] text-muted-foreground mb-4">inventory_2</span>
               <p className="text-muted-foreground">Nenhum proxy disponível no momento.</p>
@@ -345,6 +345,68 @@ export default function Dashboard() {
                   onReadMore={(info) => { const variants = product.variant || product.variants?.data || product.variants || []; const totalApiStock = variants.reduce((sum: number, v: any) => sum + (v.stocks ?? 0), 0); setDetailProduct({ id: String(product.id), name: info.name, description: info.description, price: info.price, price_label: "mensal", image_url: info.image_url, badge_text: null, badge_color: null, badge_icon: null, stock: totalApiStock > 0 ? totalApiStock : 0, available: true, category_id: null, tags: info.tags } as any); }}
                 />
               ))}
+              {/* Local webshare products */}
+              {webshareLocalProducts.map((product) => {
+                const stockInfo = getStockInfo(product);
+                return (
+                  <article
+                    key={product.id}
+                    className="glass-card rounded-2xl overflow-hidden flex flex-col group h-full"
+                  >
+                    <div className="p-5 flex flex-col flex-1 gap-4">
+                      <div className="flex items-start gap-3">
+                        <div className="shrink-0 w-10 h-10 rounded-lg overflow-hidden bg-secondary flex items-center justify-center mt-0.5">
+                          {product.image_url ? (
+                            <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                          ) : (
+                            <span className="material-symbols-outlined text-[20px] text-muted-foreground">dns</span>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <h3 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-tight">{product.name}</h3>
+                            <div className="text-right shrink-0 whitespace-nowrap">
+                              <p className="text-xl font-bold text-foreground">R$ {product.price.toFixed(2).replace(".", ",")}</p>
+                              <p className="text-[10px] text-muted-foreground">mensal</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      {product.description && <p className="text-sm text-muted-foreground">{product.description.length > 150 ? product.description.substring(0, 150) + "..." : product.description}</p>}
+                      {product.tags && product.tags.length > 0 && (
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {product.tags.map((tag) => (
+                            <span key={tag} className="text-[10px] px-2 py-0.5 rounded-full bg-foreground text-background font-medium">{tag}</span>
+                          ))}
+                        </div>
+                      )}
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between text-xs font-medium">
+                          <span className={`${stockInfo.statusColor} flex items-center gap-1`}>
+                            {stockInfo.percentage > 0 && <span className={`w-1.5 h-1.5 rounded-full ${stockInfo.statusColor === "text-emerald-500" ? "bg-emerald-500 animate-pulse" : "bg-destructive"}`} />}
+                            {stockInfo.status}
+                          </span>
+                          <span className="text-muted-foreground">{stockInfo.sold}</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                          <div className={`h-full rounded-full ${stockInfo.statusColor === "text-emerald-500" ? "bg-gradient-to-r from-green-400 to-green-600" : "bg-gradient-to-r from-red-500 to-orange-500"}`} style={{ width: `${stockInfo.percentage}%` }} />
+                        </div>
+                      </div>
+                      <div className="mt-auto pt-4 flex flex-col gap-3 border-t border-border">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center bg-secondary rounded-lg border border-border h-10 px-1">
+                            <button onClick={() => updateQuantity(product.id, -1, product.stock)} className="w-8 h-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted rounded transition"><span className="material-symbols-outlined text-[16px]">remove</span></button>
+                            <input type="text" readOnly value={getQuantity(product.id)} className="w-8 bg-transparent text-center text-sm font-medium border-0 focus:ring-0 text-foreground" />
+                            <button onClick={() => updateQuantity(product.id, 1, product.stock)} className="w-8 h-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted rounded transition"><span className="material-symbols-outlined text-[16px]">add</span></button>
+                          </div>
+                          <button onClick={() => { addItem({ productId: product.id, name: product.name, price: product.price, quantity: getQuantity(product.id), image: product.image_url || "/placeholder.svg" }); toast.success(`${product.name} adicionado ao carrinho!`); }} className="h-10 px-3 rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all flex items-center justify-center" title="Adicionar ao carrinho"><span className="material-symbols-outlined text-[20px]">shopping_cart</span></button>
+                        </div>
+                        <button onClick={() => navigate(`/checkout?product=${product.id}&qty=${getQuantity(product.id)}`)} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm h-10 rounded-lg transition-all flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(220,38,38,0.2)]"><span className="material-symbols-outlined text-[18px]">flash_on</span>Comprar agora</button>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           )
         ) : allProducts.length === 0 ? (
