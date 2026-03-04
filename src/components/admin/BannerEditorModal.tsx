@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Upload, X } from "lucide-react";
 
 interface Banner {
@@ -19,6 +20,8 @@ interface Banner {
   position: number;
   active: boolean;
   created_at: string;
+  category: string | null;
+  background_color: string | null;
 }
 
 interface Props {
@@ -28,6 +31,13 @@ interface Props {
   onSaved: () => void;
 }
 
+const CATEGORIES = [
+  { value: "promo", label: "Promoção" },
+  { value: "destaque", label: "Destaque" },
+  { value: "info", label: "Informativo" },
+  { value: "evento", label: "Evento" },
+];
+
 export default function BannerEditorModal({ open, onOpenChange, banner, onSaved }: Props) {
   const [title, setTitle] = useState("");
   const [subtitle, setSubtitle] = useState("");
@@ -36,6 +46,8 @@ export default function BannerEditorModal({ open, onOpenChange, banner, onSaved 
   const [imageUrl, setImageUrl] = useState("");
   const [position, setPosition] = useState(0);
   const [active, setActive] = useState(true);
+  const [category, setCategory] = useState("promo");
+  const [backgroundColor, setBackgroundColor] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
 
@@ -48,6 +60,8 @@ export default function BannerEditorModal({ open, onOpenChange, banner, onSaved 
       setImageUrl(banner.image_url || "");
       setPosition(banner.position);
       setActive(banner.active);
+      setCategory(banner.category || "promo");
+      setBackgroundColor(banner.background_color || "");
     } else {
       setTitle("");
       setSubtitle("");
@@ -56,6 +70,8 @@ export default function BannerEditorModal({ open, onOpenChange, banner, onSaved 
       setImageUrl("");
       setPosition(0);
       setActive(true);
+      setCategory("promo");
+      setBackgroundColor("");
     }
   }, [banner, open]);
 
@@ -93,6 +109,8 @@ export default function BannerEditorModal({ open, onOpenChange, banner, onSaved 
         image_url: imageUrl.trim() || null,
         position,
         active,
+        category,
+        background_color: backgroundColor.trim() || null,
       };
 
       if (banner) {
@@ -115,7 +133,7 @@ export default function BannerEditorModal({ open, onOpenChange, banner, onSaved 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg bg-card border-border">
+      <DialogContent className="max-w-lg bg-card border-border max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{banner ? "Editar Banner" : "Novo Banner"}</DialogTitle>
         </DialogHeader>
@@ -128,6 +146,32 @@ export default function BannerEditorModal({ open, onOpenChange, banner, onSaved 
             <Label>Subtítulo / Descrição</Label>
             <Textarea value={subtitle} onChange={(e) => setSubtitle(e.target.value)} placeholder="Texto descritivo" rows={2} />
           </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label>Categoria</Label>
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecionar..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {CATEGORIES.map((c) => (
+                    <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Cor de Fundo</Label>
+              <div className="flex gap-2 items-center">
+                <Input value={backgroundColor} onChange={(e) => setBackgroundColor(e.target.value)} placeholder="#000000 ou rgb(...)" className="flex-1" />
+                {backgroundColor && (
+                  <div className="w-8 h-8 rounded border border-border shrink-0" style={{ backgroundColor }} />
+                )}
+              </div>
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Texto do CTA</Label>
