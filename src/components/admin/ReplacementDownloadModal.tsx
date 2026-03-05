@@ -64,9 +64,9 @@ export function ReplacementDownloadModal({
   const [selectedOrderItem, setSelectedOrderItem] = useState<OrderItemOption | null>(null);
 
   // New stock item for replacement
-  const [stockSearch, setStockSearch] = useState("");
-  const [searchingStock, setSearchingStock] = useState(false);
-  const [stockItems, setStockItems] = useState<StockItemOption[]>([]);
+  const [stockFilter, setStockFilter] = useState("");
+  const [loadingStock, setLoadingStock] = useState(false);
+  const [allStockItems, setAllStockItems] = useState<StockItemOption[]>([]);
   const [selectedNewItem, setSelectedNewItem] = useState<StockItemOption | null>(null);
 
   useEffect(() => {
@@ -81,11 +81,59 @@ export function ReplacementDownloadModal({
       setOrderSearch("");
       setOrderItems([]);
       setSelectedOrderItem(null);
-      setStockSearch("");
-      setStockItems([]);
+      setStockFilter("");
+      setAllStockItems([]);
       setSelectedNewItem(null);
     }
   }, [open]);
+
+  // Load available stock items (non-proxy) when replacement mode is activated
+  useEffect(() => {
+    if (isReplacement !== "yes") return;
+    loadStockItems();
+  }, [isReplacement]);
+
+  const loadStockItems = async () => {
+    setLoadingStock(true);
+
+    // Get products that are proxy type to exclude them
+    const { data: proxyProducts } = await supabase
+      .from("products")
+      .select("id")
+      .eq("icon_type", "proxy");
+    const proxyProductIds = new Set((proxyProducts || []).map(p => p.id));
+
+    const { data } = await supabase
+      .from("stock_items")
+      .select("id, name, identification, product_id, type")
+      .eq("status", "revisado")
+      .is("order_item_id", null)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false })
+      .limit(500);
+
+    if (data && data.length > 0) {
+      // Filter out proxy items
+      const nonProxy = data.filter(si => !si.product_id || !proxyProductIds.has(si.product_id));
+
+      const productIds = [...new Set(nonProxy.filter(i => i.product_id).map(i => i.product_id!))];
+      let productMap = new Map<string, string>();
+      if (productIds.length > 0) {
+        const { data: products } = await supabase
+          .from("products")
+          .select("id, name")
+          .in("id", productIds);
+        productMap = new Map((products || []).map(p => [p.id, p.name]));
+      }
+
+      setAllStockItems(nonProxy.map(si => ({
+        ...si,
+        product_name: si.product_id ? productMap.get(si.product_id) || undefined : undefined,
+      })));
+    }
+
+    setLoadingStock(false);
+  };
 
   const searchClients = async (query: string) => {
     setClientSearch(query);
@@ -140,42 +188,7 @@ export function ReplacementDownloadModal({
     setSearchingOrder(false);
   };
 
-  const searchStockItems = async (query: string) => {
-    setStockSearch(query);
-    if (query.length < 2) { setStockItems([]); return; }
-    setSearchingStock(true);
 
-    const { data } = await supabase
-      .from("stock_items")
-      .select("id, name, identification, product_id")
-      .eq("status", "revisado")
-      .is("order_item_id", null)
-      .is("deleted_at", null)
-      .ilike("name", `%${query}%`)
-      .limit(15);
-
-    if (data && data.length > 0) {
-      // Enrich with product names
-      const productIds = [...new Set(data.filter(i => i.product_id).map(i => i.product_id!))];
-      let productMap = new Map<string, string>();
-      if (productIds.length > 0) {
-        const { data: products } = await supabase
-          .from("products")
-          .select("id, name")
-          .in("id", productIds);
-        productMap = new Map((products || []).map(p => [p.id, p.name]));
-      }
-
-      setStockItems(data.map(si => ({
-        ...si,
-        product_name: si.product_id ? productMap.get(si.product_id) || undefined : undefined,
-      })));
-    } else {
-      setStockItems([]);
-    }
-
-    setSearchingStock(false);
-  };
 
   const handleDownloadOnly = () => {
     onDownload();
@@ -371,29 +384,44 @@ export function ReplacementDownloadModal({
               ) : (
                 <div className="space-y-1">
                   <Input
-                    placeholder="Buscar item no estoque por nome..."
-                    value={stockSearch}
-                    onChange={(e) => searchStockItems(e.target.value)}
+                    placeholder="Filtrar por nome, ID ou produto..."
+                    value={stockFilter}
+                    onChange={(e) => setStockFilter(e.target.value)}
                     className="bg-zinc-800 border-zinc-700"
                   />
-                  {searchingStock && <p className="text-xs text-zinc-500">Buscando...</p>}
-                  {stockItems.length > 0 && (
-                    <div className="max-h-40 overflow-y-auto rounded-lg border border-zinc-700 bg-zinc-800">
-                      {stockItems.map((si) => (
-                        <button
-                          key={si.id}
-                          className="w-full text-left px-3 py-2 hover:bg-zinc-700 transition-colors border-b border-zinc-700/50 last:border-0"
-                          onClick={() => { setSelectedNewItem(si); setStockItems([]); setStockSearch(""); }}
-                        >
-                          <p className="text-sm text-zinc-300">{si.name}</p>
-                          <div className="flex items-center gap-2">
-                            {si.identification && <p className="text-xs text-zinc-500 font-mono">{si.identification}</p>}
-                            {si.product_name && <p className="text-xs text-zinc-500">• {si.product_name}</p>}
-                          </div>
-                        </button>
-                      ))}
+                  {loadingStock ? (
+                    <div className="flex items-center justify-center py-4">
+                      <Loader2 className="h-4 w-4 animate-spin text-zinc-500" />
+                      <span className="text-xs text-zinc-500 ml-2">Carregando itens...</span>
+                    </div>
+                  ) : (
+                    <div className="max-h-48 overflow-y-auto rounded-lg border border-zinc-700 bg-zinc-800">
+                      {(() => {
+                        const filtered = allStockItems.filter(si =>
+                          !stockFilter || si.name.toLowerCase().includes(stockFilter.toLowerCase()) ||
+                          (si.identification || "").toLowerCase().includes(stockFilter.toLowerCase()) ||
+                          (si.product_name || "").toLowerCase().includes(stockFilter.toLowerCase())
+                        );
+                        if (filtered.length === 0) {
+                          return <p className="text-xs text-zinc-500 p-3 text-center">Nenhum item disponível</p>;
+                        }
+                        return filtered.slice(0, 30).map((si) => (
+                          <button
+                            key={si.id}
+                            className="w-full text-left px-3 py-2 hover:bg-zinc-700 transition-colors border-b border-zinc-700/50 last:border-0"
+                            onClick={() => setSelectedNewItem(si)}
+                          >
+                            <p className="text-sm text-zinc-300">{si.name}</p>
+                            <div className="flex items-center gap-2">
+                              {si.identification && <p className="text-xs text-zinc-500 font-mono">{si.identification}</p>}
+                              {si.product_name && <p className="text-xs text-zinc-500">• {si.product_name}</p>}
+                            </div>
+                          </button>
+                        ));
+                      })()}
                     </div>
                   )}
+                  <p className="text-[10px] text-zinc-600">{allStockItems.length} itens disponíveis (excluindo proxy)</p>
                 </div>
               )}
             </div>
