@@ -56,6 +56,9 @@ function useCountdown(expiresAt: string) {
 function CountdownBadge({ expiresAt, status }: { expiresAt: string; status: string }) {
   const { expired, text, days } = useCountdown(expiresAt);
 
+  if (status === "em_estoque") {
+    return <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">Em Estoque</Badge>;
+  }
   if (status === "removed") {
     return <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">Removido</Badge>;
   }
@@ -86,6 +89,7 @@ function CountdownBadge({ expiresAt, status }: { expiresAt: string; status: stri
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; className: string }> = {
+    em_estoque: { label: "Em Estoque", className: "bg-purple-500/20 text-purple-400 border-purple-500/30" },
     active: { label: "Ativo", className: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
     notified: { label: "Notificado", className: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
     removed: { label: "Removido", className: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" },
@@ -161,6 +165,7 @@ export default function AdminGestaoBMs() {
   const stats = useMemo(() => {
     const now = Date.now();
     return {
+      emEstoque: items.filter(i => i.status === "em_estoque").length,
       active: items.filter(i => i.status === "active").length,
       expiringToday: items.filter(i => {
         const diff = new Date(i.expires_at).getTime() - now;
@@ -274,7 +279,18 @@ export default function AdminGestaoBMs() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <Card className="border-purple-500/20 bg-purple-500/5">
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-purple-500/20">
+              <ShieldAlert className="size-5 text-purple-400" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-foreground">{stats.emEstoque}</p>
+              <p className="text-xs text-muted-foreground">Em Estoque</p>
+            </div>
+          </CardContent>
+        </Card>
         <Card className="border-blue-500/20 bg-blue-500/5">
           <CardContent className="p-4 flex items-center gap-3">
             <div className="p-2 rounded-lg bg-blue-500/20">
@@ -338,6 +354,7 @@ export default function AdminGestaoBMs() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos</SelectItem>
+            <SelectItem value="em_estoque">Em Estoque</SelectItem>
             <SelectItem value="active">Ativos</SelectItem>
             <SelectItem value="notified">Notificados</SelectItem>
             <SelectItem value="expired">Expirados</SelectItem>
