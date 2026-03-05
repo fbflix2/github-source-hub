@@ -388,8 +388,15 @@ export default function Dashboard() {
                 return (
                   <article
                     key={product.id}
-                    className="glass-card rounded-2xl overflow-hidden flex flex-col group h-full"
+                    className={`glass-card rounded-2xl overflow-hidden flex flex-col group h-full relative ${product.tags?.some(t => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes("promoc")) ? "ring-1 ring-red-500/30" : ""}`}
                   >
+                    {product.tags?.some(t => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes("promoc")) && (
+                      <div className="absolute top-0 left-0 z-10 overflow-hidden w-24 h-24 pointer-events-none">
+                        <div className="absolute top-[10px] left-[-28px] w-[120px] text-center text-[10px] font-extrabold uppercase tracking-wider bg-gradient-to-r from-red-600 to-orange-500 text-white py-1 rotate-[-45deg] shadow-lg shadow-red-500/30">
+                          Promoção
+                        </div>
+                      </div>
+                    )}
                     <div className="p-5 flex flex-col flex-1 gap-4">
                       <div className="flex items-start gap-3">
                         <div className="shrink-0 w-10 h-10 rounded-lg overflow-hidden bg-secondary flex items-center justify-center mt-0.5">
