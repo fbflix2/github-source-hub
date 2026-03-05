@@ -273,7 +273,7 @@ export default function Orders() {
                         const bmItems = selectedOrder.items.filter(i => i.iconType === 'bm');
                         const pageItems = selectedOrder.items.filter(i => i.iconType === 'page');
                         const otherItems = selectedOrder.items.filter(i => i.iconType !== 'bm' && i.iconType !== 'page');
-                        const rows: { key: string; name: string; subtitle: string; price: number; totalPrice: number; itemId: string; isBlocked: boolean; isBm: boolean; isPage: boolean }[] = [];
+                        const rows: { key: string; name: string; subtitle: string; price: number; totalPrice: number; itemId: string; isBlocked: boolean; isReplaced: boolean; replacedAt: string | null; isBm: boolean; isPage: boolean }[] = [];
 
                         // BM: single grouped row
                         if (bmItems.length > 0) {
