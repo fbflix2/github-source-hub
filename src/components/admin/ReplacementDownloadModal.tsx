@@ -230,11 +230,37 @@ export function ReplacementDownloadModal({
       return;
     }
 
-    // Mark the NEW stock item as sold (it's going to the client)
+    // Fetch the new stock item's full data for delivery
+    const { data: newStockFull } = await supabase
+      .from("stock_items")
+      .select("id, name, data, identification, identification_link")
+      .eq("id", selectedNewItem.id)
+      .single();
+
+    // Mark the NEW stock item as sold and link to the order_item
     await supabase
       .from("stock_items")
-      .update({ status: "vendido", updated_at: new Date().toISOString() })
+      .update({
+        status: "vendido",
+        order_item_id: selectedOrderItem?.id || null,
+        updated_at: new Date().toISOString(),
+      })
       .eq("id", selectedNewItem.id);
+
+    // Update the order_item's delivery_data so the client sees the new item
+    if (selectedOrderItem && newStockFull) {
+      const d = (newStockFull.data as Record<string, unknown>) || {};
+      const deliveryData: Record<string, unknown> = {
+        ...d,
+        ...(newStockFull.identification ? { idPerfil: newStockFull.identification } : {}),
+        ...(newStockFull.identification_link ? { linkPerfil: newStockFull.identification_link } : {}),
+      };
+
+      await supabase
+        .from("order_items")
+        .update({ delivery_data: deliveryData as any })
+        .eq("id", selectedOrderItem.id);
+    }
 
     toast.success("Reposição registrada! Novo item marcado como vendido.");
     onOpenChange(false);
