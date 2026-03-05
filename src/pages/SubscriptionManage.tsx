@@ -52,6 +52,12 @@ export default function SubscriptionManage() {
     queryKey: ["subscription-customer-price", code, sub?.totalProxies, sub?.product_name],
     queryFn: async () => {
       if (!realSubName) return null;
+
+      // For Webshare subs, use the price from the join
+      if ((sub as any)?.customer_price != null) {
+        return Number((sub as any).customer_price);
+      }
+
       const totalProxies = sub?.totalProxies ?? 1;
 
       // Try order_items first
@@ -62,7 +68,6 @@ export default function SubscriptionManage() {
         .limit(1)
         .maybeSingle();
       if (orderItem?.price != null) {
-        // order_items.price is already the unit price, no need to divide by totalProxies
         return Number(orderItem.price);
       }
 

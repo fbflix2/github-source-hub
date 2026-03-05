@@ -99,7 +99,7 @@ export function useWebshareSubscriptions() {
 
       const { data, error } = await supabase
         .from("subscriptions")
-        .select("*")
+        .select("*, products:product_id(name, price)")
         .eq("user_id", user.id)
         .eq("type", "webshare")
         .order("created_at", { ascending: false });
@@ -108,11 +108,15 @@ export function useWebshareSubscriptions() {
 
       return (data || []).map((sub) => {
         const raw = (sub.raw_data || {}) as Record<string, any>;
+        const productInfo = sub.products as any;
+        const productName = productInfo?.name || raw.product_name || "Proxy Webshare";
+        const customerPrice = productInfo?.price || null;
         return {
           id: sub.id,
           code: sub.name,
           name: sub.name,
-          product_name: "Proxy Webshare",
+          product_name: productName,
+          customer_price: customerPrice,
           status: sub.status,
           start_date: sub.start_date,
           end_date: sub.end_date || sub.start_date,
