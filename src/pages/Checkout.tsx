@@ -116,17 +116,19 @@ export default function Checkout() {
           let dbTags: string[] | null = null;
           let dbIconType: string | null = null;
           let dbExternalId: string | null = null;
+          let dbSlug: string | null = null;
           const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cartItems[0].productId);
           if (isValidUUID) {
             const { data: dbProd } = await supabase
               .from("products")
-              .select("description, tags, icon_type, external_id")
+              .select("description, tags, icon_type, external_id, slug")
               .eq("id", cartItems[0].productId)
               .single();
             dbDescription = dbProd?.description || null;
             dbTags = dbProd?.tags || null;
             dbIconType = dbProd?.icon_type || null;
             dbExternalId = dbProd?.external_id || null;
+            dbSlug = (dbProd as any)?.slug || null;
           }
 
           setProduct({
@@ -141,6 +143,7 @@ export default function Checkout() {
             icon_type: dbIconType,
             external_id: dbExternalId,
             tags: dbTags,
+            slug: dbSlug,
           });
         }
         setLoading(false);
