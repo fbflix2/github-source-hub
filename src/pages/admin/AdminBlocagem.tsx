@@ -791,6 +791,11 @@ function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => voi
                 )}
               </div>
               <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><CircleUser className="h-3 w-3" />Perfil Backup (Admin)</label>
+                <Input type="text" placeholder="Nome ou link do perfil backup admin" value={perfilBackup} onChange={e => setPerfilBackup(e.target.value)} className="bg-zinc-900/50 border-zinc-700 text-white" />
+                <span className="text-[10px] text-zinc-600">Perfil que ficará como admin na BM do cliente</span>
+              </div>
+              <div className="flex flex-col gap-1">
                 <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><FileText className="h-3 w-3" />Descrição</label>
                 <Textarea value={descricao} onChange={e => setDescricao(e.target.value)} placeholder="Descrição do item..." className="min-h-[80px] bg-zinc-900/50 border-zinc-700 text-white resize-none" />
               </div>
