@@ -274,7 +274,21 @@ export default function AdminSuporte() {
                           {getInitials(profile?.full_name ?? null)}
                         </div>
                       )}
-                      <span className="text-sm font-semibold text-white">{profile?.full_name || "Usuário"}</span>
+                      <span className="text-sm font-semibold text-white flex-1">{profile?.full_name || "Usuário"}</span>
+                      {ratings[ticket.id] && (
+                        <div className="flex items-center gap-1" title={ratings[ticket.id].comment || "Avaliação do cliente"}>
+                          {[1, 2, 3, 4, 5].map((s) => (
+                            <Star
+                              key={s}
+                              className={`size-3.5 ${
+                                s <= ratings[ticket.id].rating
+                                  ? "fill-yellow-400 text-yellow-400"
+                                  : "text-gray-600"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex flex-wrap gap-2 mt-2">
