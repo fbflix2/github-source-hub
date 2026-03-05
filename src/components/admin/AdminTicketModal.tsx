@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
-import { X, Send, Loader2, Paperclip, Image as ImageIcon } from "lucide-react";
+import { X, Send, Loader2, Paperclip, Image as ImageIcon, FileIcon, XCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { validateFileUpload } from "@/lib/file-validation";
 
 interface Message {
   id: string;
