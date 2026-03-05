@@ -9,12 +9,15 @@ import {
   AlertCircle,
   Send,
   Loader2,
+  Star,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useTickets, TicketData } from "@/hooks/useTickets";
+import { supabase } from "@/integrations/supabase/client";
+import TicketRatingPopup from "@/components/TicketRatingPopup";
 
 type TicketStatus = "open" | "answered" | "closed" | "in_progress" | "resolved";
 type TicketPriority = "low" | "medium" | "high" | "urgent";
@@ -67,6 +70,39 @@ export default function Tickets() {
   const [sending, setSending] = useState(false);
   const [filter, setFilter] = useState<"all" | "open" | "answered" | "closed" | "in_progress" | "resolved">("all");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [ratingTicket, setRatingTicket] = useState<TicketData | null>(null);
+  const [ratedTicketIds, setRatedTicketIds] = useState<Set<string>>(new Set());
+
+  // Fetch already-rated tickets
+  useEffect(() => {
+    const fetchRated = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from("ticket_ratings")
+        .select("ticket_id")
+        .eq("user_id", user.id);
+      if (data) setRatedTicketIds(new Set(data.map(r => r.ticket_id)));
+    };
+    fetchRated();
+  }, []);
+
+  // Auto-show rating popup when a ticket transitions to resolved
+  const prevTicketsRef = useRef<TicketData[]>([]);
+  useEffect(() => {
+    if (prevTicketsRef.current.length > 0) {
+      for (const ticket of tickets) {
+        if (ticket.status === "resolved" && !ratedTicketIds.has(ticket.id)) {
+          const prev = prevTicketsRef.current.find(t => t.id === ticket.id);
+          if (prev && prev.status !== "resolved") {
+            setRatingTicket(ticket);
+            break;
+          }
+        }
+      }
+    }
+    prevTicketsRef.current = tickets;
+  }, [tickets, ratedTicketIds]);
 
   // Keep selectedTicket in sync with fetched data, preserving optimistic messages
   useEffect(() => {
@@ -338,6 +374,27 @@ export default function Tickets() {
                   </p>
                 </div>
               ) : null}
+
+              {/* Rating button for resolved tickets */}
+              {selectedTicket.status === "resolved" && !ratedTicketIds.has(selectedTicket.id) && (
+                <div className="p-4 border-t border-border bg-primary/5 text-center">
+                  <button
+                    onClick={() => setRatingTicket(selectedTicket)}
+                    className="px-6 py-2.5 rounded-xl text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors inline-flex items-center gap-2"
+                  >
+                    <Star className="size-4" />
+                    Avaliar Atendimento
+                  </button>
+                </div>
+              )}
+              {selectedTicket.status === "resolved" && ratedTicketIds.has(selectedTicket.id) && (
+                <div className="p-4 border-t border-border bg-green-500/5 text-center">
+                  <p className="text-sm text-green-500 font-medium flex items-center justify-center gap-2">
+                    <CheckCircle2 className="size-4" />
+                    Você já avaliou este atendimento
+                  </p>
+                </div>
+              )}
             </div>
           ) : (
             <div className="h-[600px] flex items-center justify-center">
@@ -349,6 +406,19 @@ export default function Tickets() {
           )}
         </div>
       </div>
+
+      {/* Rating Popup */}
+      {ratingTicket && (
+        <TicketRatingPopup
+          ticketId={ratingTicket.id}
+          ticketCode={ratingTicket.code}
+          onClose={() => setRatingTicket(null)}
+          onSubmitted={() => {
+            setRatedTicketIds(prev => new Set([...prev, ratingTicket.id]));
+            setRatingTicket(null);
+          }}
+        />
+      )}
     </div>
   );
 }

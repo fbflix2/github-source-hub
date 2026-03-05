@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { 
   MailOpen, Clock, CheckCircle, Timer, RefreshCw, ArrowUp, ArrowDown,
-  MessageSquare, Loader2, Inbox, RotateCcw
+  MessageSquare, Loader2, Inbox, RotateCcw, Star
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -49,6 +49,7 @@ export default function AdminSuporte() {
   const [profiles, setProfiles] = useState<Record<string, { full_name: string | null; avatar_url: string | null }>>({});
   const [selectedTicket, setSelectedTicket] = useState<TicketRow | null>(null);
   const [modalMode, setModalMode] = useState<ModalMode>(null);
+  const [ratings, setRatings] = useState<Record<string, { rating: number; comment: string | null }>>({});
 
   const fetchTickets = async () => {
     setLoading(true);
@@ -70,6 +71,15 @@ export default function AdminSuporte() {
       (profileData ?? []).forEach(p => { map[p.user_id] = { full_name: p.full_name, avatar_url: p.avatar_url }; });
       setProfiles(map);
     }
+
+    // Fetch ratings
+    const { data: ratingsData } = await supabase
+      .from("ticket_ratings")
+      .select("ticket_id, rating, comment");
+    const ratingsMap: Record<string, { rating: number; comment: string | null }> = {};
+    (ratingsData ?? []).forEach(r => { ratingsMap[r.ticket_id] = { rating: r.rating, comment: r.comment }; });
+    setRatings(ratingsMap);
+
     setLoading(false);
   };
 
