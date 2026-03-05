@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 Deno.serve(async (req) => {
@@ -26,14 +26,15 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: authHeader } } }
     );
-    const { data: { user: caller } } = await supabaseUser.auth.getUser();
-    if (!caller) throw new Error("Não autorizado");
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsErr } = await supabaseUser.auth.getClaims(token);
+    if (claimsErr || !claimsData?.claims?.sub) throw new Error("Não autorizado");
+    const callerId = claimsData.claims.sub;
 
-    const { data: isAdmin } = await supabaseAdmin.rpc("has_role", {
-      _user_id: caller.id,
-      _role: "admin",
+    const { data: isStaff } = await supabaseAdmin.rpc("is_staff", {
+      _user_id: callerId,
     });
-    if (!isAdmin) throw new Error("Sem permissão");
+    if (!isStaff) throw new Error("Sem permissão");
 
     // Fetch all users with pagination
     const emailMap: Record<string, string> = {};
