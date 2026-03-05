@@ -30,6 +30,7 @@ interface BlockedItem {
   clientName?: string;
   orderCode?: string;
   blockedAt?: string;
+  hasReplacement?: boolean;
 }
 
 const formatDate = (d: string) =>
