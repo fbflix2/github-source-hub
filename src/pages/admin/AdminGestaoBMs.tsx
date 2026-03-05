@@ -429,7 +429,7 @@ export default function AdminGestaoBMs() {
                     </TableCell>
                     <TableCell>
                       <a
-                        href={item.bm_link}
+                        href={item.bm_link.match(/https?:\/\/\S+/)?.[0] || item.bm_link}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-primary hover:underline text-sm flex items-center gap-1"
