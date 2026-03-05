@@ -1,0 +1,1 @@
+UPDATE products SET tags = array_append(tags, 'webshare') WHERE id = '6c396fa8-f6a0-43b2-8061-9148213df549' AND NOT ('webshare' = ANY(tags));
