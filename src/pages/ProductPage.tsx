@@ -22,13 +22,13 @@ export default function ProductPage() {
 
   useEffect(() => {
     if (!slug) return;
-    supabase
+    (supabase
       .from("products")
-      .select("*")
-      .eq("slug" as any, slug)
+      .select("*") as any)
+      .eq("slug", slug)
       .eq("status", "active")
       .maybeSingle()
-      .then(({ data, error }) => {
+      .then(({ data }: any) => {
         if (data) setProduct(data);
         setLoading(false);
       });
