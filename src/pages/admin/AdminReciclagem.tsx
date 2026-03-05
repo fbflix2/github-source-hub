@@ -61,18 +61,24 @@ export default function AdminReciclagem() {
       return;
     }
 
-    // Enrich with product names, client names, order codes
+    // Enrich with product names, client names, order codes, replacement status
     const productIds = [...new Set(stockItems.filter(i => i.product_id).map(i => i.product_id!))];
     const orderItemIds = [...new Set(stockItems.filter(i => i.order_item_id).map(i => i.order_item_id!))];
+    const stockItemIds = stockItems.map(i => i.id);
 
-    const [productsRes, orderItemsRes] = await Promise.all([
+    const [productsRes, orderItemsRes, replacementsRes] = await Promise.all([
       productIds.length > 0
         ? supabase.from("products").select("id, name").in("id", productIds)
         : Promise.resolve({ data: [] }),
       orderItemIds.length > 0
         ? supabase.from("order_items").select("id, order_id").in("id", orderItemIds)
         : Promise.resolve({ data: [] }),
+      stockItemIds.length > 0
+        ? supabase.from("replacements").select("stock_item_id").in("stock_item_id", stockItemIds)
+        : Promise.resolve({ data: [] }),
     ]);
+
+    const replacedStockIds = new Set((replacementsRes.data || []).map(r => r.stock_item_id));
 
     const productMap = new Map((productsRes.data || []).map(p => [p.id, p.name]));
 
