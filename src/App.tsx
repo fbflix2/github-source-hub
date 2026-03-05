@@ -33,6 +33,7 @@ import TermsOfService from "./pages/TermsOfService";
 import Sobre from "./pages/Sobre";
 import Mercado from "./pages/Mercado";
 import TokenFBX from "./pages/TokenFBX";
+import ProductPage from "./pages/ProductPage";
 
 // Admin Pages
 import AdminLogin from "./pages/admin/AdminLogin";
@@ -208,6 +209,7 @@ const App = () => {
                 <Route path="/privacidade" element={<PrivacyPolicy />} />
                 <Route path="/termos" element={<TermsOfService />} />
                 <Route path="/sobre" element={<Sobre />} />
+                <Route path="/produto/:slug" element={<ProductPage />} />
 
                 {/* Admin routes */}
                 <Route path="/admin/login" element={<AdminLogin />} />
