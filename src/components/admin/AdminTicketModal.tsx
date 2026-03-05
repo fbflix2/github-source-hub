@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
-import { X, Send, Loader2, Paperclip, Image as ImageIcon } from "lucide-react";
+import { X, Send, Loader2, Paperclip, XCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { validateSupportFile } from "@/lib/file-validation";
 
 interface Message {
   id: string;
@@ -36,7 +37,10 @@ export default function AdminTicketModal({ ticket, profileName, mode, onClose, o
   const [reply, setReply] = useState("");
   const [sending, setSending] = useState(false);
   const [newStatus, setNewStatus] = useState("");
+  const [attachments, setAttachments] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!ticket) return;
@@ -60,19 +64,82 @@ export default function AdminTicketModal({ ticket, profileName, mode, onClose, o
     setLoading(false);
   };
 
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    for (const file of files) {
+      const validation = await validateSupportFile(file, 20);
+      if (!validation.valid) {
+        toast.error(validation.error || "Arquivo inválido");
+        continue;
+      }
+      setAttachments(prev => [...prev, file]);
+    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const uploadFile = async (file: File, ticketId: string): Promise<string | null> => {
+    const ext = file.name.split(".").pop()?.toLowerCase() || "bin";
+    const path = `tickets/${ticketId}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+    
+    const { error } = await supabase.storage
+      .from("support-attachments")
+      .upload(path, file, { contentType: file.type });
+
+    if (error) {
+      console.error("Upload error:", error);
+      return null;
+    }
+
+    const { data: urlData } = supabase.storage
+      .from("support-attachments")
+      .getPublicUrl(path);
+
+    return urlData.publicUrl;
+  };
+
   const handleSend = async () => {
-    if (!reply.trim() || !ticket) return;
+    if ((!reply.trim() && attachments.length === 0) || !ticket) return;
     setSending(true);
+    setUploading(attachments.length > 0);
+
     try {
+      const uploadedUrls: string[] = [];
+      for (const file of attachments) {
+        const url = await uploadFile(file, ticket.id);
+        if (url) uploadedUrls.push(url);
+      }
+
+      let messageContent = reply.trim();
+      if (uploadedUrls.length > 0 && !messageContent) {
+        messageContent = "📎 Anexo(s) enviado(s)";
+      }
+
       const { error } = await supabase.from("ticket_messages").insert({
         ticket_id: ticket.id,
-        content: reply.trim(),
+        content: messageContent,
         sender: "support",
         read: false,
+        attachment_url: uploadedUrls.length >= 1 ? uploadedUrls[0] : null,
       });
       if (error) throw error;
 
-      // Update ticket status if changed
+      // Extra attachments as separate messages
+      for (let i = 1; i < uploadedUrls.length; i++) {
+        await supabase.from("ticket_messages").insert({
+          ticket_id: ticket.id,
+          content: `📎 Anexo ${i + 1}`,
+          sender: "support",
+          read: false,
+          attachment_url: uploadedUrls[i],
+        });
+      }
+
       if (newStatus !== ticket.status) {
         await supabase.from("tickets").update({ status: newStatus }).eq("id", ticket.id);
       } else if (ticket.status === "open") {
@@ -80,6 +147,7 @@ export default function AdminTicketModal({ ticket, profileName, mode, onClose, o
       }
 
       setReply("");
+      setAttachments([]);
       await fetchMessages();
       onStatusChange?.();
       toast.success("Resposta enviada!");
@@ -88,6 +156,7 @@ export default function AdminTicketModal({ ticket, profileName, mode, onClose, o
       toast.error("Erro ao enviar resposta.");
     } finally {
       setSending(false);
+      setUploading(false);
     }
   };
 
@@ -101,6 +170,7 @@ export default function AdminTicketModal({ ticket, profileName, mode, onClose, o
   ];
 
   const isImageUrl = (url: string) => /\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i.test(url);
+  const isVideoUrl = (url: string) => /\.(mp4|mov|avi|mkv|webm)(\?|$)/i.test(url);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
@@ -153,7 +223,6 @@ export default function AdminTicketModal({ ticket, profileName, mode, onClose, o
           ) : (
             messages.map((msg) => {
               const isSupport = msg.sender === "support";
-              // Check for attachment links in content
               const urlRegex = /(https?:\/\/[^\s]+)/g;
               const urls = msg.content.match(urlRegex) || [];
               const imageUrls = urls.filter(isImageUrl);
@@ -169,7 +238,6 @@ export default function AdminTicketModal({ ticket, profileName, mode, onClose, o
                       {isSupport ? "Suporte" : profileName}
                     </p>
                     <p className="whitespace-pre-wrap break-words">{msg.content}</p>
-                    {/* Render image attachments */}
                     {imageUrls.length > 0 && (
                       <div className="mt-2 space-y-2">
                         {imageUrls.map((url, i) => (
@@ -182,6 +250,14 @@ export default function AdminTicketModal({ ticket, profileName, mode, onClose, o
                     {msg.attachment_url && isImageUrl(msg.attachment_url) && (
                       <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer">
                         <img src={msg.attachment_url} alt="Anexo" className="max-w-full max-h-48 rounded-lg border border-white/10 mt-2" />
+                      </a>
+                    )}
+                    {msg.attachment_url && isVideoUrl(msg.attachment_url) && (
+                      <video src={msg.attachment_url} controls className="max-w-full max-h-48 rounded-lg border border-white/10 mt-2" />
+                    )}
+                    {msg.attachment_url && !isImageUrl(msg.attachment_url) && !isVideoUrl(msg.attachment_url) && (
+                      <a href={msg.attachment_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 mt-2 text-xs text-primary hover:underline">
+                        <Paperclip className="size-3" /> Abrir anexo
                       </a>
                     )}
                     <p className="text-[10px] opacity-40 mt-1.5">
@@ -212,7 +288,47 @@ export default function AdminTicketModal({ ticket, profileName, mode, onClose, o
                 ))}
               </select>
             </div>
+
+            {/* Attachment previews */}
+            {attachments.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {attachments.map((file, i) => {
+                  const isImg = file.type.startsWith("image/");
+                  return (
+                    <div key={i} className="relative group bg-white/5 border border-white/10 rounded-lg p-1.5 flex items-center gap-2 text-xs text-white/70">
+                      {isImg ? (
+                        <img src={URL.createObjectURL(file)} alt="" className="w-10 h-10 rounded object-cover" />
+                      ) : (
+                        <div className="w-10 h-10 rounded bg-white/5 flex items-center justify-center">
+                          <Paperclip className="size-4 text-white/40" />
+                        </div>
+                      )}
+                      <span className="max-w-[100px] truncate">{file.name}</span>
+                      <button onClick={() => removeAttachment(i)} className="text-white/30 hover:text-red-400 transition-colors">
+                        <XCircle className="size-4" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
             <div className="flex gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/*,video/*,.pdf,.txt,.doc,.docx"
+                className="hidden"
+                onChange={handleFileSelect}
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="px-3 rounded-xl bg-white/5 border border-white/10 text-white/50 hover:bg-white/10 hover:text-white transition-colors flex items-center"
+                title="Anexar arquivo"
+              >
+                <Paperclip className="size-4" />
+              </button>
               <textarea
                 value={reply}
                 onChange={(e) => setReply(e.target.value)}
@@ -228,16 +344,21 @@ export default function AdminTicketModal({ ticket, profileName, mode, onClose, o
               />
               <button
                 onClick={handleSend}
-                disabled={sending || !reply.trim()}
+                disabled={sending || (!reply.trim() && attachments.length === 0)}
                 className="px-4 rounded-xl bg-primary text-white hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
               >
                 {sending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
               </button>
             </div>
+            {uploading && (
+              <p className="text-[10px] text-white/40 flex items-center gap-1">
+                <Loader2 className="size-3 animate-spin" /> Enviando anexo(s)...
+              </p>
+            )}
           </div>
         )}
 
-        {/* Preview mode - action buttons */}
+        {/* Preview mode */}
         {mode === "preview" && (
           <div className="border-t border-white/10 p-4 flex gap-3">
             <button
