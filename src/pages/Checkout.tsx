@@ -46,6 +46,7 @@ export default function Checkout() {
 
   const [product, setProduct] = useState<DbProduct | null>(null);
   const [loading, setLoading] = useState(true);
+  const [shareCopied, setShareCopied] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
