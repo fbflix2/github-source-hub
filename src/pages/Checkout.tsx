@@ -120,7 +120,7 @@ export default function Checkout() {
           if (isValidUUID) {
             const { data: dbProd } = await supabase
               .from("products")
-              .select("description, tags, icon_type, external_id")
+              .select("description, tags, icon_type, external_id, slug")
               .eq("id", cartItems[0].productId)
               .single();
             dbDescription = dbProd?.description || null;
@@ -141,6 +141,7 @@ export default function Checkout() {
             icon_type: dbIconType,
             external_id: dbExternalId,
             tags: dbTags,
+            slug: isValidUUID ? (await supabase.from("products").select("slug").eq("id", cartItems[0].productId).single()).data?.slug || null : null,
           });
         }
         setLoading(false);
