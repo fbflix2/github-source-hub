@@ -188,42 +188,7 @@ export function ReplacementDownloadModal({
     setSearchingOrder(false);
   };
 
-  const searchStockItems = async (query: string) => {
-    setStockSearch(query);
-    if (query.length < 2) { setStockItems([]); return; }
-    setSearchingStock(true);
 
-    const { data } = await supabase
-      .from("stock_items")
-      .select("id, name, identification, product_id")
-      .eq("status", "revisado")
-      .is("order_item_id", null)
-      .is("deleted_at", null)
-      .ilike("name", `%${query}%`)
-      .limit(15);
-
-    if (data && data.length > 0) {
-      // Enrich with product names
-      const productIds = [...new Set(data.filter(i => i.product_id).map(i => i.product_id!))];
-      let productMap = new Map<string, string>();
-      if (productIds.length > 0) {
-        const { data: products } = await supabase
-          .from("products")
-          .select("id, name")
-          .in("id", productIds);
-        productMap = new Map((products || []).map(p => [p.id, p.name]));
-      }
-
-      setStockItems(data.map(si => ({
-        ...si,
-        product_name: si.product_id ? productMap.get(si.product_id) || undefined : undefined,
-      })));
-    } else {
-      setStockItems([]);
-    }
-
-    setSearchingStock(false);
-  };
 
   const handleDownloadOnly = () => {
     onDownload();
