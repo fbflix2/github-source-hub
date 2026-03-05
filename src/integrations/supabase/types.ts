@@ -1000,7 +1000,10 @@ export type Database = {
           id: string
           item_name: string
           item_value: number
+          new_stock_item_id: string | null
           notes: string | null
+          order_id: string | null
+          order_item_id: string | null
           product_name: string
           reason: string
           stock_item_id: string | null
@@ -1013,7 +1016,10 @@ export type Database = {
           id?: string
           item_name: string
           item_value?: number
+          new_stock_item_id?: string | null
           notes?: string | null
+          order_id?: string | null
+          order_item_id?: string | null
           product_name: string
           reason: string
           stock_item_id?: string | null
@@ -1026,12 +1032,36 @@ export type Database = {
           id?: string
           item_name?: string
           item_value?: number
+          new_stock_item_id?: string | null
           notes?: string | null
+          order_id?: string | null
+          order_item_id?: string | null
           product_name?: string
           reason?: string
           stock_item_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "replacements_new_stock_item_id_fkey"
+            columns: ["new_stock_item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replacements_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "replacements_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: false
+            referencedRelation: "order_items"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "replacements_stock_item_id_fkey"
             columns: ["stock_item_id"]
