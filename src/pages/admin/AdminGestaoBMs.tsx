@@ -37,6 +37,7 @@ interface BmTracking {
   notes: string | null;
   created_at: string;
   updated_at: string;
+  perfil_matriz?: string | null;
 }
 
 function useCountdown(expiresAt: string) {
@@ -116,12 +117,17 @@ export default function AdminGestaoBMs() {
     setLoading(true);
     const { data, error } = await supabase
       .from("bm_tracking")
-      .select("*")
-      .order("sold_at", { ascending: false });
+      .select("*, stock_items:stock_item_id(data)")
+      .order("created_at", { ascending: false });
     if (error) {
       toast.error("Erro ao carregar BMs: " + error.message);
     } else {
-      setItems((data as unknown as BmTracking[]) || []);
+      const mapped = (data || []).map((item: any) => ({
+        ...item,
+        perfil_matriz: item.stock_items?.data?.perfilBackup || null,
+        stock_items: undefined,
+      }));
+      setItems(mapped as BmTracking[]);
     }
     setLoading(false);
   };
@@ -393,12 +399,13 @@ export default function AdminGestaoBMs() {
           ) : (
             <Table>
               <TableHeader>
-                <TableRow>
+               <TableRow>
                   <TableHead>Cliente</TableHead>
                   <TableHead>Produto</TableHead>
+                  <TableHead>Perfil Matriz</TableHead>
                   <TableHead>Link BM</TableHead>
                   <TableHead>Preço</TableHead>
-                  <TableHead>Vendido em</TableHead>
+                  <TableHead>Data</TableHead>
                   <TableHead>Contagem</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
@@ -418,6 +425,9 @@ export default function AdminGestaoBMs() {
                     </TableCell>
                     <TableCell className="text-sm">{item.product_name}</TableCell>
                     <TableCell>
+                      <span className="text-sm font-medium text-purple-400">{item.perfil_matriz || "—"}</span>
+                    </TableCell>
+                    <TableCell>
                       <a
                         href={item.bm_link}
                         target="_blank"
@@ -432,7 +442,11 @@ export default function AdminGestaoBMs() {
                       R$ {Number(item.sale_price).toFixed(2)}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
-                      {new Date(item.sold_at).toLocaleDateString("pt-BR")}
+                      {item.status === "em_estoque" ? (
+                        <span>Enviado {new Date(item.created_at).toLocaleDateString("pt-BR")}</span>
+                      ) : (
+                        <span>Vendido {new Date(item.sold_at).toLocaleDateString("pt-BR")}</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <CountdownBadge expiresAt={item.expires_at} status={item.status} />
