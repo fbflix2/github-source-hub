@@ -344,14 +344,22 @@ export default function Orders() {
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-1.5">
                                 <h5 className="text-foreground font-bold text-sm truncate">{row.name}</h5>
-                                {row.isBlocked && (
+                                {row.isReplaced && (
+                                  <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[8px] font-bold uppercase">
+                                    <span className="material-symbols-outlined text-[9px]">swap_horiz</span>
+                                    Reposto
+                                  </span>
+                                )}
+                                {row.isBlocked && !row.isReplaced && (
                                   <span className="flex items-center gap-0.5 px-1 py-0.5 rounded bg-destructive/20 text-destructive border border-destructive/30 text-[8px] font-bold uppercase">
                                     <span className="material-symbols-outlined text-[9px]">block</span>
                                     Bloqueado
                                   </span>
                                 )}
                               </div>
-                              <p className="text-muted-foreground text-xs">{row.subtitle}</p>
+                              <p className="text-muted-foreground text-xs">
+                                {row.isReplaced ? "Item reposto — verifique os novos dados em Detalhes" : row.subtitle}
+                              </p>
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
                               <span className="text-foreground font-bold text-sm">R$ {row.price.toFixed(2).replace(".", ",")}</span>
