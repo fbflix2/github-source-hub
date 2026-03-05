@@ -26,6 +26,7 @@ interface Product {
   category_id: string | null;
   tags: string[] | null;
   external_id?: string | null;
+  slug?: string | null;
 }
 
 interface Props {
@@ -49,8 +50,23 @@ function getStockInfo(product: Product) {
 export function ProductDetailModal({ product, open, onOpenChange, quantity, onQuantityChange }: Props) {
   const navigate = useNavigate();
   const { addItem } = useCart();
+  const [linkCopied, setLinkCopied] = useState(false);
 
   if (!product) return null;
+
+  const productUrl = product.slug ? `${window.location.origin}/produto/${product.slug}` : null;
+
+  const handleShare = async () => {
+    if (!productUrl) return;
+    if (navigator.share) {
+      try { await navigator.share({ title: product.name, text: `Confira ${product.name} na FBFLIX!`, url: productUrl }); } catch {}
+    } else {
+      await navigator.clipboard.writeText(productUrl);
+      setLinkCopied(true);
+      toast.success("Link copiado!");
+      setTimeout(() => setLinkCopied(false), 2000);
+    }
+  };
 
   const stockInfo = getStockInfo(product);
 
