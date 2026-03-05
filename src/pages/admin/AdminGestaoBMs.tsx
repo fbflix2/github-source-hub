@@ -404,7 +404,6 @@ export default function AdminGestaoBMs() {
                   <TableHead>Produto</TableHead>
                   <TableHead>Nome BM</TableHead>
                   <TableHead>Perfil Matriz</TableHead>
-                  <TableHead>Perfil Matriz</TableHead>
                   <TableHead>Link BM</TableHead>
                   <TableHead>Preço</TableHead>
                   <TableHead>Data</TableHead>
