@@ -102,6 +102,15 @@ export function ProductDetailModal({ product, open, onOpenChange, quantity, onQu
                 </span>
               )}
             </div>
+            {productUrl && (
+              <button
+                onClick={handleShare}
+                className="shrink-0 p-2 rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary/50 transition-all"
+                title="Compartilhar produto"
+              >
+                {shareCopied ? <Check className="size-5" /> : <Share2 className="size-5" />}
+              </button>
+            )}
           </DialogTitle>
         </DialogHeader>
 
