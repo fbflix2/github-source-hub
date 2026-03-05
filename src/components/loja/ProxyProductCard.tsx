@@ -48,7 +48,7 @@ export function ProxyProductCard({ product, proxyImage, quantity, onQuantityChan
   const stockLabel = `${stockCount} em estoque`;
   const stockPercent = Math.min(100, Math.max(5, (stockCount / (stockCount + 50)) * 100));
 
-  const isPromo = tags.some(t => t.toLowerCase().includes("promoção") || t.toLowerCase().includes("promocao"));
+  const isPromo = tags.some(t => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes("promoc") || t.toLowerCase().includes("promoção") || t.toLowerCase().includes("promocao"));
 
   return (
     <article className={`glass-card rounded-2xl overflow-hidden flex flex-col group h-full relative ${isPromo ? "ring-1 ring-red-500/30" : ""}`}>
