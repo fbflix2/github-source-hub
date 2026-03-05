@@ -64,9 +64,9 @@ export function ReplacementDownloadModal({
   const [selectedOrderItem, setSelectedOrderItem] = useState<OrderItemOption | null>(null);
 
   // New stock item for replacement
-  const [stockSearch, setStockSearch] = useState("");
-  const [searchingStock, setSearchingStock] = useState(false);
-  const [stockItems, setStockItems] = useState<StockItemOption[]>([]);
+  const [stockFilter, setStockFilter] = useState("");
+  const [loadingStock, setLoadingStock] = useState(false);
+  const [allStockItems, setAllStockItems] = useState<StockItemOption[]>([]);
   const [selectedNewItem, setSelectedNewItem] = useState<StockItemOption | null>(null);
 
   useEffect(() => {
