@@ -363,19 +363,20 @@ export default function AdminGestaoBMs() {
           >
             Hoje
           </Button>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            <SelectItem value="em_estoque">Na Loja</SelectItem>
-            <SelectItem value="active">Ativos</SelectItem>
-            <SelectItem value="notified">Notificados</SelectItem>
-            <SelectItem value="expired">Expirados</SelectItem>
-            <SelectItem value="removed">Removidos</SelectItem>
-          </SelectContent>
-        </Select>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="em_estoque">Na Loja</SelectItem>
+              <SelectItem value="active">Ativos</SelectItem>
+              <SelectItem value="notified">Notificados</SelectItem>
+              <SelectItem value="expired">Expirados</SelectItem>
+              <SelectItem value="removed">Removidos</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Table */}
