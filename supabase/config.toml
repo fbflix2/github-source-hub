@@ -38,3 +38,9 @@ verify_jwt = false
 
 [functions.webshare-api]
 verify_jwt = false
+
+[functions.list-user-emails]
+verify_jwt = false
+
+[functions.admin-fix-duplicate]
+verify_jwt = false
