@@ -402,6 +402,8 @@ export default function AdminGestaoBMs() {
                <TableRow>
                   <TableHead>Cliente</TableHead>
                   <TableHead>Produto</TableHead>
+                  <TableHead>Nome BM</TableHead>
+                  <TableHead>Perfil Matriz</TableHead>
                   <TableHead>Perfil Matriz</TableHead>
                   <TableHead>Link BM</TableHead>
                   <TableHead>Preço</TableHead>
@@ -424,6 +426,9 @@ export default function AdminGestaoBMs() {
                       </div>
                     </TableCell>
                     <TableCell className="text-sm">{item.product_name}</TableCell>
+                    <TableCell className="text-sm font-medium">
+                      {item.bm_link.match(/^(.*?)https?:\/\//)?.[1]?.replace(/[\s|:\-]+$/, '').trim() || "—"}
+                    </TableCell>
                     <TableCell>
                       <span className="text-sm font-medium text-purple-400">{item.perfil_matriz || "—"}</span>
                     </TableCell>
