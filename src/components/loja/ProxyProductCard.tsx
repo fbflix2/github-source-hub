@@ -48,8 +48,17 @@ export function ProxyProductCard({ product, proxyImage, quantity, onQuantityChan
   const stockLabel = `${stockCount} em estoque`;
   const stockPercent = Math.min(100, Math.max(5, (stockCount / (stockCount + 50)) * 100));
 
+  const isPromo = tags.some(t => t.toLowerCase().includes("promoção") || t.toLowerCase().includes("promocao"));
+
   return (
-    <article className="glass-card rounded-2xl overflow-hidden flex flex-col group h-full">
+    <article className={`glass-card rounded-2xl overflow-hidden flex flex-col group h-full relative ${isPromo ? "ring-1 ring-red-500/30" : ""}`}>
+      {isPromo && (
+        <div className="absolute top-0 left-0 z-10 overflow-hidden w-24 h-24 pointer-events-none">
+          <div className="absolute top-[10px] left-[-28px] w-[120px] text-center text-[10px] font-extrabold uppercase tracking-wider bg-gradient-to-r from-red-600 to-orange-500 text-white py-1 rotate-[-45deg] shadow-lg shadow-red-500/30">
+            Promoção
+          </div>
+        </div>
+      )}
       <div className="p-5 flex flex-col flex-1 gap-4">
         {/* Header: image + name + price */}
         <div className="flex items-start gap-3">
