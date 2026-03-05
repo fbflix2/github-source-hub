@@ -121,6 +121,8 @@ export default function Orders() {
           ...i,
           isBlocked: blockedItemIds.has(i.id),
           iconType: i.products?.icon_type,
+          isReplaced: !!(i.delivery_data as any)?._replaced,
+          replacedAt: (i.delivery_data as any)?._replaced_at || null,
         })),
       }));
 
