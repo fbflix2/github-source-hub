@@ -26,14 +26,15 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: authHeader } } }
     );
-    const { data: { user: caller } } = await supabaseUser.auth.getUser();
-    if (!caller) throw new Error("Não autorizado");
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsErr } = await supabaseUser.auth.getClaims(token);
+    if (claimsErr || !claimsData?.claims?.sub) throw new Error("Não autorizado");
+    const callerId = claimsData.claims.sub;
 
-    const { data: isAdmin } = await supabaseAdmin.rpc("has_role", {
-      _user_id: caller.id,
-      _role: "admin",
+    const { data: isStaff } = await supabaseAdmin.rpc("is_staff", {
+      _user_id: callerId,
     });
-    if (!isAdmin) throw new Error("Sem permissão");
+    if (!isStaff) throw new Error("Sem permissão");
 
     // Fetch all users with pagination
     const emailMap: Record<string, string> = {};
