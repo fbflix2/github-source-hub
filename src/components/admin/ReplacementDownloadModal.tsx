@@ -81,11 +81,59 @@ export function ReplacementDownloadModal({
       setOrderSearch("");
       setOrderItems([]);
       setSelectedOrderItem(null);
-      setStockSearch("");
-      setStockItems([]);
+      setStockFilter("");
+      setAllStockItems([]);
       setSelectedNewItem(null);
     }
   }, [open]);
+
+  // Load available stock items (non-proxy) when replacement mode is activated
+  useEffect(() => {
+    if (isReplacement !== "yes") return;
+    loadStockItems();
+  }, [isReplacement]);
+
+  const loadStockItems = async () => {
+    setLoadingStock(true);
+
+    // Get products that are proxy type to exclude them
+    const { data: proxyProducts } = await supabase
+      .from("products")
+      .select("id")
+      .eq("icon_type", "proxy");
+    const proxyProductIds = new Set((proxyProducts || []).map(p => p.id));
+
+    const { data } = await supabase
+      .from("stock_items")
+      .select("id, name, identification, product_id, type")
+      .eq("status", "revisado")
+      .is("order_item_id", null)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false })
+      .limit(500);
+
+    if (data && data.length > 0) {
+      // Filter out proxy items
+      const nonProxy = data.filter(si => !si.product_id || !proxyProductIds.has(si.product_id));
+
+      const productIds = [...new Set(nonProxy.filter(i => i.product_id).map(i => i.product_id!))];
+      let productMap = new Map<string, string>();
+      if (productIds.length > 0) {
+        const { data: products } = await supabase
+          .from("products")
+          .select("id, name")
+          .in("id", productIds);
+        productMap = new Map((products || []).map(p => [p.id, p.name]));
+      }
+
+      setAllStockItems(nonProxy.map(si => ({
+        ...si,
+        product_name: si.product_id ? productMap.get(si.product_id) || undefined : undefined,
+      })));
+    }
+
+    setLoadingStock(false);
+  };
 
   const searchClients = async (query: string) => {
     setClientSearch(query);
