@@ -40,13 +40,21 @@ export function ProductListItem({ product, quantity, onQuantityChange, onReadMor
   const navigate = useNavigate();
   const { addItem } = useCart();
   const stockInfo = getStockInfo(product);
+  const isPromo = product.tags?.some(t => t.toLowerCase().includes("promoção") || t.toLowerCase().includes("promocao")) ?? false;
 
   return (
     <article
-      className={`glass-card rounded-xl overflow-hidden flex flex-row items-center gap-0 group ${
+      className={`glass-card rounded-xl overflow-hidden flex flex-row items-center gap-0 group relative ${
         !product.available ? "opacity-70 hover:opacity-100" : ""
-      }`}
+      } ${isPromo ? "ring-1 ring-red-500/30" : ""}`}
     >
+      {isPromo && (
+        <div className="absolute top-0 left-0 z-10 overflow-hidden w-24 h-24 pointer-events-none">
+          <div className="absolute top-[10px] left-[-28px] w-[120px] text-center text-[10px] font-extrabold uppercase tracking-wider bg-gradient-to-r from-red-600 to-orange-500 text-white py-1 rotate-[-45deg] shadow-lg shadow-red-500/30">
+            Promoção
+          </div>
+        </div>
+      )}
       {/* Left: Icon / Image */}
       <div className="shrink-0 w-16 h-16 m-3 rounded-lg overflow-hidden bg-secondary/50 flex items-center justify-center">
         {product.image_url ? (
