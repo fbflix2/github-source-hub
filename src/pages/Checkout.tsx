@@ -24,7 +24,7 @@ interface DbProduct {
   icon_type: string | null;
   external_id: string | null;
   tags: string[] | null;
-  slug: string | null;
+  slug?: string | null;
 }
 
 interface BumpProduct {
@@ -73,7 +73,7 @@ export default function Checkout() {
           if (mainItem.product_id) {
             const { data: prod } = await supabase
               .from("products")
-              .select("id, name, description, price, image_url, stock, available, category_id, icon_type, external_id, tags")
+              .select("id, name, description, price, image_url, stock, available, category_id, icon_type, external_id, tags, slug")
               .eq("id", mainItem.product_id)
               .single();
             if (prod) setProduct(prod);
@@ -148,7 +148,7 @@ export default function Checkout() {
 
       const { data } = await supabase
         .from("products")
-        .select("id, name, description, price, image_url, stock, available, category_id, icon_type, external_id, tags")
+        .select("id, name, description, price, image_url, stock, available, category_id, icon_type, external_id, tags, slug")
         .eq("id", productId)
         .single();
 
