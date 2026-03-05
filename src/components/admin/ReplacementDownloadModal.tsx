@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, RefreshCw, Loader2, Search, Package } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Download, RefreshCw, Loader2, Search, Package, ArrowRightLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -31,6 +32,14 @@ interface OrderItemOption {
   order_code: string;
 }
 
+interface StockItemOption {
+  id: string;
+  name: string;
+  identification: string | null;
+  product_id: string | null;
+  product_name?: string;
+}
+
 export function ReplacementDownloadModal({
   open,
   onOpenChange,
@@ -54,6 +63,12 @@ export function ReplacementDownloadModal({
   const [orderItems, setOrderItems] = useState<OrderItemOption[]>([]);
   const [selectedOrderItem, setSelectedOrderItem] = useState<OrderItemOption | null>(null);
 
+  // New stock item for replacement
+  const [stockSearch, setStockSearch] = useState("");
+  const [searchingStock, setSearchingStock] = useState(false);
+  const [stockItems, setStockItems] = useState<StockItemOption[]>([]);
+  const [selectedNewItem, setSelectedNewItem] = useState<StockItemOption | null>(null);
+
   useEffect(() => {
     if (!open) {
       setIsReplacement(null);
@@ -66,6 +81,9 @@ export function ReplacementDownloadModal({
       setOrderSearch("");
       setOrderItems([]);
       setSelectedOrderItem(null);
+      setStockSearch("");
+      setStockItems([]);
+      setSelectedNewItem(null);
     }
   }, [open]);
 
@@ -88,7 +106,6 @@ export function ReplacementDownloadModal({
     setOrderItems([]);
     setSelectedOrderItem(null);
 
-    // Search by order code or id
     const query = orderSearch.trim();
     const { data: orders } = await supabase
       .from("orders")
@@ -123,21 +140,59 @@ export function ReplacementDownloadModal({
     setSearchingOrder(false);
   };
 
+  const searchStockItems = async (query: string) => {
+    setStockSearch(query);
+    if (query.length < 2) { setStockItems([]); return; }
+    setSearchingStock(true);
+
+    const { data } = await supabase
+      .from("stock_items")
+      .select("id, name, identification, product_id")
+      .eq("status", "revisado")
+      .is("order_item_id", null)
+      .is("deleted_at", null)
+      .ilike("name", `%${query}%`)
+      .limit(15);
+
+    if (data && data.length > 0) {
+      // Enrich with product names
+      const productIds = [...new Set(data.filter(i => i.product_id).map(i => i.product_id!))];
+      let productMap = new Map<string, string>();
+      if (productIds.length > 0) {
+        const { data: products } = await supabase
+          .from("products")
+          .select("id, name")
+          .in("id", productIds);
+        productMap = new Map((products || []).map(p => [p.id, p.name]));
+      }
+
+      setStockItems(data.map(si => ({
+        ...si,
+        product_name: si.product_id ? productMap.get(si.product_id) || undefined : undefined,
+      })));
+    } else {
+      setStockItems([]);
+    }
+
+    setSearchingStock(false);
+  };
+
   const handleDownloadOnly = () => {
     onDownload();
     onOpenChange(false);
   };
 
-  const handleSaveAndDownload = async () => {
+  const handleSaveReplacement = async () => {
     if (!selectedClient) { toast.error("Selecione o cliente"); return; }
     if (!reason) { toast.error("Informe o motivo"); return; }
+    if (!selectedNewItem) { toast.error("Selecione o item de reposição"); return; }
 
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
 
     const insertData: Record<string, unknown> = {
-      stock_item_id: item.id,
-      new_stock_item_id: item.id,
+      stock_item_id: item.id, // original problematic item
+      new_stock_item_id: selectedNewItem.id, // new replacement item
       product_name: productName,
       item_name: item.name,
       client_user_id: selectedClient.user_id,
@@ -162,14 +217,13 @@ export function ReplacementDownloadModal({
       return;
     }
 
-    // Mark new stock item as sold (leaving stock for replacement)
+    // Mark the NEW stock item as sold (it's going to the client)
     await supabase
       .from("stock_items")
       .update({ status: "vendido", updated_at: new Date().toISOString() })
-      .eq("id", item.id);
+      .eq("id", selectedNewItem.id);
 
-    toast.success("Reposição registrada e item marcado como vendido");
-    onDownload();
+    toast.success("Reposição registrada! Novo item marcado como vendido.");
     onOpenChange(false);
     setSaving(false);
   };
@@ -292,6 +346,58 @@ export function ReplacementDownloadModal({
               )}
             </div>
 
+            {/* New stock item selector */}
+            <div className="space-y-2">
+              <Label className="text-zinc-400 flex items-center gap-1">
+                <ArrowRightLeft className="h-3.5 w-3.5" />
+                Item de reposição (novo item do estoque)
+              </Label>
+              {selectedNewItem ? (
+                <div className="flex items-center gap-2 p-2 rounded-lg bg-zinc-800 border border-green-600/40">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm text-white">{selectedNewItem.name}</p>
+                      <Badge className="bg-green-500/20 text-green-400 text-[10px]">NOVO</Badge>
+                    </div>
+                    {selectedNewItem.identification && (
+                      <p className="text-xs text-zinc-400 font-mono">{selectedNewItem.identification}</p>
+                    )}
+                    {selectedNewItem.product_name && (
+                      <p className="text-xs text-zinc-500">Produto: {selectedNewItem.product_name}</p>
+                    )}
+                  </div>
+                  <Button size="sm" variant="ghost" className="h-6 px-2 text-zinc-400" onClick={() => setSelectedNewItem(null)}>✕</Button>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  <Input
+                    placeholder="Buscar item no estoque por nome..."
+                    value={stockSearch}
+                    onChange={(e) => searchStockItems(e.target.value)}
+                    className="bg-zinc-800 border-zinc-700"
+                  />
+                  {searchingStock && <p className="text-xs text-zinc-500">Buscando...</p>}
+                  {stockItems.length > 0 && (
+                    <div className="max-h-40 overflow-y-auto rounded-lg border border-zinc-700 bg-zinc-800">
+                      {stockItems.map((si) => (
+                        <button
+                          key={si.id}
+                          className="w-full text-left px-3 py-2 hover:bg-zinc-700 transition-colors border-b border-zinc-700/50 last:border-0"
+                          onClick={() => { setSelectedNewItem(si); setStockItems([]); setStockSearch(""); }}
+                        >
+                          <p className="text-sm text-zinc-300">{si.name}</p>
+                          <div className="flex items-center gap-2">
+                            {si.identification && <p className="text-xs text-zinc-500 font-mono">{si.identification}</p>}
+                            {si.product_name && <p className="text-xs text-zinc-500">• {si.product_name}</p>}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* Reason */}
             <div className="space-y-2">
               <Label className="text-zinc-400">Motivo da reposição</Label>
@@ -337,12 +443,12 @@ export function ReplacementDownloadModal({
                 Voltar
               </Button>
               <Button
-                className="flex-1 gap-2"
-                onClick={handleSaveAndDownload}
+                className="flex-1 gap-2 bg-yellow-600 hover:bg-yellow-700 text-white"
+                onClick={handleSaveReplacement}
                 disabled={saving}
               >
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                Registrar e Baixar
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRightLeft className="h-4 w-4" />}
+                Fazer Reposição
               </Button>
             </div>
           </div>
