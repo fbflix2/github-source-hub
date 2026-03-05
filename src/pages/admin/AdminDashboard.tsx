@@ -134,14 +134,20 @@ export default function AdminDashboard() {
 
       const monthMap: Record<string, number> = {};
       const dateKeyMap: Record<string, string> = {}; // ISO date -> display key
+      const toLocalISO = (dt: Date) => {
+        const y = dt.getFullYear();
+        const m = String(dt.getMonth() + 1).padStart(2, "0");
+        const d2 = String(dt.getDate()).padStart(2, "0");
+        return `${y}-${m}-${d2}`;
+      };
       completedOrds.forEach(o => {
         const d = new Date(o.created_at);
-        const isoKey = d.toISOString().slice(0, 10);
+        const isoKey = toLocalISO(d);
         const displayKey = d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
         dateKeyMap[isoKey] = displayKey;
         monthMap[isoKey] = (monthMap[isoKey] || 0) + (o.total || 0);
       });
-      const todayISO = new Date().toISOString().slice(0, 10);
+      const todayISO = toLocalISO(new Date());
       const todayChartKey = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
       if (!monthMap[todayISO]) monthMap[todayISO] = 0;
       dateKeyMap[todayISO] = todayChartKey;
