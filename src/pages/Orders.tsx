@@ -209,7 +209,13 @@ export default function Orders() {
                           {order.items.length > 0 ? order.items[0].name : "Pedido"}
                           {order.items.length > 1 && ` +${order.items.length - 1}`}
                         </h3>
-                        {order.items.some((i) => i.isBlocked) && (
+                        {order.items.some((i) => i.isReplaced) && (
+                          <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[9px] font-bold uppercase w-fit mt-0.5">
+                            <span className="material-symbols-outlined text-[10px]">swap_horiz</span>
+                            Reposto
+                          </span>
+                        )}
+                        {order.items.some((i) => i.isBlocked) && !order.items.some((i) => i.isReplaced) && (
                           <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-destructive/20 text-destructive border border-destructive/30 text-[9px] font-bold uppercase w-fit mt-0.5">
                             <span className="material-symbols-outlined text-[10px]">block</span>
                             Bloqueado
