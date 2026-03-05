@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { Wallet, QrCode, CreditCard, Lock, ChevronLeft, User, Calendar, Flame, Loader2, Check, Copy } from "lucide-react";
+import { Wallet, QrCode, CreditCard, Lock, ChevronLeft, User, Calendar, Flame, Loader2, Check, Copy, Share2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useCart } from "@/contexts/CartContext";
@@ -24,6 +24,7 @@ interface DbProduct {
   icon_type: string | null;
   external_id: string | null;
   tags: string[] | null;
+  slug?: string | null;
 }
 
 interface BumpProduct {
@@ -45,6 +46,7 @@ export default function Checkout() {
 
   const [product, setProduct] = useState<DbProduct | null>(null);
   const [loading, setLoading] = useState(true);
+  const [shareCopied, setShareCopied] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
@@ -72,7 +74,7 @@ export default function Checkout() {
           if (mainItem.product_id) {
             const { data: prod } = await supabase
               .from("products")
-              .select("id, name, description, price, image_url, stock, available, category_id, icon_type, external_id, tags")
+              .select("id, name, description, price, image_url, stock, available, category_id, icon_type, external_id, tags, slug")
               .eq("id", mainItem.product_id)
               .single();
             if (prod) setProduct(prod);
@@ -147,7 +149,7 @@ export default function Checkout() {
 
       const { data } = await supabase
         .from("products")
-        .select("id, name, description, price, image_url, stock, available, category_id, icon_type, external_id, tags")
+        .select("id, name, description, price, image_url, stock, available, category_id, icon_type, external_id, tags, slug")
         .eq("id", productId)
         .single();
 
@@ -733,6 +735,25 @@ export default function Checkout() {
                 <h2 className="text-base font-bold text-foreground leading-tight">{product.name}</h2>
                 <p className="text-sm text-primary font-semibold mt-0.5">R$ {(product.price * quantity).toFixed(2).replace(".", ",")} {quantity > 1 && `(x${quantity})`}</p>
               </div>
+              {product.slug && (
+                <button
+                  onClick={async () => {
+                    const url = `${window.location.origin}/produto/${product.slug}`;
+                    if (navigator.share) {
+                      try { await navigator.share({ title: product.name, text: `Confira ${product.name} na FBFLIX!`, url }); } catch {}
+                    } else {
+                      await navigator.clipboard.writeText(url);
+                      setShareCopied(true);
+                      toast.success("Link copiado!");
+                      setTimeout(() => setShareCopied(false), 2000);
+                    }
+                  }}
+                  className="shrink-0 p-2 rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary/50 transition-all"
+                  title="Compartilhar produto"
+                >
+                  {shareCopied ? <Check className="size-5" /> : <Share2 className="size-5" />}
+                </button>
+              )}
             </div>
             {product.description && (
               <p className="text-xs text-muted-foreground leading-relaxed">{product.description}</p>
