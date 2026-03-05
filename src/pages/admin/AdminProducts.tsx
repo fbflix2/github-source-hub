@@ -82,6 +82,9 @@ export default function AdminProducts() {
   const [tagInput, setTagInput] = useState("");
   const [formStatus, setFormStatus] = useState("estoque_interno");
   const [formImageUrl, setFormImageUrl] = useState("");
+  const [formBadgeText, setFormBadgeText] = useState("");
+  const [formBadgeIcon, setFormBadgeIcon] = useState("");
+  const [formBadgeColor, setFormBadgeColor] = useState("");
   const [productImages, setProductImages] = useState<{ id: string; name: string; url: string }[]>([]);
   const [showImagePicker, setShowImagePicker] = useState(false);
 
@@ -229,7 +232,8 @@ export default function AdminProducts() {
   const resetForm = () => {
     setFormName(""); setFormPrice(""); setFormStock(""); setFormDescription("");
     setFormCategory(""); setFormIcon("perfil"); setFormTags([]); setFormStatus("estoque_interno");
-    setFormImageUrl(""); setEditingProduct(null);
+    setFormImageUrl(""); setFormBadgeText(""); setFormBadgeIcon(""); setFormBadgeColor("");
+    setEditingProduct(null);
   };
 
   const openEditForm = (product: Product) => {
@@ -243,6 +247,9 @@ export default function AdminProducts() {
     setFormTags(product.tags ?? []);
     setFormStatus(product.status);
     setFormImageUrl(product.image_url ?? "");
+    setFormBadgeText(product.badge_text ?? "");
+    setFormBadgeIcon(product.badge_icon ?? "");
+    setFormBadgeColor(product.badge_color ?? "");
     setShowForm(true);
   };
 
@@ -261,6 +268,9 @@ export default function AdminProducts() {
       status: formStatus,
       available: formStatus === "active",
       image_url: formImageUrl || null,
+      badge_text: formBadgeText || null,
+      badge_icon: formBadgeIcon || null,
+      badge_color: formBadgeColor || null,
     };
 
     let error;
@@ -504,6 +514,34 @@ export default function AdminProducts() {
                       {tag} <X className="h-3 w-3" />
                     </Badge>
                   ))}
+                </div>
+              )}
+            </div>
+
+            {/* Badge / Etiqueta */}
+            <div className="space-y-2">
+              <label className="text-sm text-zinc-400">Etiqueta (Badge)</label>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <span className="text-[11px] text-zinc-500">Texto</span>
+                  <Input value={formBadgeText} onChange={e => setFormBadgeText(e.target.value)} placeholder="Ex: SOCKS5" className="bg-zinc-900/50 border-zinc-700 text-white placeholder:text-zinc-500 h-9 text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[11px] text-zinc-500">Ícone (Material)</span>
+                  <Input value={formBadgeIcon} onChange={e => setFormBadgeIcon(e.target.value)} placeholder="Ex: bolt" className="bg-zinc-900/50 border-zinc-700 text-white placeholder:text-zinc-500 h-9 text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[11px] text-zinc-500">Cor CSS</span>
+                  <Input value={formBadgeColor} onChange={e => setFormBadgeColor(e.target.value)} placeholder="Ex: bg-red-500/20 text-red-400 border-red-500/30" className="bg-zinc-900/50 border-zinc-700 text-white placeholder:text-zinc-500 h-9 text-sm" />
+                </div>
+              </div>
+              {formBadgeText && (
+                <div className="flex items-center gap-2 mt-1.5">
+                  <span className="text-[11px] text-zinc-500">Preview:</span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${formBadgeColor || "bg-muted text-foreground border-border"}`}>
+                    {formBadgeIcon && <span className="material-symbols-outlined text-[11px]">{formBadgeIcon}</span>}
+                    {formBadgeText}
+                  </span>
                 </div>
               )}
             </div>
