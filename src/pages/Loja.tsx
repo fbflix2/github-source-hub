@@ -40,6 +40,7 @@ interface Product {
   category_id: string | null;
   tags: string[] | null;
   external_id?: string | null;
+  slug?: string | null;
 }
 
 interface Category {
@@ -160,6 +161,7 @@ export default function Dashboard() {
       available: true,
       category_id: proxyCategoryId || null,
       tags: local?.tags || null,
+      slug: local?.slug || null,
     };
   });
 
