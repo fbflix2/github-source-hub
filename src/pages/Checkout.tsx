@@ -735,6 +735,25 @@ export default function Checkout() {
                 <h2 className="text-base font-bold text-foreground leading-tight">{product.name}</h2>
                 <p className="text-sm text-primary font-semibold mt-0.5">R$ {(product.price * quantity).toFixed(2).replace(".", ",")} {quantity > 1 && `(x${quantity})`}</p>
               </div>
+              {product.slug && (
+                <button
+                  onClick={async () => {
+                    const url = `${window.location.origin}/produto/${product.slug}`;
+                    if (navigator.share) {
+                      try { await navigator.share({ title: product.name, text: `Confira ${product.name} na FBFLIX!`, url }); } catch {}
+                    } else {
+                      await navigator.clipboard.writeText(url);
+                      setShareCopied(true);
+                      toast.success("Link copiado!");
+                      setTimeout(() => setShareCopied(false), 2000);
+                    }
+                  }}
+                  className="shrink-0 p-2 rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary/50 transition-all"
+                  title="Compartilhar produto"
+                >
+                  {shareCopied ? <Check className="size-5" /> : <Share2 className="size-5" />}
+                </button>
+              )}
             </div>
             {product.description && (
               <p className="text-xs text-muted-foreground leading-relaxed">{product.description}</p>
