@@ -38,6 +38,8 @@ export default function AdminReposicoes() {
   const [search, setSearch] = useState("");
   const [filterReason, setFilterReason] = useState("all");
 
+  const [orderCodes, setOrderCodes] = useState<Record<string, string>>({});
+
   const fetchReplacements = async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -49,7 +51,21 @@ export default function AdminReposicoes() {
       toast.error("Erro ao carregar reposições");
       console.error(error);
     }
-    setItems((data as any[]) ?? []);
+    const items = (data as any[]) ?? [];
+    setItems(items);
+
+    // Fetch order codes for linked replacements
+    const orderIds = items.map(i => i.order_id).filter(Boolean);
+    if (orderIds.length > 0) {
+      const { data: orders } = await supabase
+        .from("orders")
+        .select("id, code")
+        .in("id", [...new Set(orderIds)]);
+      const map: Record<string, string> = {};
+      (orders || []).forEach(o => { map[o.id] = o.code; });
+      setOrderCodes(map);
+    }
+
     setLoading(false);
   };
 
