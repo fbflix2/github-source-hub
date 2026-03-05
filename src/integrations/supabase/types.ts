@@ -819,6 +819,7 @@ export type Database = {
           name: string
           price: number
           price_label: string | null
+          slug: string | null
           status: string
           stock: number
           tags: string[] | null
@@ -839,6 +840,7 @@ export type Database = {
           name: string
           price?: number
           price_label?: string | null
+          slug?: string | null
           status?: string
           stock?: number
           tags?: string[] | null
@@ -859,6 +861,7 @@ export type Database = {
           name?: string
           price?: number
           price_label?: string | null
+          slug?: string | null
           status?: string
           stock?: number
           tags?: string[] | null
