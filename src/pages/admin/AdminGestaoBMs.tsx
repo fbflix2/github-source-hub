@@ -57,7 +57,7 @@ function CountdownBadge({ expiresAt, status }: { expiresAt: string; status: stri
   const { expired, text, days } = useCountdown(expiresAt);
 
   if (status === "em_estoque") {
-    return <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">Em Estoque</Badge>;
+    return <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">Na Loja</Badge>;
   }
   if (status === "removed") {
     return <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">Removido</Badge>;
@@ -89,7 +89,7 @@ function CountdownBadge({ expiresAt, status }: { expiresAt: string; status: stri
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; className: string }> = {
-    em_estoque: { label: "Em Estoque", className: "bg-purple-500/20 text-purple-400 border-purple-500/30" },
+    em_estoque: { label: "Na Loja", className: "bg-purple-500/20 text-purple-400 border-purple-500/30" },
     active: { label: "Ativo", className: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
     notified: { label: "Notificado", className: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
     removed: { label: "Removido", className: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" },
@@ -287,7 +287,7 @@ export default function AdminGestaoBMs() {
             </div>
             <div>
               <p className="text-2xl font-bold text-foreground">{stats.emEstoque}</p>
-              <p className="text-xs text-muted-foreground">Em Estoque</p>
+              <p className="text-xs text-muted-foreground">Na Loja</p>
             </div>
           </CardContent>
         </Card>
@@ -354,7 +354,7 @@ export default function AdminGestaoBMs() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos</SelectItem>
-            <SelectItem value="em_estoque">Em Estoque</SelectItem>
+            <SelectItem value="em_estoque">Na Loja</SelectItem>
             <SelectItem value="active">Ativos</SelectItem>
             <SelectItem value="notified">Notificados</SelectItem>
             <SelectItem value="expired">Expirados</SelectItem>
