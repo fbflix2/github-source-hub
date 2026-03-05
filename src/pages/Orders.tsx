@@ -13,6 +13,8 @@ interface OrderItem {
   quantity: number;
   isBlocked?: boolean;
   iconType?: string;
+  isReplaced?: boolean;
+  replacedAt?: string;
 }
 
 interface Order {

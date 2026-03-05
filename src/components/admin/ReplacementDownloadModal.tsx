@@ -254,6 +254,8 @@ export function ReplacementDownloadModal({
         ...d,
         ...(newStockFull.identification ? { idPerfil: newStockFull.identification } : {}),
         ...(newStockFull.identification_link ? { linkPerfil: newStockFull.identification_link } : {}),
+        _replaced: true,
+        _replaced_at: new Date().toISOString(),
       };
 
       await supabase
