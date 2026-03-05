@@ -332,13 +332,28 @@ export default function AdminTicketModal({ ticket, profileName, mode, onClose, o
               <textarea
                 value={reply}
                 onChange={(e) => setReply(e.target.value)}
-                placeholder="Digite sua resposta..."
+                placeholder="Digite sua resposta... (cole imagens com Ctrl+V)"
                 rows={2}
                 className="flex-1 bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-primary resize-none"
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
                     handleSend();
+                  }
+                }}
+                onPaste={(e) => {
+                  const items = e.clipboardData?.items;
+                  if (!items) return;
+                  for (const item of Array.from(items)) {
+                    if (item.type.startsWith("image/")) {
+                      e.preventDefault();
+                      const file = item.getAsFile();
+                      if (file) {
+                        const named = new File([file], `print_${Date.now()}.png`, { type: file.type });
+                        setAttachments(prev => [...prev, named]);
+                        toast.success("Imagem colada!");
+                      }
+                    }
                   }
                 }}
               />
