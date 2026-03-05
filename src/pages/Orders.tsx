@@ -13,6 +13,8 @@ interface OrderItem {
   quantity: number;
   isBlocked?: boolean;
   iconType?: string;
+  isReplaced?: boolean;
+  replacedAt?: string;
 }
 
 interface Order {
@@ -119,6 +121,8 @@ export default function Orders() {
           ...i,
           isBlocked: blockedItemIds.has(i.id),
           iconType: i.products?.icon_type,
+          isReplaced: !!(i.delivery_data as any)?._replaced,
+          replacedAt: (i.delivery_data as any)?._replaced_at || null,
         })),
       }));
 
@@ -205,7 +209,13 @@ export default function Orders() {
                           {order.items.length > 0 ? order.items[0].name : "Pedido"}
                           {order.items.length > 1 && ` +${order.items.length - 1}`}
                         </h3>
-                        {order.items.some((i) => i.isBlocked) && (
+                        {order.items.some((i) => i.isReplaced) && (
+                          <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[9px] font-bold uppercase w-fit mt-0.5">
+                            <span className="material-symbols-outlined text-[10px]">swap_horiz</span>
+                            Reposto
+                          </span>
+                        )}
+                        {order.items.some((i) => i.isBlocked) && !order.items.some((i) => i.isReplaced) && (
                           <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-destructive/20 text-destructive border border-destructive/30 text-[9px] font-bold uppercase w-fit mt-0.5">
                             <span className="material-symbols-outlined text-[10px]">block</span>
                             Bloqueado
@@ -269,7 +279,7 @@ export default function Orders() {
                         const bmItems = selectedOrder.items.filter(i => i.iconType === 'bm');
                         const pageItems = selectedOrder.items.filter(i => i.iconType === 'page');
                         const otherItems = selectedOrder.items.filter(i => i.iconType !== 'bm' && i.iconType !== 'page');
-                        const rows: { key: string; name: string; subtitle: string; price: number; totalPrice: number; itemId: string; isBlocked: boolean; isBm: boolean; isPage: boolean }[] = [];
+                        const rows: { key: string; name: string; subtitle: string; price: number; totalPrice: number; itemId: string; isBlocked: boolean; isReplaced: boolean; replacedAt: string | null; isBm: boolean; isPage: boolean }[] = [];
 
                         // BM: single grouped row
                         if (bmItems.length > 0) {
@@ -283,6 +293,8 @@ export default function Orders() {
                             totalPrice: totalBmPrice,
                             itemId: bmItems[0].id,
                             isBlocked: bmItems.some(i => i.isBlocked),
+                            isReplaced: bmItems.some(i => i.isReplaced),
+                            replacedAt: bmItems.find(i => i.replacedAt)?.replacedAt || null,
                             isBm: true,
                             isPage: false,
                           });
@@ -300,6 +312,8 @@ export default function Orders() {
                             totalPrice: totalPagePrice,
                             itemId: pageItems[0].id,
                             isBlocked: pageItems.some(i => i.isBlocked),
+                            isReplaced: pageItems.some(i => i.isReplaced),
+                            replacedAt: pageItems.find(i => i.replacedAt)?.replacedAt || null,
                             isBm: false,
                             isPage: true,
                           });
@@ -317,6 +331,8 @@ export default function Orders() {
                               totalPrice: item.price,
                               itemId: item.id,
                               isBlocked: !!item.isBlocked,
+                              isReplaced: !!item.isReplaced,
+                              replacedAt: item.replacedAt || null,
                               isBm: false,
                               isPage: false,
                             });
@@ -334,14 +350,22 @@ export default function Orders() {
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-1.5">
                                 <h5 className="text-foreground font-bold text-sm truncate">{row.name}</h5>
-                                {row.isBlocked && (
+                                {row.isReplaced && (
+                                  <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[8px] font-bold uppercase">
+                                    <span className="material-symbols-outlined text-[9px]">swap_horiz</span>
+                                    Reposto
+                                  </span>
+                                )}
+                                {row.isBlocked && !row.isReplaced && (
                                   <span className="flex items-center gap-0.5 px-1 py-0.5 rounded bg-destructive/20 text-destructive border border-destructive/30 text-[8px] font-bold uppercase">
                                     <span className="material-symbols-outlined text-[9px]">block</span>
                                     Bloqueado
                                   </span>
                                 )}
                               </div>
-                              <p className="text-muted-foreground text-xs">{row.subtitle}</p>
+                              <p className="text-muted-foreground text-xs">
+                                {row.isReplaced ? "Item reposto — verifique os novos dados em Detalhes" : row.subtitle}
+                              </p>
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
                               <span className="text-foreground font-bold text-sm">R$ {row.price.toFixed(2).replace(".", ",")}</span>
