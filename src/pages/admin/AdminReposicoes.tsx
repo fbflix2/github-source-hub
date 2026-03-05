@@ -20,6 +20,9 @@ interface Replacement {
   created_at: string;
   created_by: string;
   stock_item_id: string | null;
+  order_id: string | null;
+  order_item_id: string | null;
+  new_stock_item_id: string | null;
 }
 
 const reasonLabels: Record<string, string> = {
