@@ -141,7 +141,7 @@ export default function Checkout() {
             icon_type: dbIconType,
             external_id: dbExternalId,
             tags: dbTags,
-            slug: isValidUUID ? (await supabase.from("products").select("slug").eq("id", cartItems[0].productId).single()).data?.slug || null : null,
+            slug: (dbProd as any)?.slug || null,
           });
         }
         setLoading(false);
