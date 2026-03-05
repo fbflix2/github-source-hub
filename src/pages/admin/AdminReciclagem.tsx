@@ -30,6 +30,7 @@ interface BlockedItem {
   clientName?: string;
   orderCode?: string;
   blockedAt?: string;
+  hasReplacement?: boolean;
 }
 
 const formatDate = (d: string) =>
@@ -61,18 +62,24 @@ export default function AdminReciclagem() {
       return;
     }
 
-    // Enrich with product names, client names, order codes
+    // Enrich with product names, client names, order codes, replacement status
     const productIds = [...new Set(stockItems.filter(i => i.product_id).map(i => i.product_id!))];
     const orderItemIds = [...new Set(stockItems.filter(i => i.order_item_id).map(i => i.order_item_id!))];
+    const stockItemIds = stockItems.map(i => i.id);
 
-    const [productsRes, orderItemsRes] = await Promise.all([
+    const [productsRes, orderItemsRes, replacementsRes] = await Promise.all([
       productIds.length > 0
         ? supabase.from("products").select("id, name").in("id", productIds)
         : Promise.resolve({ data: [] }),
       orderItemIds.length > 0
         ? supabase.from("order_items").select("id, order_id").in("id", orderItemIds)
         : Promise.resolve({ data: [] }),
+      stockItemIds.length > 0
+        ? supabase.from("replacements").select("stock_item_id").in("stock_item_id", stockItemIds)
+        : Promise.resolve({ data: [] }),
     ]);
+
+    const replacedStockIds = new Set((replacementsRes.data || []).map(r => r.stock_item_id));
 
     const productMap = new Map((productsRes.data || []).map(p => [p.id, p.name]));
 
@@ -101,6 +108,7 @@ export default function AdminReciclagem() {
         clientName: order ? profileMap.get(order.user_id) || "—" : "—",
         orderCode: order ? order.code : "—",
         blockedAt: item.updated_at,
+        hasReplacement: replacedStockIds.has(item.id),
       };
     });
 
@@ -269,6 +277,9 @@ export default function AdminReciclagem() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-sm font-semibold text-foreground truncate">{item.name}</p>
+                    {item.hasReplacement && (
+                      <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-[10px]">REPOSTO</Badge>
+                    )}
                     {item.identification && (
                       <Badge variant="outline" className="text-[10px] font-mono">{item.identification}</Badge>
                     )}
