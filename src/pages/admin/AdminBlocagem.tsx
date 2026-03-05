@@ -593,6 +593,7 @@ function PaginaForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
 function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => void; onSaved: () => void }) {
   const [urls, setUrls] = useState("");
   const [descricao, setDescricao] = useState("");
+  const [perfilBackup, setPerfilBackup] = useState("");
   const [saving, setSaving] = useState(false);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [preco, setPreco] = useState("");
@@ -652,6 +653,7 @@ function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => voi
       folder: folder.id,
       data: {
         descricao: descricao || undefined,
+        perfilBackup: perfilBackup || undefined,
         preco: preco ? parseFloat(preco) : undefined,
         categoryId: categoryId || undefined,
         tags: tags.length > 0 ? tags : undefined,
@@ -665,6 +667,7 @@ function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => voi
     toast.success(`${urlLines.length} BM(s) adicionados! Formulário pronto para novo cadastro.`);
     setUrls("");
     setDescricao("");
+    setPerfilBackup("");
     setPreco("");
     setCategoryId("");
     setTags([]);
