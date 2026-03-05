@@ -742,12 +742,23 @@ export default function Checkout() {
                 <button
                   onClick={async () => {
                     const url = `${window.location.origin}/produto/${product.slug}`;
-                    if (navigator.share) {
-                      try { await navigator.share({ title: product.name, text: `Confira ${product.name} na FBFLIX!`, url }); } catch {}
-                    } else {
+                    try {
                       await navigator.clipboard.writeText(url);
                       setShareCopied(true);
-                      toast.success("Link copiado!");
+                      toast.success("Link copiado: " + url);
+                      setTimeout(() => setShareCopied(false), 2000);
+                    } catch {
+                      // Fallback for insecure contexts
+                      const ta = document.createElement("textarea");
+                      ta.value = url;
+                      ta.style.position = "fixed";
+                      ta.style.opacity = "0";
+                      document.body.appendChild(ta);
+                      ta.select();
+                      document.execCommand("copy");
+                      document.body.removeChild(ta);
+                      setShareCopied(true);
+                      toast.success("Link copiado: " + url);
                       setTimeout(() => setShareCopied(false), 2000);
                     }
                   }}
