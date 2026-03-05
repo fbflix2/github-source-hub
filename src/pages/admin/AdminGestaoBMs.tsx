@@ -105,6 +105,7 @@ export default function AdminGestaoBMs() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState<"all" | "hoje">("all");
   const [addOpen, setAddOpen] = useState(false);
   const [addForm, setAddForm] = useState({
     client_name: "", client_email: "", product_name: "", bm_link: "", sale_price: "", notes: ""
@@ -147,8 +148,13 @@ export default function AdminGestaoBMs() {
   }, [items.length]);
 
   const filtered = useMemo(() => {
+    const todayStr = new Date().toLocaleDateString("pt-BR");
     return items.filter(item => {
       if (statusFilter !== "all" && item.status !== statusFilter) return false;
+      if (dateFilter === "hoje") {
+        const itemDate = new Date(item.created_at).toLocaleDateString("pt-BR");
+        if (itemDate !== todayStr) return false;
+      }
       if (search) {
         const q = search.toLowerCase();
         return (
@@ -160,7 +166,7 @@ export default function AdminGestaoBMs() {
       }
       return true;
     });
-  }, [items, search, statusFilter]);
+  }, [items, search, statusFilter, dateFilter]);
 
   const stats = useMemo(() => {
     const now = Date.now();
@@ -348,6 +354,15 @@ export default function AdminGestaoBMs() {
             className="pl-9"
           />
         </div>
+        <div className="flex gap-2">
+          <Button
+            variant={dateFilter === "hoje" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setDateFilter(d => d === "hoje" ? "all" : "hoje")}
+            className="h-10"
+          >
+            Hoje
+          </Button>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Status" />
