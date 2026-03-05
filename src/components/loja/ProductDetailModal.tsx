@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -8,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { Share2, Check } from "lucide-react";
 
 interface Product {
   id: string;
