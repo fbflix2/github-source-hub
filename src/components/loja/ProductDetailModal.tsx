@@ -87,7 +87,7 @@ export function ProductDetailModal({ product, open, onOpenChange, quantity, onQu
                 <span className="material-symbols-outlined text-[24px] text-muted-foreground">inventory_2</span>
               </div>
             )}
-            <div>
+            <div className="flex-1 min-w-0">
               <span className="text-lg">{product.name}</span>
               {product.badge_text && (
                 <span
@@ -102,6 +102,15 @@ export function ProductDetailModal({ product, open, onOpenChange, quantity, onQu
                 </span>
               )}
             </div>
+            {productUrl && (
+              <button
+                onClick={handleShare}
+                className="shrink-0 p-2 rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary/50 transition-all"
+                title="Compartilhar produto"
+              >
+                {linkCopied ? <Check className="size-4" /> : <Share2 className="size-4" />}
+              </button>
+            )}
           </DialogTitle>
         </DialogHeader>
 
