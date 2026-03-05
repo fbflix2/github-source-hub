@@ -287,6 +287,8 @@ export default function Orders() {
                             totalPrice: totalBmPrice,
                             itemId: bmItems[0].id,
                             isBlocked: bmItems.some(i => i.isBlocked),
+                            isReplaced: bmItems.some(i => i.isReplaced),
+                            replacedAt: bmItems.find(i => i.replacedAt)?.replacedAt || null,
                             isBm: true,
                             isPage: false,
                           });
@@ -304,6 +306,8 @@ export default function Orders() {
                             totalPrice: totalPagePrice,
                             itemId: pageItems[0].id,
                             isBlocked: pageItems.some(i => i.isBlocked),
+                            isReplaced: pageItems.some(i => i.isReplaced),
+                            replacedAt: pageItems.find(i => i.replacedAt)?.replacedAt || null,
                             isBm: false,
                             isPage: true,
                           });
@@ -321,6 +325,8 @@ export default function Orders() {
                               totalPrice: item.price,
                               itemId: item.id,
                               isBlocked: !!item.isBlocked,
+                              isReplaced: !!item.isReplaced,
+                              replacedAt: item.replacedAt || null,
                               isBm: false,
                               isPage: false,
                             });
