@@ -108,6 +108,7 @@ export default function AdminReciclagem() {
         clientName: order ? profileMap.get(order.user_id) || "—" : "—",
         orderCode: order ? order.code : "—",
         blockedAt: item.updated_at,
+        hasReplacement: replacedStockIds.has(item.id),
       };
     });
 
