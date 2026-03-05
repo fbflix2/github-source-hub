@@ -258,7 +258,7 @@ export function ReplacementDownloadModal({
 
       await supabase
         .from("order_items")
-        .update({ delivery_data: deliveryData })
+        .update({ delivery_data: deliveryData as any })
         .eq("id", selectedOrderItem.id);
     }
 
