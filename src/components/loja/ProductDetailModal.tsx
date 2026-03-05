@@ -1,4 +1,3 @@
-import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,7 +8,6 @@ import { useNavigate } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Share2, Copy, Check } from "lucide-react";
 
 interface Product {
   id: string;
@@ -50,23 +48,8 @@ function getStockInfo(product: Product) {
 export function ProductDetailModal({ product, open, onOpenChange, quantity, onQuantityChange }: Props) {
   const navigate = useNavigate();
   const { addItem } = useCart();
-  const [linkCopied, setLinkCopied] = useState(false);
 
   if (!product) return null;
-
-  const productUrl = product.slug ? `${window.location.origin}/produto/${product.slug}` : null;
-
-  const handleShare = async () => {
-    if (!productUrl) return;
-    if (navigator.share) {
-      try { await navigator.share({ title: product.name, text: `Confira ${product.name} na FBFLIX!`, url: productUrl }); } catch {}
-    } else {
-      await navigator.clipboard.writeText(productUrl);
-      setLinkCopied(true);
-      toast.success("Link copiado!");
-      setTimeout(() => setLinkCopied(false), 2000);
-    }
-  };
 
   const stockInfo = getStockInfo(product);
 
@@ -102,15 +85,6 @@ export function ProductDetailModal({ product, open, onOpenChange, quantity, onQu
                 </span>
               )}
             </div>
-            {productUrl && (
-              <button
-                onClick={handleShare}
-                className="shrink-0 p-2 rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary/50 transition-all"
-                title="Compartilhar produto"
-              >
-                {linkCopied ? <Check className="size-4" /> : <Share2 className="size-4" />}
-              </button>
-            )}
           </DialogTitle>
         </DialogHeader>
 

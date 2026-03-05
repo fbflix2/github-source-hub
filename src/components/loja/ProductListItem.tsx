@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
 import { toast } from "sonner";
+import { Share2, Check } from "lucide-react";
 
 interface Product {
   id: string;
@@ -17,6 +19,7 @@ interface Product {
   category_id: string | null;
   tags: string[] | null;
   external_id?: string | null;
+  slug?: string | null;
 }
 
 interface Props {
@@ -40,6 +43,22 @@ export function ProductListItem({ product, quantity, onQuantityChange, onReadMor
   const navigate = useNavigate();
   const { addItem } = useCart();
   const stockInfo = getStockInfo(product);
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  const productUrl = product.slug ? `${window.location.origin}/produto/${product.slug}` : null;
+
+  const handleShare = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!productUrl) return;
+    if (navigator.share) {
+      try { await navigator.share({ title: product.name, text: `Confira ${product.name} na FBFLIX!`, url: productUrl }); } catch {}
+    } else {
+      await navigator.clipboard.writeText(productUrl);
+      setLinkCopied(true);
+      toast.success("Link copiado!");
+      setTimeout(() => setLinkCopied(false), 2000);
+    }
+  };
   const isPromo = product.tags?.some(t => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes("promoc") || t.toLowerCase().includes("promoção") || t.toLowerCase().includes("promocao")) ?? false;
 
   return (
@@ -174,6 +193,17 @@ export function ProductListItem({ product, quantity, onQuantityChange, onReadMor
                 <span className="material-symbols-outlined text-[14px]">add</span>
               </button>
             </div>
+
+            {/* Share */}
+            {productUrl && (
+              <button
+                onClick={handleShare}
+                className="h-8 w-8 rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all flex items-center justify-center"
+                title="Compartilhar produto"
+              >
+                {linkCopied ? <Check className="size-3.5" /> : <Share2 className="size-3.5" />}
+              </button>
+            )}
 
             {/* Cart */}
             <button
