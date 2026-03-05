@@ -1,35 +1,19 @@
 
 
-## Problem Analysis
+## Problem
 
-The error "O campo proxy id selecionado é inválido" persists because the `proxy_id` stored locally (518923) is stale/invalid in the ProxyBR API. The local database has an outdated proxy ID that no longer matches what ProxyBR expects.
+The share button doesn't appear on product cards because the `slug` field is missing from the data flow:
 
-## Root Cause
+1. **`Loja.tsx`** — The `Product` interface (line 28-43) lacks the `slug` field, so even though the DB query fetches `*` (which includes `slug`), TypeScript doesn't expose it to child components.
+2. **`ProductListItem.tsx`** — Already has the share button code and uses `product.slug`, but receives products without `slug` from the parent, so `productUrl` is always `null` and the button is conditionally hidden.
 
-The proxy_id cached in the local `subscriptions` table's `raw_data` does not match the current proxy_id on the ProxyBR side. This can happen after syncs or when the API reassigns internal IDs.
+## Plan
 
-## Solution
+1. **Add `slug` to the `Product` interface in `Loja.tsx`** (line 28-43) — Add `slug?: string | null;` to the interface so the field from the DB query flows through.
 
-Modify the `exchange-proxy` action in the edge function to **first fetch the subscription's current data from ProxyBR** to get the real/current `proxy_id`, then use that for the exchange request. This makes the exchange self-correcting regardless of local cache state.
+2. **Add `slug` to the `Product` interface in `ProductListItem.tsx`** (line 7-22) — Confirm the `slug` field exists (it may already be there from the previous edit). If it's `slug?: string | null`, that's correct.
 
-### Changes
+3. **Add `slug` to proxy-mapped products in `Loja.tsx`** — Where `proxyAsProducts` are built (around line 141-164), ensure the mapped product objects also include `slug` from `localData`.
 
-1. **`supabase/functions/proxybr-api/index.ts`** -- In the `exchange-proxy` case:
-   - Before calling the exchange endpoint, fetch `GET /subscriptions/{code}` from ProxyBR
-   - Extract the current proxy_id from the response (from `proxies.data[0].id` for single-proxy subs, or use the provided proxy_id to match for multi-proxy)
-   - Use that fresh proxy_id in the PUT request body
-   - Log the fresh vs stale proxy_id for debugging
-
-2. **No frontend changes needed** -- The fix is entirely server-side.
-
-### Technical Detail
-
-```text
-Current flow:
-  Client sends proxy_id=518923 → Edge Function forwards to ProxyBR → 422 "inválido"
-
-New flow:
-  Client sends proxy_id (or not) → Edge Function fetches GET /subscriptions/{code}
-  → Extracts real proxy_id from response → Uses real proxy_id in PUT exchange → Success
-```
+That's it — the share button already renders conditionally based on `productUrl` which depends on `product.slug`. Once the slug flows through, the button will appear.
 
