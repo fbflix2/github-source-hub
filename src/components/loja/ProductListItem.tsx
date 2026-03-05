@@ -40,7 +40,7 @@ export function ProductListItem({ product, quantity, onQuantityChange, onReadMor
   const navigate = useNavigate();
   const { addItem } = useCart();
   const stockInfo = getStockInfo(product);
-  const isPromo = product.tags?.some(t => t.toLowerCase().includes("promoção") || t.toLowerCase().includes("promocao")) ?? false;
+  const isPromo = product.tags?.some(t => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes("promoc") || t.toLowerCase().includes("promoção") || t.toLowerCase().includes("promocao")) ?? false;
 
   return (
     <article
