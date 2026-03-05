@@ -605,6 +605,102 @@ export type Database = {
         }
         Relationships: []
       }
+      partner_referrals: {
+        Row: {
+          commission_amount: number
+          created_at: string
+          credited_at: string | null
+          id: string
+          order_id: string | null
+          order_total: number
+          partner_id: string
+          referred_user_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          commission_amount?: number
+          created_at?: string
+          credited_at?: string | null
+          id?: string
+          order_id?: string | null
+          order_total?: number
+          partner_id: string
+          referred_user_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          commission_amount?: number
+          created_at?: string
+          credited_at?: string | null
+          id?: string
+          order_id?: string | null
+          order_total?: number
+          partner_id?: string
+          referred_user_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_referrals_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "partner_referrals_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      partners: {
+        Row: {
+          balance: number
+          commission_rate: number
+          created_at: string
+          guarantee_days: number
+          id: string
+          slug: string
+          status: string
+          total_earned: number
+          total_referrals: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          commission_rate?: number
+          created_at?: string
+          guarantee_days?: number
+          id?: string
+          slug: string
+          status?: string
+          total_earned?: number
+          total_referrals?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          commission_rate?: number
+          created_at?: string
+          guarantee_days?: number
+          id?: string
+          slug?: string
+          status?: string
+          total_earned?: number
+          total_referrals?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount: number
