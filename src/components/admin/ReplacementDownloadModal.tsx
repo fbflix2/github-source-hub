@@ -384,29 +384,44 @@ export function ReplacementDownloadModal({
               ) : (
                 <div className="space-y-1">
                   <Input
-                    placeholder="Buscar item no estoque por nome..."
-                    value={stockSearch}
-                    onChange={(e) => searchStockItems(e.target.value)}
+                    placeholder="Filtrar por nome, ID ou produto..."
+                    value={stockFilter}
+                    onChange={(e) => setStockFilter(e.target.value)}
                     className="bg-zinc-800 border-zinc-700"
                   />
-                  {searchingStock && <p className="text-xs text-zinc-500">Buscando...</p>}
-                  {stockItems.length > 0 && (
-                    <div className="max-h-40 overflow-y-auto rounded-lg border border-zinc-700 bg-zinc-800">
-                      {stockItems.map((si) => (
-                        <button
-                          key={si.id}
-                          className="w-full text-left px-3 py-2 hover:bg-zinc-700 transition-colors border-b border-zinc-700/50 last:border-0"
-                          onClick={() => { setSelectedNewItem(si); setStockItems([]); setStockSearch(""); }}
-                        >
-                          <p className="text-sm text-zinc-300">{si.name}</p>
-                          <div className="flex items-center gap-2">
-                            {si.identification && <p className="text-xs text-zinc-500 font-mono">{si.identification}</p>}
-                            {si.product_name && <p className="text-xs text-zinc-500">• {si.product_name}</p>}
-                          </div>
-                        </button>
-                      ))}
+                  {loadingStock ? (
+                    <div className="flex items-center justify-center py-4">
+                      <Loader2 className="h-4 w-4 animate-spin text-zinc-500" />
+                      <span className="text-xs text-zinc-500 ml-2">Carregando itens...</span>
+                    </div>
+                  ) : (
+                    <div className="max-h-48 overflow-y-auto rounded-lg border border-zinc-700 bg-zinc-800">
+                      {(() => {
+                        const filtered = allStockItems.filter(si =>
+                          !stockFilter || si.name.toLowerCase().includes(stockFilter.toLowerCase()) ||
+                          (si.identification || "").toLowerCase().includes(stockFilter.toLowerCase()) ||
+                          (si.product_name || "").toLowerCase().includes(stockFilter.toLowerCase())
+                        );
+                        if (filtered.length === 0) {
+                          return <p className="text-xs text-zinc-500 p-3 text-center">Nenhum item disponível</p>;
+                        }
+                        return filtered.slice(0, 30).map((si) => (
+                          <button
+                            key={si.id}
+                            className="w-full text-left px-3 py-2 hover:bg-zinc-700 transition-colors border-b border-zinc-700/50 last:border-0"
+                            onClick={() => setSelectedNewItem(si)}
+                          >
+                            <p className="text-sm text-zinc-300">{si.name}</p>
+                            <div className="flex items-center gap-2">
+                              {si.identification && <p className="text-xs text-zinc-500 font-mono">{si.identification}</p>}
+                              {si.product_name && <p className="text-xs text-zinc-500">• {si.product_name}</p>}
+                            </div>
+                          </button>
+                        ));
+                      })()}
                     </div>
                   )}
+                  <p className="text-[10px] text-zinc-600">{allStockItems.length} itens disponíveis (excluindo proxy)</p>
                 </div>
               )}
             </div>
