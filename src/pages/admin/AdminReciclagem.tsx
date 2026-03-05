@@ -277,6 +277,9 @@ export default function AdminReciclagem() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-sm font-semibold text-foreground truncate">{item.name}</p>
+                    {item.hasReplacement && (
+                      <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-[10px]">REPOSTO</Badge>
+                    )}
                     {item.identification && (
                       <Badge variant="outline" className="text-[10px] font-mono">{item.identification}</Badge>
                     )}
