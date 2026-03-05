@@ -245,7 +245,7 @@ Deno.serve(async (req) => {
       // Get order items for fulfillment
       const { data: orderItems } = await supabase
         .from("order_items")
-        .select("id, product_id, delivery_data")
+        .select("id, product_id, delivery_data, quantity")
         .eq("order_id", orderId);
 
       if (orderItems) {
@@ -473,6 +473,125 @@ Deno.serve(async (req) => {
                 }
               }
               continue;
+            }
+          }
+
+          // ========== WEBSHARE PROXY FULFILLMENT ==========
+          // Detect Webshare product by checking tags for 'webshare'
+          if (oi.product_id) {
+            const { data: wsProductInfo } = await supabase
+              .from("products")
+              .select("tags")
+              .eq("id", oi.product_id)
+              .single();
+
+            const tags = wsProductInfo?.tags || [];
+            if (Array.isArray(tags) && tags.includes("webshare")) {
+              console.log(`[webhook-webshare] Webshare product detected for item ${oi.id}, qty=${oi.quantity || 1}`);
+              
+              const WEBSHARE_API_KEY = Deno.env.get("WEBSHARE_API_KEY");
+              if (!WEBSHARE_API_KEY) {
+                console.error("[webhook-webshare] WEBSHARE_API_KEY not configured");
+                continue;
+              }
+
+              const WEBSHARE_BASE = "https://proxy.webshare.io/api/v2";
+              const itemQty = oi.quantity || 1;
+              
+              try {
+                // Fetch all Webshare proxies
+                const allProxies: any[] = [];
+                let wsPage = 1;
+                while (true) {
+                  const resp = await fetch(
+                    `${WEBSHARE_BASE}/proxy/list/?mode=direct&page=${wsPage}&page_size=250`,
+                    { headers: { Authorization: `Token ${WEBSHARE_API_KEY}`, Accept: "application/json" } }
+                  );
+                  const data = await resp.json();
+                  if (!resp.ok) throw new Error(`Webshare API error [${resp.status}]`);
+                  if (data.results?.length) allProxies.push(...data.results);
+                  if (!data.next) break;
+                  wsPage++;
+                }
+
+                // Get already-assigned proxy IDs
+                const { data: existingWsSubs } = await supabase
+                  .from("subscriptions")
+                  .select("raw_data")
+                  .eq("type", "webshare")
+                  .in("status", ["active", "expiring"]);
+
+                const assignedIds = new Set<string>();
+                for (const sub of (existingWsSubs || [])) {
+                  const raw = (sub.raw_data || {}) as Record<string, any>;
+                  if (raw.webshare_proxy_id) assignedIds.add(raw.webshare_proxy_id);
+                }
+
+                // Find unassigned proxies
+                const available = allProxies.filter((p: any) => p.valid && !assignedIds.has(p.id));
+                console.log(`[webhook-webshare] ${available.length} proxies available, need ${itemQty}`);
+
+                if (available.length < itemQty) {
+                  console.error(`[webhook-webshare] Not enough proxies: ${available.length} available, ${itemQty} needed`);
+                }
+
+                const assignedCount = Math.min(itemQty, available.length);
+                for (let i = 0; i < assignedCount; i++) {
+                  const assignedProxy = available[i];
+                  const startDate = new Date();
+                  const endDate = new Date(startDate);
+                  endDate.setDate(endDate.getDate() + 30);
+
+                  const subName = `WS-${Date.now().toString(36).toUpperCase()}${i > 0 ? `-${i}` : ''}`;
+                  await supabase.from("subscriptions").insert({
+                    user_id: userId,
+                    name: subName,
+                    type: "webshare",
+                    status: "active",
+                    start_date: startDate.toISOString(),
+                    end_date: endDate.toISOString(),
+                    product_id: oi.product_id,
+                    auto_renew: false,
+                    raw_data: {
+                      webshare_proxy_id: assignedProxy.id,
+                      proxy_address: assignedProxy.proxy_address,
+                      port: assignedProxy.port,
+                      username: assignedProxy.username,
+                      password: assignedProxy.password,
+                      country_code: assignedProxy.country_code,
+                      city_name: assignedProxy.city_name,
+                      provider: "webshare",
+                      exchange_quota_free: 2,
+                      exchange_quota_pay: 0,
+                    },
+                  });
+                  console.log(`[webhook-webshare] Proxy ${assignedProxy.id} (${assignedProxy.proxy_address}:${assignedProxy.port}) assigned to user ${userId} as ${subName}`);
+                  
+                  // Add to assigned set to avoid double-assigning in same loop
+                  assignedIds.add(assignedProxy.id);
+                }
+
+                // Notify admin
+                const { data: wsOrderData } = await supabase.from("orders").select("code").eq("id", orderId).single();
+                await supabase.from("notifications").insert({
+                  title: "Proxy Webshare Vendido (PIX)",
+                  message: `${assignedCount} proxy(s) Webshare atribuído(s) ao cliente. Pedido #${wsOrderData?.code || ""}`,
+                  type: "order",
+                  global: true,
+                });
+
+                // Mark delivery
+                await supabase.from("order_items").update({
+                  delivery_data: { type: "webshare_proxy", fulfilled: true, count: assignedCount },
+                }).eq("id", oi.id);
+
+              } catch (wsErr) {
+                console.error(`[webhook-webshare] Error assigning proxy for item ${oi.id}:`, wsErr);
+                await supabase.from("order_items").update({
+                  delivery_data: { type: "webshare_proxy", fulfilled: false, error: String(wsErr).substring(0, 200) },
+                }).eq("id", oi.id);
+              }
+              continue; // Skip normal fulfillment
             }
           }
           

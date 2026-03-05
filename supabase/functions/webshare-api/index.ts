@@ -325,6 +325,98 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ========== ADMIN ALLOCATE PROXY ==========
+    if (action === "admin-allocate-proxy") {
+      const { target_user_id, quantity: allocQty, product_id: allocProductId, order_id: allocOrderId } = params as {
+        target_user_id: string;
+        quantity?: number;
+        product_id?: string;
+        order_id?: string;
+      };
+
+      if (!target_user_id) throw new Error("target_user_id é obrigatório");
+
+      const { data: isAdmin } = await supabaseAdmin.rpc("has_role", { _user_id: user.id, _role: "admin" });
+      if (!isAdmin) throw new Error("Acesso negado: apenas administradores");
+
+      const qty = allocQty || 1;
+
+      const allProxies: any[] = [];
+      let aPage = 1;
+      while (true) {
+        const resp = await webFetch(`/proxy/list/?mode=direct&page=${aPage}&page_size=250`, WEBSHARE_API_KEY);
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(`Webshare API error [${resp.status}]`);
+        if (data.results?.length) allProxies.push(...data.results);
+        if (!data.next) break;
+        aPage++;
+      }
+
+      const { data: existingAdminSubs } = await supabaseAdmin
+        .from("subscriptions")
+        .select("raw_data")
+        .eq("type", "webshare")
+        .in("status", ["active", "expiring"]);
+
+      const aAssignedIds = new Set<string>();
+      for (const sub of (existingAdminSubs || [])) {
+        const raw = (sub.raw_data || {}) as Record<string, any>;
+        if (raw.webshare_proxy_id) aAssignedIds.add(raw.webshare_proxy_id);
+      }
+
+      const aAvailable = allProxies.filter((p: any) => p.valid && !aAssignedIds.has(p.id));
+      if (aAvailable.length < qty) throw new Error(`Apenas ${aAvailable.length} proxies disponíveis, precisa de ${qty}`);
+
+      const allocated: any[] = [];
+      for (let i = 0; i < qty; i++) {
+        const proxy = aAvailable[i];
+        const startDate = new Date();
+        const endDate = new Date(startDate);
+        endDate.setDate(endDate.getDate() + 30);
+        const subName = `WS-${Date.now().toString(36).toUpperCase()}${i > 0 ? `-${i}` : ''}`;
+
+        await supabaseAdmin.from("subscriptions").insert({
+          user_id: target_user_id,
+          name: subName,
+          type: "webshare",
+          status: "active",
+          start_date: startDate.toISOString(),
+          end_date: endDate.toISOString(),
+          product_id: allocProductId || null,
+          auto_renew: false,
+          raw_data: {
+            webshare_proxy_id: proxy.id,
+            proxy_address: proxy.proxy_address,
+            port: proxy.port,
+            username: proxy.username,
+            password: proxy.password,
+            country_code: proxy.country_code,
+            city_name: proxy.city_name,
+            provider: "webshare",
+            exchange_quota_free: 2,
+            exchange_quota_pay: 0,
+          },
+        });
+        allocated.push({ name: subName, ip: proxy.proxy_address, port: proxy.port });
+      }
+
+      if (allocOrderId) {
+        const { data: ois } = await supabaseAdmin.from("order_items").select("id").eq("order_id", allocOrderId);
+        if (ois) {
+          for (const oi of ois) {
+            await supabaseAdmin.from("order_items").update({
+              delivery_data: { type: "webshare_proxy", fulfilled: true, count: qty, admin_allocated: true },
+            }).eq("id", oi.id);
+          }
+        }
+      }
+
+      console.log(`[webshare-api] Admin ${user.id} allocated ${qty} proxies to ${target_user_id}`);
+      return new Response(JSON.stringify({ success: true, allocated }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // ========== GET AVAILABLE COUNT ==========
     // Returns how many unassigned proxies are available for sale
     if (action === "get-available-count") {
