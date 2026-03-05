@@ -200,6 +200,91 @@ export type Database = {
         }
         Relationships: []
       }
+      bm_tracking: {
+        Row: {
+          bm_link: string
+          client_email: string | null
+          client_name: string | null
+          client_user_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          notes: string | null
+          notified_at: string | null
+          order_id: string | null
+          order_item_id: string | null
+          product_name: string
+          removed_at: string | null
+          sale_price: number
+          sold_at: string
+          status: string
+          stock_item_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          bm_link: string
+          client_email?: string | null
+          client_name?: string | null
+          client_user_id: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          notes?: string | null
+          notified_at?: string | null
+          order_id?: string | null
+          order_item_id?: string | null
+          product_name: string
+          removed_at?: string | null
+          sale_price?: number
+          sold_at?: string
+          status?: string
+          stock_item_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bm_link?: string
+          client_email?: string | null
+          client_name?: string | null
+          client_user_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          notes?: string | null
+          notified_at?: string | null
+          order_id?: string | null
+          order_item_id?: string | null
+          product_name?: string
+          removed_at?: string | null
+          sale_price?: number
+          sold_at?: string
+          status?: string
+          stock_item_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bm_tracking_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bm_tracking_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: false
+            referencedRelation: "order_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bm_tracking_stock_item_id_fkey"
+            columns: ["stock_item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_notes: {
         Row: {
           admin_id: string
