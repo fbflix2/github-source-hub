@@ -200,7 +200,7 @@ const App = () => {
               <Routes>
                 <Route
                   path="/auth"
-                  element={user ? <Navigate to="/loja" replace /> : <Auth />}
+                  element={user ? <Navigate to={sessionStorage.getItem("product_redirect") || "/loja"} replace /> : <Auth />}
                 />
                 <Route
                   path="/welcome"
