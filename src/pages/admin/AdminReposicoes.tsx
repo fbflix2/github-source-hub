@@ -210,12 +210,14 @@ export default function AdminReposicoes() {
             <TableHeader>
               <TableRow className="border-zinc-800 hover:bg-transparent">
                 <TableHead className="text-zinc-400 text-xs">DATA</TableHead>
+                <TableHead className="text-zinc-400 text-xs">PEDIDO</TableHead>
                 <TableHead className="text-zinc-400 text-xs">PRODUTO</TableHead>
                 <TableHead className="text-zinc-400 text-xs">ITEM</TableHead>
                 <TableHead className="text-zinc-400 text-xs">CLIENTE</TableHead>
                 <TableHead className="text-zinc-400 text-xs">MOTIVO</TableHead>
                 <TableHead className="text-zinc-400 text-xs">VALOR</TableHead>
                 <TableHead className="text-zinc-400 text-xs">OBS</TableHead>
+                <TableHead className="text-zinc-400 text-xs">AÇÕES</TableHead>
                 <TableHead className="text-zinc-400 text-xs">AÇÕES</TableHead>
               </TableRow>
             </TableHeader>
@@ -224,6 +226,15 @@ export default function AdminReposicoes() {
                 <TableRow key={r.id} className="border-zinc-800 hover:bg-zinc-800/30">
                   <TableCell className="text-zinc-300 text-xs">
                     {new Date(r.created_at).toLocaleDateString("pt-BR")}
+                  </TableCell>
+                  <TableCell className="text-xs">
+                    {r.order_id && orderCodes[r.order_id] ? (
+                      <Badge className="bg-blue-500/20 text-blue-400 text-[10px]">
+                        #{orderCodes[r.order_id]}
+                      </Badge>
+                    ) : (
+                      <span className="text-zinc-600">—</span>
+                    )}
                   </TableCell>
                   <TableCell className="text-white text-sm font-medium">{r.product_name}</TableCell>
                   <TableCell className="text-zinc-300 text-sm">{r.item_name}</TableCell>
