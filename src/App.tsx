@@ -70,6 +70,7 @@ import AdminClientesAtivos from "./pages/admin/AdminClientesAtivos";
 import AdminFeedbacks from "./pages/admin/AdminFeedbacks";
 import AdminReposicoes from "./pages/admin/AdminReposicoes";
 import AdminTrocas from "./pages/admin/AdminTrocas";
+import AdminGestaoBMs from "./pages/admin/AdminGestaoBMs";
 import { AdminLayout } from "./components/admin/AdminLayout";
 
 // Layout
@@ -245,6 +246,7 @@ const App = () => {
                   <Route path="configuracoes/feedbacks" element={<AdminFeedbacks />} />
                   <Route path="reposicoes" element={<AdminReposicoes />} />
                   <Route path="trocas" element={<AdminTrocas />} />
+                  <Route path="gestao-bms" element={<AdminGestaoBMs />} />
                   <Route path="api" element={<AdminApi />} />
                   <Route path="anuncios" element={<AdminAnuncios />} />
                   <Route path="chat" element={<AdminTeamChat />} />
