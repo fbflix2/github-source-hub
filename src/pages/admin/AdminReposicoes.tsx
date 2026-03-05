@@ -20,6 +20,9 @@ interface Replacement {
   created_at: string;
   created_by: string;
   stock_item_id: string | null;
+  order_id: string | null;
+  order_item_id: string | null;
+  new_stock_item_id: string | null;
 }
 
 const reasonLabels: Record<string, string> = {
@@ -35,6 +38,8 @@ export default function AdminReposicoes() {
   const [search, setSearch] = useState("");
   const [filterReason, setFilterReason] = useState("all");
 
+  const [orderCodes, setOrderCodes] = useState<Record<string, string>>({});
+
   const fetchReplacements = async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -46,7 +51,21 @@ export default function AdminReposicoes() {
       toast.error("Erro ao carregar reposições");
       console.error(error);
     }
-    setItems((data as any[]) ?? []);
+    const items = (data as any[]) ?? [];
+    setItems(items);
+
+    // Fetch order codes for linked replacements
+    const orderIds = items.map(i => i.order_id).filter(Boolean);
+    if (orderIds.length > 0) {
+      const { data: orders } = await supabase
+        .from("orders")
+        .select("id, code")
+        .in("id", [...new Set(orderIds)]);
+      const map: Record<string, string> = {};
+      (orders || []).forEach(o => { map[o.id] = o.code; });
+      setOrderCodes(map);
+    }
+
     setLoading(false);
   };
 
@@ -191,12 +210,14 @@ export default function AdminReposicoes() {
             <TableHeader>
               <TableRow className="border-zinc-800 hover:bg-transparent">
                 <TableHead className="text-zinc-400 text-xs">DATA</TableHead>
+                <TableHead className="text-zinc-400 text-xs">PEDIDO</TableHead>
                 <TableHead className="text-zinc-400 text-xs">PRODUTO</TableHead>
                 <TableHead className="text-zinc-400 text-xs">ITEM</TableHead>
                 <TableHead className="text-zinc-400 text-xs">CLIENTE</TableHead>
                 <TableHead className="text-zinc-400 text-xs">MOTIVO</TableHead>
                 <TableHead className="text-zinc-400 text-xs">VALOR</TableHead>
                 <TableHead className="text-zinc-400 text-xs">OBS</TableHead>
+                <TableHead className="text-zinc-400 text-xs">AÇÕES</TableHead>
                 <TableHead className="text-zinc-400 text-xs">AÇÕES</TableHead>
               </TableRow>
             </TableHeader>
@@ -205,6 +226,15 @@ export default function AdminReposicoes() {
                 <TableRow key={r.id} className="border-zinc-800 hover:bg-zinc-800/30">
                   <TableCell className="text-zinc-300 text-xs">
                     {new Date(r.created_at).toLocaleDateString("pt-BR")}
+                  </TableCell>
+                  <TableCell className="text-xs">
+                    {r.order_id && orderCodes[r.order_id] ? (
+                      <Badge className="bg-blue-500/20 text-blue-400 text-[10px]">
+                        #{orderCodes[r.order_id]}
+                      </Badge>
+                    ) : (
+                      <span className="text-zinc-600">—</span>
+                    )}
                   </TableCell>
                   <TableCell className="text-white text-sm font-medium">{r.product_name}</TableCell>
                   <TableCell className="text-zinc-300 text-sm">{r.item_name}</TableCell>

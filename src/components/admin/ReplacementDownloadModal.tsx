@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Download, RefreshCw, Loader2 } from "lucide-react";
+import { Download, RefreshCw, Loader2, Search, Package } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -21,6 +21,14 @@ interface ReplacementDownloadModalProps {
   };
   productName: string;
   onDownload: () => void;
+}
+
+interface OrderItemOption {
+  id: string;
+  name: string;
+  price: number;
+  order_id: string;
+  order_code: string;
 }
 
 export function ReplacementDownloadModal({
@@ -40,6 +48,12 @@ export function ReplacementDownloadModal({
   const [saving, setSaving] = useState(false);
   const [searching, setSearching] = useState(false);
 
+  // Order linking
+  const [orderSearch, setOrderSearch] = useState("");
+  const [searchingOrder, setSearchingOrder] = useState(false);
+  const [orderItems, setOrderItems] = useState<OrderItemOption[]>([]);
+  const [selectedOrderItem, setSelectedOrderItem] = useState<OrderItemOption | null>(null);
+
   useEffect(() => {
     if (!open) {
       setIsReplacement(null);
@@ -49,6 +63,9 @@ export function ReplacementDownloadModal({
       setReason("");
       setItemValue("");
       setNotes("");
+      setOrderSearch("");
+      setOrderItems([]);
+      setSelectedOrderItem(null);
     }
   }, [open]);
 
@@ -65,6 +82,47 @@ export function ReplacementDownloadModal({
     setSearching(false);
   };
 
+  const searchOrder = async () => {
+    if (!orderSearch.trim()) return;
+    setSearchingOrder(true);
+    setOrderItems([]);
+    setSelectedOrderItem(null);
+
+    // Search by order code or id
+    const query = orderSearch.trim();
+    const { data: orders } = await supabase
+      .from("orders")
+      .select("id, code")
+      .or(`code.ilike.%${query}%,id.eq.${query.length === 36 ? query : '00000000-0000-0000-0000-000000000000'}`)
+      .limit(5);
+
+    if (!orders || orders.length === 0) {
+      toast.error("Pedido não encontrado");
+      setSearchingOrder(false);
+      return;
+    }
+
+    const orderIds = orders.map(o => o.id);
+    const { data: items } = await supabase
+      .from("order_items")
+      .select("id, name, price, order_id")
+      .in("order_id", orderIds);
+
+    const mapped: OrderItemOption[] = (items || []).map(oi => {
+      const order = orders.find(o => o.id === oi.order_id);
+      return {
+        id: oi.id,
+        name: oi.name,
+        price: Number(oi.price),
+        order_id: oi.order_id,
+        order_code: order?.code || "",
+      };
+    });
+
+    setOrderItems(mapped);
+    setSearchingOrder(false);
+  };
+
   const handleDownloadOnly = () => {
     onDownload();
     onOpenChange(false);
@@ -77,8 +135,9 @@ export function ReplacementDownloadModal({
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
 
-    const { error } = await supabase.from("replacements").insert({
+    const insertData: Record<string, unknown> = {
       stock_item_id: item.id,
+      new_stock_item_id: item.id,
       product_name: productName,
       item_name: item.name,
       client_user_id: selectedClient.user_id,
@@ -87,24 +146,37 @@ export function ReplacementDownloadModal({
       item_value: parseFloat(itemValue) || 0,
       notes: notes || null,
       created_by: user!.id,
-    } as any);
+    };
 
-    setSaving(false);
+    if (selectedOrderItem) {
+      insertData.order_id = selectedOrderItem.order_id;
+      insertData.order_item_id = selectedOrderItem.id;
+    }
+
+    const { error } = await supabase.from("replacements").insert(insertData as any);
 
     if (error) {
       toast.error("Erro ao salvar reposição");
       console.error(error);
+      setSaving(false);
       return;
     }
 
-    toast.success("Reposição registrada com sucesso");
+    // Mark new stock item as sold (leaving stock for replacement)
+    await supabase
+      .from("stock_items")
+      .update({ status: "vendido", updated_at: new Date().toISOString() })
+      .eq("id", item.id);
+
+    toast.success("Reposição registrada e item marcado como vendido");
     onDownload();
     onOpenChange(false);
+    setSaving(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md bg-zinc-900 border-zinc-800 text-white">
+      <DialogContent className="max-w-md bg-zinc-900 border-zinc-800 text-white max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-white flex items-center gap-2">
             <Download className="h-5 w-5 text-primary" />
@@ -164,6 +236,54 @@ export function ReplacementDownloadModal({
                           onClick={() => { setSelectedClient(c); setClients([]); setClientSearch(""); }}
                         >
                           {c.full_name || "Sem nome"}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Order search */}
+            <div className="space-y-2">
+              <Label className="text-zinc-400 flex items-center gap-1">
+                <Package className="h-3.5 w-3.5" />
+                Pedido com problema (opcional)
+              </Label>
+              {selectedOrderItem ? (
+                <div className="flex items-center gap-2 p-2 rounded-lg bg-zinc-800 border border-yellow-600/40">
+                  <div className="flex-1">
+                    <p className="text-xs text-yellow-400">Pedido #{selectedOrderItem.order_code}</p>
+                    <p className="text-sm text-white">{selectedOrderItem.name}</p>
+                    <p className="text-xs text-zinc-400">R$ {selectedOrderItem.price.toFixed(2)}</p>
+                  </div>
+                  <Button size="sm" variant="ghost" className="h-6 px-2 text-zinc-400" onClick={() => setSelectedOrderItem(null)}>✕</Button>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Código do pedido..."
+                      value={orderSearch}
+                      onChange={(e) => setOrderSearch(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && searchOrder()}
+                      className="bg-zinc-800 border-zinc-700 flex-1"
+                    />
+                    <Button size="sm" variant="outline" className="border-zinc-700 px-2" onClick={searchOrder} disabled={searchingOrder}>
+                      {searchingOrder ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                  {orderItems.length > 0 && (
+                    <div className="max-h-36 overflow-y-auto rounded-lg border border-zinc-700 bg-zinc-800">
+                      {orderItems.map((oi) => (
+                        <button
+                          key={oi.id}
+                          className="w-full text-left px-3 py-2 hover:bg-zinc-700 transition-colors border-b border-zinc-700/50 last:border-0"
+                          onClick={() => { setSelectedOrderItem(oi); setOrderItems([]); setOrderSearch(""); }}
+                        >
+                          <p className="text-xs text-yellow-400">#{oi.order_code}</p>
+                          <p className="text-sm text-zinc-300">{oi.name}</p>
+                          <p className="text-xs text-zinc-500">R$ {oi.price.toFixed(2)}</p>
                         </button>
                       ))}
                     </div>
