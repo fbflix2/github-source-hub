@@ -207,7 +207,7 @@ export default function Checkout() {
         .gt("stock", 0)
         .neq("id", product.id)
         .order("price", { ascending: true })
-        .limit(5);
+        .limit(10);
       setBumpProducts(data || []);
     };
     fetchBumps();
