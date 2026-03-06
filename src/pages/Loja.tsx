@@ -74,7 +74,7 @@ export default function Dashboard() {
     if (heroBanners.length <= 1) return;
     const interval = setInterval(() => {
       setCurrentBanner((p) => (p + 1) % heroBanners.length);
-    }, 10000);
+    }, 30000);
     return () => clearInterval(interval);
   }, [heroBanners.length]);
 
