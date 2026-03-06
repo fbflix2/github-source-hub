@@ -33,6 +33,7 @@ export default function GanheAqui() {
   const [userName, setUserName] = useState("");
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [loading, setLoading] = useState(true);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
   const [page, setPage] = useState(0);
