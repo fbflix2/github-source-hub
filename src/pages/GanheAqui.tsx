@@ -1,248 +1,358 @@
-import { Search, Plus, Info, Clock, TrendingUp, Star, CheckCircle, History } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import {
+  Copy, Check, Users, DollarSign, TrendingUp, Percent,
+  Link2, Share2, ArrowRight, Handshake, ShoppingCart, Wallet,
+  Filter,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { useNavigate } from "react-router-dom";
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
 
-const GanheAqui = () => {
-  const navigate = useNavigate();
-  const ticketHistory = [
-    {
-      id: "#99281",
-      date: "02 Jan 2026 • 14:30",
-      status: "active",
-      numbers: ["88291", "12930", "44821"],
-      extra: 7,
-    },
-    {
-      id: "#88123",
-      date: "28 Dez 2025 • 09:15",
-      status: "active",
-      numbers: ["11029", "55921", "33910"],
-      extra: 7,
-    },
-    {
-      id: "#44",
-      date: "20 Dez 2025 • Finalizado",
-      status: "past",
-      numbers: [],
-      extra: 0,
-    },
-  ];
+interface Partner {
+  id: string;
+  slug: string;
+  commission_rate: number;
+  guarantee_days: number;
+  balance: number;
+  total_earned: number;
+  total_referrals: number;
+  status: string;
+}
+
+interface Referral {
+  id: string;
+  order_total: number;
+  commission_amount: number;
+  status: string;
+  created_at: string;
+}
+
+export default function GanheAqui() {
+  const [partner, setPartner] = useState<Partner | null>(null);
+  const [referrals, setReferrals] = useState<Referral[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  useEffect(() => {
+    loadPartnerData();
+  }, []);
+
+  const loadPartnerData = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setLoading(false); return; }
+
+    const { data: partnerData } = await supabase
+      .from("partners")
+      .select("*")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (partnerData) {
+      setPartner(partnerData as Partner);
+      const { data: refs } = await supabase
+        .from("partner_referrals")
+        .select("*")
+        .eq("partner_id", partnerData.id)
+        .order("created_at", { ascending: false })
+        .limit(100);
+      setReferrals((refs || []) as Referral[]);
+    }
+    setLoading(false);
+  };
+
+  const copyLink = () => {
+    if (!partner) return;
+    const url = `https://fbflix.com.br/parceiro/${partner.slug}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      toast.success("Link copiado!");
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  const filteredReferrals = useMemo(() => {
+    if (statusFilter === "all") return referrals;
+    return referrals.filter(r => r.status === statusFilter);
+  }, [referrals, statusFilter]);
+
+  const pendingCommissions = referrals
+    .filter(r => r.status === "pending")
+    .reduce((sum, r) => sum + r.commission_amount, 0);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <span className="material-symbols-outlined animate-spin text-primary text-3xl">progress_activity</span>
+      </div>
+    );
+  }
+
+  // Non-partner view
+  if (!partner) {
+    return (
+      <div className="max-w-2xl mx-auto py-12">
+        <div className="rounded-2xl border border-border bg-card p-10 text-center space-y-4">
+          <div className="mx-auto w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
+            <Handshake className="size-8 text-primary" />
+          </div>
+          <h2 className="text-2xl font-bold text-foreground">Programa de Parceiros</h2>
+          <p className="text-muted-foreground max-w-md mx-auto">
+            Indique clientes e ganhe comissão em cada venda. Entre em contato com o suporte para se tornar um parceiro.
+          </p>
+
+          {/* Como funciona preview */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6">
+            {howItWorksSteps.map((step, i) => (
+              <div key={i} className="rounded-xl border border-border bg-background p-4 text-center space-y-2">
+                <div className="mx-auto w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <step.icon className="size-5 text-primary" />
+                </div>
+                <p className="text-xs font-semibold text-foreground">{step.title}</p>
+                <p className="text-[11px] text-muted-foreground">{step.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const partnerLink = `fbflix.com.br/parceiro/${partner.slug}`;
 
   return (
-    <div className="space-y-8">
-      {/* Hero Section */}
-      <section className="relative w-full rounded-2xl overflow-hidden bg-gradient-to-r from-card to-background border border-border shadow-2xl">
-        {/* Background Glows */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-primary opacity-10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-primary opacity-5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/4" />
-
-        <div className="relative z-10 grid lg:grid-cols-2 gap-8 p-8 lg:p-12 items-center">
-          {/* Left Content */}
-          <div className="space-y-6">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 text-primary text-xs font-bold uppercase tracking-widest">
-              <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-              Recarga Premiada
-            </div>
-
-            <h1 className="text-4xl lg:text-5xl font-extrabold text-foreground leading-tight">
-              Recarregue <span className="text-primary">R$ 100</span> e concorra a{" "}
-              <span className="text-primary">R$ 500</span> no Pix!
-            </h1>
-
-            <p className="text-lg text-muted-foreground max-w-lg leading-relaxed">
-              Potencialize suas chances de ganhar. A cada R$ 100 adicionados à sua carteira,
-              você desbloqueia 10 números da sorte exclusivos para o próximo sorteio.
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-4 pt-4">
-              <Button className="bg-primary hover:bg-red-700 text-primary-foreground font-bold py-6 px-8 rounded-xl shadow-lg shadow-red-900/20 transform hover:-translate-y-1 transition-all duration-300 flex items-center justify-center gap-2">
-                <Plus className="w-5 h-5" />
-                Recarregar Agora
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => navigate("/como-funciona")}
-                className="bg-secondary hover:bg-secondary/80 text-foreground font-medium py-6 px-8 rounded-xl border border-border backdrop-blur-sm transition-all duration-300 flex items-center justify-center gap-2"
-              >
-                <Info className="w-5 h-5 text-muted-foreground" />
-                Como Funciona
-              </Button>
-            </div>
-
-            <p className="text-xs text-muted-foreground pt-2 flex items-center gap-1">
-              <Clock className="w-4 h-4" />
-              Promoção válida até 05/01/2026
-            </p>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+            <Handshake className="size-6 text-primary" />
           </div>
-
-          {/* Right - Status Card */}
-          <div className="relative flex flex-col items-center justify-center">
-            <div className="glass-panel p-6 rounded-2xl w-full max-w-md text-center border border-border">
-              <h3 className="text-muted-foreground text-sm font-medium uppercase tracking-widest mb-6">
-                Status do Sorteio
-              </h3>
-
-              <div className="mb-8">
-                <div className="flex items-end justify-between mb-2">
-                  <span className="text-sm text-muted-foreground">Progresso</span>
-                  <span className="text-3xl font-bold text-primary">75%</span>
-                </div>
-                <div className="relative h-4 bg-muted rounded-full overflow-hidden border border-border shadow-inner">
-                  <div
-                    className="absolute top-0 left-0 h-full bg-gradient-to-r from-red-800 via-primary to-red-400 shadow-[0_0_15px_rgba(220,38,38,0.6)]"
-                    style={{ width: "75%" }}
-                  >
-                    <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-white/10 to-transparent" />
-                  </div>
-                </div>
-                <p className="text-muted-foreground text-sm mt-3">
-                  <span className="text-foreground font-semibold">75%</span> para o próximo sorteio
-                </p>
-              </div>
-
-              <div className="h-px w-full bg-gradient-to-r from-transparent via-border to-transparent mb-6" />
-
-              <div className="text-left">
-                <p className="text-sm text-muted-foreground mb-2">Prêmio Acumulado</p>
-                <div className="flex items-center gap-2">
-                  <span className="text-3xl font-bold text-foreground">
-                    R$ 500,00
-                  </span>
-                  <span className="bg-green-500/20 text-green-500 text-[10px] font-bold px-2 py-0.5 rounded border border-green-500/30">
-                    PIX
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Tickets Section */}
-      <section className="grid lg:grid-cols-3 gap-8">
-        {/* Header */}
-        <div className="lg:col-span-3 flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
-              <span className="text-primary">🎫</span>
-              Seus Números da Sorte
-            </h2>
-            <p className="text-muted-foreground text-sm mt-1">
-              Gerencie seus tickets ativos para o sorteio desta semana.
+            <h1 className="text-xl font-bold text-foreground">Painel do Parceiro</h1>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className={`inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-semibold ${
+                partner.status === "active"
+                  ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                  : "bg-red-500/10 text-red-400 border border-red-500/20"
+              }`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${partner.status === "active" ? "bg-emerald-400" : "bg-red-400"}`} />
+                {partner.status === "active" ? "Ativo" : "Inativo"}
+              </span>
+              <span className="text-xs text-muted-foreground">
+                Garantia: {partner.guarantee_days} dias
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Link de indicação */}
+      <div className="rounded-xl border border-border bg-card p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Link2 className="size-4 text-primary" />
+          <span className="text-sm font-semibold text-foreground">Seu link de indicação</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex-1 bg-background rounded-lg px-4 py-2.5 text-sm text-muted-foreground font-mono truncate border border-border">
+            {partnerLink}
+          </div>
+          <Button
+            size="sm"
+            onClick={copyLink}
+            className="shrink-0 gap-2"
+          >
+            {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+            {copied ? "Copiado" : "Copiar"}
+          </Button>
+        </div>
+      </div>
+
+      {/* Métricas 2x2 */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <MetricCard
+          icon={<Wallet className="size-5 text-primary" />}
+          iconBg="bg-primary/10"
+          label="Saldo Disponível"
+          value={`R$ ${partner.balance.toFixed(2)}`}
+          valueClass={partner.balance > 0 ? "text-emerald-400" : "text-foreground"}
+          action={
+            partner.balance > 0 ? (
+              <button
+                onClick={() => toast.info("Entre em contato com o suporte para solicitar o saque.")}
+                className="text-[11px] text-primary font-medium hover:underline mt-1"
+              >
+                Solicitar saque →
+              </button>
+            ) : undefined
+          }
+        />
+        <MetricCard
+          icon={<TrendingUp className="size-5 text-emerald-400" />}
+          iconBg="bg-emerald-500/10"
+          label="Total Ganho"
+          value={`R$ ${partner.total_earned.toFixed(2)}`}
+        />
+        <MetricCard
+          icon={<Users className="size-5 text-blue-400" />}
+          iconBg="bg-blue-500/10"
+          label="Indicações"
+          value={String(partner.total_referrals)}
+        />
+        <MetricCard
+          icon={<Percent className="size-5 text-amber-400" />}
+          iconBg="bg-amber-500/10"
+          label="Comissão"
+          value={`${partner.commission_rate}%`}
+          subtitle={pendingCommissions > 0 ? `R$ ${pendingCommissions.toFixed(2)} pendente` : undefined}
+        />
+      </div>
+
+      {/* Minhas Indicações */}
+      <div className="rounded-xl border border-border bg-card overflow-hidden">
+        <div className="flex items-center justify-between p-4 border-b border-border">
+          <h3 className="text-sm font-bold text-foreground">Minhas Indicações</h3>
+          <div className="flex items-center gap-2">
+            <Filter className="size-3.5 text-muted-foreground" />
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="h-8 w-[130px] text-xs bg-background border-border">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="pending">Pendentes</SelectItem>
+                <SelectItem value="credited">Creditados</SelectItem>
+                <SelectItem value="cancelled">Cancelados</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {filteredReferrals.length === 0 ? (
+          <div className="p-8 text-center">
+            <Users className="size-8 text-muted-foreground/50 mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">
+              {statusFilter === "all"
+                ? "Nenhuma indicação registrada ainda."
+                : "Nenhuma indicação com este status."}
             </p>
           </div>
-          <div className="relative w-full md:w-auto">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              type="text"
-              placeholder="Buscar por ID de transação..."
-              className="w-full md:w-80 bg-card text-foreground border-border rounded-lg pl-10 pr-4 py-2 focus:ring-2 focus:ring-primary focus:border-transparent text-sm placeholder-muted-foreground"
-            />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-muted/30">
+                  <th className="text-left py-2.5 px-4 text-xs text-muted-foreground font-medium">Data</th>
+                  <th className="text-left py-2.5 px-4 text-xs text-muted-foreground font-medium">Valor do Pedido</th>
+                  <th className="text-left py-2.5 px-4 text-xs text-muted-foreground font-medium">Comissão</th>
+                  <th className="text-left py-2.5 px-4 text-xs text-muted-foreground font-medium">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/50">
+                {filteredReferrals.map((ref) => (
+                  <tr key={ref.id} className="hover:bg-muted/20 transition-colors">
+                    <td className="py-2.5 px-4 text-foreground">
+                      {new Date(ref.created_at).toLocaleDateString("pt-BR")}
+                    </td>
+                    <td className="py-2.5 px-4 text-foreground">
+                      R$ {ref.order_total.toFixed(2)}
+                    </td>
+                    <td className="py-2.5 px-4 text-primary font-semibold">
+                      R$ {ref.commission_amount.toFixed(2)}
+                    </td>
+                    <td className="py-2.5 px-4">
+                      <StatusBadge status={ref.status} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        </div>
+        )}
+      </div>
 
-        {/* Stats Cards */}
-        <div className="lg:col-span-1 space-y-4">
-          <div className="glass-panel bg-card p-6 rounded-xl border border-border">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-medium text-muted-foreground">Tickets Ativos</h3>
-              <div className="bg-primary/10 p-1.5 rounded-lg">
-                <Star className="w-4 h-4 text-primary" />
+      {/* Como Funciona */}
+      <div className="rounded-xl border border-border bg-card p-6">
+        <h3 className="text-sm font-bold text-foreground mb-4">Como funciona</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {howItWorksSteps.map((step, i) => (
+            <div key={i} className="relative flex flex-col items-center text-center p-4 rounded-xl bg-background border border-border/50">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mb-3">
+                <step.icon className="size-5 text-primary" />
               </div>
+              <span className="text-[10px] font-bold text-primary uppercase tracking-widest mb-1">
+                Passo {i + 1}
+              </span>
+              <p className="text-sm font-semibold text-foreground">{step.title}</p>
+              <p className="text-xs text-muted-foreground mt-1">{step.desc}</p>
+              {i < 2 && (
+                <ArrowRight className="hidden sm:block absolute -right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/30" />
+              )}
             </div>
-            <div className="text-3xl font-bold text-foreground">24</div>
-            <div className="mt-2 text-xs text-green-500 flex items-center gap-1">
-              <TrendingUp className="w-4 h-4" />
-              +10 na última recarga
-            </div>
-          </div>
-
-          <div className="glass-panel bg-card p-6 rounded-xl border border-border">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-medium text-muted-foreground">Chance de Ganhar</h3>
-              <div className="bg-yellow-500/10 p-1.5 rounded-lg">
-                <Star className="w-4 h-4 text-yellow-500" />
-              </div>
-            </div>
-            <div className="text-3xl font-bold text-foreground">Alta</div>
-            <div className="w-full bg-muted rounded-full h-1.5 mt-3">
-              <div className="bg-primary h-1.5 rounded-full" style={{ width: "75%" }} />
-            </div>
-          </div>
+          ))}
         </div>
-
-        {/* History Table */}
-        <div className="lg:col-span-2">
-          <div className="bg-card rounded-xl border border-border overflow-hidden">
-            <div className="p-4 border-b border-border bg-muted flex justify-between items-center">
-              <h3 className="font-semibold text-foreground text-sm">Histórico Recente</h3>
-              <button className="text-xs text-primary font-medium hover:underline">
-                Ver todos
-              </button>
-            </div>
-
-            <div className="divide-y divide-border">
-              {ticketHistory.map((item, index) => (
-                <div
-                  key={index}
-                  className="p-4 hover:bg-muted/50 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-                >
-                  <div className="flex items-center gap-4">
-                    <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                        item.status === "active"
-                          ? "bg-green-900/30 text-green-500"
-                          : "bg-muted text-muted-foreground"
-                      }`}
-                    >
-                      {item.status === "active" ? (
-                        <CheckCircle className="w-5 h-5" />
-                      ) : (
-                        <History className="w-5 h-5" />
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-foreground">
-                        {item.status === "active" ? `Recarga ${item.id}` : `Sorteio Passado ${item.id}`}
-                      </p>
-                      <p className="text-xs text-muted-foreground">{item.date}</p>
-                    </div>
-                  </div>
-
-                  {item.status === "active" ? (
-                    <div className="flex flex-wrap gap-2">
-                      {item.numbers.map((num, i) => (
-                        <span
-                          key={i}
-                          className="px-2.5 py-1 rounded bg-muted text-muted-foreground text-xs font-mono border border-border"
-                        >
-                          {num}
-                        </span>
-                      ))}
-                      {item.extra > 0 && (
-                        <span className="px-2.5 py-1 rounded bg-muted text-muted-foreground text-xs font-mono border border-border">
-                          +{item.extra}
-                        </span>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="text-xs text-muted-foreground italic">Não premiado</div>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            <div className="p-3 bg-muted border-t border-border text-center">
-              <p className="text-xs text-muted-foreground">
-                Você tem 24 números válidos para o próximo sorteio.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+      </div>
     </div>
   );
-};
+}
 
-export default GanheAqui;
+// --- Sub-components ---
+
+const howItWorksSteps = [
+  {
+    icon: Share2,
+    title: "Compartilhe seu link",
+    desc: "Envie seu link exclusivo para amigos e seguidores.",
+  },
+  {
+    icon: ShoppingCart,
+    title: "Cliente compra",
+    desc: "Quando alguém compra pelo seu link, a venda é rastreada.",
+  },
+  {
+    icon: DollarSign,
+    title: "Você ganha comissão",
+    desc: "Receba sua comissão automaticamente após o período de garantia.",
+  },
+];
+
+function MetricCard({
+  icon, iconBg, label, value, valueClass, subtitle, action,
+}: {
+  icon: React.ReactNode;
+  iconBg: string;
+  label: string;
+  value: string;
+  valueClass?: string;
+  subtitle?: string;
+  action?: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-xl border border-border bg-card p-4 space-y-2">
+      <div className="flex items-center gap-2">
+        <div className={`p-1.5 rounded-lg ${iconBg}`}>{icon}</div>
+        <span className="text-xs text-muted-foreground">{label}</span>
+      </div>
+      <p className={`text-xl font-bold ${valueClass || "text-foreground"}`}>{value}</p>
+      {subtitle && <p className="text-[11px] text-muted-foreground">{subtitle}</p>}
+      {action}
+    </div>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const config: Record<string, { bg: string; text: string; label: string }> = {
+    credited: { bg: "bg-emerald-500/10 border-emerald-500/20", text: "text-emerald-400", label: "Creditado" },
+    pending: { bg: "bg-amber-500/10 border-amber-500/20", text: "text-amber-400", label: "Pendente" },
+    cancelled: { bg: "bg-red-500/10 border-red-500/20", text: "text-red-400", label: "Cancelado" },
+  };
+  const c = config[status] || config.pending;
+  return (
+    <span className={`inline-flex items-center text-[11px] px-2 py-0.5 rounded-full font-medium border ${c.bg} ${c.text}`}>
+      {c.label}
+    </span>
+  );
+}
