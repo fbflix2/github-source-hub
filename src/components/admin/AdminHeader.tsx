@@ -154,6 +154,7 @@ export function AdminHeader() {
   return (
     <>
       <header className="flex-none px-6 py-4 flex items-center justify-end z-20">
+        <div className="flex items-center gap-3">
           {/* TEMP: Test cash sound button */}
           <button
             onClick={playCashSound}
