@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { PartnerDashboard } from "@/components/partner/PartnerDashboard";
 
 interface ProfileFormData {
   full_name: string;
@@ -34,6 +35,8 @@ export default function Profile() {
   });
   const [verified, setVerified] = useState(false);
   const [documentUrl, setDocumentUrl] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"profile" | "partner">("profile");
+  const [isPartner, setIsPartner] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -232,13 +235,29 @@ export default function Profile() {
           <p className="text-muted-foreground">Gerencie suas informações pessoais e de contato.</p>
         </div>
         <div className="flex gap-3">
-          <button className="flex items-center gap-2 text-sm bg-secondary hover:bg-secondary/80 text-foreground border border-border font-medium py-2.5 px-6 rounded-lg transition-all duration-200">
-            <span className="material-symbols-outlined text-lg">history</span>
-            Histórico
-          </button>
+          {isPartner && (
+            <div className="flex gap-1 bg-secondary rounded-lg p-1 border border-border">
+              <button
+                onClick={() => setActiveTab("profile")}
+                className={`text-sm font-medium px-4 py-2 rounded-md transition-all ${activeTab === "profile" ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                Perfil
+              </button>
+              <button
+                onClick={() => setActiveTab("partner")}
+                className={`text-sm font-medium px-4 py-2 rounded-md transition-all ${activeTab === "partner" ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                Parceiro
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
+      {activeTab === "partner" && isPartner ? (
+        <PartnerDashboard />
+      ) : (
+      <>
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column - Profile Card */}
