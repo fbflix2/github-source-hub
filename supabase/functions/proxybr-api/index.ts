@@ -21,14 +21,13 @@ async function proxyFetch(url: string, apiKey: string, method = "GET", body?: st
       const retryAfter = response.headers.get("Retry-After");
       const waitMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : 3000 * Math.pow(2, attempt - 1);
       console.warn(`proxyFetch 429 on ${method} ${url}, attempt ${attempt}/${maxRetries}. Waiting ${waitMs}ms`);
-      // Consume body to prevent resource leak
-      await response.text();
       if (attempt < maxRetries) {
+        // Consume body to prevent resource leak before retrying
+        await response.text();
         await sleep(waitMs);
         continue;
       }
-      // Last attempt still 429 — return it so caller can handle
-      return response;
+      // Last attempt still 429 — return the response as-is for caller to handle
     }
     return response;
   }
