@@ -207,7 +207,7 @@ export default function Checkout() {
         .gt("stock", 0)
         .neq("id", product.id)
         .order("price", { ascending: true })
-        .limit(5);
+        .limit(10);
       setBumpProducts(data || []);
     };
     fetchBumps();
@@ -929,9 +929,10 @@ export default function Checkout() {
             {(() => {
               const isMainProxy = product?.icon_type === 'proxy' || product?.tags?.some(t => t.toLowerCase().includes('proxy'));
               if (isMainProxy) return null;
-              const proxyIpv4 = bumpProducts.find(b => !selectedBumps.includes(b.id) && b.name.toUpperCase().includes("PROXY IPV4") && b.name.toUpperCase().includes("CONTING"));
+              const proxyIpv4 = bumpProducts.find(b => !selectedBumps.includes(b.id) && b.name.toLowerCase().includes("proxy") && b.name.toLowerCase().includes("contig") && b.name.toLowerCase().includes("ipv4"));
               if (!proxyIpv4) return null;
               const PROMO_PRICE = 9.99;
+              const originalPrice = 25;
               return (
                 <div className="rounded-xl border-2 border-primary bg-gradient-to-b from-primary/10 to-background p-4 flex flex-col gap-2 relative overflow-hidden">
                   <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-500 text-white w-fit">
@@ -941,12 +942,12 @@ export default function Checkout() {
                   <div>
                     <h3 className="text-sm font-bold text-foreground">Complete sua compra!</h3>
                     <p className="text-xs text-muted-foreground">
-                      Leve <span className="font-bold text-foreground">Perfil SPAM</span> e proteja sua operação!
+                      Leve <span className="font-bold text-foreground">{proxyIpv4.name}</span> e proteja sua operação!
                     </p>
                   </div>
                   <div className="flex items-center justify-between bg-secondary/80 border border-border rounded-lg p-3">
                     <div>
-                      <p className="text-xs text-muted-foreground line-through">R$ {proxyIpv4.price.toFixed(2).replace(".", ",")}</p>
+                      <p className="text-xs text-muted-foreground line-through">R$ {originalPrice.toFixed(2).replace(".", ",")}</p>
                       <p className="text-lg font-black text-foreground">R$ {PROMO_PRICE.toFixed(2).replace(".", ",")}</p>
                     </div>
                     <button
