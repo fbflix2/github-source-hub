@@ -140,8 +140,12 @@ export default function GanheAqui() {
       {/* Header Section */}
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 border-b border-[#2A2A2A] pb-8">
         <div className="flex items-center gap-4">
-          <div className="size-14 rounded-full bg-gradient-to-br from-primary to-primary/40 flex items-center justify-center border-2 border-[#2A2A2A]">
-            <span className="text-xl font-bold text-white">{initials}</span>
+          <div className="size-14 rounded-full bg-gradient-to-br from-primary to-primary/40 flex items-center justify-center border-2 border-[#2A2A2A] overflow-hidden">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt={userName} className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-xl font-bold text-white">{initials}</span>
+            )}
           </div>
           <div>
             <div className="flex items-center gap-2">
