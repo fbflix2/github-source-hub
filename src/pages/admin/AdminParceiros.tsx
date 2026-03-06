@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Users, Plus, Pencil, Trash2, Search, Link2, DollarSign, Check, X } from "lucide-react";
+import { Users, Plus, Pencil, Trash2, Search, Link2, DollarSign, Check, X, Eye, EyeOff } from "lucide-react";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -332,10 +332,19 @@ export default function AdminParceiros() {
                 </TableCell>
                 <TableCell>
                   <div className="flex gap-1">
+                    <button
+                      onClick={() => toggleStatus(p)}
+                      title={p.status === "active" ? "Ocultar painel do parceiro" : "Mostrar painel do parceiro"}
+                      className={`p-1.5 rounded hover:bg-secondary ${
+                        p.status === "active" ? "text-primary" : "text-muted-foreground"
+                      }`}
+                    >
+                      {p.status === "active" ? <Eye className="size-4" /> : <EyeOff className="size-4" />}
+                    </button>
                     <button onClick={() => openEdit(p)} className="p-1.5 rounded hover:bg-secondary text-muted-foreground hover:text-foreground">
                       <Pencil className="size-4" />
                     </button>
-                    <button onClick={() => deletePartner(p)} className="p-1.5 rounded hover:bg-red-500/10 text-muted-foreground hover:text-red-400">
+                    <button onClick={() => deletePartner(p)} className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive">
                       <Trash2 className="size-4" />
                     </button>
                   </div>
