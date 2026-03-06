@@ -3,13 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   Copy, Check, Users, DollarSign, TrendingUp, Percent,
-  Link2, Share2, ArrowRight, Handshake, ShoppingCart, Wallet,
-  Filter,
+  Share2, ShoppingCart, Wallet, Handshake, ChevronLeft, ChevronRight,
+  Bell,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
 
 interface Partner {
   id: string;
@@ -30,12 +26,16 @@ interface Referral {
   created_at: string;
 }
 
+const ITEMS_PER_PAGE = 4;
+
 export default function GanheAqui() {
   const [partner, setPartner] = useState<Partner | null>(null);
+  const [userName, setUserName] = useState("");
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
+  const [page, setPage] = useState(0);
 
   useEffect(() => {
     loadPartnerData();
@@ -44,6 +44,13 @@ export default function GanheAqui() {
   const loadPartnerData = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setLoading(false); return; }
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (profile?.full_name) setUserName(profile.full_name);
 
     const { data: partnerData } = await supabase
       .from("partners")
@@ -58,7 +65,7 @@ export default function GanheAqui() {
         .select("*")
         .eq("partner_id", partnerData.id)
         .order("created_at", { ascending: false })
-        .limit(100);
+        .limit(500);
       setReferrals((refs || []) as Referral[]);
     }
     setLoading(false);
@@ -79,14 +86,19 @@ export default function GanheAqui() {
     return referrals.filter(r => r.status === statusFilter);
   }, [referrals, statusFilter]);
 
-  const pendingCommissions = referrals
-    .filter(r => r.status === "pending")
-    .reduce((sum, r) => sum + r.commission_amount, 0);
+  const totalPages = Math.ceil(filteredReferrals.length / ITEMS_PER_PAGE);
+  const paginatedReferrals = filteredReferrals.slice(page * ITEMS_PER_PAGE, (page + 1) * ITEMS_PER_PAGE);
+
+  useEffect(() => { setPage(0); }, [statusFilter]);
+
+  const initials = userName
+    ? userName.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()
+    : "P";
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <span className="material-symbols-outlined animate-spin text-primary text-3xl">progress_activity</span>
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
       </div>
     );
   }
@@ -95,24 +107,22 @@ export default function GanheAqui() {
   if (!partner) {
     return (
       <div className="max-w-2xl mx-auto py-12">
-        <div className="rounded-2xl border border-border bg-card p-10 text-center space-y-4">
+        <div className="rounded-xl border border-[#2A2A2A] bg-[#1A1A1A] p-10 text-center space-y-4">
           <div className="mx-auto w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
             <Handshake className="size-8 text-primary" />
           </div>
-          <h2 className="text-2xl font-bold text-foreground">Programa de Parceiros</h2>
-          <p className="text-muted-foreground max-w-md mx-auto">
+          <h2 className="text-2xl font-bold text-white">Programa de Parceiros</h2>
+          <p className="text-slate-400 max-w-md mx-auto">
             Indique clientes e ganhe comissão em cada venda. Entre em contato com o suporte para se tornar um parceiro.
           </p>
-
-          {/* Como funciona preview */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6">
             {howItWorksSteps.map((step, i) => (
-              <div key={i} className="rounded-xl border border-border bg-background p-4 text-center space-y-2">
-                <div className="mx-auto w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <div key={i} className="rounded-xl border border-[#2A2A2A]/50 bg-[#1A1A1A]/50 p-4 text-center space-y-2">
+                <div className="mx-auto w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                   <step.icon className="size-5 text-primary" />
                 </div>
-                <p className="text-xs font-semibold text-foreground">{step.title}</p>
-                <p className="text-[11px] text-muted-foreground">{step.desc}</p>
+                <p className="text-xs font-semibold text-white">{step.title}</p>
+                <p className="text-[11px] text-slate-500">{step.desc}</p>
               </div>
             ))}
           </div>
@@ -124,234 +134,237 @@ export default function GanheAqui() {
   const partnerLink = `fbflix.com.br/parceiro/${partner.slug}`;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-            <Handshake className="size-6 text-primary" />
+    <div className="max-w-5xl mx-auto">
+      {/* Header Section */}
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 border-b border-[#2A2A2A] pb-8">
+        <div className="flex items-center gap-4">
+          <div className="size-14 rounded-full bg-gradient-to-br from-primary to-primary/40 flex items-center justify-center border-2 border-[#2A2A2A]">
+            <span className="text-xl font-bold text-white">{initials}</span>
           </div>
           <div>
-            <h1 className="text-xl font-bold text-foreground">Painel do Parceiro</h1>
-            <div className="flex items-center gap-2 mt-0.5">
-              <span className={`inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-semibold ${
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold tracking-tight text-white">{userName || "Parceiro"}</h1>
+              <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold uppercase ${
                 partner.status === "active"
-                  ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                  : "bg-red-500/10 text-red-400 border border-red-500/20"
+                  ? "bg-emerald-500/10 text-emerald-500"
+                  : "bg-red-500/10 text-red-400"
               }`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${partner.status === "active" ? "bg-emerald-400" : "bg-red-400"}`} />
+                <span className={`size-1.5 rounded-full ${partner.status === "active" ? "bg-emerald-500" : "bg-red-400"}`} />
                 {partner.status === "active" ? "Ativo" : "Inativo"}
               </span>
-              <span className="text-xs text-muted-foreground">
-                Garantia: {partner.guarantee_days} dias
-              </span>
+            </div>
+            <div className="flex items-center gap-2 mt-1 group">
+              <span className="text-slate-400 text-sm">{partnerLink}</span>
+              <button
+                onClick={copyLink}
+                className="hover:text-primary transition-colors flex items-center gap-1 text-slate-400"
+                title="Copiar Link"
+              >
+                {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+                <span className="text-xs font-medium uppercase tracking-wider">
+                  {copied ? "Copiado" : "Copiar"}
+                </span>
+              </button>
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Link de indicação */}
-      <div className="rounded-xl border border-border bg-card p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <Link2 className="size-4 text-primary" />
-          <span className="text-sm font-semibold text-foreground">Seu link de indicação</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="flex-1 bg-background rounded-lg px-4 py-2.5 text-sm text-muted-foreground font-mono truncate border border-border">
-            {partnerLink}
+        <div className="flex items-center gap-3">
+          <div className="text-right hidden sm:block">
+            <p className="text-xs text-slate-500 uppercase font-bold">Nível de Parceiro</p>
+            <p className="text-sm font-medium text-primary">
+              {partner.commission_rate >= 15 ? "Diamante Premium" : partner.commission_rate >= 10 ? "Ouro" : "Prata"}
+            </p>
           </div>
-          <Button
-            size="sm"
-            onClick={copyLink}
-            className="shrink-0 gap-2"
+          <div className="size-10 bg-[#1A1A1A] border border-[#2A2A2A] rounded-lg flex items-center justify-center">
+            <Bell className="size-5 text-slate-400" />
+          </div>
+        </div>
+      </header>
+
+      {/* Metrics Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {/* Saldo Disponível */}
+        <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-5 flex flex-col justify-between">
+          <div>
+            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Saldo Disponível</p>
+            <h2 className="text-2xl font-bold text-white">R$ {partner.balance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</h2>
+          </div>
+          <button
+            onClick={() => toast.info("Entre em contato com o suporte para solicitar o saque.")}
+            className="mt-4 w-full bg-primary hover:bg-primary/90 text-white py-2 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2"
           >
-            {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
-            {copied ? "Copiado" : "Copiar"}
-          </Button>
+            <Wallet className="size-4" />
+            Solicitar Saque
+          </button>
+        </div>
+
+        {/* Ganho Total */}
+        <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-5">
+          <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Ganho Total</p>
+          <h2 className="text-2xl font-bold text-white">R$ {partner.total_earned.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</h2>
+          <div className="mt-2 flex items-center gap-1 text-emerald-500">
+            <TrendingUp className="size-3" />
+            <span className="text-xs font-medium">Lifetime</span>
+          </div>
+        </div>
+
+        {/* Indicações */}
+        <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-5">
+          <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Indicações</p>
+          <h2 className="text-2xl font-bold text-white">{partner.total_referrals}</h2>
+          <div className="mt-2 flex items-center gap-1 text-slate-400">
+            <Users className="size-3" />
+            <span className="text-xs font-medium">{referrals.filter(r => {
+              const d = new Date(r.created_at);
+              const now = new Date();
+              return d >= new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
+            }).length} novas esta semana</span>
+          </div>
+        </div>
+
+        {/* Comissão Atual */}
+        <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl p-5">
+          <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Comissão Atual</p>
+          <h2 className="text-2xl font-bold text-white">{partner.commission_rate}%</h2>
+          <div className="mt-2 bg-primary/10 rounded-full h-1.5 w-full overflow-hidden">
+            <div className="bg-primary h-full" style={{ width: `${Math.min((partner.commission_rate / 20) * 100, 100)}%` }} />
+          </div>
+          <p className="mt-1 text-[10px] text-slate-500 text-right uppercase">
+            {Math.min(Math.round((partner.commission_rate / 20) * 100), 100)}% para 20%
+          </p>
         </div>
       </div>
 
-      {/* Métricas 2x2 */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <MetricCard
-          icon={<Wallet className="size-5 text-primary" />}
-          iconBg="bg-primary/10"
-          label="Saldo Disponível"
-          value={`R$ ${partner.balance.toFixed(2)}`}
-          valueClass={partner.balance > 0 ? "text-emerald-400" : "text-foreground"}
-          action={
-            partner.balance > 0 ? (
-              <button
-                onClick={() => toast.info("Entre em contato com o suporte para solicitar o saque.")}
-                className="text-[11px] text-primary font-medium hover:underline mt-1"
-              >
-                Solicitar saque →
-              </button>
-            ) : undefined
-          }
-        />
-        <MetricCard
-          icon={<TrendingUp className="size-5 text-emerald-400" />}
-          iconBg="bg-emerald-500/10"
-          label="Total Ganho"
-          value={`R$ ${partner.total_earned.toFixed(2)}`}
-        />
-        <MetricCard
-          icon={<Users className="size-5 text-blue-400" />}
-          iconBg="bg-blue-500/10"
-          label="Indicações"
-          value={String(partner.total_referrals)}
-        />
-        <MetricCard
-          icon={<Percent className="size-5 text-amber-400" />}
-          iconBg="bg-amber-500/10"
-          label="Comissão"
-          value={`${partner.commission_rate}%`}
-          subtitle={pendingCommissions > 0 ? `R$ ${pendingCommissions.toFixed(2)} pendente` : undefined}
-        />
-      </div>
+      {/* Como Funciona */}
+      <section className="mb-8">
+        <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-slate-500 mb-4">Como Funciona</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {howItWorksSteps.map((step, i) => (
+            <div key={i} className="flex items-center gap-4 bg-[#1A1A1A]/50 border border-[#2A2A2A]/50 p-4 rounded-xl">
+              <div className="size-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                <step.icon className="size-5" />
+              </div>
+              <div>
+                <p className="font-bold text-sm text-white">{step.title}</p>
+                <p className="text-xs text-slate-500">{step.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
 
-      {/* Minhas Indicações */}
-      <div className="rounded-xl border border-border bg-card overflow-hidden">
-        <div className="flex items-center justify-between p-4 border-b border-border">
-          <h3 className="text-sm font-bold text-foreground">Minhas Indicações</h3>
+      {/* Transactions Table */}
+      <section className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-xl overflow-hidden">
+        <div className="px-6 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#2A2A2A]">
+          <h3 className="font-bold text-lg text-white">Minhas Indicações</h3>
           <div className="flex items-center gap-2">
-            <Filter className="size-3.5 text-muted-foreground" />
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="h-8 w-[130px] text-xs bg-background border-border">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="pending">Pendentes</SelectItem>
-                <SelectItem value="credited">Creditados</SelectItem>
-                <SelectItem value="cancelled">Cancelados</SelectItem>
-              </SelectContent>
-            </Select>
+            <span className="text-xs font-bold text-slate-500 uppercase">Filtrar:</span>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="bg-[#0F0F0F] border border-[#2A2A2A] text-xs text-slate-300 rounded-lg px-3 py-1.5 focus:ring-primary focus:border-primary outline-none"
+            >
+              <option value="all">Todos Status</option>
+              <option value="credited">Creditado</option>
+              <option value="pending">Pendente</option>
+              <option value="cancelled">Cancelado</option>
+            </select>
           </div>
         </div>
 
         {filteredReferrals.length === 0 ? (
-          <div className="p-8 text-center">
-            <Users className="size-8 text-muted-foreground/50 mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">
+          <div className="px-6 py-12 text-center">
+            <Users className="size-8 text-slate-600 mx-auto mb-2" />
+            <p className="text-sm text-slate-500">
               {statusFilter === "all"
                 ? "Nenhuma indicação registrada ainda."
                 : "Nenhuma indicação com este status."}
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-muted/30">
-                  <th className="text-left py-2.5 px-4 text-xs text-muted-foreground font-medium">Data</th>
-                  <th className="text-left py-2.5 px-4 text-xs text-muted-foreground font-medium">Valor do Pedido</th>
-                  <th className="text-left py-2.5 px-4 text-xs text-muted-foreground font-medium">Comissão</th>
-                  <th className="text-left py-2.5 px-4 text-xs text-muted-foreground font-medium">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/50">
-                {filteredReferrals.map((ref) => (
-                  <tr key={ref.id} className="hover:bg-muted/20 transition-colors">
-                    <td className="py-2.5 px-4 text-foreground">
-                      {new Date(ref.created_at).toLocaleDateString("pt-BR")}
-                    </td>
-                    <td className="py-2.5 px-4 text-foreground">
-                      R$ {ref.order_total.toFixed(2)}
-                    </td>
-                    <td className="py-2.5 px-4 text-primary font-semibold">
-                      R$ {ref.commission_amount.toFixed(2)}
-                    </td>
-                    <td className="py-2.5 px-4">
-                      <StatusBadge status={ref.status} />
-                    </td>
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead className="bg-[#2A2A2A]/30">
+                  <tr>
+                    <th className="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Data</th>
+                    <th className="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Valor do Pedido</th>
+                    <th className="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider">Comissão Gerada</th>
+                    <th className="px-6 py-3 text-xs font-bold text-slate-400 uppercase tracking-wider text-right">Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* Como Funciona */}
-      <div className="rounded-xl border border-border bg-card p-6">
-        <h3 className="text-sm font-bold text-foreground mb-4">Como funciona</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {howItWorksSteps.map((step, i) => (
-            <div key={i} className="relative flex flex-col items-center text-center p-4 rounded-xl bg-background border border-border/50">
-              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mb-3">
-                <step.icon className="size-5 text-primary" />
-              </div>
-              <span className="text-[10px] font-bold text-primary uppercase tracking-widest mb-1">
-                Passo {i + 1}
-              </span>
-              <p className="text-sm font-semibold text-foreground">{step.title}</p>
-              <p className="text-xs text-muted-foreground mt-1">{step.desc}</p>
-              {i < 2 && (
-                <ArrowRight className="hidden sm:block absolute -right-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground/30" />
-              )}
+                </thead>
+                <tbody className="divide-y divide-[#2A2A2A]">
+                  {paginatedReferrals.map((ref) => (
+                    <tr key={ref.id} className="hover:bg-white/5 transition-colors">
+                      <td className="px-6 py-4 text-sm text-slate-300">
+                        {new Date(ref.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })}
+                      </td>
+                      <td className="px-6 py-4 text-sm font-medium text-white">
+                        R$ {ref.order_total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      </td>
+                      <td className="px-6 py-4 text-sm font-bold text-primary">
+                        R$ {ref.commission_amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <ReferralStatusBadge status={ref.status} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          ))}
-        </div>
-      </div>
+            <div className="px-6 py-4 border-t border-[#2A2A2A] flex items-center justify-between">
+              <p className="text-xs text-slate-500">
+                Mostrando {paginatedReferrals.length} de {filteredReferrals.length} indicações
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setPage(p => Math.max(0, p - 1))}
+                  disabled={page === 0}
+                  className="size-8 rounded border border-[#2A2A2A] flex items-center justify-center hover:bg-[#2A2A2A] transition-colors disabled:opacity-30"
+                >
+                  <ChevronLeft className="size-4 text-slate-400" />
+                </button>
+                <button
+                  onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+                  disabled={page >= totalPages - 1}
+                  className="size-8 rounded border border-[#2A2A2A] flex items-center justify-center hover:bg-[#2A2A2A] transition-colors disabled:opacity-30"
+                >
+                  <ChevronRight className="size-4 text-slate-400" />
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+      </section>
+
+      {/* Footer */}
+      <footer className="mt-8 text-center">
+        <p className="text-slate-600 text-[10px] uppercase tracking-widest">© 2024 FBX Token / FbFlix. Todos os direitos reservados.</p>
+      </footer>
     </div>
   );
 }
+
+// --- Data ---
+
+const howItWorksSteps = [
+  { icon: Share2, title: "Compartilhe", desc: "Envie seu link exclusivo" },
+  { icon: ShoppingCart, title: "Cliente compra", desc: "Adesão confirmada na rede" },
+  { icon: Wallet, title: "Você ganha", desc: "Comissão direto no saldo" },
+];
 
 // --- Sub-components ---
 
-const howItWorksSteps = [
-  {
-    icon: Share2,
-    title: "Compartilhe seu link",
-    desc: "Envie seu link exclusivo para amigos e seguidores.",
-  },
-  {
-    icon: ShoppingCart,
-    title: "Cliente compra",
-    desc: "Quando alguém compra pelo seu link, a venda é rastreada.",
-  },
-  {
-    icon: DollarSign,
-    title: "Você ganha comissão",
-    desc: "Receba sua comissão automaticamente após o período de garantia.",
-  },
-];
-
-function MetricCard({
-  icon, iconBg, label, value, valueClass, subtitle, action,
-}: {
-  icon: React.ReactNode;
-  iconBg: string;
-  label: string;
-  value: string;
-  valueClass?: string;
-  subtitle?: string;
-  action?: React.ReactNode;
-}) {
-  return (
-    <div className="rounded-xl border border-border bg-card p-4 space-y-2">
-      <div className="flex items-center gap-2">
-        <div className={`p-1.5 rounded-lg ${iconBg}`}>{icon}</div>
-        <span className="text-xs text-muted-foreground">{label}</span>
-      </div>
-      <p className={`text-xl font-bold ${valueClass || "text-foreground"}`}>{value}</p>
-      {subtitle && <p className="text-[11px] text-muted-foreground">{subtitle}</p>}
-      {action}
-    </div>
-  );
-}
-
-function StatusBadge({ status }: { status: string }) {
+function ReferralStatusBadge({ status }: { status: string }) {
   const config: Record<string, { bg: string; text: string; label: string }> = {
-    credited: { bg: "bg-emerald-500/10 border-emerald-500/20", text: "text-emerald-400", label: "Creditado" },
-    pending: { bg: "bg-amber-500/10 border-amber-500/20", text: "text-amber-400", label: "Pendente" },
-    cancelled: { bg: "bg-red-500/10 border-red-500/20", text: "text-red-400", label: "Cancelado" },
+    credited: { bg: "bg-emerald-500/10", text: "text-emerald-500", label: "CREDITADO" },
+    pending: { bg: "bg-yellow-500/10", text: "text-yellow-500", label: "PENDENTE" },
+    cancelled: { bg: "bg-red-500/10", text: "text-red-400", label: "CANCELADO" },
   };
   const c = config[status] || config.pending;
   return (
-    <span className={`inline-flex items-center text-[11px] px-2 py-0.5 rounded-full font-medium border ${c.bg} ${c.text}`}>
+    <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${c.bg} ${c.text}`}>
       {c.label}
     </span>
   );
