@@ -917,30 +917,18 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Determine renewal price
+        // Determine renewal price — ALWAYS use catalog price, never order_items price
+        // (order_items may contain promotional/discounted prices valid only for the first purchase)
         let renewalPrice = 0;
         const subUserId = localSub?.user_id || user.id;
 
         if (localSub?.product_id) {
-          const { data: orderItem } = await supabaseAdmin
-            .from("order_items")
+          const { data: product } = await supabaseAdmin
+            .from("products")
             .select("price")
-            .contains("delivery_data", { subscription_code: params.subscriptionCode })
-            .limit(1)
+            .eq("id", localSub.product_id)
             .maybeSingle();
-
-          if (orderItem?.price != null) {
-            const rawData = localSub.raw_data as Record<string, any> || {};
-            const totalProxies = rawData?.proxies?.total || 1;
-            renewalPrice = Number(orderItem.price) / totalProxies;
-          } else {
-            const { data: product } = await supabaseAdmin
-              .from("products")
-              .select("price")
-              .eq("id", localSub.product_id)
-              .maybeSingle();
-            if (product?.price != null) renewalPrice = Number(product.price);
-          }
+          if (product?.price != null) renewalPrice = Number(product.price);
         }
 
         if (!renewalPrice && localSub) {
