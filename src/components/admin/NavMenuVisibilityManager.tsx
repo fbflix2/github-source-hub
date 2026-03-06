@@ -11,7 +11,7 @@ const clientNavLinks = [
   { key: "orders", title: "Pedidos", url: "/orders" },
   { key: "tutorials", title: "Tutoriais", url: "/tutorials" },
   { key: "advertise", title: "Anuncie Aqui", url: "/advertise" },
-  { key: "ganhe-aqui", title: "Ganhe Aqui", url: "/ganhe-aqui" },
+  { key: "ganhe-aqui", title: "Ganhe Aqui", url: "/parceria" },
   { key: "mercado", title: "Mercado", url: "/mercado" },
 ];
 

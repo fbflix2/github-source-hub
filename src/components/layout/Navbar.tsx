@@ -27,7 +27,7 @@ const allNavLinks = [
   { key: "orders", title: "Pedidos", url: "/orders" },
   { key: "tutorials", title: "Tutoriais", url: "/tutorials" },
   { key: "advertise", title: "Anuncie Aqui", url: "/advertise" },
-  { key: "ganhe-aqui", title: "Ganhe Aqui", url: "/ganhe-aqui" },
+  { key: "ganhe-aqui", title: "Ganhe Aqui", url: "/parceria" },
   { key: "mercado", title: "Mercado", url: "/mercado" },
 ];
 
@@ -147,7 +147,7 @@ export function Navbar({ userName, balance, avatarUrl, isPartner, onLogout, unre
                 <>
                   <DropdownMenuSeparator className="bg-border" />
                   <DropdownMenuItem asChild>
-                    <NavLink to="/ganhe-aqui" className="flex items-center gap-2 text-foreground">
+                    <NavLink to="/parceria" className="flex items-center gap-2 text-foreground">
                       <Handshake className="size-[18px]" />
                       Painel Parceiro
                     </NavLink>
