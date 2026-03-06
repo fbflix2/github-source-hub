@@ -165,6 +165,7 @@ export default function Checkout() {
   const [paymentMethod, setPaymentMethod] = useState<"saldo" | "pix" | "cartao">("saldo");
   const [selectedBumps, setSelectedBumps] = useState<string[]>([]);
   const [bumpProducts, setBumpProducts] = useState<BumpProduct[]>([]);
+  const [promoProxy, setPromoProxy] = useState<BumpProduct | null>(null);
   
   const [coupon, setCoupon] = useState("");
   const [discount, setDiscount] = useState(0);
