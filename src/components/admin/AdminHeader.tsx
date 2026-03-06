@@ -159,9 +159,9 @@ export function AdminHeader() {
     <>
       <header className="flex-none px-6 py-4 flex items-center justify-end z-20">
         <div className="flex items-center gap-3">
-          {/* TEMP: Test cash sound button */}
+          {/* TEMP: Test notification sounds */}
           <button
-            onClick={playCashSound}
+            onClick={() => playNotificationSound("order_completed")}
             className="glass-panel rounded-full px-3 py-1.5 text-[10px] font-bold text-yellow-400 hover:bg-yellow-500/20 transition-colors border border-yellow-500/30"
           >
             🔔 Testar Som
