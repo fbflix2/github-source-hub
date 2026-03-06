@@ -219,7 +219,7 @@ export default function Checkout() {
       if (product.id === PROMO_PROXY_ID) { setPromoProxy(null); return; }
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, description, price, image_url")
+        .select("id, name, description, price, image_url, tags, icon_type")
         .eq("id", PROMO_PROXY_ID)
         .maybeSingle();
       console.log("[PromoProxy] fetch result:", { data, error, productId: product.id, isProxy: product.icon_type });
