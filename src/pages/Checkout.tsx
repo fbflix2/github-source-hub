@@ -944,8 +944,7 @@ export default function Checkout() {
             {(() => {
               const isMainProxy = product?.icon_type === 'proxy' || product?.tags?.some(t => t.toLowerCase().includes('proxy'));
               if (isMainProxy) return null;
-              const proxyIpv4 = bumpProducts.find(b => !selectedBumps.includes(b.id) && b.name.toLowerCase().includes("proxy") && b.name.toLowerCase().includes("contig") && b.name.toLowerCase().includes("ipv4"));
-              if (!proxyIpv4) return null;
+              if (!promoProxy || selectedBumps.includes(promoProxy.id)) return null;
               const PROMO_PRICE = 9.99;
               const originalPrice = 25;
               return (
@@ -957,7 +956,7 @@ export default function Checkout() {
                   <div>
                     <h3 className="text-sm font-bold text-foreground">Complete sua compra!</h3>
                     <p className="text-xs text-muted-foreground">
-                      Leve <span className="font-bold text-foreground">{proxyIpv4.name}</span> e proteja sua operação!
+                      Leve <span className="font-bold text-foreground">{promoProxy.name}</span> e proteja sua operação!
                     </p>
                   </div>
                   <div className="flex items-center justify-between bg-secondary/80 border border-border rounded-lg p-3">
@@ -967,9 +966,13 @@ export default function Checkout() {
                     </div>
                     <button
                       onClick={() => {
-                        // Override the bump price to promo price
-                        setBumpProducts(prev => prev.map(b => b.id === proxyIpv4.id ? { ...b, price: PROMO_PRICE } : b));
-                        toggleBump(proxyIpv4.id);
+                        // Add promo proxy to bump list with promo price, then toggle
+                        setBumpProducts(prev => {
+                          const exists = prev.find(b => b.id === promoProxy.id);
+                          if (exists) return prev.map(b => b.id === promoProxy.id ? { ...b, price: PROMO_PRICE } : b);
+                          return [...prev, { ...promoProxy, price: PROMO_PRICE }];
+                        });
+                        setSelectedBumps(prev => [...prev, promoProxy.id]);
                       }}
                       className="bg-foreground text-background text-xs font-bold px-4 py-2 rounded-full hover:opacity-90 transition-opacity"
                     >
