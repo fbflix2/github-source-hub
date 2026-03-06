@@ -65,16 +65,25 @@ export default function WebshareProxyTab() {
     staleTime: 60_000,
   });
 
-  // Fetch webshare products for price mapping
+  // Fetch products linked to webshare subscriptions by product_id
+  const wsProductIds = useMemo(() => {
+    if (!wsSubs) return [];
+    const ids = new Set<string>();
+    wsSubs.forEach(s => { if (s.product_id) ids.add(s.product_id); });
+    return Array.from(ids);
+  }, [wsSubs]);
+
   const { data: wsProducts } = useQuery({
-    queryKey: ["webshare-revenue-products"],
+    queryKey: ["webshare-revenue-products", wsProductIds],
     queryFn: async () => {
+      if (wsProductIds.length === 0) return [];
       const { data } = await supabase
         .from("products")
         .select("id, name, price, tags")
-        .contains("tags", ["webshare"]);
+        .in("id", wsProductIds);
       return data ?? [];
     },
+    enabled: wsProductIds.length > 0,
     staleTime: 60_000,
   });
 
