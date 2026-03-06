@@ -8,12 +8,30 @@ const corsHeaders = {
 
 const PROXYBR_BASE = "https://painel.proxybr.com.br/api";
 
-async function proxyFetch(url: string, apiKey: string, method = "GET", body?: string) {
+async function proxyFetch(url: string, apiKey: string, method = "GET", body?: string, maxRetries = 3) {
   const headers: Record<string, string> = {
     "Accept": "application/json",
     "X-API-Key": apiKey,
   };
   if (body) headers["Content-Type"] = "application/json";
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const response = await fetch(url, { method, headers, body: body || undefined });
+    if (response.status === 429) {
+      const retryAfter = response.headers.get("Retry-After");
+      const waitMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : 3000 * Math.pow(2, attempt - 1);
+      console.warn(`proxyFetch 429 on ${method} ${url}, attempt ${attempt}/${maxRetries}. Waiting ${waitMs}ms`);
+      if (attempt < maxRetries) {
+        // Consume body to prevent resource leak before retrying
+        await response.text();
+        await sleep(waitMs);
+        continue;
+      }
+      // Last attempt still 429 — return the response as-is for caller to handle
+    }
+    return response;
+  }
+  // Fallback (shouldn't reach here)
   return fetch(url, { method, headers, body: body || undefined });
 }
 
