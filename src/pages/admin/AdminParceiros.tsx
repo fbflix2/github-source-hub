@@ -141,10 +141,16 @@ export default function AdminParceiros() {
       let userId: string | null = null;
       try {
         const { data: emailData } = await supabase.functions.invoke("list-user-emails", {
-          body: { search_email: formEmail.trim() },
+          body: {},
         });
-        if (emailData?.emails?.[0]?.id) {
-          userId = emailData.emails[0].id;
+        if (emailData?.emails) {
+          const searchEmail = formEmail.trim().toLowerCase();
+          // emailData.emails is a Record<string, string> { userId: email }
+          const entries = Object.entries(emailData.emails as Record<string, string>);
+          const found = entries.find(([, email]) => email.toLowerCase() === searchEmail);
+          if (found) {
+            userId = found[0];
+          }
         }
       } catch {}
 
