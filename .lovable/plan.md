@@ -1,33 +1,35 @@
 
 
-## Problem
+## Problem Analysis
 
-The order bump smart filtering is not working because the bump products query (line 204-211 in `Checkout.tsx`) only fetches `id, name, description, price, image_url`. The categorization logic in `relevantBumps` relies on checking product names, descriptions, and tags to classify items as Proxy/Perfil/BM/Pagina — but **`tags` and `icon_type` are not fetched**, so the classification falls back to name-only matching, which is unreliable.
+The error "O campo proxy id selecionado é inválido" persists because the `proxy_id` stored locally (518923) is stale/invalid in the ProxyBR API. The local database has an outdated proxy ID that no longer matches what ProxyBR expects.
 
-Additionally, the current logic only filters by name substring matching. Products that don't literally contain "proxy", "perfil", "bm", or "pagina" in their name slip through unfiltered, breaking the complementary recommendation.
+## Root Cause
 
-## Plan
+The proxy_id cached in the local `subscriptions` table's `raw_data` does not match the current proxy_id on the ProxyBR side. This can happen after syncs or when the API reassigns internal IDs.
 
-### 1. Fix bump products query to include `tags` and `icon_type`
+## Solution
 
-In `src/pages/Checkout.tsx` line 206, change the select to:
+Modify the `exchange-proxy` action in the edge function to **first fetch the subscription's current data from ProxyBR** to get the real/current `proxy_id`, then use that for the exchange request. This makes the exchange self-correcting regardless of local cache state.
+
+### Changes
+
+1. **`supabase/functions/proxybr-api/index.ts`** -- In the `exchange-proxy` case:
+   - Before calling the exchange endpoint, fetch `GET /subscriptions/{code}` from ProxyBR
+   - Extract the current proxy_id from the response (from `proxies.data[0].id` for single-proxy subs, or use the provided proxy_id to match for multi-proxy)
+   - Use that fresh proxy_id in the PUT request body
+   - Log the fresh vs stale proxy_id for debugging
+
+2. **No frontend changes needed** -- The fix is entirely server-side.
+
+### Technical Detail
+
+```text
+Current flow:
+  Client sends proxy_id=518923 → Edge Function forwards to ProxyBR → 422 "inválido"
+
+New flow:
+  Client sends proxy_id (or not) → Edge Function fetches GET /subscriptions/{code}
+  → Extracts real proxy_id from response → Uses real proxy_id in PUT exchange → Success
 ```
-.select("id, name, description, price, image_url, tags, icon_type")
-```
-
-Also update the `BumpProduct` interface to include `tags` and `icon_type`.
-
-### 2. Use `tags` and `icon_type` in the categorization logic
-
-Update the `relevantBumps` filter (lines 360-379) and scoring (lines 383-429) to also check:
-- `bump.icon_type` (e.g., `"proxy"`, `"perfil"`, `"bm"`)
-- `bump.tags` array for category keywords
-
-This will make classification robust — even if a product name doesn't literally say "proxy", its `icon_type: "proxy"` or tags `["proxy", "webshare"]` will correctly categorize it.
-
-### 3. Exclude the main product from bumps
-
-Ensure the main product ID is excluded (already done on line 209 with `.neq("id", product.id)`), and also exclude products already in the cart.
-
-These are small, targeted changes to the existing smart bump logic — no structural changes needed.
 
