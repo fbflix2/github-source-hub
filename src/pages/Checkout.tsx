@@ -215,14 +215,17 @@ export default function Checkout() {
     const fetchPromoProxy = async () => {
       const PROMO_PROXY_ID = "6c396fa8-f6a0-43b2-8061-9148213df549";
       if (product.id === PROMO_PROXY_ID) { setPromoProxy(null); return; }
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("products")
         .select("id, name, description, price, image_url")
         .eq("id", PROMO_PROXY_ID)
-        .eq("available", true)
-        .gt("stock", 0)
-        .single();
-      setPromoProxy(data || null);
+        .maybeSingle();
+      console.log("[PromoProxy] fetch result:", { data, error, productId: product.id, isProxy: product.icon_type });
+      if (data && data.id) {
+        setPromoProxy(data);
+      } else {
+        setPromoProxy(null);
+      }
     };
     fetchBumps();
     fetchPromoProxy();
