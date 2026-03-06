@@ -48,10 +48,11 @@ export default function GanheAqui() {
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("full_name")
+      .select("full_name, avatar_url")
       .eq("user_id", user.id)
       .maybeSingle();
     if (profile?.full_name) setUserName(profile.full_name);
+    if (profile?.avatar_url) setAvatarUrl(profile.avatar_url);
 
     const { data: partnerData } = await supabase
       .from("partners")
