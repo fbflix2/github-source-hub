@@ -70,6 +70,7 @@ const allMenuItems: MenuItem[] = [
   { title: "Central Proxy", icon: Globe, path: "/admin/central-proxy" },
   { title: "Clientes", icon: Users, path: "/admin/clientes" },
   { title: "Afiliados", icon: UserCheck, path: "/admin/afiliados" },
+  { title: "Parceiros", icon: Users, path: "/admin/parceiros" },
   { title: "Cupons", icon: Ticket, path: "/admin/cupons" },
   { title: "Anúncios", icon: Megaphone, path: "/admin/anuncios" },
   { title: "Notificações", icon: Bell, path: "/admin/notificacoes" },
