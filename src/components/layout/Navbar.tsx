@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { Ticket } from "lucide-react";
+import { Ticket, Handshake } from "lucide-react";
 import { useNavVisibility } from "@/hooks/useNavVisibility";
 
 interface NavbarProps {
@@ -16,6 +16,7 @@ interface NavbarProps {
   userEmail: string;
   balance: number;
   avatarUrl?: string;
+  isPartner?: boolean;
   onLogout: () => void;
   unreadTickets?: number;
 }
@@ -30,7 +31,7 @@ const allNavLinks = [
   { key: "mercado", title: "Mercado", url: "/mercado" },
 ];
 
-export function Navbar({ userName, balance, avatarUrl, onLogout, unreadTickets = 0 }: NavbarProps) {
+export function Navbar({ userName, balance, avatarUrl, isPartner, onLogout, unreadTickets = 0 }: NavbarProps) {
   const location = useLocation();
   const { hiddenLinks } = useNavVisibility();
   const navLinks = allNavLinks.filter(link => !hiddenLinks.includes(link.key));
@@ -142,6 +143,17 @@ export function Navbar({ userName, balance, avatarUrl, onLogout, unreadTickets =
                   Minha Carteira
                 </NavLink>
               </DropdownMenuItem>
+              {isPartner && (
+                <>
+                  <DropdownMenuSeparator className="bg-border" />
+                  <DropdownMenuItem asChild>
+                    <NavLink to="/ganhe-aqui" className="flex items-center gap-2 text-foreground">
+                      <Handshake className="size-[18px]" />
+                      Painel Parceiro
+                    </NavLink>
+                  </DropdownMenuItem>
+                </>
+              )}
               <DropdownMenuSeparator className="bg-border" />
               <DropdownMenuItem
                 onClick={onLogout}
