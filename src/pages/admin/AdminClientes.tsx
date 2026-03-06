@@ -474,13 +474,8 @@ export default function AdminClientes() {
               <div className="flex items-end justify-between mt-auto">
                 <div>
                   <p className="text-[10px] uppercase tracking-wider text-white/40 font-bold mb-1">Saldo Atual</p>
-                  <p className={`text-xl font-black tracking-tight ${client.balance > 0 ? "text-white" : "text-white/50"}`}>
-                    R${" "}
-                    {client.balance > 0 ? (
-                      <span className="text-primary">{formatCurrency(client.balance)}</span>
-                    ) : (
-                      formatCurrency(client.balance)
-                    )}
+                  <p className={`text-xl font-black tracking-tight ${client.balance > 0 ? "text-emerald-400" : "text-white/50"}`}>
+                    R$ {formatCurrency(client.balance)}
                   </p>
                 </div>
                 <div className="flex gap-1.5">
