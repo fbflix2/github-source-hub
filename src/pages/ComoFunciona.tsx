@@ -212,7 +212,7 @@ const ComoFunciona = () => {
       {/* Back Button */}
       <div className="flex justify-center pb-8">
         <Button
-          onClick={() => navigate("/ganhe-aqui")}
+          onClick={() => navigate("/parceria")}
           className="group relative flex items-center justify-center gap-3 px-8 py-6 bg-primary hover:bg-red-700 text-primary-foreground rounded-xl shadow-lg shadow-primary/30 hover:shadow-primary/50 transition-all duration-300 transform hover:-translate-y-1"
         >
           <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />

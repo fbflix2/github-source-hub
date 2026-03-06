@@ -9,7 +9,7 @@ const allNavItems = [
   { key: "orders", title: "Pedidos", url: "/orders", icon: ClipboardList },
   { key: "tutorials", title: "Tutoriais", url: "/tutorials", icon: GraduationCap },
   { key: "advertise", title: "Anuncie", url: "/advertise", icon: Megaphone },
-  { key: "ganhe-aqui", title: "Ganhe", url: "/ganhe-aqui", icon: HandCoins },
+  { key: "ganhe-aqui", title: "Ganhe", url: "/parceria", icon: HandCoins },
   { key: "mercado", title: "Mercado", url: "/mercado", icon: Store },
 ];
 

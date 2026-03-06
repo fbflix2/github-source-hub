@@ -111,7 +111,7 @@ function AuthenticatedApp({ user, onLogout }: { user: User; onLogout: () => void
         <Route path="/tutorials" element={<Tutorials />} />
         <Route path="/wallet" element={<Wallet />} />
         <Route path="/advertise" element={<Advertise />} />
-        <Route path="/ganhe-aqui" element={<GanheAqui />} />
+        <Route path="/parceria" element={<GanheAqui />} />
         <Route path="/como-funciona" element={<ComoFunciona />} />
         <Route path="/suporte" element={<Suporte />} />
         <Route path="/tickets" element={<Tickets />} />
