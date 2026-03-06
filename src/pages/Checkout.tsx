@@ -925,11 +925,13 @@ export default function Checkout() {
         {/* Right Column - Upsell & Order Summary */}
         <div className="lg:col-span-4 relative order-1 lg:order-2">
           <div className="sticky top-24 flex flex-col gap-3">
-            {/* Upsell Offer - prioritize PROXY IPV6 | HTTP */}
-            {relevantBumps.length > 0 && (() => {
-              const proxyIpv6 = relevantBumps.find(b => !selectedBumps.includes(b.id) && b.name.toUpperCase().includes("PROXY IPV6"));
-              const upsell = proxyIpv6 || relevantBumps.find(b => !selectedBumps.includes(b.id));
-              if (!upsell) return null;
+            {/* Upsell Offer - Proxy IPV4 Contingência only for non-proxy products */}
+            {(() => {
+              const isMainProxy = product?.icon_type === 'proxy' || product?.tags?.some(t => t.toLowerCase().includes('proxy'));
+              if (isMainProxy) return null;
+              const proxyIpv4 = bumpProducts.find(b => !selectedBumps.includes(b.id) && b.name.toUpperCase().includes("PROXY IPV4") && b.name.toUpperCase().includes("CONTING"));
+              if (!proxyIpv4) return null;
+              const PROMO_PRICE = 9.99;
               return (
                 <div className="rounded-xl border-2 border-primary bg-gradient-to-b from-primary/10 to-background p-4 flex flex-col gap-2 relative overflow-hidden">
                   <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-500 text-white w-fit">
@@ -939,15 +941,20 @@ export default function Checkout() {
                   <div>
                     <h3 className="text-sm font-bold text-foreground">Complete sua compra!</h3>
                     <p className="text-xs text-muted-foreground">
-                      Leve <span className="font-bold text-foreground">{upsell.name}</span> e proteja sua operação!
+                      Leve <span className="font-bold text-foreground">Perfil SPAM</span> e proteja sua operação!
                     </p>
                   </div>
                   <div className="flex items-center justify-between bg-secondary/80 border border-border rounded-lg p-3">
                     <div>
-                      <p className="text-lg font-black text-foreground">R$ {upsell.price.toFixed(2).replace(".", ",")}</p>
+                      <p className="text-xs text-muted-foreground line-through">R$ {proxyIpv4.price.toFixed(2).replace(".", ",")}</p>
+                      <p className="text-lg font-black text-foreground">R$ {PROMO_PRICE.toFixed(2).replace(".", ",")}</p>
                     </div>
                     <button
-                      onClick={() => toggleBump(upsell.id)}
+                      onClick={() => {
+                        // Override the bump price to promo price
+                        setBumpProducts(prev => prev.map(b => b.id === proxyIpv4.id ? { ...b, price: PROMO_PRICE } : b));
+                        toggleBump(proxyIpv4.id);
+                      }}
                       className="bg-foreground text-background text-xs font-bold px-4 py-2 rounded-full hover:opacity-90 transition-opacity"
                     >
                       Adicionar
