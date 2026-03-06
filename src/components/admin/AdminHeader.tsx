@@ -71,15 +71,62 @@ export function AdminHeader() {
     fetchNotifications();
   }, [fetchNotifications]);
 
+  // Cash register sound for money-related notifications
+  const playCashSound = useCallback(() => {
+    try {
+      const ctx = new AudioContext();
+      const now = ctx.currentTime;
+
+      // Coin drop / register "cha-ching" effect
+      const frequencies = [1200, 1800, 2400, 1600, 2000];
+      frequencies.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(freq, now + i * 0.06);
+        gain.gain.setValueAtTime(0.15, now + i * 0.06);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.06 + 0.15);
+        osc.start(now + i * 0.06);
+        osc.stop(now + i * 0.06 + 0.15);
+      });
+
+      // Bell ring
+      const bell = ctx.createOscillator();
+      const bellGain = ctx.createGain();
+      bell.connect(bellGain);
+      bellGain.connect(ctx.destination);
+      bell.type = "triangle";
+      bell.frequency.setValueAtTime(3200, now + 0.35);
+      bellGain.gain.setValueAtTime(0.12, now + 0.35);
+      bellGain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+      bell.start(now + 0.35);
+      bell.stop(now + 0.8);
+
+      setTimeout(() => ctx.close(), 1200);
+    } catch {
+      // Audio not available
+    }
+  }, []);
+
   // Realtime + polling for notifications
   useEffect(() => {
     const interval = setInterval(fetchNotifications, 30000);
     const channel = supabase
       .channel("admin-notifications")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications" }, () => fetchNotifications())
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications" }, (payload) => {
+        fetchNotifications();
+        // Play cash sound for money-related notifications
+        const notif = payload.new as AdminNotification;
+        const moneyTypes = ["order", "wallet", "pix"];
+        if (moneyTypes.includes(notif.type)) {
+          playCashSound();
+        }
+      })
       .subscribe();
     return () => { clearInterval(interval); supabase.removeChannel(channel); };
-  }, [fetchNotifications]);
+  }, [fetchNotifications, playCashSound]);
 
   const markAsRead = async (id: string) => {
     await supabase.from("notifications").update({ read: true }).eq("id", id);
