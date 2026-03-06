@@ -33,6 +33,8 @@ interface BumpProduct {
   description: string | null;
   price: number;
   image_url: string | null;
+  tags: string[] | null;
+  icon_type: string | null;
 }
 
 export default function Checkout() {
@@ -203,7 +205,7 @@ export default function Checkout() {
     const fetchBumps = async () => {
       const { data } = await supabase
         .from("products")
-        .select("id, name, description, price, image_url")
+        .select("id, name, description, price, image_url, tags, icon_type")
         .eq("available", true)
         .gt("stock", 0)
         .neq("id", product.id)
@@ -357,38 +359,42 @@ export default function Checkout() {
     const isMainPagina = mainName.includes("pagina") || mainName.includes("página") || mainName.includes("fanpage") || mainTags.some(t => t.includes("pagina") || t.includes("fanpage"));
 
     // Filter bumps to only show complementary products (different category)
-    const filtered = bumpProducts.filter(bump => {
+    // Also exclude products already in the cart
+    const cartProductIds = cartItems.map(ci => ci.productId);
+
+    const classifyBump = (bump: BumpProduct) => {
       const bName = (bump.name || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
       const bDesc = (bump.description || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const bIcon = (bump.icon_type || "").toLowerCase();
+      const bTags = (bump.tags || []).map(t => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
 
-      const isBumpProxy = bName.includes("proxy");
-      const isBumpPerfil = bName.includes("perfil") || bDesc.includes("perfil");
-      const isBumpBM = bName.includes("bm") || bName.includes("business manager") || bDesc.includes("business manager");
-      const isBumpPagina = bName.includes("pagina") || bName.includes("fanpage") || bDesc.includes("pagina") || bDesc.includes("fanpage");
+      const isProxy = bIcon === "proxy" || bName.includes("proxy") || bTags.some(t => t.includes("proxy"));
+      const isPerfil = bIcon === "perfil" || bName.includes("perfil") || bTags.some(t => t.includes("perfil") || t.includes("profile"));
+      const isBM = bIcon === "bm" || bName.includes("bm") || bName.includes("business manager") || bTags.some(t => t.includes("bm") || t.includes("business"));
+      const isPagina = bIcon === "pagina" || bName.includes("pagina") || bName.includes("fanpage") || bTags.some(t => t.includes("pagina") || t.includes("fanpage") || t.includes("página"));
+
+      return { isProxy, isPerfil, isBM, isPagina };
+    };
+
+    const filtered = bumpProducts.filter(bump => {
+      // Exclude items already in cart
+      if (cartProductIds.includes(bump.id)) return false;
+
+      const { isProxy, isPerfil, isBM, isPagina } = classifyBump(bump);
 
       // Exclude same type as main product
-      if (isMainProxy && isBumpProxy) return false;
-      if (isMainPerfil && isBumpPerfil) return false;
-      if (isMainBM && isBumpBM) return false;
-      if (isMainPagina && isBumpPagina) return false;
+      if (isMainProxy && isProxy) return false;
+      if (isMainPerfil && isPerfil) return false;
+      if (isMainBM && isBM) return false;
+      if (isMainPagina && isPagina) return false;
 
-      // If main is perfil, prioritize BMs, pages, and proxies for contingency
-      // If main is proxy, prioritize perfis and BMs
-      // If main is BM, prioritize perfis and proxies
-      // All these pass through — scoring will handle ordering below
       return true;
     });
 
     // Score bumps by complementarity relevance
     const scored = filtered.map(bump => {
-      const bName = (bump.name || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-      const bDesc = (bump.description || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const { isProxy: isBumpProxy, isPerfil: isBumpPerfil, isBM: isBumpBM, isPagina: isBumpPagina } = classifyBump(bump);
       let score = 0;
-
-      const isBumpProxy = bName.includes("proxy");
-      const isBumpPerfil = bName.includes("perfil") || bDesc.includes("perfil");
-      const isBumpBM = bName.includes("bm") || bName.includes("business manager");
-      const isBumpPagina = bName.includes("pagina") || bName.includes("fanpage");
 
       if (isMainPerfil) {
         // Perfil → BM > Proxy > Página
