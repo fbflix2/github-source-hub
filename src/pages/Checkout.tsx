@@ -649,6 +649,40 @@ export default function Checkout() {
           global: true,
         });
 
+        // Track partner referral
+        try {
+          const partnerRefId = localStorage.getItem("partner_ref_id");
+          if (partnerRefId) {
+            const { data: partnerData } = await supabase
+              .from("partners")
+              .select("id, commission_rate, guarantee_days, total_referrals")
+              .eq("id", partnerRefId)
+              .eq("status", "active")
+              .maybeSingle();
+
+            if (partnerData) {
+              const commissionAmount = total * (partnerData.commission_rate / 100);
+              await supabase.from("partner_referrals").insert({
+                partner_id: partnerData.id,
+                referred_user_id: user.id,
+                order_id: orderId,
+                order_total: total,
+                commission_amount: commissionAmount,
+                status: "pending",
+              });
+              await supabase.from("partners").update({
+                total_referrals: (partnerData.total_referrals || 0) + 1,
+              }).eq("id", partnerData.id);
+              // Clear ref after use
+              localStorage.removeItem("partner_ref");
+              localStorage.removeItem("partner_ref_id");
+              localStorage.removeItem("partner_ref_at");
+            }
+          }
+        } catch (refErr) {
+          console.error("Partner referral tracking error:", refErr);
+        }
+
         toast.success("Pedido realizado com sucesso!");
         navigate("/orders");
 
