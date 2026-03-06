@@ -18,6 +18,8 @@ interface HeroBanner {
   link_url: string | null;
   image_url: string | null;
   image_style: string | null;
+  background_color: string | null;
+  category: string | null;
 }
 
 interface ProxyImage {
@@ -66,6 +68,15 @@ export default function Dashboard() {
   const [proxyImages, setProxyImages] = useState<ProxyImage[]>([]);
   const [heroBanners, setHeroBanners] = useState<HeroBanner[]>([]);
   const [currentBanner, setCurrentBanner] = useState(0);
+
+  // Auto-slide banners every 6 seconds
+  useEffect(() => {
+    if (heroBanners.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentBanner((p) => (p + 1) % heroBanners.length);
+    }, 6000);
+    return () => clearInterval(interval);
+  }, [heroBanners.length]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -216,7 +227,10 @@ export default function Dashboard() {
     <div className="space-y-10 animate-fade-in">
       {/* Dynamic Hero Banners */}
       {heroBanners.length > 0 && (
-        <section className="relative w-full rounded-2xl overflow-hidden glass-card shadow-glass group">
+        <section
+          className="relative w-full rounded-2xl overflow-hidden glass-card shadow-glass group transition-colors duration-500"
+          style={heroBanners[currentBanner]?.background_color ? { backgroundColor: heroBanners[currentBanner].background_color! } : undefined}
+        >
           {/* Cover style: full background image */}
           {heroBanners[currentBanner]?.image_style === "cover" && heroBanners[currentBanner]?.image_url && (
             <div
@@ -227,7 +241,7 @@ export default function Dashboard() {
           {heroBanners[currentBanner]?.image_style === "cover" && (
             <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent" />
           )}
-          {heroBanners[currentBanner]?.image_style !== "cover" && (
+          {heroBanners[currentBanner]?.image_style !== "cover" && !heroBanners[currentBanner]?.background_color && (
             <>
               <div className="absolute -right-20 -top-20 w-96 h-96 bg-primary/20 rounded-full blur-[100px] pointer-events-none" />
               <div className="absolute -left-20 -bottom-20 w-80 h-80 bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
@@ -238,7 +252,9 @@ export default function Dashboard() {
               {heroBanners[currentBanner]?.cta_text && (
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-primary/20 to-transparent border border-primary/20">
                   <span className="animate-pulse w-2 h-2 rounded-full bg-primary" />
-                  <span className="text-xs font-bold text-primary uppercase tracking-wider">Destaque</span>
+                  <span className="text-xs font-bold text-primary uppercase tracking-wider">
+                    {heroBanners[currentBanner]?.category === "promo" ? "Promoção" : heroBanners[currentBanner]?.category === "info" ? "Informativo" : heroBanners[currentBanner]?.category === "evento" ? "Evento" : "Destaque"}
+                  </span>
                 </div>
               )}
               <h2 className={`text-3xl md:text-5xl font-bold leading-tight ${heroBanners[currentBanner]?.image_style === "cover" ? "text-white" : "text-foreground"}`}>
