@@ -623,6 +623,9 @@ export default function AdminPlataforma() {
       {/* Menu Visibility Tab */}
       {activeTab === "menu" && <NavMenuVisibilityManager />}
 
+      {/* Notification Sounds Tab */}
+      {activeTab === "sons" && <NotificationSoundsTab />}
+
       {/* Tag Create/Edit Modal */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="bg-[#1a1a1a] border-white/10 text-white max-w-md">
