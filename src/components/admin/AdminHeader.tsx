@@ -77,34 +77,79 @@ export function AdminHeader() {
       const ctx = new AudioContext();
       const now = ctx.currentTime;
 
-      // Coin drop / register "cha-ching" effect
-      const frequencies = [1200, 1800, 2400, 1600, 2000];
-      frequencies.forEach((freq, i) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.type = "sine";
-        osc.frequency.setValueAtTime(freq, now + i * 0.06);
-        gain.gain.setValueAtTime(0.15, now + i * 0.06);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.06 + 0.15);
-        osc.start(now + i * 0.06);
-        osc.stop(now + i * 0.06 + 0.15);
+      // --- Metallic "drawer slide" noise burst ---
+      const noiseLen = 0.12;
+      const noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * noiseLen, ctx.sampleRate);
+      const noiseData = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < noiseData.length; i++) {
+        noiseData[i] = (Math.random() * 2 - 1) * 0.4;
+      }
+      const noiseSrc = ctx.createBufferSource();
+      noiseSrc.buffer = noiseBuffer;
+      const noiseFilter = ctx.createBiquadFilter();
+      noiseFilter.type = "bandpass";
+      noiseFilter.frequency.value = 3000;
+      noiseFilter.Q.value = 2;
+      const noiseGain = ctx.createGain();
+      noiseGain.gain.setValueAtTime(0.35, now);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, now + noiseLen);
+      noiseSrc.connect(noiseFilter);
+      noiseFilter.connect(noiseGain);
+      noiseGain.connect(ctx.destination);
+      noiseSrc.start(now);
+
+      // --- First bell hit "CHA" ---
+      const bell1 = ctx.createOscillator();
+      const bell1Gain = ctx.createGain();
+      bell1.type = "triangle";
+      bell1.frequency.setValueAtTime(2200, now + 0.08);
+      bell1Gain.gain.setValueAtTime(0.25, now + 0.08);
+      bell1Gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+      bell1.connect(bell1Gain);
+      bell1Gain.connect(ctx.destination);
+      bell1.start(now + 0.08);
+      bell1.stop(now + 0.3);
+
+      // --- Second bell hit "CHING" (higher, longer ring) ---
+      const bell2 = ctx.createOscillator();
+      const bell2Gain = ctx.createGain();
+      bell2.type = "triangle";
+      bell2.frequency.setValueAtTime(3520, now + 0.22);
+      bell2Gain.gain.setValueAtTime(0.3, now + 0.22);
+      bell2Gain.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
+      bell2.connect(bell2Gain);
+      bell2Gain.connect(ctx.destination);
+      bell2.start(now + 0.22);
+      bell2.stop(now + 0.95);
+
+      // --- Harmonic overtone for richness ---
+      const overtone = ctx.createOscillator();
+      const overtoneGain = ctx.createGain();
+      overtone.type = "sine";
+      overtone.frequency.setValueAtTime(7040, now + 0.22);
+      overtoneGain.gain.setValueAtTime(0.08, now + 0.22);
+      overtoneGain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+      overtone.connect(overtoneGain);
+      overtoneGain.connect(ctx.destination);
+      overtone.start(now + 0.22);
+      overtone.stop(now + 0.65);
+
+      // --- Coin jingle (rapid small tones) ---
+      [4400, 5200, 4800].forEach((freq, i) => {
+        const coin = ctx.createOscillator();
+        const coinGain = ctx.createGain();
+        coin.type = "sine";
+        const t = now + 0.35 + i * 0.04;
+        coin.frequency.setValueAtTime(freq, t);
+        coinGain.gain.setValueAtTime(0.06, t);
+        coinGain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+        coin.connect(coinGain);
+        coinGain.connect(ctx.destination);
+        coin.start(t);
+        coin.stop(t + 0.1);
       });
 
-      // Bell ring
-      const bell = ctx.createOscillator();
-      const bellGain = ctx.createGain();
-      bell.connect(bellGain);
-      bellGain.connect(ctx.destination);
-      bell.type = "triangle";
-      bell.frequency.setValueAtTime(3200, now + 0.35);
-      bellGain.gain.setValueAtTime(0.12, now + 0.35);
-      bellGain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
-      bell.start(now + 0.35);
-      bell.stop(now + 0.8);
-
-      setTimeout(() => ctx.close(), 1200);
+      setTimeout(() => ctx.close(), 1500);
     } catch {
       // Audio not available
     }
