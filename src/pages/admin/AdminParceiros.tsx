@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Users, Plus, Pencil, Trash2, Search, Link2, DollarSign, Check, X } from "lucide-react";
+import { Users, Plus, Pencil, Trash2, Search, Link2, DollarSign, Check, X, Eye, EyeOff } from "lucide-react";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
