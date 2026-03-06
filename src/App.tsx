@@ -71,6 +71,8 @@ import AdminFeedbacks from "./pages/admin/AdminFeedbacks";
 import AdminReposicoes from "./pages/admin/AdminReposicoes";
 import AdminTrocas from "./pages/admin/AdminTrocas";
 import AdminGestaoBMs from "./pages/admin/AdminGestaoBMs";
+import AdminParceiros from "./pages/admin/AdminParceiros";
+import PartnerRedirect from "./pages/PartnerRedirect";
 import { AdminLayout } from "./components/admin/AdminLayout";
 
 // Layout
@@ -211,6 +213,7 @@ const App = () => {
                 <Route path="/termos" element={<TermsOfService />} />
                 <Route path="/sobre" element={<Sobre />} />
                 <Route path="/produto/:slug" element={<ProductPage />} />
+                <Route path="/parceiro/:slug" element={<PartnerRedirect />} />
 
                 {/* Admin routes */}
                 <Route path="/admin/login" element={<AdminLogin />} />
@@ -247,6 +250,7 @@ const App = () => {
                   <Route path="reposicoes" element={<AdminReposicoes />} />
                   <Route path="trocas" element={<AdminTrocas />} />
                   <Route path="gestao-bms" element={<AdminGestaoBMs />} />
+                  <Route path="parceiros" element={<AdminParceiros />} />
                   <Route path="api" element={<AdminApi />} />
                   <Route path="anuncios" element={<AdminAnuncios />} />
                   <Route path="chat" element={<AdminTeamChat />} />
