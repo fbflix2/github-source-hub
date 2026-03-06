@@ -72,86 +72,46 @@ export function AdminHeader() {
   }, [fetchNotifications]);
 
   // Cash register sound for money-related notifications
-  const playCashSound = useCallback(() => {
-    try {
-      const ctx = new AudioContext();
-      const now = ctx.currentTime;
+  // Notification sounds from DB
+  const soundCacheRef = useRef<Record<string, string>>({});
 
-      // --- Metallic "drawer slide" noise burst ---
-      const noiseLen = 0.12;
-      const noiseBuffer = ctx.createBuffer(1, ctx.sampleRate * noiseLen, ctx.sampleRate);
-      const noiseData = noiseBuffer.getChannelData(0);
-      for (let i = 0; i < noiseData.length; i++) {
-        noiseData[i] = (Math.random() * 2 - 1) * 0.4;
+  // Load sound URLs from DB once
+  useEffect(() => {
+    const loadSounds = async () => {
+      const { data } = await supabase
+        .from("notification_sounds")
+        .select("event_key, sound_url, active")
+        .eq("active", true);
+      if (data) {
+        const cache: Record<string, string> = {};
+        data.forEach((row: { event_key: string; sound_url: string | null }) => {
+          if (row.sound_url) cache[row.event_key] = row.sound_url;
+        });
+        soundCacheRef.current = cache;
       }
-      const noiseSrc = ctx.createBufferSource();
-      noiseSrc.buffer = noiseBuffer;
-      const noiseFilter = ctx.createBiquadFilter();
-      noiseFilter.type = "bandpass";
-      noiseFilter.frequency.value = 3000;
-      noiseFilter.Q.value = 2;
-      const noiseGain = ctx.createGain();
-      noiseGain.gain.setValueAtTime(0.35, now);
-      noiseGain.gain.exponentialRampToValueAtTime(0.001, now + noiseLen);
-      noiseSrc.connect(noiseFilter);
-      noiseFilter.connect(noiseGain);
-      noiseGain.connect(ctx.destination);
-      noiseSrc.start(now);
+    };
+    loadSounds();
+  }, []);
 
-      // --- First bell hit "CHA" ---
-      const bell1 = ctx.createOscillator();
-      const bell1Gain = ctx.createGain();
-      bell1.type = "triangle";
-      bell1.frequency.setValueAtTime(2200, now + 0.08);
-      bell1Gain.gain.setValueAtTime(0.25, now + 0.08);
-      bell1Gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
-      bell1.connect(bell1Gain);
-      bell1Gain.connect(ctx.destination);
-      bell1.start(now + 0.08);
-      bell1.stop(now + 0.3);
+  // Map notification type to event_key
+  const getEventKey = useCallback((type: string): string | null => {
+    const map: Record<string, string> = {
+      order: "order_completed",
+      wallet: "wallet_deposit",
+      pix: "wallet_deposit",
+      ticket: "new_ticket",
+    };
+    return map[type] || null;
+  }, []);
 
-      // --- Second bell hit "CHING" (higher, longer ring) ---
-      const bell2 = ctx.createOscillator();
-      const bell2Gain = ctx.createGain();
-      bell2.type = "triangle";
-      bell2.frequency.setValueAtTime(3520, now + 0.22);
-      bell2Gain.gain.setValueAtTime(0.3, now + 0.22);
-      bell2Gain.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
-      bell2.connect(bell2Gain);
-      bell2Gain.connect(ctx.destination);
-      bell2.start(now + 0.22);
-      bell2.stop(now + 0.95);
-
-      // --- Harmonic overtone for richness ---
-      const overtone = ctx.createOscillator();
-      const overtoneGain = ctx.createGain();
-      overtone.type = "sine";
-      overtone.frequency.setValueAtTime(7040, now + 0.22);
-      overtoneGain.gain.setValueAtTime(0.08, now + 0.22);
-      overtoneGain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
-      overtone.connect(overtoneGain);
-      overtoneGain.connect(ctx.destination);
-      overtone.start(now + 0.22);
-      overtone.stop(now + 0.65);
-
-      // --- Coin jingle (rapid small tones) ---
-      [4400, 5200, 4800].forEach((freq, i) => {
-        const coin = ctx.createOscillator();
-        const coinGain = ctx.createGain();
-        coin.type = "sine";
-        const t = now + 0.35 + i * 0.04;
-        coin.frequency.setValueAtTime(freq, t);
-        coinGain.gain.setValueAtTime(0.06, t);
-        coinGain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
-        coin.connect(coinGain);
-        coinGain.connect(ctx.destination);
-        coin.start(t);
-        coin.stop(t + 0.1);
-      });
-
-      setTimeout(() => ctx.close(), 1500);
-    } catch {
-      // Audio not available
+  const playNotificationSound = useCallback((eventKey: string) => {
+    const url = soundCacheRef.current[eventKey];
+    if (url) {
+      try {
+        const audio = new Audio(url);
+        audio.volume = 0.7;
+        audio.play().catch(() => {});
+      } catch {}
     }
   }, []);
 
@@ -162,16 +122,15 @@ export function AdminHeader() {
       .channel("admin-notifications")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications" }, (payload) => {
         fetchNotifications();
-        // Play cash sound for money-related notifications
         const notif = payload.new as AdminNotification;
-        const moneyTypes = ["order", "wallet", "pix"];
-        if (moneyTypes.includes(notif.type)) {
-          playCashSound();
+        const eventKey = getEventKey(notif.type);
+        if (eventKey) {
+          playNotificationSound(eventKey);
         }
       })
       .subscribe();
     return () => { clearInterval(interval); supabase.removeChannel(channel); };
-  }, [fetchNotifications, playCashSound]);
+  }, [fetchNotifications, getEventKey, playNotificationSound]);
 
   const markAsRead = async (id: string) => {
     await supabase.from("notifications").update({ read: true }).eq("id", id);
