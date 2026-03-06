@@ -21,6 +21,7 @@ const WHATSAPP_MESSAGE = encodeURIComponent("oi tenho uma dúvida rápida");
 export function MainLayout({ userName, userEmail, onLogout, unreadTickets = 0 }: MainLayoutProps) {
   const [balance, setBalance] = useState(0);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [isPartner, setIsPartner] = useState(false);
 
   useEffect(() => {
     let userId: string | null = null;
@@ -34,6 +35,9 @@ export function MainLayout({ userName, userEmail, onLogout, unreadTickets = 0 }:
         setBalance(data.balance);
         setAvatarUrl(data.avatar_url);
       }
+      // Check if user is a partner
+      const { data: partnerData } = await supabase.from("partners").select("id").eq("user_id", user.id).eq("status", "active").maybeSingle();
+      setIsPartner(!!partnerData);
     }
     fetchProfile();
 
@@ -84,6 +88,7 @@ export function MainLayout({ userName, userEmail, onLogout, unreadTickets = 0 }:
         userEmail={userEmail}
         balance={balance}
         avatarUrl={avatarUrl || undefined}
+        isPartner={isPartner}
         onLogout={onLogout}
         unreadTickets={unreadTickets}
       />
