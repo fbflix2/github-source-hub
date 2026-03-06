@@ -2,7 +2,35 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLocation } from "react-router-dom";
 
+// Cache for team chat sound URL
+let teamChatSoundUrl: string | null | undefined = undefined;
+
+async function loadTeamChatSound() {
+  if (teamChatSoundUrl !== undefined) return;
+  try {
+    const { data } = await supabase
+      .from("notification_sounds")
+      .select("sound_url")
+      .eq("event_key", "team_chat")
+      .eq("active", true)
+      .maybeSingle();
+    teamChatSoundUrl = data?.sound_url || null;
+  } catch {
+    teamChatSoundUrl = null;
+  }
+}
+
 function playAlertSound() {
+  loadTeamChatSound();
+  if (teamChatSoundUrl) {
+    try {
+      const audio = new Audio(teamChatSoundUrl);
+      audio.volume = 0.7;
+      audio.play().catch(() => {});
+    } catch {}
+    return;
+  }
+  // Fallback: synthesized beep
   try {
     const ctx = new AudioContext();
     const osc = ctx.createOscillator();
