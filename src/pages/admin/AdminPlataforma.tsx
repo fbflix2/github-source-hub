@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
-import { Plus, Search, Trash2, SquarePen, Tag, FolderTree, Palette, X, Save, User, Briefcase, Server, Globe, Flag, CircleUser, Building2, PackageOpen, Shield, Wifi, Key, Monitor, Smartphone, CreditCard, Mail, Lock, Loader2, ImageIcon, Upload, Menu, type LucideIcon } from "lucide-react";
+import { Plus, Search, Trash2, SquarePen, Tag, FolderTree, Palette, X, Save, User, Briefcase, Server, Globe, Flag, CircleUser, Building2, PackageOpen, Shield, Wifi, Key, Monitor, Smartphone, CreditCard, Mail, Lock, Loader2, ImageIcon, Upload, Menu, Volume2, type LucideIcon } from "lucide-react";
 import ProductDefaultsTab from "@/components/admin/ProductDefaultsTab";
 import NavMenuVisibilityManager from "@/components/admin/NavMenuVisibilityManager";
+import NotificationSoundsTab from "@/components/admin/NotificationSoundsTab";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -67,7 +68,7 @@ const platformIcons: PlatformIcon[] = [
 ];
 
 export default function AdminPlataforma() {
-  const [activeTab, setActiveTab] = useState<"tags" | "categorias" | "icones" | "imagens" | "padroes" | "menu">("tags");
+  const [activeTab, setActiveTab] = useState<"tags" | "categorias" | "icones" | "imagens" | "padroes" | "menu" | "sons">("tags");
   const [statusTags, setStatusTags] = useState<TagItem[]>(defaultStatusTags);
   const [productTags, setProductTags] = useState<TagItem[]>(defaultProductTags);
   const [searchTerm, setSearchTerm] = useState("");
@@ -215,6 +216,7 @@ export default function AdminPlataforma() {
     { key: "icones" as const, label: "Banco de Ícones", icon: Palette },
     { key: "padroes" as const, label: "Padrão Produtos", icon: PackageOpen },
     { key: "menu" as const, label: "Menu do Cliente", icon: Menu },
+    { key: "sons" as const, label: "Sons de Notificação", icon: Volume2 },
   ];
 
   const handleOpenCreate = (type: "status" | "product") => {
