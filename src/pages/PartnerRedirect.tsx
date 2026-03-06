@@ -16,7 +16,6 @@ export default function PartnerRedirect() {
         .from("partners")
         .select("id, slug")
         .eq("slug", slug.toLowerCase())
-        .eq("status", "active")
         .maybeSingle();
 
       if (data) {
