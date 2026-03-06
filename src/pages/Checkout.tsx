@@ -342,7 +342,92 @@ export default function Checkout() {
   }, [pixModal, pixPaymentId]);
 
 
-  const relevantBumps = bumpProducts;
+  // Smart complementary bumps: detect main product type and show only different categories
+  const relevantBumps = useMemo(() => {
+    if (!product || bumpProducts.length === 0) return [];
+
+    const mainName = (product.name || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const mainTags = (product.tags || []).map(t => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""));
+    const mainIcon = (product.icon_type || "").toLowerCase();
+
+    // Detect main product type
+    const isMainProxy = mainIcon === "proxy" || mainName.includes("proxy") || mainTags.some(t => t.includes("proxy"));
+    const isMainPerfil = mainName.includes("perfil") || mainTags.some(t => t.includes("perfil") || t.includes("profile"));
+    const isMainBM = mainName.includes("bm") || mainName.includes("business manager") || mainTags.some(t => t.includes("bm") || t.includes("business"));
+    const isMainPagina = mainName.includes("pagina") || mainName.includes("página") || mainName.includes("fanpage") || mainTags.some(t => t.includes("pagina") || t.includes("fanpage"));
+
+    // Filter bumps to only show complementary products (different category)
+    const filtered = bumpProducts.filter(bump => {
+      const bName = (bump.name || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const bDesc = (bump.description || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+      const isBumpProxy = bName.includes("proxy");
+      const isBumpPerfil = bName.includes("perfil") || bDesc.includes("perfil");
+      const isBumpBM = bName.includes("bm") || bName.includes("business manager") || bDesc.includes("business manager");
+      const isBumpPagina = bName.includes("pagina") || bName.includes("fanpage") || bDesc.includes("pagina") || bDesc.includes("fanpage");
+
+      // Exclude same type as main product
+      if (isMainProxy && isBumpProxy) return false;
+      if (isMainPerfil && isBumpPerfil) return false;
+      if (isMainBM && isBumpBM) return false;
+      if (isMainPagina && isBumpPagina) return false;
+
+      // If main is perfil, prioritize BMs, pages, and proxies for contingency
+      // If main is proxy, prioritize perfis and BMs
+      // If main is BM, prioritize perfis and proxies
+      // All these pass through — scoring will handle ordering below
+      return true;
+    });
+
+    // Score bumps by complementarity relevance
+    const scored = filtered.map(bump => {
+      const bName = (bump.name || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const bDesc = (bump.description || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      let score = 0;
+
+      const isBumpProxy = bName.includes("proxy");
+      const isBumpPerfil = bName.includes("perfil") || bDesc.includes("perfil");
+      const isBumpBM = bName.includes("bm") || bName.includes("business manager");
+      const isBumpPagina = bName.includes("pagina") || bName.includes("fanpage");
+
+      if (isMainPerfil) {
+        // Perfil → BM > Proxy > Página
+        if (isBumpBM) score = 30;
+        else if (isBumpProxy) score = 20;
+        else if (isBumpPagina) score = 15;
+        else score = 5;
+      } else if (isMainProxy) {
+        // Proxy → Perfil > BM > Página
+        if (isBumpPerfil) score = 30;
+        else if (isBumpBM) score = 25;
+        else if (isBumpPagina) score = 15;
+        else score = 5;
+      } else if (isMainBM) {
+        // BM → Perfil > Proxy > Página
+        if (isBumpPerfil) score = 30;
+        else if (isBumpProxy) score = 20;
+        else if (isBumpPagina) score = 15;
+        else score = 5;
+      } else if (isMainPagina) {
+        // Página → Perfil > BM > Proxy
+        if (isBumpPerfil) score = 30;
+        else if (isBumpBM) score = 25;
+        else if (isBumpProxy) score = 15;
+        else score = 5;
+      } else {
+        // Generic: show variety
+        score = 10;
+      }
+
+      return { bump, score };
+    });
+
+    // Sort by score descending, limit to 6 most relevant
+    return scored
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 6)
+      .map(s => s.bump);
+  }, [product, bumpProducts]);
 
   const subtotal = useMemo(() => {
     if (!product) return 0;
