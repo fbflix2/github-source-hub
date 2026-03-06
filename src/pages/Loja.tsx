@@ -168,6 +168,7 @@ export default function Dashboard() {
   // Local proxy products should show alongside regular products and in Proxy filter
   const isLocalProxy = (p: Product) => p.category_id === proxyCategoryId;
   const webshareLocalProducts = products.filter(isLocalProxy);
+  console.log("[Loja] proxyCategoryId:", proxyCategoryId, "webshareLocalProducts:", webshareLocalProducts.map(p => p.name), "total products:", products.length);
 
   const filteredProducts = activeFilter === "Todos"
     ? products.filter((p) => p.category_id !== proxyCategoryId || isLocalProxy(p))
