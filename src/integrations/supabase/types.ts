@@ -422,6 +422,39 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_sounds: {
+        Row: {
+          active: boolean
+          created_at: string
+          event_key: string
+          file_name: string | null
+          id: string
+          label: string
+          sound_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          event_key: string
+          file_name?: string | null
+          id?: string
+          label: string
+          sound_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          event_key?: string
+          file_name?: string | null
+          id?: string
+          label?: string
+          sound_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string
