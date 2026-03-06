@@ -969,7 +969,6 @@ export default function Checkout() {
                     </div>
                     <button
                       onClick={() => {
-                        // Add promo proxy to bump list with promo price, then toggle
                         setBumpProducts(prev => {
                           const exists = prev.find(b => b.id === promoProxy.id);
                           if (exists) return prev.map(b => b.id === promoProxy.id ? { ...b, price: PROMO_PRICE } : b);
@@ -982,6 +981,9 @@ export default function Checkout() {
                       Adicionar
                     </button>
                   </div>
+                  <p className="text-[10px] text-muted-foreground leading-tight">
+                    <span className="text-amber-400">⚡</span> Preço promocional válido apenas para esta compra. Na renovação, o valor volta ao normal de R$ {originalPrice.toFixed(2).replace(".", ",")}/mês.
+                  </p>
                 </div>
               );
             })()}
