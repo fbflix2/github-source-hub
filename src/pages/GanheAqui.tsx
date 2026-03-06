@@ -33,6 +33,7 @@ export default function GanheAqui() {
   const [userName, setUserName] = useState("");
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [loading, setLoading] = useState(true);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
   const [page, setPage] = useState(0);
@@ -47,10 +48,11 @@ export default function GanheAqui() {
 
     const { data: profile } = await supabase
       .from("profiles")
-      .select("full_name")
+      .select("full_name, avatar_url")
       .eq("user_id", user.id)
       .maybeSingle();
     if (profile?.full_name) setUserName(profile.full_name);
+    if (profile?.avatar_url) setAvatarUrl(profile.avatar_url);
 
     const { data: partnerData } = await supabase
       .from("partners")
@@ -138,8 +140,12 @@ export default function GanheAqui() {
       {/* Header Section */}
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 border-b border-[#2A2A2A] pb-8">
         <div className="flex items-center gap-4">
-          <div className="size-14 rounded-full bg-gradient-to-br from-primary to-primary/40 flex items-center justify-center border-2 border-[#2A2A2A]">
-            <span className="text-xl font-bold text-white">{initials}</span>
+          <div className="size-14 rounded-full bg-gradient-to-br from-primary to-primary/40 flex items-center justify-center border-2 border-[#2A2A2A] overflow-hidden">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt={userName} className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-xl font-bold text-white">{initials}</span>
+            )}
           </div>
           <div>
             <div className="flex items-center gap-2">
