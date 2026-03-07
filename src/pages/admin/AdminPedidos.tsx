@@ -436,7 +436,7 @@ export default function AdminPedidos() {
                         </div>
                         <div className="flex items-center gap-3">
                           <p className="font-bold text-primary">R$ {(item.price * item.quantity).toFixed(2).replace(".", ",")}</p>
-                          {item.product_id && (
+                          {item.product_id && !subCode && (
                             <button
                               onClick={() => {
                                 setExchangeItem({
