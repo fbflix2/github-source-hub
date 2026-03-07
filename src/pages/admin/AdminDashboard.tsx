@@ -30,7 +30,7 @@ export default function AdminDashboard() {
   const [activeProducts, setActiveProducts] = useState(0);
   const [totalOrders, setTotalOrders] = useState(0);
   const [pendingOrders, setPendingOrders] = useState(0);
-  const [cancelledOrders, setCancelledOrders] = useState(0);
+  const [replacementRate, setReplacementRate] = useState(0);
   const [todayRevenue, setTodayRevenue] = useState(0);
   const [chartData, setChartData] = useState<{ name: string; value: number }[]>([]);
   const [categoryStats, setCategoryStats] = useState<{ name: string; sales: number; revenue: number }[]>([]);
