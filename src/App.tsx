@@ -34,6 +34,7 @@ import Sobre from "./pages/Sobre";
 import Mercado from "./pages/Mercado";
 import TokenFBX from "./pages/TokenFBX";
 import ProductPage from "./pages/ProductPage";
+import SaibaMaisFBX from "./pages/SaibaMaisFBX";
 
 // Admin Pages
 import AdminLogin from "./pages/admin/AdminLogin";
