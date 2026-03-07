@@ -35,6 +35,7 @@ import Mercado from "./pages/Mercado";
 import TokenFBX from "./pages/TokenFBX";
 import ProductPage from "./pages/ProductPage";
 import SaibaMaisFBX from "./pages/SaibaMaisFBX";
+import MigrationLogin from "./pages/MigrationLogin";
 
 // Admin Pages
 import AdminLogin from "./pages/admin/AdminLogin";
@@ -216,6 +217,7 @@ const App = () => {
                 <Route path="/produto/:slug" element={<ProductPage />} />
                 <Route path="/saiba-mais-fbx" element={<SaibaMaisFBX />} />
                 <Route path="/parceiro/:slug" element={<PartnerRedirect />} />
+                <Route path="/migrar" element={user ? <Navigate to="/welcome" replace /> : <MigrationLogin />} />
 
                 {/* Admin routes */}
                 <Route path="/admin/login" element={<AdminLogin />} />
