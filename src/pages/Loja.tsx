@@ -68,6 +68,7 @@ export default function Dashboard() {
   const [proxyImages, setProxyImages] = useState<ProxyImage[]>([]);
   const [heroBanners, setHeroBanners] = useState<HeroBanner[]>([]);
   const [currentBanner, setCurrentBanner] = useState(0);
+  const [bannerCategoryLabels, setBannerCategoryLabels] = useState<Record<string, string>>({});
 
   // Auto-slide banners every 6 seconds
   useEffect(() => {
@@ -80,17 +81,23 @@ export default function Dashboard() {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const [productsRes, categoriesRes, proxyImagesRes, bannersRes] = await Promise.all([
+    const [productsRes, categoriesRes, proxyImagesRes, bannersRes, bannerCatsRes] = await Promise.all([
       supabase.from("products").select("*").eq("status", "active").order("created_at", { ascending: false }),
       supabase.from("product_categories").select("*"),
       supabase.from("product_images").select("name, url").eq("category", "proxy"),
       supabase.from("banners").select("*").eq("active", true).order("position", { ascending: true }),
+      supabase.from("banner_categories").select("value, label").order("position"),
     ]);
 
     if (productsRes.data) setProducts(productsRes.data);
     if (categoriesRes.data) setCategories(categoriesRes.data);
     if (proxyImagesRes.data) setProxyImages(proxyImagesRes.data);
     if (bannersRes.data) setHeroBanners(bannersRes.data);
+    if (bannerCatsRes.data) {
+      const map: Record<string, string> = {};
+      bannerCatsRes.data.forEach((c: any) => { map[c.value] = c.label; });
+      setBannerCategoryLabels(map);
+    }
     setLoading(false);
   }, []);
 
@@ -252,7 +259,7 @@ export default function Dashboard() {
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-primary/20 to-transparent border border-primary/20">
                 <span className="animate-pulse w-2 h-2 rounded-full bg-primary" />
                 <span className="text-xs font-bold text-primary uppercase tracking-wider">
-                  {heroBanners[currentBanner]?.category === "promo" ? "Promoção" : heroBanners[currentBanner]?.category === "info" ? "Informativo" : heroBanners[currentBanner]?.category === "evento" ? "Evento" : "Destaque"}
+                  {bannerCategoryLabels[heroBanners[currentBanner]?.category || ""] || heroBanners[currentBanner]?.category || "Destaque"}
                 </span>
               </div>
               <h2 className={`text-3xl md:text-5xl font-bold leading-tight ${heroBanners[currentBanner]?.image_style === "cover" ? "text-white" : "text-foreground"}`}>

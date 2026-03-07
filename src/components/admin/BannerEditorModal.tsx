@@ -10,6 +10,12 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Upload, X } from "lucide-react";
 
+interface BannerCategory {
+  id: string;
+  value: string;
+  label: string;
+}
+
 interface Banner {
   id: string;
   title: string;
@@ -32,14 +38,15 @@ interface Props {
   onSaved: () => void;
 }
 
-const CATEGORIES = [
-  { value: "promo", label: "Promoção" },
-  { value: "destaque", label: "Destaque" },
-  { value: "info", label: "Informativo" },
-  { value: "evento", label: "Evento" },
-];
 
 export default function BannerEditorModal({ open, onOpenChange, banner, onSaved }: Props) {
+  const [categories, setCategories] = useState<BannerCategory[]>([]);
+
+  useEffect(() => {
+    supabase.from("banner_categories").select("id, value, label").order("position").then(({ data }) => {
+      if (data) setCategories(data);
+    });
+  }, [open]);
   const [title, setTitle] = useState("");
   const [subtitle, setSubtitle] = useState("");
   const [ctaText, setCtaText] = useState("");
@@ -160,7 +167,7 @@ export default function BannerEditorModal({ open, onOpenChange, banner, onSaved 
                   <SelectValue placeholder="Selecionar..." />
                 </SelectTrigger>
                 <SelectContent>
-                  {CATEGORIES.map((c) => (
+                  {categories.map((c) => (
                     <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
                   ))}
                 </SelectContent>

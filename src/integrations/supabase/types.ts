@@ -128,6 +128,30 @@ export type Database = {
         }
         Relationships: []
       }
+      banner_categories: {
+        Row: {
+          created_at: string
+          id: string
+          label: string
+          position: number
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label: string
+          position?: number
+          value: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string
+          position?: number
+          value?: string
+        }
+        Relationships: []
+      }
       banners: {
         Row: {
           active: boolean

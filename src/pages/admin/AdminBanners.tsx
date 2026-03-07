@@ -29,6 +29,13 @@ interface Banner {
   image_style: string | null;
 }
 
+interface BannerCategory {
+  id: string;
+  value: string;
+  label: string;
+  position: number;
+}
+
 export default function AdminBanners() {
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -38,12 +45,20 @@ export default function AdminBanners() {
   const [editingBanner, setEditingBanner] = useState<Banner | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+  const [bannerCategories, setBannerCategories] = useState<BannerCategory[]>([]);
+  const [showCatManager, setShowCatManager] = useState(false);
+  const [newCatValue, setNewCatValue] = useState("");
+  const [newCatLabel, setNewCatLabel] = useState("");
 
   const fetchBanners = async () => {
     setLoading(true);
-    const { data, error } = await supabase.from("banners").select("*").order("position", { ascending: true });
-    if (error) toast.error("Erro ao carregar banners");
-    setBanners(data || []);
+    const [bannersRes, catsRes] = await Promise.all([
+      supabase.from("banners").select("*").order("position", { ascending: true }),
+      supabase.from("banner_categories").select("*").order("position"),
+    ]);
+    if (bannersRes.error) toast.error("Erro ao carregar banners");
+    setBanners(bannersRes.data || []);
+    setBannerCategories(catsRes.data || []);
     setLoading(false);
   };
 
@@ -77,8 +92,29 @@ export default function AdminBanners() {
     .filter((b) => statusFilter === "all" ? true : statusFilter === "active" ? b.active : !b.active);
 
   const categoryLabel = (cat: string | null) => {
-    const map: Record<string, string> = { promo: "Promoção", destaque: "Destaque", info: "Informativo", evento: "Evento" };
-    return map[cat || ""] || cat || "—";
+    const found = bannerCategories.find((c) => c.value === cat);
+    return found?.label || cat || "—";
+  };
+
+  const addCategory = async () => {
+    if (!newCatValue.trim() || !newCatLabel.trim()) return toast.error("Preencha valor e nome");
+    const { error } = await supabase.from("banner_categories").insert({
+      value: newCatValue.trim().toLowerCase().replace(/\s+/g, "_"),
+      label: newCatLabel.trim(),
+      position: bannerCategories.length + 1,
+    });
+    if (error) return toast.error("Erro: " + error.message);
+    toast.success("Categoria criada");
+    setNewCatValue("");
+    setNewCatLabel("");
+    fetchBanners();
+  };
+
+  const deleteCategory = async (id: string) => {
+    const { error } = await supabase.from("banner_categories").delete().eq("id", id);
+    if (error) return toast.error("Erro: " + error.message);
+    toast.success("Categoria removida");
+    fetchBanners();
   };
 
   return (
@@ -89,9 +125,14 @@ export default function AdminBanners() {
             <h1 className="text-4xl md:text-5xl font-black tracking-tight text-foreground mb-2">Editor de Banners</h1>
             <p className="text-muted-foreground font-medium text-sm md:text-base">Gerencie as promoções e destaques do FBFLIX</p>
           </div>
-          <Button onClick={() => { setEditingBanner(null); setEditorOpen(true); }} className="group flex items-center gap-2 font-bold py-3 px-6 h-auto rounded-xl">
-            <Plus className="w-5 h-5" /> Novo Banner
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowCatManager(!showCatManager)} className="flex items-center gap-2 font-bold py-3 px-5 h-auto rounded-xl">
+              <Tag className="w-4 h-4" /> Categorias
+            </Button>
+            <Button onClick={() => { setEditingBanner(null); setEditorOpen(true); }} className="group flex items-center gap-2 font-bold py-3 px-6 h-auto rounded-xl">
+              <Plus className="w-5 h-5" /> Novo Banner
+            </Button>
+          </div>
         </div>
 
         <div className="bg-card/60 backdrop-blur-xl border border-border p-4 rounded-2xl flex flex-col md:flex-row gap-4 items-center justify-between">
@@ -113,6 +154,37 @@ export default function AdminBanners() {
           </div>
         </div>
       </header>
+
+      {/* Category Manager */}
+      {showCatManager && (
+        <div className="bg-card/60 backdrop-blur-xl border border-border rounded-2xl p-6 space-y-4">
+          <h3 className="text-lg font-bold text-foreground">Categorias de Banner</h3>
+          <div className="flex flex-wrap gap-2">
+            {bannerCategories.map((cat) => (
+              <div key={cat.id} className="flex items-center gap-2 bg-secondary border border-border rounded-lg px-3 py-2">
+                <span className="text-sm font-medium text-foreground">{cat.label}</span>
+                <span className="text-xs text-muted-foreground">({cat.value})</span>
+                <button onClick={() => deleteCategory(cat.id)} className="text-destructive hover:text-destructive/80 ml-1">
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-2 items-end">
+            <div className="flex-1">
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Valor (chave)</label>
+              <Input value={newCatValue} onChange={(e) => setNewCatValue(e.target.value)} placeholder="ex: lancamento" className="h-9" />
+            </div>
+            <div className="flex-1">
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Nome (exibição)</label>
+              <Input value={newCatLabel} onChange={(e) => setNewCatLabel(e.target.value)} placeholder="ex: Lançamento" className="h-9" />
+            </div>
+            <Button onClick={addCategory} size="sm" className="h-9">
+              <Plus className="w-4 h-4 mr-1" /> Adicionar
+            </Button>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
