@@ -38,12 +38,6 @@ interface Props {
   onSaved: () => void;
 }
 
-const CATEGORIES = [
-  { value: "promo", label: "Promoção" },
-  { value: "destaque", label: "Destaque" },
-  { value: "info", label: "Informativo" },
-  { value: "evento", label: "Evento" },
-];
 
 export default function BannerEditorModal({ open, onOpenChange, banner, onSaved }: Props) {
   const [categories, setCategories] = useState<BannerCategory[]>([]);
