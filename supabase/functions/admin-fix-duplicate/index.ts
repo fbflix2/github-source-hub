@@ -107,6 +107,17 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Action: update_product_tags
+    if (body.action === "update_product_tags") {
+      const { product_id, tags } = body;
+      if (!product_id || !Array.isArray(tags)) throw new Error("product_id e tags são obrigatórios");
+      const { error } = await supabaseAdmin.from("products").update({ tags }).eq("id", product_id);
+      if (error) throw new Error(error.message);
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Default action: delete_user
     const { delete_user_id } = body;
     if (!delete_user_id) throw new Error("delete_user_id é obrigatório");
