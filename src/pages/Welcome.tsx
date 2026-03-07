@@ -57,7 +57,7 @@ export default function Welcome() {
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-primary text-2xl">play_circle</span>
               <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                FBFLIX <span className="text-primary">2.0</span>
+                FBFLIX
               </h1>
             </div>
             <h2 className="text-lg font-semibold text-foreground">Bem-vindo! 🎉</h2>

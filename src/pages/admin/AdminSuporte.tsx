@@ -144,7 +144,7 @@ export default function AdminSuporte() {
               Dashboard de Atendimento
             </h1>
             <p className="text-gray-400 text-sm font-medium tracking-wide uppercase">
-              FBFLIX 2.0 <span className="mx-2 text-primary">•</span> Painel Administrativo
+              FBFLIX <span className="mx-2 text-primary">•</span> Painel Administrativo
             </p>
           </div>
         </header>

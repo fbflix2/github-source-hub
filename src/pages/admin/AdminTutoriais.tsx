@@ -343,7 +343,7 @@ export default function AdminTutoriais() {
         </h1>
         <p className="text-gray-400 text-lg max-w-2xl">
           Adicione, edite e organize os vídeos de ajuda para os seus clientes.
-          Mantenha a base de conhecimento do FBFLIX 2.0 sempre atualizada.
+          Mantenha a base de conhecimento do FBFLIX sempre atualizada.
         </p>
       </header>
 

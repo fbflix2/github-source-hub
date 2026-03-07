@@ -577,7 +577,7 @@ export default function AdminAfiliados() {
 
       {/* Footer */}
       <footer className="mt-8 text-center text-xs text-neutral-600 pb-4">
-        <p>FBFLIX 2.0 Admin Dashboard • Versão 3.1.2 build 892</p>
+        <p>FBFLIX Admin Dashboard • Versão 3.1.2 build 892</p>
       </footer>
     </div>
   );
