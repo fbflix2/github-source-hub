@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Users, Receipt, Wallet, TrendingUp, Database, CheckCircle, Clock, AlertTriangle, Ban, User, Briefcase, Globe, MoreVertical, Loader2, X, ExternalLink } from "lucide-react";
+import { Users, Receipt, Wallet, TrendingUp, Database, CheckCircle, Clock, AlertTriangle, RefreshCw, User, Briefcase, Globe, MoreVertical, Loader2, X, ExternalLink } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -30,7 +30,7 @@ export default function AdminDashboard() {
   const [activeProducts, setActiveProducts] = useState(0);
   const [totalOrders, setTotalOrders] = useState(0);
   const [pendingOrders, setPendingOrders] = useState(0);
-  const [cancelledOrders, setCancelledOrders] = useState(0);
+  const [replacementRate, setReplacementRate] = useState(0);
   const [todayRevenue, setTodayRevenue] = useState(0);
   const [chartData, setChartData] = useState<{ name: string; value: number }[]>([]);
   const [categoryStats, setCategoryStats] = useState<{ name: string; sales: number; revenue: number }[]>([]);
@@ -117,7 +117,6 @@ export default function AdminDashboard() {
       const ords = ordersRes.data ?? [];
       setTotalOrders(ords.length);
       setPendingOrders(ords.filter(o => o.status === "processing").length + (pendingPaymentsRes.count ?? 0));
-      setCancelledOrders(ords.filter(o => o.status === "cancelled").length);
 
       const completedStatuses = ["completed", "delivered"];
       const completedOrds = ords.filter(o => completedStatuses.includes(o.status));
@@ -250,6 +249,21 @@ export default function AdminDashboard() {
           revenue: shouldZero ? 0 : (catStats[c.id]?.revenue ?? 0),
         };
       }));
+
+      // Calculate replacement rate for non-proxy products
+      const [replacementsRes] = await Promise.all([
+        supabase.from("replacements").select("id", { count: "exact", head: true }),
+      ]);
+      const proxyProductIds = new Set(
+        (prodsByCat.data ?? []).filter(p => p.external_id).map(p => p.id)
+      );
+      const completedOrderIdsForRepl = new Set(ords.filter(o => ["completed", "delivered"].includes(o.status)).map(o => o.id));
+      const nonProxyOrderItems = (orderItemsRes.data ?? []).filter(item => 
+        completedOrderIdsForRepl.has(item.order_id) && (!item.product_id || !proxyProductIds.has(item.product_id))
+      );
+      const totalNonProxyItems = nonProxyOrderItems.reduce((sum, item) => sum + (item.quantity || 1), 0);
+      const totalReplacements = replacementsRes.count ?? 0;
+      setReplacementRate(totalNonProxyItems > 0 ? (totalReplacements / totalNonProxyItems) * 100 : 0);
       } catch (err) {
         console.error("Dashboard fetchStats error:", err);
       } finally {
@@ -314,7 +328,7 @@ export default function AdminDashboard() {
             { label: "Disponíveis", value: activeProducts.toString(), icon: CheckCircle, color: "text-green-500", clickable: false },
             { label: "Pedidos Pendentes", value: pendingOrders.toString(), icon: Clock, color: "text-yellow-500", clickable: true },
             { label: "Total Pedidos", value: totalOrders.toString(), icon: AlertTriangle, color: "text-blue-400", clickable: false },
-            { label: "Cancelados", value: cancelledOrders.toString(), icon: Ban, color: "text-red-500", clickable: false },
+            { label: "Taxa Reposição", value: `${replacementRate.toFixed(1)}%`, icon: RefreshCw, color: "text-orange-400", clickable: false },
           ].map((metric) => (
             <div
               key={metric.label}
