@@ -1,0 +1,1 @@
+UPDATE subscriptions SET raw_data = raw_data || '{"exchange_quota_free": 2}'::jsonb WHERE id = '86665a76-0672-46ec-9cfa-e3b361a0fe3e'
