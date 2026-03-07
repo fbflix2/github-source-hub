@@ -11,7 +11,8 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get("Authorization");
+    const authHeader = req.headers.get("Authorization") || req.headers.get("authorization");
+    console.log("Auth header present:", !!authHeader, "starts with:", authHeader?.substring(0, 20));
     
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
