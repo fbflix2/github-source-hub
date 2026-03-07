@@ -249,6 +249,21 @@ export default function AdminDashboard() {
           revenue: shouldZero ? 0 : (catStats[c.id]?.revenue ?? 0),
         };
       }));
+
+      // Calculate replacement rate for non-proxy products
+      const [replacementsRes] = await Promise.all([
+        supabase.from("replacements").select("id", { count: "exact", head: true }),
+      ]);
+      const proxyProductIds = new Set(
+        (prodsByCat.data ?? []).filter(p => p.external_id).map(p => p.id)
+      );
+      const completedOrderIdsForRepl = new Set(ords.filter(o => ["completed", "delivered"].includes(o.status)).map(o => o.id));
+      const nonProxyOrderItems = (orderItemsRes.data ?? []).filter(item => 
+        completedOrderIdsForRepl.has(item.order_id) && (!item.product_id || !proxyProductIds.has(item.product_id))
+      );
+      const totalNonProxyItems = nonProxyOrderItems.reduce((sum, item) => sum + (item.quantity || 1), 0);
+      const totalReplacements = replacementsRes.count ?? 0;
+      setReplacementRate(totalNonProxyItems > 0 ? (totalReplacements / totalNonProxyItems) * 100 : 0);
       } catch (err) {
         console.error("Dashboard fetchStats error:", err);
       } finally {
