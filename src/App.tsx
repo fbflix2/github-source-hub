@@ -34,6 +34,7 @@ import Sobre from "./pages/Sobre";
 import Mercado from "./pages/Mercado";
 import TokenFBX from "./pages/TokenFBX";
 import ProductPage from "./pages/ProductPage";
+import SaibaMaisFBX from "./pages/SaibaMaisFBX";
 
 // Admin Pages
 import AdminLogin from "./pages/admin/AdminLogin";
@@ -213,6 +214,7 @@ const App = () => {
                 <Route path="/termos" element={<TermsOfService />} />
                 <Route path="/sobre" element={<Sobre />} />
                 <Route path="/produto/:slug" element={<ProductPage />} />
+                <Route path="/saiba-mais-fbx" element={<SaibaMaisFBX />} />
                 <Route path="/parceiro/:slug" element={<PartnerRedirect />} />
 
                 {/* Admin routes */}
