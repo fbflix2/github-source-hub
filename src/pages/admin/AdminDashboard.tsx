@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Users, Receipt, Wallet, TrendingUp, Database, CheckCircle, Clock, AlertTriangle, Ban, User, Briefcase, Globe, MoreVertical, Loader2, X, ExternalLink } from "lucide-react";
+import { Users, Receipt, Wallet, TrendingUp, Database, CheckCircle, Clock, AlertTriangle, RefreshCw, User, Briefcase, Globe, MoreVertical, Loader2, X, ExternalLink } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import {
