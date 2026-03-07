@@ -247,8 +247,8 @@ export default function Dashboard() {
               <div className="absolute -left-20 -bottom-20 w-80 h-80 bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
             </>
           )}
-          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between p-8 md:p-12 gap-8">
-            <div className="flex-1 space-y-6">
+          <div className="relative z-10 flex flex-col md:flex-row items-center justify-between p-6 md:p-8 gap-4 h-full">
+            <div className="flex-1 space-y-3">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-primary/20 to-transparent border border-primary/20">
                 <span className="animate-pulse w-2 h-2 rounded-full bg-primary" />
                 <span className="text-xs font-bold text-primary uppercase tracking-wider">
