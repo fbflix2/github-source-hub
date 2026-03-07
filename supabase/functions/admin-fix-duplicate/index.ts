@@ -24,10 +24,7 @@ Deno.serve(async (req) => {
     // Allow service-role key as auth bypass for internal calls
     const isServiceRole = authHeader?.replace("Bearer ", "") === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-    // TEMP: Allow fulfill_webshare without auth for internal tooling
-    const skipAuth = !authHeader && body.action === "fulfill_webshare";
-    
-    if (!skipAuth && !isServiceRole) {
+    if (!isServiceRole) {
       if (!authHeader) throw new Error("Não autorizado");
       const supabaseUser = createClient(
         Deno.env.get("SUPABASE_URL")!,
