@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Eye, EyeOff, Lock, PartyPopper } from "lucide-react";
+import { Eye, EyeOff, Lock, PartyPopper, MessageCircleQuestion } from "lucide-react";
 
 export default function Welcome() {
   const navigate = useNavigate();
@@ -119,6 +119,16 @@ export default function Welcome() {
               {loading ? "Salvando..." : "Definir senha e continuar"}
             </Button>
           </form>
+
+          {/* Balance migration info */}
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 flex gap-3 items-start">
+            <MessageCircleQuestion className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+            <div className="text-xs text-muted-foreground leading-relaxed">
+              <strong className="text-foreground">Tinha saldo na plataforma antiga?</strong>
+              <br />
+              Após definir sua senha, clique no ícone de suporte no canto inferior direito, selecione <strong className="text-foreground">"Dúvida Rápida"</strong> e informe que deseja migrar seu saldo.
+            </div>
+          </div>
         </div>
       </div>
     </div>
