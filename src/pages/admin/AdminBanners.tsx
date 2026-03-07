@@ -155,6 +155,37 @@ export default function AdminBanners() {
         </div>
       </header>
 
+      {/* Category Manager */}
+      {showCatManager && (
+        <div className="bg-card/60 backdrop-blur-xl border border-border rounded-2xl p-6 space-y-4">
+          <h3 className="text-lg font-bold text-foreground">Categorias de Banner</h3>
+          <div className="flex flex-wrap gap-2">
+            {bannerCategories.map((cat) => (
+              <div key={cat.id} className="flex items-center gap-2 bg-secondary border border-border rounded-lg px-3 py-2">
+                <span className="text-sm font-medium text-foreground">{cat.label}</span>
+                <span className="text-xs text-muted-foreground">({cat.value})</span>
+                <button onClick={() => deleteCategory(cat.id)} className="text-destructive hover:text-destructive/80 ml-1">
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-2 items-end">
+            <div className="flex-1">
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Valor (chave)</label>
+              <Input value={newCatValue} onChange={(e) => setNewCatValue(e.target.value)} placeholder="ex: lancamento" className="h-9" />
+            </div>
+            <div className="flex-1">
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Nome (exibição)</label>
+              <Input value={newCatLabel} onChange={(e) => setNewCatLabel(e.target.value)} placeholder="ex: Lançamento" className="h-9" />
+            </div>
+            <Button onClick={addCategory} size="sm" className="h-9">
+              <Plus className="w-4 h-4 mr-1" /> Adicionar
+            </Button>
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>
       ) : viewMode === "grid" ? (
