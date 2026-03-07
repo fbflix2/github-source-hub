@@ -12,20 +12,22 @@ Deno.serve(async (req) => {
 
   try {
     const authHeader = req.headers.get("Authorization") || req.headers.get("authorization");
-    console.log("Auth header present:", !!authHeader, "starts with:", authHeader?.substring(0, 20));
-    
+    console.log("Auth header present:", !!authHeader);
+
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    const body = await req.json();
+
     // Allow service-role key as auth bypass for internal calls
     const isServiceRole = authHeader?.replace("Bearer ", "") === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
     // TEMP: Allow fulfill_webshare without auth for internal tooling
-    if (!authHeader && body.action === "fulfill_webshare") {
-      console.log("Allowing unauthenticated fulfill_webshare for internal tooling");
-    } else if (!isServiceRole) {
+    const skipAuth = !authHeader && body.action === "fulfill_webshare";
+    
+    if (!skipAuth && !isServiceRole) {
       if (!authHeader) throw new Error("Não autorizado");
       const supabaseUser = createClient(
         Deno.env.get("SUPABASE_URL")!,
@@ -41,8 +43,6 @@ Deno.serve(async (req) => {
       });
       if (!isAdmin) throw new Error("Sem permissão");
     }
-
-    const body = await req.json();
 
     // Action: split_order_item - splits a qty>1 order_item into individual items with correct delivery_data
     if (body.action === "split_order_item") {
