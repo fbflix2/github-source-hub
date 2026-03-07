@@ -328,7 +328,7 @@ export default function AdminDashboard() {
             { label: "Disponíveis", value: activeProducts.toString(), icon: CheckCircle, color: "text-green-500", clickable: false },
             { label: "Pedidos Pendentes", value: pendingOrders.toString(), icon: Clock, color: "text-yellow-500", clickable: true },
             { label: "Total Pedidos", value: totalOrders.toString(), icon: AlertTriangle, color: "text-blue-400", clickable: false },
-            { label: "Cancelados", value: cancelledOrders.toString(), icon: Ban, color: "text-red-500", clickable: false },
+            { label: "Taxa Reposição", value: `${replacementRate.toFixed(1)}%`, icon: RefreshCw, color: "text-orange-400", clickable: false },
           ].map((metric) => (
             <div
               key={metric.label}
