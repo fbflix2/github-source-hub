@@ -228,7 +228,7 @@ export default function Dashboard() {
       {/* Dynamic Hero Banners */}
       {heroBanners.length > 0 && (
         <section
-          className="relative w-full rounded-2xl overflow-hidden glass-card shadow-glass group transition-colors duration-500"
+          className="relative w-full rounded-2xl overflow-hidden glass-card shadow-glass group transition-colors duration-500 h-[280px] md:h-[320px]"
           style={heroBanners[currentBanner]?.background_color ? { backgroundColor: heroBanners[currentBanner].background_color! } : undefined}
         >
           {/* Cover style: full background image */}
@@ -259,7 +259,7 @@ export default function Dashboard() {
                 {heroBanners[currentBanner]?.title}
               </h2>
               {heroBanners[currentBanner]?.subtitle && (
-                <p className={`text-lg max-w-xl ${heroBanners[currentBanner]?.image_style === "cover" ? "text-gray-300" : "text-muted-foreground"}`}>{heroBanners[currentBanner].subtitle}</p>
+                <p className={`text-lg max-w-xl line-clamp-3 ${heroBanners[currentBanner]?.image_style === "cover" ? "text-gray-300" : "text-muted-foreground"}`}>{heroBanners[currentBanner].subtitle}</p>
               )}
               <div className="flex items-center gap-4 pt-2">
                 {heroBanners[currentBanner]?.cta_text && (
