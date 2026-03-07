@@ -214,6 +214,7 @@ const App = () => {
                 <Route path="/termos" element={<TermsOfService />} />
                 <Route path="/sobre" element={<Sobre />} />
                 <Route path="/produto/:slug" element={<ProductPage />} />
+                <Route path="/saiba-mais-fbx" element={<SaibaMaisFBX />} />
                 <Route path="/parceiro/:slug" element={<PartnerRedirect />} />
 
                 {/* Admin routes */}
