@@ -29,6 +29,13 @@ interface Banner {
   image_style: string | null;
 }
 
+interface BannerCategory {
+  id: string;
+  value: string;
+  label: string;
+  position: number;
+}
+
 export default function AdminBanners() {
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -38,12 +45,20 @@ export default function AdminBanners() {
   const [editingBanner, setEditingBanner] = useState<Banner | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive">("all");
+  const [bannerCategories, setBannerCategories] = useState<BannerCategory[]>([]);
+  const [showCatManager, setShowCatManager] = useState(false);
+  const [newCatValue, setNewCatValue] = useState("");
+  const [newCatLabel, setNewCatLabel] = useState("");
 
   const fetchBanners = async () => {
     setLoading(true);
-    const { data, error } = await supabase.from("banners").select("*").order("position", { ascending: true });
-    if (error) toast.error("Erro ao carregar banners");
-    setBanners(data || []);
+    const [bannersRes, catsRes] = await Promise.all([
+      supabase.from("banners").select("*").order("position", { ascending: true }),
+      supabase.from("banner_categories").select("*").order("position"),
+    ]);
+    if (bannersRes.error) toast.error("Erro ao carregar banners");
+    setBanners(bannersRes.data || []);
+    setBannerCategories(catsRes.data || []);
     setLoading(false);
   };
 
@@ -77,8 +92,29 @@ export default function AdminBanners() {
     .filter((b) => statusFilter === "all" ? true : statusFilter === "active" ? b.active : !b.active);
 
   const categoryLabel = (cat: string | null) => {
-    const map: Record<string, string> = { promo: "Promoção", destaque: "Destaque", info: "Informativo", evento: "Evento" };
-    return map[cat || ""] || cat || "—";
+    const found = bannerCategories.find((c) => c.value === cat);
+    return found?.label || cat || "—";
+  };
+
+  const addCategory = async () => {
+    if (!newCatValue.trim() || !newCatLabel.trim()) return toast.error("Preencha valor e nome");
+    const { error } = await supabase.from("banner_categories").insert({
+      value: newCatValue.trim().toLowerCase().replace(/\s+/g, "_"),
+      label: newCatLabel.trim(),
+      position: bannerCategories.length + 1,
+    });
+    if (error) return toast.error("Erro: " + error.message);
+    toast.success("Categoria criada");
+    setNewCatValue("");
+    setNewCatLabel("");
+    fetchBanners();
+  };
+
+  const deleteCategory = async (id: string) => {
+    const { error } = await supabase.from("banner_categories").delete().eq("id", id);
+    if (error) return toast.error("Erro: " + error.message);
+    toast.success("Categoria removida");
+    fetchBanners();
   };
 
   return (
