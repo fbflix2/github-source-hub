@@ -228,7 +228,7 @@ export default function Dashboard() {
       {/* Dynamic Hero Banners */}
       {heroBanners.length > 0 && (
         <section
-          className="relative w-full rounded-2xl overflow-hidden glass-card shadow-glass group transition-colors duration-500"
+          className="relative w-full rounded-2xl overflow-hidden glass-card shadow-glass group transition-colors duration-500 h-[280px] md:h-[320px]"
           style={heroBanners[currentBanner]?.background_color ? { backgroundColor: heroBanners[currentBanner].background_color! } : undefined}
         >
           {/* Cover style: full background image */}
