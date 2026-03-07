@@ -125,9 +125,14 @@ export default function AdminBanners() {
             <h1 className="text-4xl md:text-5xl font-black tracking-tight text-foreground mb-2">Editor de Banners</h1>
             <p className="text-muted-foreground font-medium text-sm md:text-base">Gerencie as promoções e destaques do FBFLIX</p>
           </div>
-          <Button onClick={() => { setEditingBanner(null); setEditorOpen(true); }} className="group flex items-center gap-2 font-bold py-3 px-6 h-auto rounded-xl">
-            <Plus className="w-5 h-5" /> Novo Banner
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowCatManager(!showCatManager)} className="flex items-center gap-2 font-bold py-3 px-5 h-auto rounded-xl">
+              <Tag className="w-4 h-4" /> Categorias
+            </Button>
+            <Button onClick={() => { setEditingBanner(null); setEditorOpen(true); }} className="group flex items-center gap-2 font-bold py-3 px-6 h-auto rounded-xl">
+              <Plus className="w-5 h-5" /> Novo Banner
+            </Button>
+          </div>
         </div>
 
         <div className="bg-card/60 backdrop-blur-xl border border-border p-4 rounded-2xl flex flex-col md:flex-row gap-4 items-center justify-between">
