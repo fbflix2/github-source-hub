@@ -60,7 +60,7 @@ export default function MigrationLogin() {
             <img src={logoFbflix} alt="FBFLIX" className="w-14 h-14 object-contain" />
             <div className="flex items-center gap-2">
               <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                FBFLIX <span className="text-primary">2.0</span>
+                FBFLIX
               </h1>
             </div>
             <div className="flex items-center gap-2">

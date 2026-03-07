@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 export default function AdminTermos() {
   const [termosUso, setTermosUso] = useState(`1. ACEITAÇÃO DOS TERMOS
-Ao acessar e usar a plataforma FBFLIX 2.0, você aceita e concorda em estar vinculado pelos termos e disposições deste acordo. Além disso, ao usar os serviços particulares deste site, você estará sujeito a quaisquer regras ou diretrizes publicadas aplicáveis a tais serviços.
+Ao acessar e usar a plataforma FBFLIX, você aceita e concorda em estar vinculado pelos termos e disposições deste acordo. Além disso, ao usar os serviços particulares deste site, você estará sujeito a quaisquer regras ou diretrizes publicadas aplicáveis a tais serviços.
 
 2. DESCRIÇÃO DO SERVIÇO
 A FBFLIX fornece aos usuários acesso a uma rica coleção de recursos, incluindo várias ferramentas de comunicação, fóruns de busca, conteúdo personalizado e programação de marca através de sua rede de propriedades.

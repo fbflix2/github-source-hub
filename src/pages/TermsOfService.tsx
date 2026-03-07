@@ -17,7 +17,7 @@ export default function TermsOfService() {
           </button>
           <div className="flex items-center gap-2">
             <img src={logoFbflix} alt="FBFLIX" className="w-7 h-7 object-contain" />
-            <h1 className="text-lg font-bold">FBFLIX <span className="text-primary">2.0</span></h1>
+            <h1 className="text-lg font-bold">FBFLIX</h1>
           </div>
         </div>
       </div>
