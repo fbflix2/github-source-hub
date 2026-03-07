@@ -345,8 +345,8 @@ export default function AdminDashboard() {
               <AreaChart data={chartData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0.02} />
+                    <stop offset="0%" stopColor="#22c55e" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="#22c55e" stopOpacity={0.02} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
@@ -357,16 +357,16 @@ export default function AdminDashboard() {
                   formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 'Valor']}
                   labelStyle={{ color: 'rgba(255,255,255,0.7)', marginBottom: '4px', fontWeight: 600 }}
                   itemStyle={{ color: 'white' }}
-                  cursor={{ stroke: 'hsl(var(--primary))', strokeWidth: 1, strokeDasharray: '4 4' }}
+                  cursor={{ stroke: '#22c55e', strokeWidth: 1, strokeDasharray: '4 4' }}
                 />
                 <Area
                   type="monotone"
                   dataKey="value"
-                  stroke="hsl(var(--primary))"
+                  stroke="#22c55e"
                   strokeWidth={2.5}
                   fill="url(#colorValue)"
-                  dot={{ r: 4, fill: 'hsl(var(--primary))', stroke: '#0a0505', strokeWidth: 2 }}
-                  activeDot={{ r: 6, fill: 'hsl(var(--primary))', stroke: 'white', strokeWidth: 2 }}
+                  dot={{ r: 4, fill: '#22c55e', stroke: '#0a0505', strokeWidth: 2 }}
+                  activeDot={{ r: 6, fill: '#22c55e', stroke: 'white', strokeWidth: 2 }}
                 />
               </AreaChart>
             </ResponsiveContainer>
