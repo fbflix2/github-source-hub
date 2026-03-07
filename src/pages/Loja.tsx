@@ -249,14 +249,12 @@ export default function Dashboard() {
           )}
           <div className="relative z-10 flex flex-col md:flex-row items-center justify-between p-8 md:p-12 gap-8">
             <div className="flex-1 space-y-6">
-              {heroBanners[currentBanner]?.cta_text && (
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-primary/20 to-transparent border border-primary/20">
-                  <span className="animate-pulse w-2 h-2 rounded-full bg-primary" />
-                  <span className="text-xs font-bold text-primary uppercase tracking-wider">
-                    {heroBanners[currentBanner]?.category === "promo" ? "Promoção" : heroBanners[currentBanner]?.category === "info" ? "Informativo" : heroBanners[currentBanner]?.category === "evento" ? "Evento" : "Destaque"}
-                  </span>
-                </div>
-              )}
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-primary/20 to-transparent border border-primary/20">
+                <span className="animate-pulse w-2 h-2 rounded-full bg-primary" />
+                <span className="text-xs font-bold text-primary uppercase tracking-wider">
+                  {heroBanners[currentBanner]?.category === "promo" ? "Promoção" : heroBanners[currentBanner]?.category === "info" ? "Informativo" : heroBanners[currentBanner]?.category === "evento" ? "Evento" : "Destaque"}
+                </span>
+              </div>
               <h2 className={`text-3xl md:text-5xl font-bold leading-tight ${heroBanners[currentBanner]?.image_style === "cover" ? "text-white" : "text-foreground"}`}>
                 {heroBanners[currentBanner]?.title}
               </h2>
