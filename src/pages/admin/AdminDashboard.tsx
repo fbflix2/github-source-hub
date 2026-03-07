@@ -117,24 +117,6 @@ export default function AdminDashboard() {
       const ords = ordersRes.data ?? [];
       setTotalOrders(ords.length);
       setPendingOrders(ords.filter(o => o.status === "processing").length + (pendingPaymentsRes.count ?? 0));
-      // Calculate replacement rate for non-proxy products
-      const [replacementsRes, completedOrderItemsRes] = await Promise.all([
-        supabase.from("replacements").select("id", { count: "exact", head: true }),
-        supabase.from("order_items").select("id, quantity, product_id, order_id"),
-      ]);
-      
-      // Get proxy product IDs to exclude
-      const proxyProductIds = new Set(
-        (prodsByCat.data ?? []).filter(p => p.external_id).map(p => p.id)
-      );
-      
-      const completedOrderIdsSet = new Set(ords.filter(o => ["completed", "delivered"].includes(o.status)).map(o => o.id));
-      const nonProxyOrderItems = (completedOrderItemsRes.data ?? []).filter(item => 
-        completedOrderIdsSet.has(item.order_id) && (!item.product_id || !proxyProductIds.has(item.product_id))
-      );
-      const totalNonProxyItems = nonProxyOrderItems.reduce((sum, item) => sum + (item.quantity || 1), 0);
-      const totalReplacements = replacementsRes.count ?? 0;
-      setReplacementRate(totalNonProxyItems > 0 ? (totalReplacements / totalNonProxyItems) * 100 : 0);
 
       const completedStatuses = ["completed", "delivered"];
       const completedOrds = ords.filter(o => completedStatuses.includes(o.status));
