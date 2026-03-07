@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.admin-fix-duplicate]
 verify_jwt = false
+
+[functions.migration-login]
+verify_jwt = false
