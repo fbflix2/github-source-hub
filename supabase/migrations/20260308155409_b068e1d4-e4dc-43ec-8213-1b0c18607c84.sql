@@ -1,0 +1,1 @@
+UPDATE payments SET gateway_reference = metadata->>'mp_payment_id' WHERE gateway_reference IS NULL AND metadata->>'mp_payment_id' IS NOT NULL;
