@@ -93,6 +93,11 @@ Deno.serve(async (req) => {
       user_metadata: { ...foundUser.user_metadata, must_change_password: true, migrated_at: new Date().toISOString() },
     });
 
+    // Auto-mark in migration_tracking as migrated
+    await supabaseAdmin.from("migration_tracking")
+      .update({ status: "migrated", migrated_at: new Date().toISOString() })
+      .eq("email", email.toLowerCase());
+
     // Generate a magic link
     const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
       type: "magiclink",
