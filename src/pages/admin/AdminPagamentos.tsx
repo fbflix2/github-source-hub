@@ -289,8 +289,6 @@ export default function AdminPagamentos() {
                     Nenhum pagamento encontrado.
                   </TableCell>
                 </TableRow>
-                  </TableCell>
-                </TableRow>
               ) : (
                 paginated.map((payment) => {
                   const gw = getGatewayDisplay(payment.gateway);
@@ -298,6 +296,9 @@ export default function AdminPagamentos() {
                     <TableRow key={payment.id} className="group transition-colors hover:bg-white/5">
                       <TableCell className="whitespace-nowrap px-6 py-4 font-medium text-white">
                         {payment.code}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap px-6 py-4 text-gray-400 font-mono text-xs">
+                        {payment.gateway_reference || "—"}
                       </TableCell>
                       <TableCell className="px-6 py-4">
                         {getStatusBadge(payment.status)}
