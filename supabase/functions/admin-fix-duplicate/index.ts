@@ -236,6 +236,101 @@ Deno.serve(async (req) => {
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
+    // Action: fulfill_proxybr - manually contract a ProxyBR proxy for an order item
+    if (body.action === "fulfill_proxybr") {
+      const { order_item_id, user_id, external_id } = body;
+      if (!order_item_id || !user_id || !external_id) throw new Error("order_item_id, user_id, external_id obrigatórios");
+
+      const PROXYBR_API_KEY = Deno.env.get("PROXYBR_API_KEY");
+      if (!PROXYBR_API_KEY) throw new Error("PROXYBR_API_KEY não configurada");
+
+      const PROXYBR_BASE = "https://painel.proxybr.com.br/api";
+
+      // Fetch products to find a variant
+      const productsResp = await fetch(`${PROXYBR_BASE}/products`, {
+        headers: { "Accept": "application/json", "X-API-Key": PROXYBR_API_KEY },
+      });
+      const productsData = await productsResp.json();
+      const apiProduct = Array.isArray(productsData)
+        ? productsData.find((p: any) => String(p.id) === String(external_id))
+        : null;
+
+      if (!apiProduct?.variant?.length) throw new Error(`Produto ProxyBR ${external_id} sem variantes`);
+
+      const variant = apiProduct.variant.find((v: any) => v.stocks > 0) || apiProduct.variant[0];
+      console.log(`[fulfill_proxybr] Using variant ${variant.id} for product ${external_id}`);
+
+      // Contract
+      const contractResp = await fetch(`${PROXYBR_BASE}/subscriptions/contract`, {
+        method: "POST",
+        headers: {
+          "Accept": "application/json",
+          "Content-Type": "application/json",
+          "X-API-Key": PROXYBR_API_KEY,
+        },
+        body: JSON.stringify({ quantity: 1, interval: "monthly", product_variant_id: variant.id }),
+      });
+      const contractText = await contractResp.text();
+      console.log(`[fulfill_proxybr] Contract response [${contractResp.status}]: ${contractText.substring(0, 500)}`);
+
+      if (!contractResp.ok) throw new Error(`Erro ao contratar: ${contractText.substring(0, 200)}`);
+
+      let contractData: any;
+      try { contractData = JSON.parse(contractText); } catch { contractData = {}; }
+
+      const subCode = contractData.code || contractData.data?.code || contractData.subscription?.code
+        || contractData.subscriptions?.[0]?.code || (Array.isArray(contractData) ? contractData[0]?.code : null);
+      const endDateRaw = contractData.due_date || contractData.end_date || contractData.data?.due_date || null;
+      const endDate = endDateRaw || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
+      if (subCode) {
+        // Fetch full details
+        try {
+          const detailResp = await fetch(`${PROXYBR_BASE}/subscriptions/${subCode}`, {
+            headers: { "Accept": "application/json", "X-API-Key": PROXYBR_API_KEY },
+          });
+          if (detailResp.ok) {
+            const detailData = await detailResp.json();
+            contractData = { ...contractData, ...detailData };
+          }
+        } catch (e) { console.error("Detail fetch failed:", e); }
+
+        // Save subscription
+        await supabaseAdmin.from("subscriptions").insert({
+          name: subCode,
+          type: "proxybr",
+          status: "active",
+          user_id,
+          start_date: new Date().toISOString(),
+          end_date: endDate,
+          auto_renew: contractData.auto_renew_active ?? false,
+          raw_data: contractData,
+        });
+
+        // Set notes
+        const { data: { user: buyerUser } } = await supabaseAdmin.auth.admin.getUserById(user_id);
+        if (buyerUser?.email) {
+          try {
+            await fetch(`${PROXYBR_BASE}/subscriptions/${subCode}`, {
+              method: "PUT",
+              headers: { "Accept": "application/json", "Content-Type": "application/json", "X-API-Key": PROXYBR_API_KEY },
+              body: JSON.stringify({ notes: buyerUser.email }),
+            });
+          } catch (e) { console.error("Notes update failed:", e); }
+        }
+      }
+
+      // Update order_item delivery_data
+      await supabaseAdmin.from("order_items").update({
+        delivery_data: { type: "proxy_contract", fulfilled: true, subscription_code: subCode, admin_allocated: true },
+      }).eq("id", order_item_id);
+
+      return new Response(
+        JSON.stringify({ success: true, subscription_code: subCode, contract_data: contractData }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Erro desconhecido";
     return new Response(JSON.stringify({ error: msg }), {
