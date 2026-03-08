@@ -25,6 +25,7 @@ interface Payment {
   code: string;
   status: string;
   gateway: string;
+  gateway_reference: string | null;
   amount: number;
   created_at: string;
   user_id: string;
