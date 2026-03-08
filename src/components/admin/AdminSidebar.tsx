@@ -84,6 +84,7 @@ const allMenuItems: MenuItem[] = [
     { title: "Feedbacks", icon: Star, path: "/admin/configuracoes/feedbacks" },
     { title: "Usuários e Acessos", icon: ShieldCheck, path: "/admin/configuracoes/usuarios" },
     { title: "API | Token", icon: Key, path: "/admin/api" },
+    { title: "Clientes Migrados", icon: Users, path: "/admin/configuracoes/migrados" },
   ]},
 ];
 
