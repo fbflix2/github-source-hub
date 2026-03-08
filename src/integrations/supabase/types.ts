@@ -422,6 +422,39 @@ export type Database = {
           },
         ]
       }
+      migration_tracking: {
+        Row: {
+          added_by: string | null
+          created_at: string
+          email: string
+          full_name: string | null
+          id: string
+          migrated_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          added_by?: string | null
+          created_at?: string
+          email: string
+          full_name?: string | null
+          id?: string
+          migrated_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          added_by?: string | null
+          created_at?: string
+          email?: string
+          full_name?: string | null
+          id?: string
+          migrated_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       moderator_permissions: {
         Row: {
           allowed_paths: string[]
