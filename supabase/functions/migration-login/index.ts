@@ -11,21 +11,59 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { email } = await req.json();
-    if (!email) throw new Error("Email é obrigatório");
+    const body = await req.json();
 
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Check if user exists by email
-    const { data: usersData, error: listError } = await supabaseAdmin.auth.admin.listUsers({
-      perPage: 1,
-      page: 1,
-    });
+    // Action: list migrated users
+    if (body.action === "list-migrated") {
+      // Verify caller is admin
+      const authHeader = req.headers.get("Authorization");
+      if (!authHeader) throw new Error("Não autorizado");
 
-    // Search user by email using a more targeted approach
+      const supabaseUser = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        { global: { headers: { Authorization: authHeader } } }
+      );
+      const { data: { user: caller } } = await supabaseUser.auth.getUser();
+      if (!caller) throw new Error("Não autorizado");
+
+      const { data: isAdmin } = await supabaseAdmin.rpc("is_staff", { _user_id: caller.id });
+      if (!isAdmin) throw new Error("Sem permissão");
+
+      // List all users and filter those with must_change_password
+      const { data: { users }, error } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
+      if (error) throw error;
+
+      const migrated = users
+        .filter((u) => u.user_metadata?.must_change_password === true)
+        .map((u) => ({
+          id: u.id,
+          email: u.email,
+          full_name: u.user_metadata?.full_name || null,
+          created_at: u.created_at,
+          last_sign_in_at: u.last_sign_in_at,
+          password_changed: false,
+        }));
+
+      // Also include users who already changed password (had must_change_password but it was removed)
+      // We can't easily track those, so just return the ones still pending
+
+      return new Response(
+        JSON.stringify({ users: migrated }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Original migration login flow
+    const { email } = body;
+    if (!email) throw new Error("Email é obrigatório");
+
+    // Search user by email
     const { data: { users }, error: searchError } = await supabaseAdmin.auth.admin.listUsers();
     if (searchError) throw searchError;
 
@@ -45,7 +83,7 @@ Deno.serve(async (req) => {
       user_metadata: { ...foundUser.user_metadata, must_change_password: true },
     });
 
-    // Generate a magic link (without sending email) to get the token
+    // Generate a magic link
     const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
       type: "magiclink",
       email: foundUser.email!,
@@ -53,7 +91,6 @@ Deno.serve(async (req) => {
 
     if (linkError) throw linkError;
 
-    // Extract the token from the generated link
     const url = new URL(linkData.properties.action_link);
     const token = url.searchParams.get("token");
     const type = url.searchParams.get("type");
