@@ -70,6 +70,7 @@ import AdminReciclagem from "./pages/admin/AdminReciclagem";
 import AdminCentroCustos from "./pages/admin/AdminCentroCustos";
 import AdminClientesAtivos from "./pages/admin/AdminClientesAtivos";
 import AdminFeedbacks from "./pages/admin/AdminFeedbacks";
+import AdminMigrados from "./pages/admin/AdminMigrados";
 import AdminReposicoes from "./pages/admin/AdminReposicoes";
 import AdminTrocas from "./pages/admin/AdminTrocas";
 import AdminGestaoBMs from "./pages/admin/AdminGestaoBMs";
@@ -251,6 +252,7 @@ const App = () => {
                   <Route path="configuracoes/usuarios" element={<AdminConfiguracoes />} />
                   <Route path="configuracoes/bloco-padrao" element={<AdminBlocoPadrao />} />
                   <Route path="configuracoes/feedbacks" element={<AdminFeedbacks />} />
+                  <Route path="configuracoes/migrados" element={<AdminMigrados />} />
                   <Route path="reposicoes" element={<AdminReposicoes />} />
                   <Route path="trocas" element={<AdminTrocas />} />
                   <Route path="gestao-bms" element={<AdminGestaoBMs />} />
