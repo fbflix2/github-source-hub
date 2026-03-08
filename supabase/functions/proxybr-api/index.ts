@@ -210,6 +210,9 @@ Deno.serve(async (req) => {
 
     // Admin manual proxy fulfillment (no user JWT needed)
     if (bodyClone.action === "admin-fulfill-proxybr") {
+      // Require at least an auth header for admin actions
+      const token = authHeader?.replace("Bearer ", "") || "";
+      if (!token && !bodyClone._internal) throw new Error("Não autorizado");
       console.log("[admin-fulfill-proxybr] Starting manual fulfillment");
 
       const { order_item_id, user_id, external_id } = bodyClone;
