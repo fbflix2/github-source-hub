@@ -25,6 +25,7 @@ interface Payment {
   code: string;
   status: string;
   gateway: string;
+  gateway_reference: string | null;
   amount: number;
   created_at: string;
   user_id: string;
@@ -101,7 +102,7 @@ export default function AdminPagamentos() {
     async function fetchPayments() {
       const { data: paymentsData, error } = await supabase
         .from("payments")
-        .select("id, code, status, gateway, amount, created_at, user_id, metadata")
+        .select("id, code, status, gateway, amount, created_at, user_id, metadata, gateway_reference")
         .order("created_at", { ascending: false });
 
       if (error) {
@@ -273,6 +274,7 @@ export default function AdminPagamentos() {
             <TableHeader>
               <TableRow className="border-b border-white/10 bg-white/5 hover:bg-white/5">
                 <TableHead className="whitespace-nowrap px-6 py-4 text-xs font-semibold uppercase tracking-wider text-gray-400">Código</TableHead>
+                <TableHead className="whitespace-nowrap px-6 py-4 text-xs font-semibold uppercase tracking-wider text-gray-400">Nº Mercado Pago</TableHead>
                 <TableHead className="whitespace-nowrap px-6 py-4 text-xs font-semibold uppercase tracking-wider text-gray-400">Status</TableHead>
                 <TableHead className="whitespace-nowrap px-6 py-4 text-xs font-semibold uppercase tracking-wider text-gray-400">Gateway</TableHead>
                 <TableHead className="whitespace-nowrap px-6 py-4 text-xs font-semibold uppercase tracking-wider text-gray-400">Cliente</TableHead>
@@ -283,7 +285,7 @@ export default function AdminPagamentos() {
             <TableBody className="divide-y divide-white/5 text-sm text-gray-300">
               {paginated.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="py-12 text-center text-gray-500">
+                  <TableCell colSpan={7} className="py-12 text-center text-gray-500">
                     Nenhum pagamento encontrado.
                   </TableCell>
                 </TableRow>
@@ -294,6 +296,9 @@ export default function AdminPagamentos() {
                     <TableRow key={payment.id} className="group transition-colors hover:bg-white/5">
                       <TableCell className="whitespace-nowrap px-6 py-4 font-medium text-white">
                         {payment.code}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap px-6 py-4 text-gray-400 font-mono text-xs">
+                        {payment.gateway_reference || "—"}
                       </TableCell>
                       <TableCell className="px-6 py-4">
                         {getStatusBadge(payment.status)}
