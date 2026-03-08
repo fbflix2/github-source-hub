@@ -40,14 +40,14 @@ Deno.serve(async (req) => {
       if (error) throw error;
 
       const migrated = users
-        .filter((u) => u.user_metadata?.must_change_password === true)
+        .filter((u) => u.user_metadata?.migrated_at != null)
         .map((u) => ({
           id: u.id,
           email: u.email,
           full_name: u.user_metadata?.full_name || null,
-          created_at: u.created_at,
+          migrated_at: u.user_metadata?.migrated_at,
           last_sign_in_at: u.last_sign_in_at,
-          password_changed: false,
+          password_changed: u.user_metadata?.must_change_password !== true,
         }));
 
       // Also include users who already changed password (had must_change_password but it was removed)
@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
 
     // Set must_change_password flag
     await supabaseAdmin.auth.admin.updateUserById(foundUser.id, {
-      user_metadata: { ...foundUser.user_metadata, must_change_password: true },
+      user_metadata: { ...foundUser.user_metadata, must_change_password: true, migrated_at: new Date().toISOString() },
     });
 
     // Generate a magic link
