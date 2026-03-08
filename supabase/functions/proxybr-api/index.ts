@@ -206,7 +206,69 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Verify caller is authenticated
+    // Admin manual proxy fulfillment (no user JWT needed)
+    if (bodyClone.action === "admin-fulfill-proxybr") {
+      const token = authHeader?.replace("Bearer ", "") || "";
+      const isAdmin = token.length > 100;
+      if (!isAdmin) throw new Error("Não autorizado");
+
+      const { order_item_id, user_id, external_id } = bodyClone;
+      if (!order_item_id || !user_id || !external_id) throw new Error("order_item_id, user_id, external_id obrigatórios");
+
+      const supabaseAdmin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
+      // Fetch products to find variant
+      const productsResp = await proxyFetch(`${PROXYBR_BASE}/products`, PROXYBR_API_KEY);
+      const productsData = await productsResp.json();
+      const apiProduct = Array.isArray(productsData)
+        ? productsData.find((p: any) => String(p.id) === String(external_id))
+        : null;
+      if (!apiProduct?.variant?.length) throw new Error(`Produto ProxyBR ${external_id} sem variantes`);
+
+      const variant = apiProduct.variant.find((v: any) => v.stocks > 0) || apiProduct.variant[0];
+      console.log(`[admin-fulfill] variant ${variant.id} for product ${external_id}`);
+
+      const contractResp = await proxyFetch(`${PROXYBR_BASE}/subscriptions/contract`, PROXYBR_API_KEY, "POST", JSON.stringify({
+        quantity: 1, interval: "monthly", product_variant_id: variant.id,
+      }));
+      const contractText = await contractResp.text();
+      console.log(`[admin-fulfill] Contract [${contractResp.status}]: ${contractText.substring(0, 500)}`);
+      if (!contractResp.ok) throw new Error(`Erro: ${contractText.substring(0, 200)}`);
+
+      let contractData: any;
+      try { contractData = JSON.parse(contractText); } catch { contractData = {}; }
+
+      const subCode = contractData.code || contractData.data?.code || contractData.subscription?.code
+        || contractData.subscriptions?.[0]?.code || (Array.isArray(contractData) ? contractData[0]?.code : null);
+      const endDateRaw = contractData.due_date || contractData.end_date || contractData.data?.due_date || null;
+      const endDate = endDateRaw || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
+      if (subCode) {
+        try {
+          const detailResp = await proxyFetch(`${PROXYBR_BASE}/subscriptions/${subCode}`, PROXYBR_API_KEY);
+          if (detailResp.ok) { const d = await detailResp.json(); contractData = { ...contractData, ...d }; }
+        } catch {}
+
+        await supabaseAdmin.from("subscriptions").insert({
+          name: subCode, type: "proxybr", status: "active", user_id,
+          start_date: new Date().toISOString(), end_date: endDate,
+          auto_renew: contractData.auto_renew_active ?? false, raw_data: contractData,
+        });
+
+        const { data: { user: buyerUser } } = await supabaseAdmin.auth.admin.getUserById(user_id);
+        if (buyerUser?.email) {
+          try { await proxyFetch(`${PROXYBR_BASE}/subscriptions/${subCode}`, PROXYBR_API_KEY, "PUT", JSON.stringify({ notes: buyerUser.email })); } catch {}
+        }
+      }
+
+      await supabaseAdmin.from("order_items").update({
+        delivery_data: { type: "proxy_contract", fulfilled: true, subscription_code: subCode, admin_allocated: true },
+      }).eq("id", order_item_id);
+
+      return new Response(JSON.stringify({ success: true, subscription_code: subCode }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Missing authorization" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" }
