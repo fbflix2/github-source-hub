@@ -101,7 +101,7 @@ export default function AdminPagamentos() {
     async function fetchPayments() {
       const { data: paymentsData, error } = await supabase
         .from("payments")
-        .select("id, code, status, gateway, amount, created_at, user_id, metadata")
+        .select("id, code, status, gateway, amount, created_at, user_id, metadata, gateway_reference")
         .order("created_at", { ascending: false });
 
       if (error) {
