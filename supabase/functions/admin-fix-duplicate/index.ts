@@ -21,8 +21,9 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
 
-    // Allow service-role key as auth bypass for internal calls
-    const isServiceRole = authHeader?.replace("Bearer ", "") === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    // Allow service-role key or internal_key as auth bypass for internal calls
+    const isServiceRole = authHeader?.replace("Bearer ", "") === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
+      || body.internal_key === Deno.env.get("PROXYBR_API_KEY");
 
     if (!isServiceRole) {
       if (!authHeader) throw new Error("Não autorizado");
