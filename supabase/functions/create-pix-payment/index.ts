@@ -134,8 +134,12 @@ Deno.serve(async (req) => {
       throw new Error(`Erro Mercado Pago [${mpResponse.status}]: ${JSON.stringify(mpData)}`);
     }
 
-    // Update payment with gateway reference
-    await supabase
+    // Update payment with gateway reference (use admin client to bypass RLS)
+    const supabaseAdminForUpdate = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+    await supabaseAdminForUpdate
       .from("payments")
       .update({
         gateway_reference: String(mpData.id),
