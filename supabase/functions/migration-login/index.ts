@@ -40,12 +40,12 @@ Deno.serve(async (req) => {
       if (error) throw error;
 
       const migrated = users
-        .filter((u) => u.user_metadata?.migrated_at != null)
+        .filter((u) => u.user_metadata?.migrated_at != null || u.user_metadata?.must_change_password === true)
         .map((u) => ({
           id: u.id,
           email: u.email,
           full_name: u.user_metadata?.full_name || null,
-          migrated_at: u.user_metadata?.migrated_at,
+          migrated_at: u.user_metadata?.migrated_at || u.last_sign_in_at || u.created_at,
           last_sign_in_at: u.last_sign_in_at,
           password_changed: u.user_metadata?.must_change_password !== true,
         }));
