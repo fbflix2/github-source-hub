@@ -285,8 +285,10 @@ export default function AdminPagamentos() {
             <TableBody className="divide-y divide-white/5 text-sm text-gray-300">
               {paginated.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="py-12 text-center text-gray-500">
+                  <TableCell colSpan={7} className="py-12 text-center text-gray-500">
                     Nenhum pagamento encontrado.
+                  </TableCell>
+                </TableRow>
                   </TableCell>
                 </TableRow>
               ) : (
