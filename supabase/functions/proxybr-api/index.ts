@@ -163,9 +163,11 @@ Deno.serve(async (req) => {
 
     // Allow service-role-key-authenticated admin refresh (no user JWT needed)
     const authHeader = req.headers.get("Authorization");
+    console.log(`Auth header present: ${!!authHeader}, length: ${authHeader?.length || 0}`);
     const bodyText = await req.clone().text();
     let bodyClone: any = {};
     try { bodyClone = JSON.parse(bodyText); } catch {}
+    console.log(`Parsed action: ${bodyClone.action}`);
     if (bodyClone.action === "admin-refresh-subscriptions") {
       // Accept any valid server key for admin operations
       const token = authHeader?.replace("Bearer ", "") || "";
