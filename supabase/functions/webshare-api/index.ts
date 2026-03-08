@@ -377,11 +377,12 @@ Deno.serve(async (req) => {
 
     // ========== ADMIN ALLOCATE PROXY ==========
     if (action === "admin-allocate-proxy") {
-      const { target_user_id, quantity: allocQty, product_id: allocProductId, order_id: allocOrderId } = params as {
+      const { target_user_id, quantity: allocQty, product_id: allocProductId, order_id: allocOrderId, country_code: adminCountryCode } = params as {
         target_user_id: string;
         quantity?: number;
         product_id?: string;
         order_id?: string;
+        country_code?: string;
       };
 
       if (!target_user_id) throw new Error("target_user_id é obrigatório");
@@ -390,6 +391,40 @@ Deno.serve(async (req) => {
       if (!isAdmin) throw new Error("Acesso negado: apenas administradores");
 
       const qty = allocQty || 1;
+      
+      // Determine target country from product or explicit param
+      let targetCountry = adminCountryCode?.toUpperCase() || null;
+      if (!targetCountry && allocProductId) {
+        const { data: productData } = await supabaseAdmin
+          .from("products")
+          .select("name, tags")
+          .eq("id", allocProductId)
+          .single();
+
+        if (productData) {
+          const tags = (productData.tags || []) as string[];
+          const name = (productData.name || "").toLowerCase();
+          
+          const countryTags = ["br", "us", "uk", "de", "fr", "ca", "au", "jp"];
+          for (const tag of tags) {
+            const lowerTag = tag.toLowerCase().trim();
+            if (countryTags.includes(lowerTag)) {
+              targetCountry = lowerTag.toUpperCase();
+              break;
+            }
+          }
+          
+          if (!targetCountry) {
+            if (name.includes("brasil") || name.includes("brazil") || name.includes(" br")) {
+              targetCountry = "BR";
+            } else if (name.includes("usa") || name.includes("estados unidos") || name.includes(" us")) {
+              targetCountry = "US";
+            }
+          }
+        }
+      }
+      
+      console.log(`[webshare-api] Admin allocation - target country: ${targetCountry || "any"}`);
 
       const allProxies: any[] = [];
       let aPage = 1;
@@ -414,7 +449,16 @@ Deno.serve(async (req) => {
         if (raw.webshare_proxy_id) aAssignedIds.add(raw.webshare_proxy_id);
       }
 
-      const aAvailable = allProxies.filter((p: any) => p.valid && !aAssignedIds.has(p.id));
+      let aAvailable = allProxies.filter((p: any) => p.valid && !aAssignedIds.has(p.id));
+      
+      if (targetCountry) {
+        const countryFiltered = aAvailable.filter(p => p.country_code?.toUpperCase() === targetCountry);
+        if (countryFiltered.length < qty) {
+          throw new Error(`Apenas ${countryFiltered.length} proxies ${targetCountry} disponíveis, precisa de ${qty}`);
+        }
+        aAvailable = countryFiltered;
+      }
+      
       if (aAvailable.length < qty) throw new Error(`Apenas ${aAvailable.length} proxies disponíveis, precisa de ${qty}`);
 
       const allocated: any[] = [];
