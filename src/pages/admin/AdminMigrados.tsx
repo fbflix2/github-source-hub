@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Loader2, Users, ArrowDownRight, Mail, Clock, AlertCircle } from "lucide-react";
+import { Loader2, Users, ArrowDownRight, Mail, Clock, AlertCircle, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -15,7 +15,7 @@ interface MigratedUser {
   id: string;
   email: string;
   full_name: string | null;
-  created_at: string;
+  migrated_at: string;
   last_sign_in_at: string | null;
   password_changed: boolean;
 }
@@ -53,9 +53,15 @@ export default function AdminMigrados() {
       });
 
       if (error) throw error;
-      setUsers(data.users || []);
+
+      // Sort by migrated_at descending
+      const sorted = (data.users || []).sort(
+        (a: MigratedUser, b: MigratedUser) =>
+          new Date(b.migrated_at).getTime() - new Date(a.migrated_at).getTime()
+      );
+      setUsers(sorted);
     } catch (err: any) {
-      toast.error("Erro ao carregar usuários migrados: " + (err.message || ""));
+      toast.error("Erro ao carregar: " + (err.message || ""));
     } finally {
       setLoading(false);
     }
@@ -77,19 +83,19 @@ export default function AdminMigrados() {
             Clientes Migrados
           </h1>
           <p className="text-base font-light text-muted-foreground">
-            Usuários que acessaram via migração de plataforma e ainda precisam definir senha.
+            Usuários que acessaram via tela de migração de conta.
           </p>
         </div>
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
           <ArrowDownRight className="size-5 text-primary" />
-          <span className="font-bold text-foreground text-lg">{users.length}</span> usuários pendentes
+          <span className="font-bold text-foreground text-lg">{users.length}</span> migrados
         </div>
       </div>
 
       {users.length === 0 ? (
         <div className="glass-panel rounded-2xl p-12 text-center">
           <AlertCircle className="mx-auto size-12 text-muted-foreground/40 mb-4" />
-          <p className="text-muted-foreground text-lg">Nenhum usuário migrado com senha pendente.</p>
+          <p className="text-muted-foreground text-lg">Nenhum usuário migrado encontrado.</p>
         </div>
       ) : (
         <div className="glass-panel overflow-hidden rounded-2xl">
@@ -112,14 +118,14 @@ export default function AdminMigrados() {
                   <TableHead className="whitespace-nowrap px-6 py-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     <div className="flex items-center gap-2">
                       <Clock className="size-3.5" />
-                      Cadastro
+                      Migrado em
                     </div>
                   </TableHead>
                   <TableHead className="whitespace-nowrap px-6 py-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     Último Login
                   </TableHead>
                   <TableHead className="whitespace-nowrap px-6 py-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    Status
+                    Senha
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -133,16 +139,23 @@ export default function AdminMigrados() {
                       {u.full_name || "—"}
                     </TableCell>
                     <TableCell className="whitespace-nowrap px-6 py-4 text-muted-foreground">
-                      {formatDate(u.created_at)}
+                      {formatDate(u.migrated_at)}
                     </TableCell>
                     <TableCell className="whitespace-nowrap px-6 py-4 text-muted-foreground">
                       {formatDate(u.last_sign_in_at)}
                     </TableCell>
                     <TableCell className="px-6 py-4">
-                      <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset bg-yellow-500/10 text-yellow-400 ring-yellow-500/20">
-                        <span className="h-1.5 w-1.5 rounded-full bg-yellow-400 animate-pulse" />
-                        Senha Pendente
-                      </span>
+                      {u.password_changed ? (
+                        <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset bg-emerald-500/10 text-emerald-400 ring-emerald-500/20">
+                          <CheckCircle2 className="size-3" />
+                          Definida
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset bg-amber-500/10 text-amber-400 ring-amber-500/20">
+                          <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
+                          Pendente
+                        </span>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
