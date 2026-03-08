@@ -209,7 +209,8 @@ Deno.serve(async (req) => {
     // Admin manual proxy fulfillment (no user JWT needed)
     if (bodyClone.action === "admin-fulfill-proxybr") {
       const token = authHeader?.replace("Bearer ", "") || "";
-      const isAdmin = token.length > 100;
+      const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+      const isAdmin = token === serviceRoleKey || token.length > 100;
       if (!isAdmin) throw new Error("Não autorizado");
 
       const { order_item_id, user_id, external_id } = bodyClone;
