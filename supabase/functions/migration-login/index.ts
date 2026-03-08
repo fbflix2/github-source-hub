@@ -39,8 +39,21 @@ Deno.serve(async (req) => {
       const { data: { users }, error } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
       if (error) throw error;
 
+      // Get today's start (UTC)
+      const todayStart = new Date();
+      todayStart.setUTCHours(0, 0, 0, 0);
+      const todayISO = todayStart.toISOString();
+
       const migrated = users
-        .filter((u) => u.user_metadata?.migrated_at != null || u.user_metadata?.must_change_password === true)
+        .filter((u) => {
+          const migratedAt = u.user_metadata?.migrated_at;
+          const hasMigrationFlag = migratedAt != null || u.user_metadata?.must_change_password === true;
+          if (!hasMigrationFlag) return false;
+          
+          // Filter: only those who migrated today or later
+          const dateToCheck = migratedAt || u.last_sign_in_at || u.created_at;
+          return dateToCheck && new Date(dateToCheck) >= todayStart;
+        })
         .map((u) => ({
           id: u.id,
           email: u.email,
@@ -49,9 +62,6 @@ Deno.serve(async (req) => {
           last_sign_in_at: u.last_sign_in_at,
           password_changed: u.user_metadata?.must_change_password !== true,
         }));
-
-      // Also include users who already changed password (had must_change_password but it was removed)
-      // We can't easily track those, so just return the ones still pending
 
       return new Response(
         JSON.stringify({ users: migrated }),
