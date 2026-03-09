@@ -422,6 +422,99 @@ export type Database = {
           },
         ]
       }
+      fbx_orders: {
+        Row: {
+          created_at: string
+          fee_amount: number
+          fee_rate: number
+          id: string
+          matched_at: string | null
+          matched_user_id: string | null
+          notes: string | null
+          pix_key: string | null
+          pix_qr_code: string | null
+          quantity: number
+          status: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          fee_amount?: number
+          fee_rate?: number
+          id?: string
+          matched_at?: string | null
+          matched_user_id?: string | null
+          notes?: string | null
+          pix_key?: string | null
+          pix_qr_code?: string | null
+          quantity: number
+          status?: string
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          fee_amount?: number
+          fee_rate?: number
+          id?: string
+          matched_at?: string | null
+          matched_user_id?: string | null
+          notes?: string | null
+          pix_key?: string | null
+          pix_qr_code?: string | null
+          quantity?: number
+          status?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      fbx_transactions: {
+        Row: {
+          amount: number
+          balance_after: number
+          counterpart_user_id: string | null
+          created_at: string
+          description: string | null
+          fee: number
+          id: string
+          net_amount: number
+          reference_id: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          balance_after?: number
+          counterpart_user_id?: string | null
+          created_at?: string
+          description?: string | null
+          fee?: number
+          id?: string
+          net_amount: number
+          reference_id?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          counterpart_user_id?: string | null
+          created_at?: string
+          description?: string | null
+          fee?: number
+          id?: string
+          net_amount?: number
+          reference_id?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       migration_tracking: {
         Row: {
           added_by: string | null
@@ -1164,6 +1257,7 @@ export type Database = {
           created_at: string
           document_url: string | null
           estado: string | null
+          fbx_balance: number
           full_name: string | null
           id: string
           numero: string | null
@@ -1186,6 +1280,7 @@ export type Database = {
           created_at?: string
           document_url?: string | null
           estado?: string | null
+          fbx_balance?: number
           full_name?: string | null
           id?: string
           numero?: string | null
@@ -1208,6 +1303,7 @@ export type Database = {
           created_at?: string
           document_url?: string | null
           estado?: string | null
+          fbx_balance?: number
           full_name?: string | null
           id?: string
           numero?: string | null

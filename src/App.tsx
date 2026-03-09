@@ -76,6 +76,7 @@ import AdminTrocas from "./pages/admin/AdminTrocas";
 import AdminGestaoBMs from "./pages/admin/AdminGestaoBMs";
 import AdminParceiros from "./pages/admin/AdminParceiros";
 import PartnerRedirect from "./pages/PartnerRedirect";
+import AdminFBX from "./pages/admin/AdminFBX";
 import { AdminLayout } from "./components/admin/AdminLayout";
 
 // Layout
@@ -260,6 +261,7 @@ const App = () => {
                   <Route path="api" element={<AdminApi />} />
                   <Route path="anuncios" element={<AdminAnuncios />} />
                   <Route path="chat" element={<AdminTeamChat />} />
+                  <Route path="fbx" element={<AdminFBX />} />
                 </Route>
 
                 {/* Protected routes */}

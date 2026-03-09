@@ -47,3 +47,6 @@ verify_jwt = false
 
 [functions.migration-login]
 verify_jwt = false
+
+[functions.fbx-api]
+verify_jwt = false
