@@ -276,16 +276,46 @@ export default function AdminMigrados() {
               <TableRow className="border-b border-border bg-muted/50 hover:bg-muted/50">
                 <TH icon={Mail}>Email</TH>
                 <TH icon={Users}>Nome</TH>
+                <TH icon={Phone}>WhatsApp</TH>
                 <TH>Cadastrado em</TH>
                 <TH>Conta</TH>
                 <TH className="text-right">Ações</TH>
               </TableRow>
             </TableHeader>
             <TableBody className="divide-y divide-border text-sm">
-              {filtered.map((e) => (
+              {filtered.map((e) => {
+                const phone = e.profile_data?.phone || null;
+                const whatsappUrl = phone ? `https://wa.me/${phone.replace(/\D/g, "")}` : null;
+                return (
                 <TableRow key={e.id} className="transition-colors hover:bg-muted/30">
                   <TableCell className="px-6 py-4 font-mono text-sm text-foreground">{e.email}</TableCell>
                   <TableCell className="px-6 py-4 font-medium text-foreground">{e.full_name || "—"}</TableCell>
+                  <TableCell className="px-6 py-4">
+                    {phone ? (
+                      <div className="flex items-center gap-1.5">
+                        <a
+                          href={whatsappUrl!}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-mono text-sm text-emerald-400 hover:underline"
+                        >
+                          {phone}
+                        </a>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(phone);
+                            toast.success("Telefone copiado!");
+                          }}
+                          className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                          title="Copiar número"
+                        >
+                          <Copy className="size-3" />
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground text-xs">—</span>
+                    )}
+                  </TableCell>
                   <TableCell className="whitespace-nowrap px-6 py-4 text-muted-foreground">{formatDate(e.created_at)}</TableCell>
                   <TableCell className="px-6 py-4">
                     {e.has_account ? (
@@ -318,7 +348,8 @@ export default function AdminMigrados() {
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
+                );
+              })}
             </TableBody>
           </EmptyOrTable>
         </TabsContent>
