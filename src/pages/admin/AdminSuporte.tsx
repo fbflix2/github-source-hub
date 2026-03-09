@@ -86,6 +86,21 @@ export default function AdminSuporte() {
     (ratingsData ?? []).forEach(r => { ratingsMap[r.ticket_id] = { rating: r.rating, comment: r.comment }; });
     setRatings(ratingsMap);
 
+    // Fetch last message sender per ticket to detect "awaiting reply"
+    const ticketIds = ticketList.map(t => t.id);
+    if (ticketIds.length > 0) {
+      const { data: messagesData } = await supabase
+        .from("ticket_messages")
+        .select("ticket_id, sender, created_at")
+        .in("ticket_id", ticketIds)
+        .order("created_at", { ascending: false });
+      const senderMap: Record<string, string> = {};
+      (messagesData ?? []).forEach(m => {
+        if (!senderMap[m.ticket_id]) senderMap[m.ticket_id] = m.sender;
+      });
+      setLastSender(senderMap);
+    }
+
     setLoading(false);
   };
 
