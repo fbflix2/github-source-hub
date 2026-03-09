@@ -91,7 +91,14 @@ export default function AdminMigrados() {
       console.log("migration-stats response:", { result, error });
       if (error) throw error;
       if (result?.error) throw new Error(result.error);
-      setData(result);
+      // Ensure expected structure
+      setData({
+        pending_users: result?.pending_users || [],
+        migrated_users: result?.migrated_users || [],
+        direct_users: result?.direct_users || [],
+        all_users: result?.all_users || [],
+        stats: result?.stats || { total_users: 0, pending: 0, migrated: 0, direct_registrations: 0, complete_profiles: 0 },
+      });
     } catch (err: any) {
       console.error("migration-stats error:", err);
       toast.error("Erro ao carregar dados: " + (err.message || ""));
@@ -105,16 +112,16 @@ export default function AdminMigrados() {
     let items: EnrichedUser[] = [];
     switch (tab) {
       case "pending":
-        items = data.pending_users;
+        items = data.pending_users || [];
         break;
       case "migrated":
-        items = data.migrated_users;
+        items = data.migrated_users || [];
         break;
       case "complete":
-        items = data.all_users.filter((u) => u.profile_complete);
+        items = (data.all_users || []).filter((u) => u.profile_complete);
         break;
       case "direct":
-        items = data.direct_users;
+        items = data.direct_users || [];
         break;
     }
     if (search) {
