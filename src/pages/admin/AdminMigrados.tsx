@@ -211,6 +211,35 @@ export default function AdminMigrados() {
     } finally { setActionId(null); }
   }
 
+  async function handleToggleContacted(trackingId: string | null, email: string, current: boolean) {
+    if (!trackingId) {
+      toast.error("Este usuário não está na lista de migração");
+      return;
+    }
+    try {
+      const { error } = await supabase
+        .from("migration_tracking")
+        .update({ contacted: !current })
+        .eq("id", trackingId);
+      if (error) throw error;
+      setData((prev) => {
+        if (!prev) return prev;
+        const update = (list: EnrichedUser[]) =>
+          list.map((u) => (u.tracking_id === trackingId ? { ...u, contacted: !current } : u));
+        return {
+          ...prev,
+          pending_users: update(prev.pending_users),
+          migrated_users: update(prev.migrated_users),
+          direct_users: update(prev.direct_users),
+          all_users: update(prev.all_users),
+        };
+      });
+      toast.success(!current ? "Marcado como contatado ✅" : "Desmarcado");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao atualizar");
+    }
+  }
+
   function copyLink() {
     navigator.clipboard.writeText(MIGRATION_LINK);
     toast.success("Link de migração copiado!");
