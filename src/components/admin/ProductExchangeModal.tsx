@@ -3,9 +3,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ArrowRightLeft, Search, Loader2, Package, AlertTriangle, ShieldCheck, Lock } from "lucide-react";
+import { ArrowRightLeft, Search, Loader2, Package, AlertTriangle, ShieldCheck, Lock, X, Plus, Minus } from "lucide-react";
 
 interface ExchangeItem {
   order_item_id: string;
@@ -23,6 +24,11 @@ interface ProductOption {
   image_url: string | null;
 }
 
+interface SelectedEntry {
+  product: ProductOption;
+  qty: number;
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -36,7 +42,7 @@ interface Props {
 export default function ProductExchangeModal({ open, onOpenChange, orderItem, orderId, clientUserId, clientName, onExchangeComplete }: Props) {
   const [products, setProducts] = useState<ProductOption[]>([]);
   const [search, setSearch] = useState("");
-  const [selectedProduct, setSelectedProduct] = useState<ProductOption | null>(null);
+  const [selected, setSelected] = useState<SelectedEntry[]>([]);
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingProducts, setLoadingProducts] = useState(false);
@@ -48,7 +54,7 @@ export default function ProductExchangeModal({ open, onOpenChange, orderItem, or
     if (open) {
       fetchProducts();
       checkAdmin();
-      setSelectedProduct(null);
+      setSelected([]);
       setReason("");
       setSearch("");
       setAdminPassword("");
@@ -75,26 +81,59 @@ export default function ProductExchangeModal({ open, onOpenChange, orderItem, or
     setLoadingProducts(false);
   }
 
+  // How many units of a product are already selected
+  function getSelectedQty(productId: string) {
+    return selected.find(s => s.product.id === productId)?.qty || 0;
+  }
+
+  // Available stock considering selections
+  function availableStock(p: ProductOption) {
+    return p.stock - getSelectedQty(p.id);
+  }
+
   const filtered = products.filter(p =>
     p.name.toLowerCase().includes(search.toLowerCase()) &&
     p.id !== orderItem?.product_id
   );
 
-  const priceDiff = selectedProduct && orderItem
-    ? selectedProduct.price - orderItem.price
-    : 0;
+  function addProduct(p: ProductOption) {
+    setSelected(prev => {
+      const existing = prev.find(s => s.product.id === p.id);
+      if (existing) {
+        if (existing.qty >= p.stock) return prev;
+        return prev.map(s => s.product.id === p.id ? { ...s, qty: s.qty + 1 } : s);
+      }
+      return [...prev, { product: p, qty: 1 }];
+    });
+  }
+
+  function removeProduct(productId: string) {
+    setSelected(prev => {
+      const existing = prev.find(s => s.product.id === productId);
+      if (!existing) return prev;
+      if (existing.qty <= 1) return prev.filter(s => s.product.id !== productId);
+      return prev.map(s => s.product.id === productId ? { ...s, qty: s.qty - 1 } : s);
+    });
+  }
+
+  function removeProductEntirely(productId: string) {
+    setSelected(prev => prev.filter(s => s.product.id !== productId));
+  }
+
+  const totalNewPrice = selected.reduce((sum, s) => sum + s.product.price * s.qty, 0);
+  const totalNewItems = selected.reduce((sum, s) => sum + s.qty, 0);
+  const priceDiff = orderItem ? totalNewPrice - orderItem.price : 0;
 
   function handleConfirmClick() {
-    if (!selectedProduct) return;
+    if (selected.length === 0) return;
     setShowPasswordStep(true);
   }
 
   async function handleExchange() {
-    if (!orderItem || !selectedProduct || !adminPassword) return;
+    if (!orderItem || selected.length === 0 || !adminPassword) return;
     setLoading(true);
 
     try {
-      // Verify admin password by re-authenticating
       const { data: { user } } = await supabase.auth.getUser();
       if (!user?.email) throw new Error("Não autenticado");
 
@@ -108,7 +147,7 @@ export default function ProductExchangeModal({ open, onOpenChange, orderItem, or
         return;
       }
 
-      // 1. Return original stock_item to inventory (if exists)
+      // 1. Return original stock_item to inventory
       if (orderItem.stock_item_id) {
         await supabase.from("stock_items").update({
           order_item_id: null,
@@ -116,46 +155,83 @@ export default function ProductExchangeModal({ open, onOpenChange, orderItem, or
         }).eq("id", orderItem.stock_item_id);
       }
 
-      // 2. Fulfill new product: find available stock_item
-      const { data: newStockItem, error: stockErr } = await supabase
-        .from("stock_items")
-        .select("id, data, identification, identification_link")
-        .eq("product_id", selectedProduct.id)
-        .eq("status", "revisado")
-        .is("order_item_id", null)
-        .is("deleted_at", null)
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .single();
-
-      if (stockErr || !newStockItem) {
-        toast.error("Sem estoque disponível para o novo produto");
-        setLoading(false);
-        return;
+      // Flatten selected into individual units
+      const units: ProductOption[] = [];
+      for (const s of selected) {
+        for (let i = 0; i < s.qty; i++) units.push(s.product);
       }
 
-      // Build delivery_data from new stock_item
-      const deliveryData: Record<string, any> = { ...(newStockItem.data as Record<string, any> || {}) };
-      if (newStockItem.identification) deliveryData.idPerfil = newStockItem.identification;
-      if (newStockItem.identification_link) deliveryData.linkPerfil = newStockItem.identification_link;
+      // 2. For each unit, find a stock item and link it
+      const linkedItems: { product: ProductOption; stockItemId: string; deliveryData: Record<string, any> }[] = [];
+      
+      for (const prod of units) {
+        const alreadyUsed = linkedItems.filter(l => l.product.id === prod.id).map(l => l.stockItemId);
+        
+        let query = supabase
+          .from("stock_items")
+          .select("id, data, identification, identification_link")
+          .eq("product_id", prod.id)
+          .eq("status", "revisado")
+          .is("order_item_id", null)
+          .is("deleted_at", null)
+          .order("created_at", { ascending: true })
+          .limit(alreadyUsed.length + 1);
 
-      // 3. Update order_item with new product info
+        const { data: stockItems, error: stockErr } = await query;
+        if (stockErr) throw stockErr;
+
+        // Find one not already used
+        const available = (stockItems || []).find(si => !alreadyUsed.includes(si.id));
+        if (!available) {
+          toast.error(`Sem estoque suficiente para "${prod.name}"`);
+          setLoading(false);
+          return;
+        }
+
+        const deliveryData: Record<string, any> = { ...(available.data as Record<string, any> || {}) };
+        if (available.identification) deliveryData.idPerfil = available.identification;
+        if (available.identification_link) deliveryData.linkPerfil = available.identification_link;
+
+        linkedItems.push({ product: prod, stockItemId: available.id, deliveryData });
+      }
+
+      // 3. Update the FIRST unit on the existing order_item
+      const first = linkedItems[0];
       await supabase.from("order_items").update({
-        product_id: selectedProduct.id,
-        name: selectedProduct.name,
-        price: selectedProduct.price,
-        delivery_data: Object.keys(deliveryData).length > 0 ? deliveryData : null,
+        product_id: first.product.id,
+        name: first.product.name,
+        price: first.product.price,
+        quantity: 1,
+        delivery_data: Object.keys(first.deliveryData).length > 0 ? first.deliveryData : null,
       }).eq("id", orderItem.order_item_id);
 
-      // 4. Link new stock_item to order_item
       await supabase.from("stock_items").update({
         order_item_id: orderItem.order_item_id,
         status: "vendido",
-      }).eq("id", newStockItem.id);
+      }).eq("id", first.stockItemId);
 
-      // 5. Adjust wallet if price difference
+      // 4. Create NEW order_items for remaining units
+      for (let i = 1; i < linkedItems.length; i++) {
+        const item = linkedItems[i];
+        const { data: newOI, error: oiErr } = await supabase.from("order_items").insert({
+          order_id: orderId,
+          product_id: item.product.id,
+          name: item.product.name,
+          price: item.product.price,
+          quantity: 1,
+          delivery_data: Object.keys(item.deliveryData).length > 0 ? item.deliveryData : null,
+        }).select("id").single();
+
+        if (oiErr) throw oiErr;
+
+        await supabase.from("stock_items").update({
+          order_item_id: newOI.id,
+          status: "vendido",
+        }).eq("id", item.stockItemId);
+      }
+
+      // 5. Adjust wallet
       if (priceDiff !== 0) {
-        // Get current balance
         const { data: profile } = await supabase
           .from("profiles")
           .select("balance")
@@ -163,20 +239,19 @@ export default function ProductExchangeModal({ open, onOpenChange, orderItem, or
           .single();
 
         const currentBalance = profile?.balance || 0;
+        const newNames = selected.map(s => s.qty > 1 ? `${s.qty}x ${s.product.name}` : s.product.name).join(", ");
 
         if (priceDiff > 0) {
-          // New product costs more → debit from client wallet
           const newBalance = currentBalance - priceDiff;
           await supabase.from("profiles").update({ balance: newBalance }).eq("user_id", clientUserId);
           await supabase.from("wallet_transactions").insert({
             user_id: clientUserId,
             type: "debit",
             amount: priceDiff,
-            title: `[Troca] Diferença de produto — ${orderItem.product_name} → ${selectedProduct.name}`,
+            title: `[Troca] Diferença — ${orderItem.product_name} → ${newNames}`,
             balance_after: newBalance,
           });
         } else {
-          // New product costs less → credit to client wallet
           const credit = Math.abs(priceDiff);
           const newBalance = currentBalance + credit;
           await supabase.from("profiles").update({ balance: newBalance }).eq("user_id", clientUserId);
@@ -184,7 +259,7 @@ export default function ProductExchangeModal({ open, onOpenChange, orderItem, or
             user_id: clientUserId,
             type: "credit",
             amount: credit,
-            title: `[Troca] Crédito de diferença — ${orderItem.product_name} → ${selectedProduct.name}`,
+            title: `[Troca] Crédito — ${orderItem.product_name} → ${newNames}`,
             balance_after: newBalance,
           });
         }
@@ -195,32 +270,34 @@ export default function ProductExchangeModal({ open, onOpenChange, orderItem, or
         .from("order_items")
         .select("price, quantity")
         .eq("order_id", orderId);
-      
+
       const newTotal = (allItems || []).reduce((s, i) => s + i.price * i.quantity, 0);
       await supabase.from("orders").update({
         subtotal: newTotal,
         total: newTotal,
       }).eq("id", orderId);
 
-      // 7. Record exchange for audit
-      await supabase.from("product_exchanges" as any).insert({
-        order_id: orderId,
-        order_item_id: orderItem.order_item_id,
-        original_product_id: orderItem.product_id,
-        original_product_name: orderItem.product_name,
-        original_stock_item_id: orderItem.stock_item_id,
-        new_product_id: selectedProduct.id,
-        new_product_name: selectedProduct.name,
-        new_stock_item_id: newStockItem.id,
-        price_difference: priceDiff,
-        wallet_adjusted: priceDiff !== 0,
-        reason: reason || null,
-        performed_by: user.id,
-        client_user_id: clientUserId,
-        client_name: clientName,
-      } as any);
+      // 7. Record exchange(s) for audit
+      for (const item of linkedItems) {
+        await supabase.from("product_exchanges" as any).insert({
+          order_id: orderId,
+          order_item_id: orderItem.order_item_id,
+          original_product_id: orderItem.product_id,
+          original_product_name: orderItem.product_name,
+          original_stock_item_id: orderItem.stock_item_id,
+          new_product_id: item.product.id,
+          new_product_name: item.product.name,
+          new_stock_item_id: item.stockItemId,
+          price_difference: priceDiff / linkedItems.length,
+          wallet_adjusted: priceDiff !== 0,
+          reason: reason || null,
+          performed_by: user.id,
+          client_user_id: clientUserId,
+          client_name: clientName,
+        } as any);
+      }
 
-      toast.success("Troca realizada com sucesso!");
+      toast.success(`Troca realizada! ${totalNewItems} item(ns) vinculado(s).`);
       onExchangeComplete();
       onOpenChange(false);
     } catch (err: any) {
@@ -235,7 +312,7 @@ export default function ProductExchangeModal({ open, onOpenChange, orderItem, or
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ArrowRightLeft className="size-5 text-primary" />
@@ -260,9 +337,47 @@ export default function ProductExchangeModal({ open, onOpenChange, orderItem, or
                 <p className="text-sm text-primary font-bold">R$ {orderItem.price.toFixed(2).replace(".", ",")}</p>
               </div>
 
+              {/* Selected products */}
+              {selected.length > 0 && (
+                <div className="space-y-1.5">
+                  <p className="text-xs text-muted-foreground font-semibold uppercase">Selecionados ({totalNewItems} item{totalNewItems > 1 ? "s" : ""})</p>
+                  {selected.map(s => (
+                    <div key={s.product.id} className="flex items-center justify-between rounded-lg bg-primary/5 border border-primary/20 px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => removeProductEntirely(s.product.id)} className="text-muted-foreground hover:text-destructive transition-colors">
+                          <X className="size-3.5" />
+                        </button>
+                        <span className="text-sm font-medium text-foreground">{s.product.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => removeProduct(s.product.id)}
+                          className="size-6 rounded-md bg-muted flex items-center justify-center hover:bg-muted-foreground/20 transition-colors"
+                        >
+                          <Minus className="size-3" />
+                        </button>
+                        <span className="text-sm font-bold text-foreground w-5 text-center">{s.qty}</span>
+                        <button
+                          onClick={() => addProduct(s.product)}
+                          disabled={s.qty >= s.product.stock}
+                          className="size-6 rounded-md bg-muted flex items-center justify-center hover:bg-muted-foreground/20 transition-colors disabled:opacity-30"
+                        >
+                          <Plus className="size-3" />
+                        </button>
+                        <span className="text-sm font-bold text-primary ml-1 w-20 text-right">
+                          R$ {(s.product.price * s.qty).toFixed(2).replace(".", ",")}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {/* Search new product */}
               <div>
-                <p className="text-xs text-muted-foreground font-semibold uppercase mb-2">Novo Produto</p>
+                <p className="text-xs text-muted-foreground font-semibold uppercase mb-2">
+                  {selected.length > 0 ? "Adicionar Produto" : "Novo Produto"}
+                </p>
                 <div className="relative mb-2">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
                   <Input
@@ -279,43 +394,54 @@ export default function ProductExchangeModal({ open, onOpenChange, orderItem, or
                   <div className="max-h-48 overflow-y-auto space-y-1 border border-border rounded-lg p-1">
                     {filtered.length === 0 ? (
                       <p className="text-center text-sm text-muted-foreground py-4">Nenhum produto disponível</p>
-                    ) : filtered.map(p => (
-                      <button
-                        key={p.id}
-                        onClick={() => setSelectedProduct(p)}
-                        className={`w-full text-left flex items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors ${
-                          selectedProduct?.id === p.id
-                            ? "bg-primary/10 border border-primary/30"
-                            : "hover:bg-muted/50"
-                        }`}
-                      >
-                        <div>
-                          <span className="font-medium text-foreground">{p.name}</span>
-                          <span className="ml-2 text-xs text-muted-foreground">({p.stock} em estoque)</span>
-                        </div>
-                        <span className="font-bold text-primary text-sm">R$ {p.price.toFixed(2).replace(".", ",")}</span>
-                      </button>
-                    ))}
+                    ) : filtered.map(p => {
+                      const selQty = getSelectedQty(p.id);
+                      const remaining = p.stock - selQty;
+                      return (
+                        <button
+                          key={p.id}
+                          onClick={() => addProduct(p)}
+                          disabled={remaining <= 0}
+                          className={`w-full text-left flex items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors disabled:opacity-40 ${
+                            selQty > 0
+                              ? "bg-primary/10 border border-primary/30"
+                              : "hover:bg-muted/50"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-foreground">{p.name}</span>
+                            <span className="text-xs text-muted-foreground">({remaining} disponível{remaining !== 1 ? "is" : ""})</span>
+                            {selQty > 0 && <Badge variant="outline" className="text-xs px-1.5 py-0">{selQty}x</Badge>}
+                          </div>
+                          <span className="font-bold text-primary text-sm">R$ {p.price.toFixed(2).replace(".", ",")}</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>
 
               {/* Price difference */}
-              {selectedProduct && (
+              {selected.length > 0 && (
                 <div className={`rounded-xl p-3 border ${
                   priceDiff > 0 ? "bg-orange-500/5 border-orange-500/20" :
                   priceDiff < 0 ? "bg-green-500/5 border-green-500/20" :
                   "bg-muted/50 border-border"
                 }`}>
-                  <div className="flex items-center gap-2">
-                    {priceDiff !== 0 && <AlertTriangle className="size-4 text-orange-400" />}
-                    <Package className="size-4 text-muted-foreground" />
-                    <span className="text-sm font-medium text-foreground">
-                      {priceDiff > 0
-                        ? `Débito de R$ ${priceDiff.toFixed(2).replace(".", ",")} na carteira do cliente`
-                        : priceDiff < 0
-                        ? `Crédito de R$ ${Math.abs(priceDiff).toFixed(2).replace(".", ",")} na carteira do cliente`
-                        : "Mesmo valor — sem ajuste na carteira"}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      {priceDiff !== 0 && <AlertTriangle className="size-4 text-orange-400" />}
+                      <Package className="size-4 text-muted-foreground" />
+                      <span className="text-sm font-medium text-foreground">
+                        {priceDiff > 0
+                          ? `Débito de R$ ${priceDiff.toFixed(2).replace(".", ",")} na carteira`
+                          : priceDiff < 0
+                          ? `Crédito de R$ ${Math.abs(priceDiff).toFixed(2).replace(".", ",")} na carteira`
+                          : "Mesmo valor — sem ajuste"}
+                      </span>
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      R$ {orderItem.price.toFixed(2).replace(".", ",")} → R$ {totalNewPrice.toFixed(2).replace(".", ",")}
                     </span>
                   </div>
                 </div>
@@ -334,11 +460,11 @@ export default function ProductExchangeModal({ open, onOpenChange, orderItem, or
 
               <Button
                 className="w-full"
-                disabled={!selectedProduct || isAdmin === null}
+                disabled={selected.length === 0 || isAdmin === null}
                 onClick={handleConfirmClick}
               >
                 <ArrowRightLeft className="size-4 mr-2" />
-                Prosseguir com Troca
+                Prosseguir com Troca ({totalNewItems} item{totalNewItems > 1 ? "s" : ""})
               </Button>
             </>
           )}
@@ -349,7 +475,10 @@ export default function ProductExchangeModal({ open, onOpenChange, orderItem, or
                 <Lock className="size-8 mx-auto mb-2 text-primary" />
                 <p className="font-bold text-foreground">Confirmação de Segurança</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Trocar <span className="font-semibold text-foreground">{orderItem.product_name}</span> → <span className="font-semibold text-primary">{selectedProduct?.name}</span>
+                  Trocar <span className="font-semibold text-foreground">{orderItem.product_name}</span> → {" "}
+                  <span className="font-semibold text-primary">
+                    {selected.map(s => s.qty > 1 ? `${s.qty}x ${s.product.name}` : s.product.name).join(", ")}
+                  </span>
                 </p>
               </div>
 
