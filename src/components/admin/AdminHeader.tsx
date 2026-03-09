@@ -116,16 +116,20 @@ export function AdminHeader() {
 
   // Realtime + polling for notifications
   useEffect(() => {
-    const interval = setInterval(fetchNotifications, 30000);
+    // Poll every 10s to catch notifications from edge functions faster
+    const interval = setInterval(fetchNotifications, 10000);
     const channel = supabase
       .channel("admin-notifications")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications" }, (payload) => {
-        fetchNotifications();
         const notif = payload.new as AdminNotification;
+        console.log("[NotifSounds] Realtime INSERT:", notif.type, notif.title);
+        // Mark as seen immediately so polling doesn't double-play
+        seenIdsRef.current.add(notif.id);
         const eventKey = getEventKey(notif.type);
         if (eventKey) {
           playNotificationSound(eventKey);
         }
+        fetchNotifications();
       })
       .subscribe();
     return () => { clearInterval(interval); supabase.removeChannel(channel); };
