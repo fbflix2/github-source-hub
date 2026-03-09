@@ -105,16 +105,16 @@ export default function AdminMigrados() {
     let items: EnrichedUser[] = [];
     switch (tab) {
       case "pending":
-        items = data.pending_users;
+        items = data.pending_users || [];
         break;
       case "migrated":
-        items = data.migrated_users;
+        items = data.migrated_users || [];
         break;
       case "complete":
-        items = data.all_users.filter((u) => u.profile_complete);
+        items = (data.all_users || []).filter((u) => u.profile_complete);
         break;
       case "direct":
-        items = data.direct_users;
+        items = data.direct_users || [];
         break;
     }
     if (search) {
