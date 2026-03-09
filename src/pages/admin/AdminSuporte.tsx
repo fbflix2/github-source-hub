@@ -208,11 +208,11 @@ export default function AdminSuporte() {
         <div className="flex flex-col gap-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-              {isResolvedView ? "Resolvidos Hoje" : "Fila de Atendimento"}
+              {activeFilter === "resolvidos" ? "Tickets Resolvidos" : activeFilter === "resolvidos-hoje" ? "Resolvidos Hoje" : "Fila de Atendimento"}
               <span className="text-sm font-normal text-gray-500 bg-white/5 px-2 py-0.5 rounded-lg border border-white/5">
                 {filtered.length} total
               </span>
-              {isResolvedView && (
+              {activeFilter === "resolvidos-hoje" && (
                 <button
                   onClick={() => setActiveFilter("todos")}
                   className="ml-2 text-xs text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-1 rounded-lg transition-colors"
@@ -221,7 +221,21 @@ export default function AdminSuporte() {
                 </button>
               )}
             </h2>
-            {!isResolvedView && (
+            <div className="flex items-center gap-3">
+              {activeFilter === "resolvidos" && (
+                <div className="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/10">
+                  <button onClick={() => shiftMonth(-1)} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
+                    <ChevronLeft className="size-4" />
+                  </button>
+                  <span className="text-sm font-medium text-white px-3 capitalize min-w-[140px] text-center flex items-center justify-center gap-1.5">
+                    <CalendarDays className="size-3.5 text-gray-400" />
+                    {monthLabel}
+                  </span>
+                  <button onClick={() => shiftMonth(1)} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
+                    <ChevronRight className="size-4" />
+                  </button>
+                </div>
+              )}
               <div className="flex items-center gap-2 bg-black/40 p-1 rounded-xl border border-white/10">
                 {filters.map((filter) => (
                   <button
@@ -237,7 +251,7 @@ export default function AdminSuporte() {
                   </button>
                 ))}
               </div>
-            )}
+            </div>
           </div>
 
           {loading ? (
