@@ -577,7 +577,18 @@ export default function ItemDetails() {
 
               {/* Access Data */}
               <div className="bg-muted/30 rounded-lg p-3 border border-border">
-                {isBM ? (
+                {exchangePendingPayment ? (
+                  <ExchangePaymentGate
+                    itemId={itemId!}
+                    orderId={order.id}
+                    orderCode={order.code}
+                    pendingPayment={exchangePendingPayment}
+                    onPaymentComplete={() => {
+                      setExchangePendingPayment(null);
+                      window.location.reload();
+                    }}
+                  />
+                ) : isBM ? (
                   <>
                     <h3 className="text-[10px] font-bold text-foreground mb-2 uppercase tracking-wider">Links das BMs</h3>
                     {bmLinks.length === 0 ? (
