@@ -4,6 +4,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { PlatformFeedback } from "@/components/PlatformFeedback";
+import ExchangePaymentGate from "@/components/ExchangePaymentGate";
 import {
   AlertDialog,
   AlertDialogContent,
