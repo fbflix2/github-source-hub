@@ -45,6 +45,8 @@ const getIcon = (type: string) => {
 };
 
 export default function Wallet() {
+  const { data: fbxData } = useFbxBalance();
+  const fbxBalance = fbxData?.fbx_balance || 0;
   const [rechargeValue, setRechargeValue] = useState<string>("");
   const [balance, setBalance] = useState(0);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
