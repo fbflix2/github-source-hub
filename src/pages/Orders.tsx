@@ -301,6 +301,7 @@ export default function Orders() {
                             replacedAt: bmItems.find(i => i.replacedAt)?.replacedAt || null,
                             isBm: true,
                             isPage: false,
+                            isProxy: false,
                           });
                         }
 
@@ -320,6 +321,27 @@ export default function Orders() {
                             replacedAt: pageItems.find(i => i.replacedAt)?.replacedAt || null,
                             isBm: false,
                             isPage: true,
+                            isProxy: false,
+                          });
+                        }
+
+                        // Proxy: grouped row linking to subscriptions
+                        if (proxyItems.length > 0) {
+                          const totalProxyPrice = proxyItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
+                          const totalProxyQty = proxyItems.reduce((sum, i) => sum + i.quantity, 0);
+                          rows.push({
+                            key: 'proxy-group',
+                            name: proxyItems[0].name,
+                            subtitle: totalProxyQty > 1 ? `${totalProxyQty} proxies — ver em Assinaturas` : 'Gerenciar em Assinaturas',
+                            price: totalProxyPrice,
+                            totalPrice: totalProxyPrice,
+                            itemId: proxyItems[0].id,
+                            isBlocked: false,
+                            isReplaced: false,
+                            replacedAt: null,
+                            isBm: false,
+                            isPage: false,
+                            isProxy: true,
                           });
                         }
 
@@ -339,6 +361,7 @@ export default function Orders() {
                               replacedAt: item.replacedAt || null,
                               isBm: false,
                               isPage: false,
+                              isProxy: false,
                             });
                           }
                         });
