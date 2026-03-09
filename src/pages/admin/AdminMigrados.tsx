@@ -63,6 +63,12 @@ const formatDate = (d: string | null) => {
 };
 
 const MIGRATION_LINK = "https://fbflix.com.br/migrar";
+const PLATFORM_URL = "https://fbflix.com.br/auth";
+
+function buildMigrationMessage(email: string, fullName: string | null) {
+  const firstName = fullName ? fullName.split(" ")[0] : "";
+  return `Olá${firstName ? ` ${firstName}` : ""}! 🎉\n\nSua conta na FBFlix está pronta.\n\n🔗 Acesse: ${PLATFORM_URL}\n📧 Email: ${email}\n🔑 Senha: mudar@123\n\n⚠️ Essa é uma senha de acesso único. Após o login, você será solicitado a criar uma nova senha.\n\nQualquer dúvida, estamos à disposição!`;
+}
 
 export default function AdminMigrados() {
   const [data, setData] = useState<MigrationData | null>(null);
@@ -182,7 +188,7 @@ export default function AdminMigrados() {
     } finally { setImportLoading(false); }
   }
 
-  async function handleGenerateCredentials(email: string, id: string) {
+   async function handleGenerateCredentials(email: string, id: string, fullName: string | null) {
     setActionId(id);
     try {
       const { data: result, error } = await supabase.functions.invoke("migration-login", {
@@ -190,8 +196,12 @@ export default function AdminMigrados() {
       });
       if (error) throw error;
       if (result?.error) throw new Error(result.error);
+      
+      const msg = buildMigrationMessage(email, fullName);
+      await navigator.clipboard.writeText(msg);
+      
       const actionLabel = result.action === "created" ? "Conta criada" : "Senha resetada";
-      toast.success(`${actionLabel}! Senha: mudar@123`);
+      toast.success(`${actionLabel}! Mensagem copiada para área de transferência 📋`);
       fetchData();
     } catch (err: any) {
       toast.error(err.message || "Erro ao gerar credenciais");
@@ -331,7 +341,7 @@ export default function AdminMigrados() {
                          variant="outline"
                          className="text-blue-400 border-blue-500/30 hover:bg-blue-500/10 h-7 px-2 text-xs"
                          disabled={actionId === e.id}
-                         onClick={() => handleGenerateCredentials(e.email, e.id)}
+                         onClick={() => handleGenerateCredentials(e.email, e.id, e.full_name)}
                        >
                          {actionId === e.id ? <Loader2 className="size-3 animate-spin" /> : <Key className="size-3" />}
                          <span className="ml-1">Credenciais</span>
