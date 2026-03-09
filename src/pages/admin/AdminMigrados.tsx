@@ -63,6 +63,12 @@ const formatDate = (d: string | null) => {
 };
 
 const MIGRATION_LINK = "https://fbflix.com.br/migrar";
+const PLATFORM_URL = "https://fbflix.com.br/auth";
+
+function buildMigrationMessage(email: string, fullName: string | null) {
+  const firstName = fullName ? fullName.split(" ")[0] : "";
+  return `Olá${firstName ? ` ${firstName}` : ""}! 🎉\n\nSua conta na FBFlix está pronta.\n\n🔗 Acesse: ${PLATFORM_URL}\n📧 Email: ${email}\n🔑 Senha: mudar@123\n\n⚠️ Essa é uma senha de acesso único. Após o login, você será solicitado a criar uma nova senha.\n\nQualquer dúvida, estamos à disposição!`;
+}
 
 export default function AdminMigrados() {
   const [data, setData] = useState<MigrationData | null>(null);
