@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { toast } from "@/hooks/use-toast";
-import { useFbxBalance, useFbxOrders, useFbxActions, useFbxSettings } from "@/hooks/useFbx";
+import { useFbxBalance, useFbxActions, useFbxSettings } from "@/hooks/useFbx";
 import { FbxStatsHeader } from "@/components/fbx/FbxStatsHeader";
 import { FbxChart } from "@/components/fbx/FbxChart";
-import { FbxOrderBook } from "@/components/fbx/FbxOrderBook";
 import { FbxTrading } from "@/components/fbx/FbxTrading";
 import { FbxRecentTrades } from "@/components/fbx/FbxRecentTrades";
 import { FbxRechargeModal } from "@/components/fbx/FbxRechargeModal";
@@ -14,7 +13,6 @@ export default function TokenFBX() {
   const [showTransfer, setShowTransfer] = useState(false);
 
   const { data: balanceData } = useFbxBalance();
-  const { data: orders = [] } = useFbxOrders();
   const { data: settingsData } = useFbxSettings();
   const actions = useFbxActions();
 
@@ -22,22 +20,10 @@ export default function TokenFBX() {
   const brlBalance = balanceData?.brl_balance || 0;
   const settings = settingsData?.settings || {};
 
-  const sellOrders = orders.filter((o: any) => o.type === "sell" && o.status === "open");
-  const buyOrders = orders.filter((o: any) => o.type === "buy" && o.status === "open");
-
-  const handleCreateOrder = async (type: "buy" | "sell", quantity: number, pixKey?: string) => {
+  const handleCreateOrder = async (type: "buy" | "sell", quantity: number) => {
     try {
-      const res = await actions.createOrder(type, quantity, pixKey);
-      toast({ title: "✅ Sucesso!", description: res.message || `${type === "buy" ? "Compra" : "Venda"} de ${quantity} FBX` });
-    } catch (err: any) {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
-    }
-  };
-
-  const handleMatchOrder = async (orderId: string) => {
-    try {
-      const res = await actions.matchOrder(orderId);
-      toast({ title: "Ordem aceita!", description: res.pix_key ? `Pix: ${res.pix_key}` : "Aguardando confirmação" });
+      const res = await actions.createOrder(type, quantity);
+      toast({ title: "✅ Sucesso!", description: res.message });
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     }
@@ -47,9 +33,8 @@ export default function TokenFBX() {
     <div className="flex flex-col gap-2 -mt-4" style={{ height: "calc(100vh - 120px)" }}>
       <FbxStatsHeader fbxBalance={fbxBalance} brlBalance={brlBalance} onRecharge={() => setShowRecharge(true)} onTransfer={() => setShowTransfer(true)} />
       <FbxChart />
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-2">
-        <FbxOrderBook sellOrders={sellOrders} buyOrders={buyOrders} onMatch={handleMatchOrder} />
-        <FbxTrading onCreateOrder={handleCreateOrder} fbxBalance={fbxBalance} settings={settings} />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+        <FbxTrading onCreateOrder={handleCreateOrder} fbxBalance={fbxBalance} brlBalance={brlBalance} settings={settings} />
         <FbxRecentTrades />
       </div>
 

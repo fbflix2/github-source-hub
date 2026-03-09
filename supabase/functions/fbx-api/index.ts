@@ -159,146 +159,62 @@ serve(async (req) => {
       return json({ success: true, new_balance: senderNew });
     }
 
-    // ========== CREATE P2P ORDER (with auto-match) ==========
-    if (action === "create-order") {
-      const { type, quantity, pix_key } = body;
+    // ========== EXCHANGE (instant BRL↔FBX conversion) ==========
+    if (action === "create-order" || action === "exchange") {
+      const { type, quantity } = body;
       if (!type || !quantity || quantity <= 0) return json({ error: "Dados inválidos" }, 400);
-      if (type === "sell" && !pix_key) return json({ error: "Chave Pix obrigatória para venda" }, 400);
 
       // Get fee rate
       const { data: feeRow } = await admin.from("site_settings")
         .select("value").eq("key", "fbx_p2p_fee").single();
       const feeRate = Number(feeRow?.value || "0.06");
 
-      // --- AUTO-MATCH: look for opposite open orders ---
-      const oppositeType = type === "buy" ? "sell" : "buy";
-      const { data: matchCandidates } = await admin.from("fbx_orders")
-        .select("*")
-        .eq("type", oppositeType)
-        .eq("status", "open")
-        .neq("user_id", user.id)
-        .order("created_at", { ascending: true });
+      const { data: profile } = await admin.from("profiles")
+        .select("balance, fbx_balance").eq("user_id", user.id).single();
+      if (!profile) return json({ error: "Perfil não encontrado" }, 404);
 
-      let remaining = quantity;
-      const matchedResults: any[] = [];
+      const brl = Number(profile.balance);
+      const fbx = Number(profile.fbx_balance);
+      const fee = Math.round(quantity * feeRate * 100) / 100;
+      const net = Math.round((quantity - fee) * 100) / 100;
 
-      for (const candidate of (matchCandidates || [])) {
-        if (remaining <= 0) break;
+      if (type === "buy") {
+        // BRL → FBX: deduct BRL, credit FBX (minus fee)
+        if (brl < quantity) return json({ error: "Saldo BRL insuficiente" }, 400);
+        const newBrl = Math.round((brl - quantity) * 100) / 100;
+        const newFbx = Math.round((fbx + net) * 100) / 100;
+        await admin.from("profiles").update({ balance: newBrl, fbx_balance: newFbx }).eq("user_id", user.id);
 
-        const matchQty = Math.min(remaining, Number(candidate.quantity));
-        const fee = Math.round(matchQty * feeRate * 100) / 100;
-        const netAmount = Math.round((matchQty - fee) * 100) / 100;
+        await admin.from("wallet_transactions").insert({
+          user_id: user.id, type: "debit", amount: -quantity,
+          title: `Compra ${net} FBX`, balance_after: newBrl,
+        });
+        await admin.from("fbx_transactions").insert({
+          user_id: user.id, type: "purchase", amount: quantity, fee, net_amount: net,
+          balance_after: newFbx, description: `Compra R$${quantity} → ${net} FBX (taxa ${(feeRate * 100).toFixed(0)}%)`,
+        });
 
-        // Determine buyer and seller
-        const buyerId = type === "buy" ? user.id : candidate.user_id;
-        const sellerId = type === "sell" ? user.id : candidate.user_id;
+        return json({ success: true, fbx_received: net, fee, new_fbx_balance: newFbx, new_brl_balance: newBrl, message: `Compra de ${net} FBX realizada!` });
 
-        // For buy: buyer pays BRL, gets FBX. Check buyer BRL balance
-        if (type === "buy") {
-          const { data: buyerProfile } = await admin.from("profiles")
-            .select("balance, fbx_balance").eq("user_id", buyerId).single();
-          if (!buyerProfile || Number(buyerProfile.balance) < matchQty) {
-            break; // Not enough BRL
-          }
-          // Deduct BRL from buyer
-          const newBrl = Math.round((Number(buyerProfile.balance) - matchQty) * 100) / 100;
-          const newFbx = Math.round((Number(buyerProfile.fbx_balance) + netAmount) * 100) / 100;
-          await admin.from("profiles").update({ balance: newBrl, fbx_balance: newFbx }).eq("user_id", buyerId);
+      } else {
+        // FBX → BRL: deduct FBX, credit BRL (minus fee)
+        if (fbx < quantity) return json({ error: "Saldo FBX insuficiente" }, 400);
+        const brlNet = Math.round((quantity - fee) * 100) / 100;
+        const newFbx = Math.round((fbx - quantity) * 100) / 100;
+        const newBrl = Math.round((brl + brlNet) * 100) / 100;
+        await admin.from("profiles").update({ balance: newBrl, fbx_balance: newFbx }).eq("user_id", user.id);
 
-          // Credit BRL to seller (the candidate who had sell order with escrow)
-          const { data: sellerProfile } = await admin.from("profiles")
-            .select("balance").eq("user_id", sellerId).single();
-          const sellerNewBrl = Math.round((Number(sellerProfile?.balance || 0) + matchQty) * 100) / 100;
-          await admin.from("profiles").update({ balance: sellerNewBrl }).eq("user_id", sellerId);
+        await admin.from("wallet_transactions").insert({
+          user_id: user.id, type: "credit", amount: brlNet,
+          title: `Venda ${quantity} FBX`, balance_after: newBrl,
+        });
+        await admin.from("fbx_transactions").insert({
+          user_id: user.id, type: "p2p_sell", amount: -quantity, fee, net_amount: -quantity,
+          balance_after: newFbx, description: `Venda ${quantity} FBX → R$${brlNet} (taxa ${(feeRate * 100).toFixed(0)}%)`,
+        });
 
-          // Log transactions
-          await admin.from("wallet_transactions").insert([
-            { user_id: buyerId, type: "debit", amount: -matchQty, title: `Compra P2P ${matchQty} FBX`, balance_after: newBrl },
-            { user_id: sellerId, type: "credit", amount: matchQty, title: `Venda P2P ${matchQty} FBX`, balance_after: sellerNewBrl },
-          ]);
-          await admin.from("fbx_transactions").insert([
-            { user_id: buyerId, type: "p2p_buy", amount: matchQty, fee, net_amount: netAmount, balance_after: newFbx, counterpart_user_id: sellerId, description: `Compra P2P auto-match ${matchQty} FBX`, reference_id: candidate.id },
-            { user_id: sellerId, type: "p2p_sell", amount: -matchQty, fee: 0, net_amount: -matchQty, balance_after: 0, counterpart_user_id: buyerId, description: `Venda P2P auto-match ${matchQty} FBX`, reference_id: candidate.id },
-          ]);
-        } else {
-          // type === "sell": seller sends FBX, gets BRL
-          const { data: sellerProfile } = await admin.from("profiles")
-            .select("fbx_balance, balance").eq("user_id", sellerId).single();
-          if (!sellerProfile || Number(sellerProfile.fbx_balance) < matchQty) {
-            break; // Not enough FBX
-          }
-          // Deduct FBX from seller, credit BRL
-          const newFbx = Math.round((Number(sellerProfile.fbx_balance) - matchQty) * 100) / 100;
-          const newBrl = Math.round((Number(sellerProfile.balance) + matchQty) * 100) / 100;
-          await admin.from("profiles").update({ fbx_balance: newFbx, balance: newBrl }).eq("user_id", sellerId);
-
-          // Deduct BRL from buyer (candidate), credit FBX
-          const { data: buyerProfile } = await admin.from("profiles")
-            .select("balance, fbx_balance").eq("user_id", buyerId).single();
-          const buyerNewBrl = Math.round((Number(buyerProfile?.balance || 0) - matchQty) * 100) / 100;
-          const buyerNewFbx = Math.round((Number(buyerProfile?.fbx_balance || 0) + netAmount) * 100) / 100;
-          await admin.from("profiles").update({ balance: buyerNewBrl, fbx_balance: buyerNewFbx }).eq("user_id", buyerId);
-
-          // Log transactions
-          await admin.from("wallet_transactions").insert([
-            { user_id: sellerId, type: "credit", amount: matchQty, title: `Venda P2P ${matchQty} FBX`, balance_after: newBrl },
-            { user_id: buyerId, type: "debit", amount: -matchQty, title: `Compra P2P ${matchQty} FBX`, balance_after: buyerNewBrl },
-          ]);
-          await admin.from("fbx_transactions").insert([
-            { user_id: sellerId, type: "p2p_sell", amount: -matchQty, fee: 0, net_amount: -matchQty, balance_after: newFbx, counterpart_user_id: buyerId, description: `Venda P2P auto-match ${matchQty} FBX`, reference_id: candidate.id },
-            { user_id: buyerId, type: "p2p_buy", amount: matchQty, fee, net_amount: netAmount, balance_after: buyerNewFbx, counterpart_user_id: sellerId, description: `Compra P2P auto-match ${matchQty} FBX`, reference_id: candidate.id },
-          ]);
-        }
-
-        // Update or close the matched candidate order
-        const candidateRemaining = Math.round((Number(candidate.quantity) - matchQty) * 100) / 100;
-        if (candidateRemaining <= 0) {
-          await admin.from("fbx_orders").update({ status: "completed", matched_user_id: user.id, matched_at: new Date().toISOString(), fee_amount: fee }).eq("id", candidate.id);
-        } else {
-          await admin.from("fbx_orders").update({ quantity: candidateRemaining }).eq("id", candidate.id);
-        }
-
-        remaining = Math.round((remaining - matchQty) * 100) / 100;
-        matchedResults.push({ matched_id: candidate.id, qty: matchQty, fee });
+        return json({ success: true, brl_received: brlNet, fee, new_fbx_balance: newFbx, new_brl_balance: newBrl, message: `Venda de ${quantity} FBX realizada! +R$${brlNet}` });
       }
-
-      // If there's remaining quantity, create an open order for the rest
-      let newOrder = null;
-      if (remaining > 0) {
-        // For sell remainder, escrow the FBX
-        if (type === "sell") {
-          const { data: profile } = await admin.from("profiles")
-            .select("fbx_balance").eq("user_id", user.id).single();
-          if (!profile || Number(profile.fbx_balance) < remaining) {
-            if (matchedResults.length === 0) return json({ error: "Saldo FBX insuficiente" }, 400);
-            // Partial fill is ok, just don't create remainder order
-          } else {
-            const newBal = Math.round((Number(profile.fbx_balance) - remaining) * 100) / 100;
-            await admin.from("profiles").update({ fbx_balance: newBal }).eq("user_id", user.id);
-            const { data: order } = await admin.from("fbx_orders").insert({
-              user_id: user.id, type, quantity: remaining, pix_key: pix_key || null, fee_rate: feeRate,
-            }).select().single();
-            newOrder = order;
-          }
-        } else {
-          const { data: order } = await admin.from("fbx_orders").insert({
-            user_id: user.id, type, quantity: remaining, pix_key: pix_key || null, fee_rate: feeRate,
-          }).select().single();
-          newOrder = order;
-        }
-      }
-
-      const totalMatched = Math.round((quantity - remaining) * 100) / 100;
-      return json({
-        success: true,
-        auto_matched: totalMatched,
-        remaining,
-        matches: matchedResults,
-        order: newOrder,
-        message: totalMatched > 0
-          ? `${totalMatched} FBX executados automaticamente${remaining > 0 ? `, ${remaining} FBX em ordem aberta` : ""}`
-          : "Ordem criada no livro de ofertas",
-      });
     }
 
     // ========== MATCH ORDER (buyer accepts sell order) ==========
