@@ -18,10 +18,11 @@ interface Props {
   orderId: string;
   orderCode: string;
   pendingPayment: PendingPayment;
+  lockType?: ExchangeLockType;
   onPaymentComplete: () => void;
 }
 
-export default function ExchangePaymentGate({ itemId, orderId, orderCode, pendingPayment, onPaymentComplete }: Props) {
+export default function ExchangePaymentGate({ itemId, orderId, orderCode, pendingPayment, lockType = "pending_payment", onPaymentComplete }: Props) {
   const [balance, setBalance] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [pixData, setPixData] = useState<{ qr_code: string; qr_code_base64: string } | null>(null);
