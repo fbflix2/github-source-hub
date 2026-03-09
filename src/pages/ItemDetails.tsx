@@ -118,6 +118,9 @@ export default function ItemDetails() {
         if (dd._credentials_accessed_at) {
           setAcceptedDisclaimer(true);
         }
+        if (dd._exchange_pending_payment) {
+          setExchangePendingPayment(dd._exchange_pending_payment);
+        }
       }
       // Also check localStorage as fallback
       if (!acceptedDisclaimer && orderId && localStorage.getItem(`disclaimer_accepted_${decodedCode}`) === "true") {
