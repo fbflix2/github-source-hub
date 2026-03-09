@@ -117,7 +117,7 @@ export function AdminHeader() {
   // Realtime + polling for notifications
   useEffect(() => {
     // Poll every 10s to catch notifications from edge functions faster
-    const interval = setInterval(fetchNotifications, 10000);
+    const interval = setInterval(fetchNotifications, 5000);
     const channel = supabase
       .channel("admin-notifications")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications" }, (payload) => {
