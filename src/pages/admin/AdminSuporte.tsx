@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { 
   MailOpen, Clock, CheckCircle, Timer, RefreshCw, ArrowUp, ArrowDown,
-  MessageSquare, Loader2, Inbox, RotateCcw, Star
+  MessageSquare, Loader2, Inbox, RotateCcw, Star, CalendarDays, ChevronLeft, ChevronRight
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
