@@ -341,7 +341,7 @@ export default function AdminMigrados() {
                          variant="outline"
                          className="text-blue-400 border-blue-500/30 hover:bg-blue-500/10 h-7 px-2 text-xs"
                          disabled={actionId === e.id}
-                         onClick={() => handleGenerateCredentials(e.email, e.id)}
+                         onClick={() => handleGenerateCredentials(e.email, e.id, e.full_name)}
                        >
                          {actionId === e.id ? <Loader2 className="size-3 animate-spin" /> : <Key className="size-3" />}
                          <span className="ml-1">Credenciais</span>
