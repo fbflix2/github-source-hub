@@ -44,10 +44,7 @@ export default function ItemDetails() {
   const [isBlocked, setIsBlocked] = useState(false);
   const [isConfirmedOk, setIsConfirmedOk] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [acceptedDisclaimer, setAcceptedDisclaimer] = useState(() => {
-    if (!orderId) return false;
-    return localStorage.getItem(`disclaimer_accepted_${orderId}`) === "true";
-  });
+  const [acceptedDisclaimer, setAcceptedDisclaimer] = useState(false);
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const [disclaimerChecked, setDisclaimerChecked] = useState(false);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
