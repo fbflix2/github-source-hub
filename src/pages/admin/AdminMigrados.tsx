@@ -37,6 +37,8 @@ interface EnrichedUser {
   last_sign_in: string | null;
   in_tracking: boolean;
   migration_method: string | null;
+  contacted: boolean;
+  tracking_id: string | null;
 }
 
 interface MigrationStats {
