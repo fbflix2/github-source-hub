@@ -50,6 +50,7 @@ export default function AdminSuporte() {
   const [selectedTicket, setSelectedTicket] = useState<TicketRow | null>(null);
   const [modalMode, setModalMode] = useState<ModalMode>(null);
   const [ratings, setRatings] = useState<Record<string, { rating: number; comment: string | null }>>({});
+  const [lastSender, setLastSender] = useState<Record<string, string>>({});
 
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
