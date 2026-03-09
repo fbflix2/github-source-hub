@@ -113,6 +113,8 @@ Deno.serve(async (req) => {
           last_sign_in: u.last_sign_in_at || null,
           in_tracking: !!trackingEntry,
           migration_method: u.user_metadata?.migrated_at ? "link" : (hasImportedFlag ? "excel" : null),
+          contacted: trackingEntry?.contacted || false,
+          tracking_id: trackingEntry?.id || null,
         });
       }
 
