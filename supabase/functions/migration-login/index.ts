@@ -136,6 +136,8 @@ Deno.serve(async (req) => {
             last_sign_in: null,
             in_tracking: true,
             migration_method: null,
+            contacted: t.contacted || false,
+            tracking_id: t.id,
           });
         }
       }
