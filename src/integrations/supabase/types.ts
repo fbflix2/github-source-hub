@@ -425,6 +425,7 @@ export type Database = {
       migration_tracking: {
         Row: {
           added_by: string | null
+          contacted: boolean
           created_at: string
           email: string
           full_name: string | null
@@ -435,6 +436,7 @@ export type Database = {
         }
         Insert: {
           added_by?: string | null
+          contacted?: boolean
           created_at?: string
           email: string
           full_name?: string | null
@@ -445,6 +447,7 @@ export type Database = {
         }
         Update: {
           added_by?: string | null
+          contacted?: boolean
           created_at?: string
           email?: string
           full_name?: string | null

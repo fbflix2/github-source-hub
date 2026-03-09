@@ -1,0 +1,1 @@
+ALTER TABLE public.migration_tracking ADD COLUMN IF NOT EXISTS contacted boolean NOT NULL DEFAULT false;

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import {
   Loader2, Plus, Upload, Search, RefreshCw, Clock, CheckCircle2,
   UserCheck, UserPlus, Trash2, Key, Link2, Mail, Users, AlertCircle,
-  Phone, Copy,
+  Phone, Copy, MessageCircle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -17,6 +17,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import MigrationStatsCards from "@/components/admin/migration/MigrationStatsCards";
 
 interface EnrichedUser {
@@ -37,6 +38,8 @@ interface EnrichedUser {
   last_sign_in: string | null;
   in_tracking: boolean;
   migration_method: string | null;
+  contacted: boolean;
+  tracking_id: string | null;
 }
 
 interface MigrationStats {
@@ -208,6 +211,35 @@ export default function AdminMigrados() {
     } finally { setActionId(null); }
   }
 
+  async function handleToggleContacted(trackingId: string | null, email: string, current: boolean) {
+    if (!trackingId) {
+      toast.error("Este usuário não está na lista de migração");
+      return;
+    }
+    try {
+      const { error } = await supabase
+        .from("migration_tracking")
+        .update({ contacted: !current })
+        .eq("id", trackingId);
+      if (error) throw error;
+      setData((prev) => {
+        if (!prev) return prev;
+        const update = (list: EnrichedUser[]) =>
+          list.map((u) => (u.tracking_id === trackingId ? { ...u, contacted: !current } : u));
+        return {
+          ...prev,
+          pending_users: update(prev.pending_users),
+          migrated_users: update(prev.migrated_users),
+          direct_users: update(prev.direct_users),
+          all_users: update(prev.all_users),
+        };
+      });
+      toast.success(!current ? "Marcado como contatado ✅" : "Desmarcado");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao atualizar");
+    }
+  }
+
   function copyLink() {
     navigator.clipboard.writeText(MIGRATION_LINK);
     toast.success("Link de migração copiado!");
@@ -284,6 +316,7 @@ export default function AdminMigrados() {
           <EmptyOrTable items={filtered} emptyMessage="Nenhum cliente pendente de migração.">
             <TableHeader>
                <TableRow className="border-b border-border bg-muted/50 hover:bg-muted/50">
+                 <TH icon={MessageCircle}>Contato</TH>
                  <TH icon={Mail}>Email</TH>
                  <TH icon={Users}>Nome</TH>
                  <TH icon={Phone}>WhatsApp</TH>
@@ -297,7 +330,14 @@ export default function AdminMigrados() {
                  const phone = e.profile_data?.phone || null;
                  const whatsappUrl = phone ? `https://wa.me/${phone.replace(/\D/g, "")}` : null;
                  return (
-                 <TableRow key={e.id} className="transition-colors hover:bg-muted/30">
+                 <TableRow key={e.id} className={`transition-colors hover:bg-muted/30 ${e.contacted ? "opacity-50" : ""}`}>
+                   <TableCell className="px-3 py-3 text-center">
+                     <Checkbox
+                       checked={e.contacted}
+                       onCheckedChange={() => handleToggleContacted(e.tracking_id, e.email, e.contacted)}
+                       className="data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
+                     />
+                   </TableCell>
                    <TableCell className="px-3 py-3 font-mono text-xs text-foreground max-w-[200px] truncate">{e.email}</TableCell>
                    <TableCell className="px-3 py-3 font-medium text-foreground text-sm max-w-[150px] truncate">{e.full_name || "—"}</TableCell>
                    <TableCell className="px-3 py-3">
