@@ -497,7 +497,7 @@ export default function AdminMigrados() {
 
 function TH({ children, icon: Icon, className = "" }: { children: React.ReactNode; icon?: any; className?: string }) {
   return (
-    <TableHead className={`px-6 py-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground ${className}`}>
+    <TableHead className={`px-3 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground ${className}`}>
       <div className="flex items-center gap-2">
         {Icon && <Icon className="size-3.5" />}
         {children}
