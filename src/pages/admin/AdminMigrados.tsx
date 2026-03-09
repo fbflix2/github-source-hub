@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import {
   Loader2, Plus, Upload, Search, RefreshCw, Clock, CheckCircle2,
-  UserCheck, UserPlus, Trash2, Key, Link2, Mail, Users, AlertCircle, Copy,
+  UserCheck, UserPlus, Trash2, Key, Link2, Mail, Users, AlertCircle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -18,51 +18,39 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import MigrationStatsCards from "@/components/admin/migration/MigrationStatsCards";
 
+interface EnrichedUser {
+  id: string;
+  email: string;
+  full_name: string | null;
+  created_at: string;
+  migrated_at: string | null;
+  has_account: boolean;
+  never_logged_in: boolean;
+  profile_complete: boolean;
+  profile_data: {
+    full_name: string | null;
+    cpf: string | null;
+    phone: string | null;
+    birth_date: string | null;
+  } | null;
+  last_sign_in: string | null;
+  in_tracking: boolean;
+  migration_method: string | null;
+}
+
 interface MigrationStats {
   total_users: number;
-  total_tracked: number;
   pending: number;
   migrated: number;
   direct_registrations: number;
   complete_profiles: number;
 }
 
-interface EnrichedEntry {
-  id: string;
-  email: string;
-  full_name: string | null;
-  status: string;
-  migrated_at: string | null;
-  created_at: string;
-  has_account: boolean;
-  profile_complete: boolean;
-  profile_data: {
-    full_name: string | null;
-    cpf: string | null;
-    phone: string | null;
-    birth_date: string | null;
-  } | null;
-  last_sign_in: string | null;
-}
-
-interface DirectUser {
-  id: string;
-  email: string;
-  full_name: string | null;
-  created_at: string;
-  last_sign_in: string | null;
-  profile_complete: boolean;
-  profile_data: {
-    full_name: string | null;
-    cpf: string | null;
-    phone: string | null;
-    birth_date: string | null;
-  } | null;
-}
-
 interface MigrationData {
-  tracking: EnrichedEntry[];
-  direct_users: DirectUser[];
+  pending_users: EnrichedUser[];
+  migrated_users: EnrichedUser[];
+  direct_users: EnrichedUser[];
+  all_users: EnrichedUser[];
   stats: MigrationStats;
 }
 
@@ -81,18 +69,15 @@ export default function AdminMigrados() {
   const [tab, setTab] = useState("pending");
   const [search, setSearch] = useState("");
 
-  // Add modal
   const [showAdd, setShowAdd] = useState(false);
   const [addEmail, setAddEmail] = useState("");
   const [addName, setAddName] = useState("");
   const [addLoading, setAddLoading] = useState(false);
 
-  // Import modal
   const [showImport, setShowImport] = useState(false);
   const [importText, setImportText] = useState("");
   const [importLoading, setImportLoading] = useState(false);
 
-  // Action loading
   const [actionId, setActionId] = useState<string | null>(null);
 
   useEffect(() => { fetchData(); }, []);
@@ -115,22 +100,18 @@ export default function AdminMigrados() {
     }
   }
 
-  // Filtered items per tab
   const filtered = useMemo(() => {
     if (!data) return [];
-    let items: any[] = [];
+    let items: EnrichedUser[] = [];
     switch (tab) {
       case "pending":
-        items = data.tracking.filter((t) => t.status === "pending");
+        items = data.pending_users;
         break;
       case "migrated":
-        items = data.tracking.filter((t) => t.status === "migrated");
+        items = data.migrated_users;
         break;
       case "complete":
-        items = [
-          ...data.tracking.filter((t) => t.profile_complete),
-          ...data.direct_users.filter((d) => d.profile_complete),
-        ];
+        items = data.all_users.filter((u) => u.profile_complete);
         break;
       case "direct":
         items = data.direct_users;
@@ -145,7 +126,6 @@ export default function AdminMigrados() {
     return items;
   }, [data, tab, search]);
 
-  // Tab counts
   const counts = useMemo(() => {
     if (!data) return { pending: 0, migrated: 0, complete: 0, direct: 0 };
     return {
@@ -210,31 +190,6 @@ export default function AdminMigrados() {
     } finally { setActionId(null); }
   }
 
-  async function handleMarkMigrated(id: string) {
-    setActionId(id);
-    try {
-      const { error } = await supabase.from("migration_tracking")
-        .update({ status: "migrated", migrated_at: new Date().toISOString() })
-        .eq("id", id);
-      if (error) throw error;
-      toast.success("Marcado como migrado!");
-      fetchData();
-    } catch (err: any) {
-      toast.error(err.message || "Erro");
-    } finally { setActionId(null); }
-  }
-
-  async function handleDelete(id: string) {
-    try {
-      const { error } = await supabase.from("migration_tracking").delete().eq("id", id);
-      if (error) throw error;
-      toast.success("Removido!");
-      fetchData();
-    } catch (err: any) {
-      toast.error(err.message || "Erro");
-    }
-  }
-
   function copyLink() {
     navigator.clipboard.writeText(MIGRATION_LINK);
     toast.success("Link de migração copiado!");
@@ -267,7 +222,7 @@ export default function AdminMigrados() {
         </Button>
       </div>
 
-      {/* Stats Cards */}
+      {/* Stats */}
       {data && <MigrationStatsCards stats={data.stats} />}
 
       {/* Tabs */}
@@ -306,23 +261,20 @@ export default function AdminMigrados() {
           </div>
         </div>
 
-        {/* PENDING TAB */}
+        {/* PENDING TAB - users who never logged in */}
         <TabsContent value="pending" className="mt-4">
-          <EmptyOrTable
-            items={filtered}
-            emptyMessage="Nenhum cliente pendente de migração."
-          >
+          <EmptyOrTable items={filtered} emptyMessage="Nenhum cliente pendente de migração.">
             <TableHeader>
               <TableRow className="border-b border-border bg-muted/50 hover:bg-muted/50">
                 <TH icon={Mail}>Email</TH>
                 <TH icon={Users}>Nome</TH>
-                <TH>Adicionado em</TH>
+                <TH>Cadastrado em</TH>
                 <TH>Conta</TH>
                 <TH className="text-right">Ações</TH>
               </TableRow>
             </TableHeader>
             <TableBody className="divide-y divide-border text-sm">
-              {filtered.map((e: any) => (
+              {filtered.map((e) => (
                 <TableRow key={e.id} className="transition-colors hover:bg-muted/30">
                   <TableCell className="px-6 py-4 font-mono text-sm text-foreground">{e.email}</TableCell>
                   <TableCell className="px-6 py-4 font-medium text-foreground">{e.full_name || "—"}</TableCell>
@@ -355,18 +307,6 @@ export default function AdminMigrados() {
                         <Link2 className="size-3" />
                         <span className="ml-1 hidden sm:inline">Link</span>
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10"
-                        disabled={actionId === e.id}
-                        onClick={() => handleMarkMigrated(e.id)}
-                      >
-                        <CheckCircle2 className="size-3" />
-                      </Button>
-                      <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10" onClick={() => handleDelete(e.id)}>
-                        <Trash2 className="size-3.5" />
-                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -375,35 +315,39 @@ export default function AdminMigrados() {
           </EmptyOrTable>
         </TabsContent>
 
-        {/* MIGRATED TAB */}
+        {/* MIGRATED TAB - users who logged in AND came from migration */}
         <TabsContent value="migrated" className="mt-4">
           <EmptyOrTable items={filtered} emptyMessage="Nenhum cliente migrado ainda.">
             <TableHeader>
               <TableRow className="border-b border-border bg-muted/50 hover:bg-muted/50">
                 <TH icon={Mail}>Email</TH>
                 <TH icon={Users}>Nome</TH>
-                <TH>Migrado em</TH>
+                <TH>Último Login</TH>
+                <TH>Método</TH>
                 <TH>Perfil</TH>
-                <TH className="text-right">Ações</TH>
               </TableRow>
             </TableHeader>
             <TableBody className="divide-y divide-border text-sm">
-              {filtered.map((e: any) => (
+              {filtered.map((e) => (
                 <TableRow key={e.id} className="transition-colors hover:bg-muted/30">
                   <TableCell className="px-6 py-4 font-mono text-sm text-foreground">{e.email}</TableCell>
-                  <TableCell className="px-6 py-4 font-medium text-foreground">{e.full_name || e.profile_data?.full_name || "—"}</TableCell>
-                  <TableCell className="whitespace-nowrap px-6 py-4 text-muted-foreground">{formatDate(e.migrated_at)}</TableCell>
+                  <TableCell className="px-6 py-4 font-medium text-foreground">{e.full_name || "—"}</TableCell>
+                  <TableCell className="whitespace-nowrap px-6 py-4 text-muted-foreground">{formatDate(e.last_sign_in)}</TableCell>
+                  <TableCell className="px-6 py-4">
+                    {e.migration_method === "link" ? (
+                      <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">Via Link</Badge>
+                    ) : e.migration_method === "excel" ? (
+                      <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">Via Planilha</Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-muted-foreground">Rastreado</Badge>
+                    )}
+                  </TableCell>
                   <TableCell className="px-6 py-4">
                     {e.profile_complete ? (
-                      <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">Completo</Badge>
+                      <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">Completo</Badge>
                     ) : (
                       <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30">Parcial</Badge>
                     )}
-                  </TableCell>
-                  <TableCell className="px-6 py-4 text-right">
-                    <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10" onClick={() => handleDelete(e.id)}>
-                      <Trash2 className="size-3.5" />
-                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
@@ -424,7 +368,7 @@ export default function AdminMigrados() {
               </TableRow>
             </TableHeader>
             <TableBody className="divide-y divide-border text-sm">
-              {filtered.map((e: any) => (
+              {filtered.map((e) => (
                 <TableRow key={e.id} className="transition-colors hover:bg-muted/30">
                   <TableCell className="px-6 py-4 font-mono text-sm text-foreground">{e.email}</TableCell>
                   <TableCell className="px-6 py-4 font-medium text-foreground">{e.profile_data?.full_name || e.full_name || "—"}</TableCell>
@@ -450,7 +394,7 @@ export default function AdminMigrados() {
               </TableRow>
             </TableHeader>
             <TableBody className="divide-y divide-border text-sm">
-              {filtered.map((e: any) => (
+              {filtered.map((e) => (
                 <TableRow key={e.id} className="transition-colors hover:bg-muted/30">
                   <TableCell className="px-6 py-4 font-mono text-sm text-foreground">{e.email}</TableCell>
                   <TableCell className="px-6 py-4 font-medium text-foreground">{e.full_name || "—"}</TableCell>
@@ -458,7 +402,7 @@ export default function AdminMigrados() {
                   <TableCell className="whitespace-nowrap px-6 py-4 text-muted-foreground">{formatDate(e.last_sign_in)}</TableCell>
                   <TableCell className="px-6 py-4">
                     {e.profile_complete ? (
-                      <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">Completo</Badge>
+                      <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">Completo</Badge>
                     ) : (
                       <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30">Parcial</Badge>
                     )}
