@@ -330,7 +330,14 @@ export default function AdminMigrados() {
                  const phone = e.profile_data?.phone || null;
                  const whatsappUrl = phone ? `https://wa.me/${phone.replace(/\D/g, "")}` : null;
                  return (
-                 <TableRow key={e.id} className="transition-colors hover:bg-muted/30">
+                 <TableRow key={e.id} className={`transition-colors hover:bg-muted/30 ${e.contacted ? "opacity-50" : ""}`}>
+                   <TableCell className="px-3 py-3 text-center">
+                     <Checkbox
+                       checked={e.contacted}
+                       onCheckedChange={() => handleToggleContacted(e.tracking_id, e.email, e.contacted)}
+                       className="data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
+                     />
+                   </TableCell>
                    <TableCell className="px-3 py-3 font-mono text-xs text-foreground max-w-[200px] truncate">{e.email}</TableCell>
                    <TableCell className="px-3 py-3 font-medium text-foreground text-sm max-w-[150px] truncate">{e.full_name || "—"}</TableCell>
                    <TableCell className="px-3 py-3">
