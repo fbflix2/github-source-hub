@@ -33,43 +33,8 @@ export function AdminHeader() {
   const [notifications, setNotifications] = useState<AdminNotification[]>([]);
   const [notifOpen, setNotifOpen] = useState(false);
 
-  const fetchNotifications = useCallback(async () => {
-    const { data } = await supabase
-      .from("notifications")
-      .select("*")
-      .eq("global", true)
-      .eq("read", false)
-      .order("created_at", { ascending: false })
-      .limit(20);
-    if (data) setNotifications(data as AdminNotification[]);
-  }, []);
-
-  useEffect(() => {
-    const loadUser = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) { setUserName("Usuário"); return; }
-        const fallbackName = user.user_metadata?.full_name || user.email?.split("@")[0] || "Usuário";
-        const fallbackAvatar = user.user_metadata?.avatar_url || null;
-        setUserName(fallbackName);
-        setAvatarUrl(fallbackAvatar);
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("full_name, avatar_url")
-          .eq("user_id", user.id)
-          .maybeSingle();
-        if (profile) {
-          setUserName(profile.full_name || fallbackName);
-          setAvatarUrl(profile.avatar_url || fallbackAvatar);
-        }
-      } catch (err) {
-        console.error("Error loading user profile:", err);
-        setUserName("Usuário");
-      }
-    };
-    loadUser();
-    fetchNotifications();
-  }, [fetchNotifications]);
+  const seenIdsRef = useRef<Set<string>>(new Set());
+  const initialLoadDoneRef = useRef(false);
 
   // Cash register sound for money-related notifications
   // Notification sounds from DB
@@ -88,6 +53,7 @@ export function AdminHeader() {
           if (row.sound_url) cache[row.event_key] = row.sound_url;
         });
         soundCacheRef.current = cache;
+        console.log("[NotifSounds] Loaded sound cache:", Object.keys(cache));
       }
     };
     loadSounds();
@@ -106,27 +72,64 @@ export function AdminHeader() {
 
   const playNotificationSound = useCallback((eventKey: string) => {
     const url = soundCacheRef.current[eventKey];
+    console.log("[NotifSounds] Playing sound for", eventKey, "url:", url ? "found" : "NOT FOUND", "cache keys:", Object.keys(soundCacheRef.current));
     if (url) {
       try {
         const audio = new Audio(url);
         audio.volume = 0.7;
-        audio.play().catch(() => {});
-      } catch {}
+        audio.play().catch((e) => console.warn("[NotifSounds] Play failed:", e));
+      } catch (e) {
+        console.warn("[NotifSounds] Audio error:", e);
+      }
     }
   }, []);
 
+  const fetchNotifications = useCallback(async () => {
+    const { data } = await supabase
+      .from("notifications")
+      .select("*")
+      .eq("global", true)
+      .eq("read", false)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    if (data) {
+      const typedData = data as AdminNotification[];
+      setNotifications(typedData);
+
+      // Play sound for new notifications detected via polling (not on first load)
+      if (initialLoadDoneRef.current) {
+        for (const n of typedData) {
+          if (!seenIdsRef.current.has(n.id)) {
+            console.log("[NotifSounds] New notification via polling:", n.type, n.title);
+            const eventKey = getEventKey(n.type);
+            if (eventKey) {
+              playNotificationSound(eventKey);
+            }
+          }
+        }
+      }
+      // Update seen IDs
+      seenIdsRef.current = new Set(typedData.map(n => n.id));
+      initialLoadDoneRef.current = true;
+    }
+  }, [getEventKey, playNotificationSound]);
+
   // Realtime + polling for notifications
   useEffect(() => {
-    const interval = setInterval(fetchNotifications, 30000);
+    // Poll every 10s to catch notifications from edge functions faster
+    const interval = setInterval(fetchNotifications, 10000);
     const channel = supabase
       .channel("admin-notifications")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications" }, (payload) => {
-        fetchNotifications();
         const notif = payload.new as AdminNotification;
+        console.log("[NotifSounds] Realtime INSERT:", notif.type, notif.title);
+        // Mark as seen immediately so polling doesn't double-play
+        seenIdsRef.current.add(notif.id);
         const eventKey = getEventKey(notif.type);
         if (eventKey) {
           playNotificationSound(eventKey);
         }
+        fetchNotifications();
       })
       .subscribe();
     return () => { clearInterval(interval); supabase.removeChannel(channel); };
