@@ -147,12 +147,31 @@ export default function ProductExchangeModal({ open, onOpenChange, orderItem, or
         return;
       }
 
-      // 1. Return original stock_item to inventory
+      // 1. Check if client accessed credentials before returning to stock
       if (orderItem.stock_item_id) {
-        await supabase.from("stock_items").update({
-          order_item_id: null,
-          status: "revisado",
-        }).eq("id", orderItem.stock_item_id);
+        // Fetch delivery_data to check if credentials were accessed
+        const { data: originalItem } = await supabase
+          .from("order_items")
+          .select("delivery_data")
+          .eq("id", orderItem.order_item_id)
+          .single();
+        
+        const credentialsAccessed = !!(originalItem?.delivery_data as any)?._credentials_accessed_at;
+        
+        if (credentialsAccessed) {
+          // Item was compromised — mark as such, do NOT return to stock
+          await supabase.from("stock_items").update({
+            order_item_id: null,
+            status: "comprometido",
+          }).eq("id", orderItem.stock_item_id);
+          toast.info("Item original marcado como comprometido (cliente já acessou credenciais)");
+        } else {
+          // Item not accessed — safe to return to stock
+          await supabase.from("stock_items").update({
+            order_item_id: null,
+            status: "revisado",
+          }).eq("id", orderItem.stock_item_id);
+        }
       }
 
       // Flatten selected into individual units
