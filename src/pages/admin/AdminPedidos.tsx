@@ -135,7 +135,10 @@ export default function AdminPedidos() {
   }
 
   const filtered = orders.filter((o) => {
-    const matchesStatus = statusFilter === "todos" || o.status === statusFilter;
+    // Hide "processing" orders from the default "todos" view — they are PIX awaiting payment
+    const matchesStatus = statusFilter === "todos" 
+      ? o.status !== "processing" 
+      : o.status === statusFilter;
     const term = searchTerm.toLowerCase();
     const matchesSearch =
       !term ||
