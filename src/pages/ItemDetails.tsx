@@ -1047,9 +1047,19 @@ export default function ItemDetails() {
               Aviso Importante
             </AlertDialogTitle>
             <AlertDialogDescription className="text-sm leading-relaxed">
-              Ao revelar o código 2FA, copiar cookies ou baixar os dados deste item, você reconhece que teve acesso completo às credenciais do perfil adquirido. A partir deste momento, estornos não serão aceitos, exceto em casos de problemas técnicos com o item que não possam ser resolvidos pelo suporte. Ao prosseguir, você declara estar ciente e de acordo com estes termos.
+              Ao revelar o código 2FA, copiar cookies ou baixar o bloco de notas deste item, você reconhece que teve acesso completo às credenciais do perfil adquirido. A partir deste momento:
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 space-y-1.5">
+            <p className="text-xs font-semibold text-destructive flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-sm">block</span>
+              Após acessar, não será possível:
+            </p>
+            <ul className="text-xs text-destructive/80 space-y-0.5 pl-5 list-disc">
+              <li>Solicitar <strong>troca</strong> deste item por outro produto</li>
+              <li>Solicitar <strong>estorno</strong>, exceto problemas técnicos não resolvidos pelo suporte</li>
+            </ul>
+          </div>
           <div className="flex items-start gap-2 py-2">
             <Checkbox
               id="disclaimer-check"
@@ -1057,7 +1067,7 @@ export default function ItemDetails() {
               onCheckedChange={(checked) => setDisclaimerChecked(checked === true)}
             />
             <label htmlFor="disclaimer-check" className="text-xs text-muted-foreground cursor-pointer leading-relaxed">
-              Li e estou ciente dos termos acima. Entendo que ao acessar estas informações, não poderei solicitar estorno.
+              Li e estou ciente. Entendo que ao acessar estas informações, não poderei solicitar troca nem estorno.
             </label>
           </div>
           <AlertDialogFooter>
