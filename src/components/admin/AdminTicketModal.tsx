@@ -274,7 +274,7 @@ export default function AdminTicketModal({ ticket, profileName, mode, onClose, o
         {/* Reply area (respond mode) */}
         {mode === "respond" && (
           <div className="border-t border-white/10 p-4 space-y-3">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <label className="text-xs text-white/50 font-medium">Status:</label>
               <select
                 value={newStatus}
@@ -287,6 +287,11 @@ export default function AdminTicketModal({ ticket, profileName, mode, onClose, o
                   </option>
                 ))}
               </select>
+
+              <QuickTemplateSelector
+                clientName={profileName}
+                onSelect={(text) => setReply(text)}
+              />
             </div>
 
             {/* Attachment previews */}
