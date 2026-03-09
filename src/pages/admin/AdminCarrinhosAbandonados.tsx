@@ -42,11 +42,11 @@ export default function AdminCarrinhosAbandonados() {
   const fetchAbandonedCarts = async () => {
     setLoading(true);
 
-    // Fetch abandoned orders + processing orders with expired pending payments
+    // Fetch only truly abandoned orders (PIX expired)
     const { data: orders, error } = await supabase
       .from("orders")
-      .select("id, code, total, created_at, user_id, payment_method, status")
-      .in("status", ["abandoned", "processing"])
+      .select("id, code, total, created_at, user_id, payment_method")
+      .eq("status", "abandoned")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -55,26 +55,7 @@ export default function AdminCarrinhosAbandonados() {
       return;
     }
 
-    // For "processing" orders, check if their payments are pending/cancelled
-    const processingIds = (orders ?? []).filter(o => o.status === "processing").map(o => o.id);
-    let validProcessingIds = new Set<string>();
-
-    if (processingIds.length > 0) {
-      const { data: payments } = await supabase
-        .from("payments")
-        .select("order_id, status")
-        .in("order_id", processingIds)
-        .in("status", ["pending", "cancelled"]);
-
-      (payments ?? []).forEach(p => {
-        if (p.order_id) validProcessingIds.add(p.order_id);
-      });
-    }
-
-    // Filter: abandoned status OR processing with pending/cancelled payment
-    const filteredOrders = (orders ?? []).filter(o =>
-      o.status === "abandoned" || validProcessingIds.has(o.id)
-    );
+    const filteredOrders = orders ?? [];
 
     if (filteredOrders.length === 0) {
       setCarts([]);

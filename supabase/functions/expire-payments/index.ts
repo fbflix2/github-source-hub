@@ -17,6 +17,26 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // Check for cleanup mode
+    let body: any = {};
+    try { body = await req.json(); } catch {}
+
+    if (body?.cleanup_before) {
+      const cutoff = body.cleanup_before;
+      const { data, error } = await supabase
+        .from("orders")
+        .update({ status: "cancelled" })
+        .eq("status", "abandoned")
+        .lt("created_at", cutoff);
+      
+      if (error) throw error;
+
+      return new Response(
+        JSON.stringify({ message: "Cleanup done", cutoff }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // PIX QR codes expire after 30 minutes by default on Mercado Pago
     const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
 
