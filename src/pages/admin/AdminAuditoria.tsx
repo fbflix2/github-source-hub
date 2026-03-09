@@ -135,7 +135,7 @@ export default function AdminAuditoria() {
       iconColor: "text-gray-300",
       subtitle: "Últimos 30 dias",
       highlighted: false,
-      onClick: () => setShowPurchases(true),
+      onClick: () => navigate("/admin/auditoria/investimentos"),
     },
     {
       label: "Receita Total de Vendas",
