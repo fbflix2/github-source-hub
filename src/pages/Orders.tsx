@@ -120,7 +120,6 @@ export default function Orders() {
         ...order,
         items: (itemsData || [])
           .filter((i: any) => i.order_id === order.id)
-          .filter((i: any) => i.products?.icon_type !== 'proxy')
           .map((i: any) => ({
             ...i,
             isBlocked: blockedItemIds.has(i.id),
