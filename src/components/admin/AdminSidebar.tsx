@@ -36,7 +36,8 @@ import {
   Star,
   RefreshCw,
   ArrowRightLeft,
-  Briefcase
+  Briefcase,
+  Coins
 } from "lucide-react";
 
 interface SubItem {
@@ -85,6 +86,7 @@ const allMenuItems: MenuItem[] = [
     { title: "Usuários e Acessos", icon: ShieldCheck, path: "/admin/configuracoes/usuarios" },
     { title: "API | Token", icon: Key, path: "/admin/api" },
     { title: "Clientes Migrados", icon: Users, path: "/admin/configuracoes/migrados" },
+    { title: "Token FBX", icon: Coins, path: "/admin/fbx" },
   ]},
 ];
 
