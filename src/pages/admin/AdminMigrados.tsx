@@ -519,7 +519,7 @@ function EmptyOrTable({ items, emptyMessage, children }: { items: any[]; emptyMe
   return (
     <div className="glass-panel overflow-hidden rounded-2xl">
       <div className="overflow-x-auto">
-        <Table>{children}</Table>
+        <Table className="min-w-[900px]">{children}</Table>
       </div>
     </div>
   );
