@@ -315,7 +315,10 @@ export default function ProductExchangeModal({ open, onOpenChange, orderItem, or
         } as any);
       }
 
-      toast.success(`Troca realizada! ${totalNewItems} item(ns) vinculado(s).`);
+      const successMsg = priceDiff > 0
+        ? `Troca realizada! Cliente precisa pagar R$ ${priceDiff.toFixed(2).replace(".", ",")} para acessar o item.`
+        : `Troca realizada! ${totalNewItems} item(ns) vinculado(s).`;
+      toast.success(successMsg);
       onExchangeComplete();
       onOpenChange(false);
     } catch (err: any) {
