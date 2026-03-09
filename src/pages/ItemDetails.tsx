@@ -906,6 +906,7 @@ export default function ItemDetails() {
                     </div>
                   </>
                 )}
+                }
               </div>
             </div>
           </div>
