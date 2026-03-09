@@ -112,6 +112,14 @@ export default function ItemDetails() {
         if (dd.pageReceivedByClient) {
           setPageReceivedByClient(true);
         }
+        // Restore disclaimer from DB
+        if (dd._credentials_accessed_at) {
+          setAcceptedDisclaimer(true);
+        }
+      }
+      // Also check localStorage as fallback
+      if (!acceptedDisclaimer && orderId && localStorage.getItem(`disclaimer_accepted_${decodedCode}`) === "true") {
+        setAcceptedDisclaimer(true);
       }
 
       // Double-check page_requests table as fallback
