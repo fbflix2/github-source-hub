@@ -103,10 +103,12 @@ export default function AdminMigrados() {
       const { data: result, error } = await supabase.functions.invoke("migration-login", {
         body: { action: "migration-stats" },
       });
+      console.log("migration-stats response:", { result, error });
       if (error) throw error;
       if (result?.error) throw new Error(result.error);
       setData(result);
     } catch (err: any) {
+      console.error("migration-stats error:", err);
       toast.error("Erro ao carregar dados: " + (err.message || ""));
     } finally {
       setLoading(false);
