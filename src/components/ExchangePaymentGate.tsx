@@ -75,9 +75,10 @@ export default function ExchangePaymentGate({ itemId, orderId, orderCode, pendin
       for (const sib of siblings) {
         if (sib.delivery_data && typeof sib.delivery_data === "object") {
           const sd = sib.delivery_data as Record<string, any>;
-          if (sd._exchange_locked) {
+          if (sd._exchange_locked || sd._exchange_pending_payment) {
             const cleaned = { ...sd };
             delete cleaned._exchange_locked;
+            delete cleaned._exchange_pending_payment;
             await supabase.from("order_items").update({
               delivery_data: Object.keys(cleaned).length > 0 ? cleaned : null,
             }).eq("id", sib.id);
