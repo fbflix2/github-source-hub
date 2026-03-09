@@ -27,8 +27,8 @@ export default function TokenFBX() {
 
   const handleCreateOrder = async (type: "buy" | "sell", quantity: number, pixKey?: string) => {
     try {
-      await actions.createOrder(type, quantity, pixKey);
-      toast({ title: "Ordem criada!", description: `${type === "buy" ? "Compra" : "Venda"} de ${quantity} FBX` });
+      const res = await actions.createOrder(type, quantity, pixKey);
+      toast({ title: "✅ Sucesso!", description: res.message || `${type === "buy" ? "Compra" : "Venda"} de ${quantity} FBX` });
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     }
