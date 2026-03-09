@@ -132,7 +132,8 @@ export default function AdminSuporte() {
     { id: "todos" as Filter, label: "Todos" },
     { id: "novos" as Filter, label: "Novos" },
     { id: "andamento" as Filter, label: "Em Andamento" },
-    { id: "prioridade" as Filter, label: "Alta Prioridade" }
+    { id: "prioridade" as Filter, label: "Alta Prioridade" },
+    { id: "resolvidos" as Filter, label: "📁 Resolvidos" }
   ];
 
   const getInitials = (name: string | null) => {
@@ -140,7 +141,19 @@ export default function AdminSuporte() {
     return name.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase();
   };
 
-  const isResolvedView = activeFilter === "resolvidos-hoje";
+  const isResolvedView = activeFilter === "resolvidos-hoje" || activeFilter === "resolvidos";
+
+  const monthLabel = useMemo(() => {
+    const [year, month] = selectedMonth.split("-").map(Number);
+    const date = new Date(year, month - 1);
+    return date.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+  }, [selectedMonth]);
+
+  const shiftMonth = (delta: number) => {
+    const [year, month] = selectedMonth.split("-").map(Number);
+    const d = new Date(year, month - 1 + delta);
+    setSelectedMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+  };
 
   return (
     <div className="flex flex-col min-h-[calc(100vh-80px)] -mx-6 -mt-6 p-4 lg:p-8 gap-8 relative">
