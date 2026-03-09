@@ -281,8 +281,9 @@ export default function Orders() {
                         // Group BM and Page items into single rows, expand others individually
                         const bmItems = selectedOrder.items.filter(i => i.iconType === 'bm');
                         const pageItems = selectedOrder.items.filter(i => i.iconType === 'page');
-                        const otherItems = selectedOrder.items.filter(i => i.iconType !== 'bm' && i.iconType !== 'page');
-                        const rows: { key: string; name: string; subtitle: string; price: number; totalPrice: number; itemId: string; isBlocked: boolean; isReplaced: boolean; replacedAt: string | null; isBm: boolean; isPage: boolean }[] = [];
+                        const proxyItems = selectedOrder.items.filter(i => i.iconType === 'proxy');
+                        const otherItems = selectedOrder.items.filter(i => i.iconType !== 'bm' && i.iconType !== 'page' && i.iconType !== 'proxy');
+                        const rows: { key: string; name: string; subtitle: string; price: number; totalPrice: number; itemId: string; isBlocked: boolean; isReplaced: boolean; replacedAt: string | null; isBm: boolean; isPage: boolean; isProxy: boolean }[] = [];
 
                         // BM: single grouped row
                         if (bmItems.length > 0) {
