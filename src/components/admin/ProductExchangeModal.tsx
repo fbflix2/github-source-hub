@@ -214,14 +214,24 @@ export default function ProductExchangeModal({ open, onOpenChange, orderItem, or
         linkedItems.push({ product: prod, stockItemId: available.id, deliveryData });
       }
 
+      // Build pending payment flag if client owes money
+      const pendingPaymentData = priceDiff > 0 ? {
+        _exchange_pending_payment: {
+          amount: priceDiff,
+          original_product: orderItem.product_name,
+          created_at: new Date().toISOString(),
+        }
+      } : {};
+
       // 3. Update the FIRST unit on the existing order_item
       const first = linkedItems[0];
+      const firstDelivery = { ...first.deliveryData, ...pendingPaymentData };
       await supabase.from("order_items").update({
         product_id: first.product.id,
         name: first.product.name,
         price: first.product.price,
         quantity: 1,
-        delivery_data: Object.keys(first.deliveryData).length > 0 ? first.deliveryData : null,
+        delivery_data: Object.keys(firstDelivery).length > 0 ? firstDelivery : null,
       }).eq("id", orderItem.order_item_id);
 
       await supabase.from("stock_items").update({
@@ -232,13 +242,14 @@ export default function ProductExchangeModal({ open, onOpenChange, orderItem, or
       // 4. Create NEW order_items for remaining units
       for (let i = 1; i < linkedItems.length; i++) {
         const item = linkedItems[i];
+        const itemDelivery = { ...item.deliveryData, ...pendingPaymentData };
         const { data: newOI, error: oiErr } = await supabase.from("order_items").insert({
           order_id: orderId,
           product_id: item.product.id,
           name: item.product.name,
           price: item.product.price,
           quantity: 1,
-          delivery_data: Object.keys(item.deliveryData).length > 0 ? item.deliveryData : null,
+          delivery_data: Object.keys(itemDelivery).length > 0 ? itemDelivery : null,
         }).select("id").single();
 
         if (oiErr) throw oiErr;
@@ -249,8 +260,8 @@ export default function ProductExchangeModal({ open, onOpenChange, orderItem, or
         }).eq("id", item.stockItemId);
       }
 
-      // 5. Adjust wallet
-      if (priceDiff !== 0) {
+      // 5. Adjust wallet (only credit for cheaper items; debit is handled by client payment)
+      if (priceDiff < 0) {
         const { data: profile } = await supabase
           .from("profiles")
           .select("balance")
@@ -260,28 +271,16 @@ export default function ProductExchangeModal({ open, onOpenChange, orderItem, or
         const currentBalance = profile?.balance || 0;
         const newNames = selected.map(s => s.qty > 1 ? `${s.qty}x ${s.product.name}` : s.product.name).join(", ");
 
-        if (priceDiff > 0) {
-          const newBalance = currentBalance - priceDiff;
-          await supabase.from("profiles").update({ balance: newBalance }).eq("user_id", clientUserId);
-          await supabase.from("wallet_transactions").insert({
-            user_id: clientUserId,
-            type: "debit",
-            amount: priceDiff,
-            title: `[Troca] Diferença — ${orderItem.product_name} → ${newNames}`,
-            balance_after: newBalance,
-          });
-        } else {
-          const credit = Math.abs(priceDiff);
-          const newBalance = currentBalance + credit;
-          await supabase.from("profiles").update({ balance: newBalance }).eq("user_id", clientUserId);
-          await supabase.from("wallet_transactions").insert({
-            user_id: clientUserId,
-            type: "credit",
-            amount: credit,
-            title: `[Troca] Crédito — ${orderItem.product_name} → ${newNames}`,
-            balance_after: newBalance,
-          });
-        }
+        const credit = Math.abs(priceDiff);
+        const newBalance = currentBalance + credit;
+        await supabase.from("profiles").update({ balance: newBalance }).eq("user_id", clientUserId);
+        await supabase.from("wallet_transactions").insert({
+          user_id: clientUserId,
+          type: "credit",
+          amount: credit,
+          title: `[Troca] Crédito — ${orderItem.product_name} → ${newNames}`,
+          balance_after: newBalance,
+        });
       }
 
       // 6. Update order total
@@ -316,7 +315,10 @@ export default function ProductExchangeModal({ open, onOpenChange, orderItem, or
         } as any);
       }
 
-      toast.success(`Troca realizada! ${totalNewItems} item(ns) vinculado(s).`);
+      const successMsg = priceDiff > 0
+        ? `Troca realizada! Cliente precisa pagar R$ ${priceDiff.toFixed(2).replace(".", ",")} para acessar o item.`
+        : `Troca realizada! ${totalNewItems} item(ns) vinculado(s).`;
+      toast.success(successMsg);
       onExchangeComplete();
       onOpenChange(false);
     } catch (err: any) {
@@ -453,7 +455,7 @@ export default function ProductExchangeModal({ open, onOpenChange, orderItem, or
                       <Package className="size-4 text-muted-foreground" />
                       <span className="text-sm font-medium text-foreground">
                         {priceDiff > 0
-                          ? `Débito de R$ ${priceDiff.toFixed(2).replace(".", ",")} na carteira`
+                          ? `Cliente pagará R$ ${priceDiff.toFixed(2).replace(".", ",")} (PIX ou Saldo) para acessar`
                           : priceDiff < 0
                           ? `Crédito de R$ ${Math.abs(priceDiff).toFixed(2).replace(".", ",")} na carteira`
                           : "Mesmo valor — sem ajuste"}

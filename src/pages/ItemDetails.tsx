@@ -4,6 +4,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { PlatformFeedback } from "@/components/PlatformFeedback";
+import ExchangePaymentGate from "@/components/ExchangePaymentGate";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -62,6 +63,7 @@ export default function ItemDetails() {
   const [pageName, setPageName] = useState<string | null>(null);
   const [pageReceivedByClient, setPageReceivedByClient] = useState(false);
   const [confirmingReceipt, setConfirmingReceipt] = useState(false);
+  const [exchangePendingPayment, setExchangePendingPayment] = useState<{ amount: number; original_product: string; created_at: string } | null>(null);
   const [requestingPage, setRequestingPage] = useState(false);
   const [clientFullName, setClientFullName] = useState<string | null>(null);
   // Countdown from order created_at + 24h
@@ -115,6 +117,9 @@ export default function ItemDetails() {
         // Restore disclaimer from DB
         if (dd._credentials_accessed_at) {
           setAcceptedDisclaimer(true);
+        }
+        if (dd._exchange_pending_payment) {
+          setExchangePendingPayment(dd._exchange_pending_payment);
         }
       }
       // Also check localStorage as fallback
@@ -572,7 +577,18 @@ export default function ItemDetails() {
 
               {/* Access Data */}
               <div className="bg-muted/30 rounded-lg p-3 border border-border">
-                {isBM ? (
+                {exchangePendingPayment ? (
+                  <ExchangePaymentGate
+                    itemId={itemId!}
+                    orderId={order.id}
+                    orderCode={order.code}
+                    pendingPayment={exchangePendingPayment}
+                    onPaymentComplete={() => {
+                      setExchangePendingPayment(null);
+                      window.location.reload();
+                    }}
+                  />
+                ) : isBM ? (
                   <>
                     <h3 className="text-[10px] font-bold text-foreground mb-2 uppercase tracking-wider">Links das BMs</h3>
                     {bmLinks.length === 0 ? (
