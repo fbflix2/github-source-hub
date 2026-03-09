@@ -188,7 +188,7 @@ export default function AdminMigrados() {
     } finally { setImportLoading(false); }
   }
 
-  async function handleGenerateCredentials(email: string, id: string) {
+   async function handleGenerateCredentials(email: string, id: string, fullName: string | null) {
     setActionId(id);
     try {
       const { data: result, error } = await supabase.functions.invoke("migration-login", {
@@ -196,8 +196,12 @@ export default function AdminMigrados() {
       });
       if (error) throw error;
       if (result?.error) throw new Error(result.error);
+      
+      const msg = buildMigrationMessage(email, fullName);
+      await navigator.clipboard.writeText(msg);
+      
       const actionLabel = result.action === "created" ? "Conta criada" : "Senha resetada";
-      toast.success(`${actionLabel}! Senha: mudar@123`);
+      toast.success(`${actionLabel}! Mensagem copiada para área de transferência 📋`);
       fetchData();
     } catch (err: any) {
       toast.error(err.message || "Erro ao gerar credenciais");
