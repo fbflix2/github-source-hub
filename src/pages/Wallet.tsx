@@ -295,13 +295,13 @@ export default function Wallet() {
         <div className="lg:col-span-5 flex flex-col gap-4">
           {/* Stats Cards */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-xl glass-panel p-3.5 flex flex-col gap-1 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
-                <span className="material-symbols-outlined text-2xl">payments</span>
+            <Link to="/mercado/token-fbx" className="rounded-xl glass-panel p-3.5 flex flex-col gap-1 relative overflow-hidden group border-cyan-500/20 bg-cyan-500/5 hover:bg-cyan-500/10 transition-colors">
+              <div className="absolute top-0 right-0 p-2 opacity-20 text-cyan-400">
+                <span className="material-symbols-outlined text-2xl">token</span>
               </div>
-              <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Gasto Mensal</span>
-              <span className="text-lg font-black text-foreground">R$ {monthlyExpense.toFixed(2).replace(".", ",")}</span>
-            </div>
+              <span className="text-[10px] text-cyan-400 font-bold uppercase tracking-wider">Saldo FBX</span>
+              <span className="text-lg font-black text-cyan-400">{fbxBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} FBX</span>
+            </Link>
             <div className={`rounded-xl glass-panel p-3.5 flex flex-col gap-1 relative overflow-hidden group ${balance > 0 ? "border-emerald-500/20 bg-emerald-500/5" : "border-destructive/20 bg-destructive/5"}`}>
               <div className={`absolute top-0 right-0 p-2 opacity-20 ${balance > 0 ? "text-emerald-400" : "text-destructive"}`}>
                 <span className="material-symbols-outlined text-2xl">savings</span>
