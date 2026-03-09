@@ -589,9 +589,18 @@ export default function ItemDetails() {
                     pendingPayment={exchangePendingPayment}
                     onPaymentComplete={() => {
                       setExchangePendingPayment(null);
+                      setExchangeLocked(false);
                       window.location.reload();
                     }}
                   />
+                ) : exchangeLocked ? (
+                  <div className="rounded-xl border border-primary/30 bg-primary/5 p-5 text-center space-y-2">
+                    <span className="material-symbols-outlined text-primary text-[32px]">lock</span>
+                    <h3 className="text-sm font-bold text-foreground">Aguardando Pagamento</h3>
+                    <p className="text-xs text-muted-foreground">
+                      Este item será liberado automaticamente após o pagamento da diferença de valor da troca ser confirmado no outro item do pedido.
+                    </p>
+                  </div>
                 ) : isBM ? (
                   <>
                     <h3 className="text-[10px] font-bold text-foreground mb-2 uppercase tracking-wider">Links das BMs</h3>
