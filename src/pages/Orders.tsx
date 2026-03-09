@@ -397,13 +397,23 @@ export default function Orders() {
                             <div className="flex items-center gap-2 shrink-0">
                               <span className="text-foreground font-bold text-sm">R$ {row.price.toFixed(2).replace(".", ",")}</span>
                               {selectedOrder.status === "completed" && (
-                                <button
-                                  onClick={() => navigate(`/item-details/${encodeURIComponent(selectedOrder.code)}/${row.itemId}`)}
-                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white text-black font-semibold hover:bg-white/90 transition-colors text-xs shadow-sm"
-                                >
-                                  <span className="material-symbols-outlined text-[14px]">visibility</span>
-                                  Detalhes
-                                </button>
+                                row.isProxy ? (
+                                  <button
+                                    onClick={() => navigate("/subscriptions")}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-emerald-500 text-white font-semibold hover:bg-emerald-600 transition-colors text-xs shadow-sm"
+                                  >
+                                    <span className="material-symbols-outlined text-[14px]">wifi</span>
+                                    Ver Assinatura
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => navigate(`/item-details/${encodeURIComponent(selectedOrder.code)}/${row.itemId}`)}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white text-black font-semibold hover:bg-white/90 transition-colors text-xs shadow-sm"
+                                  >
+                                    <span className="material-symbols-outlined text-[14px]">visibility</span>
+                                    Detalhes
+                                  </button>
+                                )
                               )}
                             </div>
                           </div>
