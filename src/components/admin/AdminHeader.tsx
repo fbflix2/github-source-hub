@@ -33,6 +33,9 @@ export function AdminHeader() {
   const [notifications, setNotifications] = useState<AdminNotification[]>([]);
   const [notifOpen, setNotifOpen] = useState(false);
 
+  const seenIdsRef = useRef<Set<string>>(new Set());
+  const initialLoadDoneRef = useRef(false);
+
   const fetchNotifications = useCallback(async () => {
     const { data } = await supabase
       .from("notifications")
@@ -41,8 +44,26 @@ export function AdminHeader() {
       .eq("read", false)
       .order("created_at", { ascending: false })
       .limit(20);
-    if (data) setNotifications(data as AdminNotification[]);
-  }, []);
+    if (data) {
+      const typedData = data as AdminNotification[];
+      setNotifications(typedData);
+
+      // Play sound for new notifications detected via polling (not on first load)
+      if (initialLoadDoneRef.current) {
+        for (const n of typedData) {
+          if (!seenIdsRef.current.has(n.id)) {
+            const eventKey = getEventKey(n.type);
+            if (eventKey) {
+              playNotificationSound(eventKey);
+            }
+          }
+        }
+      }
+      // Update seen IDs
+      seenIdsRef.current = new Set(typedData.map(n => n.id));
+      initialLoadDoneRef.current = true;
+    }
+  }, [getEventKey, playNotificationSound]);
 
   useEffect(() => {
     const loadUser = async () => {
