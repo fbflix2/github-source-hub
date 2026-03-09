@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from "react";
-import { X, Send, Loader2, Paperclip, XCircle } from "lucide-react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { X, Send, Loader2, Paperclip, XCircle, MessageSquareText, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { validateSupportFile } from "@/lib/file-validation";
@@ -29,6 +29,57 @@ interface Props {
   onClose: () => void;
   onStatusChange?: () => void;
   onOpenSupport?: () => void;
+}
+
+function QuickTemplateSelector({ clientName, onSelect }: { clientName: string; onSelect: (text: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const firstName = clientName?.split(" ")[0] || "Cliente";
+
+  const templates = [
+    { label: "Saudação inicial", text: `Olá ${firstName}! Recebemos seu ticket e nossa equipe já está verificando. Aguarde, retornaremos o quanto antes.` },
+    { label: "Encerrar suporte", text: `${firstName}, posso lhe auxiliar em algo mais ou podemos encerrar esse suporte?` },
+    { label: "Fechado por inatividade", text: `Olá ${firstName}, por inatividade esse ticket foi fechado. Caso precise de mais ajuda, fique à vontade para abrir um novo ticket.` },
+    { label: "Aguardando resposta", text: `${firstName}, ficamos no aguardo da sua resposta para dar continuidade ao atendimento.` },
+    { label: "Problema resolvido", text: `${firstName}, o problema foi resolvido! Caso tenha qualquer outra dúvida, estamos à disposição.` },
+  ];
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white/5 border border-white/10 text-white/60 hover:bg-white/10 hover:text-white transition-colors"
+      >
+        <MessageSquareText className="size-3.5" />
+        Mensagem Pronta
+        <ChevronDown className={`size-3 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div className="absolute bottom-full left-0 mb-1 w-80 bg-[#1a1010] border border-white/10 rounded-xl shadow-2xl z-50 py-1 max-h-60 overflow-y-auto">
+          {templates.map((t, i) => (
+            <button
+              key={i}
+              onClick={() => { onSelect(t.text); setOpen(false); }}
+              className="w-full text-left px-4 py-2.5 hover:bg-white/5 transition-colors group"
+            >
+              <span className="text-[11px] font-semibold text-primary/80 group-hover:text-primary block">{t.label}</span>
+              <span className="text-xs text-white/50 group-hover:text-white/70 line-clamp-2">{t.text}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function AdminTicketModal({ ticket, profileName, mode, onClose, onStatusChange, onOpenSupport }: Props) {
@@ -274,7 +325,7 @@ export default function AdminTicketModal({ ticket, profileName, mode, onClose, o
         {/* Reply area (respond mode) */}
         {mode === "respond" && (
           <div className="border-t border-white/10 p-4 space-y-3">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <label className="text-xs text-white/50 font-medium">Status:</label>
               <select
                 value={newStatus}
@@ -287,6 +338,11 @@ export default function AdminTicketModal({ ticket, profileName, mode, onClose, o
                   </option>
                 ))}
               </select>
+
+              <QuickTemplateSelector
+                clientName={profileName}
+                onSelect={(text) => setReply(text)}
+              />
             </div>
 
             {/* Attachment previews */}
