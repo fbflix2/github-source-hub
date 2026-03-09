@@ -287,14 +287,26 @@ export default function AdminSuporte() {
                 const priorityConfig = getPriorityConfig(ticket.priority);
                 const profile = profiles[ticket.user_id];
                 const isResolved = ticket.status === "resolved";
+                const awaitingReply = !isResolved && lastSender[ticket.id] === "user";
                 
                 return (
                   <div 
                     key={ticket.id}
-                    className={`bg-gradient-to-br from-white/5 to-white/[0.01] backdrop-blur-lg border border-white/5 rounded-2xl p-5 flex flex-col gap-4 border-l-4 ${
+                    className={`bg-gradient-to-br from-white/5 to-white/[0.01] backdrop-blur-lg border rounded-2xl p-5 flex flex-col gap-4 border-l-4 ${
                       isResolved ? "border-l-green-500" : priorityConfig.leftBorder
+                    } ${
+                      awaitingReply ? "border-yellow-500/40 ring-1 ring-yellow-500/20" : "border-white/5"
                     } relative hover:border-primary/30 hover:-translate-y-0.5 transition-all duration-300`}
                   >
+                    {awaitingReply && (
+                      <div className="absolute -top-2.5 right-4 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-yellow-500/20 border border-yellow-500/30 shadow-lg shadow-yellow-500/10">
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75" />
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-yellow-400" />
+                        </span>
+                        <span className="text-[10px] font-bold text-yellow-300 uppercase tracking-wide">Aguardando resposta</span>
+                      </div>
+                    )}
                     <div className="flex justify-between items-start">
                       <div className="flex gap-2">
                         {isResolved ? (
