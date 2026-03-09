@@ -45,7 +45,7 @@ export function FbxStatsHeader({ fbxBalance, brlBalance, onRecharge, onTransfer 
       <div className="rounded-lg p-2.5" style={{ backgroundColor: "#111c1d", border: "1px solid rgba(255,255,255,0.05)" }}>
         <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider block mb-1">Saldo BRL</span>
         <h3 className="text-lg font-bold text-white">R$ {brlBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</h3>
-        <span className="text-slate-500 text-xs">Disponível para recarga</span>
+        <span className="text-slate-500 text-xs">Disponível para conversão</span>
       </div>
 
       {/* Info */}
