@@ -316,6 +316,7 @@ export default function AdminMigrados() {
           <EmptyOrTable items={filtered} emptyMessage="Nenhum cliente pendente de migração.">
             <TableHeader>
                <TableRow className="border-b border-border bg-muted/50 hover:bg-muted/50">
+                 <TH icon={MessageCircle}>Contato</TH>
                  <TH icon={Mail}>Email</TH>
                  <TH icon={Users}>Nome</TH>
                  <TH icon={Phone}>WhatsApp</TH>
