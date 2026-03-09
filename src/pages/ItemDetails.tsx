@@ -63,6 +63,7 @@ export default function ItemDetails() {
   const [pageName, setPageName] = useState<string | null>(null);
   const [pageReceivedByClient, setPageReceivedByClient] = useState(false);
   const [confirmingReceipt, setConfirmingReceipt] = useState(false);
+  const [exchangePendingPayment, setExchangePendingPayment] = useState<{ amount: number; original_product: string; created_at: string } | null>(null);
   const [requestingPage, setRequestingPage] = useState(false);
   const [clientFullName, setClientFullName] = useState<string | null>(null);
   // Countdown from order created_at + 24h
