@@ -375,11 +375,11 @@ export default function WebshareProxyTab() {
                     <Area
                       type="monotone"
                       dataKey="receita"
-                      stroke="hsl(var(--primary))"
+                      stroke="#22c55e"
                       strokeWidth={2}
                       fill="url(#wsRevenueGradient)"
-                      dot={{ r: 3, fill: "hsl(var(--primary))", strokeWidth: 0 }}
-                      activeDot={{ r: 5, fill: "hsl(var(--primary))", strokeWidth: 2, stroke: "hsl(var(--background))" }}
+                      dot={{ r: 3, fill: "#22c55e", strokeWidth: 0 }}
+                      activeDot={{ r: 5, fill: "#22c55e", strokeWidth: 2, stroke: "hsl(var(--background))" }}
                     />
                   </AreaChart>
                 </ResponsiveContainer>
