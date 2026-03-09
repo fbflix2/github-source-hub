@@ -215,15 +215,20 @@ export default function ProductExchangeModal({ open, onOpenChange, orderItem, or
       }
 
       // Build pending payment flag if client owes money
+      const exchangeTimestamp = new Date().toISOString();
       const pendingPaymentData = priceDiff > 0 ? {
         _exchange_pending_payment: {
           amount: priceDiff,
           original_product: orderItem.product_name,
-          created_at: new Date().toISOString(),
+          created_at: exchangeTimestamp,
         }
       } : {};
+      // For additional items: just lock them (no separate payment needed)
+      const lockedData = priceDiff > 0 ? {
+        _exchange_locked: exchangeTimestamp,
+      } : {};
 
-      // 3. Update the FIRST unit on the existing order_item
+      // 3. Update the FIRST unit on the existing order_item (carries the payment gate)
       const first = linkedItems[0];
       const firstDelivery = { ...first.deliveryData, ...pendingPaymentData };
       await supabase.from("order_items").update({
@@ -239,10 +244,10 @@ export default function ProductExchangeModal({ open, onOpenChange, orderItem, or
         status: "vendido",
       }).eq("id", first.stockItemId);
 
-      // 4. Create NEW order_items for remaining units
+      // 4. Create NEW order_items for remaining units (locked, not payment gate)
       for (let i = 1; i < linkedItems.length; i++) {
         const item = linkedItems[i];
-        const itemDelivery = { ...item.deliveryData, ...pendingPaymentData };
+        const itemDelivery = { ...item.deliveryData, ...lockedData };
         const { data: newOI, error: oiErr } = await supabase.from("order_items").insert({
           order_id: orderId,
           product_id: item.product.id,

@@ -64,6 +64,7 @@ export default function ItemDetails() {
   const [pageReceivedByClient, setPageReceivedByClient] = useState(false);
   const [confirmingReceipt, setConfirmingReceipt] = useState(false);
   const [exchangePendingPayment, setExchangePendingPayment] = useState<{ amount: number; original_product: string; created_at: string } | null>(null);
+  const [exchangeLocked, setExchangeLocked] = useState(false);
   const [requestingPage, setRequestingPage] = useState(false);
   const [clientFullName, setClientFullName] = useState<string | null>(null);
   // Countdown from order created_at + 24h
@@ -120,6 +121,9 @@ export default function ItemDetails() {
         }
         if (dd._exchange_pending_payment) {
           setExchangePendingPayment(dd._exchange_pending_payment);
+        }
+        if (dd._exchange_locked) {
+          setExchangeLocked(true);
         }
       }
       // Also check localStorage as fallback
@@ -585,9 +589,18 @@ export default function ItemDetails() {
                     pendingPayment={exchangePendingPayment}
                     onPaymentComplete={() => {
                       setExchangePendingPayment(null);
+                      setExchangeLocked(false);
                       window.location.reload();
                     }}
                   />
+                ) : exchangeLocked ? (
+                  <div className="rounded-xl border border-primary/30 bg-primary/5 p-5 text-center space-y-2">
+                    <span className="material-symbols-outlined text-primary text-[32px]">lock</span>
+                    <h3 className="text-sm font-bold text-foreground">Aguardando Pagamento</h3>
+                    <p className="text-xs text-muted-foreground">
+                      Este item será liberado automaticamente após o pagamento da diferença de valor da troca ser confirmado no outro item do pedido.
+                    </p>
+                  </div>
                 ) : isBM ? (
                   <>
                     <h3 className="text-[10px] font-bold text-foreground mb-2 uppercase tracking-wider">Links das BMs</h3>

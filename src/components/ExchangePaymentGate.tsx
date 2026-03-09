@@ -10,15 +10,19 @@ interface PendingPayment {
   created_at: string;
 }
 
+// Also used for locked sibling items
+export type ExchangeLockType = "pending_payment" | "locked";
+
 interface Props {
   itemId: string;
   orderId: string;
   orderCode: string;
   pendingPayment: PendingPayment;
+  lockType?: ExchangeLockType;
   onPaymentComplete: () => void;
 }
 
-export default function ExchangePaymentGate({ itemId, orderId, orderCode, pendingPayment, onPaymentComplete }: Props) {
+export default function ExchangePaymentGate({ itemId, orderId, orderCode, pendingPayment, lockType = "pending_payment", onPaymentComplete }: Props) {
   const [balance, setBalance] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [pixData, setPixData] = useState<{ qr_code: string; qr_code_base64: string } | null>(null);
@@ -45,7 +49,7 @@ export default function ExchangePaymentGate({ itemId, orderId, orderCode, pendin
   }
 
   async function clearPendingFlag() {
-    // Remove the _exchange_pending_payment flag from delivery_data
+    // Remove _exchange_pending_payment from this item
     const { data: item } = await supabase
       .from("order_items")
       .select("delivery_data")
@@ -58,6 +62,28 @@ export default function ExchangePaymentGate({ itemId, orderId, orderCode, pendin
       await supabase.from("order_items").update({
         delivery_data: Object.keys(dd).length > 0 ? dd : null,
       }).eq("id", itemId);
+    }
+
+    // Also unlock all sibling items in the same order that have _exchange_locked
+    const { data: siblings } = await supabase
+      .from("order_items")
+      .select("id, delivery_data")
+      .eq("order_id", orderId)
+      .neq("id", itemId);
+
+    if (siblings) {
+      for (const sib of siblings) {
+        if (sib.delivery_data && typeof sib.delivery_data === "object") {
+          const sd = sib.delivery_data as Record<string, any>;
+          if (sd._exchange_locked) {
+            const cleaned = { ...sd };
+            delete cleaned._exchange_locked;
+            await supabase.from("order_items").update({
+              delivery_data: Object.keys(cleaned).length > 0 ? cleaned : null,
+            }).eq("id", sib.id);
+          }
+        }
+      }
     }
   }
 
