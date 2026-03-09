@@ -1,13 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { 
   MailOpen, Clock, CheckCircle, Timer, RefreshCw, ArrowUp, ArrowDown,
-  MessageSquare, Loader2, Inbox, RotateCcw, Star
+  MessageSquare, Loader2, Inbox, RotateCcw, Star, CalendarDays, ChevronLeft, ChevronRight
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import AdminTicketModal from "@/components/admin/AdminTicketModal";
 
-type Filter = "todos" | "novos" | "andamento" | "prioridade" | "resolvidos-hoje";
+type Filter = "todos" | "novos" | "andamento" | "prioridade" | "resolvidos-hoje" | "resolvidos";
 type ModalMode = "history" | "respond" | "preview" | null;
 
 interface TicketRow {
@@ -51,6 +51,11 @@ export default function AdminSuporte() {
   const [modalMode, setModalMode] = useState<ModalMode>(null);
   const [ratings, setRatings] = useState<Record<string, { rating: number; comment: string | null }>>({});
 
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
+
   const fetchTickets = async () => {
     setLoading(true);
     const { data } = await supabase
@@ -88,15 +93,22 @@ export default function AdminSuporte() {
   const today = new Date().toDateString();
   const resolvedTodayTickets = tickets.filter(t => t.status === "resolved" && new Date(t.updated_at).toDateString() === today);
 
-  const filtered = tickets.filter(t => {
-    switch (activeFilter) {
-      case "novos": return t.status === "open";
-      case "andamento": return t.status === "in_progress";
-      case "prioridade": return t.priority === "high" && t.status !== "resolved" && t.status !== "closed";
-      case "resolvidos-hoje": return t.status === "resolved" && new Date(t.updated_at).toDateString() === today;
-      default: return t.status !== "resolved" && t.status !== "closed"; // "todos" hides resolved
-    }
-  });
+  const filtered = useMemo(() => {
+    return tickets.filter(t => {
+      switch (activeFilter) {
+        case "novos": return t.status === "open";
+        case "andamento": return t.status === "in_progress";
+        case "prioridade": return t.priority === "high" && t.status !== "resolved" && t.status !== "closed";
+        case "resolvidos-hoje": return t.status === "resolved" && new Date(t.updated_at).toDateString() === today;
+        case "resolvidos": {
+          const [year, month] = selectedMonth.split("-").map(Number);
+          const d = new Date(t.updated_at);
+          return (t.status === "resolved" || t.status === "closed") && d.getFullYear() === year && d.getMonth() + 1 === month;
+        }
+        default: return t.status !== "resolved" && t.status !== "closed";
+      }
+    });
+  }, [tickets, activeFilter, selectedMonth, today]);
 
   const openCount = tickets.filter(t => t.status === "open").length;
   const waitingCount = tickets.filter(t => t.status === "in_progress").length;
@@ -120,7 +132,8 @@ export default function AdminSuporte() {
     { id: "todos" as Filter, label: "Todos" },
     { id: "novos" as Filter, label: "Novos" },
     { id: "andamento" as Filter, label: "Em Andamento" },
-    { id: "prioridade" as Filter, label: "Alta Prioridade" }
+    { id: "prioridade" as Filter, label: "Alta Prioridade" },
+    { id: "resolvidos" as Filter, label: "📁 Resolvidos" }
   ];
 
   const getInitials = (name: string | null) => {
@@ -128,7 +141,19 @@ export default function AdminSuporte() {
     return name.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase();
   };
 
-  const isResolvedView = activeFilter === "resolvidos-hoje";
+  const isResolvedView = activeFilter === "resolvidos-hoje" || activeFilter === "resolvidos";
+
+  const monthLabel = useMemo(() => {
+    const [year, month] = selectedMonth.split("-").map(Number);
+    const date = new Date(year, month - 1);
+    return date.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+  }, [selectedMonth]);
+
+  const shiftMonth = (delta: number) => {
+    const [year, month] = selectedMonth.split("-").map(Number);
+    const d = new Date(year, month - 1 + delta);
+    setSelectedMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+  };
 
   return (
     <div className="flex flex-col min-h-[calc(100vh-80px)] -mx-6 -mt-6 p-4 lg:p-8 gap-8 relative">
@@ -183,11 +208,11 @@ export default function AdminSuporte() {
         <div className="flex flex-col gap-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-              {isResolvedView ? "Resolvidos Hoje" : "Fila de Atendimento"}
+              {activeFilter === "resolvidos" ? "Tickets Resolvidos" : activeFilter === "resolvidos-hoje" ? "Resolvidos Hoje" : "Fila de Atendimento"}
               <span className="text-sm font-normal text-gray-500 bg-white/5 px-2 py-0.5 rounded-lg border border-white/5">
                 {filtered.length} total
               </span>
-              {isResolvedView && (
+              {activeFilter === "resolvidos-hoje" && (
                 <button
                   onClick={() => setActiveFilter("todos")}
                   className="ml-2 text-xs text-gray-400 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-1 rounded-lg transition-colors"
@@ -196,7 +221,21 @@ export default function AdminSuporte() {
                 </button>
               )}
             </h2>
-            {!isResolvedView && (
+            <div className="flex items-center gap-3">
+              {activeFilter === "resolvidos" && (
+                <div className="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/10">
+                  <button onClick={() => shiftMonth(-1)} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
+                    <ChevronLeft className="size-4" />
+                  </button>
+                  <span className="text-sm font-medium text-white px-3 capitalize min-w-[140px] text-center flex items-center justify-center gap-1.5">
+                    <CalendarDays className="size-3.5 text-gray-400" />
+                    {monthLabel}
+                  </span>
+                  <button onClick={() => shiftMonth(1)} className="p-1.5 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
+                    <ChevronRight className="size-4" />
+                  </button>
+                </div>
+              )}
               <div className="flex items-center gap-2 bg-black/40 p-1 rounded-xl border border-white/10">
                 {filters.map((filter) => (
                   <button
@@ -212,7 +251,7 @@ export default function AdminSuporte() {
                   </button>
                 ))}
               </div>
-            )}
+            </div>
           </div>
 
           {loading ? (
