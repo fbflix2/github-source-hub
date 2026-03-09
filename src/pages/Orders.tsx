@@ -87,6 +87,7 @@ export default function Orders() {
         .from("orders")
         .select("*")
         .eq("user_id", user.id)
+        .not("status", "in", '("abandoned","cancelled")')
         .order("created_at", { ascending: false });
 
       if (error || !ordersData) { setLoading(false); return; }
