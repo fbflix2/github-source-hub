@@ -212,20 +212,31 @@ export default function AdminMigrados() {
   }
 
   async function handleToggleContacted(trackingId: string | null, email: string, current: boolean) {
-    if (!trackingId) {
-      toast.error("Este usuário não está na lista de migração");
-      return;
-    }
     try {
-      const { error } = await supabase
-        .from("migration_tracking")
-        .update({ contacted: !current })
-        .eq("id", trackingId);
-      if (error) throw error;
+      let finalTrackingId = trackingId;
+      
+      if (!finalTrackingId) {
+        // Create tracking entry for users not yet in migration_tracking
+        const { data: inserted, error: insertErr } = await supabase
+          .from("migration_tracking")
+          .upsert({ email: email.toLowerCase(), status: "pending", contacted: !current }, { onConflict: "email" })
+          .select("id")
+          .single();
+        if (insertErr) throw insertErr;
+        finalTrackingId = inserted.id;
+      } else {
+        const { error } = await supabase
+          .from("migration_tracking")
+          .update({ contacted: !current })
+          .eq("id", finalTrackingId);
+        if (error) throw error;
+      }
+
+      const tid = finalTrackingId;
       setData((prev) => {
         if (!prev) return prev;
         const update = (list: EnrichedUser[]) =>
-          list.map((u) => (u.tracking_id === trackingId ? { ...u, contacted: !current } : u));
+          list.map((u) => (u.email.toLowerCase() === email.toLowerCase() ? { ...u, contacted: !current, tracking_id: tid } : u));
         return {
           ...prev,
           pending_users: update(prev.pending_users),
