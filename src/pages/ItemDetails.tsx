@@ -311,10 +311,23 @@ export default function ItemDetails() {
     }
   }, [acceptedDisclaimer]);
 
-  const handleDisclaimerConfirm = () => {
+  const handleDisclaimerConfirm = async () => {
     setAcceptedDisclaimer(true);
     if (orderId) {
       localStorage.setItem(`disclaimer_accepted_${orderId}`, "true");
+    }
+    // Persist credential access timestamp in delivery_data
+    if (itemId && orderItem) {
+      try {
+        const currentData = (orderItem.delivery_data && typeof orderItem.delivery_data === "object")
+          ? orderItem.delivery_data as Record<string, any>
+          : {};
+        await supabase.from("order_items").update({
+          delivery_data: { ...currentData, _credentials_accessed_at: new Date().toISOString() },
+        }).eq("id", itemId);
+      } catch (err) {
+        console.error("Failed to persist credential access:", err);
+      }
     }
     setShowDisclaimer(false);
     setDisclaimerChecked(false);
