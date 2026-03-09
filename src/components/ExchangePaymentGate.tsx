@@ -10,6 +10,9 @@ interface PendingPayment {
   created_at: string;
 }
 
+// Also used for locked sibling items
+export type ExchangeLockType = "pending_payment" | "locked";
+
 interface Props {
   itemId: string;
   orderId: string;
