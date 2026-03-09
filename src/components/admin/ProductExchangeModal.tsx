@@ -455,7 +455,7 @@ export default function ProductExchangeModal({ open, onOpenChange, orderItem, or
                       <Package className="size-4 text-muted-foreground" />
                       <span className="text-sm font-medium text-foreground">
                         {priceDiff > 0
-                          ? `Débito de R$ ${priceDiff.toFixed(2).replace(".", ",")} na carteira`
+                          ? `Cliente pagará R$ ${priceDiff.toFixed(2).replace(".", ",")} (PIX ou Saldo) para acessar`
                           : priceDiff < 0
                           ? `Crédito de R$ ${Math.abs(priceDiff).toFixed(2).replace(".", ",")} na carteira`
                           : "Mesmo valor — sem ajuste"}
