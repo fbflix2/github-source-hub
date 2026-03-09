@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import AdminTicketModal from "@/components/admin/AdminTicketModal";
 
-type Filter = "todos" | "novos" | "andamento" | "prioridade" | "resolvidos-hoje";
+type Filter = "todos" | "novos" | "andamento" | "prioridade" | "resolvidos-hoje" | "resolvidos";
 type ModalMode = "history" | "respond" | "preview" | null;
 
 interface TicketRow {
