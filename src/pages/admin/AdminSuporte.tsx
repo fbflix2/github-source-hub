@@ -93,15 +93,22 @@ export default function AdminSuporte() {
   const today = new Date().toDateString();
   const resolvedTodayTickets = tickets.filter(t => t.status === "resolved" && new Date(t.updated_at).toDateString() === today);
 
-  const filtered = tickets.filter(t => {
-    switch (activeFilter) {
-      case "novos": return t.status === "open";
-      case "andamento": return t.status === "in_progress";
-      case "prioridade": return t.priority === "high" && t.status !== "resolved" && t.status !== "closed";
-      case "resolvidos-hoje": return t.status === "resolved" && new Date(t.updated_at).toDateString() === today;
-      default: return t.status !== "resolved" && t.status !== "closed"; // "todos" hides resolved
-    }
-  });
+  const filtered = useMemo(() => {
+    return tickets.filter(t => {
+      switch (activeFilter) {
+        case "novos": return t.status === "open";
+        case "andamento": return t.status === "in_progress";
+        case "prioridade": return t.priority === "high" && t.status !== "resolved" && t.status !== "closed";
+        case "resolvidos-hoje": return t.status === "resolved" && new Date(t.updated_at).toDateString() === today;
+        case "resolvidos": {
+          const [year, month] = selectedMonth.split("-").map(Number);
+          const d = new Date(t.updated_at);
+          return (t.status === "resolved" || t.status === "closed") && d.getFullYear() === year && d.getMonth() + 1 === month;
+        }
+        default: return t.status !== "resolved" && t.status !== "closed";
+      }
+    });
+  }, [tickets, activeFilter, selectedMonth, today]);
 
   const openCount = tickets.filter(t => t.status === "open").length;
   const waitingCount = tickets.filter(t => t.status === "in_progress").length;
