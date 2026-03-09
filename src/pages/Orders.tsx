@@ -117,14 +117,17 @@ export default function Orders() {
 
       const enriched: Order[] = nonProxyOrders.map((order) => ({
         ...order,
-        items: (itemsData || []).filter((i: any) => i.order_id === order.id).map((i: any) => ({
-          ...i,
-          isBlocked: blockedItemIds.has(i.id),
-          iconType: i.products?.icon_type,
-          isReplaced: !!(i.delivery_data as any)?._replaced,
-          replacedAt: (i.delivery_data as any)?._replaced_at || null,
-        })),
-      }));
+        items: (itemsData || [])
+          .filter((i: any) => i.order_id === order.id)
+          .filter((i: any) => i.products?.icon_type !== 'proxy')
+          .map((i: any) => ({
+            ...i,
+            isBlocked: blockedItemIds.has(i.id),
+            iconType: i.products?.icon_type,
+            isReplaced: !!(i.delivery_data as any)?._replaced,
+            replacedAt: (i.delivery_data as any)?._replaced_at || null,
+          })),
+      })).filter(o => o.items.length > 0);
 
       setOrders(enriched);
       if (enriched.length > 0) setSelectedOrder(enriched[0]);
