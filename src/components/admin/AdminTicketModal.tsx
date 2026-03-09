@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from "react";
-import { X, Send, Loader2, Paperclip, XCircle } from "lucide-react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { X, Send, Loader2, Paperclip, XCircle, MessageSquareText, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { validateSupportFile } from "@/lib/file-validation";
