@@ -1,0 +1,1 @@
+UPDATE order_items SET delivery_data = delivery_data - '_exchange_pending_payment' WHERE id = '22b39c4c-f255-417a-95fd-a3a12f055830'

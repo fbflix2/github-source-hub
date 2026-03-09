@@ -32,10 +32,34 @@ export default function ExchangePaymentGate({ itemId, orderId, orderCode, pendin
 
   useEffect(() => {
     fetchBalance();
+    checkIfAlreadyPaid();
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
     };
   }, []);
+
+  // Check if user already paid the exchange difference (e.g. PIX completed via webhook but flag wasn't cleared)
+  async function checkIfAlreadyPaid() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    // Look for a completed payment matching the exchange amount made recently
+    const { data: recentPayments } = await supabase
+      .from("payments")
+      .select("id, amount, status, created_at")
+      .eq("user_id", user.id)
+      .eq("status", "completed")
+      .gte("created_at", pendingPayment.created_at)
+      .order("created_at", { ascending: false })
+      .limit(10);
+
+    if (recentPayments?.some(p => Number(p.amount) >= pendingPayment.amount)) {
+      // Payment was already made — clear flags and unlock
+      await clearPendingFlag();
+      toast.success("Pagamento já confirmado! Acesso liberado.");
+      onPaymentComplete();
+    }
+  }
 
   async function fetchBalance() {
     const { data: { user } } = await supabase.auth.getUser();
