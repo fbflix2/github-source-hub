@@ -120,7 +120,6 @@ export default function Orders() {
         ...order,
         items: (itemsData || [])
           .filter((i: any) => i.order_id === order.id)
-          .filter((i: any) => i.products?.icon_type !== 'proxy')
           .map((i: any) => ({
             ...i,
             isBlocked: blockedItemIds.has(i.id),
@@ -282,8 +281,9 @@ export default function Orders() {
                         // Group BM and Page items into single rows, expand others individually
                         const bmItems = selectedOrder.items.filter(i => i.iconType === 'bm');
                         const pageItems = selectedOrder.items.filter(i => i.iconType === 'page');
-                        const otherItems = selectedOrder.items.filter(i => i.iconType !== 'bm' && i.iconType !== 'page');
-                        const rows: { key: string; name: string; subtitle: string; price: number; totalPrice: number; itemId: string; isBlocked: boolean; isReplaced: boolean; replacedAt: string | null; isBm: boolean; isPage: boolean }[] = [];
+                        const proxyItems = selectedOrder.items.filter(i => i.iconType === 'proxy');
+                        const otherItems = selectedOrder.items.filter(i => i.iconType !== 'bm' && i.iconType !== 'page' && i.iconType !== 'proxy');
+                        const rows: { key: string; name: string; subtitle: string; price: number; totalPrice: number; itemId: string; isBlocked: boolean; isReplaced: boolean; replacedAt: string | null; isBm: boolean; isPage: boolean; isProxy: boolean }[] = [];
 
                         // BM: single grouped row
                         if (bmItems.length > 0) {
@@ -301,6 +301,7 @@ export default function Orders() {
                             replacedAt: bmItems.find(i => i.replacedAt)?.replacedAt || null,
                             isBm: true,
                             isPage: false,
+                            isProxy: false,
                           });
                         }
 
@@ -320,6 +321,27 @@ export default function Orders() {
                             replacedAt: pageItems.find(i => i.replacedAt)?.replacedAt || null,
                             isBm: false,
                             isPage: true,
+                            isProxy: false,
+                          });
+                        }
+
+                        // Proxy: grouped row linking to subscriptions
+                        if (proxyItems.length > 0) {
+                          const totalProxyPrice = proxyItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
+                          const totalProxyQty = proxyItems.reduce((sum, i) => sum + i.quantity, 0);
+                          rows.push({
+                            key: 'proxy-group',
+                            name: proxyItems[0].name,
+                            subtitle: totalProxyQty > 1 ? `${totalProxyQty} proxies — ver em Assinaturas` : 'Gerenciar em Assinaturas',
+                            price: totalProxyPrice,
+                            totalPrice: totalProxyPrice,
+                            itemId: proxyItems[0].id,
+                            isBlocked: false,
+                            isReplaced: false,
+                            replacedAt: null,
+                            isBm: false,
+                            isPage: false,
+                            isProxy: true,
                           });
                         }
 
@@ -339,6 +361,7 @@ export default function Orders() {
                               replacedAt: item.replacedAt || null,
                               isBm: false,
                               isPage: false,
+                              isProxy: false,
                             });
                           }
                         });
@@ -374,13 +397,23 @@ export default function Orders() {
                             <div className="flex items-center gap-2 shrink-0">
                               <span className="text-foreground font-bold text-sm">R$ {row.price.toFixed(2).replace(".", ",")}</span>
                               {selectedOrder.status === "completed" && (
-                                <button
-                                  onClick={() => navigate(`/item-details/${encodeURIComponent(selectedOrder.code)}/${row.itemId}`)}
-                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white text-black font-semibold hover:bg-white/90 transition-colors text-xs shadow-sm"
-                                >
-                                  <span className="material-symbols-outlined text-[14px]">visibility</span>
-                                  Detalhes
-                                </button>
+                                row.isProxy ? (
+                                  <button
+                                    onClick={() => navigate("/subscriptions")}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-emerald-500 text-white font-semibold hover:bg-emerald-600 transition-colors text-xs shadow-sm"
+                                  >
+                                    <span className="material-symbols-outlined text-[14px]">wifi</span>
+                                    Ver Assinatura
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => navigate(`/item-details/${encodeURIComponent(selectedOrder.code)}/${row.itemId}`)}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white text-black font-semibold hover:bg-white/90 transition-colors text-xs shadow-sm"
+                                  >
+                                    <span className="material-symbols-outlined text-[14px]">visibility</span>
+                                    Detalhes
+                                  </button>
+                                )
                               )}
                             </div>
                           </div>
