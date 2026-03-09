@@ -85,52 +85,82 @@ Deno.serve(async (req) => {
       const trackedEmails = new Set(tracking.map((t: any) => t.email.toLowerCase()));
       const isComplete = (p: any) => !!(p?.full_name && p?.cpf && p?.phone && p?.birth_date);
 
-      const enriched = tracking.map((t: any) => {
-        const au = emailToUser.get(t.email.toLowerCase());
-        const pr = au ? uidToProfile.get(au.id) : null;
-        return {
-          ...t,
-          has_account: !!au,
+      // Build a unified user map: email -> enriched data
+      const enrichedByEmail = new Map<string, any>();
+
+      // Process all auth users
+      for (const u of allUsers) {
+        if (!u.email) continue;
+        const email = u.email.toLowerCase();
+        const pr = uidToProfile.get(u.id);
+        const trackingEntry = tracking.find((t: any) => t.email.toLowerCase() === email);
+        const neverLoggedIn = !u.last_sign_in_at;
+        const hasImportedFlag = u.user_metadata?.must_change_password === true && !u.user_metadata?.migrated_at;
+
+        enrichedByEmail.set(email, {
+          id: trackingEntry?.id || u.id,
+          email: u.email,
+          full_name: pr?.full_name || u.user_metadata?.full_name || trackingEntry?.full_name || null,
+          created_at: trackingEntry?.created_at || u.created_at,
+          migrated_at: trackingEntry?.migrated_at || u.user_metadata?.migrated_at || null,
+          status: trackingEntry?.status || null,
+          has_account: true,
+          never_logged_in: neverLoggedIn,
           profile_complete: isComplete(pr),
           profile_data: pr
             ? { full_name: pr.full_name, cpf: pr.cpf ? `***${pr.cpf.slice(-4)}` : null, phone: pr.phone, birth_date: pr.birth_date }
             : null,
-          last_sign_in: au?.last_sign_in_at || null,
-        };
-      });
-
-      const directUsers = allUsers
-        .filter((u: any) => u.email && !trackedEmails.has(u.email.toLowerCase()))
-        .map((u: any) => {
-          const pr = uidToProfile.get(u.id);
-          return {
-            id: u.id,
-            email: u.email,
-            full_name: pr?.full_name || u.user_metadata?.full_name || null,
-            created_at: u.created_at,
-            last_sign_in: u.last_sign_in_at,
-            profile_complete: isComplete(pr),
-            profile_data: pr
-              ? { full_name: pr.full_name, cpf: pr.cpf ? `***${pr.cpf.slice(-4)}` : null, phone: pr.phone, birth_date: pr.birth_date }
-              : null,
-          };
+          last_sign_in: u.last_sign_in_at || null,
+          in_tracking: !!trackingEntry,
+          migration_method: u.user_metadata?.migrated_at ? "link" : (hasImportedFlag ? "excel" : null),
         });
+      }
 
-      const pendingList = enriched.filter((t: any) => t.status === "pending");
-      const migratedList = enriched.filter((t: any) => t.status === "migrated");
-      const allItems = [...enriched, ...directUsers];
-      const completeCount = allItems.filter((x: any) => x.profile_complete).length;
+      // Also add tracking entries that have NO auth account yet
+      for (const t of tracking) {
+        const email = t.email.toLowerCase();
+        if (!enrichedByEmail.has(email)) {
+          enrichedByEmail.set(email, {
+            id: t.id,
+            email: t.email,
+            full_name: t.full_name,
+            created_at: t.created_at,
+            migrated_at: t.migrated_at,
+            status: t.status,
+            has_account: false,
+            never_logged_in: true,
+            profile_complete: false,
+            profile_data: null,
+            last_sign_in: null,
+            in_tracking: true,
+            migration_method: null,
+          });
+        }
+      }
+
+      const allEnriched = Array.from(enrichedByEmail.values());
+
+      // Categories:
+      // Pending = never logged in (no last_sign_in)
+      const pendingList = allEnriched.filter((u: any) => u.never_logged_in);
+      // Migrated = has logged in AND was in tracking or has migration metadata
+      const migratedList = allEnriched.filter((u: any) => !u.never_logged_in && (u.in_tracking || u.migration_method));
+      // Direct = has logged in AND was NOT in tracking AND no migration metadata
+      const directList = allEnriched.filter((u: any) => !u.never_logged_in && !u.in_tracking && !u.migration_method);
+      // Complete profiles (all users)
+      const completeCount = allEnriched.filter((u: any) => u.profile_complete).length;
 
       return new Response(
         JSON.stringify({
-          tracking: enriched,
-          direct_users: directUsers,
+          pending_users: pendingList,
+          migrated_users: migratedList,
+          direct_users: directList,
+          all_users: allEnriched,
           stats: {
-            total_users: allUsers.length,
-            total_tracked: tracking.length,
+            total_users: allEnriched.length,
             pending: pendingList.length,
             migrated: migratedList.length,
-            direct_registrations: directUsers.length,
+            direct_registrations: directList.length,
             complete_profiles: completeCount,
           },
         }),
