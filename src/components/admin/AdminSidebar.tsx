@@ -36,7 +36,8 @@ import {
   Star,
   RefreshCw,
   ArrowRightLeft,
-  Briefcase
+  Briefcase,
+  Coins
 } from "lucide-react";
 
 interface SubItem {
