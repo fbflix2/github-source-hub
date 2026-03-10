@@ -228,6 +228,7 @@ export default function AdminAquecimento() {
     { key: "dashboard", label: "Dashboard", icon: "dashboard" },
     { key: "esteiras", label: "Esteiras", icon: "layers" },
     { key: "relatorios", label: "Relatórios", icon: "analytics" },
+    { key: "configuracoes", label: "Configurações", icon: "settings" },
   ] as const;
 
   // Dashboard stats from DB
