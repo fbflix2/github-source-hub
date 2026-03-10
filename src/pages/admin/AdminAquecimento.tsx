@@ -960,7 +960,7 @@ export default function AdminAquecimento() {
                 </div>
               </div>
               <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Pixel Conversion API Token</label>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Token da API de Conversão do Pixel</label>
                 <div className="relative">
                   <input className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-sm pr-12 text-slate-900 focus:ring-2 focus:ring-slate-400/20 outline-none" type="text" defaultValue="EAAGm0PX4ZCpsBAK7ZA9Bf7ZB8qZC4ZB9ZA..." />
                   <button
