@@ -228,7 +228,7 @@ export default function AdminCentralInvestimentos() {
   };
 
   const filtered = products.filter(p =>
-    p.name.toLowerCase().includes(search.toLowerCase())
+    p.status === "active" && p.name.toLowerCase().includes(search.toLowerCase())
   );
 
   const iconTypeLabel = (t: string | null) => {
