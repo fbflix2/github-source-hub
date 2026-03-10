@@ -334,10 +334,10 @@ export default function AdminBalanco() {
   const chartColor = activeChartFilter === "Custos" ? "#f90606" : activeChartFilter === "Receitas" ? "#22c55e" : "#ffffff";
 
   const stats = [
-    { label: "Custo Total Compras", value: formatCurrency(totalCost), icon: ShoppingCart, iconBg: "bg-primary/10 border-primary/20", iconColor: "text-primary" },
+    { label: "Custo Real (COGS)", value: formatCurrency(totalCost), icon: ShoppingCart, iconBg: "bg-primary/10 border-primary/20", iconColor: "text-primary" },
     { label: "Receita Total Vendas", value: formatCurrency(combinedRevenue), icon: Wallet, iconBg: "bg-emerald-500/10 border-emerald-500/20", iconColor: "text-emerald-500" },
-    { label: "Lucro Líquido", value: formatCurrency(profit), icon: TrendingUp, iconBg: "bg-white/10 border-white/20", iconColor: "text-white", highlighted: true },
-    { label: "Margem Média", value: `${margin}%`, icon: Percent, iconBg: "bg-white/5 border-white/10", iconColor: "text-gray-300" },
+    { label: "Lucro Líquido Real", value: formatCurrency(profit), icon: TrendingUp, iconBg: "bg-white/10 border-white/20", iconColor: "text-white", highlighted: true },
+    { label: "Margem Líquida", value: `${margin}%`, icon: Percent, iconBg: "bg-white/5 border-white/10", iconColor: "text-gray-300" },
     { label: "Proxies Ativos", value: proxyCount.toString(), icon: Tag, iconBg: "bg-white/5 border-white/10", iconColor: "text-gray-300" },
   ];
 
