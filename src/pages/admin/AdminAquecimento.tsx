@@ -844,7 +844,7 @@ export default function AdminAquecimento() {
               <div className="flex flex-col justify-end">
                 <div className="bg-slate-100 p-4 rounded-xl border border-slate-200">
                   <p className="text-xs text-slate-600 mb-3">Sua senha foi alterada pela última vez há 45 dias.</p>
-                  <button className="w-full bg-slate-800 text-white text-sm font-bold py-2 rounded-lg hover:bg-slate-700 transition-all">
+                  <button className="w-full bg-[#1876f2] text-white text-sm font-bold py-2 rounded-lg hover:bg-[#1565c0] transition-all">
                     Alterar Senha de Acesso
                   </button>
                 </div>
