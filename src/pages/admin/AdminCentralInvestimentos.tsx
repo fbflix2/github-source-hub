@@ -114,6 +114,24 @@ export default function AdminCentralInvestimentos() {
     staleTime: 600_000,
   });
 
+  // Fetch fixed costs + allocation for dilution display
+  const { data: fixedCostData } = useQuery({
+    queryKey: ["fixed-costs-invest"],
+    queryFn: async () => {
+      const [costCenterRes, allocationRes, categoriesRes] = await Promise.all([
+        supabase.from("cost_center").select("amount, active").eq("active", true),
+        supabase.from("site_settings").select("value").eq("key", "fixed_cost_allocation").maybeSingle(),
+        supabase.from("product_categories").select("id, name, slug"),
+      ]);
+      const totalFixed = (costCenterRes.data ?? []).reduce((s: number, c: any) => s + Number(c.amount || 0), 0);
+      let alloc: Record<string, number> = {};
+      try { alloc = JSON.parse(allocationRes.data?.value || "{}"); } catch {}
+      const cats = categoriesRes.data ?? [];
+      return { totalFixed, allocation: alloc, categories: cats };
+    },
+    staleTime: 120_000,
+  });
+
   // Build auto-cost maps
   const proxyCosts = useMemo(() => {
     const map: Record<string, { cost: number; source: string }> = {};
