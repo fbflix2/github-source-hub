@@ -184,6 +184,40 @@ export default function AdminCentralInvestimentos() {
     return map;
   }, [products, proxyBRApiProducts, discountSetting, webSharePlan, proxyCategory]);
 
+  // Calculate per-product fixed cost dilution by category
+  const getFixedCostPerProduct = useMemo(() => {
+    if (!fixedCostData) return (_id: string) => 0;
+    const { totalFixed, allocation, categories } = fixedCostData;
+    if (totalFixed <= 0) return (_id: string) => 0;
+
+    // Build slug-to-id map
+    const slugToId: Record<string, string> = {};
+    categories.forEach((c: any) => { slugToId[c.slug] = c.id; });
+
+    // Count active products per category
+    const activeProducts = products.filter(p => p.status === "active");
+    const catProductCount: Record<string, number> = {};
+    activeProducts.forEach(p => {
+      if (p.category_id) {
+        catProductCount[p.category_id] = (catProductCount[p.category_id] || 0) + 1;
+      }
+    });
+
+    // Build product -> fixed cost map
+    const productFixedMap: Record<string, number> = {};
+    activeProducts.forEach(p => {
+      if (!p.category_id) return;
+      const cat = categories.find((c: any) => c.id === p.category_id);
+      if (!cat) return;
+      const allocPct = allocation[cat.slug] || 0;
+      const catFixed = totalFixed * (allocPct / 100);
+      const productsInCat = catProductCount[p.category_id] || 1;
+      productFixedMap[p.id] = catFixed / productsInCat;
+    });
+
+    return (id: string) => productFixedMap[id] || 0;
+  }, [products, fixedCostData]);
+
   const getCost = (id: string): CostData =>
     costs[id] || { unit_cost: 0, tax_percent: 0, labor_cost: 0, other_costs: 0, notes: "" };
 
@@ -209,6 +243,10 @@ export default function AdminCentralInvestimentos() {
     const unitCost = getEffectiveUnitCost(id);
     const baseCost = unitCost + c.labor_cost + c.other_costs;
     return baseCost * (1 + c.tax_percent / 100);
+  };
+
+  const totalCostWithFixed = (id: string): number => {
+    return totalCost(id) + getFixedCostPerProduct(id);
   };
 
   const applyAutoCost = (productId: string) => {
