@@ -231,9 +231,30 @@ export default function AdminBalanco() {
     const totalCostCombined = cogs + proxyCost;
     setTotalRevenue(revenue);
     setTotalCost(totalCostCombined);
-    setAvgCostPerItem(cogs > 0 && orderItems.filter(i => completedOrderIds.has(i.order_id)).length > 0
-      ? cogs / orderItems.filter(i => completedOrderIds.has(i.order_id)).reduce((s, i) => s + (i.quantity || 1), 0)
-      : 0);
+
+    // Calculate total units sold
+    const unitsSold = orderItems.filter(i => completedOrderIds.has(i.order_id)).reduce((s, i) => s + (i.quantity || 1), 0);
+    setTotalUnitsSold(unitsSold);
+    setAvgCostPerItem(cogs > 0 && unitsSold > 0 ? cogs / unitsSold : 0);
+
+    // Fixed costs from cost_center
+    const monthlyCosts = (costCenterRes.data ?? []).reduce((s: number, c: any) => s + Number(c.amount || 0), 0);
+    setFixedCosts(monthlyCosts);
+
+    // Category allocation
+    const cats = categoriesRes.data ?? [];
+    setCategoryNames(cats.map((c: any) => ({ id: c.id, name: c.name, slug: c.slug })));
+    let alloc: Record<string, number> = {};
+    try { alloc = JSON.parse(allocationRes.data?.value || "{}"); } catch {}
+    // Default allocation: equal split if empty
+    if (Object.keys(alloc).length === 0 && cats.length > 0) {
+      const equalPct = Math.floor(100 / cats.length);
+      cats.forEach((c: any, i: number) => {
+        alloc[c.slug] = i === cats.length - 1 ? 100 - equalPct * (cats.length - 1) : equalPct;
+      });
+    }
+    setCategoryAllocation(alloc);
+    setAllocationDraft(alloc);
 
     // Build transactions list (mixed sales + purchases)
     const txList: Transaction[] = [
