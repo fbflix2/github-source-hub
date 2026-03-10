@@ -154,7 +154,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { action, ...params } = await req.json();
+    const { action, ...params } = bodyClone;
     console.log(`[webshare-api] action=${action} user=${user.id}`);
 
     // ========== GET PROFILE ==========
