@@ -1,11 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { 
-  PlusCircle, Fingerprint, Layers, UserCheck, Thermometer, 
-  Check, RefreshCw, ShieldCheck, RotateCw, Play, Pause, 
-  Trash2, ChevronDown, ChevronUp, AlertTriangle
-} from "lucide-react";
 
 // ── Track definitions ──────────────────────────────────────────
 interface TrackDay {
@@ -112,17 +107,28 @@ interface WarmingTask {
   completed_at: string | null;
 }
 
+// Material icon helper
+function MIcon({ name, className = "" }: { name: string; className?: string }) {
+  return <span className={`material-symbols-outlined ${className}`}>{name}</span>;
+}
+
 export default function AdminAquecimento() {
   const [profiles, setProfiles] = useState<WarmingProfile[]>([]);
   const [tasks, setTasks] = useState<Record<string, WarmingTask[]>>({});
   const [loading, setLoading] = useState(true);
   const [profileCode, setProfileCode] = useState("");
-  const [profileName, setProfileName] = useState("");
   const [selectedTrack, setSelectedTrack] = useState("15_days");
-  const [expandedProfile, setExpandedProfile] = useState<string | null>(null);
+  const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
+    // Load Material Symbols font
+    if (!document.querySelector('link[href*="Material+Symbols+Outlined"]')) {
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = "https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap";
+      document.head.appendChild(link);
+    }
     fetchProfiles();
   }, []);
 
@@ -134,13 +140,11 @@ export default function AdminAquecimento() {
       .order("created_at", { ascending: false });
     if (error) {
       toast.error("Erro ao carregar perfis");
-      console.error(error);
     } else {
       setProfiles(data || []);
-      // auto-expand first active
       const first = data?.find((p: any) => p.status === "active");
       if (first) {
-        setExpandedProfile(first.id);
+        setSelectedProfileId(first.id);
         fetchTasks(first.id);
       }
     }
@@ -148,21 +152,16 @@ export default function AdminAquecimento() {
   };
 
   const fetchTasks = async (profileId: string) => {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("warming_tasks")
       .select("*")
       .eq("profile_id", profileId)
       .order("day_number", { ascending: true });
-    if (!error && data) {
-      setTasks((prev) => ({ ...prev, [profileId]: data }));
-    }
+    if (data) setTasks((prev) => ({ ...prev, [profileId]: data }));
   };
 
   const handleCreate = async () => {
-    if (!profileCode.trim()) {
-      toast.error("Digite o código do perfil");
-      return;
-    }
+    if (!profileCode.trim()) { toast.error("Digite o código do perfil"); return; }
     setCreating(true);
     const track = TRACKS[selectedTrack];
     const { data: { user } } = await supabase.auth.getUser();
@@ -171,7 +170,6 @@ export default function AdminAquecimento() {
       .from("warming_profiles")
       .insert({
         profile_code: profileCode.trim(),
-        profile_name: profileName.trim() || null,
         track_type: selectedTrack,
         track_days: track.days,
         created_by: user?.id || null,
@@ -179,26 +177,19 @@ export default function AdminAquecimento() {
       .select()
       .single();
 
-    if (error || !profile) {
-      toast.error("Erro ao criar perfil");
-      setCreating(false);
-      return;
-    }
+    if (error || !profile) { toast.error("Erro ao criar perfil"); setCreating(false); return; }
 
-    // Insert tasks
     const taskRows = track.tasks.map((t) => ({
       profile_id: profile.id,
       day_number: t.day,
       title: t.title,
       description: t.description,
     }));
-
     await supabase.from("warming_tasks").insert(taskRows);
 
     toast.success(`Perfil ${profileCode} atribuído à esteira ${track.label}`);
     setProfileCode("");
-    setProfileName("");
-    setExpandedProfile(profile.id);
+    setSelectedProfileId(profile.id);
     fetchProfiles();
     fetchTasks(profile.id);
     setCreating(false);
@@ -206,15 +197,11 @@ export default function AdminAquecimento() {
 
   const toggleTask = async (task: WarmingTask) => {
     const newCompleted = !task.completed;
-    await supabase
-      .from("warming_tasks")
-      .update({
-        completed: newCompleted,
-        completed_at: newCompleted ? new Date().toISOString() : null,
-      })
-      .eq("id", task.id);
+    await supabase.from("warming_tasks").update({
+      completed: newCompleted,
+      completed_at: newCompleted ? new Date().toISOString() : null,
+    }).eq("id", task.id);
 
-    // Update current_day on profile
     if (newCompleted) {
       const profileTasks = tasks[task.profile_id] || [];
       const completedCount = profileTasks.filter((t) => t.completed || t.id === task.id).length;
@@ -222,96 +209,79 @@ export default function AdminAquecimento() {
       if (profile) {
         const newDay = Math.min(completedCount + 1, profile.track_days);
         const newStatus = completedCount >= profile.track_days ? "completed" : "active";
-        await supabase
-          .from("warming_profiles")
-          .update({ current_day: newDay, status: newStatus, updated_at: new Date().toISOString() })
-          .eq("id", task.profile_id);
+        await supabase.from("warming_profiles").update({ current_day: newDay, status: newStatus, updated_at: new Date().toISOString() }).eq("id", task.profile_id);
       }
     }
-
     fetchTasks(task.profile_id);
     fetchProfiles();
-  };
-
-  const updateStatus = async (profileId: string, status: string) => {
-    await supabase
-      .from("warming_profiles")
-      .update({ status, updated_at: new Date().toISOString() })
-      .eq("id", profileId);
-    fetchProfiles();
-    toast.success(`Status atualizado para ${status}`);
-  };
-
-  const deleteProfile = async (profileId: string) => {
-    if (!confirm("Tem certeza que deseja excluir este perfil de aquecimento?")) return;
-    await supabase.from("warming_profiles").delete().eq("id", profileId);
-    setProfiles((prev) => prev.filter((p) => p.id !== profileId));
-    toast.success("Perfil removido");
   };
 
   const updateTrustTier = async (profileId: string) => {
     const tier = prompt("Digite o Trust Tier atual (ex: Tier 1, Tier 2, Tier 3):");
     if (!tier) return;
-    await supabase
-      .from("warming_profiles")
-      .update({ trust_tier: tier, updated_at: new Date().toISOString() })
-      .eq("id", profileId);
+    await supabase.from("warming_profiles").update({ trust_tier: tier, updated_at: new Date().toISOString() }).eq("id", profileId);
     fetchProfiles();
     toast.success("Trust Tier atualizado");
   };
 
   const getProgress = (profile: WarmingProfile) => {
     const profileTaskList = tasks[profile.id];
-    if (!profileTaskList) {
-      // fallback: day-based
-      return Math.min(100, Math.round(((profile.current_day - 1) / profile.track_days) * 100));
-    }
+    if (!profileTaskList) return Math.min(100, Math.round(((profile.current_day - 1) / profile.track_days) * 100));
     const completed = profileTaskList.filter((t) => t.completed).length;
     return Math.min(100, Math.round((completed / profileTaskList.length) * 100));
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "active": return { label: "ATIVO", color: "bg-blue-500/10 text-blue-400 border-blue-500/20" };
-      case "completed": return { label: "CONCLUÍDO", color: "bg-green-500/10 text-green-400 border-green-500/20" };
-      case "paused": return { label: "PAUSADO", color: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20" };
-      case "restricted": return { label: "RESTRIÇÃO", color: "bg-red-500/10 text-red-400 border-red-500/20" };
-      default: return { label: status.toUpperCase(), color: "bg-white/10 text-white/60" };
-    }
-  };
+  // Selected profile for detail view
+  const selectedProfile = profiles.find((p) => p.id === selectedProfileId);
+  const selectedTasks = selectedProfileId ? tasks[selectedProfileId] || [] : [];
+  const selectedTrackDef = selectedProfile ? TRACKS[selectedProfile.track_type] : null;
+  const selectedProgress = selectedProfile ? getProgress(selectedProfile) : 0;
 
   return (
-    <div className="space-y-6 pb-10">
-      {/* Hero Banner */}
-      <div className="relative overflow-hidden bg-primary rounded-xl py-10 px-6 lg:px-12 text-center">
+    <div className="min-h-full" style={{ fontFamily: "'Inter', sans-serif" }}>
+      {/* ── Hero Section ── exactly like HTML */}
+      <div className="relative overflow-hidden bg-[#1876f2] py-16 px-6 lg:px-20 text-center rounded-xl mb-0">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute inset-0" style={{ backgroundImage: "radial-gradient(#ffffff 1px, transparent 1px)", backgroundSize: "20px 20px" }} />
         </div>
-        <div className="relative z-10 max-w-3xl mx-auto">
-          <h1 className="text-white text-3xl lg:text-4xl font-black mb-3 tracking-tight">
+        <div className="relative z-10 max-w-4xl mx-auto">
+          <h1 className="text-white text-4xl lg:text-5xl font-black mb-4 tracking-tight">
             Esteira Operacional FBFlix
           </h1>
-          <p className="text-white/80 text-sm lg:text-base max-w-2xl mx-auto font-normal leading-relaxed">
+          <p className="text-white/80 text-lg lg:text-xl max-w-2xl mx-auto font-normal leading-relaxed">
             Sistema para aquecer perfis de Facebook Ads em 7, 15 ou 30 dias, com atribuição inteligente e monitoramento em tempo real.
           </p>
+          <div className="mt-8 flex justify-center gap-4">
+            <button
+              onClick={() => document.getElementById("form-section")?.scrollIntoView({ behavior: "smooth" })}
+              className="bg-white text-[#1876f2] px-6 py-3 rounded-lg font-bold text-sm shadow-lg hover:bg-slate-50 transition-all flex items-center gap-2"
+            >
+              <MIcon name="play_circle" />
+              Iniciar Agora
+            </button>
+            <button className="bg-[#1876f2]/20 text-white border border-white/30 px-6 py-3 rounded-lg font-bold text-sm backdrop-blur-sm hover:bg-[#1876f2]/30 transition-all">
+              Documentação
+            </button>
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* ── Form Section ── */}
+      {/* ── Main Grid ── */}
+      <div id="form-section" className="max-w-6xl mx-auto px-0 grid grid-cols-1 lg:grid-cols-12 gap-8 pb-12 pt-10">
+        {/* ── Selection Form Section ── */}
         <section className="lg:col-span-5">
-          <div className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 overflow-hidden">
-            <div className="p-5 border-b border-white/10 flex items-center gap-3">
-              <PlusCircle className="size-5 text-primary" />
-              <h2 className="text-lg font-bold text-white">Iniciar Novo Aquecimento</h2>
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="p-6 border-b border-slate-100 flex items-center gap-3">
+              <MIcon name="add_circle" className="text-[#1876f2]" />
+              <h2 className="text-xl font-bold text-slate-900">Iniciar Novo Aquecimento</h2>
             </div>
-            <div className="p-5 space-y-5">
+            <div className="p-6 space-y-6">
               <div>
-                <label className="block text-sm font-semibold text-white/70 mb-2">Código do Perfil</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Código do Perfil</label>
                 <div className="relative">
-                  <Fingerprint className="absolute left-3 top-3 text-white/40 size-5" />
+                  <MIcon name="fingerprint" className="absolute left-3 top-3.5 text-slate-400 text-xl" />
                   <input
-                    className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/10 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary text-white placeholder:text-white/30 transition-all text-sm"
+                    className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#1876f2] focus:border-[#1876f2] text-slate-900 transition-all text-sm"
                     placeholder="ex: FB-123"
                     value={profileCode}
                     onChange={(e) => setProfileCode(e.target.value)}
@@ -319,230 +289,208 @@ export default function AdminAquecimento() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-white/70 mb-2">Nome do Perfil (opcional)</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Escolha a Esteira</label>
                 <div className="relative">
-                  <UserCheck className="absolute left-3 top-3 text-white/40 size-5" />
-                  <input
-                    className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/10 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary text-white placeholder:text-white/30 transition-all text-sm"
-                    placeholder="ex: Perfil Alfa"
-                    value={profileName}
-                    onChange={(e) => setProfileName(e.target.value)}
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-white/70 mb-2">Escolha a Esteira</label>
-                <div className="relative">
-                  <Layers className="absolute left-3 top-3 text-white/40 size-5" />
+                  <MIcon name="layers" className="absolute left-3 top-3.5 text-slate-400 text-xl" />
                   <select
-                    className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/10 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary text-white appearance-none transition-all text-sm"
+                    className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#1876f2] focus:border-[#1876f2] text-slate-900 appearance-none transition-all text-sm"
                     value={selectedTrack}
                     onChange={(e) => setSelectedTrack(e.target.value)}
                   >
-                    <option value="7_days" className="bg-[#1a1a1a]">7 Dias - Básica</option>
-                    <option value="15_days" className="bg-[#1a1a1a]">15 Dias - Média</option>
-                    <option value="30_days" className="bg-[#1a1a1a]">30 Dias - Premium</option>
+                    <option value="7_days">7 Dias - Básica</option>
+                    <option value="15_days">15 Dias - Média</option>
+                    <option value="30_days">30 Dias - Premium</option>
                   </select>
                 </div>
               </div>
               <button
                 onClick={handleCreate}
                 disabled={creating}
-                className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-3.5 rounded-lg shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50 text-sm"
+                className="w-full bg-[#1876f2] hover:bg-[#1876f2]/90 text-white font-bold py-4 rounded-lg shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50"
               >
-                <UserCheck className="size-4" />
+                <MIcon name="assignment_ind" />
                 {creating ? "Atribuindo..." : "Atribuir Perfil"}
               </button>
-              <p className="text-[11px] text-white/40 text-center leading-tight">
+              <p className="text-xs text-slate-500 text-center leading-tight">
                 Certifique-se de que o perfil está logado no navegador multilogin antes de iniciar.
               </p>
             </div>
           </div>
+
+          {/* Profile list for selection */}
+          {profiles.length > 1 && (
+            <div className="mt-4 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+              <div className="p-4 border-b border-slate-100">
+                <h3 className="text-sm font-bold text-slate-700">Perfis em Aquecimento</h3>
+              </div>
+              <div className="max-h-60 overflow-y-auto">
+                {profiles.map((p) => {
+                  const prog = getProgress(p);
+                  const isSelected = selectedProfileId === p.id;
+                  return (
+                    <div
+                      key={p.id}
+                      onClick={() => { setSelectedProfileId(p.id); if (!tasks[p.id]) fetchTasks(p.id); }}
+                      className={`flex items-center gap-3 px-4 py-3 cursor-pointer border-b border-slate-50 transition-colors ${isSelected ? "bg-[#1876f2]/5" : "hover:bg-slate-50"}`}
+                    >
+                      <MIcon
+                        name={p.status === "completed" ? "check_circle" : p.status === "restricted" ? "warning" : "play_circle"}
+                        className={`text-lg ${p.status === "completed" ? "text-green-500" : p.status === "restricted" ? "text-red-500" : "text-[#1876f2]"}`}
+                      />
+                      <div className="flex-grow min-w-0">
+                        <p className="text-sm font-bold text-slate-900 truncate">{p.profile_code}</p>
+                        <p className="text-xs text-slate-500">{TRACKS[p.track_type]?.label} • {prog}%</p>
+                      </div>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                        p.status === "active" ? "bg-[#1876f2]/10 text-[#1876f2]" :
+                        p.status === "completed" ? "bg-green-50 text-green-600" :
+                        p.status === "restricted" ? "bg-red-50 text-red-600" :
+                        "bg-yellow-50 text-yellow-600"
+                      }`}>
+                        {p.status === "active" ? "Ativo" : p.status === "completed" ? "Concluído" : p.status === "restricted" ? "Restrição" : "Pausado"}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </section>
 
-        {/* ── Profiles Dashboard ── */}
-        <section className="lg:col-span-7 space-y-4">
+        {/* ── Progress Dashboard Section ── */}
+        <section className="lg:col-span-7">
           {loading ? (
-            <div className="bg-white/5 rounded-xl border border-white/10 p-12 text-center">
-              <RefreshCw className="size-6 text-white/40 animate-spin mx-auto mb-2" />
-              <p className="text-white/50 text-sm">Carregando perfis...</p>
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-12 text-center">
+              <MIcon name="hourglass_empty" className="text-slate-300 text-4xl" />
+              <p className="text-slate-500 text-sm mt-2">Carregando...</p>
             </div>
-          ) : profiles.length === 0 ? (
-            <div className="bg-white/5 rounded-xl border border-white/10 p-12 text-center">
-              <Thermometer className="size-8 text-white/20 mx-auto mb-3" />
-              <p className="text-white/50 text-sm">Nenhum perfil em aquecimento.</p>
-              <p className="text-white/30 text-xs mt-1">Atribua um perfil para começar.</p>
+          ) : !selectedProfile ? (
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-12 text-center">
+              <MIcon name="thermostat" className="text-slate-300 text-4xl" />
+              <p className="text-slate-500 text-sm mt-2">Nenhum perfil em aquecimento.</p>
+              <p className="text-slate-400 text-xs mt-1">Atribua um perfil para começar.</p>
             </div>
           ) : (
-            profiles.map((profile) => {
-              const progress = getProgress(profile);
-              const badge = getStatusBadge(profile.status);
-              const isExpanded = expandedProfile === profile.id;
-              const profileTasks = tasks[profile.id] || [];
-              const trackDef = TRACKS[profile.track_type];
-
-              return (
-                <div
-                  key={profile.id}
-                  className="bg-white/5 backdrop-blur-sm rounded-xl border border-white/10 overflow-hidden"
-                >
-                  {/* Header */}
-                  <div
-                    className="p-5 flex justify-between items-center cursor-pointer hover:bg-white/[0.02] transition-colors"
-                    onClick={() => {
-                      if (isExpanded) {
-                        setExpandedProfile(null);
-                      } else {
-                        setExpandedProfile(profile.id);
-                        if (!tasks[profile.id]) fetchTasks(profile.id);
-                      }
-                    }}
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className={`p-1.5 rounded-full ${profile.status === "active" ? "bg-green-500/20 text-green-400" : profile.status === "completed" ? "bg-blue-500/20 text-blue-400" : profile.status === "restricted" ? "bg-red-500/20 text-red-400" : "bg-yellow-500/20 text-yellow-400"}`}>
-                        {profile.status === "completed" ? <Check className="size-4" /> : profile.status === "restricted" ? <AlertTriangle className="size-4" /> : <Play className="size-4" />}
-                      </div>
-                      <div className="min-w-0">
-                        <h3 className="text-white font-bold text-sm truncate">
-                          {profile.profile_code}
-                          {profile.profile_name && <span className="text-white/50 font-normal"> ({profile.profile_name})</span>}
-                        </h3>
-                        <p className="text-white/40 text-xs">
-                          Esteira: {trackDef?.label || profile.track_type} • Dia {profile.current_day}/{profile.track_days}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider border ${badge.color}`}>
-                        {badge.label}
-                      </span>
-                      {profile.trust_tier && (
-                        <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20">
-                          {profile.trust_tier}
-                        </span>
-                      )}
-                      {isExpanded ? <ChevronUp className="size-4 text-white/40" /> : <ChevronDown className="size-4 text-white/40" />}
-                    </div>
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+              {/* Header */}
+              <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <MIcon
+                      name={selectedProfile.status === "completed" ? "check_circle" : selectedProfile.status === "restricted" ? "warning" : "check_circle"}
+                      className={`text-lg ${selectedProfile.status === "completed" ? "text-green-500" : selectedProfile.status === "restricted" ? "text-red-500" : "text-green-500"}`}
+                    />
+                    <h2 className="text-xl font-bold text-slate-900">
+                      {selectedProfile.profile_code}
+                      {selectedProfile.profile_name && ` (${selectedProfile.profile_name})`}
+                    </h2>
                   </div>
-
-                  {/* Expanded content */}
-                  {isExpanded && (
-                    <div className="px-5 pb-5 space-y-6 border-t border-white/5 pt-5">
-                      {/* Thermometer */}
-                      <div>
-                        <div className="flex justify-between items-end mb-3">
-                          <span className="text-sm font-bold text-white/70 flex items-center gap-1.5">
-                            <Thermometer className="size-4 text-orange-400" />
-                            Status de Aquecimento
-                          </span>
-                          <span className="text-2xl font-black text-primary">{progress}%</span>
-                        </div>
-                        <div className="relative h-5 w-full bg-white/5 rounded-full overflow-hidden border border-white/10">
-                          <div
-                            className="absolute top-0 left-0 h-full bg-green-500 transition-all duration-500"
-                            style={{ width: `${Math.min(progress, 45)}%`, boxShadow: "0 0 10px rgba(34,197,94,0.4)" }}
-                          />
-                          <div
-                            className="absolute top-0 h-full bg-yellow-400 opacity-30"
-                            style={{ left: "45%", width: "35%" }}
-                          />
-                          <div
-                            className="absolute top-0 h-full bg-red-500 opacity-20"
-                            style={{ left: "80%", width: "20%" }}
-                          />
-                          {/* Actual progress overlay */}
-                          <div
-                            className="absolute top-0 left-0 h-full rounded-full transition-all duration-500"
-                            style={{
-                              width: `${progress}%`,
-                              background: progress <= 30 ? "#ef4444" : progress <= 70 ? "#eab308" : "#22c55e",
-                              boxShadow: `0 0 12px ${progress <= 30 ? "rgba(239,68,68,0.4)" : progress <= 70 ? "rgba(234,179,8,0.4)" : "rgba(34,197,94,0.4)"}`,
-                            }}
-                          />
-                        </div>
-                        <div className="flex justify-between mt-1.5 px-1">
-                          <span className="text-[10px] font-bold text-white/30 uppercase tracking-tighter">Início</span>
-                          <span className="text-[10px] font-bold text-white/30 uppercase tracking-tighter">Ideal</span>
-                          <span className="text-[10px] font-bold text-white/30 uppercase tracking-tighter">Pronto</span>
-                        </div>
-                      </div>
-
-                      {/* Tasks */}
-                      <div className="space-y-2">
-                        <h3 className="text-xs font-bold text-white/60 uppercase tracking-wider">Cronograma de Atividades</h3>
-                        <div className="max-h-[320px] overflow-y-auto space-y-2 pr-1">
-                          {profileTasks.map((task) => {
-                            const isCurrent = !task.completed && profileTasks.filter((t) => !t.completed)[0]?.id === task.id;
-                            return (
-                              <div
-                                key={task.id}
-                                className={`flex items-center gap-3 p-3 rounded-lg border transition-all cursor-pointer ${
-                                  task.completed
-                                    ? "bg-white/[0.02] border-white/5"
-                                    : isCurrent
-                                    ? "bg-primary/5 border-primary/20 ring-1 ring-primary/20"
-                                    : "bg-white/[0.02] border-white/5 opacity-50"
-                                }`}
-                                onClick={() => toggleTask(task)}
-                              >
-                                <div className={`p-1.5 rounded-full shrink-0 ${
-                                  task.completed ? "bg-green-500/20 text-green-400" : isCurrent ? "bg-primary/20 text-primary" : "bg-white/10 text-white/30"
-                                }`}>
-                                  {task.completed ? <Check className="size-3.5" /> : isCurrent ? <RotateCw className="size-3.5" /> : <div className="size-3.5" />}
-                                </div>
-                                <div className="flex-grow min-w-0">
-                                  <p className={`text-xs font-bold ${task.completed ? "text-white/50 line-through" : "text-white"}`}>
-                                    Dia {task.day_number}: {task.title}
-                                  </p>
-                                  <p className="text-[11px] text-white/40 truncate">{task.description}</p>
-                                </div>
-                                <span className={`text-[10px] font-bold shrink-0 ${
-                                  task.completed ? "text-green-400" : isCurrent ? "text-primary animate-pulse" : "text-white/20"
-                                }`}>
-                                  {task.completed ? "Concluído" : isCurrent ? "Em andamento" : "Pendente"}
-                                </span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-
-                      {/* Action buttons */}
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2">
-                        <button
-                          onClick={() => { fetchTasks(profile.id); fetchProfiles(); toast.success("Progresso atualizado"); }}
-                          className="flex items-center justify-center gap-1.5 bg-white/5 text-white/70 font-semibold py-2.5 rounded-lg hover:bg-white/10 transition-colors text-xs"
-                        >
-                          <RefreshCw className="size-3.5" />
-                          Atualizar
-                        </button>
-                        <button
-                          onClick={() => updateTrustTier(profile.id)}
-                          className="flex items-center justify-center gap-1.5 bg-white/5 text-white/70 font-semibold py-2.5 rounded-lg hover:bg-white/10 transition-colors text-xs"
-                        >
-                          <ShieldCheck className="size-3.5" />
-                          Trust Tier
-                        </button>
-                        <button
-                          onClick={() => updateStatus(profile.id, profile.status === "paused" ? "active" : "paused")}
-                          className="flex items-center justify-center gap-1.5 bg-white/5 text-white/70 font-semibold py-2.5 rounded-lg hover:bg-white/10 transition-colors text-xs"
-                        >
-                          {profile.status === "paused" ? <Play className="size-3.5" /> : <Pause className="size-3.5" />}
-                          {profile.status === "paused" ? "Retomar" : "Pausar"}
-                        </button>
-                        <button
-                          onClick={() => deleteProfile(profile.id)}
-                          className="flex items-center justify-center gap-1.5 bg-red-500/10 text-red-400 font-semibold py-2.5 rounded-lg hover:bg-red-500/20 transition-colors text-xs"
-                        >
-                          <Trash2 className="size-3.5" />
-                          Excluir
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                  <p className="text-sm text-slate-500 font-medium">
+                    Esteira: {selectedTrackDef?.label || selectedProfile.track_type}
+                    {selectedProfile.trust_tier && <span className="ml-2 text-purple-600 font-bold">• {selectedProfile.trust_tier}</span>}
+                  </p>
                 </div>
-              );
-            })
+                <span className="bg-[#1876f2]/10 text-[#1876f2] text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                  {selectedProfile.status === "active" ? "Ativo" : selectedProfile.status === "completed" ? "Concluído" : selectedProfile.status}
+                </span>
+              </div>
+
+              <div className="p-6 space-y-8">
+                {/* ── Thermometer Progress Bar ── exactly like HTML */}
+                <div>
+                  <div className="flex justify-between items-end mb-4">
+                    <span className="text-sm font-bold text-slate-700 flex items-center gap-1">
+                      <MIcon name="thermostat" className="text-orange-500" />
+                      Status de Aquecimento
+                    </span>
+                    <span className="text-2xl font-black text-[#1876f2]">{selectedProgress}%</span>
+                  </div>
+                  <div className="relative h-6 w-full bg-slate-100 rounded-full overflow-hidden border border-slate-200 shadow-inner">
+                    {/* Green progress */}
+                    <div
+                      className="absolute top-0 left-0 h-full bg-green-500 transition-all duration-500 rounded-full"
+                      style={{ width: `${Math.min(selectedProgress, 45)}%`, boxShadow: "0 0 10px rgba(34,197,94,0.4)" }}
+                    />
+                    {/* Yellow upcoming zone */}
+                    <div className="absolute top-0 h-full bg-yellow-400 opacity-30" style={{ left: "45%", width: "35%" }} />
+                    {/* Red risk zone */}
+                    <div className="absolute top-0 h-full bg-red-500 opacity-20" style={{ left: "80%", width: "20%" }} />
+                    {/* Actual progress overlay */}
+                    <div
+                      className="absolute top-0 left-0 h-full rounded-full transition-all duration-500"
+                      style={{
+                        width: `${selectedProgress}%`,
+                        background: selectedProgress <= 30 ? "#22c55e" : selectedProgress <= 70 ? "#22c55e" : "#22c55e",
+                        boxShadow: "0 0 10px rgba(34,197,94,0.4)",
+                      }}
+                    />
+                  </div>
+                  <div className="flex justify-between mt-2 px-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Início</span>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Ideal</span>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Pronto</span>
+                  </div>
+                </div>
+
+                {/* ── Daily Steps List ── exactly like HTML */}
+                <div className="space-y-4">
+                  <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Cronograma de Atividades</h3>
+                  <div className="max-h-[340px] overflow-y-auto space-y-3 pr-1">
+                    {selectedTasks.map((task) => {
+                      const isCurrent = !task.completed && selectedTasks.filter((t) => !t.completed)[0]?.id === task.id;
+                      return (
+                        <div
+                          key={task.id}
+                          onClick={() => toggleTask(task)}
+                          className={`flex items-center gap-4 p-3 rounded-lg border cursor-pointer transition-all ${
+                            task.completed
+                              ? "bg-slate-50 border-slate-100"
+                              : isCurrent
+                              ? "bg-[#1876f2]/5 border-[#1876f2]/20 ring-1 ring-[#1876f2]/20"
+                              : "bg-slate-50 border-slate-100 opacity-60"
+                          }`}
+                        >
+                          <div className={`p-2 rounded-full ${
+                            task.completed ? "bg-green-100 text-green-600" : isCurrent ? "bg-[#1876f2]/20 text-[#1876f2]" : "bg-slate-200 text-slate-400"
+                          }`}>
+                            <MIcon name={task.completed ? "check" : isCurrent ? "sync" : "radio_button_unchecked"} className="text-lg" />
+                          </div>
+                          <div className="flex-grow">
+                            <p className={`text-sm font-bold ${task.completed ? "text-slate-400 line-through" : "text-slate-900"}`}>
+                              Dia {task.day_number}: {task.title}
+                            </p>
+                            <p className="text-xs text-slate-500">{task.description}</p>
+                          </div>
+                          <span className={`text-xs font-bold px-2 py-0.5 rounded whitespace-nowrap ${
+                            task.completed ? "text-green-600 bg-green-50" : isCurrent ? "text-[#1876f2] animate-pulse" : "text-slate-400"
+                          }`}>
+                            {task.completed ? "Concluído" : isCurrent ? "Em andamento" : "Pendente"}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* ── Action Buttons ── exactly like HTML */}
+                <div className="grid grid-cols-2 gap-4 pt-4">
+                  <button
+                    onClick={() => { fetchTasks(selectedProfile.id); fetchProfiles(); toast.success("Progresso atualizado"); }}
+                    className="flex items-center justify-center gap-2 bg-slate-100 text-slate-700 font-bold py-3 rounded-lg hover:bg-slate-200 transition-colors"
+                  >
+                    <MIcon name="refresh" className="text-lg" />
+                    Atualizar Progresso
+                  </button>
+                  <button
+                    onClick={() => updateTrustTier(selectedProfile.id)}
+                    className="flex items-center justify-center gap-2 bg-slate-100 text-slate-700 font-bold py-3 rounded-lg hover:bg-slate-200 transition-colors"
+                  >
+                    <MIcon name="verified_user" className="text-lg" />
+                    Checar Trust Tier
+                  </button>
+                </div>
+              </div>
+            </div>
           )}
         </section>
       </div>
