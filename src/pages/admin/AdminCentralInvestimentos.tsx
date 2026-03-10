@@ -1,11 +1,13 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ArrowLeft, Save, Loader2, Package, DollarSign, Percent, Wrench, FileText, Search } from "lucide-react";
+import { ArrowLeft, Save, Loader2, Package, DollarSign, Percent, Wrench, FileText, Search, Zap } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 
 const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -17,6 +19,9 @@ interface Product {
   icon_type: string | null;
   stock: number;
   status: string;
+  external_id: string | null;
+  tags: string[] | null;
+  category_id: string | null;
 }
 
 interface CostData {
@@ -25,6 +30,13 @@ interface CostData {
   labor_cost: number;
   other_costs: number;
   notes: string;
+}
+
+async function callProxyBR(action: string, params: Record<string, unknown> = {}) {
+  const { data, error } = await supabase.functions.invoke("proxybr-api", { body: { action, ...params } });
+  if (error) throw new Error(error.message);
+  if (data?.error && !data?.data) throw new Error(data.error);
+  return data;
 }
 
 export default function AdminCentralInvestimentos() {
@@ -36,10 +48,11 @@ export default function AdminCentralInvestimentos() {
   const [search, setSearch] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
+  // Fetch products + existing costs
   const fetchData = useCallback(async () => {
     setLoading(true);
     const [prodRes, costRes] = await Promise.all([
-      supabase.from("products").select("id, name, price, image_url, icon_type, stock, status").order("name"),
+      supabase.from("products").select("id, name, price, image_url, icon_type, stock, status, external_id, tags, category_id").order("name"),
       supabase.from("product_costs" as any).select("*"),
     ]);
 
@@ -61,8 +74,106 @@ export default function AdminCentralInvestimentos() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  // Fetch ProxyBR API products for cost
+  const { data: proxyBRApiProducts } = useQuery({
+    queryKey: ["proxybr-products-invest"],
+    queryFn: () => callProxyBR("get-products"),
+    staleTime: 300_000,
+    refetchOnWindowFocus: false,
+  });
+
+  // Fetch ProxyBR reseller discounts
+  const { data: discountSetting } = useQuery({
+    queryKey: ["proxybr-reseller-discounts"],
+    queryFn: async () => {
+      const { data } = await supabase.from("site_settings").select("value").eq("key", "proxybr_reseller_discounts").maybeSingle();
+      return data?.value || "{}";
+    },
+    staleTime: 60_000,
+  });
+
+  // Fetch Webshare plan for cost per proxy
+  const { data: webSharePlan } = useQuery({
+    queryKey: ["webshare-plan-invest"],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("webshare-api", { body: { action: "get-plan" } });
+      if (error) return null;
+      return data;
+    },
+    staleTime: 300_000,
+    refetchOnWindowFocus: false,
+  });
+
+  // Fetch proxy category to identify webshare products
+  const { data: proxyCategory } = useQuery({
+    queryKey: ["proxy-category-id"],
+    queryFn: async () => {
+      const { data } = await supabase.from("product_categories").select("id").eq("slug", "proxy").maybeSingle();
+      return data?.id || null;
+    },
+    staleTime: 600_000,
+  });
+
+  // Build auto-cost maps
+  const proxyCosts = useMemo(() => {
+    const map: Record<string, { cost: number; source: string }> = {};
+
+    // ProxyBR: external_id → API product ID, use variant avg price with discount
+    if (proxyBRApiProducts) {
+      let discountMap: Record<string, string> = {};
+      try { discountMap = JSON.parse(discountSetting || "{}"); } catch { /* */ }
+
+      const apiProds: any[] = Array.isArray(proxyBRApiProducts) ? proxyBRApiProducts : proxyBRApiProducts?.data || [];
+      const apiCostMap = new Map<string, number>();
+      for (const prod of apiProds) {
+        const variants = prod.variant || prod.variants || [];
+        if (variants.length > 0) {
+          const avgPrice = variants.reduce((s: number, v: any) => s + (v.price || 0), 0) / variants.length;
+          const disc = parseFloat(discountMap[String(prod.id)] || "0") || 0;
+          apiCostMap.set(String(prod.id), avgPrice * (1 - disc / 100));
+        }
+      }
+
+      // Map products by external_id
+      products.forEach(p => {
+        if (p.external_id && apiCostMap.has(p.external_id.trim())) {
+          map[p.id] = { cost: apiCostMap.get(p.external_id.trim())!, source: "ProxyBR" };
+        }
+      });
+    }
+
+    // Webshare: products with webshare tag or in proxy category without external_id
+    if (webSharePlan) {
+      const plan = webSharePlan?.plan;
+      const monthlyPlanCost = plan?.monthly_price || 0;
+      const totalPlanProxies = plan?.proxy_count || 1;
+      const usdToBrl = 5.5;
+      const costPerProxyBRL = (monthlyPlanCost / totalPlanProxies) * usdToBrl;
+
+      if (costPerProxyBRL > 0) {
+        products.forEach(p => {
+          if (map[p.id]) return; // already has ProxyBR cost
+          const tags = p.tags || [];
+          const isWebshare = tags.includes("webshare") ||
+            (p.category_id === proxyCategory && !p.external_id && p.name.toLowerCase().includes("webshare"));
+          if (isWebshare) {
+            map[p.id] = { cost: costPerProxyBRL, source: "Webshare" };
+          }
+        });
+      }
+    }
+
+    return map;
+  }, [products, proxyBRApiProducts, discountSetting, webSharePlan, proxyCategory]);
+
   const getCost = (id: string): CostData =>
     costs[id] || { unit_cost: 0, tax_percent: 0, labor_cost: 0, other_costs: 0, notes: "" };
+
+  const getEffectiveUnitCost = (id: string): number => {
+    const c = getCost(id);
+    if (c.unit_cost > 0) return c.unit_cost;
+    return proxyCosts[id]?.cost || 0;
+  };
 
   const updateField = (id: string, field: keyof CostData, value: string) => {
     const prev = getCost(id);
@@ -77,17 +188,30 @@ export default function AdminCentralInvestimentos() {
 
   const totalCost = (id: string): number => {
     const c = getCost(id);
-    const baseCost = c.unit_cost + c.labor_cost + c.other_costs;
+    const unitCost = getEffectiveUnitCost(id);
+    const baseCost = unitCost + c.labor_cost + c.other_costs;
     return baseCost * (1 + c.tax_percent / 100);
+  };
+
+  const applyAutoCost = (productId: string) => {
+    const auto = proxyCosts[productId];
+    if (!auto) return;
+    const prev = getCost(productId);
+    setCosts(old => ({
+      ...old,
+      [productId]: { ...prev, unit_cost: Math.round(auto.cost * 100) / 100 },
+    }));
+    toast.success(`Custo ${auto.source} aplicado: ${fmt(auto.cost)}`);
   };
 
   const saveCost = async (productId: string) => {
     setSaving(s => ({ ...s, [productId]: true }));
     const c = getCost(productId);
+    const unitCost = c.unit_cost > 0 ? c.unit_cost : (proxyCosts[productId]?.cost || 0);
 
     const payload = {
       product_id: productId,
-      unit_cost: c.unit_cost,
+      unit_cost: unitCost,
       tax_percent: c.tax_percent,
       labor_cost: c.labor_cost,
       other_costs: c.other_costs,
@@ -138,7 +262,7 @@ export default function AdminCentralInvestimentos() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Central de Investimentos</h1>
           <p className="text-sm text-muted-foreground">
-            Defina o custo unitário, impostos e mão de obra de cada produto para cálculos de lucro precisos.
+            Custos de proxies são preenchidos automaticamente via ProxyBR e Webshare. Demais produtos requerem lançamento manual.
           </p>
         </div>
       </div>
@@ -162,17 +286,21 @@ export default function AdminCentralInvestimentos() {
         </div>
         <div className="bg-card/60 border border-border/40 rounded-xl p-4">
           <p className="text-xs text-muted-foreground uppercase tracking-wider">Com Custo Definido</p>
-          <p className="text-2xl font-bold text-emerald-400">{Object.keys(costs).length}</p>
+          <p className="text-2xl font-bold text-emerald-400">
+            {products.filter(p => getCost(p.id).unit_cost > 0 || proxyCosts[p.id]).length}
+          </p>
         </div>
         <div className="bg-card/60 border border-border/40 rounded-xl p-4">
           <p className="text-xs text-muted-foreground uppercase tracking-wider">Sem Custo</p>
-          <p className="text-2xl font-bold text-amber-400">{products.length - Object.keys(costs).length}</p>
+          <p className="text-2xl font-bold text-amber-400">
+            {products.filter(p => getCost(p.id).unit_cost <= 0 && !proxyCosts[p.id]).length}
+          </p>
         </div>
         <div className="bg-card/60 border border-border/40 rounded-xl p-4">
           <p className="text-xs text-muted-foreground uppercase tracking-wider">Margem Média</p>
           <p className="text-2xl font-bold text-foreground">
             {(() => {
-              const withCost = products.filter(p => costs[p.id] && totalCost(p.id) > 0);
+              const withCost = products.filter(p => totalCost(p.id) > 0);
               if (!withCost.length) return "—";
               const avgMargin = withCost.reduce((s, p) => {
                 const tc = totalCost(p.id);
@@ -193,6 +321,7 @@ export default function AdminCentralInvestimentos() {
           const margin = product.price > 0 ? ((profit / product.price) * 100) : 0;
           const isExpanded = expandedId === product.id;
           const hasCost = tc > 0;
+          const autoCost = proxyCosts[product.id];
 
           return (
             <div
@@ -204,7 +333,6 @@ export default function AdminCentralInvestimentos() {
                 onClick={() => setExpandedId(isExpanded ? null : product.id)}
                 className="w-full flex items-center gap-4 p-4 text-left hover:bg-card/80 transition-colors"
               >
-                {/* Image/icon */}
                 <div className="size-12 rounded-lg bg-muted/50 border border-border/30 flex items-center justify-center shrink-0 overflow-hidden">
                   {product.image_url ? (
                     <img src={product.image_url} alt="" className="size-full object-cover" />
@@ -219,13 +347,17 @@ export default function AdminCentralInvestimentos() {
                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted/50 text-muted-foreground border border-border/30 shrink-0">
                       {iconTypeLabel(product.icon_type)}
                     </span>
+                    {autoCost && (
+                      <Badge variant="outline" className="text-[10px] border-primary/40 text-primary shrink-0">
+                        <Zap className="size-2.5 mr-0.5" />{autoCost.source}
+                      </Badge>
+                    )}
                   </div>
                   <p className="text-xs text-muted-foreground">
                     Venda: {fmt(product.price)} • Estoque: {product.stock}
                   </p>
                 </div>
 
-                {/* Cost info */}
                 <div className="hidden sm:flex items-center gap-4 shrink-0">
                   {hasCost ? (
                     <>
@@ -251,6 +383,21 @@ export default function AdminCentralInvestimentos() {
               {/* Expanded edit form */}
               {isExpanded && (
                 <div className="border-t border-border/30 p-4 bg-background/50">
+                  {/* Auto-cost banner */}
+                  {autoCost && c.unit_cost <= 0 && (
+                    <div className="mb-4 flex items-center justify-between gap-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
+                      <div className="flex items-center gap-2 text-sm">
+                        <Zap className="size-4 text-primary" />
+                        <span className="text-foreground">
+                          Custo automático via <strong>{autoCost.source}</strong>: {fmt(autoCost.cost)}
+                        </span>
+                      </div>
+                      <Button size="sm" variant="outline" onClick={() => applyAutoCost(product.id)}>
+                        Aplicar no campo
+                      </Button>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     <div>
                       <label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
@@ -261,9 +408,12 @@ export default function AdminCentralInvestimentos() {
                         step="0.01"
                         value={c.unit_cost || ""}
                         onChange={e => updateField(product.id, "unit_cost", e.target.value)}
-                        placeholder="0.00"
+                        placeholder={autoCost ? `Auto: ${autoCost.cost.toFixed(2)}` : "0.00"}
                         className="bg-card/60"
                       />
+                      {autoCost && c.unit_cost <= 0 && (
+                        <p className="text-[10px] text-primary mt-1">Usando custo {autoCost.source}: {fmt(autoCost.cost)}</p>
+                      )}
                     </div>
                     <div>
                       <label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1.5">
@@ -322,7 +472,7 @@ export default function AdminCentralInvestimentos() {
                     <div className="flex items-center gap-6 text-sm">
                       <div>
                         <span className="text-muted-foreground">Base: </span>
-                        <span className="font-medium text-foreground">{fmt(c.unit_cost + c.labor_cost + c.other_costs)}</span>
+                        <span className="font-medium text-foreground">{fmt(getEffectiveUnitCost(product.id) + c.labor_cost + c.other_costs)}</span>
                       </div>
                       <div>
                         <span className="text-muted-foreground">+ Imposto ({c.tax_percent}%): </span>
