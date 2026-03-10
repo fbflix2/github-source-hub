@@ -120,6 +120,7 @@ export default function AdminAquecimento() {
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [activeTab, setActiveTab] = useState<"dashboard" | "esteiras" | "relatorios">("dashboard");
+  const [reportFilter, setReportFilter] = useState("");
 
   useEffect(() => {
     if (!document.querySelector('link[href*="Material+Symbols+Outlined"]')) {
@@ -242,6 +243,10 @@ export default function AdminAquecimento() {
   const t2Pct = Math.round((t2 / tierTotal) * 100);
   const t1Pct = 100 - t3Pct - t2Pct;
   const predominantTier = t3 >= t2 && t3 >= t1 ? "Tier 3" : t2 >= t1 ? "Tier 2" : "Tier 1";
+
+  const filteredReportProfiles = profiles.filter(p =>
+    !reportFilter || p.profile_code.toLowerCase().includes(reportFilter.toLowerCase())
+  );
 
   return (
     <div className="flex flex-col min-h-full bg-[#f5f7f8]" style={{ fontFamily: "'Inter', sans-serif" }}>
@@ -680,12 +685,130 @@ export default function AdminAquecimento() {
 
       {/* ── Relatórios Tab ── */}
       {activeTab === "relatorios" && (
-        <main className="flex-1 px-6 md:px-12 lg:px-40 py-10 max-w-[1200px] mx-auto w-full">
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-12 text-center">
-            <MIcon name="analytics" className="text-slate-300 text-5xl" />
-            <h3 className="text-lg font-bold text-slate-900 mt-4">Relatórios em breve</h3>
-            <p className="text-sm text-slate-500 mt-2">Esta seção será implementada em breve com gráficos detalhados e exportação de dados.</p>
+        <main className="flex-1 px-6 md:px-8 lg:px-12 py-8 max-w-6xl mx-auto w-full space-y-8">
+          {/* Summary Metrics */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+              <p className="text-slate-500 text-sm font-medium mb-1">Total Perfis Aquecidos</p>
+              <div className="flex items-end justify-between">
+                <h3 className="text-3xl font-black text-slate-900">{totalProfiles.toLocaleString()}</h3>
+                <span className="text-emerald-500 text-sm font-bold flex items-center gap-1">
+                  <MIcon name="trending_up" className="text-sm" /> +12%
+                </span>
+              </div>
+            </div>
+            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+              <p className="text-slate-500 text-sm font-medium mb-1">Taxa de Sucesso (%)</p>
+              <div className="flex items-end justify-between">
+                <h3 className="text-3xl font-black text-slate-900">
+                  {totalProfiles > 0 ? ((completedProfiles / totalProfiles) * 100).toFixed(1) : "0.0"}%
+                </h3>
+                <span className="text-emerald-500 text-sm font-bold flex items-center gap-1">
+                  <MIcon name="trending_up" className="text-sm" /> +2.5%
+                </span>
+              </div>
+            </div>
+            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+              <p className="text-slate-500 text-sm font-medium mb-1">Tempo Médio Aquecimento</p>
+              <div className="flex items-end justify-between">
+                <h3 className="text-3xl font-black text-slate-900">
+                  {totalProfiles > 0 ? Math.round(profiles.reduce((acc, p) => acc + p.current_day, 0) / totalProfiles) : 0} dias
+                </h3>
+                <span className="text-orange-500 text-sm font-bold flex items-center gap-1">
+                  <MIcon name="trending_down" className="text-sm" /> -1 dia
+                </span>
+              </div>
+            </div>
           </div>
+
+          {/* Performance Chart */}
+          <section className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+            <div className="flex justify-between items-center mb-6">
+              <h4 className="font-bold text-lg">Desempenho de Aquecimento (30 dias)</h4>
+              <div className="flex gap-4">
+                <span className="flex items-center gap-2 text-xs font-medium text-slate-500">
+                  <span className="w-2 h-2 rounded-full bg-[#1876f2]" /> Sucesso
+                </span>
+                <span className="flex items-center gap-2 text-xs font-medium text-slate-500">
+                  <span className="w-2 h-2 rounded-full bg-slate-200" /> Falhas
+                </span>
+              </div>
+            </div>
+            <div className="h-64 w-full bg-slate-50 rounded-lg flex items-center justify-center relative overflow-hidden">
+              <div className="absolute inset-0 flex items-end px-4 gap-2">
+                {[24, 40, 50, 33, 60, 66, 75, 100, 80, 86, 50, 75].map((h, i) => (
+                  <div key={i} className="flex-1 bg-[#1876f2] rounded-t-sm" style={{ height: `${h}%`, opacity: 0.2 + (h / 100) * 0.8 }} />
+                ))}
+              </div>
+              <p className="relative z-10 text-slate-400 text-sm font-medium">Gráfico de Performance Temporal</p>
+            </div>
+          </section>
+
+          {/* Recent Reports Table */}
+          <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-slate-200 flex justify-between items-center">
+              <h4 className="font-bold text-lg">Relatórios Recentes</h4>
+              <div className="relative">
+                <input
+                  className="pl-9 pr-4 py-2 text-sm bg-slate-100 border-none rounded-lg focus:ring-2 focus:ring-[#1876f2] w-64"
+                  placeholder="Filtrar perfis..."
+                  type="text"
+                  value={reportFilter}
+                  onChange={(e) => setReportFilter(e.target.value)}
+                />
+                <MIcon name="search" className="absolute left-3 top-2 text-slate-400 text-sm" />
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead className="bg-slate-50 text-slate-500 text-xs font-bold uppercase tracking-wider">
+                  <tr>
+                    <th className="px-6 py-4">Código do Perfil</th>
+                    <th className="px-6 py-4">Esteira Selecionada</th>
+                    <th className="px-6 py-4">Data de Início</th>
+                    <th className="px-6 py-4">Status Final</th>
+                    <th className="px-6 py-4 text-right">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {filteredReportProfiles.map((p) => (
+                    <tr key={p.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-6 py-4 font-medium text-slate-900">#{p.profile_code}</td>
+                      <td className="px-6 py-4">Esteira {p.track_days} dias</td>
+                      <td className="px-6 py-4">{new Date(p.start_date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })}</td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                          p.status === "completed" ? "bg-emerald-100 text-emerald-800" :
+                          p.status === "restricted" ? "bg-rose-100 text-rose-800" :
+                          "bg-[#1876f2]/10 text-[#1876f2]"
+                        }`}>
+                          {p.status === "completed" ? "Sucesso" : p.status === "restricted" ? "Falha" : "Em andamento"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <button
+                          onClick={() => { setSelectedProfileId(p.id); if (!tasks[p.id]) fetchTasks(p.id); setActiveTab("esteiras"); }}
+                          className="text-[#1876f2] font-bold text-sm hover:underline"
+                        >
+                          Ver Detalhes
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                  {filteredReportProfiles.length === 0 && (
+                    <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-400">Nenhum perfil encontrado</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <div className="p-6 border-t border-slate-200 flex items-center justify-between">
+              <p className="text-sm text-slate-500">Mostrando {filteredReportProfiles.length} de {totalProfiles} resultados</p>
+              <div className="flex gap-2">
+                <button className="px-4 py-2 text-sm font-medium border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">Anterior</button>
+                <button className="px-4 py-2 text-sm font-medium border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">Próximo</button>
+              </div>
+            </div>
+          </section>
         </main>
       )}
 
