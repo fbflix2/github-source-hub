@@ -909,7 +909,7 @@ export default function AdminAquecimento() {
                     }
                   }}
                 />
-                <MIcon name="add_circle" className="text-slate-700 text-sm cursor-pointer" />
+                <MIcon name="add_circle" className="text-[#1876f2] text-sm cursor-pointer" />
               </div>
             </div>
           </section>
