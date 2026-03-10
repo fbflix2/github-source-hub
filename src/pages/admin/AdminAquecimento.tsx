@@ -119,8 +119,14 @@ export default function AdminAquecimento() {
   const [selectedTrack, setSelectedTrack] = useState("15_days");
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
-  const [activeTab, setActiveTab] = useState<"dashboard" | "esteiras" | "relatorios">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "esteiras" | "relatorios" | "configuracoes">("dashboard");
   const [reportFilter, setReportFilter] = useState("");
+  const [configTrack, setConfigTrack] = useState<"7_days" | "15_days" | "30_days">("7_days");
+  const [configTasks, setConfigTasks] = useState<Record<string, { title: string; description: string }[]>>({
+    "7_days": TRACKS["7_days"].tasks.map(t => ({ title: t.title, description: t.description })),
+    "15_days": TRACKS["15_days"].tasks.map(t => ({ title: t.title, description: t.description })),
+    "30_days": TRACKS["30_days"].tasks.map(t => ({ title: t.title, description: t.description })),
+  });
 
   useEffect(() => {
     if (!document.querySelector('link[href*="Material+Symbols+Outlined"]')) {
