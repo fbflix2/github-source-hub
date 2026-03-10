@@ -759,7 +759,7 @@ export default function AdminAquecimento() {
               <h4 className="font-bold text-lg">Relatórios Recentes</h4>
               <div className="relative">
                 <input
-                  className="pl-9 pr-4 py-2 text-sm bg-slate-100 border-none rounded-lg focus:ring-2 focus:ring-[#1876f2] w-64"
+                  className="pl-9 pr-4 py-2 text-sm bg-slate-100 border-none rounded-lg focus:ring-2 focus:ring-slate-400 w-64"
                   placeholder="Filtrar perfis..."
                   type="text"
                   value={reportFilter}
