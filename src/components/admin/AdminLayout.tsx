@@ -81,19 +81,21 @@ export function AdminLayout() {
   }
 
   return (
-    <div className="flex h-screen w-full relative bg-[#0a0505] text-white font-display overflow-hidden selection:bg-primary selection:text-white">
+    <div className={`flex h-screen w-full relative font-display overflow-hidden selection:bg-primary selection:text-white ${isAquecimento ? 'bg-[#f5f7f8] text-slate-900' : 'bg-[#0a0505] text-white'}`}>
       {/* Background Effects */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] bg-blue-900/10 rounded-full blur-[100px]" />
-      </div>
+      {!isAquecimento && (
+        <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
+          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 rounded-full blur-[120px]" />
+          <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] bg-blue-900/10 rounded-full blur-[100px]" />
+        </div>
+      )}
 
       <AdminSidebar />
 
       <main className="relative z-10 flex-1 flex flex-col h-full overflow-hidden">
-        {!hideHeader && <AdminHeader />}
+        {!hideHeader && !isAquecimento && <AdminHeader />}
         <div className={`flex-1 ${hideHeader ? 'overflow-hidden' : 'overflow-y-auto'} ${isAquecimento ? '' : 'px-6 pb-6'}`}>
-          <div className={`${isAquecimento ? 'w-full' : 'max-w-7xl mx-auto w-full'}`}>
+          <div className={`${isAquecimento ? 'w-full h-full' : 'max-w-7xl mx-auto w-full'}`}>
             <Outlet />
           </div>
         </div>
