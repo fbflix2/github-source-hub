@@ -101,7 +101,7 @@ export default function AdminDashboard() {
         supabase.rpc("get_total_wallet_balance"),
         supabase.from("products").select("id, available"),
         supabase.from("orders").select("id, status, total, created_at"),
-        supabase.from("order_items").select("product_id, price, quantity, created_at, order_id"),
+        supabase.from("order_items").select("product_id, price, quantity, created_at, order_id, name"),
         supabase.from("product_categories").select("id, name, slug"),
         supabase.from("payments").select("id", { count: "exact", head: true }).eq("status", "pending"),
       ]);
@@ -168,10 +168,32 @@ export default function AdminDashboard() {
         orderItemCounts[item.order_id] = (orderItemCounts[item.order_id] || 0) + 1;
       });
 
+      // Build a name-to-category map for fallback matching (items without product_id)
+      const catNameMap: Record<string, string> = {};
+      cats.forEach(c => {
+        catNameMap[c.name.toLowerCase().trim()] = c.id;
+        catNameMap[c.slug.toLowerCase().trim()] = c.id;
+      });
+
+      const guessCategoryByName = (itemName: string): string | null => {
+        const lower = itemName.toLowerCase().trim();
+        for (const [key, catId] of Object.entries(catNameMap)) {
+          if (lower.includes(key)) return catId;
+        }
+        // Check common patterns
+        if (lower.includes("perfil")) return cats.find(c => c.slug === "perfil" || c.name.toLowerCase().includes("perfil"))?.id || null;
+        if (lower.includes("página") || lower.includes("pagina")) return cats.find(c => c.slug === "pagina" || c.name.toLowerCase().includes("página"))?.id || null;
+        return null;
+      };
+
       const catStats: Record<string, { sales: number; revenue: number }> = {};
       (orderItemsRes.data ?? []).forEach(item => {
         if (!completedOrderIds.has(item.order_id)) return;
-        const catId = item.product_id ? prodCatMap[item.product_id] : null;
+        let catId = item.product_id ? prodCatMap[item.product_id] : null;
+        // Fallback: match by item name if no product_id
+        if (!catId && (item as any).name) {
+          catId = guessCategoryByName((item as any).name);
+        }
         if (catId) {
           if (!catStats[catId]) catStats[catId] = { sales: 0, revenue: 0 };
           catStats[catId].sales += item.quantity;
