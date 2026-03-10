@@ -451,7 +451,7 @@ export default function AdminAquecimento() {
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="p-6 border-b border-slate-200 flex items-center justify-between">
               <h3 className="text-lg font-bold">Atividade Recente</h3>
-              <button className="text-[#1876f2] text-sm font-bold hover:underline">Ver tudo</button>
+              <button className="text-slate-700 text-sm font-bold hover:underline">Ver tudo</button>
             </div>
             <div className="divide-y divide-slate-100">
               {profiles.slice(0, 4).map((p, i) => {
