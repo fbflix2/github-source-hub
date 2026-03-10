@@ -37,7 +37,9 @@ export default function AdminAuditoria() {
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [showPurchases, setShowPurchases] = useState(false);
-  
+  const [showGoalModal, setShowGoalModal] = useState(false);
+  const [monthlyGoal, setMonthlyGoal] = useState<{ revenue: number; profit: number; sales: number } | null>(null);
+
   const [projectedProfit, setProjectedProfit] = useState(0);
   const [projectedMargin, setProjectedMargin] = useState(0);
   const [totalMonthlyCosts, setTotalMonthlyCosts] = useState(0);
