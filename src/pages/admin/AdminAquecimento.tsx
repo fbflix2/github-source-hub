@@ -286,18 +286,36 @@ export default function AdminAquecimento() {
             <div className="flex gap-4">
               <div className="bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/20 min-w-[160px]">
                 <p className="text-xs font-medium text-white/70 uppercase tracking-wider">Tempo Médio / Perfil</p>
-                <p className="text-2xl font-bold">{profiles.length >= 2
-                  ? (() => {
-                      const sorted = [...profiles].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-                      const diffs: number[] = [];
-                      for (let i = 1; i < sorted.length; i++) {
-                        diffs.push(new Date(sorted[i].created_at).getTime() - new Date(sorted[i - 1].created_at).getTime());
+                <p className="text-2xl font-bold">{(() => {
+                  // Collect all completed_at timestamps across all profiles
+                  const allCompletions: { profileId: string; time: number }[] = [];
+                  Object.entries(tasks).forEach(([profileId, taskList]) => {
+                    taskList.forEach(t => {
+                      if (t.completed && t.completed_at) {
+                        allCompletions.push({ profileId, time: new Date(t.completed_at).getTime() });
                       }
-                      const avgMs = diffs.reduce((a, b) => a + b, 0) / diffs.length;
-                      const mins = Math.round(avgMs / 60000);
-                      return mins < 60 ? `${mins}min` : `${Math.floor(mins / 60)}h ${mins % 60}min`;
-                    })()
-                  : "—"}</p>
+                    });
+                  });
+                  if (allCompletions.length < 2) return "—";
+                  // Sort by time
+                  allCompletions.sort((a, b) => a.time - b.time);
+                  // Find transitions: last task of profile A → first task of profile B
+                  const transitions: number[] = [];
+                  for (let i = 1; i < allCompletions.length; i++) {
+                    if (allCompletions[i].profileId !== allCompletions[i - 1].profileId) {
+                      const diff = allCompletions[i].time - allCompletions[i - 1].time;
+                      // Only count if < 4h (same session, operator actively working)
+                      if (diff > 0 && diff < 4 * 60 * 60 * 1000) {
+                        transitions.push(diff);
+                      }
+                    }
+                  }
+                  if (transitions.length === 0) return "—";
+                  const avgMs = transitions.reduce((a, b) => a + b, 0) / transitions.length;
+                  const mins = Math.round(avgMs / 60000);
+                  return mins < 60 ? `${mins}min` : `${Math.floor(mins / 60)}h ${mins % 60}min`;
+                })()}</p>
+                <p className="text-[10px] text-white/50 mt-1">Entre perfis (sessão ativa)</p>
               </div>
               <div className="bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/20 min-w-[140px]">
                 <p className="text-xs font-medium text-white/70 uppercase tracking-wider">Perfis Hoje</p>
