@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import PurchasesListModal from "@/components/admin/PurchasesListModal";
 import MonthlyGoalModal from "@/components/admin/MonthlyGoalModal";
 import { Target } from "lucide-react";
+import MotivationalQuote from "@/components/admin/MotivationalQuote";
 
 
 const formatCurrency = (value: number) =>
@@ -353,6 +354,9 @@ export default function AdminAuditoria() {
             </div>
           )}
         </div>
+
+        {/* Motivational Quote */}
+        <MotivationalQuote />
       </div>
 
       <div className="fixed bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-50 pointer-events-none" />
