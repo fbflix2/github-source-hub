@@ -1878,6 +1878,95 @@ export type Database = {
         }
         Relationships: []
       }
+      warming_profiles: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          current_day: number
+          id: string
+          notes: string | null
+          profile_code: string
+          profile_name: string | null
+          start_date: string
+          status: string
+          track_days: number
+          track_type: string
+          trust_tier: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          current_day?: number
+          id?: string
+          notes?: string | null
+          profile_code: string
+          profile_name?: string | null
+          start_date?: string
+          status?: string
+          track_days?: number
+          track_type?: string
+          trust_tier?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          current_day?: number
+          id?: string
+          notes?: string | null
+          profile_code?: string
+          profile_name?: string | null
+          start_date?: string
+          status?: string
+          track_days?: number
+          track_type?: string
+          trust_tier?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      warming_tasks: {
+        Row: {
+          completed: boolean
+          completed_at: string | null
+          created_at: string
+          day_number: number
+          description: string | null
+          id: string
+          profile_id: string
+          title: string
+        }
+        Insert: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          day_number: number
+          description?: string | null
+          id?: string
+          profile_id: string
+          title: string
+        }
+        Update: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          day_number?: number
+          description?: string | null
+          id?: string
+          profile_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "warming_tasks_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "warming_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
