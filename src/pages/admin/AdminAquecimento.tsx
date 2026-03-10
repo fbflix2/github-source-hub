@@ -894,10 +894,18 @@ export default function AdminAquecimento() {
           </section>
 
           {/* Definição de Trust Tiers */}
-          <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
-              <MIcon name="verified_user" className="text-[#1876f2]" />
-              <h2 className="text-lg font-bold text-slate-900">Definição de Níveis de Confiança</h2>
+           <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <MIcon name="verified_user" className="text-[#1876f2]" />
+                <h2 className="text-lg font-bold text-slate-900">Definição de Níveis de Confiança</h2>
+              </div>
+              <button
+                onClick={() => setTrustTiers([...trustTiers, { label: `Nível ${trustTiers.length + 1}`, color: "bg-slate-100 text-slate-700", range: "0 - 0", criteria: "" }])}
+                className="flex items-center gap-1 text-[#1876f2] text-sm font-bold hover:underline"
+              >
+                <MIcon name="add_circle" className="text-sm" /> Adicionar
+              </button>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
@@ -906,42 +914,45 @@ export default function AdminAquecimento() {
                     <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Nível</th>
                     <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Faixa de Score</th>
                     <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Critérios de Validação</th>
+                    <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px] w-16"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  <tr>
-                    <td className="px-6 py-4">
-                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700">Nível 1 (Confiança Baixa)</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <input className="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-xs w-20 text-slate-900" type="text" defaultValue="0 - 30" />
-                    </td>
-                    <td className="px-6 py-4">
-                      <input className="w-full bg-transparent border-none p-0 text-xs text-slate-700 focus:ring-0 outline-none" type="text" defaultValue="Contas novas, sem histórico de interação ou fotos reais." />
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="px-6 py-4">
-                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700">Nível 2 (Confiança Média)</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <input className="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-xs w-20 text-slate-900" type="text" defaultValue="31 - 75" />
-                    </td>
-                    <td className="px-6 py-4">
-                      <input className="w-full bg-transparent border-none p-0 text-xs text-slate-700 focus:ring-0 outline-none" type="text" defaultValue="Histórico de 7+ dias, interações diárias, autenticação 2FA ativa." />
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="px-6 py-4">
-                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700">Nível 3 (Confiança Alta)</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <input className="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-xs w-20 text-slate-900" type="text" defaultValue="76 - 100" />
-                    </td>
-                    <td className="px-6 py-4">
-                      <input className="w-full bg-transparent border-none p-0 text-xs text-slate-700 focus:ring-0 outline-none" type="text" defaultValue="Esteira completa, verificação de identidade, 30+ dias de atividade." />
-                    </td>
-                  </tr>
+                  {trustTiers.map((tier, i) => (
+                    <tr key={i} className="group">
+                      <td className="px-6 py-4">
+                        <input
+                          className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${tier.color} border-none outline-none bg-transparent w-full max-w-[220px]`}
+                          value={tier.label}
+                          onChange={(e) => { const t = [...trustTiers]; t[i] = { ...t[i], label: e.target.value }; setTrustTiers(t); }}
+                        />
+                      </td>
+                      <td className="px-6 py-4">
+                        <input
+                          className="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-xs w-20 text-slate-900"
+                          value={tier.range}
+                          onChange={(e) => { const t = [...trustTiers]; t[i] = { ...t[i], range: e.target.value }; setTrustTiers(t); }}
+                        />
+                      </td>
+                      <td className="px-6 py-4">
+                        <input
+                          className="w-full bg-transparent border-none p-0 text-xs text-slate-700 focus:ring-0 outline-none"
+                          value={tier.criteria}
+                          onChange={(e) => { const t = [...trustTiers]; t[i] = { ...t[i], criteria: e.target.value }; setTrustTiers(t); }}
+                        />
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        {trustTiers.length > 1 && (
+                          <button
+                            onClick={() => setTrustTiers(trustTiers.filter((_, idx) => idx !== i))}
+                            className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 transition-all"
+                          >
+                            <MIcon name="delete" className="text-base" />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
