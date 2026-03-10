@@ -797,7 +797,7 @@ export default function AdminAquecimento() {
                       <td className="px-6 py-4 text-right">
                         <button
                           onClick={() => { setSelectedProfileId(p.id); if (!tasks[p.id]) fetchTasks(p.id); setActiveTab("esteiras"); }}
-                          className="text-slate-700 font-bold text-sm hover:underline"
+                          className="text-[#1876f2] font-bold text-sm hover:underline"
                         >
                           Ver Detalhes
                         </button>
