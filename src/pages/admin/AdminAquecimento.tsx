@@ -244,6 +244,10 @@ export default function AdminAquecimento() {
   const t1Pct = 100 - t3Pct - t2Pct;
   const predominantTier = t3 >= t2 && t3 >= t1 ? "Tier 3" : t2 >= t1 ? "Tier 2" : "Tier 1";
 
+  const filteredReportProfiles = profiles.filter(p =>
+    !reportFilter || p.profile_code.toLowerCase().includes(reportFilter.toLowerCase())
+  );
+
   return (
     <div className="flex flex-col min-h-full bg-[#f5f7f8]" style={{ fontFamily: "'Inter', sans-serif" }}>
       {/* ── Hero Section ── */}
