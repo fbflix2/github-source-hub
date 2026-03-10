@@ -319,7 +319,7 @@ export default function AdminAquecimento() {
             <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-2">
               <div className="flex items-center justify-between">
                 <p className="text-slate-500 font-medium text-sm">Total Perfis</p>
-                <MIcon name="group" className="text-slate-700" />
+                <MIcon name="group" className="text-[#1876f2]" />
               </div>
               <p className="text-3xl font-black text-slate-900">{totalProfiles.toLocaleString()}</p>
               <div className="flex items-center gap-1 text-emerald-500 font-bold text-sm">
