@@ -292,7 +292,7 @@ export default function AdminReposicoes() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-yellow-400 text-sm font-mono">
-                    R$ {Number(r.item_value).toFixed(2)}
+                    R$ {Number(r.cost_value ?? 0).toFixed(2)}
                   </TableCell>
                   <TableCell className="text-zinc-500 text-xs max-w-[150px] truncate">
                     {r.notes || "—"}
