@@ -3,10 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { useProxyRevenue } from "@/hooks/useProxyRevenue";
 import { 
   ArrowLeft, ShoppingCart, Wallet, TrendingUp, Percent, Tag, Timer, Download,
-  ChevronDown, ChevronLeft, ChevronRight, BarChart3, Search, ArrowUp, ArrowDown, Loader2
+  ChevronDown, ChevronLeft, ChevronRight, BarChart3, Search, ArrowUp, ArrowDown, Loader2,
+  Building2, Target, Settings2, Save
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell } from "recharts";
+import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 const timeFilters = ["7 Dias", "30 Dias", "Ano Atual"];
 const chartFilters = ["Lucro", "Custos", "Receitas"];
@@ -48,6 +52,13 @@ export default function AdminBalanco() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [chartData, setChartData] = useState<{ name: string; revenue: number; cost: number; profit: number }[]>([]);
   const [categoryData, setCategoryData] = useState<{ name: string; cost: number; revenue: number }[]>([]);
+  const [fixedCosts, setFixedCosts] = useState(0);
+  const [totalUnitsSold, setTotalUnitsSold] = useState(0);
+  const [categoryAllocation, setCategoryAllocation] = useState<Record<string, number>>({});
+  const [editingAllocation, setEditingAllocation] = useState(false);
+  const [allocationDraft, setAllocationDraft] = useState<Record<string, number>>({});
+  const [savingAllocation, setSavingAllocation] = useState(false);
+  const [categoryNames, setCategoryNames] = useState<{ id: string; name: string; slug: string }[]>([]);
 
   const getSinceDate = () => {
     const now = new Date();
@@ -67,7 +78,7 @@ export default function AdminBalanco() {
     setLoading(true);
     const since = getSinceDate();
 
-    const [ordersRes, purchasesRes, orderItemsRes, categoriesRes, productsRes, discountRes, costRes, webShareRes, proxyCatRes] = await Promise.all([
+    const [ordersRes, purchasesRes, orderItemsRes, categoriesRes, productsRes, discountRes, costRes, webShareRes, proxyCatRes, costCenterRes, allocationRes] = await Promise.all([
       supabase.from("orders").select("id, total, status, created_at, code").in("status", ["completed", "delivered"]).gte("created_at", since).order("created_at", { ascending: false }),
       supabase.from("purchases").select("*").gte("created_at", since).order("created_at", { ascending: false }),
       supabase.from("order_items").select("product_id, price, quantity, order_id, name, created_at").gte("created_at", since),
@@ -77,6 +88,8 @@ export default function AdminBalanco() {
       supabase.from("product_costs" as any).select("*"),
       supabase.functions.invoke("webshare-api", { body: { action: "get-plan" } }).catch(() => ({ data: null, error: null })),
       supabase.from("product_categories").select("id").eq("slug", "proxy").maybeSingle(),
+      supabase.from("cost_center").select("amount, active, name").eq("active", true),
+      supabase.from("site_settings").select("value").eq("key", "fixed_cost_allocation").maybeSingle(),
     ]);
 
     const orders = ordersRes.data ?? [];
@@ -218,9 +231,30 @@ export default function AdminBalanco() {
     const totalCostCombined = cogs + proxyCost;
     setTotalRevenue(revenue);
     setTotalCost(totalCostCombined);
-    setAvgCostPerItem(cogs > 0 && orderItems.filter(i => completedOrderIds.has(i.order_id)).length > 0
-      ? cogs / orderItems.filter(i => completedOrderIds.has(i.order_id)).reduce((s, i) => s + (i.quantity || 1), 0)
-      : 0);
+
+    // Calculate total units sold
+    const unitsSold = orderItems.filter(i => completedOrderIds.has(i.order_id)).reduce((s, i) => s + (i.quantity || 1), 0);
+    setTotalUnitsSold(unitsSold);
+    setAvgCostPerItem(cogs > 0 && unitsSold > 0 ? cogs / unitsSold : 0);
+
+    // Fixed costs from cost_center
+    const monthlyCosts = (costCenterRes.data ?? []).reduce((s: number, c: any) => s + Number(c.amount || 0), 0);
+    setFixedCosts(monthlyCosts);
+
+    // Category allocation
+    const cats = categoriesRes.data ?? [];
+    setCategoryNames(cats.map((c: any) => ({ id: c.id, name: c.name, slug: c.slug })));
+    let alloc: Record<string, number> = {};
+    try { alloc = JSON.parse(allocationRes.data?.value || "{}"); } catch {}
+    // Default allocation: equal split if empty
+    if (Object.keys(alloc).length === 0 && cats.length > 0) {
+      const equalPct = Math.floor(100 / cats.length);
+      cats.forEach((c: any, i: number) => {
+        alloc[c.slug] = i === cats.length - 1 ? 100 - equalPct * (cats.length - 1) : equalPct;
+      });
+    }
+    setCategoryAllocation(alloc);
+    setAllocationDraft(alloc);
 
     // Build transactions list (mixed sales + purchases)
     const txList: Transaction[] = [
@@ -321,9 +355,33 @@ export default function AdminBalanco() {
     setLoading(false);
   };
 
+  const saveAllocation = async () => {
+    setSavingAllocation(true);
+    const { error } = await supabase.from("site_settings").upsert(
+      { key: "fixed_cost_allocation", value: JSON.stringify(allocationDraft) },
+      { onConflict: "key" }
+    );
+    if (error) {
+      toast.error("Erro ao salvar rateio: " + error.message);
+    } else {
+      setCategoryAllocation(allocationDraft);
+      setEditingAllocation(false);
+      toast.success("Rateio salvo!");
+    }
+    setSavingAllocation(false);
+  };
+
   const combinedRevenue = totalRevenue + proxyRevenue;
-  const profit = combinedRevenue - totalCost;
-  const margin = combinedRevenue > 0 ? ((profit / combinedRevenue) * 100).toFixed(1) : "0";
+  // Lucro líquido REAL = Receita - COGS - Custos Fixos
+  const profitBeforeFixed = combinedRevenue - totalCost;
+  const netProfit = profitBeforeFixed - fixedCosts;
+  const margin = combinedRevenue > 0 ? ((netProfit / combinedRevenue) * 100).toFixed(1) : "0";
+  const marginBeforeFixed = combinedRevenue > 0 ? ((profitBeforeFixed / combinedRevenue) * 100).toFixed(1) : "0";
+
+  // Break-even: how many units needed to cover fixed costs
+  const avgProfitPerUnit = totalUnitsSold > 0 ? profitBeforeFixed / totalUnitsSold : 0;
+  const breakEvenUnits = avgProfitPerUnit > 0 ? Math.ceil(fixedCosts / avgProfitPerUnit) : 0;
+  const breakEvenProgress = breakEvenUnits > 0 ? Math.min((totalUnitsSold / breakEvenUnits) * 100, 100) : 0;
 
   const filteredTx = transactions.filter(tx =>
     tx.item.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -335,10 +393,10 @@ export default function AdminBalanco() {
 
   const stats = [
     { label: "Custo Real (COGS)", value: formatCurrency(totalCost), icon: ShoppingCart, iconBg: "bg-primary/10 border-primary/20", iconColor: "text-primary" },
-    { label: "Receita Total Vendas", value: formatCurrency(combinedRevenue), icon: Wallet, iconBg: "bg-emerald-500/10 border-emerald-500/20", iconColor: "text-emerald-500" },
-    { label: "Lucro Líquido Real", value: formatCurrency(profit), icon: TrendingUp, iconBg: "bg-white/10 border-white/20", iconColor: "text-white", highlighted: true },
-    { label: "Margem Líquida", value: `${margin}%`, icon: Percent, iconBg: "bg-white/5 border-white/10", iconColor: "text-gray-300" },
-    { label: "Proxies Ativos", value: proxyCount.toString(), icon: Tag, iconBg: "bg-white/5 border-white/10", iconColor: "text-gray-300" },
+    { label: "Custos Fixos/Mês", value: formatCurrency(fixedCosts), icon: Building2, iconBg: "bg-amber-500/10 border-amber-500/20", iconColor: "text-amber-400" },
+    { label: "Receita Total", value: formatCurrency(combinedRevenue), icon: Wallet, iconBg: "bg-emerald-500/10 border-emerald-500/20", iconColor: "text-emerald-500" },
+    { label: "Lucro Bruto", value: formatCurrency(profitBeforeFixed), icon: TrendingUp, iconBg: "bg-white/5 border-white/10", iconColor: "text-gray-300", subtitle: `Margem: ${marginBeforeFixed}%` },
+    { label: "Lucro Líquido Real", value: formatCurrency(netProfit), icon: TrendingUp, iconBg: "bg-white/10 border-white/20", iconColor: "text-white", highlighted: true, subtitle: `Margem: ${margin}%` },
   ];
 
   if (loading) {
@@ -411,8 +469,145 @@ export default function AdminBalanco() {
               <div className={`text-xl mt-0.5 ${stat.highlighted ? "font-black" : "font-bold"} text-white`}>
                 {stat.value}
               </div>
+              {(stat as any).subtitle && (
+                <p className="text-[10px] text-gray-500 mt-0.5">{(stat as any).subtitle}</p>
+              )}
             </div>
           ))}
+        </section>
+
+        {/* Break-Even & Fixed Cost Allocation */}
+        <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Break-Even Card */}
+          <div className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-2xl p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Target className="size-5 text-primary" />
+              <h3 className="text-sm font-semibold text-white">Ponto de Equilíbrio</h3>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex justify-between items-end">
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-gray-500">Vendas necessárias</p>
+                  <p className="text-3xl font-black text-white">{breakEvenUnits}</p>
+                  <p className="text-xs text-gray-500">unidades/mês para cobrir custos fixos</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] uppercase tracking-wider text-gray-500">Vendido no período</p>
+                  <p className="text-2xl font-bold text-white">{totalUnitsSold}</p>
+                </div>
+              </div>
+
+              {/* Progress bar */}
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="text-gray-400">Progresso para meta</span>
+                  <span className={`font-bold ${breakEvenProgress >= 100 ? "text-emerald-400" : "text-amber-400"}`}>
+                    {breakEvenProgress.toFixed(0)}%
+                  </span>
+                </div>
+                <div className="h-2.5 bg-white/5 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-1000 ${
+                      breakEvenProgress >= 100
+                        ? "bg-gradient-to-r from-emerald-500 to-emerald-400"
+                        : "bg-gradient-to-r from-primary to-amber-500"
+                    }`}
+                    style={{ width: `${breakEvenProgress}%` }}
+                  />
+                </div>
+                {breakEvenProgress >= 100 ? (
+                  <p className="text-xs text-emerald-400 mt-1.5">✓ Ponto de equilíbrio atingido! A partir daqui é lucro.</p>
+                ) : (
+                  <p className="text-xs text-gray-500 mt-1.5">
+                    Faltam <span className="text-white font-medium">{Math.max(0, breakEvenUnits - totalUnitsSold)}</span> vendas para atingir o break-even.
+                  </p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 pt-2 border-t border-white/5">
+                <div>
+                  <p className="text-[10px] text-gray-500 uppercase">Lucro médio/unidade</p>
+                  <p className="text-sm font-bold text-white">{formatCurrency(avgProfitPerUnit)}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-gray-500 uppercase">Custo médio/unidade</p>
+                  <p className="text-sm font-bold text-white">{formatCurrency(avgCostPerItem)}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Category Allocation Card */}
+          <div className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Settings2 className="size-5 text-primary" />
+                <h3 className="text-sm font-semibold text-white">Rateio de Custos Fixos por Categoria</h3>
+              </div>
+              {!editingAllocation ? (
+                <Button size="sm" variant="outline" onClick={() => { setAllocationDraft({...categoryAllocation}); setEditingAllocation(true); }} className="text-xs border-white/10 text-gray-300 hover:text-white">
+                  <Settings2 className="size-3 mr-1" /> Editar
+                </Button>
+              ) : (
+                <div className="flex gap-2">
+                  <Button size="sm" variant="ghost" onClick={() => setEditingAllocation(false)} className="text-xs text-gray-400">Cancelar</Button>
+                  <Button size="sm" onClick={saveAllocation} disabled={savingAllocation} className="text-xs">
+                    {savingAllocation ? <Loader2 className="size-3 animate-spin mr-1" /> : <Save className="size-3 mr-1" />}
+                    Salvar
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              {categoryNames.map(cat => {
+                const pct = editingAllocation ? (allocationDraft[cat.slug] || 0) : (categoryAllocation[cat.slug] || 0);
+                const allocated = fixedCosts * (pct / 100);
+                return (
+                  <div key={cat.id} className="flex items-center gap-3">
+                    <span className="text-xs text-gray-300 w-20 truncate">{cat.name}</span>
+                    {editingAllocation ? (
+                      <div className="flex items-center gap-1 flex-1">
+                        <Input
+                          type="number"
+                          value={allocationDraft[cat.slug] || 0}
+                          onChange={e => setAllocationDraft(old => ({ ...old, [cat.slug]: parseFloat(e.target.value) || 0 }))}
+                          className="h-7 w-16 text-xs bg-black/30 border-white/10 text-white"
+                          min={0}
+                          max={100}
+                        />
+                        <span className="text-xs text-gray-500">%</span>
+                      </div>
+                    ) : (
+                      <div className="flex-1">
+                        <div className="flex justify-between text-xs mb-0.5">
+                          <span className="text-gray-500">{pct}%</span>
+                          <span className="text-white font-medium">{formatCurrency(allocated)}</span>
+                        </div>
+                        <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                          <div className="h-full bg-primary/60 rounded-full" style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              {editingAllocation && (
+                <div className="flex justify-between text-xs pt-2 border-t border-white/5">
+                  <span className="text-gray-400">Total:</span>
+                  <span className={`font-bold ${Object.values(allocationDraft).reduce((s, v) => s + v, 0) === 100 ? "text-emerald-400" : "text-red-400"}`}>
+                    {Object.values(allocationDraft).reduce((s, v) => s + v, 0)}%
+                  </span>
+                </div>
+              )}
+              {!editingAllocation && (
+                <div className="pt-2 border-t border-white/5 text-xs text-gray-500">
+                  Total rateado: <span className="text-white font-medium">{formatCurrency(fixedCosts)}</span>/mês
+                </div>
+              )}
+            </div>
+          </div>
         </section>
 
         {/* Main Content Grid */}

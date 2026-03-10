@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ArrowLeft, Save, Loader2, Package, DollarSign, Percent, Wrench, FileText, Search, Zap } from "lucide-react";
+import { ArrowLeft, Save, Loader2, Package, DollarSign, Percent, Wrench, FileText, Search, Zap, Building2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -114,6 +114,24 @@ export default function AdminCentralInvestimentos() {
     staleTime: 600_000,
   });
 
+  // Fetch fixed costs + allocation for dilution display
+  const { data: fixedCostData } = useQuery({
+    queryKey: ["fixed-costs-invest"],
+    queryFn: async () => {
+      const [costCenterRes, allocationRes, categoriesRes] = await Promise.all([
+        supabase.from("cost_center").select("amount, active").eq("active", true),
+        supabase.from("site_settings").select("value").eq("key", "fixed_cost_allocation").maybeSingle(),
+        supabase.from("product_categories").select("id, name, slug"),
+      ]);
+      const totalFixed = (costCenterRes.data ?? []).reduce((s: number, c: any) => s + Number(c.amount || 0), 0);
+      let alloc: Record<string, number> = {};
+      try { alloc = JSON.parse(allocationRes.data?.value || "{}"); } catch {}
+      const cats = categoriesRes.data ?? [];
+      return { totalFixed, allocation: alloc, categories: cats };
+    },
+    staleTime: 120_000,
+  });
+
   // Build auto-cost maps
   const proxyCosts = useMemo(() => {
     const map: Record<string, { cost: number; source: string }> = {};
@@ -166,6 +184,40 @@ export default function AdminCentralInvestimentos() {
     return map;
   }, [products, proxyBRApiProducts, discountSetting, webSharePlan, proxyCategory]);
 
+  // Calculate per-product fixed cost dilution by category
+  const getFixedCostPerProduct = useMemo(() => {
+    if (!fixedCostData) return (_id: string) => 0;
+    const { totalFixed, allocation, categories } = fixedCostData;
+    if (totalFixed <= 0) return (_id: string) => 0;
+
+    // Build slug-to-id map
+    const slugToId: Record<string, string> = {};
+    categories.forEach((c: any) => { slugToId[c.slug] = c.id; });
+
+    // Count active products per category
+    const activeProducts = products.filter(p => p.status === "active");
+    const catProductCount: Record<string, number> = {};
+    activeProducts.forEach(p => {
+      if (p.category_id) {
+        catProductCount[p.category_id] = (catProductCount[p.category_id] || 0) + 1;
+      }
+    });
+
+    // Build product -> fixed cost map
+    const productFixedMap: Record<string, number> = {};
+    activeProducts.forEach(p => {
+      if (!p.category_id) return;
+      const cat = categories.find((c: any) => c.id === p.category_id);
+      if (!cat) return;
+      const allocPct = allocation[cat.slug] || 0;
+      const catFixed = totalFixed * (allocPct / 100);
+      const productsInCat = catProductCount[p.category_id] || 1;
+      productFixedMap[p.id] = catFixed / productsInCat;
+    });
+
+    return (id: string) => productFixedMap[id] || 0;
+  }, [products, fixedCostData]);
+
   const getCost = (id: string): CostData =>
     costs[id] || { unit_cost: 0, tax_percent: 0, labor_cost: 0, other_costs: 0, notes: "" };
 
@@ -191,6 +243,10 @@ export default function AdminCentralInvestimentos() {
     const unitCost = getEffectiveUnitCost(id);
     const baseCost = unitCost + c.labor_cost + c.other_costs;
     return baseCost * (1 + c.tax_percent / 100);
+  };
+
+  const totalCostWithFixed = (id: string): number => {
+    return totalCost(id) + getFixedCostPerProduct(id);
   };
 
   const applyAutoCost = (productId: string) => {
@@ -317,8 +373,12 @@ export default function AdminCentralInvestimentos() {
         {filtered.map(product => {
           const c = getCost(product.id);
           const tc = totalCost(product.id);
+          const fixedPerProduct = getFixedCostPerProduct(product.id);
+          const tcWithFixed = tc + fixedPerProduct;
           const profit = product.price - tc;
+          const realProfit = product.price - tcWithFixed;
           const margin = product.price > 0 ? ((profit / product.price) * 100) : 0;
+          const realMargin = product.price > 0 ? ((realProfit / product.price) * 100) : 0;
           const isExpanded = expandedId === product.id;
           const hasCost = tc > 0;
           const autoCost = proxyCosts[product.id];
@@ -362,13 +422,16 @@ export default function AdminCentralInvestimentos() {
                   {hasCost ? (
                     <>
                       <div className="text-right">
-                        <p className="text-xs text-muted-foreground">Custo Total</p>
-                        <p className="text-sm font-semibold text-foreground">{fmt(tc)}</p>
+                        <p className="text-xs text-muted-foreground">Custo + Fixo</p>
+                        <p className="text-sm font-semibold text-foreground">{fmt(tcWithFixed)}</p>
+                        {fixedPerProduct > 0 && (
+                          <p className="text-[9px] text-amber-400">+{fmt(fixedPerProduct)} fixo</p>
+                        )}
                       </div>
                       <div className="text-right">
-                        <p className="text-xs text-muted-foreground">Lucro</p>
-                        <p className={`text-sm font-semibold ${profit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                          {fmt(profit)} ({margin.toFixed(1)}%)
+                        <p className="text-xs text-muted-foreground">Lucro Real</p>
+                        <p className={`text-sm font-semibold ${realProfit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                          {fmt(realProfit)} ({realMargin.toFixed(1)}%)
                         </p>
                       </div>
                     </>
@@ -469,7 +532,7 @@ export default function AdminCentralInvestimentos() {
 
                   {/* Summary + Save */}
                   <div className="mt-4 flex items-center justify-between flex-wrap gap-3">
-                    <div className="flex items-center gap-6 text-sm">
+                    <div className="flex items-center gap-4 flex-wrap text-sm">
                       <div>
                         <span className="text-muted-foreground">Base: </span>
                         <span className="font-medium text-foreground">{fmt(getEffectiveUnitCost(product.id) + c.labor_cost + c.other_costs)}</span>
@@ -478,10 +541,21 @@ export default function AdminCentralInvestimentos() {
                         <span className="text-muted-foreground">+ Imposto ({c.tax_percent}%): </span>
                         <span className="font-medium text-foreground">{fmt(tc)}</span>
                       </div>
+                      {fixedPerProduct > 0 && (
+                        <div>
+                          <span className="text-amber-400 flex items-center gap-1">
+                            <Building2 className="size-3" /> Fixo rateado: {fmt(fixedPerProduct)}
+                          </span>
+                        </div>
+                      )}
                       <div>
-                        <span className="text-muted-foreground">Lucro: </span>
-                        <span className={`font-bold ${profit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                          {fmt(profit)} ({margin.toFixed(1)}%)
+                        <span className="text-muted-foreground">Custo Total: </span>
+                        <span className="font-bold text-foreground">{fmt(tcWithFixed)}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Lucro Real: </span>
+                        <span className={`font-bold ${realProfit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                          {fmt(realProfit)} ({realMargin.toFixed(1)}%)
                         </span>
                       </div>
                     </div>
