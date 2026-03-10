@@ -59,6 +59,7 @@ export default function Dashboard() {
   const [activeFilter, setActiveFilter] = useState(initialFilter);
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [products, setProducts] = useState<Product[]>([]);
+  const [inactiveProxyExternalIds, setInactiveProxyExternalIds] = useState<Set<string>>(new Set());
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -81,12 +82,14 @@ export default function Dashboard() {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const [productsRes, categoriesRes, proxyImagesRes, bannersRes, bannerCatsRes] = await Promise.all([
+    const [productsRes, categoriesRes, proxyImagesRes, bannersRes, bannerCatsRes, inactiveProxiesRes] = await Promise.all([
       supabase.from("products").select("*").eq("status", "active").order("created_at", { ascending: false }),
       supabase.from("product_categories").select("*"),
       supabase.from("product_images").select("name, url").eq("category", "proxy"),
       supabase.from("banners").select("*").eq("active", true).order("position", { ascending: true }),
       supabase.from("banner_categories").select("value, label").order("position"),
+      // Fetch inactive proxy products to hide them from API results
+      supabase.from("products").select("external_id").neq("status", "active").not("external_id", "is", null),
     ]);
 
     if (productsRes.data) setProducts(productsRes.data);
@@ -97,6 +100,9 @@ export default function Dashboard() {
       const map: Record<string, string> = {};
       bannerCatsRes.data.forEach((c: any) => { map[c.value] = c.label; });
       setBannerCategoryLabels(map);
+    }
+    if (inactiveProxiesRes.data) {
+      setInactiveProxyExternalIds(new Set(inactiveProxiesRes.data.map((p: any) => p.external_id).filter(Boolean)));
     }
     setLoading(false);
   }, []);
@@ -112,11 +118,11 @@ export default function Dashboard() {
     return () => document.removeEventListener("visibilitychange", handleVisibility);
   }, [fetchData]);
 
-  const proxyProducts: any[] = Array.isArray(proxyProductsData?.data)
+  const proxyProducts: any[] = (Array.isArray(proxyProductsData?.data)
     ? proxyProductsData.data
     : Array.isArray(proxyProductsData)
     ? proxyProductsData
-    : [];
+    : []).filter((p: any) => !inactiveProxyExternalIds.has(String(p.id)));
 
   const getProxyQty = (id: string) => proxyQuantities[id] || 1;
   const updateProxyQty = (id: string, delta: number) => {
@@ -155,10 +161,13 @@ export default function Dashboard() {
     }
     return match || null;
   };
+
   const filters = ["Todos", ...categories.filter((c) => c.slug !== "proxy").map((c) => c.name), "Proxy"];
 
   const proxyAsProducts: Product[] = proxyProducts.map((p: any) => {
     const local = getLocalProxyData(p);
+    // If local product exists and is in the active products list, use its available status
+    // If local product doesn't exist, show the API product by default
     const variants = p.variant || p.variants?.data || p.variants || [];
     const cheapestVariant = variants.length
       ? variants.reduce((min: any, v: any) => ((v.price || 0) < (min.price || 0) ? v : min), variants[0])
@@ -176,12 +185,12 @@ export default function Dashboard() {
       badge_color: local?.badge_color || null,
       badge_icon: local?.badge_icon || null,
       stock: totalApiStock > 0 ? totalApiStock : (local?.stock ?? 0),
-      available: true,
+      available: local ? local.available : true,
       category_id: proxyCategoryId || null,
       tags: local?.tags || null,
       slug: local?.slug || null,
     };
-  });
+  }).filter(p => p.available);
 
   // Local proxy products should show alongside regular products and in Proxy filter
   const isLocalProxy = (p: Product) => p.category_id === proxyCategoryId;
