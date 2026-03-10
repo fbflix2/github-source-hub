@@ -205,11 +205,11 @@ export default function AdminAquecimento() {
   };
 
   const updateTrustTier = async (profileId: string) => {
-    const tier = prompt("Digite o Trust Tier atual (ex: Tier 1, Tier 2, Tier 3):");
+    const tier = prompt("Digite o Nível de Confiança atual (ex: Nível 1, Nível 2, Nível 3):");
     if (!tier) return;
     await supabase.from("warming_profiles").update({ trust_tier: tier, updated_at: new Date().toISOString() }).eq("id", profileId);
     fetchProfiles();
-    toast.success("Trust Tier atualizado");
+    toast.success("Nível de Confiança atualizado");
   };
 
   const getProgress = (profile: WarmingProfile) => {
