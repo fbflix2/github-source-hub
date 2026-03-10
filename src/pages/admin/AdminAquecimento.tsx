@@ -119,7 +119,7 @@ export default function AdminAquecimento() {
   const [selectedTrack, setSelectedTrack] = useState("15_days");
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
-  const [activeTab, setActiveTab] = useState<"dashboard" | "esteiras" | "relatorios">("esteiras");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "esteiras" | "relatorios">("dashboard");
 
   useEffect(() => {
     if (!document.querySelector('link[href*="Material+Symbols+Outlined"]')) {
@@ -223,274 +223,483 @@ export default function AdminAquecimento() {
     { key: "relatorios", label: "Relatórios", icon: "analytics" },
   ] as const;
 
+  // Dashboard stats from DB
+  const totalProfiles = profiles.length;
+  const activeProfiles = profiles.filter(p => p.status === "active").length;
+  const completedProfiles = profiles.filter(p => p.status === "completed").length;
+  const restrictedProfiles = profiles.filter(p => p.status === "restricted").length;
+  const totalPct = totalProfiles > 0 ? Math.round((activeProfiles / totalProfiles) * 100) : 0;
+
+  const newProfiles = profiles.filter(p => p.current_day <= 7).length;
+  const midProfiles = profiles.filter(p => p.current_day > 7 && p.current_day <= 15).length;
+  const matureProfiles = profiles.filter(p => p.current_day > 15).length;
+
+  const t3 = profiles.filter(p => p.trust_tier?.includes("3")).length;
+  const t2 = profiles.filter(p => p.trust_tier?.includes("2")).length;
+  const t1 = profiles.filter(p => p.trust_tier && !p.trust_tier.includes("2") && !p.trust_tier.includes("3")).length;
+  const tierTotal = t3 + t2 + t1 || 1;
+  const t3Pct = Math.round((t3 / tierTotal) * 100);
+  const t2Pct = Math.round((t2 / tierTotal) * 100);
+  const t1Pct = 100 - t3Pct - t2Pct;
+  const predominantTier = t3 >= t2 && t3 >= t1 ? "Tier 3" : t2 >= t1 ? "Tier 2" : "Tier 1";
+
   return (
     <div className="flex flex-col min-h-full bg-[#f5f7f8]" style={{ fontFamily: "'Inter', sans-serif" }}>
       {/* ── Hero Section ── */}
-      <div className="relative overflow-hidden bg-[#1876f2] py-16 px-6 lg:px-20 text-center">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute inset-0" style={{ backgroundImage: "radial-gradient(#ffffff 1px, transparent 1px)", backgroundSize: "20px 20px" }} />
+      <section className="relative overflow-hidden bg-[#1876f2] text-white pt-12 pb-20 px-6 md:px-12 lg:px-40">
+        <div className="absolute top-0 right-0 w-1/3 h-full opacity-10 pointer-events-none">
+          <svg className="w-full h-full" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+            <path d="M44.7,-76.4C58.1,-69.2,69.5,-57.4,77.4,-43.8C85.3,-30.2,89.7,-15.1,89.1,-0.3C88.5,14.4,82.9,28.8,74.1,41.2C65.3,53.6,53.2,64.1,39.6,71.7C26,79.2,13,83.9,-0.8,85.2C-14.5,86.5,-29,84.5,-42.1,77.5C-55.2,70.5,-66.8,58.6,-74.6,44.9C-82.4,31.2,-86.3,15.6,-86.1,0.1C-85.9,-15.4,-81.5,-30.8,-73.2,-44C-64.9,-57.2,-52.7,-68.1,-38.8,-75C-24.9,-81.8,-9.2,-84.6,3.4,-90.4C16,-96.2,27.1,-83.5,44.7,-76.4Z" fill="currentColor" transform="translate(100 100)" />
+          </svg>
         </div>
-        <div className="relative z-10 max-w-4xl mx-auto">
-          <h1 className="text-white text-4xl lg:text-5xl font-black mb-4 tracking-tight">
-            Esteira Operacional FBFlix
-          </h1>
-          <p className="text-white/80 text-lg lg:text-xl max-w-2xl mx-auto font-normal leading-relaxed">
-            Sistema para aquecer perfis de Facebook Ads em 7, 15 ou 30 dias, com atribuição inteligente e monitoramento em tempo real.
-          </p>
-          <div className="mt-8 flex justify-center gap-4">
-            <button
-              onClick={() => document.getElementById("form-section")?.scrollIntoView({ behavior: "smooth" })}
-              className="bg-white text-[#1876f2] px-6 py-3 rounded-lg font-bold text-sm shadow-lg hover:bg-slate-50 transition-all flex items-center gap-2"
-            >
-              <MIcon name="play_circle" />
-              Iniciar Agora
-            </button>
-            <button className="bg-[#1876f2]/20 text-white border border-white/30 px-6 py-3 rounded-lg font-bold text-sm backdrop-blur-sm hover:bg-[#1876f2]/30 transition-all">
-              Documentação
-            </button>
+        <div className="max-w-[1200px] mx-auto relative z-10">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
+              <MIcon name="fluid" className="text-white text-3xl" />
+            </div>
+            <h2 className="text-2xl font-bold tracking-tight">FBFlix</h2>
+          </div>
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div className="space-y-2">
+              <h1 className="text-4xl md:text-5xl font-black tracking-tight">Dashboard Operacional</h1>
+              <p className="text-white/80 text-lg max-w-2xl">
+                Acompanhe em tempo real o desempenho das esteiras de aquecimento e a distribuição dos perfis por maturidade.
+              </p>
+            </div>
+            <div className="flex gap-4">
+              <div className="bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/20 min-w-[140px]">
+                <p className="text-xs font-medium text-white/70 uppercase tracking-wider">Status Geral</p>
+                <p className="text-2xl font-bold">Operacional</p>
+              </div>
+              <div className="bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/20 min-w-[140px]">
+                <p className="text-xs font-medium text-white/70 uppercase tracking-wider">Uptime</p>
+                <p className="text-2xl font-bold">99.9%</p>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </section>
 
       {/* ── Tab Navigation ── */}
-      <div className="relative z-20 -mt-7 flex justify-center px-6">
-        <div className="bg-white rounded-xl shadow-xl border border-slate-200 p-1.5 flex items-center gap-1">
+      <nav className="sticky top-0 z-50 bg-white border-b border-slate-200 px-6 md:px-12 lg:px-40">
+        <div className="max-w-[1200px] mx-auto flex gap-8">
           {tabs.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`px-6 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center gap-2 ${
+              className={`flex items-center gap-2 border-b-[3px] pb-4 pt-5 font-bold text-sm tracking-wide transition-colors ${
                 activeTab === tab.key
-                  ? "bg-[#1876f2] text-white shadow-md shadow-[#1876f2]/20"
-                  : "text-slate-600 hover:bg-slate-50"
+                  ? "border-[#1876f2] text-[#1876f2]"
+                  : "border-transparent text-slate-500 hover:text-[#1876f2]"
               }`}
             >
-              <MIcon name={tab.icon} className="text-lg" />
               {tab.label}
             </button>
           ))}
         </div>
-      </div>
+      </nav>
 
-      {/* ── Main Content ── */}
-      <div id="form-section" className="max-w-6xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-8 pb-12 pt-16 w-full">
-        {/* ── Selection Form Section ── */}
-        <section className="lg:col-span-5">
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="p-6 border-b border-slate-100 flex items-center gap-3">
-              <MIcon name="add_circle" className="text-[#1876f2]" />
-              <h2 className="text-xl font-bold text-slate-900">Iniciar Novo Aquecimento</h2>
+      {/* ── Dashboard Tab ── */}
+      {activeTab === "dashboard" && (
+        <main className="flex-1 px-6 md:px-12 lg:px-40 py-10 max-w-[1200px] mx-auto w-full">
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <p className="text-slate-500 font-medium text-sm">Total Perfis</p>
+                <MIcon name="group" className="text-[#1876f2]" />
+              </div>
+              <p className="text-3xl font-black text-slate-900">{totalProfiles.toLocaleString()}</p>
+              <div className="flex items-center gap-1 text-emerald-500 font-bold text-sm">
+                <MIcon name="trending_up" className="text-sm" />
+                <span>+12% este mês</span>
+              </div>
             </div>
-            <div className="p-6 space-y-6">
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Código do Perfil</label>
-                <div className="relative">
-                  <MIcon name="fingerprint" className="absolute left-3 top-3.5 text-slate-400 text-xl" />
-                  <input
-                    className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#1876f2] focus:border-[#1876f2] text-slate-900 transition-all"
-                    placeholder="ex: FB-123"
-                    value={profileCode}
-                    onChange={(e) => setProfileCode(e.target.value)}
-                  />
-                </div>
+            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <p className="text-slate-500 font-medium text-sm">Em Aquecimento</p>
+                <MIcon name="local_fire_department" className="text-amber-500" />
               </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Escolha a Esteira</label>
-                <div className="relative">
-                  <MIcon name="layers" className="absolute left-3 top-3.5 text-slate-400 text-xl" />
-                  <select
-                    className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#1876f2] focus:border-[#1876f2] text-slate-900 appearance-none transition-all"
-                    value={selectedTrack}
-                    onChange={(e) => setSelectedTrack(e.target.value)}
-                  >
-                    <option value="7_days">7 Dias - Básica</option>
-                    <option value="15_days">15 Dias - Média</option>
-                    <option value="30_days">30 Dias - Premium</option>
-                  </select>
-                </div>
+              <p className="text-3xl font-black text-slate-900">{activeProfiles.toLocaleString()}</p>
+              <div className="flex items-center gap-1 text-slate-400 font-medium text-sm">
+                <span>{totalPct}% do total</span>
               </div>
-              <button
-                onClick={handleCreate}
-                disabled={creating}
-                className="w-full bg-[#1876f2] hover:bg-[#1876f2]/90 text-white font-bold py-4 rounded-lg shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                <MIcon name="assignment_ind" />
-                {creating ? "Atribuindo..." : "Atribuir Perfil"}
-              </button>
-              <p className="text-xs text-slate-500 text-center leading-tight">
-                Certifique-se de que o perfil está logado no navegador multilogin antes de iniciar.
-              </p>
+            </div>
+            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <p className="text-slate-500 font-medium text-sm">Prontos p/ Uso</p>
+                <MIcon name="check_circle" className="text-emerald-500" />
+              </div>
+              <p className="text-3xl font-black text-slate-900">{completedProfiles.toLocaleString()}</p>
+              <div className="flex items-center gap-1 text-emerald-500 font-bold text-sm">
+                <MIcon name="verified" className="text-sm" />
+                <span>Alta maturidade</span>
+              </div>
+            </div>
+            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <p className="text-slate-500 font-medium text-sm">Perdas (24h)</p>
+                <MIcon name="block" className="text-rose-500" />
+              </div>
+              <p className="text-3xl font-black text-slate-900">{restrictedProfiles}</p>
+              <div className="flex items-center gap-1 text-rose-500 font-bold text-sm">
+                <MIcon name="trending_down" className="text-sm" />
+                <span>-2% que ontem</span>
+              </div>
             </div>
           </div>
 
-          {profiles.length > 1 && (
-            <div className="mt-4 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-              <div className="px-6 py-3 border-b border-slate-100">
-                <h3 className="text-sm font-bold text-slate-700">Perfis em Aquecimento</h3>
+          {/* Progress by Stage + Trust Tier */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
+            <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h3 className="text-lg font-bold">Progresso por Estágio</h3>
+                  <p className="text-sm text-slate-500">Maturidade dos perfis na esteira</p>
+                </div>
+                <select className="bg-slate-50 border-none rounded-lg text-sm font-medium focus:ring-[#1876f2]">
+                  <option>Últimos 30 dias</option>
+                  <option>Últimos 7 dias</option>
+                </select>
               </div>
-              <div className="max-h-48 overflow-y-auto">
-                {profiles.map((p) => {
-                  const prog = getProgress(p);
-                  const isSelected = selectedProfileId === p.id;
-                  return (
-                    <div
-                      key={p.id}
-                      onClick={() => { setSelectedProfileId(p.id); if (!tasks[p.id]) fetchTasks(p.id); }}
-                      className={`flex items-center gap-3 px-6 py-3 cursor-pointer border-b border-slate-50 transition-colors ${isSelected ? "bg-[#1876f2]/5" : "hover:bg-slate-50"}`}
-                    >
-                      <MIcon
-                        name={p.status === "completed" ? "check_circle" : p.status === "restricted" ? "warning" : "play_circle"}
-                        className={`text-lg ${p.status === "completed" ? "text-green-500" : p.status === "restricted" ? "text-red-500" : "text-[#1876f2]"}`}
-                      />
-                      <div className="flex-grow min-w-0">
-                        <p className="text-sm font-bold text-slate-900 truncate">{p.profile_code}</p>
-                        <p className="text-xs text-slate-500">{TRACKS[p.track_type]?.label} • {prog}%</p>
-                      </div>
-                      <span className={`text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider ${
-                        p.status === "active" ? "bg-[#1876f2]/10 text-[#1876f2]" :
-                        p.status === "completed" ? "bg-green-50 text-green-600" :
-                        p.status === "restricted" ? "bg-red-50 text-red-600" :
-                        "bg-yellow-50 text-yellow-600"
-                      }`}>
-                        {p.status === "active" ? "Ativo" : p.status === "completed" ? "Concluído" : p.status === "restricted" ? "Restrição" : "Pausado"}
-                      </span>
+              <div className="space-y-8">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm font-bold">
+                    <span>Novos (0-7 dias)</span>
+                    <span>{newProfiles} perfis</span>
+                  </div>
+                  <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-[#1876f2]/40 rounded-full" style={{ width: `${totalProfiles ? Math.round((newProfiles / totalProfiles) * 100) : 35}%` }} />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm font-bold">
+                    <span>Intermediários (15 dias)</span>
+                    <span>{midProfiles} perfis</span>
+                  </div>
+                  <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-[#1876f2]/70 rounded-full" style={{ width: `${totalProfiles ? Math.round((midProfiles / totalProfiles) * 100) : 55}%` }} />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm font-bold">
+                    <span>Maturidade Máxima (30+ dias)</span>
+                    <span>{matureProfiles} perfis</span>
+                  </div>
+                  <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-[#1876f2] rounded-full" style={{ width: `${totalProfiles ? Math.round((matureProfiles / totalProfiles) * 100) : 85}%` }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Trust Tier Distribution */}
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+              <h3 className="text-lg font-bold mb-6">Trust Tier Distribution</h3>
+              <div className="flex flex-col items-center justify-center py-4">
+                <div className="relative w-48 h-48">
+                  <svg className="w-full h-full" viewBox="0 0 36 36">
+                    <circle className="stroke-slate-100" cx="18" cy="18" fill="none" r="16" strokeWidth="4" />
+                    <circle className="stroke-[#1876f2]" cx="18" cy="18" fill="none" r="16" strokeDasharray={`${t2Pct}, 100`} strokeDashoffset={`-${t3Pct}`} strokeLinecap="round" strokeWidth="4" />
+                    <circle className="stroke-emerald-500" cx="18" cy="18" fill="none" r="16" strokeDasharray={`${t3Pct}, 100`} strokeLinecap="round" strokeWidth="4" />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-3xl font-black">{predominantTier}</span>
+                    <span className="text-xs text-slate-500 font-medium">Predominante</span>
+                  </div>
+                </div>
+                <div className="mt-8 w-full space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="w-3 h-3 rounded-full bg-emerald-500" />
+                      <span className="text-sm font-medium">High Trust (T3)</span>
                     </div>
-                  );
-                })}
+                    <span className="text-sm font-bold">{t3Pct}%</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="w-3 h-3 rounded-full bg-[#1876f2]" />
+                      <span className="text-sm font-medium">Medium Trust (T2)</span>
+                    </div>
+                    <span className="text-sm font-bold">{t2Pct}%</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="w-3 h-3 rounded-full bg-slate-300" />
+                      <span className="text-sm font-medium">Low Trust (T1)</span>
+                    </div>
+                    <span className="text-sm font-bold">{t1Pct}%</span>
+                  </div>
+                </div>
               </div>
             </div>
-          )}
-        </section>
+          </div>
 
-        {/* ── Progress Dashboard Section ── */}
-        <section className="lg:col-span-7">
-          {loading ? (
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-12 text-center">
-              <MIcon name="hourglass_empty" className="text-slate-300 text-4xl" />
-              <p className="text-slate-500 text-sm mt-2">Carregando...</p>
+          {/* Recent Activity */}
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-slate-200 flex items-center justify-between">
+              <h3 className="text-lg font-bold">Atividade Recente</h3>
+              <button className="text-[#1876f2] text-sm font-bold hover:underline">Ver tudo</button>
             </div>
-          ) : !selectedProfile ? (
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-12 text-center">
-              <MIcon name="thermostat" className="text-slate-300 text-4xl" />
-              <p className="text-slate-500 text-sm mt-2">Nenhum perfil em aquecimento. Atribua um perfil para começar.</p>
+            <div className="divide-y divide-slate-100">
+              {profiles.slice(0, 4).map((p, i) => {
+                const icons = ["trending_up", "person_add", "settings_backup_restore", "error"];
+                const colors = ["emerald", "blue", "amber", "rose"];
+                const color = colors[i % 4];
+                const bgMap: Record<string, string> = { emerald: "bg-emerald-100 text-emerald-600", blue: "bg-[#1876f2]/10 text-[#1876f2]", amber: "bg-amber-100 text-amber-600", rose: "bg-rose-100 text-rose-600" };
+                const date = new Date(p.created_at);
+                const ago = Math.round((Date.now() - date.getTime()) / 60000);
+                const agoLabel = ago < 60 ? `${ago}m` : ago < 1440 ? `${Math.round(ago / 60)}h` : `${Math.round(ago / 1440)}d`;
+                return (
+                  <div key={p.id} className="p-4 hover:bg-slate-50 transition-colors flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${bgMap[color]}`}>
+                        <MIcon name={icons[i % 4]} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold">Perfil {p.profile_code} — {p.status === "completed" ? "Maturidade concluída" : p.status === "active" ? `Dia ${p.current_day}/${p.track_days}` : "Restrição detectada"}</p>
+                        <p className="text-xs text-slate-500">Esteira {TRACKS[p.track_type]?.label} • {new Date(p.created_at).toLocaleDateString("pt-BR")}</p>
+                      </div>
+                    </div>
+                    <span className="text-xs font-bold text-slate-400">{agoLabel}</span>
+                  </div>
+                );
+              })}
+              {profiles.length === 0 && (
+                <div className="p-8 text-center text-slate-400 text-sm">Nenhuma atividade recente</div>
+              )}
             </div>
-          ) : (
+          </div>
+        </main>
+      )}
+
+      {/* ── Esteiras Tab ── */}
+      {activeTab === "esteiras" && (
+        <div id="form-section" className="max-w-6xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-8 pb-12 pt-10 w-full">
+          {/* ── Selection Form Section ── */}
+          <section className="lg:col-span-5">
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-              {/* Header */}
-              <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <MIcon name="check_circle" className="text-green-500 text-lg" />
-                    <h2 className="text-xl font-bold text-slate-900">
-                      {selectedProfile.profile_code}
-                      {selectedProfile.profile_name && ` (${selectedProfile.profile_name})`}
-                    </h2>
-                  </div>
-                  <p className="text-sm text-slate-500 font-medium">
-                    Esteira: {selectedTrackDef?.label || selectedProfile.track_type}
-                    {selectedProfile.trust_tier && <span className="ml-2 text-purple-600 font-bold">• {selectedProfile.trust_tier}</span>}
-                  </p>
-                </div>
-                <span className="bg-[#1876f2]/10 text-[#1876f2] text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                  {selectedProfile.status === "active" ? "Ativo" : selectedProfile.status === "completed" ? "Concluído" : selectedProfile.status}
-                </span>
+              <div className="p-6 border-b border-slate-100 flex items-center gap-3">
+                <MIcon name="add_circle" className="text-[#1876f2]" />
+                <h2 className="text-xl font-bold text-slate-900">Iniciar Novo Aquecimento</h2>
               </div>
-
-              <div className="p-6 space-y-8">
-                {/* Thermometer Progress Bar */}
+              <div className="p-6 space-y-6">
                 <div>
-                  <div className="flex justify-between items-end mb-4">
-                    <span className="text-sm font-bold text-slate-700 flex items-center gap-1">
-                      <MIcon name="thermostat" className="text-orange-500" />
-                      Status de Aquecimento
-                    </span>
-                    <span className="text-2xl font-black text-[#1876f2]">{selectedProgress}%</span>
-                  </div>
-                  <div className="relative h-6 w-full bg-slate-100 rounded-full overflow-hidden border border-slate-200 shadow-inner">
-                    <div className="absolute top-0 left-0 h-full bg-green-500" style={{ width: `${selectedProgress}%`, boxShadow: "0 0 10px rgba(34,197,94,0.4)" }} />
-                    <div className="absolute top-0 h-full bg-yellow-400 opacity-30" style={{ left: "45%", width: "35%" }} />
-                    <div className="absolute top-0 h-full bg-red-500 opacity-20" style={{ left: "80%", width: "20%" }} />
-                  </div>
-                  <div className="flex justify-between mt-2 px-1">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Início</span>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Ideal</span>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Pronto</span>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Código do Perfil</label>
+                  <div className="relative">
+                    <MIcon name="fingerprint" className="absolute left-3 top-3.5 text-slate-400 text-xl" />
+                    <input
+                      className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#1876f2] focus:border-[#1876f2] text-slate-900 transition-all"
+                      placeholder="ex: FB-123"
+                      value={profileCode}
+                      onChange={(e) => setProfileCode(e.target.value)}
+                    />
                   </div>
                 </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Escolha a Esteira</label>
+                  <div className="relative">
+                    <MIcon name="layers" className="absolute left-3 top-3.5 text-slate-400 text-xl" />
+                    <select
+                      className="w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#1876f2] focus:border-[#1876f2] text-slate-900 appearance-none transition-all"
+                      value={selectedTrack}
+                      onChange={(e) => setSelectedTrack(e.target.value)}
+                    >
+                      <option value="7_days">7 Dias - Básica</option>
+                      <option value="15_days">15 Dias - Média</option>
+                      <option value="30_days">30 Dias - Premium</option>
+                    </select>
+                  </div>
+                </div>
+                <button
+                  onClick={handleCreate}
+                  disabled={creating}
+                  className="w-full bg-[#1876f2] hover:bg-[#1876f2]/90 text-white font-bold py-4 rounded-lg shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  <MIcon name="assignment_ind" />
+                  {creating ? "Atribuindo..." : "Atribuir Perfil"}
+                </button>
+                <p className="text-xs text-slate-500 text-center leading-tight">
+                  Certifique-se de que o perfil está logado no navegador multilogin antes de iniciar.
+                </p>
+              </div>
+            </div>
 
-                {/* Daily Steps List */}
-                <div className="space-y-4">
-                  <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Cronograma de Atividades</h3>
-                  {selectedTasks.map((task) => {
-                    const isCurrent = !task.completed && selectedTasks.filter((t) => !t.completed)[0]?.id === task.id;
+            {profiles.length > 1 && (
+              <div className="mt-4 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="px-6 py-3 border-b border-slate-100">
+                  <h3 className="text-sm font-bold text-slate-700">Perfis em Aquecimento</h3>
+                </div>
+                <div className="max-h-48 overflow-y-auto">
+                  {profiles.map((p) => {
+                    const prog = getProgress(p);
+                    const isSelected = selectedProfileId === p.id;
                     return (
                       <div
-                        key={task.id}
-                        onClick={() => toggleTask(task)}
-                        className={`flex items-center gap-4 p-3 rounded-lg border cursor-pointer transition-all ${
-                          task.completed
-                            ? "bg-slate-50 border-slate-100"
-                            : isCurrent
-                            ? "bg-[#1876f2]/5 border-[#1876f2]/20 ring-1 ring-[#1876f2]/20"
-                            : "bg-slate-50 border-slate-100 opacity-60"
-                        }`}
+                        key={p.id}
+                        onClick={() => { setSelectedProfileId(p.id); if (!tasks[p.id]) fetchTasks(p.id); }}
+                        className={`flex items-center gap-3 px-6 py-3 cursor-pointer border-b border-slate-50 transition-colors ${isSelected ? "bg-[#1876f2]/5" : "hover:bg-slate-50"}`}
                       >
-                        <div className={`p-2 rounded-full ${
-                          task.completed ? "bg-green-100 text-green-600" : isCurrent ? "bg-[#1876f2]/20 text-[#1876f2]" : "bg-slate-200 text-slate-400"
-                        }`}>
-                          <MIcon name={task.completed ? "check" : isCurrent ? "sync" : "radio_button_unchecked"} className="text-lg" />
+                        <MIcon
+                          name={p.status === "completed" ? "check_circle" : p.status === "restricted" ? "warning" : "play_circle"}
+                          className={`text-lg ${p.status === "completed" ? "text-green-500" : p.status === "restricted" ? "text-red-500" : "text-[#1876f2]"}`}
+                        />
+                        <div className="flex-grow min-w-0">
+                          <p className="text-sm font-bold text-slate-900 truncate">{p.profile_code}</p>
+                          <p className="text-xs text-slate-500">{TRACKS[p.track_type]?.label} • {prog}%</p>
                         </div>
-                        <div className="flex-grow">
-                          <p className={`text-sm font-bold ${task.completed ? "text-slate-400 line-through" : "text-slate-900"}`}>
-                            Dia {task.day_number}: {task.title}
-                          </p>
-                          <p className="text-xs text-slate-500">{task.description}</p>
-                        </div>
-                        <span className={`text-xs font-bold px-2 py-0.5 rounded whitespace-nowrap ${
-                          task.completed ? "text-green-600 bg-green-50" : isCurrent ? "text-[#1876f2] animate-pulse" : "text-slate-400"
+                        <span className={`text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider ${
+                          p.status === "active" ? "bg-[#1876f2]/10 text-[#1876f2]" :
+                          p.status === "completed" ? "bg-green-50 text-green-600" :
+                          p.status === "restricted" ? "bg-red-50 text-red-600" :
+                          "bg-yellow-50 text-yellow-600"
                         }`}>
-                          {task.completed ? "Concluído" : isCurrent ? "Em andamento" : "Pendente"}
+                          {p.status === "active" ? "Ativo" : p.status === "completed" ? "Concluído" : p.status === "restricted" ? "Restrição" : "Pausado"}
                         </span>
                       </div>
                     );
                   })}
                 </div>
+              </div>
+            )}
+          </section>
 
-                {/* Action Buttons */}
-                <div className="grid grid-cols-2 gap-4 pt-4">
-                  <button
-                    onClick={() => { fetchTasks(selectedProfile.id); fetchProfiles(); toast.success("Progresso atualizado"); }}
-                    className="flex items-center justify-center gap-2 bg-slate-100 text-slate-700 font-bold py-3 rounded-lg hover:bg-slate-200 transition-colors"
-                  >
-                    <MIcon name="refresh" className="text-lg" />
-                    Atualizar Progresso
-                  </button>
-                  <button
-                    onClick={() => updateTrustTier(selectedProfile.id)}
-                    className="flex items-center justify-center gap-2 bg-slate-100 text-slate-700 font-bold py-3 rounded-lg hover:bg-slate-200 transition-colors"
-                  >
-                    <MIcon name="verified_user" className="text-lg" />
-                    Checar Trust Tier
-                  </button>
+          {/* ── Progress Dashboard Section ── */}
+          <section className="lg:col-span-7">
+            {loading ? (
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-12 text-center">
+                <MIcon name="hourglass_empty" className="text-slate-300 text-4xl" />
+                <p className="text-slate-500 text-sm mt-2">Carregando...</p>
+              </div>
+            ) : !selectedProfile ? (
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-12 text-center">
+                <MIcon name="thermostat" className="text-slate-300 text-4xl" />
+                <p className="text-slate-500 text-sm mt-2">Nenhum perfil em aquecimento. Atribua um perfil para começar.</p>
+              </div>
+            ) : (
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <MIcon name="check_circle" className="text-green-500 text-lg" />
+                      <h2 className="text-xl font-bold text-slate-900">
+                        {selectedProfile.profile_code}
+                        {selectedProfile.profile_name && ` (${selectedProfile.profile_name})`}
+                      </h2>
+                    </div>
+                    <p className="text-sm text-slate-500 font-medium">
+                      Esteira: {selectedTrackDef?.label || selectedProfile.track_type}
+                      {selectedProfile.trust_tier && <span className="ml-2 text-purple-600 font-bold">• {selectedProfile.trust_tier}</span>}
+                    </p>
+                  </div>
+                  <span className="bg-[#1876f2]/10 text-[#1876f2] text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                    {selectedProfile.status === "active" ? "Ativo" : selectedProfile.status === "completed" ? "Concluído" : selectedProfile.status}
+                  </span>
+                </div>
+
+                <div className="p-6 space-y-8">
+                  <div>
+                    <div className="flex justify-between items-end mb-4">
+                      <span className="text-sm font-bold text-slate-700 flex items-center gap-1">
+                        <MIcon name="thermostat" className="text-orange-500" />
+                        Status de Aquecimento
+                      </span>
+                      <span className="text-2xl font-black text-[#1876f2]">{selectedProgress}%</span>
+                    </div>
+                    <div className="relative h-6 w-full bg-slate-100 rounded-full overflow-hidden border border-slate-200 shadow-inner">
+                      <div className="absolute top-0 left-0 h-full bg-green-500" style={{ width: `${selectedProgress}%`, boxShadow: "0 0 10px rgba(34,197,94,0.4)" }} />
+                      <div className="absolute top-0 h-full bg-yellow-400 opacity-30" style={{ left: "45%", width: "35%" }} />
+                      <div className="absolute top-0 h-full bg-red-500 opacity-20" style={{ left: "80%", width: "20%" }} />
+                    </div>
+                    <div className="flex justify-between mt-2 px-1">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Início</span>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Ideal</span>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Pronto</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Cronograma de Atividades</h3>
+                    {selectedTasks.map((task) => {
+                      const isCurrent = !task.completed && selectedTasks.filter((t) => !t.completed)[0]?.id === task.id;
+                      return (
+                        <div
+                          key={task.id}
+                          onClick={() => toggleTask(task)}
+                          className={`flex items-center gap-4 p-3 rounded-lg border cursor-pointer transition-all ${
+                            task.completed
+                              ? "bg-slate-50 border-slate-100"
+                              : isCurrent
+                              ? "bg-[#1876f2]/5 border-[#1876f2]/20 ring-1 ring-[#1876f2]/20"
+                              : "bg-slate-50 border-slate-100 opacity-60"
+                          }`}
+                        >
+                          <div className={`p-2 rounded-full ${
+                            task.completed ? "bg-green-100 text-green-600" : isCurrent ? "bg-[#1876f2]/20 text-[#1876f2]" : "bg-slate-200 text-slate-400"
+                          }`}>
+                            <MIcon name={task.completed ? "check" : isCurrent ? "sync" : "radio_button_unchecked"} className="text-lg" />
+                          </div>
+                          <div className="flex-grow">
+                            <p className={`text-sm font-bold ${task.completed ? "text-slate-400 line-through" : "text-slate-900"}`}>
+                              Dia {task.day_number}: {task.title}
+                            </p>
+                            <p className="text-xs text-slate-500">{task.description}</p>
+                          </div>
+                          <span className={`text-xs font-bold px-2 py-0.5 rounded whitespace-nowrap ${
+                            task.completed ? "text-green-600 bg-green-50" : isCurrent ? "text-[#1876f2] animate-pulse" : "text-slate-400"
+                          }`}>
+                            {task.completed ? "Concluído" : isCurrent ? "Em andamento" : "Pendente"}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 pt-4">
+                    <button
+                      onClick={() => { fetchTasks(selectedProfile.id); fetchProfiles(); toast.success("Progresso atualizado"); }}
+                      className="flex items-center justify-center gap-2 bg-slate-100 text-slate-700 font-bold py-3 rounded-lg hover:bg-slate-200 transition-colors"
+                    >
+                      <MIcon name="refresh" className="text-lg" />
+                      Atualizar Progresso
+                    </button>
+                    <button
+                      onClick={() => updateTrustTier(selectedProfile.id)}
+                      className="flex items-center justify-center gap-2 bg-slate-100 text-slate-700 font-bold py-3 rounded-lg hover:bg-slate-200 transition-colors"
+                    >
+                      <MIcon name="verified_user" className="text-lg" />
+                      Checar Trust Tier
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-        </section>
-      </div>
+            )}
+          </section>
+        </div>
+      )}
+
+      {/* ── Relatórios Tab ── */}
+      {activeTab === "relatorios" && (
+        <main className="flex-1 px-6 md:px-12 lg:px-40 py-10 max-w-[1200px] mx-auto w-full">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-12 text-center">
+            <MIcon name="analytics" className="text-slate-300 text-5xl" />
+            <h3 className="text-lg font-bold text-slate-900 mt-4">Relatórios em breve</h3>
+            <p className="text-sm text-slate-500 mt-2">Esta seção será implementada em breve com gráficos detalhados e exportação de dados.</p>
+          </div>
+        </main>
+      )}
 
       {/* ── Footer ── */}
-      <footer className="bg-white border-t border-slate-200 py-8 px-6 lg:px-20 mt-auto">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-          <div className="flex items-center gap-2">
-            <MIcon name="hub" className="text-[#1876f2]" />
-            <span className="font-bold text-slate-900">FBFlix Operational</span>
+      <footer className="bg-white border-t border-slate-200 py-8 px-6 md:px-12 lg:px-40 mt-auto">
+        <div className="max-w-[1200px] mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+          <div className="flex items-center gap-2 opacity-50">
+            <MIcon name="fluid" className="text-sm" />
+            <span className="text-xs font-bold uppercase tracking-widest">FBFlix Operacional © 2024</span>
           </div>
-          <p className="text-sm text-slate-500">© 2024 FBFlix Dashboard. Todos os direitos reservados.</p>
-          <div className="flex gap-6">
-            <a className="text-slate-400 hover:text-[#1876f2] transition-colors text-sm font-medium" href="#">Suporte</a>
-            <a className="text-slate-400 hover:text-[#1876f2] transition-colors text-sm font-medium" href="#">Termos</a>
-            <a className="text-slate-400 hover:text-[#1876f2] transition-colors text-sm font-medium" href="#">Privacidade</a>
+          <div className="flex gap-6 text-sm text-slate-500">
+            <a className="hover:text-[#1876f2]" href="#">Ajuda</a>
+            <a className="hover:text-[#1876f2]" href="#">Status API</a>
+            <a className="hover:text-[#1876f2]" href="#">Privacidade</a>
           </div>
         </div>
       </footer>
