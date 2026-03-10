@@ -40,7 +40,7 @@ const TRACKS: Record<string, { label: string; days: number; tasks: TrackDay[] }>
       { day: 11, title: "Diversificar objetivos", description: "Misturar Engagement e Conversions." },
       { day: 12, title: "Ads R$18/dia", description: "Escalar com creatives variados." },
       { day: 13, title: "Estabilização R$20", description: "Manter orçamento estável." },
-      { day: 14, title: "Checar Trust Tier", description: "Verificar nível de confiança da conta." },
+      { day: 14, title: "Checar Nível de Confiança", description: "Verificar nível de confiança da conta." },
       { day: 15, title: "Verificar BM parcial", description: "Checar status do Business Manager." },
     ],
   },
@@ -61,8 +61,8 @@ const TRACKS: Record<string, { label: string; days: number; tasks: TrackDay[] }>
       { day: 11, title: "Diversificar R$15", description: "Misturar objetivos." },
       { day: 12, title: "Ads R$18", description: "Creatives variados." },
       { day: 13, title: "Estabilização R$20", description: "Manter estável." },
-      { day: 14, title: "Checar Tier", description: "Verificar trust tier." },
-      { day: 15, title: "BM parcial check", description: "Checar BM status." },
+      { day: 14, title: "Checar Nível", description: "Verificar nível de confiança." },
+      { day: 15, title: "Verificação parcial BM", description: "Checar status do BM." },
       { day: 16, title: "Volume R$30", description: "Construir volume de gastos." },
       { day: 17, title: "Multi-objetivos R$30", description: "Engagement + Conversions + Traffic." },
       { day: 18, title: "Eventos reais R$35", description: "Gerar eventos de conversão reais." },
@@ -205,11 +205,11 @@ export default function AdminAquecimento() {
   };
 
   const updateTrustTier = async (profileId: string) => {
-    const tier = prompt("Digite o Trust Tier atual (ex: Tier 1, Tier 2, Tier 3):");
+    const tier = prompt("Digite o Nível de Confiança atual (ex: Nível 1, Nível 2, Nível 3):");
     if (!tier) return;
     await supabase.from("warming_profiles").update({ trust_tier: tier, updated_at: new Date().toISOString() }).eq("id", profileId);
     fetchProfiles();
-    toast.success("Trust Tier atualizado");
+    toast.success("Nível de Confiança atualizado");
   };
 
   const getProgress = (profile: WarmingProfile) => {
@@ -225,7 +225,7 @@ export default function AdminAquecimento() {
   const selectedProgress = selectedProfile ? getProgress(selectedProfile) : 0;
 
   const tabs = [
-    { key: "dashboard", label: "Dashboard", icon: "dashboard" },
+    { key: "dashboard", label: "Painel", icon: "dashboard" },
     { key: "esteiras", label: "Esteiras", icon: "layers" },
     { key: "relatorios", label: "Relatórios", icon: "analytics" },
     { key: "configuracoes", label: "Configurações", icon: "settings" },
@@ -273,7 +273,7 @@ export default function AdminAquecimento() {
           </div>
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div className="space-y-2">
-              <h1 className="text-4xl md:text-5xl font-black tracking-tight">Dashboard Operacional</h1>
+              <h1 className="text-4xl md:text-5xl font-black tracking-tight">Painel Operacional</h1>
               <p className="text-white/80 text-lg max-w-2xl">
                 Acompanhe em tempo real o desempenho das esteiras de aquecimento e a distribuição dos perfis por maturidade.
               </p>
@@ -407,7 +407,7 @@ export default function AdminAquecimento() {
 
             {/* Trust Tier Distribution */}
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-              <h3 className="text-lg font-bold mb-6">Trust Tier Distribution</h3>
+              <h3 className="text-lg font-bold mb-6">Distribuição de Confiança</h3>
               <div className="flex flex-col items-center justify-center py-4">
                 <div className="relative w-48 h-48">
                   <svg className="w-full h-full" viewBox="0 0 36 36">
@@ -424,21 +424,21 @@ export default function AdminAquecimento() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="w-3 h-3 rounded-full bg-emerald-500" />
-                      <span className="text-sm font-medium">High Trust (T3)</span>
+                      <span className="text-sm font-medium">Confiança Alta (T3)</span>
                     </div>
                     <span className="text-sm font-bold">{t3Pct}%</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="w-3 h-3 rounded-full bg-[#1876f2]" />
-                      <span className="text-sm font-medium">Medium Trust (T2)</span>
+                      <span className="text-sm font-medium">Confiança Média (T2)</span>
                     </div>
                     <span className="text-sm font-bold">{t2Pct}%</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="w-3 h-3 rounded-full bg-slate-300" />
-                      <span className="text-sm font-medium">Low Trust (T1)</span>
+                      <span className="text-sm font-medium">Confiança Baixa (T1)</span>
                     </div>
                     <span className="text-sm font-bold">{t1Pct}%</span>
                   </div>
@@ -892,21 +892,21 @@ export default function AdminAquecimento() {
           <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
               <MIcon name="verified_user" className="text-[#1876f2]" />
-              <h2 className="text-lg font-bold text-slate-900">Definição de Trust Tiers</h2>
+              <h2 className="text-lg font-bold text-slate-900">Definição de Níveis de Confiança</h2>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="bg-slate-50">
-                    <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Tier</th>
-                    <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Score Range</th>
+                    <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Nível</th>
+                    <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Faixa de Score</th>
                     <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Critérios de Validação</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   <tr>
                     <td className="px-6 py-4">
-                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700">Tier 1 (Low Trust)</span>
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700">Nível 1 (Confiança Baixa)</span>
                     </td>
                     <td className="px-6 py-4">
                       <input className="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-xs w-20 text-slate-900" type="text" defaultValue="0 - 30" />
@@ -917,7 +917,7 @@ export default function AdminAquecimento() {
                   </tr>
                   <tr>
                     <td className="px-6 py-4">
-                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700">Tier 2 (Medium Trust)</span>
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700">Nível 2 (Confiança Média)</span>
                     </td>
                     <td className="px-6 py-4">
                       <input className="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-xs w-20 text-slate-900" type="text" defaultValue="31 - 75" />
@@ -928,7 +928,7 @@ export default function AdminAquecimento() {
                   </tr>
                   <tr>
                     <td className="px-6 py-4">
-                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700">Tier 3 (High Trust)</span>
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700">Nível 3 (Confiança Alta)</span>
                     </td>
                     <td className="px-6 py-4">
                       <input className="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-xs w-20 text-slate-900" type="text" defaultValue="76 - 100" />
@@ -960,7 +960,7 @@ export default function AdminAquecimento() {
                 </div>
               </div>
               <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Pixel Conversion API Token</label>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Token da API de Conversão do Pixel</label>
                 <div className="relative">
                   <input className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-sm pr-12 text-slate-900 focus:ring-2 focus:ring-slate-400/20 outline-none" type="text" defaultValue="EAAGm0PX4ZCpsBAK7ZA9Bf7ZB8qZC4ZB9ZA..." />
                   <button
