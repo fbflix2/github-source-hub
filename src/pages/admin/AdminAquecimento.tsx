@@ -643,7 +643,7 @@ export default function AdminAquecimento() {
                               task.completed
                                 ? "bg-slate-50 border-slate-100"
                                 : isCurrent
-                                ? "bg-slate-100 border-slate-300 ring-1 ring-slate-300"
+                                ? "bg-blue-50 border-[#1876f2]/30 ring-1 ring-[#1876f2]/30"
                                 : "bg-slate-50 border-slate-100 opacity-60"
                             }`}
                           >
