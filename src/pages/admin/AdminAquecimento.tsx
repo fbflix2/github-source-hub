@@ -561,7 +561,7 @@ export default function AdminAquecimento() {
                           <p className="text-[11px] text-slate-500">{TRACKS[p.track_type]?.label} • {prog}%</p>
                         </div>
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                          p.status === "active" ? "bg-[#1876f2]/10 text-[#1876f2]" :
+                          p.status === "active" ? "bg-slate-200 text-slate-700" :
                           p.status === "completed" ? "bg-green-50 text-green-600" :
                           p.status === "restricted" ? "bg-red-50 text-red-600" :
                           "bg-yellow-50 text-yellow-600"
