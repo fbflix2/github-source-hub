@@ -492,7 +492,7 @@ export default function AdminAquecimento() {
           <section className="lg:col-span-5">
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
               <div className="px-5 py-3.5 border-b border-slate-100 flex items-center gap-2.5">
-                <MIcon name="add_circle" className="text-[#1876f2] text-xl" />
+                <MIcon name="add_circle" className="text-slate-700 text-xl" />
                 <h2 className="text-base font-bold text-slate-900">Iniciar Novo Aquecimento</h2>
               </div>
               <div className="p-5 space-y-4">
