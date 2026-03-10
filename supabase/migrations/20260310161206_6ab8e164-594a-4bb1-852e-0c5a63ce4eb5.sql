@@ -1,0 +1,1 @@
+UPDATE products SET tags = array_replace(tags, 'webshare', 'proxy') WHERE 'webshare' = ANY(tags);
