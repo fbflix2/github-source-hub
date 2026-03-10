@@ -789,7 +789,7 @@ export default function AdminAquecimento() {
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${
                           p.status === "completed" ? "bg-emerald-100 text-emerald-800" :
                           p.status === "restricted" ? "bg-rose-100 text-rose-800" :
-                          "bg-slate-200 text-slate-700"
+                          "bg-blue-100 text-[#1876f2]"
                         }`}>
                           {p.status === "completed" ? "Sucesso" : p.status === "restricted" ? "Falha" : "Em andamento"}
                         </span>
