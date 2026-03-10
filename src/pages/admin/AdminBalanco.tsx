@@ -713,6 +713,23 @@ export default function AdminBalanco() {
           </div>
         </div>
 
+        {/* AI Sales Strategy Insights */}
+        <SalesInsightsPanel
+          salesData={{
+            categories: categoryData,
+            chartData,
+            totalUnitsSold,
+            totalRevenue: combinedRevenue,
+            totalCost,
+            netProfit,
+            margin: String(margin),
+            breakEvenUnits,
+            breakEvenReached: breakEvenProgress >= 100,
+            fixedCosts,
+            avgProfitPerUnit,
+          }}
+        />
+
         {/* Transactions Table */}
         <section className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-2xl overflow-hidden">
           <div className="p-6 border-b border-white/5 flex flex-col sm:flex-row justify-between items-center gap-4">
