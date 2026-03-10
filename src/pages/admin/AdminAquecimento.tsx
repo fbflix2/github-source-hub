@@ -746,7 +746,7 @@ export default function AdminAquecimento() {
             <div className="h-64 w-full bg-slate-50 rounded-lg flex items-center justify-center relative overflow-hidden">
               <div className="absolute inset-0 flex items-end px-4 gap-2">
                 {[24, 40, 50, 33, 60, 66, 75, 100, 80, 86, 50, 75].map((h, i) => (
-                  <div key={i} className="flex-1 bg-slate-700 rounded-t-sm" style={{ height: `${h}%`, opacity: 0.2 + (h / 100) * 0.8 }} />
+                  <div key={i} className="flex-1 bg-[#1876f2] rounded-t-sm" style={{ height: `${h}%`, opacity: 0.2 + (h / 100) * 0.8 }} />
                 ))}
               </div>
               <p className="relative z-10 text-slate-400 text-sm font-medium">Gráfico de Performance Temporal</p>
