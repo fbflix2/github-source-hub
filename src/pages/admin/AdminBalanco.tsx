@@ -52,6 +52,13 @@ export default function AdminBalanco() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [chartData, setChartData] = useState<{ name: string; revenue: number; cost: number; profit: number }[]>([]);
   const [categoryData, setCategoryData] = useState<{ name: string; cost: number; revenue: number }[]>([]);
+  const [fixedCosts, setFixedCosts] = useState(0);
+  const [totalUnitsSold, setTotalUnitsSold] = useState(0);
+  const [categoryAllocation, setCategoryAllocation] = useState<Record<string, number>>({});
+  const [editingAllocation, setEditingAllocation] = useState(false);
+  const [allocationDraft, setAllocationDraft] = useState<Record<string, number>>({});
+  const [savingAllocation, setSavingAllocation] = useState(false);
+  const [categoryNames, setCategoryNames] = useState<{ id: string; name: string; slug: string }[]>([]);
 
   const getSinceDate = () => {
     const now = new Date();
