@@ -616,7 +616,7 @@ export default function AdminAquecimento() {
                         <MIcon name="thermostat" className="text-orange-500 text-base" />
                         Status de Aquecimento
                       </span>
-                      <span className="text-lg font-black text-[#1876f2]">{selectedProgress}%</span>
+                      <span className="text-lg font-black text-slate-800">{selectedProgress}%</span>
                     </div>
                     <div className="relative h-4 w-full bg-slate-100 rounded-full overflow-hidden border border-slate-200 shadow-inner">
                       <div className="absolute top-0 left-0 h-full bg-green-500" style={{ width: `${selectedProgress}%`, boxShadow: "0 0 8px rgba(34,197,94,0.3)" }} />
