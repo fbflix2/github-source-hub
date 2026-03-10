@@ -15,6 +15,7 @@ export function AdminLayout() {
   const navigate = useNavigate();
   const [permChecked, setPermChecked] = useState(false);
   const hideHeader = location.pathname === "/admin/blocagem" || location.pathname === "/admin/clientes";
+  const isAquecimento = location.pathname === "/admin/aquecimento";
 
   // For moderators: check if current path is allowed, redirect to first allowed if not
   useEffect(() => {
