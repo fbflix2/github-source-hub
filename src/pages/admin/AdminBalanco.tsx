@@ -613,8 +613,8 @@ export default function AdminBalanco() {
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-          {/* Chart */}
-          <div className="xl:col-span-3">
+          {/* Chart + Insights */}
+          <div className="xl:col-span-3 flex flex-col gap-6">
             <section className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-2xl p-6">
               <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
                 <h2 className="text-lg font-semibold text-white flex items-center gap-2">
@@ -657,6 +657,23 @@ export default function AdminBalanco() {
                 )}
               </div>
             </section>
+
+            {/* AI Sales Strategy Insights */}
+            <SalesInsightsPanel
+              salesData={{
+                categories: categoryData,
+                chartData,
+                totalUnitsSold,
+                totalRevenue: combinedRevenue,
+                totalCost,
+                netProfit,
+                margin: String(margin),
+                breakEvenUnits,
+                breakEvenReached: breakEvenProgress >= 100,
+                fixedCosts,
+                avgProfitPerUnit,
+              }}
+            />
           </div>
 
           {/* Category Sidebar */}
@@ -713,22 +730,6 @@ export default function AdminBalanco() {
           </div>
         </div>
 
-        {/* AI Sales Strategy Insights */}
-        <SalesInsightsPanel
-          salesData={{
-            categories: categoryData,
-            chartData,
-            totalUnitsSold,
-            totalRevenue: combinedRevenue,
-            totalCost,
-            netProfit,
-            margin: String(margin),
-            breakEvenUnits,
-            breakEvenReached: breakEvenProgress >= 100,
-            fixedCosts,
-            avgProfitPerUnit,
-          }}
-        />
 
         {/* Transactions Table */}
         <section className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-2xl overflow-hidden">
