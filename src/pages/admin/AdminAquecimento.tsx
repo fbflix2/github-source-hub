@@ -648,7 +648,7 @@ export default function AdminAquecimento() {
                             }`}
                           >
                             <div className={`p-1.5 rounded-full ${
-                              task.completed ? "bg-green-100 text-green-600" : isCurrent ? "bg-[#1876f2]/20 text-[#1876f2]" : "bg-slate-200 text-slate-400"
+                              task.completed ? "bg-green-100 text-green-600" : isCurrent ? "bg-slate-200 text-slate-700" : "bg-slate-200 text-slate-400"
                             }`}>
                               <MIcon name={task.completed ? "check" : isCurrent ? "sync" : "radio_button_unchecked"} className="text-base" />
                             </div>
