@@ -78,6 +78,7 @@ import AdminParceiros from "./pages/admin/AdminParceiros";
 import PartnerRedirect from "./pages/PartnerRedirect";
 import AdminFBX from "./pages/admin/AdminFBX";
 import AdminCentralInvestimentos from "./pages/admin/AdminCentralInvestimentos";
+import AdminAquecimento from "./pages/admin/AdminAquecimento";
 import { AdminLayout } from "./components/admin/AdminLayout";
 
 // Layout
