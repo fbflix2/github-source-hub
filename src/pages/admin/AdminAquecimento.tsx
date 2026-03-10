@@ -971,7 +971,7 @@ export default function AdminAquecimento() {
           {/* Integrações de API */}
           <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
-              <MIcon name="api" className="text-[#1876f2]" />
+              <MIcon name="api" className="text-slate-700" />
               <h2 className="text-lg font-bold text-slate-900">Integrações de API</h2>
             </div>
             <div className="p-6 space-y-5">
