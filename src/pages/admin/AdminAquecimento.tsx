@@ -284,13 +284,24 @@ export default function AdminAquecimento() {
               </p>
             </div>
             <div className="flex gap-4">
-              <div className="bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/20 min-w-[140px]">
-                <p className="text-xs font-medium text-white/70 uppercase tracking-wider">Status Geral</p>
-                <p className="text-2xl font-bold">Operacional</p>
+              <div className="bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/20 min-w-[160px]">
+                <p className="text-xs font-medium text-white/70 uppercase tracking-wider">Tempo Médio / Perfil</p>
+                <p className="text-2xl font-bold">{profiles.length >= 2
+                  ? (() => {
+                      const sorted = [...profiles].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+                      const diffs: number[] = [];
+                      for (let i = 1; i < sorted.length; i++) {
+                        diffs.push(new Date(sorted[i].created_at).getTime() - new Date(sorted[i - 1].created_at).getTime());
+                      }
+                      const avgMs = diffs.reduce((a, b) => a + b, 0) / diffs.length;
+                      const mins = Math.round(avgMs / 60000);
+                      return mins < 60 ? `${mins}min` : `${Math.floor(mins / 60)}h ${mins % 60}min`;
+                    })()
+                  : "—"}</p>
               </div>
               <div className="bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/20 min-w-[140px]">
-                <p className="text-xs font-medium text-white/70 uppercase tracking-wider">Uptime</p>
-                <p className="text-2xl font-bold">99.9%</p>
+                <p className="text-xs font-medium text-white/70 uppercase tracking-wider">Perfis Hoje</p>
+                <p className="text-2xl font-bold">{profiles.filter(p => new Date(p.created_at).toDateString() === new Date().toDateString()).length}</p>
               </div>
             </div>
           </div>
