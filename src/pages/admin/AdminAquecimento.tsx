@@ -424,7 +424,7 @@ export default function AdminAquecimento() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="w-3 h-3 rounded-full bg-emerald-500" />
-                      <span className="text-sm font-medium">High Trust (T3)</span>
+                      <span className="text-sm font-medium">Confiança Alta (T3)</span>
                     </div>
                     <span className="text-sm font-bold">{t3Pct}%</span>
                   </div>
