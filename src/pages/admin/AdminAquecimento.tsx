@@ -458,7 +458,7 @@ export default function AdminAquecimento() {
                 const icons = ["trending_up", "person_add", "settings_backup_restore", "error"];
                 const colors = ["emerald", "blue", "amber", "rose"];
                 const color = colors[i % 4];
-                const bgMap: Record<string, string> = { emerald: "bg-emerald-100 text-emerald-600", blue: "bg-[#1876f2]/10 text-[#1876f2]", amber: "bg-amber-100 text-amber-600", rose: "bg-rose-100 text-rose-600" };
+                const bgMap: Record<string, string> = { emerald: "bg-emerald-100 text-emerald-600", blue: "bg-slate-200 text-slate-700", amber: "bg-amber-100 text-amber-600", rose: "bg-rose-100 text-rose-600" };
                 const date = new Date(p.created_at);
                 const ago = Math.round((Date.now() - date.getTime()) / 60000);
                 const agoLabel = ago < 60 ? `${ago}m` : ago < 1440 ? `${Math.round(ago / 60)}h` : `${Math.round(ago / 1440)}d`;
