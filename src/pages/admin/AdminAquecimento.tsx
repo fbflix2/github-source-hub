@@ -659,7 +659,7 @@ export default function AdminAquecimento() {
                               <p className="text-[11px] text-slate-500 truncate">{task.description}</p>
                             </div>
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded whitespace-nowrap ${
-                              task.completed ? "text-green-600 bg-green-50" : isCurrent ? "text-[#1876f2] animate-pulse" : "text-slate-400"
+                              task.completed ? "text-green-600 bg-green-50" : isCurrent ? "text-slate-700 animate-pulse" : "text-slate-400"
                             }`}>
                               {task.completed ? "Concluído" : isCurrent ? "Em andamento" : "Pendente"}
                             </span>
