@@ -4,13 +4,14 @@ import { useProxyRevenue } from "@/hooks/useProxyRevenue";
 import { 
   ArrowLeft, ShoppingCart, Wallet, TrendingUp, Percent, Tag, Timer, Download,
   ChevronDown, ChevronLeft, ChevronRight, BarChart3, Search, ArrowUp, ArrowDown, Loader2,
-  Building2, Target, Settings2, Save
+  Building2, Target, Settings2, Save, Lightbulb
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell } from "recharts";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import SalesInsightsPanel from "@/components/admin/SalesInsightsPanel";
 
 const timeFilters = ["7 Dias", "30 Dias", "Ano Atual"];
 const chartFilters = ["Lucro", "Custos", "Receitas"];
@@ -711,6 +712,23 @@ export default function AdminBalanco() {
             </div>
           </div>
         </div>
+
+        {/* AI Sales Strategy Insights */}
+        <SalesInsightsPanel
+          salesData={{
+            categories: categoryData,
+            chartData,
+            totalUnitsSold,
+            totalRevenue: combinedRevenue,
+            totalCost,
+            netProfit,
+            margin: String(margin),
+            breakEvenUnits,
+            breakEvenReached: breakEvenProgress >= 100,
+            fixedCosts,
+            avgProfitPerUnit,
+          }}
+        />
 
         {/* Transactions Table */}
         <section className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-2xl overflow-hidden">

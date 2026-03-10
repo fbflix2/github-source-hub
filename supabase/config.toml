@@ -50,3 +50,6 @@ verify_jwt = false
 
 [functions.fbx-api]
 verify_jwt = false
+
+[functions.sales-insights]
+verify_jwt = false
