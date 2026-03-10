@@ -422,13 +422,16 @@ export default function AdminCentralInvestimentos() {
                   {hasCost ? (
                     <>
                       <div className="text-right">
-                        <p className="text-xs text-muted-foreground">Custo Total</p>
-                        <p className="text-sm font-semibold text-foreground">{fmt(tc)}</p>
+                        <p className="text-xs text-muted-foreground">Custo + Fixo</p>
+                        <p className="text-sm font-semibold text-foreground">{fmt(tcWithFixed)}</p>
+                        {fixedPerProduct > 0 && (
+                          <p className="text-[9px] text-amber-400">+{fmt(fixedPerProduct)} fixo</p>
+                        )}
                       </div>
                       <div className="text-right">
-                        <p className="text-xs text-muted-foreground">Lucro</p>
-                        <p className={`text-sm font-semibold ${profit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                          {fmt(profit)} ({margin.toFixed(1)}%)
+                        <p className="text-xs text-muted-foreground">Lucro Real</p>
+                        <p className={`text-sm font-semibold ${realProfit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                          {fmt(realProfit)} ({realMargin.toFixed(1)}%)
                         </p>
                       </div>
                     </>
