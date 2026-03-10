@@ -821,6 +821,194 @@ export default function AdminAquecimento() {
         </main>
       )}
 
+      {/* ── Configurações Tab ── */}
+      {activeTab === "configuracoes" && (
+        <main className="flex-1 p-6 md:p-10 max-w-5xl mx-auto w-full space-y-6">
+          {/* Perfil do Usuário */}
+          <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
+              <MIcon name="person" className="text-[#1876f2]" />
+              <h2 className="text-lg font-bold text-slate-900">Perfil do Usuário</h2>
+            </div>
+            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Nome Completo</label>
+                  <input className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-[#1876f2]/20 focus:border-[#1876f2] outline-none transition-all" type="text" defaultValue="" placeholder="Seu nome completo" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Email Principal</label>
+                  <input className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-[#1876f2]/20 focus:border-[#1876f2] outline-none transition-all" type="email" defaultValue="" placeholder="seu@email.com" />
+                </div>
+              </div>
+              <div className="flex flex-col justify-end">
+                <div className="bg-[#1876f2]/5 p-4 rounded-xl border border-[#1876f2]/20">
+                  <p className="text-xs text-slate-600 mb-3">Sua senha foi alterada pela última vez há 45 dias.</p>
+                  <button className="w-full bg-[#1876f2] text-white text-sm font-bold py-2 rounded-lg hover:bg-[#1876f2]/90 transition-all">
+                    Alterar Senha de Acesso
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Configuração de Ações da Esteira */}
+          <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <MIcon name="settings_accessibility" className="text-[#1876f2]" />
+                <h2 className="text-lg font-bold text-slate-900">Configuração de Ações da Esteira</h2>
+              </div>
+              <div className="flex bg-slate-100 p-1 rounded-lg">
+                {(["7_days", "15_days", "30_days"] as const).map((tk) => (
+                  <button
+                    key={tk}
+                    onClick={() => setConfigTrack(tk)}
+                    className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${
+                      configTrack === tk ? "bg-white shadow-sm text-[#1876f2]" : "text-slate-500 hover:text-[#1876f2]"
+                    }`}
+                  >
+                    {tk === "7_days" ? "7 Dias" : tk === "15_days" ? "15 Dias" : "30 Dias"}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="p-6 space-y-3 max-h-[400px] overflow-y-auto">
+              {configTasks[configTrack].map((task, i) => (
+                <div key={i} className="flex items-center gap-4 p-3 bg-slate-50 rounded-lg border border-slate-100">
+                  <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-[#1876f2]/10 text-[#1876f2] font-bold text-xs rounded-full">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <input
+                    className="flex-1 bg-transparent border-none p-0 text-sm text-slate-900 focus:ring-0 outline-none"
+                    type="text"
+                    value={task.title}
+                    onChange={(e) => {
+                      const updated = { ...configTasks };
+                      updated[configTrack][i].title = e.target.value;
+                      setConfigTasks({ ...updated });
+                    }}
+                  />
+                  <MIcon name="drag_indicator" className="text-slate-400 text-sm cursor-move" />
+                </div>
+              ))}
+              <div className="flex items-center gap-4 p-3 bg-slate-50 rounded-lg border border-slate-100">
+                <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-[#1876f2]/10 text-[#1876f2] font-bold text-xs rounded-full">
+                  {String(configTasks[configTrack].length + 1).padStart(2, "0")}
+                </span>
+                <input
+                  className="flex-1 bg-transparent border-none p-0 text-sm text-slate-400 italic focus:ring-0 outline-none"
+                  type="text"
+                  placeholder={`Adicionar nova ação para o Dia ${configTasks[configTrack].length + 1}...`}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && (e.target as HTMLInputElement).value.trim()) {
+                      const updated = { ...configTasks };
+                      updated[configTrack] = [...updated[configTrack], { title: (e.target as HTMLInputElement).value.trim(), description: "" }];
+                      setConfigTasks({ ...updated });
+                      (e.target as HTMLInputElement).value = "";
+                    }
+                  }}
+                />
+                <MIcon name="add_circle" className="text-[#1876f2] text-sm cursor-pointer" />
+              </div>
+            </div>
+          </section>
+
+          {/* Definição de Trust Tiers */}
+          <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
+              <MIcon name="verified_user" className="text-[#1876f2]" />
+              <h2 className="text-lg font-bold text-slate-900">Definição de Trust Tiers</h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="bg-slate-50">
+                    <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Tier</th>
+                    <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Score Range</th>
+                    <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Critérios de Validação</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  <tr>
+                    <td className="px-6 py-4">
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700">Tier 1 (Low Trust)</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <input className="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-xs w-20 text-slate-900" type="text" defaultValue="0 - 30" />
+                    </td>
+                    <td className="px-6 py-4">
+                      <input className="w-full bg-transparent border-none p-0 text-xs text-slate-700 focus:ring-0 outline-none" type="text" defaultValue="Contas novas, sem histórico de interação ou fotos reais." />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="px-6 py-4">
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-700">Tier 2 (Medium Trust)</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <input className="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-xs w-20 text-slate-900" type="text" defaultValue="31 - 75" />
+                    </td>
+                    <td className="px-6 py-4">
+                      <input className="w-full bg-transparent border-none p-0 text-xs text-slate-700 focus:ring-0 outline-none" type="text" defaultValue="Histórico de 7+ dias, interações diárias, autenticação 2FA ativa." />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="px-6 py-4">
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700">Tier 3 (High Trust)</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <input className="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-xs w-20 text-slate-900" type="text" defaultValue="76 - 100" />
+                    </td>
+                    <td className="px-6 py-4">
+                      <input className="w-full bg-transparent border-none p-0 text-xs text-slate-700 focus:ring-0 outline-none" type="text" defaultValue="Esteira completa, verificação de identidade, 30+ dias de atividade." />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          {/* Integrações de API */}
+          <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
+              <MIcon name="api" className="text-[#1876f2]" />
+              <h2 className="text-lg font-bold text-slate-900">Integrações de API</h2>
+            </div>
+            <div className="p-6 space-y-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Facebook App ID</label>
+                  <input className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-[#1876f2]/20 outline-none" placeholder="Ex: 827419230192" type="text" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Facebook App Secret</label>
+                  <input className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-[#1876f2]/20 outline-none" type="password" defaultValue="••••••••••••••••" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Pixel Conversion API Token</label>
+                <div className="relative">
+                  <input className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-sm pr-12 text-slate-900 focus:ring-2 focus:ring-[#1876f2]/20 outline-none" type="text" defaultValue="EAAGm0PX4ZCpsBAK7ZA9Bf7ZB8qZC4ZB9ZA..." />
+                  <button
+                    onClick={() => { navigator.clipboard.writeText("EAAGm0PX4ZCpsBAK7ZA9Bf7ZB8qZC4ZB9ZA..."); toast.success("Token copiado"); }}
+                    className="absolute right-2 top-1.5 p-1 text-slate-400 hover:text-[#1876f2] transition-colors"
+                  >
+                    <MIcon name="content_copy" className="text-base" />
+                  </button>
+                </div>
+                <p className="text-[10px] text-slate-400 mt-2 italic">Mantenha seus tokens seguros. Nunca compartilhe estas chaves com terceiros.</p>
+              </div>
+            </div>
+          </section>
+
+          {/* Footer */}
+          <div className="pt-4 pb-8 text-center">
+            <p className="text-xs text-slate-400">© 2024 FBFlix Platform - Todos os direitos reservados</p>
+            <p className="text-xs text-slate-400 mt-1">Versão do sistema 2.4.12-stable</p>
+          </div>
+        </main>
+      )}
+
     </div>
   );
 }
