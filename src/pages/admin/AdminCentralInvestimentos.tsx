@@ -532,7 +532,7 @@ export default function AdminCentralInvestimentos() {
 
                   {/* Summary + Save */}
                   <div className="mt-4 flex items-center justify-between flex-wrap gap-3">
-                    <div className="flex items-center gap-6 text-sm">
+                    <div className="flex items-center gap-4 flex-wrap text-sm">
                       <div>
                         <span className="text-muted-foreground">Base: </span>
                         <span className="font-medium text-foreground">{fmt(getEffectiveUnitCost(product.id) + c.labor_cost + c.other_costs)}</span>
@@ -541,10 +541,21 @@ export default function AdminCentralInvestimentos() {
                         <span className="text-muted-foreground">+ Imposto ({c.tax_percent}%): </span>
                         <span className="font-medium text-foreground">{fmt(tc)}</span>
                       </div>
+                      {fixedPerProduct > 0 && (
+                        <div>
+                          <span className="text-amber-400 flex items-center gap-1">
+                            <Building2 className="size-3" /> Fixo rateado: {fmt(fixedPerProduct)}
+                          </span>
+                        </div>
+                      )}
                       <div>
-                        <span className="text-muted-foreground">Lucro: </span>
-                        <span className={`font-bold ${profit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                          {fmt(profit)} ({margin.toFixed(1)}%)
+                        <span className="text-muted-foreground">Custo Total: </span>
+                        <span className="font-bold text-foreground">{fmt(tcWithFixed)}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Lucro Real: </span>
+                        <span className={`font-bold ${realProfit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                          {fmt(realProfit)} ({realMargin.toFixed(1)}%)
                         </span>
                       </div>
                     </div>
