@@ -225,7 +225,7 @@ export default function AdminAquecimento() {
   const selectedProgress = selectedProfile ? getProgress(selectedProfile) : 0;
 
   const tabs = [
-    { key: "dashboard", label: "Dashboard", icon: "dashboard" },
+    { key: "dashboard", label: "Painel", icon: "dashboard" },
     { key: "esteiras", label: "Esteiras", icon: "layers" },
     { key: "relatorios", label: "Relatórios", icon: "analytics" },
     { key: "configuracoes", label: "Configurações", icon: "settings" },
