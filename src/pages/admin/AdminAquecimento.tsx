@@ -865,7 +865,7 @@ export default function AdminAquecimento() {
                     key={tk}
                     onClick={() => setConfigTrack(tk)}
                     className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${
-                      configTrack === tk ? "bg-white shadow-sm text-[#1876f2]" : "text-slate-500 hover:text-[#1876f2]"
+                      configTrack === tk ? "bg-white shadow-sm text-slate-900" : "text-slate-500 hover:text-slate-800"
                     }`}
                   >
                     {tk === "7_days" ? "7 Dias" : tk === "15_days" ? "15 Dias" : "30 Dias"}
