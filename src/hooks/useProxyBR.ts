@@ -19,6 +19,10 @@ async function callProxyBR(action: string, params: Record<string, unknown> = {})
       if (retry.data?.error && !retry.data?.data) throw new Error(retry.data.error);
       return retry.data;
     }
+    // Session fully expired - redirect to login
+    console.warn("[ProxyBR] Session expired, redirecting to login");
+    window.location.href = "/auth";
+    throw new Error("Sessão expirada. Redirecionando para login...");
   }
 
   if (error) throw new Error(error.message || "Erro ao chamar ProxyBR API");
