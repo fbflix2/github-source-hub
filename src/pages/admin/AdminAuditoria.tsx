@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import PurchasesListModal from "@/components/admin/PurchasesListModal";
+import MonthlyGoalModal from "@/components/admin/MonthlyGoalModal";
+import { Target } from "lucide-react";
 
 
 const formatCurrency = (value: number) =>
