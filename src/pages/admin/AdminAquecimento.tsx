@@ -40,7 +40,7 @@ const TRACKS: Record<string, { label: string; days: number; tasks: TrackDay[] }>
       { day: 11, title: "Diversificar objetivos", description: "Misturar Engagement e Conversions." },
       { day: 12, title: "Ads R$18/dia", description: "Escalar com creatives variados." },
       { day: 13, title: "Estabilização R$20", description: "Manter orçamento estável." },
-      { day: 14, title: "Checar Trust Tier", description: "Verificar nível de confiança da conta." },
+      { day: 14, title: "Checar Nível de Confiança", description: "Verificar nível de confiança da conta." },
       { day: 15, title: "Verificar BM parcial", description: "Checar status do Business Manager." },
     ],
   },
