@@ -37,7 +37,8 @@ import {
   RefreshCw,
   ArrowRightLeft,
   Briefcase,
-  Coins
+  Coins,
+  Flame
 } from "lucide-react";
 
 interface SubItem {
