@@ -42,6 +42,7 @@ const allMenuOptions = [
   { path: "/admin/tutoriais", label: "Configurações > Tutoriais" },
   { path: "/admin/termos", label: "Configurações > Termos de uso" },
   { path: "/admin/api", label: "Configurações > API | Token" },
+  { path: "/admin/aquecimento", label: "Aquecimento" },
 ];
 
 interface ModeratorPermissionsModalProps {
