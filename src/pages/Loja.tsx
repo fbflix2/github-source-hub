@@ -162,17 +162,6 @@ export default function Dashboard() {
     return match || null;
   };
 
-  // Also check inactive local proxies to hide them from API results
-  const getInactiveLocalProxy = (apiProduct: any) => {
-    const apiId = String(apiProduct.id);
-    const apiName = apiProduct.name || "";
-    // Check all local proxy products (including inactive ones already filtered out by DB)
-    // Since inactive products are filtered by the DB query, we need a separate check
-    // We rely on the fact that if a local product exists and is active, it's in localProxyProducts
-    // If it's NOT in localProxyProducts but has a matching external_id, it means it was set inactive
-    return false; // Will be handled by filtering proxyAsProducts below
-  };
-
   const filters = ["Todos", ...categories.filter((c) => c.slug !== "proxy").map((c) => c.name), "Proxy"];
 
   const proxyAsProducts: Product[] = proxyProducts.map((p: any) => {
