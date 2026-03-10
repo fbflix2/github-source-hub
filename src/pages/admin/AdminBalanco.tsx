@@ -11,6 +11,7 @@ import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell } from 
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import SalesInsightsPanel from "@/components/admin/SalesInsightsPanel";
 
 const timeFilters = ["7 Dias", "30 Dias", "Ano Atual"];
 const chartFilters = ["Lucro", "Custos", "Receitas"];
