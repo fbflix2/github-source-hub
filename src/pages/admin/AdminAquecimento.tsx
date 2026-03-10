@@ -893,7 +893,7 @@ export default function AdminAquecimento() {
                 </div>
               ))}
               <div className="flex items-center gap-4 p-3 bg-slate-50 rounded-lg border border-slate-100">
-                <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-slate-200 text-slate-700 font-bold text-xs rounded-full">
+                <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-blue-100 text-[#1876f2] font-bold text-xs rounded-full">
                   {String(configTasks[configTrack].length + 1).padStart(2, "0")}
                 </span>
                 <input
