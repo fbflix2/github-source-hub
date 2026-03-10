@@ -91,8 +91,8 @@ export function AdminLayout() {
 
       <main className="relative z-10 flex-1 flex flex-col h-full overflow-hidden">
         {!hideHeader && <AdminHeader />}
-        <div className={`flex-1 ${hideHeader ? 'overflow-hidden' : 'overflow-y-auto'} px-6 pb-6`}>
-          <div className="max-w-7xl mx-auto w-full">
+        <div className={`flex-1 ${hideHeader ? 'overflow-hidden' : 'overflow-y-auto'} ${isAquecimento ? '' : 'px-6 pb-6'}`}>
+          <div className={`${isAquecimento ? 'w-full' : 'max-w-7xl mx-auto w-full'}`}>
             <Outlet />
           </div>
         </div>
