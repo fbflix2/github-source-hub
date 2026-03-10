@@ -827,35 +827,6 @@ export default function AdminAquecimento() {
       {/* ── Configurações Tab ── */}
       {activeTab === "configuracoes" && (
         <main className="flex-1 p-6 md:p-10 max-w-5xl mx-auto w-full space-y-6">
-          {/* Perfil do Usuário */}
-          <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
-              <MIcon name="person" className="text-[#1876f2]" />
-              <h2 className="text-lg font-bold text-slate-900">Perfil do Usuário</h2>
-            </div>
-            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Nome Completo</label>
-                  <input className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-slate-400/20 focus:border-slate-400 outline-none transition-all" type="text" defaultValue="" placeholder="Seu nome completo" />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Email Principal</label>
-                  <input className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-slate-400/20 focus:border-slate-400 outline-none transition-all" type="email" defaultValue="" placeholder="seu@email.com" />
-                </div>
-              </div>
-              <div className="flex flex-col justify-end">
-                <div className="bg-slate-100 p-4 rounded-xl border border-slate-200">
-                  <p className="text-xs text-slate-600 mb-3">Sua senha foi alterada pela última vez há 45 dias.</p>
-                  <button className="w-full bg-[#1876f2] text-white text-sm font-bold py-2 rounded-lg hover:bg-[#1565c0] transition-all">
-                    Alterar Senha de Acesso
-                  </button>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* Configuração de Ações da Esteira */}
           <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -1004,11 +975,6 @@ export default function AdminAquecimento() {
             </div>
           </section>
 
-          {/* Footer */}
-          <div className="pt-4 pb-8 text-center">
-            <p className="text-xs text-slate-400">© 2024 FBFlix Platform - Todos os direitos reservados</p>
-            <p className="text-xs text-slate-400 mt-1">Versão do sistema 2.4.12-stable</p>
-          </div>
         </main>
       )}
 
