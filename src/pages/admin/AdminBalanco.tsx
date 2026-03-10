@@ -355,9 +355,33 @@ export default function AdminBalanco() {
     setLoading(false);
   };
 
+  const saveAllocation = async () => {
+    setSavingAllocation(true);
+    const { error } = await supabase.from("site_settings").upsert(
+      { key: "fixed_cost_allocation", value: JSON.stringify(allocationDraft) },
+      { onConflict: "key" }
+    );
+    if (error) {
+      toast.error("Erro ao salvar rateio: " + error.message);
+    } else {
+      setCategoryAllocation(allocationDraft);
+      setEditingAllocation(false);
+      toast.success("Rateio salvo!");
+    }
+    setSavingAllocation(false);
+  };
+
   const combinedRevenue = totalRevenue + proxyRevenue;
-  const profit = combinedRevenue - totalCost;
-  const margin = combinedRevenue > 0 ? ((profit / combinedRevenue) * 100).toFixed(1) : "0";
+  // Lucro líquido REAL = Receita - COGS - Custos Fixos
+  const profitBeforeFixed = combinedRevenue - totalCost;
+  const netProfit = profitBeforeFixed - fixedCosts;
+  const margin = combinedRevenue > 0 ? ((netProfit / combinedRevenue) * 100).toFixed(1) : "0";
+  const marginBeforeFixed = combinedRevenue > 0 ? ((profitBeforeFixed / combinedRevenue) * 100).toFixed(1) : "0";
+
+  // Break-even: how many units needed to cover fixed costs
+  const avgProfitPerUnit = totalUnitsSold > 0 ? profitBeforeFixed / totalUnitsSold : 0;
+  const breakEvenUnits = avgProfitPerUnit > 0 ? Math.ceil(fixedCosts / avgProfitPerUnit) : 0;
+  const breakEvenProgress = breakEvenUnits > 0 ? Math.min((totalUnitsSold / breakEvenUnits) * 100, 100) : 0;
 
   const filteredTx = transactions.filter(tx =>
     tx.item.toLowerCase().includes(searchQuery.toLowerCase()) ||
