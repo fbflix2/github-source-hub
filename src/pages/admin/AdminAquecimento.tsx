@@ -898,8 +898,8 @@ export default function AdminAquecimento() {
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="bg-slate-50">
-                    <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Tier</th>
-                    <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Score Range</th>
+                    <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Nível</th>
+                    <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Faixa de Score</th>
                     <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Critérios de Validação</th>
                   </tr>
                 </thead>
