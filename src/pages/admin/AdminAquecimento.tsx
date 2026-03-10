@@ -120,6 +120,7 @@ export default function AdminAquecimento() {
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [activeTab, setActiveTab] = useState<"dashboard" | "esteiras" | "relatorios">("dashboard");
+  const [reportFilter, setReportFilter] = useState("");
 
   useEffect(() => {
     if (!document.querySelector('link[href*="Material+Symbols+Outlined"]')) {
