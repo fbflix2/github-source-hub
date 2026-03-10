@@ -373,8 +373,12 @@ export default function AdminCentralInvestimentos() {
         {filtered.map(product => {
           const c = getCost(product.id);
           const tc = totalCost(product.id);
+          const fixedPerProduct = getFixedCostPerProduct(product.id);
+          const tcWithFixed = tc + fixedPerProduct;
           const profit = product.price - tc;
+          const realProfit = product.price - tcWithFixed;
           const margin = product.price > 0 ? ((profit / product.price) * 100) : 0;
+          const realMargin = product.price > 0 ? ((realProfit / product.price) * 100) : 0;
           const isExpanded = expandedId === product.id;
           const hasCost = tc > 0;
           const autoCost = proxyCosts[product.id];
