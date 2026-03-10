@@ -301,7 +301,7 @@ export default function AdminAquecimento() {
               onClick={() => setActiveTab(tab.key)}
               className={`flex items-center gap-2 border-b-[3px] pb-4 pt-5 font-bold text-sm tracking-wide transition-colors ${
                 activeTab === tab.key
-                  ? "border-slate-800 text-slate-900"
+                  ? "border-[#1876f2] text-slate-900"
                   : "border-transparent text-slate-500 hover:text-slate-800"
               }`}
             >
@@ -319,7 +319,7 @@ export default function AdminAquecimento() {
             <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-2">
               <div className="flex items-center justify-between">
                 <p className="text-slate-500 font-medium text-sm">Total Perfis</p>
-                <MIcon name="group" className="text-slate-700" />
+                <MIcon name="group" className="text-[#1876f2]" />
               </div>
               <p className="text-3xl font-black text-slate-900">{totalProfiles.toLocaleString()}</p>
               <div className="flex items-center gap-1 text-emerald-500 font-bold text-sm">
@@ -381,7 +381,7 @@ export default function AdminAquecimento() {
                     <span>{newProfiles} perfis</span>
                   </div>
                   <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-slate-400 rounded-full" style={{ width: `${totalProfiles ? Math.round((newProfiles / totalProfiles) * 100) : 35}%` }} />
+                    <div className="h-full bg-[#1876f2]/40 rounded-full" style={{ width: `${totalProfiles ? Math.round((newProfiles / totalProfiles) * 100) : 35}%` }} />
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -390,7 +390,7 @@ export default function AdminAquecimento() {
                     <span>{midProfiles} perfis</span>
                   </div>
                   <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-slate-600 rounded-full" style={{ width: `${totalProfiles ? Math.round((midProfiles / totalProfiles) * 100) : 55}%` }} />
+                    <div className="h-full bg-[#1876f2]/70 rounded-full" style={{ width: `${totalProfiles ? Math.round((midProfiles / totalProfiles) * 100) : 55}%` }} />
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -399,7 +399,7 @@ export default function AdminAquecimento() {
                     <span>{matureProfiles} perfis</span>
                   </div>
                   <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-slate-800 rounded-full" style={{ width: `${totalProfiles ? Math.round((matureProfiles / totalProfiles) * 100) : 85}%` }} />
+                    <div className="h-full bg-[#1876f2] rounded-full" style={{ width: `${totalProfiles ? Math.round((matureProfiles / totalProfiles) * 100) : 85}%` }} />
                   </div>
                 </div>
               </div>
@@ -412,7 +412,7 @@ export default function AdminAquecimento() {
                 <div className="relative w-48 h-48">
                   <svg className="w-full h-full" viewBox="0 0 36 36">
                     <circle className="stroke-slate-100" cx="18" cy="18" fill="none" r="16" strokeWidth="4" />
-                    <circle className="stroke-slate-600" cx="18" cy="18" fill="none" r="16" strokeDasharray={`${t2Pct}, 100`} strokeDashoffset={`-${t3Pct}`} strokeLinecap="round" strokeWidth="4" />
+                    <circle className="stroke-[#1876f2]" cx="18" cy="18" fill="none" r="16" strokeDasharray={`${t2Pct}, 100`} strokeDashoffset={`-${t3Pct}`} strokeLinecap="round" strokeWidth="4" />
                     <circle className="stroke-emerald-500" cx="18" cy="18" fill="none" r="16" strokeDasharray={`${t3Pct}, 100`} strokeLinecap="round" strokeWidth="4" />
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
@@ -430,7 +430,7 @@ export default function AdminAquecimento() {
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="w-3 h-3 rounded-full bg-slate-600" />
+                      <span className="w-3 h-3 rounded-full bg-[#1876f2]" />
                       <span className="text-sm font-medium">Medium Trust (T2)</span>
                     </div>
                     <span className="text-sm font-bold">{t2Pct}%</span>
@@ -451,14 +451,14 @@ export default function AdminAquecimento() {
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="p-6 border-b border-slate-200 flex items-center justify-between">
               <h3 className="text-lg font-bold">Atividade Recente</h3>
-              <button className="text-slate-700 text-sm font-bold hover:underline">Ver tudo</button>
+              <button className="text-[#1876f2] text-sm font-bold hover:underline">Ver tudo</button>
             </div>
             <div className="divide-y divide-slate-100">
               {profiles.slice(0, 4).map((p, i) => {
                 const icons = ["trending_up", "person_add", "settings_backup_restore", "error"];
                 const colors = ["emerald", "blue", "amber", "rose"];
                 const color = colors[i % 4];
-                const bgMap: Record<string, string> = { emerald: "bg-emerald-100 text-emerald-600", blue: "bg-slate-200 text-slate-700", amber: "bg-amber-100 text-amber-600", rose: "bg-rose-100 text-rose-600" };
+                const bgMap: Record<string, string> = { emerald: "bg-emerald-100 text-emerald-600", blue: "bg-blue-100 text-[#1876f2]", amber: "bg-amber-100 text-amber-600", rose: "bg-rose-100 text-rose-600" };
                 const date = new Date(p.created_at);
                 const ago = Math.round((Date.now() - date.getTime()) / 60000);
                 const agoLabel = ago < 60 ? `${ago}m` : ago < 1440 ? `${Math.round(ago / 60)}h` : `${Math.round(ago / 1440)}d`;
@@ -492,7 +492,7 @@ export default function AdminAquecimento() {
           <section className="lg:col-span-5">
             <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
               <div className="px-5 py-3.5 border-b border-slate-100 flex items-center gap-2.5">
-                <MIcon name="add_circle" className="text-slate-700 text-xl" />
+                <MIcon name="add_circle" className="text-[#1876f2] text-xl" />
                 <h2 className="text-base font-bold text-slate-900">Iniciar Novo Aquecimento</h2>
               </div>
               <div className="p-5 space-y-4">
@@ -526,7 +526,7 @@ export default function AdminAquecimento() {
                 <button
                   onClick={handleCreate}
                   disabled={creating}
-                  className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50"
+                  className="w-full bg-[#1876f2] hover:bg-[#1565c0] text-white font-bold py-3 rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50"
                 >
                   <MIcon name="assignment_ind" className="text-lg" />
                   {creating ? "Atribuindo..." : "Atribuir Perfil"}
@@ -554,14 +554,14 @@ export default function AdminAquecimento() {
                       >
                         <MIcon
                           name={p.status === "completed" ? "check_circle" : p.status === "restricted" ? "warning" : "play_circle"}
-                          className={`text-base ${p.status === "completed" ? "text-green-500" : p.status === "restricted" ? "text-red-500" : "text-slate-700"}`}
+                          className={`text-base ${p.status === "completed" ? "text-green-500" : p.status === "restricted" ? "text-red-500" : "text-[#1876f2]"}`}
                         />
                         <div className="flex-grow min-w-0">
                           <p className="text-xs font-bold text-slate-900 truncate">{p.profile_code}</p>
                           <p className="text-[11px] text-slate-500">{TRACKS[p.track_type]?.label} • {prog}%</p>
                         </div>
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                          p.status === "active" ? "bg-slate-200 text-slate-700" :
+                          p.status === "active" ? "bg-blue-100 text-[#1876f2]" :
                           p.status === "completed" ? "bg-green-50 text-green-600" :
                           p.status === "restricted" ? "bg-red-50 text-red-600" :
                           "bg-yellow-50 text-yellow-600"
@@ -604,7 +604,7 @@ export default function AdminAquecimento() {
                       {selectedProfile.trust_tier && <span className="ml-2 text-purple-600 font-bold">• {selectedProfile.trust_tier}</span>}
                     </p>
                   </div>
-                  <span className="bg-slate-200 text-slate-700 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
+                  <span className="bg-blue-100 text-[#1876f2] text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
                     {selectedProfile.status === "active" ? "Ativo" : selectedProfile.status === "completed" ? "Concluído" : selectedProfile.status}
                   </span>
                 </div>
@@ -643,12 +643,12 @@ export default function AdminAquecimento() {
                               task.completed
                                 ? "bg-slate-50 border-slate-100"
                                 : isCurrent
-                                ? "bg-slate-100 border-slate-300 ring-1 ring-slate-300"
+                                ? "bg-blue-50 border-[#1876f2]/30 ring-1 ring-[#1876f2]/30"
                                 : "bg-slate-50 border-slate-100 opacity-60"
                             }`}
                           >
                             <div className={`p-1.5 rounded-full ${
-                              task.completed ? "bg-green-100 text-green-600" : isCurrent ? "bg-slate-200 text-slate-700" : "bg-slate-200 text-slate-400"
+                              task.completed ? "bg-green-100 text-green-600" : isCurrent ? "bg-blue-100 text-[#1876f2]" : "bg-slate-200 text-slate-400"
                             }`}>
                               <MIcon name={task.completed ? "check" : isCurrent ? "sync" : "radio_button_unchecked"} className="text-base" />
                             </div>
@@ -659,7 +659,7 @@ export default function AdminAquecimento() {
                               <p className="text-[11px] text-slate-500 truncate">{task.description}</p>
                             </div>
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded whitespace-nowrap ${
-                              task.completed ? "text-green-600 bg-green-50" : isCurrent ? "text-slate-700 animate-pulse" : "text-slate-400"
+                              task.completed ? "text-green-600 bg-green-50" : isCurrent ? "text-[#1876f2] animate-pulse" : "text-slate-400"
                             }`}>
                               {task.completed ? "Concluído" : isCurrent ? "Em andamento" : "Pendente"}
                             </span>
@@ -736,7 +736,7 @@ export default function AdminAquecimento() {
               <h4 className="font-bold text-lg">Desempenho de Aquecimento (30 dias)</h4>
               <div className="flex gap-4">
                 <span className="flex items-center gap-2 text-xs font-medium text-slate-500">
-                  <span className="w-2 h-2 rounded-full bg-slate-700" /> Sucesso
+                  <span className="w-2 h-2 rounded-full bg-[#1876f2]" /> Sucesso
                 </span>
                 <span className="flex items-center gap-2 text-xs font-medium text-slate-500">
                   <span className="w-2 h-2 rounded-full bg-slate-200" /> Falhas
@@ -746,7 +746,7 @@ export default function AdminAquecimento() {
             <div className="h-64 w-full bg-slate-50 rounded-lg flex items-center justify-center relative overflow-hidden">
               <div className="absolute inset-0 flex items-end px-4 gap-2">
                 {[24, 40, 50, 33, 60, 66, 75, 100, 80, 86, 50, 75].map((h, i) => (
-                  <div key={i} className="flex-1 bg-slate-700 rounded-t-sm" style={{ height: `${h}%`, opacity: 0.2 + (h / 100) * 0.8 }} />
+                  <div key={i} className="flex-1 bg-[#1876f2] rounded-t-sm" style={{ height: `${h}%`, opacity: 0.2 + (h / 100) * 0.8 }} />
                 ))}
               </div>
               <p className="relative z-10 text-slate-400 text-sm font-medium">Gráfico de Performance Temporal</p>
@@ -789,7 +789,7 @@ export default function AdminAquecimento() {
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${
                           p.status === "completed" ? "bg-emerald-100 text-emerald-800" :
                           p.status === "restricted" ? "bg-rose-100 text-rose-800" :
-                          "bg-slate-200 text-slate-700"
+                          "bg-blue-100 text-[#1876f2]"
                         }`}>
                           {p.status === "completed" ? "Sucesso" : p.status === "restricted" ? "Falha" : "Em andamento"}
                         </span>
@@ -797,7 +797,7 @@ export default function AdminAquecimento() {
                       <td className="px-6 py-4 text-right">
                         <button
                           onClick={() => { setSelectedProfileId(p.id); if (!tasks[p.id]) fetchTasks(p.id); setActiveTab("esteiras"); }}
-                          className="text-slate-700 font-bold text-sm hover:underline"
+                          className="text-[#1876f2] font-bold text-sm hover:underline"
                         >
                           Ver Detalhes
                         </button>
@@ -827,7 +827,7 @@ export default function AdminAquecimento() {
           {/* Perfil do Usuário */}
           <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
-              <MIcon name="person" className="text-slate-700" />
+              <MIcon name="person" className="text-[#1876f2]" />
               <h2 className="text-lg font-bold text-slate-900">Perfil do Usuário</h2>
             </div>
             <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -844,7 +844,7 @@ export default function AdminAquecimento() {
               <div className="flex flex-col justify-end">
                 <div className="bg-slate-100 p-4 rounded-xl border border-slate-200">
                   <p className="text-xs text-slate-600 mb-3">Sua senha foi alterada pela última vez há 45 dias.</p>
-                  <button className="w-full bg-slate-800 text-white text-sm font-bold py-2 rounded-lg hover:bg-slate-700 transition-all">
+                  <button className="w-full bg-[#1876f2] text-white text-sm font-bold py-2 rounded-lg hover:bg-[#1565c0] transition-all">
                     Alterar Senha de Acesso
                   </button>
                 </div>
@@ -856,7 +856,7 @@ export default function AdminAquecimento() {
           <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <MIcon name="settings_accessibility" className="text-slate-700" />
+                <MIcon name="settings_accessibility" className="text-[#1876f2]" />
                 <h2 className="text-lg font-bold text-slate-900">Configuração de Ações da Esteira</h2>
               </div>
               <div className="flex bg-slate-100 p-1 rounded-lg">
@@ -876,7 +876,7 @@ export default function AdminAquecimento() {
             <div className="p-6 space-y-3 max-h-[400px] overflow-y-auto">
               {configTasks[configTrack].map((task, i) => (
                 <div key={i} className="flex items-center gap-4 p-3 bg-slate-50 rounded-lg border border-slate-100">
-                  <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-slate-200 text-slate-700 font-bold text-xs rounded-full">
+                  <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-blue-100 text-[#1876f2] font-bold text-xs rounded-full">
                     {String(i + 1).padStart(2, "0")}
                   </span>
                   <input
@@ -893,7 +893,7 @@ export default function AdminAquecimento() {
                 </div>
               ))}
               <div className="flex items-center gap-4 p-3 bg-slate-50 rounded-lg border border-slate-100">
-                <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-slate-200 text-slate-700 font-bold text-xs rounded-full">
+                <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-blue-100 text-[#1876f2] font-bold text-xs rounded-full">
                   {String(configTasks[configTrack].length + 1).padStart(2, "0")}
                 </span>
                 <input
@@ -909,7 +909,7 @@ export default function AdminAquecimento() {
                     }
                   }}
                 />
-                <MIcon name="add_circle" className="text-slate-700 text-sm cursor-pointer" />
+                <MIcon name="add_circle" className="text-[#1876f2] text-sm cursor-pointer" />
               </div>
             </div>
           </section>
@@ -917,7 +917,7 @@ export default function AdminAquecimento() {
           {/* Definição de Trust Tiers */}
           <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
-              <MIcon name="verified_user" className="text-slate-700" />
+              <MIcon name="verified_user" className="text-[#1876f2]" />
               <h2 className="text-lg font-bold text-slate-900">Definição de Trust Tiers</h2>
             </div>
             <div className="overflow-x-auto">
@@ -971,7 +971,7 @@ export default function AdminAquecimento() {
           {/* Integrações de API */}
           <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
-              <MIcon name="api" className="text-slate-700" />
+              <MIcon name="api" className="text-[#1876f2]" />
               <h2 className="text-lg font-bold text-slate-900">Integrações de API</h2>
             </div>
             <div className="p-6 space-y-5">
