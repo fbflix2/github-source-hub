@@ -4,7 +4,7 @@ import { useProxyRevenue } from "@/hooks/useProxyRevenue";
 import { 
   ArrowLeft, ShoppingCart, Wallet, TrendingUp, Percent, Tag, Timer, Download,
   ChevronDown, ChevronLeft, ChevronRight, BarChart3, Search, ArrowUp, ArrowDown, Loader2,
-  Building2, Target, Settings2, Save
+  Building2, Target, Settings2, Save, Lightbulb
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, Cell } from "recharts";
