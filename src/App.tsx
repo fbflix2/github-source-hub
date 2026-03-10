@@ -265,6 +265,7 @@ const App = () => {
                   <Route path="anuncios" element={<AdminAnuncios />} />
                   <Route path="chat" element={<AdminTeamChat />} />
                   <Route path="fbx" element={<AdminFBX />} />
+                  <Route path="aquecimento" element={<AdminAquecimento />} />
                 </Route>
 
                 {/* Protected routes */}

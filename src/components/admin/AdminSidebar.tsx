@@ -64,6 +64,7 @@ const allMenuItems: MenuItem[] = [
   { title: "Reposições", icon: RefreshCw, path: "/admin/reposicoes" },
   { title: "Trocas", icon: ArrowRightLeft, path: "/admin/trocas" },
   { title: "Gestão BMs", icon: Briefcase, path: "/admin/gestao-bms" },
+  { title: "Aquecimento", icon: Flame, path: "/admin/aquecimento" },
   { title: "Produtos", icon: Package, path: "/admin/produtos" },
   { title: "Pedidos", icon: ShoppingCart, path: "/admin/pedidos" },
   { title: "Pagamentos", icon: CreditCard, path: "/admin/pagamentos" },
