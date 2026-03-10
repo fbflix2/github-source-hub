@@ -108,8 +108,20 @@ export default function AdminAuditoria() {
     setLoading(false);
   };
 
+  const fetchGoals = async () => {
+    const { data } = await supabase
+      .from("site_settings")
+      .select("value")
+      .eq("key", "monthly_goals")
+      .maybeSingle();
+    if (data?.value) {
+      try { setMonthlyGoal(JSON.parse(data.value)); } catch { /* */ }
+    }
+  };
+
   useEffect(() => {
     fetchData();
+    fetchGoals();
   }, []);
 
   const combinedRevenue = totalRevenue + proxyRevenue;
