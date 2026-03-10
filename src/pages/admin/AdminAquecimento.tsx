@@ -1004,11 +1004,6 @@ export default function AdminAquecimento() {
             </div>
           </section>
 
-          {/* Footer */}
-          <div className="pt-4 pb-8 text-center">
-            <p className="text-xs text-slate-400">© 2024 FBFlix Platform - Todos os direitos reservados</p>
-            <p className="text-xs text-slate-400 mt-1">Versão do sistema 2.4.12-stable</p>
-          </div>
         </main>
       )}
 
