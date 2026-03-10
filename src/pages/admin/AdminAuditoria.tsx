@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import PurchasesListModal from "@/components/admin/PurchasesListModal";
+import MonthlyGoalModal from "@/components/admin/MonthlyGoalModal";
+import { Target } from "lucide-react";
 
 
 const formatCurrency = (value: number) =>
@@ -35,7 +37,9 @@ export default function AdminAuditoria() {
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [showPurchases, setShowPurchases] = useState(false);
-  
+  const [showGoalModal, setShowGoalModal] = useState(false);
+  const [monthlyGoal, setMonthlyGoal] = useState<{ revenue: number; profit: number; sales: number } | null>(null);
+
   const [projectedProfit, setProjectedProfit] = useState(0);
   const [projectedMargin, setProjectedMargin] = useState(0);
   const [totalMonthlyCosts, setTotalMonthlyCosts] = useState(0);
@@ -104,8 +108,20 @@ export default function AdminAuditoria() {
     setLoading(false);
   };
 
+  const fetchGoals = async () => {
+    const { data } = await supabase
+      .from("site_settings")
+      .select("value")
+      .eq("key", "monthly_goals")
+      .maybeSingle();
+    if (data?.value) {
+      try { setMonthlyGoal(JSON.parse(data.value)); } catch { /* */ }
+    }
+  };
+
   useEffect(() => {
     fetchData();
+    fetchGoals();
   }, []);
 
   const combinedRevenue = totalRevenue + proxyRevenue;
@@ -264,19 +280,78 @@ export default function AdminAuditoria() {
           ))}
         </section>
 
-        {/* Last Update */}
-        <div className="w-full bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-xl p-6 flex flex-col sm:flex-row items-center justify-between gap-4 opacity-80 hover:opacity-100 transition-opacity">
-          <div className="flex items-center gap-4">
-            <div className="h-10 w-10 rounded-full bg-white/5 flex items-center justify-center border border-white/10">
-              {loading ? <Loader2 className="size-5 text-gray-400 animate-spin" /> : <History className="size-5 text-gray-400" />}
+        {/* Monthly Goal + Last Update */}
+        <div 
+          onClick={() => setShowGoalModal(true)}
+          className="w-full bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-xl p-6 cursor-pointer hover:border-white/20 transition-all group"
+        >
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+            <div className="flex items-center gap-4">
+              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20 group-hover:bg-primary/20 transition-colors">
+                <Target className="size-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm text-white font-medium">Meta do Mês</p>
+                <p className="text-xs text-muted-foreground">
+                  {monthlyGoal?.revenue 
+                    ? `Meta: ${formatCurrency(monthlyGoal.revenue)} • Clique para editar`
+                    : "Clique para definir suas metas mensais"
+                  }
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-white font-medium">Última atualização do sistema</p>
-              <p className="text-xs text-gray-500">
-                {lastUpdate ? `${timeAgo(lastUpdate)} • Sincronizado automaticamente` : "Sem dados recentes"}
-              </p>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                {loading ? <Loader2 className="size-3 animate-spin" /> : <History className="size-3" />}
+                {lastUpdate ? timeAgo(lastUpdate) : "—"}
+              </div>
+              {monthlyGoal?.revenue ? (
+                <span className={`text-sm font-bold ${
+                  Math.round((combinedRevenue / monthlyGoal.revenue) * 100) >= 100 
+                    ? "text-green-400" 
+                    : "text-white"
+                }`}>
+                  {Math.min(100, Math.round((combinedRevenue / monthlyGoal.revenue) * 100))}%
+                </span>
+              ) : null}
             </div>
           </div>
+
+          {/* Progress Bar */}
+          {monthlyGoal?.revenue ? (() => {
+            const pct = Math.min(100, Math.round((combinedRevenue / monthlyGoal.revenue) * 100));
+            const remaining = Math.max(0, monthlyGoal.revenue - combinedRevenue);
+            return (
+              <div className="space-y-2">
+                <div className="h-2.5 bg-white/5 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all duration-1000 ease-out"
+                    style={{
+                      width: `${pct}%`,
+                      background: pct >= 100
+                        ? "linear-gradient(90deg, hsl(var(--primary)), #22c55e)"
+                        : pct >= 70
+                        ? "linear-gradient(90deg, hsl(var(--primary)), hsl(var(--primary) / 0.7))"
+                        : "hsl(var(--primary) / 0.8)",
+                    }}
+                  />
+                </div>
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>{formatCurrency(combinedRevenue)}</span>
+                  <span>
+                    {pct >= 100 
+                      ? "🎯 Meta batida!" 
+                      : `Faltam ${formatCurrency(remaining)}`
+                    }
+                  </span>
+                </div>
+              </div>
+            );
+          })() : (
+            <div className="h-2.5 bg-white/5 rounded-full overflow-hidden">
+              <div className="h-full w-0 rounded-full" />
+            </div>
+          )}
         </div>
       </div>
 
@@ -286,6 +361,13 @@ export default function AdminAuditoria() {
         open={showPurchases}
         onClose={() => setShowPurchases(false)}
         onUpdate={fetchData}
+      />
+
+      <MonthlyGoalModal
+        open={showGoalModal}
+        onClose={() => setShowGoalModal(false)}
+        currentRevenue={combinedRevenue}
+        onSaved={fetchGoals}
       />
     </div>
   );
