@@ -301,8 +301,8 @@ export default function AdminAquecimento() {
               onClick={() => setActiveTab(tab.key)}
               className={`flex items-center gap-2 border-b-[3px] pb-4 pt-5 font-bold text-sm tracking-wide transition-colors ${
                 activeTab === tab.key
-                  ? "border-[#1876f2] text-[#1876f2]"
-                  : "border-transparent text-slate-500 hover:text-[#1876f2]"
+                  ? "border-slate-800 text-slate-900"
+                  : "border-transparent text-slate-500 hover:text-slate-800"
               }`}
             >
               {tab.label}
