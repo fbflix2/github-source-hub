@@ -827,7 +827,7 @@ export default function AdminAquecimento() {
           {/* Perfil do Usuário */}
           <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
-              <MIcon name="person" className="text-[#1876f2]" />
+              <MIcon name="person" className="text-slate-700" />
               <h2 className="text-lg font-bold text-slate-900">Perfil do Usuário</h2>
             </div>
             <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
