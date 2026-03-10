@@ -119,7 +119,7 @@ export default function AdminAquecimento() {
   const [selectedTrack, setSelectedTrack] = useState("15_days");
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
-  const [activeTab, setActiveTab] = useState<"dashboard" | "esteiras" | "relatorios">("esteiras");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "esteiras" | "relatorios">("dashboard");
 
   useEffect(() => {
     if (!document.querySelector('link[href*="Material+Symbols+Outlined"]')) {
