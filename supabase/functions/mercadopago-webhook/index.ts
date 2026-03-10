@@ -486,7 +486,7 @@ Deno.serve(async (req) => {
               .single();
 
             const tags = wsProductInfo?.tags || [];
-            if (Array.isArray(tags) && tags.includes("webshare")) {
+            if (Array.isArray(tags) && (tags.includes("webshare") || tags.includes("proxy"))) {
               console.log(`[webhook-webshare] Webshare product detected for item ${oi.id}, qty=${oi.quantity || 1}`);
               
               const WEBSHARE_API_KEY = Deno.env.get("WEBSHARE_API_KEY");
