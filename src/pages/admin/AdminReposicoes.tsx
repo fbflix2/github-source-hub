@@ -184,7 +184,7 @@ export default function AdminReposicoes() {
     return matchSearch && matchReason;
   });
 
-  const totalValue = filtered.reduce((sum, i) => sum + Number(i.item_value), 0);
+  const totalValue = filtered.reduce((sum, i) => sum + Number(i.cost_value ?? 0), 0);
 
   return (
     <div className="space-y-6">
