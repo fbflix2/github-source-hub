@@ -526,7 +526,7 @@ export default function AdminAquecimento() {
                 <button
                   onClick={handleCreate}
                   disabled={creating}
-                  className="w-full bg-[#1876f2] hover:bg-[#1876f2]/90 text-white font-bold py-3 rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50"
+                  className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50"
                 >
                   <MIcon name="assignment_ind" className="text-lg" />
                   {creating ? "Atribuindo..." : "Atribuir Perfil"}
