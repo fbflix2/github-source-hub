@@ -28,7 +28,7 @@ export default function ExchangePaymentGate({ itemId, orderId, orderCode, pendin
   const [pixData, setPixData] = useState<{ qr_code: string; qr_code_base64: string } | null>(null);
   const [paymentId, setPaymentId] = useState<string | null>(null);
   const [pixCopied, setPixCopied] = useState(false);
-  const pollingRef = useRef<NodeJS.Timeout | null>(null);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     fetchBalance();
