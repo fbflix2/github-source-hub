@@ -23,6 +23,7 @@ interface Replacement {
   order_id: string | null;
   order_item_id: string | null;
   new_stock_item_id: string | null;
+  cost_value?: number;
 }
 
 const reasonLabels: Record<string, string> = {
