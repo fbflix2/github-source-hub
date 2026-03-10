@@ -814,20 +814,6 @@ export default function AdminAquecimento() {
         </main>
       )}
 
-      {/* ── Footer ── */}
-      <footer className="bg-white border-t border-slate-200 py-8 px-6 md:px-12 lg:px-40 mt-auto">
-        <div className="max-w-[1200px] mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-          <div className="flex items-center gap-2 opacity-50">
-            <MIcon name="fluid" className="text-sm" />
-            <span className="text-xs font-bold uppercase tracking-widest">FBFlix Operacional © 2024</span>
-          </div>
-          <div className="flex gap-6 text-sm text-slate-500">
-            <a className="hover:text-[#1876f2]" href="#">Ajuda</a>
-            <a className="hover:text-[#1876f2]" href="#">Status API</a>
-            <a className="hover:text-[#1876f2]" href="#">Privacidade</a>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }
