@@ -53,7 +53,53 @@ export default function AdminReposicoes() {
       console.error(error);
     }
     const items = (data as any[]) ?? [];
-    setItems(items);
+
+    // Fetch cost values via stock_item -> product -> product_costs
+    const stockItemIds = items.map(i => i.stock_item_id).filter(Boolean);
+    let costMap: Record<string, number> = {};
+
+    if (stockItemIds.length > 0) {
+      const { data: stockItems } = await supabase
+        .from("stock_items")
+        .select("id, product_id")
+        .in("id", [...new Set(stockItemIds)]);
+
+      if (stockItems && stockItems.length > 0) {
+        const productIds = [...new Set(stockItems.map(s => s.product_id).filter(Boolean))];
+        if (productIds.length > 0) {
+          const { data: costs } = await supabase
+            .from("product_costs")
+            .select("product_id, unit_cost, labor_cost, other_costs, tax_percent")
+            .in("product_id", productIds as string[]);
+
+          const productCostMap: Record<string, number> = {};
+          (costs || []).forEach(c => {
+            const totalCost = (Number(c.unit_cost) + Number(c.labor_cost) + Number(c.other_costs)) * (1 + Number(c.tax_percent) / 100);
+            productCostMap[c.product_id] = totalCost;
+          });
+
+          const stockToProduct: Record<string, string> = {};
+          stockItems.forEach(s => {
+            if (s.product_id) stockToProduct[s.id] = s.product_id;
+          });
+
+          items.forEach(i => {
+            if (i.stock_item_id && stockToProduct[i.stock_item_id]) {
+              const pid = stockToProduct[i.stock_item_id];
+              if (productCostMap[pid] !== undefined) {
+                costMap[i.id] = productCostMap[pid];
+              }
+            }
+          });
+        }
+      }
+    }
+
+    const enrichedItems = items.map(i => ({
+      ...i,
+      cost_value: costMap[i.id] ?? 0,
+    }));
+    setItems(enrichedItems);
 
     // Fetch order codes for linked replacements
     const orderIds = items.map(i => i.order_id).filter(Boolean);
