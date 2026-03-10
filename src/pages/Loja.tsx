@@ -155,10 +155,24 @@ export default function Dashboard() {
     }
     return match || null;
   };
+
+  // Also check inactive local proxies to hide them from API results
+  const getInactiveLocalProxy = (apiProduct: any) => {
+    const apiId = String(apiProduct.id);
+    const apiName = apiProduct.name || "";
+    // Check all local proxy products (including inactive ones already filtered out by DB)
+    // Since inactive products are filtered by the DB query, we need a separate check
+    // We rely on the fact that if a local product exists and is active, it's in localProxyProducts
+    // If it's NOT in localProxyProducts but has a matching external_id, it means it was set inactive
+    return false; // Will be handled by filtering proxyAsProducts below
+  };
+
   const filters = ["Todos", ...categories.filter((c) => c.slug !== "proxy").map((c) => c.name), "Proxy"];
 
   const proxyAsProducts: Product[] = proxyProducts.map((p: any) => {
     const local = getLocalProxyData(p);
+    // If local product exists and is in the active products list, use its available status
+    // If local product doesn't exist, show the API product by default
     const variants = p.variant || p.variants?.data || p.variants || [];
     const cheapestVariant = variants.length
       ? variants.reduce((min: any, v: any) => ((v.price || 0) < (min.price || 0) ? v : min), variants[0])
@@ -176,12 +190,12 @@ export default function Dashboard() {
       badge_color: local?.badge_color || null,
       badge_icon: local?.badge_icon || null,
       stock: totalApiStock > 0 ? totalApiStock : (local?.stock ?? 0),
-      available: true,
+      available: local ? local.available : true,
       category_id: proxyCategoryId || null,
       tags: local?.tags || null,
       slug: local?.slug || null,
     };
-  });
+  }).filter(p => p.available);
 
   // Local proxy products should show alongside regular products and in Proxy filter
   const isLocalProxy = (p: Product) => p.category_id === proxyCategoryId;
