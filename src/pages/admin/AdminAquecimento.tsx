@@ -390,7 +390,7 @@ export default function AdminAquecimento() {
                     <span>{midProfiles} perfis</span>
                   </div>
                   <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-slate-600 rounded-full" style={{ width: `${totalProfiles ? Math.round((midProfiles / totalProfiles) * 100) : 55}%` }} />
+                    <div className="h-full bg-[#1876f2]/70 rounded-full" style={{ width: `${totalProfiles ? Math.round((midProfiles / totalProfiles) * 100) : 55}%` }} />
                   </div>
                 </div>
                 <div className="space-y-2">
