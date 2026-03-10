@@ -736,18 +736,21 @@ export default function AdminAquecimento() {
               <h4 className="font-bold text-lg">Desempenho de Aquecimento (30 dias)</h4>
               <div className="flex gap-4">
                 <span className="flex items-center gap-2 text-xs font-medium text-slate-500">
-                  <span className="w-2 h-2 rounded-full bg-[#1876f2]" /> Sucesso
-                </span>
-                <span className="flex items-center gap-2 text-xs font-medium text-slate-500">
-                  <span className="w-2 h-2 rounded-full bg-slate-200" /> Falhas
+                  <span className="w-3 h-2 rounded-full bg-gradient-to-r from-[#3b82f6] to-[#ef4444]" /> Frio → Quente
                 </span>
               </div>
             </div>
             <div className="h-64 w-full bg-slate-50 rounded-lg flex items-center justify-center relative overflow-hidden">
               <div className="absolute inset-0 flex items-end px-4 gap-2">
-                {[24, 40, 50, 33, 60, 66, 75, 100, 80, 86, 50, 75].map((h, i) => (
-                  <div key={i} className="flex-1 bg-[#1876f2] rounded-t-sm" style={{ height: `${h}%`, opacity: 0.2 + (h / 100) * 0.8 }} />
-                ))}
+                {[24, 40, 50, 33, 60, 66, 75, 100, 80, 86, 50, 75].map((h, i, arr) => {
+                  const t = i / (arr.length - 1);
+                  const r = Math.round(59 + t * (239 - 59));
+                  const g = Math.round(130 + t * (68 - 130));
+                  const b = Math.round(246 + t * (68 - 246));
+                  return (
+                    <div key={i} className="flex-1 rounded-t-sm" style={{ height: `${h}%`, backgroundColor: `rgb(${r},${g},${b})` }} />
+                  );
+                })}
               </div>
               <p className="relative z-10 text-slate-400 text-sm font-medium">Gráfico de Performance Temporal</p>
             </div>
