@@ -82,12 +82,14 @@ export default function Dashboard() {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const [productsRes, categoriesRes, proxyImagesRes, bannersRes, bannerCatsRes] = await Promise.all([
+    const [productsRes, categoriesRes, proxyImagesRes, bannersRes, bannerCatsRes, inactiveProxiesRes] = await Promise.all([
       supabase.from("products").select("*").eq("status", "active").order("created_at", { ascending: false }),
       supabase.from("product_categories").select("*"),
       supabase.from("product_images").select("name, url").eq("category", "proxy"),
       supabase.from("banners").select("*").eq("active", true).order("position", { ascending: true }),
       supabase.from("banner_categories").select("value, label").order("position"),
+      // Fetch inactive proxy products to hide them from API results
+      supabase.from("products").select("external_id").neq("status", "active").not("external_id", "is", null),
     ]);
 
     if (productsRes.data) setProducts(productsRes.data);
@@ -98,6 +100,9 @@ export default function Dashboard() {
       const map: Record<string, string> = {};
       bannerCatsRes.data.forEach((c: any) => { map[c.value] = c.label; });
       setBannerCategoryLabels(map);
+    }
+    if (inactiveProxiesRes.data) {
+      setInactiveProxyExternalIds(new Set(inactiveProxiesRes.data.map((p: any) => p.external_id).filter(Boolean)));
     }
     setLoading(false);
   }, []);
