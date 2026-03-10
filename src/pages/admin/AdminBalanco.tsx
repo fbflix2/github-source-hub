@@ -469,8 +469,145 @@ export default function AdminBalanco() {
               <div className={`text-xl mt-0.5 ${stat.highlighted ? "font-black" : "font-bold"} text-white`}>
                 {stat.value}
               </div>
+              {(stat as any).subtitle && (
+                <p className="text-[10px] text-gray-500 mt-0.5">{(stat as any).subtitle}</p>
+              )}
             </div>
           ))}
+        </section>
+
+        {/* Break-Even & Fixed Cost Allocation */}
+        <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Break-Even Card */}
+          <div className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-2xl p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Target className="size-5 text-primary" />
+              <h3 className="text-sm font-semibold text-white">Ponto de Equilíbrio</h3>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex justify-between items-end">
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-gray-500">Vendas necessárias</p>
+                  <p className="text-3xl font-black text-white">{breakEvenUnits}</p>
+                  <p className="text-xs text-gray-500">unidades/mês para cobrir custos fixos</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] uppercase tracking-wider text-gray-500">Vendido no período</p>
+                  <p className="text-2xl font-bold text-white">{totalUnitsSold}</p>
+                </div>
+              </div>
+
+              {/* Progress bar */}
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="text-gray-400">Progresso para meta</span>
+                  <span className={`font-bold ${breakEvenProgress >= 100 ? "text-emerald-400" : "text-amber-400"}`}>
+                    {breakEvenProgress.toFixed(0)}%
+                  </span>
+                </div>
+                <div className="h-2.5 bg-white/5 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-1000 ${
+                      breakEvenProgress >= 100
+                        ? "bg-gradient-to-r from-emerald-500 to-emerald-400"
+                        : "bg-gradient-to-r from-primary to-amber-500"
+                    }`}
+                    style={{ width: `${breakEvenProgress}%` }}
+                  />
+                </div>
+                {breakEvenProgress >= 100 ? (
+                  <p className="text-xs text-emerald-400 mt-1.5">✓ Ponto de equilíbrio atingido! A partir daqui é lucro.</p>
+                ) : (
+                  <p className="text-xs text-gray-500 mt-1.5">
+                    Faltam <span className="text-white font-medium">{Math.max(0, breakEvenUnits - totalUnitsSold)}</span> vendas para atingir o break-even.
+                  </p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 pt-2 border-t border-white/5">
+                <div>
+                  <p className="text-[10px] text-gray-500 uppercase">Lucro médio/unidade</p>
+                  <p className="text-sm font-bold text-white">{formatCurrency(avgProfitPerUnit)}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] text-gray-500 uppercase">Custo médio/unidade</p>
+                  <p className="text-sm font-bold text-white">{formatCurrency(avgCostPerItem)}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Category Allocation Card */}
+          <div className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Settings2 className="size-5 text-primary" />
+                <h3 className="text-sm font-semibold text-white">Rateio de Custos Fixos por Categoria</h3>
+              </div>
+              {!editingAllocation ? (
+                <Button size="sm" variant="outline" onClick={() => { setAllocationDraft({...categoryAllocation}); setEditingAllocation(true); }} className="text-xs border-white/10 text-gray-300 hover:text-white">
+                  <Settings2 className="size-3 mr-1" /> Editar
+                </Button>
+              ) : (
+                <div className="flex gap-2">
+                  <Button size="sm" variant="ghost" onClick={() => setEditingAllocation(false)} className="text-xs text-gray-400">Cancelar</Button>
+                  <Button size="sm" onClick={saveAllocation} disabled={savingAllocation} className="text-xs">
+                    {savingAllocation ? <Loader2 className="size-3 animate-spin mr-1" /> : <Save className="size-3 mr-1" />}
+                    Salvar
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              {categoryNames.map(cat => {
+                const pct = editingAllocation ? (allocationDraft[cat.slug] || 0) : (categoryAllocation[cat.slug] || 0);
+                const allocated = fixedCosts * (pct / 100);
+                return (
+                  <div key={cat.id} className="flex items-center gap-3">
+                    <span className="text-xs text-gray-300 w-20 truncate">{cat.name}</span>
+                    {editingAllocation ? (
+                      <div className="flex items-center gap-1 flex-1">
+                        <Input
+                          type="number"
+                          value={allocationDraft[cat.slug] || 0}
+                          onChange={e => setAllocationDraft(old => ({ ...old, [cat.slug]: parseFloat(e.target.value) || 0 }))}
+                          className="h-7 w-16 text-xs bg-black/30 border-white/10 text-white"
+                          min={0}
+                          max={100}
+                        />
+                        <span className="text-xs text-gray-500">%</span>
+                      </div>
+                    ) : (
+                      <div className="flex-1">
+                        <div className="flex justify-between text-xs mb-0.5">
+                          <span className="text-gray-500">{pct}%</span>
+                          <span className="text-white font-medium">{formatCurrency(allocated)}</span>
+                        </div>
+                        <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                          <div className="h-full bg-primary/60 rounded-full" style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              {editingAllocation && (
+                <div className="flex justify-between text-xs pt-2 border-t border-white/5">
+                  <span className="text-gray-400">Total:</span>
+                  <span className={`font-bold ${Object.values(allocationDraft).reduce((s, v) => s + v, 0) === 100 ? "text-emerald-400" : "text-red-400"}`}>
+                    {Object.values(allocationDraft).reduce((s, v) => s + v, 0)}%
+                  </span>
+                </div>
+              )}
+              {!editingAllocation && (
+                <div className="pt-2 border-t border-white/5 text-xs text-gray-500">
+                  Total rateado: <span className="text-white font-medium">{formatCurrency(fixedCosts)}</span>/mês
+                </div>
+              )}
+            </div>
+          </div>
         </section>
 
         {/* Main Content Grid */}
