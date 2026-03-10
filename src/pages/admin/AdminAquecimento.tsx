@@ -834,7 +834,7 @@ export default function AdminAquecimento() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Nome Completo</label>
-                  <input className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-[#1876f2]/20 focus:border-[#1876f2] outline-none transition-all" type="text" defaultValue="" placeholder="Seu nome completo" />
+                  <input className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-slate-400/20 focus:border-slate-400 outline-none transition-all" type="text" defaultValue="" placeholder="Seu nome completo" />
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Email Principal</label>
