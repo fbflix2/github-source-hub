@@ -81,7 +81,7 @@ export function AdminLayout() {
   }
 
   return (
-    <div className={`flex h-screen w-full relative font-display overflow-hidden selection:bg-primary selection:text-white ${isAquecimento ? 'bg-[#f5f7f8] text-slate-900' : 'bg-[#0a0505] text-white'}`}>
+    <div className={`flex h-screen w-full relative font-display overflow-hidden selection:bg-primary selection:text-white bg-[#0a0505] text-white`}>
       {/* Background Effects */}
       {!isAquecimento && (
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
