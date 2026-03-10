@@ -238,36 +238,24 @@ export default function AdminAquecimento() {
   const selectedProgress = selectedProfile ? getProgress(selectedProfile) : 0;
 
   return (
-    <div className="min-h-full" style={{ fontFamily: "'Inter', sans-serif" }}>
-      {/* ── Hero Section ── exactly like HTML */}
-      <div className="relative overflow-hidden bg-[#1876f2] py-16 px-6 lg:px-20 text-center rounded-xl mb-0">
+    <div className="h-full flex flex-col overflow-hidden" style={{ fontFamily: "'Inter', sans-serif" }}>
+      {/* ── Hero Section ── compact */}
+      <div className="relative overflow-hidden bg-[#1876f2] py-4 px-6 text-center rounded-lg flex-none">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute inset-0" style={{ backgroundImage: "radial-gradient(#ffffff 1px, transparent 1px)", backgroundSize: "20px 20px" }} />
         </div>
-        <div className="relative z-10 max-w-4xl mx-auto">
-          <h1 className="text-white text-4xl lg:text-5xl font-black mb-4 tracking-tight">
+        <div className="relative z-10">
+          <h1 className="text-white text-xl font-black tracking-tight">
             Esteira Operacional FBFlix
           </h1>
-          <p className="text-white/80 text-lg lg:text-xl max-w-2xl mx-auto font-normal leading-relaxed">
-            Sistema para aquecer perfis de Facebook Ads em 7, 15 ou 30 dias, com atribuição inteligente e monitoramento em tempo real.
+          <p className="text-white/80 text-xs mt-1">
+            Aquecer perfis de Facebook Ads em 7, 15 ou 30 dias com monitoramento em tempo real.
           </p>
-          <div className="mt-8 flex justify-center gap-4">
-            <button
-              onClick={() => document.getElementById("form-section")?.scrollIntoView({ behavior: "smooth" })}
-              className="bg-white text-[#1876f2] px-6 py-3 rounded-lg font-bold text-sm shadow-lg hover:bg-slate-50 transition-all flex items-center gap-2"
-            >
-              <MIcon name="play_circle" />
-              Iniciar Agora
-            </button>
-            <button className="bg-[#1876f2]/20 text-white border border-white/30 px-6 py-3 rounded-lg font-bold text-sm backdrop-blur-sm hover:bg-[#1876f2]/30 transition-all">
-              Documentação
-            </button>
-          </div>
         </div>
       </div>
 
       {/* ── Main Grid ── */}
-      <div id="form-section" className="max-w-6xl mx-auto px-0 grid grid-cols-1 lg:grid-cols-12 gap-8 pb-12 pt-10">
+      <div id="form-section" className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-3 pt-3 overflow-hidden">
         {/* ── Selection Form Section ── */}
         <section className="lg:col-span-5">
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
