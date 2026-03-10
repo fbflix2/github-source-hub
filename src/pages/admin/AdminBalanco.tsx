@@ -78,7 +78,7 @@ export default function AdminBalanco() {
     setLoading(true);
     const since = getSinceDate();
 
-    const [ordersRes, purchasesRes, orderItemsRes, categoriesRes, productsRes, discountRes, costRes, webShareRes, proxyCatRes] = await Promise.all([
+    const [ordersRes, purchasesRes, orderItemsRes, categoriesRes, productsRes, discountRes, costRes, webShareRes, proxyCatRes, costCenterRes, allocationRes] = await Promise.all([
       supabase.from("orders").select("id, total, status, created_at, code").in("status", ["completed", "delivered"]).gte("created_at", since).order("created_at", { ascending: false }),
       supabase.from("purchases").select("*").gte("created_at", since).order("created_at", { ascending: false }),
       supabase.from("order_items").select("product_id, price, quantity, order_id, name, created_at").gte("created_at", since),
@@ -88,6 +88,8 @@ export default function AdminBalanco() {
       supabase.from("product_costs" as any).select("*"),
       supabase.functions.invoke("webshare-api", { body: { action: "get-plan" } }).catch(() => ({ data: null, error: null })),
       supabase.from("product_categories").select("id").eq("slug", "proxy").maybeSingle(),
+      supabase.from("cost_center").select("amount, active, name").eq("active", true),
+      supabase.from("site_settings").select("value").eq("key", "fixed_cost_allocation").maybeSingle(),
     ]);
 
     const orders = ordersRes.data ?? [];
