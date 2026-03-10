@@ -604,7 +604,7 @@ export default function AdminAquecimento() {
                       {selectedProfile.trust_tier && <span className="ml-2 text-purple-600 font-bold">• {selectedProfile.trust_tier}</span>}
                     </p>
                   </div>
-                  <span className="bg-[#1876f2]/10 text-[#1876f2] text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
+                  <span className="bg-slate-200 text-slate-700 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
                     {selectedProfile.status === "active" ? "Ativo" : selectedProfile.status === "completed" ? "Concluído" : selectedProfile.status}
                   </span>
                 </div>
