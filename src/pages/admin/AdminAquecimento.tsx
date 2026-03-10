@@ -917,7 +917,7 @@ export default function AdminAquecimento() {
           {/* Definição de Trust Tiers */}
           <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
-              <MIcon name="verified_user" className="text-slate-700" />
+              <MIcon name="verified_user" className="text-[#1876f2]" />
               <h2 className="text-lg font-bold text-slate-900">Definição de Trust Tiers</h2>
             </div>
             <div className="overflow-x-auto">
