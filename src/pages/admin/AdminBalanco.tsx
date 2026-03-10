@@ -67,13 +67,16 @@ export default function AdminBalanco() {
     setLoading(true);
     const since = getSinceDate();
 
-    const [ordersRes, purchasesRes, orderItemsRes, categoriesRes, productsRes, discountRes] = await Promise.all([
+    const [ordersRes, purchasesRes, orderItemsRes, categoriesRes, productsRes, discountRes, costRes, webShareRes, proxyCatRes] = await Promise.all([
       supabase.from("orders").select("id, total, status, created_at, code").in("status", ["completed", "delivered"]).gte("created_at", since).order("created_at", { ascending: false }),
       supabase.from("purchases").select("*").gte("created_at", since).order("created_at", { ascending: false }),
       supabase.from("order_items").select("product_id, price, quantity, order_id, name, created_at").gte("created_at", since),
       supabase.from("product_categories").select("id, name, slug"),
-      supabase.from("products").select("id, category_id, name, price, external_id"),
+      supabase.from("products").select("id, category_id, name, price, external_id, tags, icon_type"),
       supabase.from("site_settings").select("value").eq("key", "proxybr_reseller_discounts").maybeSingle(),
+      supabase.from("product_costs" as any).select("*"),
+      supabase.functions.invoke("webshare-api", { body: { action: "get-plan" } }).catch(() => ({ data: null, error: null })),
+      supabase.from("product_categories").select("id").eq("slug", "proxy").maybeSingle(),
     ]);
 
     const orders = ordersRes.data ?? [];
@@ -81,49 +84,109 @@ export default function AdminBalanco() {
     const orderItems = orderItemsRes.data ?? [];
     const categories = categoriesRes.data ?? [];
     const products = productsRes.data ?? [];
+    const productCostsRaw = (costRes.data as any[]) ?? [];
+    const proxyCategoryId = proxyCatRes.data?.id || null;
 
-    // Completed order IDs for filtering
-    const completedOrderIds = new Set(orders.map(o => o.id));
+    // Build product cost map from product_costs table
+    const productCostMap: Record<string, { unit_cost: number; tax_percent: number; labor_cost: number; other_costs: number }> = {};
+    productCostsRaw.forEach((c: any) => {
+      productCostMap[c.product_id] = {
+        unit_cost: Number(c.unit_cost) || 0,
+        tax_percent: Number(c.tax_percent) || 0,
+        labor_cost: Number(c.labor_cost) || 0,
+        other_costs: Number(c.other_costs) || 0,
+      };
+    });
 
-    // Revenue = sum of completed orders
-    const revenue = orders.reduce((s, o) => s + Number(o.total || 0), 0);
-    // Cost = sum of purchases (manual entries)
-    const purchaseCost = purchases.reduce((s, p) => s + Number(p.total_value || 0), 0);
-
-    // Calculate proxy cost from active subscriptions using API prices with reseller discounts
-    let proxyCost = 0;
+    // Build auto-cost map for proxies (ProxyBR + Webshare)
+    const autoCostMap: Record<string, number> = {};
     const discountMap: Record<string, number> = {};
     try {
       const parsed = JSON.parse(discountRes.data?.value || "{}");
       Object.entries(parsed).forEach(([k, v]) => { discountMap[k] = parseFloat(String(v)) || 0; });
     } catch {}
 
-    // Get API prices for proxy products
+    // ProxyBR auto-costs
+    let apiPriceMap = new Map<string, number>();
     try {
       const { data: apiData } = await supabase.functions.invoke("proxybr-api", { body: { action: "get-products" } });
       const apiProducts = apiData?.data || apiData || [];
-      const apiPriceMap = new Map<string, number>();
-      
       if (Array.isArray(apiProducts)) {
         apiProducts.forEach((p: any) => {
           const variants = p.variant || p.variants || [];
-          if (Array.isArray(variants)) {
-            variants.forEach((v: any) => {
-              const discount = discountMap[String(p.id)] || 0;
-              const realCost = v.price * (1 - discount / 100);
-              apiPriceMap.set(`${p.id}`, realCost);
-            });
-          }
-          if (!apiPriceMap.has(`${p.id}`)) {
-            const discount = discountMap[String(p.id)] || 0;
-            apiPriceMap.set(`${p.id}`, (p.price || 0) * (1 - discount / 100));
+          if (Array.isArray(variants) && variants.length > 0) {
+            const avgPrice = variants.reduce((s: number, v: any) => s + (v.price || 0), 0) / variants.length;
+            const disc = discountMap[String(p.id)] || 0;
+            apiPriceMap.set(String(p.id), avgPrice * (1 - disc / 100));
           }
         });
       }
+      products.forEach((p: any) => {
+        if (p.external_id && apiPriceMap.has(p.external_id.trim())) {
+          autoCostMap[p.id] = apiPriceMap.get(p.external_id.trim())!;
+        }
+      });
+    } catch (err) {
+      console.warn("Could not fetch proxy costs:", err);
+    }
 
-      // Calculate cost for each active proxy subscription
-      const { subsWithPrices } = { subsWithPrices: [] as any[] };
-      // Use proxyRevenue hook data - but we need to calculate cost separately
+    // Webshare auto-costs
+    if (webShareRes.data) {
+      const plan = webShareRes.data?.plan;
+      const monthlyPrice = plan?.monthly_price || 0;
+      const totalProxies = plan?.proxy_count || 1;
+      const usdToBrl = 5.5;
+      const costPerProxy = (monthlyPrice / totalProxies) * usdToBrl;
+      if (costPerProxy > 0) {
+        products.forEach((p: any) => {
+          if (autoCostMap[p.id]) return;
+          const tags = p.tags || [];
+          const isWebshare = tags.includes("webshare") || tags.includes("proxy") ||
+            (p.category_id === proxyCategoryId && !p.external_id && (p.name.toLowerCase().includes("webshare") || p.name.toLowerCase().includes("proxy")));
+          if (isWebshare) autoCostMap[p.id] = costPerProxy;
+        });
+      }
+    }
+
+    // Function to get total cost per unit for a product (same formula as Central de Investimentos)
+    const getProductTotalCost = (productId: string): number => {
+      const c = productCostMap[productId];
+      const unitCost = (c && c.unit_cost > 0) ? c.unit_cost : (autoCostMap[productId] || 0);
+      if (unitCost <= 0 && (!c || (c.labor_cost <= 0 && c.other_costs <= 0))) return 0;
+      const laborCost = c?.labor_cost || 0;
+      const otherCosts = c?.other_costs || 0;
+      const taxPercent = c?.tax_percent || 0;
+      return (unitCost + laborCost + otherCosts) * (1 + taxPercent / 100);
+    };
+
+    // Completed order IDs for filtering
+    const completedOrderIds = new Set(orders.map(o => o.id));
+
+    // Revenue = sum of completed orders
+    const revenue = orders.reduce((s, o) => s + Number(o.total || 0), 0);
+
+    // COGS = sum of product costs for each sold item
+    let cogs = 0;
+    // Map product name to product for fallback matching
+    const productByName: Record<string, any> = {};
+    products.forEach(p => { productByName[p.name.toLowerCase().trim()] = p; });
+
+    orderItems.filter(i => completedOrderIds.has(i.order_id)).forEach(item => {
+      let productId = item.product_id;
+      // Fallback: try matching by name if no product_id
+      if (!productId && item.name) {
+        const match = productByName[item.name.toLowerCase().trim()];
+        if (match) productId = match.id;
+      }
+      if (productId) {
+        const costPerUnit = getProductTotalCost(productId);
+        cogs += costPerUnit * (item.quantity || 1);
+      }
+    });
+
+    // Calculate proxy subscription cost (recurring)
+    let proxyCost = 0;
+    try {
       let allSubs: any[] = [];
       let from = 0;
       while (true) {
@@ -137,26 +200,27 @@ export default function AdminBalanco() {
         if (batch.length < 1000) break;
         from += 1000;
       }
-
       const now = new Date();
       allSubs.filter(s => !s.end_date || new Date(s.end_date) >= now).forEach(sub => {
         const raw = sub.raw_data || {};
         const productId = raw.product?.id;
         const proxies = raw.proxies?.data;
         const proxyCount = (Array.isArray(proxies) && proxies.length > 1) ? proxies.length : 1;
-        
         if (productId && apiPriceMap.has(`${productId}`)) {
           proxyCost += apiPriceMap.get(`${productId}`)! * proxyCount;
         }
       });
     } catch (err) {
-      console.warn("Could not fetch proxy costs:", err);
+      console.warn("Could not fetch proxy subscription costs:", err);
     }
 
-    const totalCostCombined = purchaseCost + proxyCost;
+    // Total cost = COGS (real product costs) + proxy subscription costs
+    const totalCostCombined = cogs + proxyCost;
     setTotalRevenue(revenue);
     setTotalCost(totalCostCombined);
-    setAvgCostPerItem(purchases.length > 0 ? purchaseCost / purchases.reduce((s, p) => s + (p.quantity || 1), 0) : 0);
+    setAvgCostPerItem(cogs > 0 && orderItems.filter(i => completedOrderIds.has(i.order_id)).length > 0
+      ? cogs / orderItems.filter(i => completedOrderIds.has(i.order_id)).reduce((s, i) => s + (i.quantity || 1), 0)
+      : 0);
 
     // Build transactions list (mixed sales + purchases)
     const txList: Transaction[] = [
@@ -270,10 +334,10 @@ export default function AdminBalanco() {
   const chartColor = activeChartFilter === "Custos" ? "#f90606" : activeChartFilter === "Receitas" ? "#22c55e" : "#ffffff";
 
   const stats = [
-    { label: "Custo Total Compras", value: formatCurrency(totalCost), icon: ShoppingCart, iconBg: "bg-primary/10 border-primary/20", iconColor: "text-primary" },
+    { label: "Custo Real (COGS)", value: formatCurrency(totalCost), icon: ShoppingCart, iconBg: "bg-primary/10 border-primary/20", iconColor: "text-primary" },
     { label: "Receita Total Vendas", value: formatCurrency(combinedRevenue), icon: Wallet, iconBg: "bg-emerald-500/10 border-emerald-500/20", iconColor: "text-emerald-500" },
-    { label: "Lucro Líquido", value: formatCurrency(profit), icon: TrendingUp, iconBg: "bg-white/10 border-white/20", iconColor: "text-white", highlighted: true },
-    { label: "Margem Média", value: `${margin}%`, icon: Percent, iconBg: "bg-white/5 border-white/10", iconColor: "text-gray-300" },
+    { label: "Lucro Líquido Real", value: formatCurrency(profit), icon: TrendingUp, iconBg: "bg-white/10 border-white/20", iconColor: "text-white", highlighted: true },
+    { label: "Margem Líquida", value: `${margin}%`, icon: Percent, iconBg: "bg-white/5 border-white/10", iconColor: "text-gray-300" },
     { label: "Proxies Ativos", value: proxyCount.toString(), icon: Tag, iconBg: "bg-white/5 border-white/10", iconColor: "text-gray-300" },
   ];
 
