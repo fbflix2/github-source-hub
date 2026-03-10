@@ -838,7 +838,7 @@ export default function AdminAquecimento() {
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Email Principal</label>
-                  <input className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-[#1876f2]/20 focus:border-[#1876f2] outline-none transition-all" type="email" defaultValue="" placeholder="seu@email.com" />
+                  <input className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-slate-400/20 focus:border-slate-400 outline-none transition-all" type="email" defaultValue="" placeholder="seu@email.com" />
                 </div>
               </div>
               <div className="flex flex-col justify-end">
