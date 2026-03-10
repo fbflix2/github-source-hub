@@ -554,7 +554,7 @@ export default function AdminAquecimento() {
                       >
                         <MIcon
                           name={p.status === "completed" ? "check_circle" : p.status === "restricted" ? "warning" : "play_circle"}
-                          className={`text-base ${p.status === "completed" ? "text-green-500" : p.status === "restricted" ? "text-red-500" : "text-slate-700"}`}
+                          className={`text-base ${p.status === "completed" ? "text-green-500" : p.status === "restricted" ? "text-red-500" : "text-[#1876f2]"}`}
                         />
                         <div className="flex-grow min-w-0">
                           <p className="text-xs font-bold text-slate-900 truncate">{p.profile_code}</p>
