@@ -273,7 +273,7 @@ export default function AdminAquecimento() {
           </div>
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div className="space-y-2">
-              <h1 className="text-4xl md:text-5xl font-black tracking-tight">Dashboard Operacional</h1>
+              <h1 className="text-4xl md:text-5xl font-black tracking-tight">Painel Operacional</h1>
               <p className="text-white/80 text-lg max-w-2xl">
                 Acompanhe em tempo real o desempenho das esteiras de aquecimento e a distribuição dos perfis por maturidade.
               </p>
