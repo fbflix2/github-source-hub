@@ -736,7 +736,7 @@ export default function AdminAquecimento() {
               <h4 className="font-bold text-lg">Desempenho de Aquecimento (30 dias)</h4>
               <div className="flex gap-4">
                 <span className="flex items-center gap-2 text-xs font-medium text-slate-500">
-                  <span className="w-2 h-2 rounded-full bg-[#1876f2]" /> Sucesso
+                  <span className="w-2 h-2 rounded-full bg-slate-700" /> Sucesso
                 </span>
                 <span className="flex items-center gap-2 text-xs font-medium text-slate-500">
                   <span className="w-2 h-2 rounded-full bg-slate-200" /> Falhas
