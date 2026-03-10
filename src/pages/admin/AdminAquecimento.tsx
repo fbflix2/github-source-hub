@@ -513,7 +513,7 @@ export default function AdminAquecimento() {
                   <div className="relative">
                     <MIcon name="layers" className="absolute left-3 top-2.5 text-slate-400 text-lg" />
                     <select
-                      className="w-full pl-10 pr-3 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#1876f2] focus:border-[#1876f2] text-slate-900 appearance-none transition-all"
+                      className="w-full pl-10 pr-3 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-slate-400 focus:border-slate-400 text-slate-900 appearance-none transition-all"
                       value={selectedTrack}
                       onChange={(e) => setSelectedTrack(e.target.value)}
                     >
