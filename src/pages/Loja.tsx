@@ -118,11 +118,11 @@ export default function Dashboard() {
     return () => document.removeEventListener("visibilitychange", handleVisibility);
   }, [fetchData]);
 
-  const proxyProducts: any[] = Array.isArray(proxyProductsData?.data)
+  const proxyProducts: any[] = (Array.isArray(proxyProductsData?.data)
     ? proxyProductsData.data
     : Array.isArray(proxyProductsData)
     ? proxyProductsData
-    : [];
+    : []).filter((p: any) => !inactiveProxyExternalIds.has(String(p.id)));
 
   const getProxyQty = (id: string) => proxyQuantities[id] || 1;
   const updateProxyQty = (id: string, delta: number) => {
