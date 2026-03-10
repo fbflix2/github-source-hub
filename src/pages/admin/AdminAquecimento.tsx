@@ -876,7 +876,7 @@ export default function AdminAquecimento() {
             <div className="p-6 space-y-3 max-h-[400px] overflow-y-auto">
               {configTasks[configTrack].map((task, i) => (
                 <div key={i} className="flex items-center gap-4 p-3 bg-slate-50 rounded-lg border border-slate-100">
-                  <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-[#1876f2]/10 text-[#1876f2] font-bold text-xs rounded-full">
+                  <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-slate-200 text-slate-700 font-bold text-xs rounded-full">
                     {String(i + 1).padStart(2, "0")}
                   </span>
                   <input
