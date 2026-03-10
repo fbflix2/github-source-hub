@@ -906,7 +906,7 @@ export default function AdminAquecimento() {
                 <tbody className="divide-y divide-slate-100">
                   <tr>
                     <td className="px-6 py-4">
-                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700">Tier 1 (Low Trust)</span>
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700">Nível 1 (Confiança Baixa)</span>
                     </td>
                     <td className="px-6 py-4">
                       <input className="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-xs w-20 text-slate-900" type="text" defaultValue="0 - 30" />
