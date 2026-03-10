@@ -407,7 +407,7 @@ export default function AdminAquecimento() {
 
             {/* Trust Tier Distribution */}
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-              <h3 className="text-lg font-bold mb-6">Trust Tier Distribution</h3>
+              <h3 className="text-lg font-bold mb-6">Distribuição de Confiança</h3>
               <div className="flex flex-col items-center justify-center py-4">
                 <div className="relative w-48 h-48">
                   <svg className="w-full h-full" viewBox="0 0 36 36">
