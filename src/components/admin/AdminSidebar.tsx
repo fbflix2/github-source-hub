@@ -40,7 +40,8 @@ import {
   Coins,
   Flame,
   Store,
-  KeyRound
+  KeyRound,
+  ImageIcon
 } from "lucide-react";
 
 interface SubItem {
