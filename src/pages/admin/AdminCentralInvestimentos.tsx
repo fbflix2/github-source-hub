@@ -431,8 +431,17 @@ export default function AdminCentralInvestimentos() {
                     )}
                   </div>
                   <div className="text-right">
-                    <p className="text-xs text-muted-foreground">Lucro Líquido</p>
-                    <p className={`text-sm font-semibold ${realProfit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                    <p className="text-xs text-emerald-400/80">Lucro Líquido</p>
+                    <p className={`text-sm font-bold ${profit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                      {hasCost ? fmt(profit) : <span className="text-amber-400">—</span>}
+                    </p>
+                    {hasCost && (
+                      <p className="text-[9px] text-emerald-400/60">{margin.toFixed(1)}%</p>
+                    )}
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-muted-foreground">Lucro Real</p>
+                    <p className={`text-sm font-semibold ${realProfit >= 0 ? "text-foreground" : "text-red-400"}`}>
                       {fmt(realProfit)} ({realMargin.toFixed(1)}%)
                     </p>
                     {!hasCost && (
