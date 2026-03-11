@@ -158,7 +158,7 @@ export default function AdminShopClone() {
 
         {/* Categories & Products */}
         {!isLoading && filteredCategories.map((cat) => (
-          <CategorySection key={cat.id} category={cat} searchQuery={search} />
+          <CategorySection key={cat.id} category={cat} searchQuery={search} usdToBrl={usdToBrl} />
         ))}
 
         {!isLoading && filteredCategories.length === 0 && !error && (
