@@ -298,7 +298,7 @@ Deno.serve(async (req) => {
           console.log("[shopclone-api] first account sample:", rawAccounts[0].substring(0, 200));
         }
 
-        const stockItems = buildStockItems(rawAccounts, String(productId), productName ? String(productName) : undefined, folder);
+        const stockItems = buildStockItems(rawAccounts, String(productId), productName ? String(productName) : undefined, folder, itemType ? String(itemType) : undefined);
         const saveResult = await saveStockItems(adminClient, folder, stockItems);
 
         result = {
