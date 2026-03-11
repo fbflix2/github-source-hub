@@ -39,7 +39,8 @@ import {
   Briefcase,
   Coins,
   Flame,
-  Store
+  Store,
+  KeyRound
 } from "lucide-react";
 
 interface SubItem {
@@ -73,6 +74,7 @@ const allMenuItems: MenuItem[] = [
   { title: "Assinaturas", icon: Monitor, path: "/admin/assinaturas" },
   { title: "Central Proxy", icon: Globe, path: "/admin/central-proxy" },
   { title: "Fornecedor AccFace", icon: Store, path: "/admin/fornecedor" },
+  { title: "Gerador 2FA", icon: KeyRound, path: "/admin/ferramentas-2fa" },
   { title: "Clientes", icon: Users, path: "/admin/clientes" },
   { title: "Afiliados", icon: UserCheck, path: "/admin/afiliados" },
   { title: "Parceiros", icon: Users, path: "/admin/parceiros" },
