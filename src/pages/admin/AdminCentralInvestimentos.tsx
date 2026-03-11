@@ -32,12 +32,6 @@ interface CostData {
   notes: string;
 }
 
-async function callProxyBR(action: string, params: Record<string, unknown> = {}) {
-  const { data, error } = await supabase.functions.invoke("proxybr-api", { body: { action, ...params } });
-  if (error) throw new Error(error.message);
-  if (data?.error && !data?.data) throw new Error(data.error);
-  return data;
-}
 
 export default function AdminCentralInvestimentos() {
   const navigate = useNavigate();
@@ -74,23 +68,8 @@ export default function AdminCentralInvestimentos() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // Fetch ProxyBR API products for cost
-  const { data: proxyBRApiProducts } = useQuery({
-    queryKey: ["proxybr-products-invest"],
-    queryFn: () => callProxyBR("get-products"),
-    staleTime: 300_000,
-    refetchOnWindowFocus: false,
-  });
-
-  // Fetch ProxyBR reseller discounts
-  const { data: discountSetting } = useQuery({
-    queryKey: ["proxybr-reseller-discounts"],
-    queryFn: async () => {
-      const { data } = await supabase.from("site_settings").select("value").eq("key", "proxybr_reseller_discounts").maybeSingle();
-      return data?.value || "{}";
-    },
-    staleTime: 60_000,
-  });
+  // ProxyBR costs are ignored here — variable cost paid by client
+  // Focus only on Webshare (fixed monthly plan)
 
   // Fetch Webshare plan for cost per proxy
   const { data: webSharePlan } = useQuery({
@@ -132,35 +111,11 @@ export default function AdminCentralInvestimentos() {
     staleTime: 120_000,
   });
 
-  // Build auto-cost maps
+  // Build auto-cost maps (only Webshare — ProxyBR is variable/client-paid)
   const proxyCosts = useMemo(() => {
     const map: Record<string, { cost: number; source: string }> = {};
 
-    // ProxyBR: external_id → API product ID, use variant avg price with discount
-    if (proxyBRApiProducts) {
-      let discountMap: Record<string, string> = {};
-      try { discountMap = JSON.parse(discountSetting || "{}"); } catch { /* */ }
-
-      const apiProds: any[] = Array.isArray(proxyBRApiProducts) ? proxyBRApiProducts : proxyBRApiProducts?.data || [];
-      const apiCostMap = new Map<string, number>();
-      for (const prod of apiProds) {
-        const variants = prod.variant || prod.variants || [];
-        if (variants.length > 0) {
-          const avgPrice = variants.reduce((s: number, v: any) => s + (v.price || 0), 0) / variants.length;
-          const disc = parseFloat(discountMap[String(prod.id)] || "0") || 0;
-          apiCostMap.set(String(prod.id), avgPrice * (1 - disc / 100));
-        }
-      }
-
-      // Map products by external_id
-      products.forEach(p => {
-        if (p.external_id && apiCostMap.has(p.external_id.trim())) {
-          map[p.id] = { cost: apiCostMap.get(p.external_id.trim())!, source: "ProxyBR" };
-        }
-      });
-    }
-
-    // Webshare: products with webshare tag or in proxy category without external_id
+    // Webshare: products with webshare/proxy tag or in proxy category without external_id
     if (webSharePlan) {
       const plan = webSharePlan?.plan;
       const monthlyPlanCost = plan?.monthly_price || 0;
@@ -170,7 +125,6 @@ export default function AdminCentralInvestimentos() {
 
       if (costPerProxyBRL > 0) {
         products.forEach(p => {
-          if (map[p.id]) return; // already has ProxyBR cost
           const tags = p.tags || [];
           const isWebshare = tags.includes("webshare") || tags.includes("proxy") ||
             (p.category_id === proxyCategory && !p.external_id && (p.name.toLowerCase().includes("webshare") || p.name.toLowerCase().includes("proxy")));
@@ -182,7 +136,7 @@ export default function AdminCentralInvestimentos() {
     }
 
     return map;
-  }, [products, proxyBRApiProducts, discountSetting, webSharePlan, proxyCategory]);
+  }, [products, webSharePlan, proxyCategory]);
 
   // Calculate per-product fixed cost dilution by category
   const getFixedCostPerProduct = useMemo(() => {
