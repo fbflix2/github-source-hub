@@ -152,7 +152,10 @@ export default function AdminShopClone() {
             <p className="text-sm text-muted-foreground">Catálogo do fornecedor accface.com</p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => { refetch(); refetchBalance(); }} disabled={isLoading}>
+            <Button variant="outline" size="sm" onClick={async () => {
+              await Promise.all([refetch(), refetchBalance()]);
+              toast.success("Dados atualizados com sucesso!");
+            }} disabled={isLoading}>
               <RefreshCw className={`size-4 mr-1 ${isLoading ? "animate-spin" : ""}`} />
               Atualizar
             </Button>
