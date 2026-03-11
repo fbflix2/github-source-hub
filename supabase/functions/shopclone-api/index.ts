@@ -361,6 +361,24 @@ Deno.serve(async (req) => {
         break;
       }
 
+      case "fix-stock-item": {
+        const { itemId, updates } = params;
+        if (!itemId) throw new Error("itemId is required");
+        const adminClient = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+        );
+        const { data, error } = await adminClient
+          .from("stock_items")
+          .update(updates)
+          .eq("id", itemId)
+          .select("id, folder, type, status")
+          .single();
+        if (error) throw new Error(error.message);
+        result = { status: "success", item: data };
+        break;
+      }
+
       default:
         throw new Error(`Unknown action: ${action}`);
     }
