@@ -827,6 +827,9 @@ function FolderItemsView({ folder, onBack }: { folder: Folder; onBack: () => voi
   useEffect(() => { fetchItems(); }, [folder.id]);
 
   const handleDelete = async (id: string) => {
+    await supabase.from("bm_tracking").update({ stock_item_id: null }).eq("stock_item_id", id);
+    await supabase.from("replacements").update({ stock_item_id: null }).eq("stock_item_id", id);
+    await supabase.from("replacements").update({ new_stock_item_id: null }).eq("new_stock_item_id", id);
     const { error } = await supabase.from("stock_items").delete().eq("id", id);
     if (error) { toast.error("Erro ao excluir"); return; }
     toast.success("Item excluído");
