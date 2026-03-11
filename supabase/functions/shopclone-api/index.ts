@@ -71,13 +71,14 @@ function extractRawAccounts(parsed: any): string[] {
   return [...new Set(cleaned)];
 }
 
-function buildStockItems(rawAccounts: string[], productId: string, productName: string | undefined, folder: string) {
+function buildStockItems(rawAccounts: string[], productId: string, productName: string | undefined, folder: string, itemType?: string) {
+  const resolvedType = itemType || "perfil";
   return rawAccounts.map((acc) => {
     const parts = acc.split("|");
 
     return {
       name: productName || `AccFace #${productId}`,
-      type: "perfil",
+      type: resolvedType,
       status: "aguardando",
       folder,
       identification: parts[0] || acc.substring(0, 100),
@@ -206,7 +207,7 @@ Deno.serve(async (req) => {
     const userId = claimsData.claims.sub as string;
 
     // Staff-only actions
-    const staffActions = ["list-products", "get-balance", "product-info", "buy-resource", "import-accounts", "repair-folder-links"];
+    const staffActions = ["list-products", "get-balance", "product-info", "buy-resource", "import-accounts", "repair-folder-links", "fix-stock-item"];
     if (staffActions.includes(action)) {
       const adminClient = createClient(
         Deno.env.get("SUPABASE_URL")!,
@@ -260,7 +261,7 @@ Deno.serve(async (req) => {
       }
 
       case "buy-resource": {
-        const { productId, amount, productName, folderName } = params;
+        const { productId, amount, productName, folderName, itemType } = params;
         if (!productId || !amount) throw new Error("productId and amount are required");
 
         const url = `${ACCFACE_BASE}/BResource.php?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&id=${encodeURIComponent(String(productId))}&amount=${encodeURIComponent(String(amount))}`;
@@ -297,7 +298,7 @@ Deno.serve(async (req) => {
           console.log("[shopclone-api] first account sample:", rawAccounts[0].substring(0, 200));
         }
 
-        const stockItems = buildStockItems(rawAccounts, String(productId), productName ? String(productName) : undefined, folder);
+        const stockItems = buildStockItems(rawAccounts, String(productId), productName ? String(productName) : undefined, folder, itemType ? String(itemType) : undefined);
         const saveResult = await saveStockItems(adminClient, folder, stockItems);
 
         result = {
@@ -316,7 +317,7 @@ Deno.serve(async (req) => {
       }
 
       case "import-accounts": {
-        const { productId, productName, folderName, sourcePayload, accounts } = params;
+        const { productId, productName, folderName, sourcePayload, accounts, itemType } = params;
         if (!productId) throw new Error("productId is required");
 
         const adminClient = createClient(
@@ -326,7 +327,7 @@ Deno.serve(async (req) => {
 
         const folder = String(folderName || "AccFace Import");
         const rawAccounts = extractRawAccounts(sourcePayload ?? { accounts });
-        const stockItems = buildStockItems(rawAccounts, String(productId), productName ? String(productName) : undefined, folder);
+        const stockItems = buildStockItems(rawAccounts, String(productId), productName ? String(productName) : undefined, folder, itemType ? String(itemType) : undefined);
         const saveResult = await saveStockItems(adminClient, folder, stockItems);
 
         result = {
@@ -357,6 +358,24 @@ Deno.serve(async (req) => {
           folder_id: folderId,
           repaired_count: repairedCount,
         };
+        break;
+      }
+
+      case "fix-stock-item": {
+        const { itemId, updates } = params;
+        if (!itemId) throw new Error("itemId is required");
+        const adminClient = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+        );
+        const { data, error } = await adminClient
+          .from("stock_items")
+          .update(updates)
+          .eq("id", itemId)
+          .select("id, folder, type, status")
+          .single();
+        if (error) throw new Error(error.message);
+        result = { status: "success", item: data };
         break;
       }
 
