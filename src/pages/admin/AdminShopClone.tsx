@@ -167,6 +167,29 @@ export default function AdminShopClone() {
           </div>
         </div>
 
+        {/* Timezone */}
+        <Card className="border-dashed">
+          <CardContent className="p-3 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Clock className="size-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Fuso Horário do Fornecedor</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-4 text-sm">
+              <div className="flex items-center gap-1.5">
+                <span className="text-muted-foreground">🇻🇳 Vietnã (GMT+7):</span>
+                <span className="font-mono font-semibold">{tz.vietnam}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-muted-foreground">🇧🇷 Brasil (GMT-3):</span>
+                <span className="font-mono font-semibold">{tz.brazil}</span>
+              </div>
+              <Badge variant={tz.isOpen ? "default" : "destructive"} className="text-xs">
+                {tz.isOpen ? "🟢 Atendimento aberto (9h–20h)" : "🔴 Fora do horário (9h–20h)"}
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <Card>
