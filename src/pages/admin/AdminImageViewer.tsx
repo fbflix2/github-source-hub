@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
 
 export default function AdminImageViewer() {
   const [images, setImages] = useState<{ id: string; name: string; url: string }[]>([]);
@@ -32,6 +33,16 @@ export default function AdminImageViewer() {
   });
   const [draggingText, setDraggingText] = useState<string | null>(null);
   const [textDragStart, setTextDragStart] = useState({ x: 0, y: 0 });
+
+  // Font sizes
+  const [fontSizes, setFontSizes] = useState({
+    nome: 11,
+    nascimento: 10,
+    filiacao: 9,
+  });
+
+  // Contrast
+  const [contrast, setContrast] = useState(100);
 
   // Form fields
   const [formData, setFormData] = useState({
@@ -255,6 +266,11 @@ export default function AdminImageViewer() {
                   className="mt-1 bg-white/5 border-white/10 text-white uppercase"
                   maxLength={100}
                 />
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-[10px] text-white/40">Fonte:</span>
+                  <Slider value={[fontSizes.nome]} onValueChange={([v]) => setFontSizes((f) => ({ ...f, nome: v }))} min={5} max={18} step={0.5} className="flex-1" />
+                  <span className="text-[10px] text-white/50 w-8">{fontSizes.nome}px</span>
+                </div>
               </div>
               <div>
                 <Label className="text-white/60 text-xs">Data de Nascimento</Label>
@@ -264,6 +280,11 @@ export default function AdminImageViewer() {
                   onChange={(e) => setFormData((f) => ({ ...f, dataNascimento: e.target.value }))}
                   className="mt-1 bg-white/5 border-white/10 text-white"
                 />
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-[10px] text-white/40">Fonte:</span>
+                  <Slider value={[fontSizes.nascimento]} onValueChange={([v]) => setFontSizes((f) => ({ ...f, nascimento: v }))} min={5} max={18} step={0.5} className="flex-1" />
+                  <span className="text-[10px] text-white/50 w-8">{fontSizes.nascimento}px</span>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
@@ -285,6 +306,20 @@ export default function AdminImageViewer() {
                     className="mt-1 bg-white/5 border-white/10 text-white uppercase text-xs"
                     maxLength={100}
                   />
+                </div>
+                <div className="col-span-2 flex items-center gap-2">
+                  <span className="text-[10px] text-white/40">Fonte filiação:</span>
+                  <Slider value={[fontSizes.filiacao]} onValueChange={([v]) => setFontSizes((f) => ({ ...f, filiacao: v }))} min={5} max={18} step={0.5} className="flex-1" />
+                  <span className="text-[10px] text-white/50 w-8">{fontSizes.filiacao}px</span>
+                </div>
+              </div>
+
+              {/* Contrast slider */}
+              <div className="pt-2 border-t border-white/10">
+                <div className="flex items-center gap-2">
+                  <Label className="text-white/60 text-xs whitespace-nowrap">Contraste</Label>
+                  <Slider value={[contrast]} onValueChange={([v]) => setContrast(v)} min={50} max={200} step={1} className="flex-1" />
+                  <span className="text-[10px] text-white/50 w-10">{contrast}%</span>
                 </div>
               </div>
             </CardContent>
@@ -351,6 +386,7 @@ export default function AdminImageViewer() {
                     transform: `scale(${zoom}) rotate(${rotation}deg)`,
                     transformOrigin: "center center",
                     transition: "transform 0.2s",
+                    filter: `contrast(${contrast}%) brightness(${100 + (Math.random() * 2 - 1)}%)`,
                   }}
                 >
                   <img
@@ -394,7 +430,7 @@ export default function AdminImageViewer() {
                       style={{ left: textPositions.nome.x, top: textPositions.nome.y, cursor: panMode ? "inherit" : "move" }}
                       onMouseDown={(e) => onTextMouseDown("nome", e)}
                     >
-                      <span className="text-[11px] font-bold tracking-wide text-black/90 uppercase" style={{ fontFamily: "Arial Narrow, Arial, sans-serif" }}>
+                      <span className="font-bold tracking-wide text-black/90 uppercase" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${fontSizes.nome}px` }}>
                         {formData.nomeCompleto}
                       </span>
                     </div>
@@ -405,7 +441,7 @@ export default function AdminImageViewer() {
                       style={{ left: textPositions.nascimento.x, top: textPositions.nascimento.y, cursor: panMode ? "inherit" : "move" }}
                       onMouseDown={(e) => onTextMouseDown("nascimento", e)}
                     >
-                      <span className="text-[10px] font-semibold text-black/90" style={{ fontFamily: "Arial Narrow, Arial, sans-serif" }}>
+                      <span className="font-semibold text-black/90" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${fontSizes.nascimento}px` }}>
                         {new Date(formData.dataNascimento).toLocaleDateString("pt-BR")}
                       </span>
                     </div>
@@ -417,12 +453,12 @@ export default function AdminImageViewer() {
                       onMouseDown={(e) => onTextMouseDown("filiacao", e)}
                     >
                       {formData.nomePai && (
-                        <span className="text-[9px] font-semibold text-black/90 uppercase whitespace-nowrap" style={{ fontFamily: "Arial Narrow, Arial, sans-serif" }}>
+                        <span className="font-semibold text-black/90 uppercase whitespace-nowrap" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${fontSizes.filiacao}px` }}>
                           {formData.nomePai}
                         </span>
                       )}
                       {formData.nomeMae && (
-                        <span className="text-[9px] font-semibold text-black/90 uppercase whitespace-nowrap" style={{ fontFamily: "Arial Narrow, Arial, sans-serif" }}>
+                        <span className="font-semibold text-black/90 uppercase whitespace-nowrap" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${fontSizes.filiacao}px` }}>
                           {formData.nomeMae}
                         </span>
                       )}
