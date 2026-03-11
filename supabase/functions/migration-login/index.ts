@@ -189,10 +189,12 @@ Deno.serve(async (req) => {
       });
 
       if (createErr) {
-        // User likely exists — find and reset password
-        const allUsers = await getAllAuthUsers(supabaseAdmin);
-        const found = allUsers.find((u: any) => u.email?.toLowerCase() === email);
-        if (!found) throw new Error("Não foi possível criar ou localizar o usuário: " + createErr.message);
+        // User likely exists — find by email using fast DB lookup
+        const { data: userId } = await supabaseAdmin.rpc("get_user_id_by_email", { target_email: email });
+        if (!userId) throw new Error("Não foi possível criar ou localizar o usuário: " + createErr.message);
+
+        const { data: { user: found } } = await supabaseAdmin.auth.admin.getUserById(userId);
+        if (!found) throw new Error("Usuário não encontrado pelo ID");
 
         await supabaseAdmin.auth.admin.updateUserById(found.id, {
           password,
@@ -248,15 +250,16 @@ Deno.serve(async (req) => {
     const { email } = body;
     if (!email) throw new Error("Email é obrigatório");
 
-    const allUsers = await getAllAuthUsers(supabaseAdmin);
-    const foundUser = allUsers.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
+    const { data: foundUserId } = await supabaseAdmin.rpc("get_user_id_by_email", { target_email: email.toLowerCase() });
 
-    if (!foundUser) {
+    if (!foundUserId) {
       return new Response(
         JSON.stringify({ error: "Email não encontrado em nossa base. Verifique o email e tente novamente." }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    const { data: { user: foundUser } } = await supabaseAdmin.auth.admin.getUserById(foundUserId);
 
     await supabaseAdmin.auth.admin.updateUserById(foundUser.id, {
       user_metadata: { ...foundUser.user_metadata, must_change_password: true, migrated_at: new Date().toISOString() },
