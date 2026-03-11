@@ -266,6 +266,11 @@ export default function AdminImageViewer() {
                   className="mt-1 bg-white/5 border-white/10 text-white uppercase"
                   maxLength={100}
                 />
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-[10px] text-white/40">Fonte:</span>
+                  <Slider value={[fontSizes.nome]} onValueChange={([v]) => setFontSizes((f) => ({ ...f, nome: v }))} min={5} max={18} step={0.5} className="flex-1" />
+                  <span className="text-[10px] text-white/50 w-8">{fontSizes.nome}px</span>
+                </div>
               </div>
               <div>
                 <Label className="text-white/60 text-xs">Data de Nascimento</Label>
@@ -275,6 +280,11 @@ export default function AdminImageViewer() {
                   onChange={(e) => setFormData((f) => ({ ...f, dataNascimento: e.target.value }))}
                   className="mt-1 bg-white/5 border-white/10 text-white"
                 />
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-[10px] text-white/40">Fonte:</span>
+                  <Slider value={[fontSizes.nascimento]} onValueChange={([v]) => setFontSizes((f) => ({ ...f, nascimento: v }))} min={5} max={18} step={0.5} className="flex-1" />
+                  <span className="text-[10px] text-white/50 w-8">{fontSizes.nascimento}px</span>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
@@ -296,6 +306,20 @@ export default function AdminImageViewer() {
                     className="mt-1 bg-white/5 border-white/10 text-white uppercase text-xs"
                     maxLength={100}
                   />
+                </div>
+                <div className="col-span-2 flex items-center gap-2">
+                  <span className="text-[10px] text-white/40">Fonte filiação:</span>
+                  <Slider value={[fontSizes.filiacao]} onValueChange={([v]) => setFontSizes((f) => ({ ...f, filiacao: v }))} min={5} max={18} step={0.5} className="flex-1" />
+                  <span className="text-[10px] text-white/50 w-8">{fontSizes.filiacao}px</span>
+                </div>
+              </div>
+
+              {/* Contrast slider */}
+              <div className="pt-2 border-t border-white/10">
+                <div className="flex items-center gap-2">
+                  <Label className="text-white/60 text-xs whitespace-nowrap">Contraste</Label>
+                  <Slider value={[contrast]} onValueChange={([v]) => setContrast(v)} min={50} max={200} step={1} className="flex-1" />
+                  <span className="text-[10px] text-white/50 w-10">{contrast}%</span>
                 </div>
               </div>
             </CardContent>
