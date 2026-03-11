@@ -58,6 +58,9 @@ export function StockItemsModal({ open, onOpenChange, productId, productName }: 
 
   const handleDelete = async (item: StockItem) => {
     if (!window.confirm(`Excluir "${item.name}" do estoque?`)) return;
+    await supabase.from("bm_tracking").update({ stock_item_id: null }).eq("stock_item_id", item.id);
+    await supabase.from("replacements").update({ stock_item_id: null }).eq("stock_item_id", item.id);
+    await supabase.from("replacements").update({ new_stock_item_id: null }).eq("new_stock_item_id", item.id);
     await supabase.from("stock_items").update({ deleted_at: new Date().toISOString() }).eq("id", item.id);
     setItems(prev => prev.filter(i => i.id !== item.id));
   };
