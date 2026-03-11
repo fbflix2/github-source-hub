@@ -105,7 +105,7 @@ export default function AdminImageViewer() {
     e.preventDefault();
     e.stopPropagation();
     setIsDraggingPhoto(true);
-    setDragStart({ x: e.clientX - photoPosition.x, y: e.clientY - photoPosition.y });
+    setDragStart({ x: e.clientX / zoom - photoPosition.x, y: e.clientY / zoom - photoPosition.y });
   };
 
   // Text overlay drag
