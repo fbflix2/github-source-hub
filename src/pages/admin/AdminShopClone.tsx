@@ -9,6 +9,75 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 // VND to USD rate (accface prices are in VND)
 const VND_TO_USD = 1 / 25800;
 
+/** Simple EN→PT-BR translation map for common accface product terms */
+const TRANSLATIONS: [RegExp, string][] = [
+  [/\bbuy\b/gi, "comprar"],
+  [/\baccount\b/gi, "conta"],
+  [/\baccounts\b/gi, "contas"],
+  [/\bfacebook ads\b/gi, "anúncios Facebook"],
+  [/\bads\b/gi, "anúncios"],
+  [/\breal users\b/gi, "usuários reais"],
+  [/\bfriends\b/gi, "amigos"],
+  [/\brandom\b/gi, "aleatório"],
+  [/\bcountry\b/gi, "país"],
+  [/\bchange\b/gi, "alterar"],
+  [/\bpassword\b/gi, "senha"],
+  [/\bchanged\b/gi, "alterada"],
+  [/\bcan be changed\b/gi, "pode ser alterado"],
+  [/\bexchange currency\b/gi, "converter moeda"],
+  [/\bconvertible currency\b/gi, "moeda conversível"],
+  [/\bconvert currency and time zone\b/gi, "converter moeda e fuso horário"],
+  [/\btime zone\b/gi, "fuso horário"],
+  [/\blimit\b/gi, "limite"],
+  [/\bregistration\b/gi, "registro"],
+  [/\bregistered\b/gi, "registrado"],
+  [/\bmonths? ago\b/gi, "meses atrás"],
+  [/\bcreated\b/gi, "criado"],
+  [/\bpersonal\b/gi, "pessoal"],
+  [/\badvertising\b/gi, "publicidade"],
+  [/\bcombo\b/gi, "combo"],
+  [/\bhave\b/gi, "com"],
+  [/\bday\b/gi, "dia"],
+  [/\blive\b/gi, "ativo"],
+  [/\bempty\b/gi, "vazio"],
+  [/\bsoaked?\b/gi, "maturado"],
+  [/\bsoak\b/gi, "maturar"],
+  [/\bpage\b/gi, "página"],
+  [/\bnew\b/gi, "novo"],
+  [/\bold\b/gi, "antigo"],
+  [/\bname\b/gi, "nome"],
+  [/\benglish\b/gi, "inglês"],
+  [/\bwarranty\b/gi, "garantia"],
+  [/\bpayment required\b/gi, "pagamento necessário"],
+  [/\bhidden\b/gi, "oculto"],
+  [/\bappeal\b/gi, "recurso"],
+  [/\breinstated\b/gi, "restabelecido"],
+  [/\bdown limit\b/gi, "limite reduzido"],
+  [/\btext me\b/gi, "me envie mensagem"],
+  [/\blink\b/gi, "link"],
+  [/\breceive\b/gi, "receber"],
+  [/\border\b/gi, "pedido"],
+  [/\bjust\b/gi, "acabou de"],
+  [/\bhotmail\b/gi, "Hotmail"],
+  [/\bclone\b/gi, "clone"],
+  [/\bfarming\b/gi, "aquecimento"],
+  [/\bvirtual card\b/gi, "cartão virtual"],
+  [/\bkey\b/gi, "chave"],
+  [/\bbest seller\b/gi, "mais vendido"],
+  [/\bhot\b/gi, "quente"],
+  [/\btrust\b/gi, "confiável"],
+  [/\bAll money\b/gi, "todo valor"],
+  [/\bChange All\b/gi, "alterar tudo"],
+];
+
+function translateText(text: string): string {
+  let translated = text;
+  for (const [pattern, replacement] of TRANSLATIONS) {
+    translated = translated.replace(pattern, replacement);
+  }
+  return translated;
+}
+
 function useUsdToBrl() {
   const [rate, setRate] = useState(5.5);
   useEffect(() => {
@@ -233,7 +302,10 @@ function ProductRow({ product, usdToBrl }: { product: ShopCloneProduct; usdToBrl
       <td className="py-2 font-mono text-xs text-muted-foreground">{product.id}</td>
       <td className="py-2 max-w-xs">
         <span className="text-xs leading-tight line-clamp-2">{product.name}</span>
-        {product.description && (
+        <span className="text-[10px] text-primary/70 block line-clamp-2 mt-0.5 italic">
+          {translateText(product.name)}
+        </span>
+        {product.description && product.description !== product.name && (
           <span className="text-[10px] text-muted-foreground block line-clamp-1 mt-0.5">
             {product.description}
           </span>
