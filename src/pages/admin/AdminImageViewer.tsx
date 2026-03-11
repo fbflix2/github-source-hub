@@ -386,6 +386,7 @@ export default function AdminImageViewer() {
                     transform: `scale(${zoom}) rotate(${rotation}deg)`,
                     transformOrigin: "center center",
                     transition: "transform 0.2s",
+                    filter: `contrast(${contrast}%) brightness(${100 + (Math.random() * 2 - 1)}%)`,
                   }}
                 >
                   <img
