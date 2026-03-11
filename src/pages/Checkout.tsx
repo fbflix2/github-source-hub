@@ -119,11 +119,13 @@ export default function Checkout() {
           let dbIconType: string | null = null;
           let dbExternalId: string | null = null;
           let dbSlug: string | null = null;
+          let dbStock = 999;
+          let dbAvailable = true;
           const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cartItems[0].productId);
           if (isValidUUID) {
             const { data: dbProd } = await supabase
               .from("products")
-              .select("description, tags, icon_type, external_id, slug")
+              .select("description, tags, icon_type, external_id, slug, stock, available")
               .eq("id", cartItems[0].productId)
               .single();
             dbDescription = dbProd?.description || null;
@@ -131,6 +133,16 @@ export default function Checkout() {
             dbIconType = dbProd?.icon_type || null;
             dbExternalId = dbProd?.external_id || null;
             dbSlug = (dbProd as any)?.slug || null;
+            dbStock = dbProd?.stock ?? 999;
+            dbAvailable = dbProd?.available ?? true;
+          }
+
+          // Block checkout for out-of-stock non-proxy products
+          const isProxy = dbIconType === 'proxy';
+          if (!isProxy && isValidUUID && (dbStock <= 0 || !dbAvailable)) {
+            toast.error("Este produto está sem estoque no momento.");
+            navigate("/loja");
+            return;
           }
 
           setProduct({
@@ -139,8 +151,8 @@ export default function Checkout() {
             description: dbDescription || proxyDescription,
             price: cartItems[0].price,
             image_url: cartItems[0].image,
-            stock: 999,
-            available: true,
+            stock: dbStock,
+            available: dbAvailable,
             category_id: null,
             icon_type: dbIconType,
             external_id: dbExternalId,
@@ -158,7 +170,16 @@ export default function Checkout() {
         .eq("id", productId)
         .single();
 
-      if (data) setProduct(data);
+      if (data) {
+        // Block checkout for out-of-stock non-proxy products
+        const isProxy = data.icon_type === 'proxy';
+        if (!isProxy && (data.stock <= 0 || !data.available)) {
+          toast.error("Este produto está sem estoque no momento.");
+          navigate("/loja");
+          return;
+        }
+        setProduct(data);
+      }
       setLoading(false);
     }
     fetchData();
@@ -535,6 +556,12 @@ export default function Checkout() {
   const handlePay = async () => {
     setProcessing(true);
 
+    // Safety timeout: if processing takes more than 60s, force stop spinning
+    const safetyTimeout = setTimeout(() => {
+      setProcessing(false);
+      toast.error("O processamento demorou demais. Verifique seu pedido em 'Meus Pedidos' ou tente novamente.");
+    }, 60000);
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -548,7 +575,7 @@ export default function Checkout() {
         return;
       }
 
-      // Validate stock before proceeding
+      // Re-validate stock right before payment
       const { data: orderItemsToCheck } = await supabase
         .from("order_items")
         .select("id, product_id, name, quantity")
@@ -847,6 +874,7 @@ export default function Checkout() {
       console.error("Payment error:", err);
       toast.error(err.message || "Erro ao processar pagamento");
     } finally {
+      clearTimeout(safetyTimeout);
       setProcessing(false);
     }
   };
