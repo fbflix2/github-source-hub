@@ -1658,6 +1658,7 @@ export type Database = {
           created_at: string
           id: string
           recipient_id: string | null
+          reply_to_id: string | null
           user_id: string
         }
         Insert: {
@@ -1665,6 +1666,7 @@ export type Database = {
           created_at?: string
           id?: string
           recipient_id?: string | null
+          reply_to_id?: string | null
           user_id: string
         }
         Update: {
@@ -1672,9 +1674,18 @@ export type Database = {
           created_at?: string
           id?: string
           recipient_id?: string | null
+          reply_to_id?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "team_messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "team_messages"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ticket_messages: {
         Row: {

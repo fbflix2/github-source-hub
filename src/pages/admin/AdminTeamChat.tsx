@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Send, MessageCircle, Trash2, Users, ArrowLeft } from "lucide-react";
+import { Send, MessageCircle, Trash2, Users, ArrowLeft, Reply, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -16,6 +16,7 @@ interface TeamMessage {
   content: string;
   created_at: string;
   recipient_id: string | null;
+  reply_to_id: string | null;
 }
 
 interface UserInfo {
@@ -58,6 +59,8 @@ export default function AdminTeamChat() {
   const [userProfiles, setUserProfiles] = useState<Record<string, UserInfo>>({});
   const [selectedChat, setSelectedChat] = useState<SelectedChat>({ type: "group" });
   const [showSidebar, setShowSidebar] = useState(true);
+  const [replyTo, setReplyTo] = useState<TeamMessage | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const profilesRef = useRef<Record<string, UserInfo>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
@@ -226,6 +229,9 @@ export default function AdminTeamChat() {
       if (selectedChat.type === "dm") {
         insertData.recipient_id = selectedChat.userId;
       }
+      if (replyTo) {
+        insertData.reply_to_id = replyTo.id;
+      }
       const { error } = await supabase.from("team_messages").insert(insertData);
       if (error) throw error;
     },
@@ -235,7 +241,13 @@ export default function AdminTeamChat() {
     const trimmed = message.trim();
     if (!trimmed || sendMutation.isPending) return;
     setMessage("");
+    setReplyTo(null);
     sendMutation.mutate(trimmed);
+  };
+
+  const handleReply = (msg: TeamMessage) => {
+    setReplyTo(msg);
+    inputRef.current?.focus();
   };
 
   const handleDelete = async (id: string) => {
@@ -348,11 +360,17 @@ export default function AdminTeamChat() {
                 const prevMsg = i > 0 ? group.msgs[i - 1] : null;
                 const showAvatar = !prevMsg || prevMsg.user_id !== msg.user_id;
 
+                // Find replied message
+                const repliedMsg = msg.reply_to_id
+                  ? messages.find((m) => m.id === msg.reply_to_id)
+                  : null;
+                const repliedProfile = repliedMsg ? getProfile(repliedMsg.user_id) : null;
+
                 return (
                   <div
                     key={msg.id}
                     className={cn(
-                      "flex gap-2 group",
+                      "flex gap-2 group/msg",
                       isMe ? "flex-row-reverse" : "flex-row",
                       showAvatar ? "mt-3" : "mt-0.5"
                     )}
@@ -379,7 +397,36 @@ export default function AdminTeamChat() {
                           {profile.full_name || "Membro"}
                         </span>
                       )}
-                      <div className="flex items-end gap-1.5 group">
+
+                      {/* Reply quote */}
+                      {repliedMsg && (
+                        <div className={cn(
+                          "flex items-start gap-1.5 px-3 py-1.5 rounded-t-xl text-[11px] border-l-2 border-primary/50 bg-primary/5 mb-0.5 max-w-full",
+                          isMe ? "rounded-br-none" : "rounded-bl-none"
+                        )}>
+                          <Reply className="size-3 text-primary/60 mt-0.5 flex-shrink-0 rotate-180" />
+                          <div className="min-w-0">
+                            <span className="font-semibold text-primary/80 block truncate">
+                              {repliedProfile?.full_name || "Membro"}
+                            </span>
+                            <span className="text-muted-foreground truncate block">
+                              {repliedMsg.content.length > 60 ? repliedMsg.content.slice(0, 60) + "…" : repliedMsg.content}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex items-end gap-1.5 group/actions">
+                        {/* Reply button - before bubble for own messages */}
+                        {isMe && (
+                          <button
+                            onClick={() => handleReply(msg)}
+                            className="text-muted-foreground hover:text-primary transition-colors opacity-0 group-hover/msg:opacity-100"
+                            title="Responder"
+                          >
+                            <Reply className="size-3.5" />
+                          </button>
+                        )}
                         <div
                           className={cn(
                             "px-3 py-2 rounded-2xl text-sm leading-relaxed break-words",
@@ -390,7 +437,17 @@ export default function AdminTeamChat() {
                         >
                           {msg.content}
                         </div>
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {/* Reply button - after bubble for other messages */}
+                        {!isMe && (
+                          <button
+                            onClick={() => handleReply(msg)}
+                            className="text-muted-foreground hover:text-primary transition-colors opacity-0 group-hover/msg:opacity-100"
+                            title="Responder"
+                          >
+                            <Reply className="size-3.5" />
+                          </button>
+                        )}
+                        <div className="flex items-center gap-1 opacity-0 group-hover/msg:opacity-100 transition-opacity">
                           <span className="text-[9px] text-muted-foreground whitespace-nowrap">
                             {format(new Date(msg.created_at), "HH:mm")}
                           </span>
@@ -413,12 +470,30 @@ export default function AdminTeamChat() {
         </div>
 
         {/* Input */}
-        <div className="pt-4 border-t border-border mt-2">
+        <div className="pt-3 border-t border-border mt-2">
+          {/* Reply preview bar */}
+          {replyTo && (
+            <div className="flex items-center gap-2 mb-2 px-3 py-2 rounded-xl bg-primary/5 border border-primary/20">
+              <Reply className="size-4 text-primary flex-shrink-0 rotate-180" />
+              <div className="flex-1 min-w-0">
+                <span className="text-[11px] font-semibold text-primary block truncate">
+                  {getProfile(replyTo.user_id).full_name || "Membro"}
+                </span>
+                <span className="text-[11px] text-muted-foreground truncate block">
+                  {replyTo.content.length > 80 ? replyTo.content.slice(0, 80) + "…" : replyTo.content}
+                </span>
+              </div>
+              <button onClick={() => setReplyTo(null)} className="text-muted-foreground hover:text-foreground">
+                <X className="size-4" />
+              </button>
+            </div>
+          )}
           <form
             onSubmit={(e) => { e.preventDefault(); handleSend(); }}
             className="flex items-center gap-2"
           >
             <Input
+              ref={inputRef}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder={
