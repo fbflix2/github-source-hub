@@ -1,56 +1,48 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Upload, X, ZoomIn, ZoomOut, RotateCw, Download, UserCircle, Hand, MousePointer } from "lucide-react";
+import { X, ZoomIn, ZoomOut, RotateCw, Download, UserCircle, Hand, MousePointer, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { toast } from "sonner";
 
-// Default positions as % of image dimensions (based on CNH layout)
-const DEFAULT_PHOTO = { xPct: 2.8, yPct: 25, wPct: 17.5, hPct: 24 }; // 3x4 white square
+const TEMPLATE_STORAGE_KEY = "imageviewer_base_template";
+
+const DEFAULT_PHOTO = { xPct: 2.8, yPct: 25, wPct: 17.5, hPct: 24 };
 const DEFAULT_TEXT = {
   nome: { xPct: 30, yPct: 14.5 },
   nascimento: { xPct: 30, yPct: 22 },
   filiacao: { xPct: 30, yPct: 47 },
-  assinatura: { xPct: 15, yPct: 56 },   // "ASSINATURA DO PORTADOR" field
+  assinatura: { xPct: 15, yPct: 56 },
 };
 
-const SIGNATURE_FONTS = [
-  "Dancing Script",
-  "Caveat",
-  "Satisfy",
-];
+const SIGNATURE_FONTS = ["Dancing Script", "Caveat", "Satisfy"];
 
 export default function AdminImageViewer() {
-  const [images, setImages] = useState<{ id: string; name: string; url: string }[]>([]);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [photoOverlay, setPhotoOverlay] = useState<string | null>(null);
   const [photoPos, setPhotoPos] = useState(DEFAULT_PHOTO);
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [templatePreview, setTemplatePreview] = useState<string | null>(null);
 
-  // Main image pan
   const [panMode, setPanMode] = useState(false);
   const [mainOffset, setMainOffset] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
 
-  // Drag state
-  const [dragTarget, setDragTarget] = useState<string | null>(null); // "photo" | "nome" | "nascimento" | "filiacao"
+  const [dragTarget, setDragTarget] = useState<string | null>(null);
   const [dragStartPx, setDragStartPx] = useState({ x: 0, y: 0 });
   const [dragStartPct, setDragStartPct] = useState({ x: 0, y: 0 });
 
-  // Text positions as % of image
   const [textPos, setTextPos] = useState(DEFAULT_TEXT);
-
-  // Font sizes
   const [fontSizes, setFontSizes] = useState({ nome: 11, nascimento: 10, filiacao: 9, assinatura: 14 });
   const [signatureFont, setSignatureFont] = useState(SIGNATURE_FONTS[0]);
-
-  // Contrast
   const [contrast, setContrast] = useState(100);
 
-  // Form fields
   const [formData, setFormData] = useState({
     nomeCompleto: "",
     dataNascimento: "",
@@ -58,25 +50,46 @@ export default function AdminImageViewer() {
     nomeMae: "",
   });
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
+  const templateInputRef = useRef<HTMLInputElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
 
-  // Get rendered image dimensions
+  useEffect(() => {
+    const saved = localStorage.getItem(TEMPLATE_STORAGE_KEY);
+    if (saved) {
+      setSelectedImage(saved);
+      setTemplatePreview(saved);
+    }
+  }, []);
+
   const getImgRect = () => {
     if (!imgRef.current) return null;
     return { w: imgRef.current.clientWidth, h: imgRef.current.clientHeight };
   };
 
-  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-    Array.from(files).forEach((file) => {
-      if (!file.type.startsWith("image/")) return;
-      const url = URL.createObjectURL(file);
-      setImages((prev) => [...prev, { id: crypto.randomUUID(), name: file.name, url }]);
-    });
-    if (fileInputRef.current) fileInputRef.current.value = "";
+  const handleTemplateUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !file.type.startsWith("image/")) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      localStorage.setItem(TEMPLATE_STORAGE_KEY, dataUrl);
+      setSelectedImage(dataUrl);
+      setTemplatePreview(dataUrl);
+      setZoom(1);
+      setRotation(0);
+      setMainOffset({ x: 0, y: 0 });
+      toast.success("Template base salvo com sucesso!");
+    };
+    reader.readAsDataURL(file);
+    if (templateInputRef.current) templateInputRef.current.value = "";
+  };
+
+  const removeTemplate = () => {
+    localStorage.removeItem(TEMPLATE_STORAGE_KEY);
+    setSelectedImage(null);
+    setTemplatePreview(null);
+    toast.success("Template removido");
   };
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -88,24 +101,6 @@ export default function AdminImageViewer() {
     if (photoInputRef.current) photoInputRef.current.value = "";
   };
 
-  const removeImage = (id: string) => {
-    setImages((prev) => {
-      const img = prev.find((i) => i.id === id);
-      if (img) URL.revokeObjectURL(img.url);
-      return prev.filter((i) => i.id !== id);
-    });
-    if (selectedImage && images.find((i) => i.id === id)?.url === selectedImage) {
-      setSelectedImage(null);
-    }
-  };
-
-  const selectImage = (url: string) => {
-    setSelectedImage(url);
-    setZoom(1);
-    setRotation(0);
-    setMainOffset({ x: 0, y: 0 });
-  };
-
   const downloadImage = () => {
     if (!selectedImage) return;
     const a = document.createElement("a");
@@ -114,7 +109,6 @@ export default function AdminImageViewer() {
     a.click();
   };
 
-  // --- Pan ---
   const onViewerMouseDown = (e: React.MouseEvent) => {
     if (!panMode) return;
     e.preventDefault();
@@ -122,17 +116,14 @@ export default function AdminImageViewer() {
     setPanStart({ x: e.clientX - mainOffset.x, y: e.clientY - mainOffset.y });
   };
 
-  // --- Drag start (photo or text) ---
   const onElementMouseDown = (target: string, e: React.MouseEvent) => {
     if (panMode) return;
     e.preventDefault();
     e.stopPropagation();
     const rect = getImgRect();
     if (!rect) return;
-
     setDragTarget(target);
     setDragStartPx({ x: e.clientX, y: e.clientY });
-
     if (target === "photo") {
       setDragStartPct({ x: photoPos.xPct, y: photoPos.yPct });
     } else {
@@ -149,12 +140,10 @@ export default function AdminImageViewer() {
     if (!dragTarget) return;
     const rect = getImgRect();
     if (!rect) return;
-
     const dx = (e.clientX - dragStartPx.x) / zoom;
     const dy = (e.clientY - dragStartPx.y) / zoom;
     const dxPct = (dx / rect.w) * 100;
     const dyPct = (dy / rect.h) * 100;
-
     if (dragTarget === "photo") {
       setPhotoPos((p) => ({ ...p, xPct: dragStartPct.x + dxPct, yPct: dragStartPct.y + dyPct }));
     } else {
@@ -181,7 +170,6 @@ export default function AdminImageViewer() {
     }
   }, [isPanning, dragTarget, onGlobalMouseMove, onGlobalMouseUp]);
 
-  // Resize handle for photo
   const onResizeMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -191,7 +179,6 @@ export default function AdminImageViewer() {
     const startH = photoPos.hPct;
     const rect = getImgRect();
     if (!rect) return;
-
     const handleMove = (ev: MouseEvent) => {
       const dxPct = ((ev.clientX - startX) / zoom / rect.w) * 100;
       const dyPct = ((ev.clientY - startY) / zoom / rect.h) * 100;
@@ -212,28 +199,63 @@ export default function AdminImageViewer() {
           <h1 className="text-2xl font-bold text-white">Visualizador de Imagens</h1>
           <p className="text-white/50 text-sm">Faça upload e visualize imagens em tamanho real</p>
         </div>
+        <Button variant="ghost" size="icon" className="size-9" onClick={() => setSettingsOpen(true)} title="Configurações do Template">
+          <Settings className="size-5 text-white/70" />
+        </Button>
       </div>
 
+      {/* Settings Modal */}
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader>
+            <DialogTitle>Configurações do Template</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Defina a imagem base que será usada como template para todos os documentos. Ela ficará salva permanentemente.
+            </p>
+            <input ref={templateInputRef} type="file" accept="image/*" onChange={handleTemplateUpload} className="hidden" />
+            <Button onClick={() => templateInputRef.current?.click()} className="w-full gap-2" variant="outline">
+              <Settings className="size-4" />
+              {templatePreview ? "Trocar Template Base" : "Enviar Template Base"}
+            </Button>
+            {templatePreview && (
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Template atual:</Label>
+                <div className="relative rounded-lg overflow-hidden border border-border">
+                  <img src={templatePreview} alt="Template" className="w-full h-48 object-contain bg-black/20" />
+                  <button
+                    onClick={removeTemplate}
+                    className="absolute top-2 right-2 bg-destructive rounded-full p-1 hover:bg-destructive/80 transition-colors"
+                  >
+                    <X className="size-4 text-white" />
+                  </button>
+                </div>
+                <p className="text-[10px] text-muted-foreground">Este template será carregado automaticamente ao abrir esta página.</p>
+              </div>
+            )}
+            {!templatePreview && (
+              <div className="text-center py-8 text-muted-foreground text-sm border border-dashed border-border rounded-lg">
+                Nenhum template configurado
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <div className="grid grid-cols-1 xl:grid-cols-[360px_1fr] gap-6">
-        {/* Left: Upload + Form */}
+        {/* Left: Upload Foto + Form */}
         <div className="space-y-4">
           <Card className="bg-white/5 border-white/10">
             <CardHeader className="pb-3">
-              <CardTitle className="text-white text-sm">Imagens</CardTitle>
+              <CardTitle className="text-white text-sm">Foto & Dados</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleUpload} className="hidden" />
-              <Button onClick={() => fileInputRef.current?.click()} className="w-full gap-2" variant="outline">
-                <Upload className="size-4" />
-                Upload de Imagem
-              </Button>
-
               <input ref={photoInputRef} type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
               <Button onClick={() => photoInputRef.current?.click()} className="w-full gap-2" variant="outline">
                 <UserCircle className="size-4" />
-                Upload Foto 3x4
+                Upload Foto 3×4
               </Button>
-
               {photoOverlay && (
                 <div className="flex items-center gap-2 p-2 bg-white/5 rounded-lg border border-white/10">
                   <img src={photoOverlay} alt="Foto" className="w-10 h-12 object-cover rounded border border-white/20" />
@@ -243,33 +265,12 @@ export default function AdminImageViewer() {
                   </button>
                 </div>
               )}
-
-              {images.length === 0 && (
-                <div className="text-center py-6 text-white/30 text-sm">Nenhuma imagem enviada</div>
+              {!templatePreview && (
+                <div className="text-center py-4 text-white/30 text-xs border border-dashed border-white/10 rounded-lg">
+                  Nenhum template configurado.<br />
+                  <button onClick={() => setSettingsOpen(true)} className="text-primary underline mt-1">Configurar template</button>
+                </div>
               )}
-
-              <div className="grid grid-cols-2 gap-2 max-h-[30vh] overflow-y-auto">
-                {images.map((img) => (
-                  <div
-                    key={img.id}
-                    className={`relative group rounded-lg overflow-hidden border-2 cursor-pointer transition-all ${
-                      selectedImage === img.url ? "border-primary shadow-glow" : "border-white/10 hover:border-white/30"
-                    }`}
-                    onClick={() => selectImage(img.url)}
-                  >
-                    <img src={img.url} alt={img.name} className="w-full h-24 object-cover" />
-                    <button
-                      onClick={(e) => { e.stopPropagation(); removeImage(img.id); }}
-                      className="absolute top-1 right-1 bg-black/70 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <X className="size-3 text-white" />
-                    </button>
-                    <div className="absolute bottom-0 inset-x-0 bg-black/60 px-2 py-0.5">
-                      <span className="text-[10px] text-white/80 truncate block">{img.name}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
             </CardContent>
           </Card>
 
@@ -433,14 +434,9 @@ export default function AdminImageViewer() {
                     alt="Visualização"
                     className="select-none"
                     draggable={false}
-                    style={{
-                      maxWidth: "100%",
-                      maxHeight: "calc(70vh - 80px)",
-                      objectFit: "contain",
-                    }}
+                    style={{ maxWidth: "100%", maxHeight: "calc(70vh - 80px)", objectFit: "contain" }}
                   />
 
-                  {/* Photo overlay - positioned by % */}
                   {photoOverlay && (
                     <div
                       className="absolute border border-black/30"
@@ -455,15 +451,11 @@ export default function AdminImageViewer() {
                     >
                       <img src={photoOverlay} alt="Foto" className="w-full h-full object-cover pointer-events-none" draggable={false} />
                       {!panMode && (
-                        <div
-                          className="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-primary rounded-full cursor-se-resize"
-                          onMouseDown={onResizeMouseDown}
-                        />
+                        <div className="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-primary rounded-full cursor-se-resize" onMouseDown={onResizeMouseDown} />
                       )}
                     </div>
                   )}
 
-                  {/* Text overlays - positioned by % */}
                   {formData.nomeCompleto && (
                     <div
                       className="absolute select-none whitespace-nowrap"
@@ -504,7 +496,6 @@ export default function AdminImageViewer() {
                       )}
                     </div>
                   )}
-                  {/* Assinatura overlay */}
                   {formData.nomeCompleto && (
                     <div
                       className="absolute select-none whitespace-nowrap"
@@ -521,8 +512,11 @@ export default function AdminImageViewer() {
             ) : (
               <div className="w-full h-full flex items-center justify-center">
                 <div className="text-white/20 text-sm flex flex-col items-center gap-2">
-                  <ZoomIn className="size-10" />
-                  <span>Clique em uma imagem para visualizar</span>
+                  <Settings className="size-10" />
+                  <span>Configure o template base nas configurações</span>
+                  <Button variant="outline" size="sm" onClick={() => setSettingsOpen(true)} className="mt-2">
+                    <Settings className="size-4 mr-2" /> Abrir Configurações
+                  </Button>
                 </div>
               </div>
             )}
