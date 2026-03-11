@@ -458,7 +458,7 @@ export default function AdminImageViewer() {
                         </span>
                       )}
                       {formData.nomeMae && (
-                        <span className="text-[9px] font-semibold text-black/90 uppercase whitespace-nowrap" style={{ fontFamily: "Arial Narrow, Arial, sans-serif" }}>
+                        <span className="font-semibold text-black/90 uppercase whitespace-nowrap" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${fontSizes.filiacao}px` }}>
                           {formData.nomeMae}
                         </span>
                       )}
