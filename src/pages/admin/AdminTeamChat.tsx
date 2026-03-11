@@ -16,6 +16,7 @@ interface TeamMessage {
   content: string;
   created_at: string;
   recipient_id: string | null;
+  reply_to_id: string | null;
 }
 
 interface UserInfo {
