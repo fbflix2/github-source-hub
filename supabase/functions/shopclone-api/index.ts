@@ -95,27 +95,74 @@ function buildStockItems(rawAccounts: string[], productId: string, productName: 
   });
 }
 
-async function saveStockItems(adminClient: ReturnType<typeof createClient>, folder: string, stockItems: any[]) {
-  if (stockItems.length === 0) return { savedCount: 0 };
+async function ensureFolderId(adminClient: ReturnType<typeof createClient>, folderName: string) {
+  const normalizedFolderName = folderName.trim() || "AccFace Import";
 
-  const { data: existingFolder } = await adminClient
+  const { data: existingFolder, error: findFolderError } = await adminClient
     .from("stock_folders")
-    .select("id")
-    .eq("name", folder)
+    .select("id, name")
+    .eq("name", normalizedFolderName)
     .is("deleted_at", null)
     .maybeSingle();
 
-  if (!existingFolder) {
-    await adminClient.from("stock_folders").insert({ name: folder });
+  if (findFolderError) {
+    throw new Error(`Erro ao buscar pasta: ${findFolderError.message}`);
   }
 
-  const { error: insertError } = await adminClient.from("stock_items").insert(stockItems);
+  if (existingFolder?.id) {
+    return { folderId: existingFolder.id, folderName: existingFolder.name };
+  }
+
+  const { data: createdFolder, error: createFolderError } = await adminClient
+    .from("stock_folders")
+    .insert({ name: normalizedFolderName })
+    .select("id, name")
+    .single();
+
+  if (createFolderError || !createdFolder?.id) {
+    throw new Error(`Erro ao criar pasta: ${createFolderError?.message || "sem retorno"}`);
+  }
+
+  return { folderId: createdFolder.id, folderName: createdFolder.name };
+}
+
+async function normalizeFolderLinks(
+  adminClient: ReturnType<typeof createClient>,
+  folderName: string,
+  folderId: string,
+) {
+  const { data, error } = await adminClient
+    .from("stock_items")
+    .update({ folder: folderId })
+    .eq("folder", folderName)
+    .is("deleted_at", null)
+    .select("id");
+
+  if (error) {
+    console.error("[shopclone-api] Error normalizing folder links:", error);
+    return 0;
+  }
+
+  return data?.length ?? 0;
+}
+
+async function saveStockItems(adminClient: ReturnType<typeof createClient>, folderName: string, stockItems: any[]) {
+  const { folderId, folderName: resolvedFolderName } = await ensureFolderId(adminClient, folderName);
+  const repairedCount = await normalizeFolderLinks(adminClient, resolvedFolderName, folderId);
+
+  if (stockItems.length === 0) {
+    return { savedCount: 0, folderId, folderName: resolvedFolderName, repairedCount };
+  }
+
+  const normalizedItems = stockItems.map((item) => ({ ...item, folder: folderId }));
+
+  const { error: insertError } = await adminClient.from("stock_items").insert(normalizedItems);
   if (insertError) {
     console.error("[shopclone-api] Error saving to stock:", insertError);
-    return { savedCount: 0, error: insertError.message };
+    return { savedCount: 0, error: insertError.message, folderId, folderName: resolvedFolderName, repairedCount };
   }
 
-  return { savedCount: stockItems.length };
+  return { savedCount: normalizedItems.length, folderId, folderName: resolvedFolderName, repairedCount };
 }
 
 Deno.serve(async (req) => {
