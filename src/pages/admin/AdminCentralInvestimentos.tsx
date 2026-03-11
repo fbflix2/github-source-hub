@@ -83,6 +83,18 @@ export default function AdminCentralInvestimentos() {
     refetchOnWindowFocus: false,
   });
 
+  // Fetch total proxy count from Webshare (reliable count)
+  const { data: webshareProxyCount } = useQuery({
+    queryKey: ["webshare-proxy-count-invest"],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("webshare-api", { body: { action: "get-proxy-list", mode: "direct", page: 1, page_size: 1 } });
+      if (error) return null;
+      return data?.count || null;
+    },
+    staleTime: 300_000,
+    refetchOnWindowFocus: false,
+  });
+
   // Fetch proxy category to identify webshare products
   const { data: proxyCategory } = useQuery({
     queryKey: ["proxy-category-id"],
