@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useShopCloneProducts, useShopCloneBalance, ShopCloneCategory, ShopCloneProduct } from "@/hooks/useShopClone";
 import { Loader2, Store, DollarSign, Package, RefreshCw, ExternalLink, Eye, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -6,9 +6,27 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+// VND to USD rate (accface prices are in VND)
+const VND_TO_USD = 1 / 25800;
+
+function useUsdToBrl() {
+  const [rate, setRate] = useState(5.5);
+  useEffect(() => {
+    fetch("https://economia.awesomeapi.com.br/json/last/USD-BRL")
+      .then(r => r.json())
+      .then(d => {
+        const bid = parseFloat(d?.USDBRL?.bid);
+        if (bid > 0) setRate(bid);
+      })
+      .catch(() => {});
+  }, []);
+  return rate;
+}
+
 export default function AdminShopClone() {
   const { data: categories, isLoading, error, refetch } = useShopCloneProducts();
   const { data: balance, isLoading: balanceLoading } = useShopCloneBalance();
+  const usdToBrl = useUsdToBrl();
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
@@ -24,7 +42,7 @@ export default function AdminShopClone() {
 
   const totalProducts = (categories || []).reduce((sum, c) => sum + c.accounts.length, 0);
   const totalStock = (categories || []).reduce(
-    (sum, c) => sum + c.accounts.reduce((s, p) => s + p.amount, 0),
+    (sum, c) => sum + c.accounts.reduce((s, p) => s + (Number(p.amount) || 0), 0),
     0
   );
 
