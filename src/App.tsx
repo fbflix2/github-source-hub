@@ -81,6 +81,7 @@ import AdminCentralInvestimentos from "./pages/admin/AdminCentralInvestimentos";
 import AdminAquecimento from "./pages/admin/AdminAquecimento";
 import AdminShopClone from "./pages/admin/AdminShopClone";
 import AdminFerramentas2FA from "./pages/admin/AdminFerramentas2FA";
+import AdminImageViewer from "./pages/admin/AdminImageViewer";
 import { AdminLayout } from "./components/admin/AdminLayout";
 
 // Layout
