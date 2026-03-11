@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Upload, X, ZoomIn, ZoomOut, RotateCw, Download, UserCircle, Hand, Move } from "lucide-react";
+import { Upload, X, ZoomIn, ZoomOut, RotateCw, Download, UserCircle, Hand, MousePointer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
