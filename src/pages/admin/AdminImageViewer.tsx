@@ -44,7 +44,8 @@ export default function AdminImageViewer() {
   const [textPos, setTextPos] = useState(DEFAULT_TEXT);
 
   // Font sizes
-  const [fontSizes, setFontSizes] = useState({ nome: 11, nascimento: 10, filiacao: 9 });
+  const [fontSizes, setFontSizes] = useState({ nome: 11, nascimento: 10, filiacao: 9, assinatura: 14 });
+  const [signatureFont, setSignatureFont] = useState(SIGNATURE_FONTS[0]);
 
   // Contrast
   const [contrast, setContrast] = useState(100);
