@@ -421,27 +421,24 @@ export default function AdminCentralInvestimentos() {
                 </div>
 
                 <div className="hidden sm:flex items-center gap-4 shrink-0">
-                  {hasCost ? (
-                    <>
-                      <div className="text-right">
-                        <p className="text-xs text-muted-foreground">Custo + Fixo</p>
-                        <p className="text-sm font-semibold text-foreground">{fmt(tcWithFixed)}</p>
-                        {fixedPerProduct > 0 && (
-                          <p className="text-[9px] text-amber-400">+{fmt(fixedPerProduct)} fixo</p>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs text-muted-foreground">Lucro Real</p>
-                        <p className={`text-sm font-semibold ${realProfit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                          {fmt(realProfit)} ({realMargin.toFixed(1)}%)
-                        </p>
-                      </div>
-                    </>
-                  ) : (
-                    <span className="text-xs text-amber-400 bg-amber-400/10 px-2 py-1 rounded border border-amber-400/20">
-                      Sem custo definido
-                    </span>
-                  )}
+                  <div className="text-right">
+                    <p className="text-xs text-muted-foreground">Custo + Fixo</p>
+                    <p className="text-sm font-semibold text-foreground">
+                      {hasCost ? fmt(tcWithFixed) : <span className="text-amber-400">—</span>}
+                    </p>
+                    {hasCost && fixedPerProduct > 0 && (
+                      <p className="text-[9px] text-amber-400">+{fmt(fixedPerProduct)} fixo</p>
+                    )}
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-muted-foreground">Lucro Líquido</p>
+                    <p className={`text-sm font-semibold ${realProfit >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                      {fmt(realProfit)} ({realMargin.toFixed(1)}%)
+                    </p>
+                    {!hasCost && (
+                      <p className="text-[9px] text-amber-400">sem custo definido</p>
+                    )}
+                  </div>
                 </div>
               </button>
 
