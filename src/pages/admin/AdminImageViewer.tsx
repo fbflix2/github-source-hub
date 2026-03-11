@@ -9,10 +9,17 @@ import { Slider } from "@/components/ui/slider";
 // Default positions as % of image dimensions (based on CNH layout)
 const DEFAULT_PHOTO = { xPct: 2.8, yPct: 25, wPct: 17.5, hPct: 24 }; // 3x4 white square
 const DEFAULT_TEXT = {
-  nome: { xPct: 30, yPct: 14.5 },       // "NOME E SOBRENOME" field
-  nascimento: { xPct: 30, yPct: 22 },    // "DATA NASCIMENTO" field
-  filiacao: { xPct: 30, yPct: 47 },      // "FILIAÇÃO" field
+  nome: { xPct: 30, yPct: 14.5 },
+  nascimento: { xPct: 30, yPct: 22 },
+  filiacao: { xPct: 30, yPct: 47 },
+  assinatura: { xPct: 15, yPct: 56 },   // "ASSINATURA DO PORTADOR" field
 };
+
+const SIGNATURE_FONTS = [
+  "Dancing Script",
+  "Caveat",
+  "Satisfy",
+];
 
 export default function AdminImageViewer() {
   const [images, setImages] = useState<{ id: string; name: string; url: string }[]>([]);
@@ -37,7 +44,8 @@ export default function AdminImageViewer() {
   const [textPos, setTextPos] = useState(DEFAULT_TEXT);
 
   // Font sizes
-  const [fontSizes, setFontSizes] = useState({ nome: 11, nascimento: 10, filiacao: 9 });
+  const [fontSizes, setFontSizes] = useState({ nome: 11, nascimento: 10, filiacao: 9, assinatura: 14 });
+  const [signatureFont, setSignatureFont] = useState(SIGNATURE_FONTS[0]);
 
   // Contrast
   const [contrast, setContrast] = useState(100);
@@ -328,7 +336,35 @@ export default function AdminImageViewer() {
                 </div>
               </div>
 
-              {/* Contrast slider */}
+              {/* Assinatura */}
+              <div className="pt-2 border-t border-white/10">
+                <Label className="text-white/60 text-xs">Assinatura (gerada do nome)</Label>
+                {formData.nomeCompleto && (
+                  <div className="mt-1 p-2 bg-white/5 rounded border border-white/10">
+                    <span style={{ fontFamily: `'${signatureFont}', cursive`, fontSize: `${fontSizes.assinatura}px`, color: "#1a1a8a" }}>
+                      {formData.nomeCompleto}
+                    </span>
+                  </div>
+                )}
+                <div className="flex gap-1 mt-1.5 flex-wrap">
+                  {SIGNATURE_FONTS.map((f) => (
+                    <button
+                      key={f}
+                      onClick={() => setSignatureFont(f)}
+                      className={`px-2 py-1 rounded text-xs border transition-all ${signatureFont === f ? "border-primary bg-primary/20 text-white" : "border-white/10 text-white/50 hover:border-white/30"}`}
+                      style={{ fontFamily: `'${f}', cursive` }}
+                    >
+                      Aa
+                    </button>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-[10px] text-white/40">Tamanho:</span>
+                  <Slider value={[fontSizes.assinatura]} onValueChange={([v]) => setFontSizes((sf) => ({ ...sf, assinatura: v }))} min={8} max={24} step={0.5} className="flex-1" />
+                  <span className="text-[10px] text-white/50 w-8">{fontSizes.assinatura}px</span>
+                </div>
+              </div>
+
               <div className="pt-2 border-t border-white/10">
                 <div className="flex items-center gap-2">
                   <Label className="text-white/60 text-xs whitespace-nowrap">Contraste</Label>
@@ -466,6 +502,18 @@ export default function AdminImageViewer() {
                           {formData.nomeMae}
                         </span>
                       )}
+                    </div>
+                  )}
+                  {/* Assinatura overlay */}
+                  {formData.nomeCompleto && (
+                    <div
+                      className="absolute select-none whitespace-nowrap"
+                      style={{ left: `${textPos.assinatura.xPct}%`, top: `${textPos.assinatura.yPct}%`, cursor: panMode ? "inherit" : "move" }}
+                      onMouseDown={(e) => onElementMouseDown("assinatura", e)}
+                    >
+                      <span style={{ fontFamily: `'${signatureFont}', cursive`, fontSize: `${fontSizes.assinatura}px`, color: "#1a1a8a" }}>
+                        {formData.nomeCompleto}
+                      </span>
                     </div>
                   )}
                 </div>
