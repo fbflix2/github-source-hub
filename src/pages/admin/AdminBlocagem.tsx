@@ -823,7 +823,8 @@ function FolderItemsView({ folder, onBack }: { folder: Folder; onBack: () => voi
     const { data } = await supabase
       .from("stock_items")
       .select("*")
-      .or(`folder.eq.${folder.id},folder.eq."${safeFolderName}"`)
+      .or(`folder.eq.${folder.id},folder.eq.${folder.name}`)
+      .is("deleted_at", null)
       .neq("status", "revisado")
       .order("created_at", { ascending: false });
     setItems(data ?? []);
