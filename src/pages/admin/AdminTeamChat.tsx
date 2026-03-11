@@ -470,12 +470,30 @@ export default function AdminTeamChat() {
         </div>
 
         {/* Input */}
-        <div className="pt-4 border-t border-border mt-2">
+        <div className="pt-3 border-t border-border mt-2">
+          {/* Reply preview bar */}
+          {replyTo && (
+            <div className="flex items-center gap-2 mb-2 px-3 py-2 rounded-xl bg-primary/5 border border-primary/20">
+              <Reply className="size-4 text-primary flex-shrink-0 rotate-180" />
+              <div className="flex-1 min-w-0">
+                <span className="text-[11px] font-semibold text-primary block truncate">
+                  {getProfile(replyTo.user_id).full_name || "Membro"}
+                </span>
+                <span className="text-[11px] text-muted-foreground truncate block">
+                  {replyTo.content.length > 80 ? replyTo.content.slice(0, 80) + "…" : replyTo.content}
+                </span>
+              </div>
+              <button onClick={() => setReplyTo(null)} className="text-muted-foreground hover:text-foreground">
+                <X className="size-4" />
+              </button>
+            </div>
+          )}
           <form
             onSubmit={(e) => { e.preventDefault(); handleSend(); }}
             className="flex items-center gap-2"
           >
             <Input
+              ref={inputRef}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder={
