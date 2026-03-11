@@ -556,6 +556,12 @@ export default function Checkout() {
   const handlePay = async () => {
     setProcessing(true);
 
+    // Safety timeout: if processing takes more than 60s, force stop spinning
+    const safetyTimeout = setTimeout(() => {
+      setProcessing(false);
+      toast.error("O processamento demorou demais. Verifique seu pedido em 'Meus Pedidos' ou tente novamente.");
+    }, 60000);
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -569,7 +575,7 @@ export default function Checkout() {
         return;
       }
 
-      // Validate stock before proceeding
+      // Re-validate stock right before payment
       const { data: orderItemsToCheck } = await supabase
         .from("order_items")
         .select("id, product_id, name, quantity")
