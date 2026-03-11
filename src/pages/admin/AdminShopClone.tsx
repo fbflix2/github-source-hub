@@ -117,7 +117,7 @@ function useUsdToBrl() {
 
 export default function AdminShopClone() {
   const { data: categories, isLoading, error, refetch } = useShopCloneProducts();
-  const { data: balance, isLoading: balanceLoading } = useShopCloneBalance();
+  const { data: balance, isLoading: balanceLoading, refetch: refetchBalance } = useShopCloneBalance();
   const usdToBrl = useUsdToBrl();
   const tz = useTimezoneComparison();
   const [search, setSearch] = useState("");
