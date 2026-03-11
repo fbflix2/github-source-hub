@@ -118,6 +118,7 @@ async function saveStockItems(adminClient: ReturnType<typeof createClient>, fold
   return { savedCount: stockItems.length };
 }
 
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
