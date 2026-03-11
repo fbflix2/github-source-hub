@@ -819,7 +819,7 @@ function FolderItemsView({ folder, onBack }: { folder: Folder; onBack: () => voi
 
   const fetchItems = async () => {
     setLoading(true);
-    const safeFolderName = folder.name.replace(/"/g, '\\"');
+    // fetch items matching by folder UUID or legacy folder name
     const { data, error } = await supabase
       .from("stock_items")
       .select("*")
