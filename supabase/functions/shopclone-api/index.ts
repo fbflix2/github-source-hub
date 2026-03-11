@@ -305,7 +305,9 @@ Deno.serve(async (req) => {
           msg: parsed?.msg,
           trans_id: parsed?.data?.trans_id,
           saved_count: saveResult.savedCount,
-          folder,
+          repaired_count: saveResult.repairedCount,
+          folder: saveResult.folderName,
+          folder_id: saveResult.folderId,
           raw_accounts: rawAccounts,
           api_response_keys: Object.keys(parsed || {}),
           ...(saveResult.error && { save_error: saveResult.error }),
@@ -330,9 +332,30 @@ Deno.serve(async (req) => {
         result = {
           status: saveResult.error ? "error" : "success",
           saved_count: saveResult.savedCount,
-          folder,
+          repaired_count: saveResult.repairedCount,
+          folder: saveResult.folderName,
+          folder_id: saveResult.folderId,
           raw_accounts: rawAccounts,
           ...(saveResult.error && { error: saveResult.error }),
+        };
+        break;
+      }
+
+      case "repair-folder-links": {
+        const adminClient = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+        );
+
+        const folder = String(params.folderName || "AccFace Import");
+        const { folderId, folderName: resolvedFolderName } = await ensureFolderId(adminClient, folder);
+        const repairedCount = await normalizeFolderLinks(adminClient, resolvedFolderName, folderId);
+
+        result = {
+          status: "success",
+          folder: resolvedFolderName,
+          folder_id: folderId,
+          repaired_count: repairedCount,
         };
         break;
       }
