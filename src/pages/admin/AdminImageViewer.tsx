@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Upload, X, ZoomIn, ZoomOut, RotateCw, Download, UserCircle } from "lucide-react";
+import { Upload, X, ZoomIn, ZoomOut, RotateCw, Download, UserCircle, Hand, Move } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export default function AdminImageViewer() {
   const [images, setImages] = useState<{ id: string; name: string; url: string }[]>([]);
@@ -11,12 +13,27 @@ export default function AdminImageViewer() {
   const [photoSize, setPhotoSize] = useState({ w: 120, h: 150 });
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
+
+  // Main image pan
+  const [panMode, setPanMode] = useState(false);
+  const [mainOffset, setMainOffset] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+
+  // Photo drag
+  const [isDraggingPhoto, setIsDraggingPhoto] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [isResizing, setIsResizing] = useState(false);
+
+  // Form fields
+  const [formData, setFormData] = useState({
+    nomeCompleto: "",
+    dataNascimento: "",
+    nomePai: "",
+    nomeMae: "",
+  });
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
-  const viewerRef = useRef<HTMLDivElement>(null);
 
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -54,6 +71,7 @@ export default function AdminImageViewer() {
     setSelectedImage(url);
     setZoom(1);
     setRotation(0);
+    setMainOffset({ x: 0, y: 0 });
   };
 
   const downloadImage = () => {
@@ -64,54 +82,60 @@ export default function AdminImageViewer() {
     a.click();
   };
 
-  // Drag photo overlay
+  // --- Pan (main image + overlays together) ---
+  const onViewerMouseDown = (e: React.MouseEvent) => {
+    if (!panMode) return;
+    e.preventDefault();
+    setIsPanning(true);
+    setPanStart({ x: e.clientX - mainOffset.x, y: e.clientY - mainOffset.y });
+  };
+
+  // --- Photo overlay drag ---
   const onPhotoMouseDown = (e: React.MouseEvent) => {
-    if (isResizing) return;
+    if (panMode) return;
     e.preventDefault();
     e.stopPropagation();
-    setIsDragging(true);
+    setIsDraggingPhoto(true);
     setDragStart({ x: e.clientX - photoPosition.x, y: e.clientY - photoPosition.y });
   };
 
-  const onMouseMove = useCallback((e: MouseEvent) => {
-    if (isDragging) {
+  const onGlobalMouseMove = useCallback((e: MouseEvent) => {
+    if (isPanning) {
+      setMainOffset({ x: e.clientX - panStart.x, y: e.clientY - panStart.y });
+    }
+    if (isDraggingPhoto) {
       setPhotoPosition({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
     }
-  }, [isDragging, dragStart]);
+  }, [isPanning, panStart, isDraggingPhoto, dragStart]);
 
-  const onMouseUp = useCallback(() => {
-    setIsDragging(false);
-    setIsResizing(false);
+  const onGlobalMouseUp = useCallback(() => {
+    setIsPanning(false);
+    setIsDraggingPhoto(false);
   }, []);
 
   useEffect(() => {
-    if (isDragging || isResizing) {
-      window.addEventListener("mousemove", onMouseMove);
-      window.addEventListener("mouseup", onMouseUp);
+    if (isPanning || isDraggingPhoto) {
+      window.addEventListener("mousemove", onGlobalMouseMove);
+      window.addEventListener("mouseup", onGlobalMouseUp);
       return () => {
-        window.removeEventListener("mousemove", onMouseMove);
-        window.removeEventListener("mouseup", onMouseUp);
+        window.removeEventListener("mousemove", onGlobalMouseMove);
+        window.removeEventListener("mouseup", onGlobalMouseUp);
       };
     }
-  }, [isDragging, isResizing, onMouseMove, onMouseUp]);
+  }, [isPanning, isDraggingPhoto, onGlobalMouseMove, onGlobalMouseUp]);
 
-  // Resize handle
+  // Resize handle for photo
   const onResizeMouseDown = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsResizing(true);
     const startX = e.clientX;
     const startY = e.clientY;
     const startW = photoSize.w;
     const startH = photoSize.h;
-
     const handleMove = (ev: MouseEvent) => {
-      const dw = ev.clientX - startX;
-      const dh = ev.clientY - startY;
-      setPhotoSize({ w: Math.max(40, startW + dw), h: Math.max(50, startH + dh) });
+      setPhotoSize({ w: Math.max(40, startW + ev.clientX - startX), h: Math.max(50, startH + ev.clientY - startY) });
     };
     const handleUp = () => {
-      setIsResizing(false);
       window.removeEventListener("mousemove", handleMove);
       window.removeEventListener("mouseup", handleUp);
     };
@@ -129,62 +153,114 @@ export default function AdminImageViewer() {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[360px_1fr] gap-6">
-        {/* Left: Upload + Thumbnails */}
-        <Card className="bg-white/5 border-white/10">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-white text-sm">Imagens</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleUpload} className="hidden" />
-            <Button onClick={() => fileInputRef.current?.click()} className="w-full gap-2" variant="outline">
-              <Upload className="size-4" />
-              Upload de Imagem
-            </Button>
+        {/* Left: Upload + Form */}
+        <div className="space-y-4">
+          <Card className="bg-white/5 border-white/10">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-white text-sm">Imagens</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleUpload} className="hidden" />
+              <Button onClick={() => fileInputRef.current?.click()} className="w-full gap-2" variant="outline">
+                <Upload className="size-4" />
+                Upload de Imagem
+              </Button>
 
-            <input ref={photoInputRef} type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
-            <Button onClick={() => photoInputRef.current?.click()} className="w-full gap-2" variant="outline">
-              <UserCircle className="size-4" />
-              Upload Foto (sobrepor)
-            </Button>
+              <input ref={photoInputRef} type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
+              <Button onClick={() => photoInputRef.current?.click()} className="w-full gap-2" variant="outline">
+                <UserCircle className="size-4" />
+                Upload Foto (sobrepor)
+              </Button>
 
-            {photoOverlay && (
-              <div className="flex items-center gap-2 p-2 bg-white/5 rounded-lg border border-white/10">
-                <img src={photoOverlay} alt="Foto" className="w-10 h-12 object-cover rounded border border-white/20" />
-                <span className="text-xs text-white/60 flex-1">Foto carregada - arraste na imagem</span>
-                <button onClick={() => { URL.revokeObjectURL(photoOverlay); setPhotoOverlay(null); }}>
-                  <X className="size-4 text-white/40 hover:text-white" />
-                </button>
-              </div>
-            )}
-
-            {images.length === 0 && (
-              <div className="text-center py-10 text-white/30 text-sm">Nenhuma imagem enviada</div>
-            )}
-
-            <div className="grid grid-cols-2 gap-2 max-h-[50vh] overflow-y-auto">
-              {images.map((img) => (
-                <div
-                  key={img.id}
-                  className={`relative group rounded-lg overflow-hidden border-2 cursor-pointer transition-all ${
-                    selectedImage === img.url ? "border-primary shadow-glow" : "border-white/10 hover:border-white/30"
-                  }`}
-                  onClick={() => selectImage(img.url)}
-                >
-                  <img src={img.url} alt={img.name} className="w-full h-28 object-cover" />
-                  <button
-                    onClick={(e) => { e.stopPropagation(); removeImage(img.id); }}
-                    className="absolute top-1 right-1 bg-black/70 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <X className="size-3 text-white" />
+              {photoOverlay && (
+                <div className="flex items-center gap-2 p-2 bg-white/5 rounded-lg border border-white/10">
+                  <img src={photoOverlay} alt="Foto" className="w-10 h-12 object-cover rounded border border-white/20" />
+                  <span className="text-xs text-white/60 flex-1">Arraste na imagem</span>
+                  <button onClick={() => { URL.revokeObjectURL(photoOverlay); setPhotoOverlay(null); }}>
+                    <X className="size-4 text-white/40 hover:text-white" />
                   </button>
-                  <div className="absolute bottom-0 inset-x-0 bg-black/60 px-2 py-1">
-                    <span className="text-[10px] text-white/80 truncate block">{img.name}</span>
-                  </div>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+              )}
+
+              {images.length === 0 && (
+                <div className="text-center py-6 text-white/30 text-sm">Nenhuma imagem enviada</div>
+              )}
+
+              <div className="grid grid-cols-2 gap-2 max-h-[30vh] overflow-y-auto">
+                {images.map((img) => (
+                  <div
+                    key={img.id}
+                    className={`relative group rounded-lg overflow-hidden border-2 cursor-pointer transition-all ${
+                      selectedImage === img.url ? "border-primary shadow-glow" : "border-white/10 hover:border-white/30"
+                    }`}
+                    onClick={() => selectImage(img.url)}
+                  >
+                    <img src={img.url} alt={img.name} className="w-full h-24 object-cover" />
+                    <button
+                      onClick={(e) => { e.stopPropagation(); removeImage(img.id); }}
+                      className="absolute top-1 right-1 bg-black/70 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="size-3 text-white" />
+                    </button>
+                    <div className="absolute bottom-0 inset-x-0 bg-black/60 px-2 py-0.5">
+                      <span className="text-[10px] text-white/80 truncate block">{img.name}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Form */}
+          <Card className="bg-white/5 border-white/10">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-white text-sm">Dados do Documento</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div>
+                <Label className="text-white/60 text-xs">Nome Completo</Label>
+                <Input
+                  value={formData.nomeCompleto}
+                  onChange={(e) => setFormData((f) => ({ ...f, nomeCompleto: e.target.value }))}
+                  placeholder="NOME COMPLETO"
+                  className="mt-1 bg-white/5 border-white/10 text-white uppercase"
+                  maxLength={100}
+                />
+              </div>
+              <div>
+                <Label className="text-white/60 text-xs">Data de Nascimento</Label>
+                <Input
+                  type="date"
+                  value={formData.dataNascimento}
+                  onChange={(e) => setFormData((f) => ({ ...f, dataNascimento: e.target.value }))}
+                  className="mt-1 bg-white/5 border-white/10 text-white"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-white/60 text-xs">Nome do Pai</Label>
+                  <Input
+                    value={formData.nomePai}
+                    onChange={(e) => setFormData((f) => ({ ...f, nomePai: e.target.value }))}
+                    placeholder="Nome do Pai"
+                    className="mt-1 bg-white/5 border-white/10 text-white uppercase text-xs"
+                    maxLength={100}
+                  />
+                </div>
+                <div>
+                  <Label className="text-white/60 text-xs">Nome da Mãe</Label>
+                  <Input
+                    value={formData.nomeMae}
+                    onChange={(e) => setFormData((f) => ({ ...f, nomeMae: e.target.value }))}
+                    placeholder="Nome da Mãe"
+                    className="mt-1 bg-white/5 border-white/10 text-white uppercase text-xs"
+                    maxLength={100}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Right: Full-size viewer */}
         <Card className="bg-white/5 border-white/10 min-h-[70vh]">
@@ -192,6 +268,16 @@ export default function AdminImageViewer() {
             <CardTitle className="text-white text-sm">Visualização</CardTitle>
             {selectedImage && (
               <div className="flex items-center gap-1">
+                <Button
+                  size="icon"
+                  variant={panMode ? "default" : "ghost"}
+                  className="size-8"
+                  onClick={() => setPanMode((p) => !p)}
+                  title="Mover imagem"
+                >
+                  <Hand className="size-4" />
+                </Button>
+                <div className="w-px h-5 bg-white/10 mx-1" />
                 <Button size="icon" variant="ghost" className="size-8" onClick={() => setZoom((z) => Math.max(0.1, z - 0.25))}>
                   <ZoomOut className="size-4 text-white/70" />
                 </Button>
@@ -208,49 +294,98 @@ export default function AdminImageViewer() {
               </div>
             )}
           </CardHeader>
-          <CardContent className="flex items-center justify-center overflow-auto h-[calc(70vh-60px)]">
+          <CardContent
+            className="overflow-hidden h-[calc(70vh-60px)]"
+            style={{ cursor: panMode ? (isPanning ? "grabbing" : "grab") : "default" }}
+            onMouseDown={onViewerMouseDown}
+          >
             {selectedImage ? (
-              <div ref={viewerRef} className="relative overflow-auto w-full h-full flex items-center justify-center p-4">
-                <div className="relative inline-block" style={{ transform: `scale(${zoom}) rotate(${rotation}deg)`, transformOrigin: "center center", transition: "transform 0.2s" }}>
+              <div
+                className="w-full h-full flex items-center justify-center"
+                style={{
+                  transform: `translate(${mainOffset.x}px, ${mainOffset.y}px)`,
+                  transition: isPanning ? "none" : "transform 0.15s",
+                }}
+              >
+                <div
+                  className="relative inline-block"
+                  style={{
+                    transform: `scale(${zoom}) rotate(${rotation}deg)`,
+                    transformOrigin: "center center",
+                    transition: "transform 0.2s",
+                  }}
+                >
                   <img
                     src={selectedImage}
                     alt="Visualização"
+                    className="select-none"
+                    draggable={false}
                     style={{
                       maxWidth: zoom <= 1 ? "100%" : "none",
-                      maxHeight: zoom <= 1 ? "100%" : "none",
+                      maxHeight: zoom <= 1 ? "calc(70vh - 80px)" : "none",
                       objectFit: "contain",
                     }}
                   />
-                  {/* Photo overlay - draggable & resizable */}
+                  {/* Photo overlay */}
                   {photoOverlay && (
                     <div
-                      className="absolute cursor-move border-2 border-dashed border-primary/60 hover:border-primary shadow-lg"
+                      className="absolute border-2 border-dashed border-primary/60 hover:border-primary shadow-lg"
                       style={{
                         left: photoPosition.x,
                         top: photoPosition.y,
                         width: photoSize.w,
                         height: photoSize.h,
+                        cursor: panMode ? "inherit" : "move",
                       }}
                       onMouseDown={onPhotoMouseDown}
                     >
-                      <img
-                        src={photoOverlay}
-                        alt="Foto"
-                        className="w-full h-full object-cover pointer-events-none"
-                      />
-                      {/* Resize handle */}
-                      <div
-                        className="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-primary rounded-full cursor-se-resize"
-                        onMouseDown={onResizeMouseDown}
-                      />
+                      <img src={photoOverlay} alt="Foto" className="w-full h-full object-cover pointer-events-none" draggable={false} />
+                      {!panMode && (
+                        <div
+                          className="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-primary rounded-full cursor-se-resize"
+                          onMouseDown={onResizeMouseDown}
+                        />
+                      )}
+                    </div>
+                  )}
+
+                  {/* Text overlays from form - rendered on the image */}
+                  {formData.nomeCompleto && (
+                    <div className="absolute pointer-events-none select-none" style={{ top: "18%", left: "30%", right: "10%" }}>
+                      <span className="text-[11px] font-bold tracking-wide text-black/80 uppercase" style={{ fontFamily: "Arial Narrow, Arial, sans-serif" }}>
+                        {formData.nomeCompleto}
+                      </span>
+                    </div>
+                  )}
+                  {formData.dataNascimento && (
+                    <div className="absolute pointer-events-none select-none" style={{ top: "25%", left: "30%", right: "40%" }}>
+                      <span className="text-[10px] font-semibold text-black/80" style={{ fontFamily: "Arial Narrow, Arial, sans-serif" }}>
+                        {new Date(formData.dataNascimento).toLocaleDateString("pt-BR")}
+                      </span>
+                    </div>
+                  )}
+                  {(formData.nomePai || formData.nomeMae) && (
+                    <div className="absolute pointer-events-none select-none flex flex-col" style={{ top: "52%", left: "30%", right: "10%" }}>
+                      {formData.nomePai && (
+                        <span className="text-[9px] font-semibold text-black/80 uppercase" style={{ fontFamily: "Arial Narrow, Arial, sans-serif" }}>
+                          {formData.nomePai}
+                        </span>
+                      )}
+                      {formData.nomeMae && (
+                        <span className="text-[9px] font-semibold text-black/80 uppercase" style={{ fontFamily: "Arial Narrow, Arial, sans-serif" }}>
+                          {formData.nomeMae}
+                        </span>
+                      )}
                     </div>
                   )}
                 </div>
               </div>
             ) : (
-              <div className="text-white/20 text-sm flex flex-col items-center gap-2">
-                <ZoomIn className="size-10" />
-                <span>Clique em uma imagem para visualizar</span>
+              <div className="w-full h-full flex items-center justify-center">
+                <div className="text-white/20 text-sm flex flex-col items-center gap-2">
+                  <ZoomIn className="size-10" />
+                  <span>Clique em uma imagem para visualizar</span>
+                </div>
               </div>
             )}
           </CardContent>
