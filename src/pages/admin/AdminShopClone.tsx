@@ -302,7 +302,10 @@ function ProductRow({ product, usdToBrl }: { product: ShopCloneProduct; usdToBrl
       <td className="py-2 font-mono text-xs text-muted-foreground">{product.id}</td>
       <td className="py-2 max-w-xs">
         <span className="text-xs leading-tight line-clamp-2">{product.name}</span>
-        {product.description && (
+        <span className="text-[10px] text-primary/70 block line-clamp-2 mt-0.5 italic">
+          {translateText(product.name)}
+        </span>
+        {product.description && product.description !== product.name && (
           <span className="text-[10px] text-muted-foreground block line-clamp-1 mt-0.5">
             {product.description}
           </span>
