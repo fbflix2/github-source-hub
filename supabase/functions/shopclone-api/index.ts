@@ -107,16 +107,22 @@ Deno.serve(async (req) => {
         if (!productId || !amount) throw new Error("productId and amount are required");
         
         const url = `${ACCFACE_BASE}/BResource.php?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&id=${encodeURIComponent(String(productId))}&amount=${encodeURIComponent(String(amount))}`;
+        console.log("[shopclone-api] buy-resource URL:", url.replace(password, "***"));
+        
         const resp = await fetch(url);
         const text = await resp.text();
+        console.log("[shopclone-api] buy-resource raw response:", text.substring(0, 2000));
         
         let parsed: any;
         try {
           parsed = JSON.parse(text);
         } catch {
-          result = { status: "error", raw: text };
-          break;
+          // Not JSON — might be raw account data directly
+          console.log("[shopclone-api] Response is not JSON, treating as raw text");
+          parsed = { _rawText: text };
         }
+
+        console.log("[shopclone-api] parsed keys:", Object.keys(parsed || {}));
 
         // If the API returned an error status
         if (parsed?.status === "error" || parsed?.error) {
@@ -131,37 +137,53 @@ Deno.serve(async (req) => {
         );
 
         const folder = folderName || "AccFace Import";
-        const accounts: any[] = [];
 
-        // AccFace returns accounts in various formats - handle them
-        // Common format: { accounts: [ "uid|pass|2fa|mail|mailpass|...", ... ] }
-        // Or: { accounts: [ { uid, pass, ... }, ... ] }
-        // Or: { data: "uid|pass\nuid2|pass2\n..." }
+        // AccFace returns accounts in various formats - handle them all
         let rawAccounts: string[] = [];
 
-        if (Array.isArray(parsed?.accounts)) {
-          rawAccounts = parsed.accounts;
+        if (parsed?._rawText) {
+          // Raw text response — split by newlines
+          rawAccounts = parsed._rawText.split("\n").filter((l: string) => l.trim());
+        } else if (Array.isArray(parsed?.accounts)) {
+          rawAccounts = parsed.accounts.map((a: any) => typeof a === "string" ? a : JSON.stringify(a));
         } else if (typeof parsed?.data === "string") {
           rawAccounts = parsed.data.split("\n").filter((l: string) => l.trim());
+        } else if (Array.isArray(parsed?.data)) {
+          rawAccounts = parsed.data.map((a: any) => typeof a === "string" ? a : JSON.stringify(a));
         } else if (Array.isArray(parsed)) {
-          rawAccounts = parsed;
-        } else if (typeof parsed === "string") {
-          rawAccounts = parsed.split("\n").filter((l: string) => l.trim());
+          rawAccounts = parsed.map((a: any) => typeof a === "string" ? a : JSON.stringify(a));
+        } else if (parsed?.account) {
+          // Single account response
+          rawAccounts = [typeof parsed.account === "string" ? parsed.account : JSON.stringify(parsed.account)];
+        } else {
+          // Try to find any array property that looks like accounts
+          for (const key of Object.keys(parsed || {})) {
+            const val = parsed[key];
+            if (Array.isArray(val) && val.length > 0) {
+              console.log(`[shopclone-api] Found array in key "${key}" with ${val.length} items`);
+              rawAccounts = val.map((a: any) => typeof a === "string" ? a : JSON.stringify(a));
+              break;
+            }
+          }
+        }
+
+        console.log("[shopclone-api] rawAccounts count:", rawAccounts.length);
+        if (rawAccounts.length > 0) {
+          console.log("[shopclone-api] first account sample:", rawAccounts[0].substring(0, 200));
         }
 
         // Create stock_items for each account
-        const stockItems = rawAccounts.map((acc: any, idx: number) => {
-          const accStr = typeof acc === "string" ? acc : JSON.stringify(acc);
-          const parts = accStr.split("|");
+        const stockItems = rawAccounts.map((acc: string) => {
+          const parts = acc.split("|");
           
           return {
             name: productName || `AccFace #${productId}`,
             type: "perfil",
             status: "aguardando",
             folder,
-            identification: parts[0] || accStr,
+            identification: parts[0] || acc.substring(0, 100),
             data: {
-              raw: accStr,
+              raw: acc,
               source: "accface",
               productId: String(productId),
               purchasedAt: new Date().toISOString(),
@@ -174,7 +196,6 @@ Deno.serve(async (req) => {
         });
 
         if (stockItems.length > 0) {
-          // Ensure the folder exists
           const { data: existingFolder } = await adminClient
             .from("stock_folders")
             .select("id")
@@ -189,14 +210,17 @@ Deno.serve(async (req) => {
           const { error: insertError } = await adminClient.from("stock_items").insert(stockItems);
           if (insertError) {
             console.error("[shopclone-api] Error saving to stock:", insertError);
+          } else {
+            console.log("[shopclone-api] Saved", stockItems.length, "items to stock");
           }
         }
 
         result = {
-          ...parsed,
+          status: "success",
           saved_count: stockItems.length,
           folder,
           raw_accounts: rawAccounts,
+          api_response_keys: Object.keys(parsed || {}),
         };
         break;
       }
