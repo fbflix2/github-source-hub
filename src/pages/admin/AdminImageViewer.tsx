@@ -515,7 +515,7 @@ export default function AdminImageViewer() {
                         {formData.nomeCompleto}
                       </span>
                     </div>
-                  )
+                  )}
                 </div>
               </div>
             ) : (
