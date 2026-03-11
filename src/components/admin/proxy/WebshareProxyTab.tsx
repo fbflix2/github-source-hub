@@ -87,6 +87,20 @@ export default function WebshareProxyTab() {
     staleTime: 60_000,
   });
 
+  // Fetch live USD→BRL exchange rate
+  const { data: usdToBrl } = useQuery({
+    queryKey: ["usd-brl-rate"],
+    queryFn: async () => {
+      try {
+        const resp = await fetch("https://economia.awesomeapi.com.br/json/last/USD-BRL");
+        const data = await resp.json();
+        return parseFloat(data?.USDBRL?.bid) || 5.5;
+      } catch { return 5.5; }
+    },
+    staleTime: 600_000,
+    refetchOnWindowFocus: false,
+  });
+
   // Financial calculations
   const financials = useMemo(() => {
     if (!wsSubs || !wsProducts) return { totalRevenue: 0, totalCost: 0, totalProfit: 0, activeCount: 0, totalCount: 0, subsWithPrices: [] as any[] };
@@ -105,10 +119,8 @@ export default function WebshareProxyTab() {
     // Monthly cost per proxy from webshare plan
     const monthlyPlanCost = plan?.monthly_price || 0;
     const totalPlanProxies = plan?.proxy_count || totalProxies || 1;
-    const costPerProxy = totalPlanProxies > 0 ? monthlyPlanCost : 0;
-    // Convert USD to BRL (approximate rate)
-    const usdToBrl = 5.5;
-    const costPerProxyBRL = (costPerProxy / totalPlanProxies) * usdToBrl;
+    const rate = usdToBrl || 5.5;
+    const costPerProxyBRL = totalPlanProxies > 0 ? (monthlyPlanCost / totalPlanProxies) * rate : 0;
 
     let totalRevenue = 0;
     let totalCost = 0;
@@ -130,7 +142,7 @@ export default function WebshareProxyTab() {
       totalCount: wsSubs.length,
       subsWithPrices,
     };
-  }, [wsSubs, wsProducts, plan, totalProxies]);
+  }, [wsSubs, wsProducts, plan, totalProxies, usdToBrl]);
 
   const copyProxy = (proxy: any) => {
     const str = `${proxy.proxy_address}:${proxy.port}:${proxy.username}:${proxy.password}`;
