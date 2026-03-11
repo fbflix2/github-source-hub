@@ -341,71 +341,71 @@ export default function AdminMigrados() {
                  const phone = e.profile_data?.phone || null;
                  const whatsappUrl = phone ? `https://wa.me/${phone.replace(/\D/g, "")}` : null;
                  return (
-                 <TableRow key={e.id} className={`transition-colors hover:bg-muted/30 ${e.contacted ? "opacity-50" : ""}`}>
-                   <TableCell className="px-3 py-3 text-center">
-                     <Checkbox
-                       checked={e.contacted}
-                       onCheckedChange={() => handleToggleContacted(e.tracking_id, e.email, e.contacted)}
-                       className="data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
-                     />
-                   </TableCell>
-                   <TableCell className="px-3 py-3 font-mono text-xs text-foreground max-w-[200px] truncate">{e.email}</TableCell>
-                   <TableCell className="px-3 py-3 font-medium text-foreground text-sm max-w-[150px] truncate">{e.full_name || "—"}</TableCell>
-                   <TableCell className="px-3 py-3">
-                     {phone ? (
-                       <div className="flex items-center gap-1">
-                         <a
-                           href={whatsappUrl!}
-                           target="_blank"
-                           rel="noopener noreferrer"
-                           className="font-mono text-xs text-emerald-400 hover:underline"
-                         >
-                           {phone}
-                         </a>
-                         <button
-                           onClick={() => {
-                             navigator.clipboard.writeText(phone);
-                             toast.success("Telefone copiado!");
-                           }}
-                           className="p-0.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-                           title="Copiar número"
-                         >
-                           <Copy className="size-3" />
-                         </button>
-                       </div>
-                     ) : (
-                       <span className="text-muted-foreground text-xs">—</span>
-                     )}
-                   </TableCell>
-                   <TableCell className="whitespace-nowrap px-3 py-3 text-xs text-muted-foreground">{formatDate(e.created_at)}</TableCell>
-                   <TableCell className="px-3 py-3">
-                     {e.has_account ? (
-                       <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-xs">Criada</Badge>
-                     ) : (
-                       <Badge variant="outline" className="text-muted-foreground text-xs">Sem conta</Badge>
-                     )}
-                   </TableCell>
-                   <TableCell className="px-3 py-3 text-right">
-                     <div className="flex items-center justify-end gap-1">
-                       <Button
-                         size="sm"
-                         variant="outline"
-                         className="text-blue-400 border-blue-500/30 hover:bg-blue-500/10 h-7 px-2 text-xs"
-                         disabled={actionId === e.id}
-                         onClick={() => handleGenerateCredentials(e.email, e.id, e.full_name)}
-                       >
-                         {actionId === e.id ? <Loader2 className="size-3 animate-spin" /> : <Key className="size-3" />}
-                         <span className="ml-1">Credenciais</span>
-                       </Button>
-                       <Button
-                         size="sm"
-                         variant="outline"
-                         className="text-purple-400 border-purple-500/30 hover:bg-purple-500/10 h-7 px-2 text-xs"
-                         onClick={copyLink}
-                       >
-                         <Link2 className="size-3" />
-                         <span className="ml-1">Link</span>
-                       </Button>
+                  <TableRow key={e.id} className="transition-colors hover:bg-muted/30">
+                    <TableCell className="px-3 py-3 text-center">
+                      <Checkbox
+                        checked={e.contacted}
+                        onCheckedChange={() => handleToggleContacted(e.tracking_id, e.email, e.contacted)}
+                        className="data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500"
+                      />
+                    </TableCell>
+                    <TableCell className={`px-3 py-3 font-mono text-xs max-w-[200px] truncate ${e.contacted ? "text-muted-foreground" : "text-foreground"}`}>{e.email}</TableCell>
+                    <TableCell className={`px-3 py-3 font-medium text-sm max-w-[150px] truncate ${e.contacted ? "text-muted-foreground" : "text-foreground"}`}>{e.full_name || "—"}</TableCell>
+                    <TableCell className="px-3 py-3">
+                      {phone ? (
+                        <div className="flex items-center gap-1">
+                          <a
+                            href={whatsappUrl!}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`font-mono text-xs hover:underline ${e.contacted ? "text-muted-foreground" : "text-emerald-400"}`}
+                          >
+                            {phone}
+                          </a>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(phone);
+                              toast.success("Telefone copiado!");
+                            }}
+                            className="p-0.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                            title="Copiar número"
+                          >
+                            <Copy className="size-3" />
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap px-3 py-3 text-xs text-muted-foreground">{formatDate(e.created_at)}</TableCell>
+                    <TableCell className="px-3 py-3">
+                      {e.has_account ? (
+                        <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-xs">Criada</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-muted-foreground text-xs">Sem conta</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="px-3 py-3 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className={`h-7 px-2 text-xs ${e.contacted ? "text-muted-foreground border-border/50 opacity-50 hover:opacity-100 hover:bg-muted/30" : "text-blue-400 border-blue-500/30 hover:bg-blue-500/10"}`}
+                          disabled={actionId === e.id}
+                          onClick={() => handleGenerateCredentials(e.email, e.id, e.full_name)}
+                        >
+                          {actionId === e.id ? <Loader2 className="size-3 animate-spin" /> : <Key className="size-3" />}
+                          <span className="ml-1">Credenciais</span>
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className={`h-7 px-2 text-xs ${e.contacted ? "text-muted-foreground border-border/50 opacity-50 hover:opacity-100 hover:bg-muted/30" : "text-purple-400 border-purple-500/30 hover:bg-purple-500/10"}`}
+                          onClick={copyLink}
+                        >
+                          <Link2 className="size-3" />
+                          <span className="ml-1">Link</span>
+                        </Button>
                      </div>
                    </TableCell>
                  </TableRow>
