@@ -236,6 +236,7 @@ function ProfileCheckerTab() {
   const [results, setResults] = useState<CheckResult[]>([]);
   const [checkingStock, setCheckingStock] = useState(false);
   const [stockResults, setStockResults] = useState<CheckResult[]>([]);
+  const [stockFilter, setStockFilter] = useState<"estoque" | "vendido" | "all">("estoque");
 
   const handleCheckUrls = async () => {
     const urls = urlsInput
@@ -274,15 +275,16 @@ function ProfileCheckerTab() {
     setCheckingStock(true);
     setStockResults([]);
     try {
+      const statusFilter = stockFilter === "estoque" ? "estoque" : stockFilter;
       const { data, error } = await supabase.functions.invoke("check-fb-profile", {
-        body: { action: "check-stock", limit: 20 },
+        body: { action: "check-stock", limit: 20, statusFilter },
       });
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(data.error);
       setStockResults(data.results || []);
       const active = (data.results || []).filter((r: CheckResult) => r.status === "active").length;
       const blocked = (data.results || []).filter((r: CheckResult) => r.status === "blocked").length;
-      toast.success(`Estoque verificado: ${active} ativos, ${blocked} bloqueados de ${data.total}`);
+      toast.success(`Verificação: ${active} ativos, ${blocked} bloqueados de ${data.total}`);
     } catch (err: any) {
       toast.error("Erro: " + (err?.message || "Falha na verificação"));
     } finally {
@@ -384,12 +386,23 @@ function ProfileCheckerTab() {
         </CardHeader>
         <CardContent className="space-y-3">
           <p className="text-sm text-muted-foreground">
-            Verifica automaticamente os últimos 20 itens do estoque que possuem links do Facebook (status "revisado" ou "aguardando").
+            Verifica os últimos 20 itens do estoque que possuem links do Facebook.
           </p>
-          <Button onClick={handleCheckStock} disabled={checkingStock}>
-            {checkingStock ? <Loader2 className="size-4 mr-1 animate-spin" /> : <RefreshCw className="size-4 mr-1" />}
-            {checkingStock ? "Verificando estoque..." : "Verificar Estoque"}
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              className="border rounded-md px-3 py-2 text-sm bg-background"
+              value={stockFilter}
+              onChange={(e) => setStockFilter(e.target.value as any)}
+            >
+              <option value="estoque">📦 Em estoque (revisado/aguardando)</option>
+              <option value="vendido">🛒 Vendidos (entregues ao cliente)</option>
+              <option value="all">📋 Todos</option>
+            </select>
+            <Button onClick={handleCheckStock} disabled={checkingStock}>
+              {checkingStock ? <Loader2 className="size-4 mr-1 animate-spin" /> : <RefreshCw className="size-4 mr-1" />}
+              {checkingStock ? "Verificando..." : "Verificar"}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 

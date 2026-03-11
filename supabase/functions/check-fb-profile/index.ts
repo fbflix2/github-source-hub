@@ -267,15 +267,20 @@ Deno.serve(async (req) => {
       }
 
       case "check-stock": {
-        // Check stock items that have identification_link with facebook URLs
-        const { folderId, limit: queryLimit } = params;
+        const { folderId, limit: queryLimit, statusFilter } = params;
+        const statuses = statusFilter === "vendido" 
+          ? ["vendido"] 
+          : statusFilter === "all" 
+            ? ["revisado", "aguardando", "vendido"]
+            : ["revisado", "aguardando"];
+        
         const query = adminClient
           .from("stock_items")
-          .select("id, name, identification, identification_link, status, data")
+          .select("id, name, identification, identification_link, status, data, product_id")
           .is("deleted_at", null)
           .not("identification_link", "is", null)
           .ilike("identification_link", "%facebook%")
-          .in("status", ["revisado", "aguardando"])
+          .in("status", statuses)
           .order("created_at", { ascending: false })
           .limit(queryLimit || 20);
 
