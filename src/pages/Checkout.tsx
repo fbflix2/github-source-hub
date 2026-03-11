@@ -1147,7 +1147,7 @@ export default function Checkout() {
                   <span className="font-bold text-foreground">Total</span>
                   <div className="flex flex-col items-end">
                     <span className="font-black text-xl text-foreground">R$ {total.toFixed(2).replace(".", ",")}</span>
-                    <span className="text-[10px] text-muted-foreground">em até 12x no cartão</span>
+                    
                   </div>
                 </div>
               </div>
