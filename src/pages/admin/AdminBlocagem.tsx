@@ -820,13 +820,14 @@ function FolderItemsView({ folder, onBack }: { folder: Folder; onBack: () => voi
   const fetchItems = async () => {
     setLoading(true);
     const safeFolderName = folder.name.replace(/"/g, '\\"');
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("stock_items")
       .select("*")
       .or(`folder.eq.${folder.id},folder.eq.${folder.name}`)
       .is("deleted_at", null)
       .neq("status", "revisado")
       .order("created_at", { ascending: false });
+    console.log("[FolderItemsView] fetch items for folder:", folder.id, folder.name, "result:", data?.length, "error:", error?.message);
     setItems(data ?? []);
     setLoading(false);
   };
