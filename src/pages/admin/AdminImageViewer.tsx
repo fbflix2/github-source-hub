@@ -9,10 +9,17 @@ import { Slider } from "@/components/ui/slider";
 // Default positions as % of image dimensions (based on CNH layout)
 const DEFAULT_PHOTO = { xPct: 2.8, yPct: 25, wPct: 17.5, hPct: 24 }; // 3x4 white square
 const DEFAULT_TEXT = {
-  nome: { xPct: 30, yPct: 14.5 },       // "NOME E SOBRENOME" field
-  nascimento: { xPct: 30, yPct: 22 },    // "DATA NASCIMENTO" field
-  filiacao: { xPct: 30, yPct: 47 },      // "FILIAÇÃO" field
+  nome: { xPct: 30, yPct: 14.5 },
+  nascimento: { xPct: 30, yPct: 22 },
+  filiacao: { xPct: 30, yPct: 47 },
+  assinatura: { xPct: 15, yPct: 56 },   // "ASSINATURA DO PORTADOR" field
 };
+
+const SIGNATURE_FONTS = [
+  "Dancing Script",
+  "Caveat",
+  "Satisfy",
+];
 
 export default function AdminImageViewer() {
   const [images, setImages] = useState<{ id: string; name: string; url: string }[]>([]);
