@@ -39,7 +39,8 @@ import {
   Briefcase,
   Coins,
   Flame,
-  Store
+  Store,
+  KeyRound
 } from "lucide-react";
 
 interface SubItem {
