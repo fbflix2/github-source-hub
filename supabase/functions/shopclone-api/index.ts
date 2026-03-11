@@ -71,13 +71,14 @@ function extractRawAccounts(parsed: any): string[] {
   return [...new Set(cleaned)];
 }
 
-function buildStockItems(rawAccounts: string[], productId: string, productName: string | undefined, folder: string) {
+function buildStockItems(rawAccounts: string[], productId: string, productName: string | undefined, folder: string, itemType?: string) {
+  const resolvedType = itemType || "perfil";
   return rawAccounts.map((acc) => {
     const parts = acc.split("|");
 
     return {
       name: productName || `AccFace #${productId}`,
-      type: "perfil",
+      type: resolvedType,
       status: "aguardando",
       folder,
       identification: parts[0] || acc.substring(0, 100),
