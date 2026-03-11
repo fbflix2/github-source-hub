@@ -229,6 +229,9 @@ export default function AdminTeamChat() {
       if (selectedChat.type === "dm") {
         insertData.recipient_id = selectedChat.userId;
       }
+      if (replyTo) {
+        insertData.reply_to_id = replyTo.id;
+      }
       const { error } = await supabase.from("team_messages").insert(insertData);
       if (error) throw error;
     },
@@ -238,7 +241,13 @@ export default function AdminTeamChat() {
     const trimmed = message.trim();
     if (!trimmed || sendMutation.isPending) return;
     setMessage("");
+    setReplyTo(null);
     sendMutation.mutate(trimmed);
+  };
+
+  const handleReply = (msg: TeamMessage) => {
+    setReplyTo(msg);
+    inputRef.current?.focus();
   };
 
   const handleDelete = async (id: string) => {
