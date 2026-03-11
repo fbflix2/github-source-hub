@@ -336,7 +336,7 @@ export default function AdminTeamChat() {
         </div>
 
         {/* Messages */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto space-y-1 pr-2 scroll-smooth">
+        <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto space-y-1 pr-2 scroll-smooth">
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
               <MessageCircle className="size-12 mb-3 opacity-30" />
