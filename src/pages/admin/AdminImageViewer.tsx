@@ -10,8 +10,12 @@ export default function AdminImageViewer() {
   const [images, setImages] = useState<{ id: string; name: string; url: string }[]>([]);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [photoOverlay, setPhotoOverlay] = useState<string | null>(null);
-  const [photoPosition, setPhotoPosition] = useState({ x: 0, y: 0 });
-  const [photoSize, setPhotoSize] = useState({ w: 120, h: 150 });
+  // Positions/sizes as percentages of the base image
+  const [photoPos, setPhotoPos] = useState({ xPct: 2.5, yPct: 24, wPct: 18, hPct: 26 }); // 3x4 area
+  const [zoom, setZoom] = useState(1);
+  const [rotation, setRotation] = useState(0);
+  const [imgSize, setImgSize] = useState({ w: 0, h: 0 }); // rendered image size
+  const imgRef = useRef<HTMLImageElement>(null);
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
 
