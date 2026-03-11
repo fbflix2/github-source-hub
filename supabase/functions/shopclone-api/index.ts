@@ -206,7 +206,7 @@ Deno.serve(async (req) => {
     const userId = claimsData.claims.sub as string;
 
     // Staff-only actions
-    const staffActions = ["list-products", "get-balance", "product-info", "buy-resource", "import-accounts"];
+    const staffActions = ["list-products", "get-balance", "product-info", "buy-resource", "import-accounts", "repair-folder-links"];
     if (staffActions.includes(action)) {
       const adminClient = createClient(
         Deno.env.get("SUPABASE_URL")!,
