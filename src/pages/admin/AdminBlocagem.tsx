@@ -827,6 +827,9 @@ function FolderItemsView({ folder, onBack }: { folder: Folder; onBack: () => voi
   useEffect(() => { fetchItems(); }, [folder.id]);
 
   const handleDelete = async (id: string) => {
+    await supabase.from("bm_tracking").update({ stock_item_id: null }).eq("stock_item_id", id);
+    await supabase.from("replacements").update({ stock_item_id: null }).eq("stock_item_id", id);
+    await supabase.from("replacements").update({ new_stock_item_id: null }).eq("new_stock_item_id", id);
     const { error } = await supabase.from("stock_items").delete().eq("id", id);
     if (error) { toast.error("Erro ao excluir"); return; }
     toast.success("Item excluído");
@@ -985,7 +988,14 @@ export default function AdminBlocagem() {
   };
 
   const handlePermanentDeleteFolder = async (folder: Folder) => {
-    // Delete items first, then folder
+    // Get item IDs to clear FK references
+    const { data: folderItems } = await supabase.from("stock_items").select("id").eq("folder", folder.id);
+    const ids = (folderItems ?? []).map(i => i.id);
+    if (ids.length > 0) {
+      await supabase.from("bm_tracking").update({ stock_item_id: null }).in("stock_item_id", ids);
+      await supabase.from("replacements").update({ stock_item_id: null }).in("stock_item_id", ids);
+      await supabase.from("replacements").update({ new_stock_item_id: null }).in("new_stock_item_id", ids);
+    }
     await supabase.from("stock_items").delete().eq("folder", folder.id);
     await supabase.from("stock_folders").delete().eq("id", folder.id);
     toast.success("Pasta excluída permanentemente");
