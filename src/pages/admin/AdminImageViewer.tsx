@@ -24,6 +24,15 @@ export default function AdminImageViewer() {
   const [isDraggingPhoto, setIsDraggingPhoto] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
+  // Text overlay positions (draggable)
+  const [textPositions, setTextPositions] = useState({
+    nome: { x: 200, y: 95 },
+    nascimento: { x: 200, y: 145 },
+    filiacao: { x: 200, y: 290 },
+  });
+  const [draggingText, setDraggingText] = useState<string | null>(null);
+  const [textDragStart, setTextDragStart] = useState({ x: 0, y: 0 });
+
   // Form fields
   const [formData, setFormData] = useState({
     nomeCompleto: "",
@@ -96,7 +105,17 @@ export default function AdminImageViewer() {
     e.preventDefault();
     e.stopPropagation();
     setIsDraggingPhoto(true);
-    setDragStart({ x: e.clientX - photoPosition.x, y: e.clientY - photoPosition.y });
+    setDragStart({ x: e.clientX / zoom - photoPosition.x, y: e.clientY / zoom - photoPosition.y });
+  };
+
+  // Text overlay drag
+  const onTextMouseDown = (key: string, e: React.MouseEvent) => {
+    if (panMode) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setDraggingText(key);
+    const pos = textPositions[key as keyof typeof textPositions];
+    setTextDragStart({ x: e.clientX / zoom - pos.x, y: e.clientY / zoom - pos.y });
   };
 
   const onGlobalMouseMove = useCallback((e: MouseEvent) => {
@@ -104,17 +123,27 @@ export default function AdminImageViewer() {
       setMainOffset({ x: e.clientX - panStart.x, y: e.clientY - panStart.y });
     }
     if (isDraggingPhoto) {
-      setPhotoPosition({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
+      setPhotoPosition({ x: e.clientX / zoom - dragStart.x, y: e.clientY / zoom - dragStart.y });
     }
-  }, [isPanning, panStart, isDraggingPhoto, dragStart]);
+    if (draggingText) {
+      setTextPositions((prev) => ({
+        ...prev,
+        [draggingText]: {
+          x: e.clientX / zoom - textDragStart.x,
+          y: e.clientY / zoom - textDragStart.y,
+        },
+      }));
+    }
+  }, [isPanning, panStart, isDraggingPhoto, dragStart, draggingText, textDragStart, zoom]);
 
   const onGlobalMouseUp = useCallback(() => {
     setIsPanning(false);
     setIsDraggingPhoto(false);
+    setDraggingText(null);
   }, []);
 
   useEffect(() => {
-    if (isPanning || isDraggingPhoto) {
+    if (isPanning || isDraggingPhoto || draggingText) {
       window.addEventListener("mousemove", onGlobalMouseMove);
       window.addEventListener("mouseup", onGlobalMouseUp);
       return () => {
@@ -122,7 +151,7 @@ export default function AdminImageViewer() {
         window.removeEventListener("mouseup", onGlobalMouseUp);
       };
     }
-  }, [isPanning, isDraggingPhoto, onGlobalMouseMove, onGlobalMouseUp]);
+  }, [isPanning, isDraggingPhoto, draggingText, onGlobalMouseMove, onGlobalMouseUp]);
 
   // Resize handle for photo
   const onResizeMouseDown = (e: React.MouseEvent) => {
@@ -358,30 +387,42 @@ export default function AdminImageViewer() {
                     </div>
                   )}
 
-                  {/* Text overlays from form - rendered on the image */}
+                  {/* Text overlays - draggable */}
                   {formData.nomeCompleto && (
-                    <div className="absolute pointer-events-none select-none" style={{ top: "18%", left: "30%", right: "10%" }}>
-                      <span className="text-[11px] font-bold tracking-wide text-black/80 uppercase" style={{ fontFamily: "Arial Narrow, Arial, sans-serif" }}>
+                    <div
+                      className="absolute select-none whitespace-nowrap"
+                      style={{ left: textPositions.nome.x, top: textPositions.nome.y, cursor: panMode ? "inherit" : "move" }}
+                      onMouseDown={(e) => onTextMouseDown("nome", e)}
+                    >
+                      <span className="text-[11px] font-bold tracking-wide text-black/90 uppercase" style={{ fontFamily: "Arial Narrow, Arial, sans-serif" }}>
                         {formData.nomeCompleto}
                       </span>
                     </div>
                   )}
                   {formData.dataNascimento && (
-                    <div className="absolute pointer-events-none select-none" style={{ top: "25%", left: "30%", right: "40%" }}>
-                      <span className="text-[10px] font-semibold text-black/80" style={{ fontFamily: "Arial Narrow, Arial, sans-serif" }}>
+                    <div
+                      className="absolute select-none whitespace-nowrap"
+                      style={{ left: textPositions.nascimento.x, top: textPositions.nascimento.y, cursor: panMode ? "inherit" : "move" }}
+                      onMouseDown={(e) => onTextMouseDown("nascimento", e)}
+                    >
+                      <span className="text-[10px] font-semibold text-black/90" style={{ fontFamily: "Arial Narrow, Arial, sans-serif" }}>
                         {new Date(formData.dataNascimento).toLocaleDateString("pt-BR")}
                       </span>
                     </div>
                   )}
                   {(formData.nomePai || formData.nomeMae) && (
-                    <div className="absolute pointer-events-none select-none flex flex-col" style={{ top: "52%", left: "30%", right: "10%" }}>
+                    <div
+                      className="absolute select-none flex flex-col"
+                      style={{ left: textPositions.filiacao.x, top: textPositions.filiacao.y, cursor: panMode ? "inherit" : "move" }}
+                      onMouseDown={(e) => onTextMouseDown("filiacao", e)}
+                    >
                       {formData.nomePai && (
-                        <span className="text-[9px] font-semibold text-black/80 uppercase" style={{ fontFamily: "Arial Narrow, Arial, sans-serif" }}>
+                        <span className="text-[9px] font-semibold text-black/90 uppercase whitespace-nowrap" style={{ fontFamily: "Arial Narrow, Arial, sans-serif" }}>
                           {formData.nomePai}
                         </span>
                       )}
                       {formData.nomeMae && (
-                        <span className="text-[9px] font-semibold text-black/80 uppercase" style={{ fontFamily: "Arial Narrow, Arial, sans-serif" }}>
+                        <span className="text-[9px] font-semibold text-black/90 uppercase whitespace-nowrap" style={{ fontFamily: "Arial Narrow, Arial, sans-serif" }}>
                           {formData.nomeMae}
                         </span>
                       )}
