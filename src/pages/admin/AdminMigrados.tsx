@@ -386,28 +386,33 @@ export default function AdminMigrados() {
                       )}
                     </TableCell>
                     <TableCell className="px-3 py-3 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className={`h-7 px-2 text-xs ${e.contacted ? "text-muted-foreground border-border/50 opacity-50 hover:opacity-100 hover:bg-muted/30" : "text-blue-400 border-blue-500/30 hover:bg-blue-500/10"}`}
-                          disabled={actionId === e.id}
-                          onClick={() => handleGenerateCredentials(e.email, e.id, e.full_name)}
-                        >
-                          {actionId === e.id ? <Loader2 className="size-3 animate-spin" /> : <Key className="size-3" />}
-                          <span className="ml-1">Credenciais</span>
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className={`h-7 px-2 text-xs ${e.contacted ? "text-muted-foreground border-border/50 opacity-50 hover:opacity-100 hover:bg-muted/30" : "text-purple-400 border-purple-500/30 hover:bg-purple-500/10"}`}
-                          onClick={copyLink}
-                        >
-                          <Link2 className="size-3" />
-                          <span className="ml-1">Link</span>
-                        </Button>
-                     </div>
-                   </TableCell>
+                      {(() => {
+                        const credentialsSent = !!e.migrated_at;
+                        return (
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className={`h-7 px-2 text-xs ${credentialsSent ? "text-muted-foreground border-border/50 opacity-40 hover:opacity-100 hover:bg-muted/30" : "text-blue-400 border-blue-500/30 hover:bg-blue-500/10"}`}
+                              disabled={actionId === e.id}
+                              onClick={() => handleGenerateCredentials(e.email, e.id, e.full_name)}
+                            >
+                              {actionId === e.id ? <Loader2 className="size-3 animate-spin" /> : <Key className="size-3" />}
+                              <span className="ml-1">Credenciais</span>
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className={`h-7 px-2 text-xs ${credentialsSent ? "text-muted-foreground border-border/50 opacity-40 hover:opacity-100 hover:bg-muted/30" : "text-purple-400 border-purple-500/30 hover:bg-purple-500/10"}`}
+                              onClick={copyLink}
+                            >
+                              <Link2 className="size-3" />
+                              <span className="ml-1">Link</span>
+                            </Button>
+                          </div>
+                        );
+                      })()}
+                    </TableCell>
                  </TableRow>
                  );
                })}
