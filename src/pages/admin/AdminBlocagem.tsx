@@ -819,7 +819,13 @@ function FolderItemsView({ folder, onBack }: { folder: Folder; onBack: () => voi
 
   const fetchItems = async () => {
     setLoading(true);
-    const { data } = await supabase.from("stock_items").select("*").eq("folder", folder.id).neq("status", "revisado").order("created_at", { ascending: false });
+    const safeFolderName = folder.name.replace(/"/g, '\\"');
+    const { data } = await supabase
+      .from("stock_items")
+      .select("*")
+      .or(`folder.eq.${folder.id},folder.eq."${safeFolderName}"`)
+      .neq("status", "revisado")
+      .order("created_at", { ascending: false });
     setItems(data ?? []);
     setLoading(false);
   };
