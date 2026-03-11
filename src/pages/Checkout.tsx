@@ -623,7 +623,8 @@ export default function Checkout() {
       if (paymentMethod === "saldo") {
         const { data: profile } = await supabase.from("profiles").select("balance").eq("user_id", user.id).maybeSingle();
         if (!profile || profile.balance < total) {
-          toast.error(`Saldo insuficiente. Você tem R$ ${(profile?.balance || 0).toFixed(2).replace(".", ",")} e precisa de R$ ${total.toFixed(2).replace(".", ",")}`);
+          toast.error(`Saldo insuficiente (R$ ${(profile?.balance || 0).toFixed(2).replace(".", ",")}). Redirecionando para PIX...`);
+          setPaymentMethod("pix");
           return;
         }
 
