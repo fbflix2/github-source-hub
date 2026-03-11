@@ -189,10 +189,12 @@ Deno.serve(async (req) => {
       });
 
       if (createErr) {
-        // User likely exists — find and reset password
-        const allUsers = await getAllAuthUsers(supabaseAdmin);
-        const found = allUsers.find((u: any) => u.email?.toLowerCase() === email);
-        if (!found) throw new Error("Não foi possível criar ou localizar o usuário: " + createErr.message);
+        // User likely exists — find by email using fast DB lookup
+        const { data: userId } = await supabaseAdmin.rpc("get_user_id_by_email", { target_email: email });
+        if (!userId) throw new Error("Não foi possível criar ou localizar o usuário: " + createErr.message);
+
+        const { data: { user: found } } = await supabaseAdmin.auth.admin.getUserById(userId);
+        if (!found) throw new Error("Usuário não encontrado pelo ID");
 
         await supabaseAdmin.auth.admin.updateUserById(found.id, {
           password,
