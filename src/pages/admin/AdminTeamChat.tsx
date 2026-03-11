@@ -284,7 +284,7 @@ export default function AdminTeamChat() {
       : "Mensagem direta";
 
   return (
-    <div className="flex h-[calc(100vh-6rem)] max-w-5xl mx-auto gap-0">
+    <div className="flex h-[calc(100vh-6rem)] max-w-5xl mx-auto gap-0 overflow-hidden">
       {/* Sidebar - Members */}
       <div
         className={cn(
