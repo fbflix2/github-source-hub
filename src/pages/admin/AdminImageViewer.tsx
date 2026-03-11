@@ -430,7 +430,7 @@ export default function AdminImageViewer() {
                       style={{ left: textPositions.nome.x, top: textPositions.nome.y, cursor: panMode ? "inherit" : "move" }}
                       onMouseDown={(e) => onTextMouseDown("nome", e)}
                     >
-                      <span className="text-[11px] font-bold tracking-wide text-black/90 uppercase" style={{ fontFamily: "Arial Narrow, Arial, sans-serif" }}>
+                      <span className="font-bold tracking-wide text-black/90 uppercase" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${fontSizes.nome}px` }}>
                         {formData.nomeCompleto}
                       </span>
                     </div>
