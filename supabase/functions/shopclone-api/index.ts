@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
     const userId = claimsData.claims.sub as string;
 
     // Staff-only actions
-    const staffActions = ["list-products", "get-balance", "product-info"];
+    const staffActions = ["list-products", "get-balance", "product-info", "buy-resource"];
     if (staffActions.includes(action)) {
       const adminClient = createClient(
         Deno.env.get("SUPABASE_URL")!,
@@ -103,18 +103,101 @@ Deno.serve(async (req) => {
       }
 
       case "buy-resource": {
-        // Any authenticated user can buy (will be called from checkout flow)
-        const { productId, amount } = params;
+        const { productId, amount, productName, folderName } = params;
         if (!productId || !amount) throw new Error("productId and amount are required");
         
         const url = `${ACCFACE_BASE}/BResource.php?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&id=${encodeURIComponent(String(productId))}&amount=${encodeURIComponent(String(amount))}`;
         const resp = await fetch(url);
         const text = await resp.text();
+        
+        let parsed: any;
         try {
-          result = JSON.parse(text);
+          parsed = JSON.parse(text);
         } catch {
           result = { status: "error", raw: text };
+          break;
         }
+
+        // If the API returned an error status
+        if (parsed?.status === "error" || parsed?.error) {
+          result = parsed;
+          break;
+        }
+
+        // Save accounts to stock_items using service role
+        const adminClient = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+        );
+
+        const folder = folderName || "AccFace Import";
+        const accounts: any[] = [];
+
+        // AccFace returns accounts in various formats - handle them
+        // Common format: { accounts: [ "uid|pass|2fa|mail|mailpass|...", ... ] }
+        // Or: { accounts: [ { uid, pass, ... }, ... ] }
+        // Or: { data: "uid|pass\nuid2|pass2\n..." }
+        let rawAccounts: string[] = [];
+
+        if (Array.isArray(parsed?.accounts)) {
+          rawAccounts = parsed.accounts;
+        } else if (typeof parsed?.data === "string") {
+          rawAccounts = parsed.data.split("\n").filter((l: string) => l.trim());
+        } else if (Array.isArray(parsed)) {
+          rawAccounts = parsed;
+        } else if (typeof parsed === "string") {
+          rawAccounts = parsed.split("\n").filter((l: string) => l.trim());
+        }
+
+        // Create stock_items for each account
+        const stockItems = rawAccounts.map((acc: any, idx: number) => {
+          const accStr = typeof acc === "string" ? acc : JSON.stringify(acc);
+          const parts = accStr.split("|");
+          
+          return {
+            name: productName || `AccFace #${productId}`,
+            type: "perfil",
+            status: "aguardando",
+            folder,
+            identification: parts[0] || accStr,
+            data: {
+              raw: accStr,
+              source: "accface",
+              productId: String(productId),
+              purchasedAt: new Date().toISOString(),
+              ...(parts.length >= 2 && { uid: parts[0], pass: parts[1] }),
+              ...(parts.length >= 3 && { token2fa: parts[2] }),
+              ...(parts.length >= 4 && { mail: parts[3] }),
+              ...(parts.length >= 5 && { mailPass: parts[4] }),
+            },
+          };
+        });
+
+        if (stockItems.length > 0) {
+          // Ensure the folder exists
+          const { data: existingFolder } = await adminClient
+            .from("stock_folders")
+            .select("id")
+            .eq("name", folder)
+            .is("deleted_at", null)
+            .maybeSingle();
+
+          if (!existingFolder) {
+            await adminClient.from("stock_folders").insert({ name: folder });
+          }
+
+          const { error: insertError } = await adminClient.from("stock_items").insert(stockItems);
+          if (insertError) {
+            console.error("[shopclone-api] Error saving to stock:", insertError);
+          }
+        }
+
+        result = {
+          ...parsed,
+          saved_count: stockItems.length,
+          folder,
+          raw_accounts: rawAccounts,
+        };
         break;
       }
 
