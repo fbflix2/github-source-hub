@@ -34,6 +34,16 @@ export default function AdminImageViewer() {
   const [draggingText, setDraggingText] = useState<string | null>(null);
   const [textDragStart, setTextDragStart] = useState({ x: 0, y: 0 });
 
+  // Font sizes
+  const [fontSizes, setFontSizes] = useState({
+    nome: 11,
+    nascimento: 10,
+    filiacao: 9,
+  });
+
+  // Contrast
+  const [contrast, setContrast] = useState(100);
+
   // Form fields
   const [formData, setFormData] = useState({
     nomeCompleto: "",
