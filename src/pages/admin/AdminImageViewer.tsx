@@ -6,16 +6,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 
+// Default positions as % of image dimensions (based on CNH layout)
+const DEFAULT_PHOTO = { xPct: 2.8, yPct: 25, wPct: 17.5, hPct: 24 }; // 3x4 white square
+const DEFAULT_TEXT = {
+  nome: { xPct: 30, yPct: 14.5 },       // "NOME E SOBRENOME" field
+  nascimento: { xPct: 30, yPct: 22 },    // "DATA NASCIMENTO" field
+  filiacao: { xPct: 30, yPct: 47 },      // "FILIAÇÃO" field
+};
+
 export default function AdminImageViewer() {
   const [images, setImages] = useState<{ id: string; name: string; url: string }[]>([]);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [photoOverlay, setPhotoOverlay] = useState<string | null>(null);
-  // Positions/sizes as percentages of the base image
-  const [photoPos, setPhotoPos] = useState({ xPct: 2.5, yPct: 24, wPct: 18, hPct: 26 }); // 3x4 area
-  const [zoom, setZoom] = useState(1);
-  const [rotation, setRotation] = useState(0);
-  const [imgSize, setImgSize] = useState({ w: 0, h: 0 }); // rendered image size
-  const imgRef = useRef<HTMLImageElement>(null);
+  const [photoPos, setPhotoPos] = useState(DEFAULT_PHOTO);
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
 
@@ -25,25 +28,16 @@ export default function AdminImageViewer() {
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
 
-  // Photo drag
-  const [isDraggingPhoto, setIsDraggingPhoto] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  // Drag state
+  const [dragTarget, setDragTarget] = useState<string | null>(null); // "photo" | "nome" | "nascimento" | "filiacao"
+  const [dragStartPx, setDragStartPx] = useState({ x: 0, y: 0 });
+  const [dragStartPct, setDragStartPct] = useState({ x: 0, y: 0 });
 
-  // Text overlay positions (draggable)
-  const [textPositions, setTextPositions] = useState({
-    nome: { x: 200, y: 95 },
-    nascimento: { x: 200, y: 145 },
-    filiacao: { x: 200, y: 290 },
-  });
-  const [draggingText, setDraggingText] = useState<string | null>(null);
-  const [textDragStart, setTextDragStart] = useState({ x: 0, y: 0 });
+  // Text positions as % of image
+  const [textPos, setTextPos] = useState(DEFAULT_TEXT);
 
   // Font sizes
-  const [fontSizes, setFontSizes] = useState({
-    nome: 11,
-    nascimento: 10,
-    filiacao: 9,
-  });
+  const [fontSizes, setFontSizes] = useState({ nome: 11, nascimento: 10, filiacao: 9 });
 
   // Contrast
   const [contrast, setContrast] = useState(100);
@@ -58,6 +52,13 @@ export default function AdminImageViewer() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  // Get rendered image dimensions
+  const getImgRect = () => {
+    if (!imgRef.current) return null;
+    return { w: imgRef.current.clientWidth, h: imgRef.current.clientHeight };
+  };
 
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -75,8 +76,7 @@ export default function AdminImageViewer() {
     if (!file || !file.type.startsWith("image/")) return;
     if (photoOverlay) URL.revokeObjectURL(photoOverlay);
     setPhotoOverlay(URL.createObjectURL(file));
-    setPhotoPosition({ x: 50, y: 150 });
-    setPhotoSize({ w: 120, h: 150 });
+    setPhotoPos(DEFAULT_PHOTO);
     if (photoInputRef.current) photoInputRef.current.value = "";
   };
 
@@ -106,7 +106,7 @@ export default function AdminImageViewer() {
     a.click();
   };
 
-  // --- Pan (main image + overlays together) ---
+  // --- Pan ---
   const onViewerMouseDown = (e: React.MouseEvent) => {
     if (!panMode) return;
     e.preventDefault();
@@ -114,51 +114,56 @@ export default function AdminImageViewer() {
     setPanStart({ x: e.clientX - mainOffset.x, y: e.clientY - mainOffset.y });
   };
 
-  // --- Photo overlay drag ---
-  const onPhotoMouseDown = (e: React.MouseEvent) => {
+  // --- Drag start (photo or text) ---
+  const onElementMouseDown = (target: string, e: React.MouseEvent) => {
     if (panMode) return;
     e.preventDefault();
     e.stopPropagation();
-    setIsDraggingPhoto(true);
-    setDragStart({ x: e.clientX / zoom - photoPosition.x, y: e.clientY / zoom - photoPosition.y });
-  };
+    const rect = getImgRect();
+    if (!rect) return;
 
-  // Text overlay drag
-  const onTextMouseDown = (key: string, e: React.MouseEvent) => {
-    if (panMode) return;
-    e.preventDefault();
-    e.stopPropagation();
-    setDraggingText(key);
-    const pos = textPositions[key as keyof typeof textPositions];
-    setTextDragStart({ x: e.clientX / zoom - pos.x, y: e.clientY / zoom - pos.y });
+    setDragTarget(target);
+    setDragStartPx({ x: e.clientX, y: e.clientY });
+
+    if (target === "photo") {
+      setDragStartPct({ x: photoPos.xPct, y: photoPos.yPct });
+    } else {
+      const pos = textPos[target as keyof typeof textPos];
+      setDragStartPct({ x: pos.xPct, y: pos.yPct });
+    }
   };
 
   const onGlobalMouseMove = useCallback((e: MouseEvent) => {
     if (isPanning) {
       setMainOffset({ x: e.clientX - panStart.x, y: e.clientY - panStart.y });
+      return;
     }
-    if (isDraggingPhoto) {
-      setPhotoPosition({ x: e.clientX / zoom - dragStart.x, y: e.clientY / zoom - dragStart.y });
-    }
-    if (draggingText) {
-      setTextPositions((prev) => ({
+    if (!dragTarget) return;
+    const rect = getImgRect();
+    if (!rect) return;
+
+    const dx = (e.clientX - dragStartPx.x) / zoom;
+    const dy = (e.clientY - dragStartPx.y) / zoom;
+    const dxPct = (dx / rect.w) * 100;
+    const dyPct = (dy / rect.h) * 100;
+
+    if (dragTarget === "photo") {
+      setPhotoPos((p) => ({ ...p, xPct: dragStartPct.x + dxPct, yPct: dragStartPct.y + dyPct }));
+    } else {
+      setTextPos((prev) => ({
         ...prev,
-        [draggingText]: {
-          x: e.clientX / zoom - textDragStart.x,
-          y: e.clientY / zoom - textDragStart.y,
-        },
+        [dragTarget]: { xPct: dragStartPct.x + dxPct, yPct: dragStartPct.y + dyPct },
       }));
     }
-  }, [isPanning, panStart, isDraggingPhoto, dragStart, draggingText, textDragStart, zoom]);
+  }, [isPanning, panStart, dragTarget, dragStartPx, dragStartPct, zoom]);
 
   const onGlobalMouseUp = useCallback(() => {
     setIsPanning(false);
-    setIsDraggingPhoto(false);
-    setDraggingText(null);
+    setDragTarget(null);
   }, []);
 
   useEffect(() => {
-    if (isPanning || isDraggingPhoto || draggingText) {
+    if (isPanning || dragTarget) {
       window.addEventListener("mousemove", onGlobalMouseMove);
       window.addEventListener("mouseup", onGlobalMouseUp);
       return () => {
@@ -166,7 +171,7 @@ export default function AdminImageViewer() {
         window.removeEventListener("mouseup", onGlobalMouseUp);
       };
     }
-  }, [isPanning, isDraggingPhoto, draggingText, onGlobalMouseMove, onGlobalMouseUp]);
+  }, [isPanning, dragTarget, onGlobalMouseMove, onGlobalMouseUp]);
 
   // Resize handle for photo
   const onResizeMouseDown = (e: React.MouseEvent) => {
@@ -174,10 +179,15 @@ export default function AdminImageViewer() {
     e.stopPropagation();
     const startX = e.clientX;
     const startY = e.clientY;
-    const startW = photoSize.w;
-    const startH = photoSize.h;
+    const startW = photoPos.wPct;
+    const startH = photoPos.hPct;
+    const rect = getImgRect();
+    if (!rect) return;
+
     const handleMove = (ev: MouseEvent) => {
-      setPhotoSize({ w: Math.max(40, startW + ev.clientX - startX), h: Math.max(50, startH + ev.clientY - startY) });
+      const dxPct = ((ev.clientX - startX) / zoom / rect.w) * 100;
+      const dyPct = ((ev.clientY - startY) / zoom / rect.h) * 100;
+      setPhotoPos((p) => ({ ...p, wPct: Math.max(5, startW + dxPct), hPct: Math.max(5, startH + dyPct) }));
     };
     const handleUp = () => {
       window.removeEventListener("mousemove", handleMove);
@@ -213,13 +223,13 @@ export default function AdminImageViewer() {
               <input ref={photoInputRef} type="file" accept="image/*" onChange={handlePhotoUpload} className="hidden" />
               <Button onClick={() => photoInputRef.current?.click()} className="w-full gap-2" variant="outline">
                 <UserCircle className="size-4" />
-                Upload Foto (sobrepor)
+                Upload Foto 3x4
               </Button>
 
               {photoOverlay && (
                 <div className="flex items-center gap-2 p-2 bg-white/5 rounded-lg border border-white/10">
                   <img src={photoOverlay} alt="Foto" className="w-10 h-12 object-cover rounded border border-white/20" />
-                  <span className="text-xs text-white/60 flex-1">Arraste na imagem</span>
+                  <span className="text-xs text-white/60 flex-1">Posicionada automaticamente</span>
                   <button onClick={() => { URL.revokeObjectURL(photoOverlay); setPhotoOverlay(null); }}>
                     <X className="size-4 text-white/40 hover:text-white" />
                   </button>
@@ -336,22 +346,10 @@ export default function AdminImageViewer() {
             <CardTitle className="text-white text-sm">Visualização</CardTitle>
             {selectedImage && (
               <div className="flex items-center gap-1">
-                <Button
-                  size="icon"
-                  variant={!panMode ? "default" : "ghost"}
-                  className="size-8"
-                  onClick={() => setPanMode(false)}
-                  title="Selecionar / Mover foto"
-                >
+                <Button size="icon" variant={!panMode ? "default" : "ghost"} className="size-8" onClick={() => setPanMode(false)} title="Selecionar">
                   <MousePointer className="size-4" />
                 </Button>
-                <Button
-                  size="icon"
-                  variant={panMode ? "default" : "ghost"}
-                  className="size-8"
-                  onClick={() => setPanMode(true)}
-                  title="Mover imagem"
-                >
+                <Button size="icon" variant={panMode ? "default" : "ghost"} className="size-8" onClick={() => setPanMode(true)} title="Mover">
                   <Hand className="size-4" />
                 </Button>
                 <div className="w-px h-5 bg-white/10 mx-1" />
@@ -390,10 +388,11 @@ export default function AdminImageViewer() {
                     transform: `scale(${zoom}) rotate(${rotation}deg)`,
                     transformOrigin: "center center",
                     transition: "transform 0.2s",
-                    filter: `contrast(${contrast}%) brightness(${100 + (Math.random() * 2 - 1)}%)`,
+                    filter: `contrast(${contrast}%)`,
                   }}
                 >
                   <img
+                    ref={imgRef}
                     src={selectedImage}
                     alt="Visualização"
                     className="select-none"
@@ -404,18 +403,19 @@ export default function AdminImageViewer() {
                       objectFit: "contain",
                     }}
                   />
-                  {/* Photo overlay */}
+
+                  {/* Photo overlay - positioned by % */}
                   {photoOverlay && (
                     <div
-                      className="absolute border-2 border-dashed border-primary/60 hover:border-primary shadow-lg"
+                      className="absolute border border-black/30"
                       style={{
-                        left: photoPosition.x,
-                        top: photoPosition.y,
-                        width: photoSize.w,
-                        height: photoSize.h,
+                        left: `${photoPos.xPct}%`,
+                        top: `${photoPos.yPct}%`,
+                        width: `${photoPos.wPct}%`,
+                        height: `${photoPos.hPct}%`,
                         cursor: panMode ? "inherit" : "move",
                       }}
-                      onMouseDown={onPhotoMouseDown}
+                      onMouseDown={(e) => onElementMouseDown("photo", e)}
                     >
                       <img src={photoOverlay} alt="Foto" className="w-full h-full object-cover pointer-events-none" draggable={false} />
                       {!panMode && (
@@ -427,12 +427,12 @@ export default function AdminImageViewer() {
                     </div>
                   )}
 
-                  {/* Text overlays - draggable */}
+                  {/* Text overlays - positioned by % */}
                   {formData.nomeCompleto && (
                     <div
                       className="absolute select-none whitespace-nowrap"
-                      style={{ left: textPositions.nome.x, top: textPositions.nome.y, cursor: panMode ? "inherit" : "move" }}
-                      onMouseDown={(e) => onTextMouseDown("nome", e)}
+                      style={{ left: `${textPos.nome.xPct}%`, top: `${textPos.nome.yPct}%`, cursor: panMode ? "inherit" : "move" }}
+                      onMouseDown={(e) => onElementMouseDown("nome", e)}
                     >
                       <span className="font-bold tracking-wide text-black/90 uppercase" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${fontSizes.nome}px` }}>
                         {formData.nomeCompleto}
@@ -442,8 +442,8 @@ export default function AdminImageViewer() {
                   {formData.dataNascimento && (
                     <div
                       className="absolute select-none whitespace-nowrap"
-                      style={{ left: textPositions.nascimento.x, top: textPositions.nascimento.y, cursor: panMode ? "inherit" : "move" }}
-                      onMouseDown={(e) => onTextMouseDown("nascimento", e)}
+                      style={{ left: `${textPos.nascimento.xPct}%`, top: `${textPos.nascimento.yPct}%`, cursor: panMode ? "inherit" : "move" }}
+                      onMouseDown={(e) => onElementMouseDown("nascimento", e)}
                     >
                       <span className="font-semibold text-black/90" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${fontSizes.nascimento}px` }}>
                         {new Date(formData.dataNascimento).toLocaleDateString("pt-BR")}
@@ -453,8 +453,8 @@ export default function AdminImageViewer() {
                   {(formData.nomePai || formData.nomeMae) && (
                     <div
                       className="absolute select-none flex flex-col"
-                      style={{ left: textPositions.filiacao.x, top: textPositions.filiacao.y, cursor: panMode ? "inherit" : "move" }}
-                      onMouseDown={(e) => onTextMouseDown("filiacao", e)}
+                      style={{ left: `${textPos.filiacao.xPct}%`, top: `${textPos.filiacao.yPct}%`, cursor: panMode ? "inherit" : "move" }}
+                      onMouseDown={(e) => onElementMouseDown("filiacao", e)}
                     >
                       {formData.nomePai && (
                         <span className="font-semibold text-black/90 uppercase whitespace-nowrap" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${fontSizes.filiacao}px` }}>
