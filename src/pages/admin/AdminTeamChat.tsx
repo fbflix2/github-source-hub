@@ -308,9 +308,9 @@ export default function AdminTeamChat() {
       </div>
 
       {/* Chat area */}
-      <div className={cn("flex-1 flex flex-col min-w-0 pl-4", !showSidebar ? "block" : "hidden md:block")}>
-        {/* Header */}
-        <div className="flex items-center gap-3 pb-4 border-b border-border mb-4">
+      <div className={cn("flex-1 flex flex-col min-w-0 pl-4 overflow-hidden", !showSidebar ? "block" : "hidden md:block")}>
+        {/* Header - fixed */}
+        <div className="flex items-center gap-3 pb-4 border-b border-border mb-4 flex-shrink-0">
           <button
             onClick={() => setShowSidebar(true)}
             className="md:hidden text-muted-foreground hover:text-foreground"
