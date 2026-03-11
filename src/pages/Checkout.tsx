@@ -874,6 +874,7 @@ export default function Checkout() {
       console.error("Payment error:", err);
       toast.error(err.message || "Erro ao processar pagamento");
     } finally {
+      clearTimeout(safetyTimeout);
       setProcessing(false);
     }
   };
