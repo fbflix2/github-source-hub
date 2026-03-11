@@ -271,6 +271,7 @@ const App = () => {
                   <Route path="aquecimento" element={<AdminAquecimento />} />
                   <Route path="fornecedor" element={<AdminShopClone />} />
                   <Route path="ferramentas-2fa" element={<AdminFerramentas2FA />} />
+                  <Route path="imagens" element={<AdminImageViewer />} />
                 </Route>
 
                 {/* Protected routes */}
