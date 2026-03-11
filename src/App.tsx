@@ -269,6 +269,7 @@ const App = () => {
                   <Route path="fbx" element={<AdminFBX />} />
                   <Route path="aquecimento" element={<AdminAquecimento />} />
                   <Route path="fornecedor" element={<AdminShopClone />} />
+                  <Route path="ferramentas-2fa" element={<AdminFerramentas2FA />} />
                 </Route>
 
                 {/* Protected routes */}
