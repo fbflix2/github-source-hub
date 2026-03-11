@@ -144,8 +144,9 @@ export default function AdminCentralInvestimentos() {
     if (webSharePlan && usdToBrl) {
       const plan = webSharePlan?.plan;
       const monthlyPlanCost = plan?.monthly_price || 0;
-      const totalPlanProxies = plan?.proxy_count || 1;
+      const totalPlanProxies = plan?.proxy_count || webshareProxyCount || 1;
       const costPerProxyBRL = (monthlyPlanCost / totalPlanProxies) * usdToBrl;
+      console.log("[invest] Webshare plan cost:", monthlyPlanCost, "proxies:", totalPlanProxies, "rate:", usdToBrl, "=> per proxy BRL:", costPerProxyBRL);
 
       if (costPerProxyBRL > 0) {
         products.forEach(p => {
