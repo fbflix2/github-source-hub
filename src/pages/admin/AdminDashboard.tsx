@@ -293,6 +293,25 @@ export default function AdminDashboard() {
       }
     }
     fetchStats();
+
+    // Realtime: update dashboard when orders change
+    const channel = supabase
+      .channel("dashboard-orders-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "orders" },
+        () => { fetchStats(); }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "payments" },
+        () => { fetchStats(); }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const formatCurrency = (v: number) => {
