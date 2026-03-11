@@ -504,6 +504,18 @@ export default function AdminImageViewer() {
                       )}
                     </div>
                   )}
+                  {/* Assinatura overlay */}
+                  {formData.nomeCompleto && (
+                    <div
+                      className="absolute select-none whitespace-nowrap"
+                      style={{ left: `${textPos.assinatura.xPct}%`, top: `${textPos.assinatura.yPct}%`, cursor: panMode ? "inherit" : "move" }}
+                      onMouseDown={(e) => onElementMouseDown("assinatura", e)}
+                    >
+                      <span style={{ fontFamily: `'${signatureFont}', cursive`, fontSize: `${fontSizes.assinatura}px`, color: "#1a1a8a" }}>
+                        {formData.nomeCompleto}
+                      </span>
+                    </div>
+                  )
                 </div>
               </div>
             ) : (
