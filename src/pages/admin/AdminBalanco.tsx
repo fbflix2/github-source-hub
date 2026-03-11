@@ -124,7 +124,7 @@ export default function AdminBalanco() {
     } catch {}
 
     // Webshare auto-costs
-    let apiPriceMap = new Map<string, number>(); // keep for proxy subscription cost below (now unused)
+    // Webshare auto-costs only
     if (webShareRes.data) {
       const plan = webShareRes.data?.plan;
       const monthlyPrice = plan?.monthly_price || 0;
