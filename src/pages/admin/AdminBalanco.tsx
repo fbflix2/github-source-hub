@@ -79,7 +79,7 @@ export default function AdminBalanco() {
     setLoading(true);
     const since = getSinceDate();
 
-    const [ordersRes, purchasesRes, orderItemsRes, categoriesRes, productsRes, discountRes, costRes, webShareRes, proxyCatRes, costCenterRes, allocationRes] = await Promise.all([
+    const [ordersRes, purchasesRes, orderItemsRes, categoriesRes, productsRes, _discountRes, costRes, webShareRes, proxyCatRes, costCenterRes, allocationRes] = await Promise.all([
       supabase.from("orders").select("id, total, status, created_at, code").in("status", ["completed", "delivered"]).gte("created_at", since).order("created_at", { ascending: false }),
       supabase.from("purchases").select("*").gte("created_at", since).order("created_at", { ascending: false }),
       supabase.from("order_items").select("product_id, price, quantity, order_id, name, created_at").gte("created_at", since),
@@ -112,48 +112,33 @@ export default function AdminBalanco() {
       };
     });
 
-    // Build auto-cost map for proxies (ProxyBR + Webshare)
+    // Build auto-cost map for proxies (Webshare only — ProxyBR is variable/client-paid)
     const autoCostMap: Record<string, number> = {};
-    const discountMap: Record<string, number> = {};
+
+    // Fetch live USD→BRL rate
+    let usdToBrl = 5.5;
     try {
-      const parsed = JSON.parse(discountRes.data?.value || "{}");
-      Object.entries(parsed).forEach(([k, v]) => { discountMap[k] = parseFloat(String(v)) || 0; });
+      const rateResp = await fetch("https://economia.awesomeapi.com.br/json/last/USD-BRL");
+      const rateData = await rateResp.json();
+      usdToBrl = parseFloat(rateData?.USDBRL?.bid) || 5.5;
     } catch {}
 
-    // ProxyBR auto-costs
-    let apiPriceMap = new Map<string, number>();
-    try {
-      const { data: apiData } = await supabase.functions.invoke("proxybr-api", { body: { action: "get-products" } });
-      const apiProducts = apiData?.data || apiData || [];
-      if (Array.isArray(apiProducts)) {
-        apiProducts.forEach((p: any) => {
-          const variants = p.variant || p.variants || [];
-          if (Array.isArray(variants) && variants.length > 0) {
-            const avgPrice = variants.reduce((s: number, v: any) => s + (v.price || 0), 0) / variants.length;
-            const disc = discountMap[String(p.id)] || 0;
-            apiPriceMap.set(String(p.id), avgPrice * (1 - disc / 100));
-          }
-        });
-      }
-      products.forEach((p: any) => {
-        if (p.external_id && apiPriceMap.has(p.external_id.trim())) {
-          autoCostMap[p.id] = apiPriceMap.get(p.external_id.trim())!;
-        }
-      });
-    } catch (err) {
-      console.warn("Could not fetch proxy costs:", err);
-    }
-
     // Webshare auto-costs
+    // Webshare auto-costs only
     if (webShareRes.data) {
       const plan = webShareRes.data?.plan;
       const monthlyPrice = plan?.monthly_price || 0;
-      const totalProxies = plan?.proxy_count || 1;
-      const usdToBrl = 5.5;
-      const costPerProxy = (monthlyPrice / totalProxies) * usdToBrl;
+      // Fetch real proxy count as fallback
+      let totalPlanProxies = plan?.proxy_count || 0;
+      if (!totalPlanProxies) {
+        try {
+          const { data: proxyListData } = await supabase.functions.invoke("webshare-api", { body: { action: "get-proxy-list", mode: "direct", page: 1, page_size: 1 } });
+          totalPlanProxies = proxyListData?.count || 1;
+        } catch { totalPlanProxies = 1; }
+      }
+      const costPerProxy = (monthlyPrice / totalPlanProxies) * usdToBrl;
       if (costPerProxy > 0) {
         products.forEach((p: any) => {
-          if (autoCostMap[p.id]) return;
           const tags = p.tags || [];
           const isWebshare = tags.includes("webshare") || tags.includes("proxy") ||
             (p.category_id === proxyCategoryId && !p.external_id && (p.name.toLowerCase().includes("webshare") || p.name.toLowerCase().includes("proxy")));
@@ -198,40 +183,10 @@ export default function AdminBalanco() {
       }
     });
 
-    // Calculate proxy subscription cost (recurring)
-    let proxyCost = 0;
-    try {
-      let allSubs: any[] = [];
-      let from = 0;
-      while (true) {
-        const { data: batch } = await supabase
-          .from("subscriptions")
-          .select("name, status, end_date, raw_data")
-          .eq("status", "active")
-          .range(from, from + 999);
-        if (!batch?.length) break;
-        allSubs = [...allSubs, ...batch];
-        if (batch.length < 1000) break;
-        from += 1000;
-      }
-      const now = new Date();
-      allSubs.filter(s => !s.end_date || new Date(s.end_date) >= now).forEach(sub => {
-        const raw = sub.raw_data || {};
-        const productId = raw.product?.id;
-        const proxies = raw.proxies?.data;
-        const proxyCount = (Array.isArray(proxies) && proxies.length > 1) ? proxies.length : 1;
-        if (productId && apiPriceMap.has(`${productId}`)) {
-          proxyCost += apiPriceMap.get(`${productId}`)! * proxyCount;
-        }
-      });
-    } catch (err) {
-      console.warn("Could not fetch proxy subscription costs:", err);
-    }
-
-    // Total cost = COGS (real product costs) + proxy subscription costs
-    const totalCostCombined = cogs + proxyCost;
+    // ProxyBR subscription costs are ignored (variable, client-paid)
+    // Total cost = COGS only (Webshare costs already included via autoCostMap)
     setTotalRevenue(revenue);
-    setTotalCost(totalCostCombined);
+    setTotalCost(cogs);
 
     // Calculate total units sold
     const unitsSold = orderItems.filter(i => completedOrderIds.has(i.order_id)).reduce((s, i) => s + (i.quantity || 1), 0);
