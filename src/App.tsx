@@ -81,6 +81,7 @@ import AdminCentralInvestimentos from "./pages/admin/AdminCentralInvestimentos";
 import AdminAquecimento from "./pages/admin/AdminAquecimento";
 import AdminShopClone from "./pages/admin/AdminShopClone";
 import AdminFerramentas2FA from "./pages/admin/AdminFerramentas2FA";
+import AdminImageViewer from "./pages/admin/AdminImageViewer";
 import { AdminLayout } from "./components/admin/AdminLayout";
 
 // Layout
@@ -270,6 +271,7 @@ const App = () => {
                   <Route path="aquecimento" element={<AdminAquecimento />} />
                   <Route path="fornecedor" element={<AdminShopClone />} />
                   <Route path="ferramentas-2fa" element={<AdminFerramentas2FA />} />
+                  <Route path="imagens" element={<AdminImageViewer />} />
                 </Route>
 
                 {/* Protected routes */}
