@@ -24,6 +24,15 @@ export default function AdminImageViewer() {
   const [isDraggingPhoto, setIsDraggingPhoto] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
+  // Text overlay positions (draggable)
+  const [textPositions, setTextPositions] = useState({
+    nome: { x: 200, y: 95 },
+    nascimento: { x: 200, y: 145 },
+    filiacao: { x: 200, y: 290 },
+  });
+  const [draggingText, setDraggingText] = useState<string | null>(null);
+  const [textDragStart, setTextDragStart] = useState({ x: 0, y: 0 });
+
   // Form fields
   const [formData, setFormData] = useState({
     nomeCompleto: "",
