@@ -336,7 +336,35 @@ export default function AdminImageViewer() {
                 </div>
               </div>
 
-              {/* Contrast slider */}
+              {/* Assinatura */}
+              <div className="pt-2 border-t border-white/10">
+                <Label className="text-white/60 text-xs">Assinatura (gerada do nome)</Label>
+                {formData.nomeCompleto && (
+                  <div className="mt-1 p-2 bg-white/5 rounded border border-white/10">
+                    <span style={{ fontFamily: `'${signatureFont}', cursive`, fontSize: `${fontSizes.assinatura}px`, color: "#1a1a8a" }}>
+                      {formData.nomeCompleto}
+                    </span>
+                  </div>
+                )}
+                <div className="flex gap-1 mt-1.5 flex-wrap">
+                  {SIGNATURE_FONTS.map((f) => (
+                    <button
+                      key={f}
+                      onClick={() => setSignatureFont(f)}
+                      className={`px-2 py-1 rounded text-xs border transition-all ${signatureFont === f ? "border-primary bg-primary/20 text-white" : "border-white/10 text-white/50 hover:border-white/30"}`}
+                      style={{ fontFamily: `'${f}', cursive` }}
+                    >
+                      Aa
+                    </button>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-[10px] text-white/40">Tamanho:</span>
+                  <Slider value={[fontSizes.assinatura]} onValueChange={([v]) => setFontSizes((sf) => ({ ...sf, assinatura: v }))} min={8} max={24} step={0.5} className="flex-1" />
+                  <span className="text-[10px] text-white/50 w-8">{fontSizes.assinatura}px</span>
+                </div>
+              </div>
+
               <div className="pt-2 border-t border-white/10">
                 <div className="flex items-center gap-2">
                   <Label className="text-white/60 text-xs whitespace-nowrap">Contraste</Label>
