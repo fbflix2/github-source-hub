@@ -70,6 +70,16 @@ export default function AdminPedidos() {
 
   useEffect(() => {
     fetchOrders();
+
+    // Realtime: auto-refresh when orders change
+    const channel = supabase
+      .channel("admin-orders-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => {
+        fetchOrders();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   async function fetchOrders() {
