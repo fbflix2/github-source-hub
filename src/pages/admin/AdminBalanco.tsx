@@ -183,40 +183,10 @@ export default function AdminBalanco() {
       }
     });
 
-    // Calculate proxy subscription cost (recurring)
-    let proxyCost = 0;
-    try {
-      let allSubs: any[] = [];
-      let from = 0;
-      while (true) {
-        const { data: batch } = await supabase
-          .from("subscriptions")
-          .select("name, status, end_date, raw_data")
-          .eq("status", "active")
-          .range(from, from + 999);
-        if (!batch?.length) break;
-        allSubs = [...allSubs, ...batch];
-        if (batch.length < 1000) break;
-        from += 1000;
-      }
-      const now = new Date();
-      allSubs.filter(s => !s.end_date || new Date(s.end_date) >= now).forEach(sub => {
-        const raw = sub.raw_data || {};
-        const productId = raw.product?.id;
-        const proxies = raw.proxies?.data;
-        const proxyCount = (Array.isArray(proxies) && proxies.length > 1) ? proxies.length : 1;
-        if (productId && apiPriceMap.has(`${productId}`)) {
-          proxyCost += apiPriceMap.get(`${productId}`)! * proxyCount;
-        }
-      });
-    } catch (err) {
-      console.warn("Could not fetch proxy subscription costs:", err);
-    }
-
-    // Total cost = COGS (real product costs) + proxy subscription costs
-    const totalCostCombined = cogs + proxyCost;
+    // ProxyBR subscription costs are ignored (variable, client-paid)
+    // Total cost = COGS only (Webshare costs already included via autoCostMap)
     setTotalRevenue(revenue);
-    setTotalCost(totalCostCombined);
+    setTotalCost(cogs);
 
     // Calculate total units sold
     const unitsSold = orderItems.filter(i => completedOrderIds.has(i.order_id)).reduce((s, i) => s + (i.quantity || 1), 0);
