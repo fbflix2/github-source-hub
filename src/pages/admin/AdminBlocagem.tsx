@@ -923,11 +923,11 @@ export default function AdminBlocagem() {
   const fetchFolders = async () => {
     const { data: foldersData } = await supabase.from("stock_folders").select("*").is("deleted_at", null).order("updated_at", { ascending: false });
     if (!foldersData) { setLoading(false); return; }
-    // Count items per folder
+    // Count items per folder (compat: folder salvo por id e por nome legado)
     const { data: itemsData } = await supabase.from("stock_items").select("folder").is("deleted_at", null).neq("status", "revisado");
     const counts: Record<string, number> = {};
     (itemsData ?? []).forEach(i => { if (i.folder) counts[i.folder] = (counts[i.folder] || 0) + 1; });
-    setFolders(foldersData.map(f => ({ ...f, item_count: counts[f.id] || 0 })));
+    setFolders(foldersData.map(f => ({ ...f, item_count: (counts[f.id] || 0) + (counts[f.name] || 0) })));
     setLoading(false);
   };
 
