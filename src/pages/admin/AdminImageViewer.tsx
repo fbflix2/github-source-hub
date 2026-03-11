@@ -330,8 +330,8 @@ export default function AdminImageViewer() {
                     className="select-none"
                     draggable={false}
                     style={{
-                      maxWidth: zoom <= 1 ? "100%" : "none",
-                      maxHeight: zoom <= 1 ? "calc(70vh - 80px)" : "none",
+                      maxWidth: "100%",
+                      maxHeight: "calc(70vh - 80px)",
                       objectFit: "contain",
                     }}
                   />
