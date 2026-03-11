@@ -145,14 +145,17 @@ export default function AdminImageViewer() {
           </CardHeader>
           <CardContent className="flex items-center justify-center overflow-auto h-[calc(70vh-60px)]">
             {selectedImage ? (
-              <div className="overflow-auto w-full h-full flex items-start justify-center p-4">
+              <div className="overflow-auto w-full h-full flex items-center justify-center p-4">
                 <img
                   src={selectedImage}
                   alt="Visualização"
-                  className="max-w-none transition-transform duration-200"
+                  className="transition-transform duration-200"
                   style={{
                     transform: `scale(${zoom}) rotate(${rotation}deg)`,
                     transformOrigin: "center center",
+                    maxWidth: zoom <= 1 ? "100%" : "none",
+                    maxHeight: zoom <= 1 ? "100%" : "none",
+                    objectFit: "contain",
                   }}
                 />
               </div>
