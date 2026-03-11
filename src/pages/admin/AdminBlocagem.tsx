@@ -830,7 +830,7 @@ function FolderItemsView({ folder, onBack }: { folder: Folder; onBack: () => voi
     setLoading(false);
   };
 
-  useEffect(() => { fetchItems(); }, [folder.id]);
+  useEffect(() => { fetchItems(); }, [folder.id, folder.name]);
 
   const handleDelete = async (id: string) => {
     await supabase.from("bm_tracking").update({ stock_item_id: null }).eq("stock_item_id", id);
