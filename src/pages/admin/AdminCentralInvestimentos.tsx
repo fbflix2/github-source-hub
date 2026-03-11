@@ -74,23 +74,8 @@ export default function AdminCentralInvestimentos() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // Fetch ProxyBR API products for cost
-  const { data: proxyBRApiProducts } = useQuery({
-    queryKey: ["proxybr-products-invest"],
-    queryFn: () => callProxyBR("get-products"),
-    staleTime: 300_000,
-    refetchOnWindowFocus: false,
-  });
-
-  // Fetch ProxyBR reseller discounts
-  const { data: discountSetting } = useQuery({
-    queryKey: ["proxybr-reseller-discounts"],
-    queryFn: async () => {
-      const { data } = await supabase.from("site_settings").select("value").eq("key", "proxybr_reseller_discounts").maybeSingle();
-      return data?.value || "{}";
-    },
-    staleTime: 60_000,
-  });
+  // ProxyBR costs are ignored here — variable cost paid by client
+  // Focus only on Webshare (fixed monthly plan)
 
   // Fetch Webshare plan for cost per proxy
   const { data: webSharePlan } = useQuery({
