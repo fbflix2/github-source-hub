@@ -470,7 +470,7 @@ export default function AdminTeamChat() {
         </div>
 
         {/* Input */}
-        <div className="pt-3 border-t border-border mt-2">
+        <div className="pt-3 border-t border-border mt-2 flex-shrink-0">
           {/* Reply preview bar */}
           {replyTo && (
             <div className="flex items-center gap-2 mb-2 px-3 py-2 rounded-xl bg-primary/5 border border-primary/20">
