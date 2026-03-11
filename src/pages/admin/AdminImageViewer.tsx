@@ -453,7 +453,7 @@ export default function AdminImageViewer() {
                       onMouseDown={(e) => onTextMouseDown("filiacao", e)}
                     >
                       {formData.nomePai && (
-                        <span className="text-[9px] font-semibold text-black/90 uppercase whitespace-nowrap" style={{ fontFamily: "Arial Narrow, Arial, sans-serif" }}>
+                        <span className="font-semibold text-black/90 uppercase whitespace-nowrap" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${fontSizes.filiacao}px` }}>
                           {formData.nomePai}
                         </span>
                       )}
