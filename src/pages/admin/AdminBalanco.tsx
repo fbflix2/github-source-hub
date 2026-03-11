@@ -79,7 +79,7 @@ export default function AdminBalanco() {
     setLoading(true);
     const since = getSinceDate();
 
-    const [ordersRes, purchasesRes, orderItemsRes, categoriesRes, productsRes, discountRes, costRes, webShareRes, proxyCatRes, costCenterRes, allocationRes] = await Promise.all([
+    const [ordersRes, purchasesRes, orderItemsRes, categoriesRes, productsRes, _discountRes, costRes, webShareRes, proxyCatRes, costCenterRes, allocationRes] = await Promise.all([
       supabase.from("orders").select("id, total, status, created_at, code").in("status", ["completed", "delivered"]).gte("created_at", since).order("created_at", { ascending: false }),
       supabase.from("purchases").select("*").gte("created_at", since).order("created_at", { ascending: false }),
       supabase.from("order_items").select("product_id, price, quantity, order_id, name, created_at").gte("created_at", since),
