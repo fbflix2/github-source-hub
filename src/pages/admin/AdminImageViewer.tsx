@@ -143,7 +143,7 @@ export default function AdminImageViewer() {
   }, []);
 
   useEffect(() => {
-    if (isPanning || isDraggingPhoto) {
+    if (isPanning || isDraggingPhoto || draggingText) {
       window.addEventListener("mousemove", onGlobalMouseMove);
       window.addEventListener("mouseup", onGlobalMouseUp);
       return () => {
@@ -151,7 +151,7 @@ export default function AdminImageViewer() {
         window.removeEventListener("mouseup", onGlobalMouseUp);
       };
     }
-  }, [isPanning, isDraggingPhoto, onGlobalMouseMove, onGlobalMouseUp]);
+  }, [isPanning, isDraggingPhoto, draggingText, onGlobalMouseMove, onGlobalMouseUp]);
 
   // Resize handle for photo
   const onResizeMouseDown = (e: React.MouseEvent) => {
