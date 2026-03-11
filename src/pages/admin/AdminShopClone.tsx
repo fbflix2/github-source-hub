@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { useShopCloneProducts, useShopCloneBalance, ShopCloneCategory, ShopCloneProduct } from "@/hooks/useShopClone";
-import { Loader2, Store, DollarSign, Package, RefreshCw, ExternalLink, Eye, Search, Clock } from "lucide-react";
+import { useShopCloneProducts, useShopCloneBalance, ShopCloneCategory, ShopCloneProduct, buyShopCloneResource } from "@/hooks/useShopClone";
+import { Loader2, Store, DollarSign, Package, RefreshCw, ExternalLink, Eye, Search, Clock, ShoppingCart, X, Copy, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 // VND to USD rate (accface prices are in VND)
 const VND_TO_USD = 1 / 25800;
@@ -116,6 +117,13 @@ function useUsdToBrl() {
   return rate;
 }
 
+interface BuyResult {
+  raw_accounts: string[];
+  saved_count: number;
+  folder: string;
+  productName: string;
+}
+
 export default function AdminShopClone() {
   const { data: categories, isLoading, error, refetch } = useShopCloneProducts();
   const { data: balance, isLoading: balanceLoading, refetch: refetchBalance } = useShopCloneBalance();
@@ -123,6 +131,7 @@ export default function AdminShopClone() {
   const tz = useTimezoneComparison();
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [buyResult, setBuyResult] = useState<BuyResult | null>(null);
 
   const filteredCategories = (categories || []).filter((cat) => {
     if (selectedCategory && cat.id !== selectedCategory) return false;
@@ -278,17 +287,68 @@ export default function AdminShopClone() {
 
         {/* Categories & Products */}
         {!isLoading && filteredCategories.map((cat) => (
-          <CategorySection key={cat.id} category={cat} searchQuery={search} usdToBrl={usdToBrl} />
+          <CategorySection key={cat.id} category={cat} searchQuery={search} usdToBrl={usdToBrl} onBuyResult={setBuyResult} />
         ))}
 
         {!isLoading && filteredCategories.length === 0 && !error && (
           <p className="text-center text-muted-foreground py-8">Nenhum produto encontrado</p>
         )}
+
+        {/* Buy Result Modal */}
+        <BuyResultModal result={buyResult} onClose={() => setBuyResult(null)} />
       </div>
   );
 }
 
-function CategorySection({ category, searchQuery, usdToBrl }: { category: ShopCloneCategory; searchQuery: string; usdToBrl: number }) {
+function BuyResultModal({ result, onClose }: { result: BuyResult | null; onClose: () => void }) {
+  if (!result) return null;
+
+  const copyAll = () => {
+    navigator.clipboard.writeText(result.raw_accounts.join("\n"));
+    toast.success("Dados copiados!");
+  };
+
+  return (
+    <Dialog open={!!result} onOpenChange={() => onClose()}>
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <CheckCircle className="size-5 text-green-500" />
+            Compra Realizada — {result.productName}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3 flex-1 overflow-hidden">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 text-sm">
+              <Badge variant="default">{result.raw_accounts.length} contas recebidas</Badge>
+              <Badge variant="secondary">{result.saved_count} salvas na Blocagem</Badge>
+              <span className="text-muted-foreground">Pasta: <strong>{result.folder}</strong></span>
+            </div>
+            <Button variant="outline" size="sm" onClick={copyAll}>
+              <Copy className="size-3 mr-1" /> Copiar tudo
+            </Button>
+          </div>
+          <div className="bg-muted/50 rounded-lg p-3 overflow-y-auto max-h-[50vh] font-mono text-xs space-y-1">
+            {result.raw_accounts.map((acc, i) => (
+              <div key={i} className="flex items-start gap-2 py-1 border-b border-border/50 last:border-0">
+                <span className="text-muted-foreground w-6 text-right shrink-0">{i + 1}.</span>
+                <span className="break-all">{typeof acc === "string" ? acc : JSON.stringify(acc)}</span>
+              </div>
+            ))}
+            {result.raw_accounts.length === 0 && (
+              <p className="text-muted-foreground text-center py-4">Nenhuma conta retornada pela API</p>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            As contas foram salvas automaticamente na pasta "<strong>{result.folder}</strong>" da Blocagem com status "aguardando" para revisão.
+          </p>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function CategorySection({ category, searchQuery, usdToBrl, onBuyResult }: { category: ShopCloneCategory; searchQuery: string; usdToBrl: number; onBuyResult: (r: BuyResult) => void }) {
   const [expanded, setExpanded] = useState(true);
   const q = searchQuery.toLowerCase();
 
@@ -327,11 +387,12 @@ function CategorySection({ category, searchQuery, usdToBrl }: { category: ShopCl
                   <th className="pb-2 font-medium text-right">Preço (USD)</th>
                   <th className="pb-2 font-medium text-right">Preço (BRL)</th>
                   <th className="pb-2 font-medium text-right">Estoque</th>
+                  <th className="pb-2 font-medium text-center">Ação</th>
                 </tr>
               </thead>
               <tbody>
                 {products.map((p) => (
-                  <ProductRow key={p.id} product={p} usdToBrl={usdToBrl} />
+                  <ProductRow key={p.id} product={p} usdToBrl={usdToBrl} onBuyResult={onBuyResult} />
                 ))}
               </tbody>
             </table>
@@ -342,11 +403,41 @@ function CategorySection({ category, searchQuery, usdToBrl }: { category: ShopCl
   );
 }
 
-function ProductRow({ product, usdToBrl }: { product: ShopCloneProduct; usdToBrl: number }) {
+function ProductRow({ product, usdToBrl, onBuyResult }: { product: ShopCloneProduct; usdToBrl: number; onBuyResult: (r: BuyResult) => void }) {
   const priceVnd = Number(product.price) || 0;
   const priceUsd = priceVnd * VND_TO_USD;
   const priceBrl = priceUsd * usdToBrl;
   const stock = Number(product.amount) || 0;
+  const [buyQty, setBuyQty] = useState(1);
+  const [buying, setBuying] = useState(false);
+  const [showBuy, setShowBuy] = useState(false);
+
+  const handleBuy = async () => {
+    if (buyQty < 1 || buyQty > stock) {
+      toast.error("Quantidade inválida");
+      return;
+    }
+    setBuying(true);
+    try {
+      const result = await buyShopCloneResource(product.id, buyQty, product.name, "AccFace Import");
+      if (result?.error || result?.status === "error") {
+        toast.error("Erro na compra: " + (result.error || result.raw || "Erro desconhecido"));
+      } else {
+        toast.success(`Compra realizada! ${result.saved_count || 0} contas salvas na Blocagem`);
+        onBuyResult({
+          raw_accounts: result.raw_accounts || [],
+          saved_count: result.saved_count || 0,
+          folder: result.folder || "AccFace Import",
+          productName: product.name,
+        });
+      }
+    } catch (err: any) {
+      toast.error("Erro: " + (err?.message || "Falha na compra"));
+    } finally {
+      setBuying(false);
+      setShowBuy(false);
+    }
+  };
   
   return (
     <tr className="border-b last:border-0 hover:bg-muted/50 transition-colors">
@@ -386,6 +477,48 @@ function ProductRow({ product, usdToBrl }: { product: ShopCloneProduct; usdToBrl
         >
           {stock.toLocaleString("pt-BR")}
         </Badge>
+      </td>
+      <td className="py-2 text-center">
+        {!showBuy ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 px-2 text-xs"
+            disabled={stock === 0}
+            onClick={() => setShowBuy(true)}
+          >
+            <ShoppingCart className="size-3 mr-1" />
+            Comprar
+          </Button>
+        ) : (
+          <div className="flex items-center gap-1 justify-center">
+            <Input
+              type="number"
+              min={1}
+              max={stock}
+              value={buyQty}
+              onChange={(e) => setBuyQty(Math.max(1, parseInt(e.target.value) || 1))}
+              className="w-14 h-7 text-xs text-center"
+            />
+            <Button
+              size="sm"
+              className="h-7 px-2 text-xs"
+              onClick={handleBuy}
+              disabled={buying}
+            >
+              {buying ? <Loader2 className="size-3 animate-spin" /> : "OK"}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-1"
+              onClick={() => setShowBuy(false)}
+              disabled={buying}
+            >
+              <X className="size-3" />
+            </Button>
+          </div>
+        )}
       </td>
     </tr>
   );
