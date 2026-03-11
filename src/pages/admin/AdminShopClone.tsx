@@ -168,7 +168,7 @@ export default function AdminShopClone() {
   );
 }
 
-function CategorySection({ category, searchQuery }: { category: ShopCloneCategory; searchQuery: string }) {
+function CategorySection({ category, searchQuery, usdToBrl }: { category: ShopCloneCategory; searchQuery: string; usdToBrl: number }) {
   const [expanded, setExpanded] = useState(true);
   const q = searchQuery.toLowerCase();
 
@@ -205,12 +205,13 @@ function CategorySection({ category, searchQuery }: { category: ShopCloneCategor
                   <th className="pb-2 font-medium">Nome</th>
                   <th className="pb-2 font-medium">País</th>
                   <th className="pb-2 font-medium text-right">Preço (USD)</th>
+                  <th className="pb-2 font-medium text-right">Preço (BRL)</th>
                   <th className="pb-2 font-medium text-right">Estoque</th>
                 </tr>
               </thead>
               <tbody>
                 {products.map((p) => (
-                  <ProductRow key={p.id} product={p} />
+                  <ProductRow key={p.id} product={p} usdToBrl={usdToBrl} />
                 ))}
               </tbody>
             </table>
@@ -221,8 +222,11 @@ function CategorySection({ category, searchQuery }: { category: ShopCloneCategor
   );
 }
 
-function ProductRow({ product }: { product: ShopCloneProduct }) {
-  const price = parseFloat(product.price);
+function ProductRow({ product, usdToBrl }: { product: ShopCloneProduct; usdToBrl: number }) {
+  const priceVnd = Number(product.price) || 0;
+  const priceUsd = priceVnd * VND_TO_USD;
+  const priceBrl = priceUsd * usdToBrl;
+  const stock = Number(product.amount) || 0;
   
   return (
     <tr className="border-b last:border-0 hover:bg-muted/50 transition-colors">
@@ -247,14 +251,17 @@ function ProductRow({ product }: { product: ShopCloneProduct }) {
         )}
       </td>
       <td className="py-2 text-right font-mono text-xs font-semibold">
-        ${isNaN(price) ? product.price : price.toFixed(2)}
+        ${priceUsd.toFixed(2)}
+      </td>
+      <td className="py-2 text-right font-mono text-xs font-semibold text-primary">
+        R$ {priceBrl.toFixed(2)}
       </td>
       <td className="py-2 text-right">
         <Badge
-          variant={product.amount > 0 ? "default" : "destructive"}
+          variant={stock > 0 ? "default" : "destructive"}
           className="text-xs"
         >
-          {product.amount.toLocaleString("pt-BR")}
+          {stock.toLocaleString("pt-BR")}
         </Badge>
       </td>
     </tr>
