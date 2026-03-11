@@ -147,7 +147,6 @@ export default function AdminShopClone() {
           <p className="text-center text-muted-foreground py-8">Nenhum produto encontrado</p>
         )}
       </div>
-    </div>
   );
 }
 
