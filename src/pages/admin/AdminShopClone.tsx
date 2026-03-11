@@ -119,6 +119,7 @@ export default function AdminShopClone() {
   const { data: categories, isLoading, error, refetch } = useShopCloneProducts();
   const { data: balance, isLoading: balanceLoading } = useShopCloneBalance();
   const usdToBrl = useUsdToBrl();
+  const tz = useTimezoneComparison();
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
