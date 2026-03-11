@@ -163,6 +163,20 @@ export default function AdminCentralInvestimentos() {
     return map;
   }, [products, webSharePlan, proxyCategory, usdToBrl, webshareProxyCount]);
 
+  // Fetch active Webshare subscriptions count for dilution
+  const { data: activeWsSubsCount } = useQuery({
+    queryKey: ["ws-active-subs-count"],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("subscriptions")
+        .select("id", { count: "exact", head: true })
+        .eq("type", "webshare")
+        .eq("status", "active");
+      return count || 0;
+    },
+    staleTime: 120_000,
+  });
+
   // Calculate per-product fixed cost dilution by category
   const getFixedCostPerProduct = useMemo(() => {
     if (!fixedCostData) return (_id: string) => 0;
@@ -172,6 +186,9 @@ export default function AdminCentralInvestimentos() {
     // Build slug-to-id map
     const slugToId: Record<string, string> = {};
     categories.forEach((c: any) => { slugToId[c.slug] = c.id; });
+
+    // Find proxy category id
+    const proxyCatId = categories.find((c: any) => c.slug === "proxy")?.id;
 
     // Count active products per category
     const activeProducts = products.filter(p => p.status === "active");
@@ -190,12 +207,18 @@ export default function AdminCentralInvestimentos() {
       if (!cat) return;
       const allocPct = allocation[cat.slug] || 0;
       const catFixed = totalFixed * (allocPct / 100);
-      const productsInCat = catProductCount[p.category_id] || 1;
-      productFixedMap[p.id] = catFixed / productsInCat;
+
+      // For proxy category: dilute by active sold subscriptions, not catalog products
+      if (p.category_id === proxyCatId && activeWsSubsCount && activeWsSubsCount > 0) {
+        productFixedMap[p.id] = catFixed / activeWsSubsCount;
+      } else {
+        const productsInCat = catProductCount[p.category_id] || 1;
+        productFixedMap[p.id] = catFixed / productsInCat;
+      }
     });
 
     return (id: string) => productFixedMap[id] || 0;
-  }, [products, fixedCostData]);
+  }, [products, fixedCostData, activeWsSubsCount]);
 
   const getCost = (id: string): CostData =>
     costs[id] || { unit_cost: 0, tax_percent: 0, labor_cost: 0, other_costs: 0, notes: "" };
