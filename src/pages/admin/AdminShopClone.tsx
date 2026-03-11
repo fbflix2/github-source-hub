@@ -1,0 +1,248 @@
+import { useState } from "react";
+import AdminLayout from "@/components/admin/AdminLayout";
+import { useShopCloneProducts, useShopCloneBalance, ShopCloneCategory, ShopCloneProduct } from "@/hooks/useShopClone";
+import { Loader2, Store, DollarSign, Package, RefreshCw, ExternalLink, Eye, Search } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+export default function AdminShopClone() {
+  const { data: categories, isLoading, error, refetch } = useShopCloneProducts();
+  const { data: balance, isLoading: balanceLoading } = useShopCloneBalance();
+  const [search, setSearch] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+  const filteredCategories = (categories || []).filter((cat) => {
+    if (selectedCategory && cat.id !== selectedCategory) return false;
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (
+      cat.name.toLowerCase().includes(q) ||
+      cat.accounts.some((p) => p.name.toLowerCase().includes(q))
+    );
+  });
+
+  const totalProducts = (categories || []).reduce((sum, c) => sum + c.accounts.length, 0);
+  const totalStock = (categories || []).reduce(
+    (sum, c) => sum + c.accounts.reduce((s, p) => s + p.amount, 0),
+    0
+  );
+
+  return (
+    <AdminLayout>
+      <div className="space-y-4">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-bold flex items-center gap-2">
+              <Store className="size-5 text-primary" />
+              Central AccFace
+            </h1>
+            <p className="text-sm text-muted-foreground">Catálogo do fornecedor accface.com</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isLoading}>
+              <RefreshCw className={`size-4 mr-1 ${isLoading ? "animate-spin" : ""}`} />
+              Atualizar
+            </Button>
+            <a
+              href="https://accface.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ExternalLink className="size-3" />
+              accface.com
+            </a>
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <Card>
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <DollarSign className="size-5 text-primary" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Saldo AccFace</p>
+                <p className="text-lg font-bold">
+                  {balanceLoading ? <Loader2 className="size-4 animate-spin" /> : balance || "—"}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-blue-500/10">
+                <Package className="size-5 text-blue-500" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Categorias / Produtos</p>
+                <p className="text-lg font-bold">
+                  {isLoading ? <Loader2 className="size-4 animate-spin" /> : `${categories?.length || 0} / ${totalProducts}`}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-green-500/10">
+                <Eye className="size-5 text-green-500" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Itens em Estoque Total</p>
+                <p className="text-lg font-bold">
+                  {isLoading ? <Loader2 className="size-4 animate-spin" /> : totalStock.toLocaleString("pt-BR")}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Filters */}
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar produto ou categoria..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <select
+            className="border rounded-md px-3 py-2 text-sm bg-background"
+            value={selectedCategory || ""}
+            onChange={(e) => setSelectedCategory(e.target.value || null)}
+          >
+            <option value="">Todas categorias</option>
+            {(categories || []).map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name} ({c.accounts.length})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Error */}
+        {error && (
+          <div className="bg-destructive/10 text-destructive border border-destructive/20 rounded-lg p-3 text-sm">
+            Erro ao carregar: {(error as Error).message}
+          </div>
+        )}
+
+        {/* Loading */}
+        {isLoading && (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="size-8 animate-spin text-primary" />
+          </div>
+        )}
+
+        {/* Categories & Products */}
+        {!isLoading && filteredCategories.map((cat) => (
+          <CategorySection key={cat.id} category={cat} searchQuery={search} />
+        ))}
+
+        {!isLoading && filteredCategories.length === 0 && !error && (
+          <p className="text-center text-muted-foreground py-8">Nenhum produto encontrado</p>
+        )}
+      </div>
+    </AdminLayout>
+  );
+}
+
+function CategorySection({ category, searchQuery }: { category: ShopCloneCategory; searchQuery: string }) {
+  const [expanded, setExpanded] = useState(true);
+  const q = searchQuery.toLowerCase();
+
+  const products = q
+    ? category.accounts.filter((p) => p.name.toLowerCase().includes(q))
+    : category.accounts;
+
+  if (products.length === 0 && q) return null;
+
+  return (
+    <Card>
+      <CardHeader
+        className="cursor-pointer py-3 px-4"
+        onClick={() => setExpanded(!expanded)}
+      >
+        <CardTitle className="text-sm font-semibold flex items-center justify-between">
+          <span className="flex items-center gap-2">
+            {category.image && (
+              <img src={category.image} alt="" className="size-6 rounded object-cover" />
+            )}
+            {category.name}
+            <Badge variant="secondary" className="text-xs">{products.length} produtos</Badge>
+          </span>
+          <span className="text-xs text-muted-foreground">{expanded ? "▲" : "▼"}</span>
+        </CardTitle>
+      </CardHeader>
+      {expanded && (
+        <CardContent className="px-4 pb-4 pt-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-left text-xs text-muted-foreground">
+                  <th className="pb-2 font-medium">ID</th>
+                  <th className="pb-2 font-medium">Nome</th>
+                  <th className="pb-2 font-medium">País</th>
+                  <th className="pb-2 font-medium text-right">Preço (USD)</th>
+                  <th className="pb-2 font-medium text-right">Estoque</th>
+                </tr>
+              </thead>
+              <tbody>
+                {products.map((p) => (
+                  <ProductRow key={p.id} product={p} />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      )}
+    </Card>
+  );
+}
+
+function ProductRow({ product }: { product: ShopCloneProduct }) {
+  const price = parseFloat(product.price);
+  
+  return (
+    <tr className="border-b last:border-0 hover:bg-muted/50 transition-colors">
+      <td className="py-2 font-mono text-xs text-muted-foreground">{product.id}</td>
+      <td className="py-2 max-w-xs">
+        <span className="text-xs leading-tight line-clamp-2">{product.name}</span>
+        {product.description && (
+          <span className="text-[10px] text-muted-foreground block line-clamp-1 mt-0.5">
+            {product.description}
+          </span>
+        )}
+      </td>
+      <td className="py-2">
+        {product.country ? (
+          <img
+            src={`https://flagicons.lipis.dev/flags/4x3/${product.country.toLowerCase()}.svg`}
+            alt={product.country}
+            className="size-4 rounded-sm"
+          />
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )}
+      </td>
+      <td className="py-2 text-right font-mono text-xs font-semibold">
+        ${isNaN(price) ? product.price : price.toFixed(2)}
+      </td>
+      <td className="py-2 text-right">
+        <Badge
+          variant={product.amount > 0 ? "default" : "destructive"}
+          className="text-xs"
+        >
+          {product.amount.toLocaleString("pt-BR")}
+        </Badge>
+      </td>
+    </tr>
+  );
+}
