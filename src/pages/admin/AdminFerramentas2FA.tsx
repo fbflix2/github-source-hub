@@ -236,6 +236,7 @@ function ProfileCheckerTab() {
   const [results, setResults] = useState<CheckResult[]>([]);
   const [checkingStock, setCheckingStock] = useState(false);
   const [stockResults, setStockResults] = useState<CheckResult[]>([]);
+  const [stockFilter, setStockFilter] = useState<"estoque" | "vendido" | "all">("estoque");
 
   const handleCheckUrls = async () => {
     const urls = urlsInput
@@ -274,15 +275,16 @@ function ProfileCheckerTab() {
     setCheckingStock(true);
     setStockResults([]);
     try {
+      const statusFilter = stockFilter === "estoque" ? "estoque" : stockFilter;
       const { data, error } = await supabase.functions.invoke("check-fb-profile", {
-        body: { action: "check-stock", limit: 20 },
+        body: { action: "check-stock", limit: 20, statusFilter },
       });
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(data.error);
       setStockResults(data.results || []);
       const active = (data.results || []).filter((r: CheckResult) => r.status === "active").length;
       const blocked = (data.results || []).filter((r: CheckResult) => r.status === "blocked").length;
-      toast.success(`Estoque verificado: ${active} ativos, ${blocked} bloqueados de ${data.total}`);
+      toast.success(`Verificação: ${active} ativos, ${blocked} bloqueados de ${data.total}`);
     } catch (err: any) {
       toast.error("Erro: " + (err?.message || "Falha na verificação"));
     } finally {
