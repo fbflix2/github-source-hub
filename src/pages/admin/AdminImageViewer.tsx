@@ -108,18 +108,38 @@ export default function AdminImageViewer() {
     setDragStart({ x: e.clientX - photoPosition.x, y: e.clientY - photoPosition.y });
   };
 
+  // Text overlay drag
+  const onTextMouseDown = (key: string, e: React.MouseEvent) => {
+    if (panMode) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setDraggingText(key);
+    const pos = textPositions[key as keyof typeof textPositions];
+    setTextDragStart({ x: e.clientX / zoom - pos.x, y: e.clientY / zoom - pos.y });
+  };
+
   const onGlobalMouseMove = useCallback((e: MouseEvent) => {
     if (isPanning) {
       setMainOffset({ x: e.clientX - panStart.x, y: e.clientY - panStart.y });
     }
     if (isDraggingPhoto) {
-      setPhotoPosition({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
+      setPhotoPosition({ x: e.clientX / zoom - dragStart.x, y: e.clientY / zoom - dragStart.y });
     }
-  }, [isPanning, panStart, isDraggingPhoto, dragStart]);
+    if (draggingText) {
+      setTextPositions((prev) => ({
+        ...prev,
+        [draggingText]: {
+          x: e.clientX / zoom - textDragStart.x,
+          y: e.clientY / zoom - textDragStart.y,
+        },
+      }));
+    }
+  }, [isPanning, panStart, isDraggingPhoto, dragStart, draggingText, textDragStart, zoom]);
 
   const onGlobalMouseUp = useCallback(() => {
     setIsPanning(false);
     setIsDraggingPhoto(false);
+    setDraggingText(null);
   }, []);
 
   useEffect(() => {
