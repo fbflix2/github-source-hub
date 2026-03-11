@@ -32,12 +32,6 @@ interface CostData {
   notes: string;
 }
 
-async function callProxyBR(action: string, params: Record<string, unknown> = {}) {
-  const { data, error } = await supabase.functions.invoke("proxybr-api", { body: { action, ...params } });
-  if (error) throw new Error(error.message);
-  if (data?.error && !data?.data) throw new Error(data.error);
-  return data;
-}
 
 export default function AdminCentralInvestimentos() {
   const navigate = useNavigate();
