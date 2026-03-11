@@ -111,16 +111,28 @@ export default function AdminCentralInvestimentos() {
     staleTime: 120_000,
   });
 
+  // Fetch live USD→BRL exchange rate
+  const { data: usdToBrl } = useQuery({
+    queryKey: ["usd-brl-rate"],
+    queryFn: async () => {
+      try {
+        const resp = await fetch("https://economia.awesomeapi.com.br/json/last/USD-BRL");
+        const data = await resp.json();
+        return parseFloat(data?.USDBRL?.bid) || 5.5;
+      } catch { return 5.5; }
+    },
+    staleTime: 600_000,
+    refetchOnWindowFocus: false,
+  });
+
   // Build auto-cost maps (only Webshare — ProxyBR is variable/client-paid)
   const proxyCosts = useMemo(() => {
     const map: Record<string, { cost: number; source: string }> = {};
 
-    // Webshare: products with webshare/proxy tag or in proxy category without external_id
-    if (webSharePlan) {
+    if (webSharePlan && usdToBrl) {
       const plan = webSharePlan?.plan;
       const monthlyPlanCost = plan?.monthly_price || 0;
       const totalPlanProxies = plan?.proxy_count || 1;
-      const usdToBrl = 5.5;
       const costPerProxyBRL = (monthlyPlanCost / totalPlanProxies) * usdToBrl;
 
       if (costPerProxyBRL > 0) {
@@ -136,7 +148,7 @@ export default function AdminCentralInvestimentos() {
     }
 
     return map;
-  }, [products, webSharePlan, proxyCategory]);
+  }, [products, webSharePlan, proxyCategory, usdToBrl]);
 
   // Calculate per-product fixed cost dilution by category
   const getFixedCostPerProduct = useMemo(() => {
