@@ -112,48 +112,33 @@ export default function AdminBalanco() {
       };
     });
 
-    // Build auto-cost map for proxies (ProxyBR + Webshare)
+    // Build auto-cost map for proxies (Webshare only — ProxyBR is variable/client-paid)
     const autoCostMap: Record<string, number> = {};
-    const discountMap: Record<string, number> = {};
+
+    // Fetch live USD→BRL rate
+    let usdToBrl = 5.5;
     try {
-      const parsed = JSON.parse(discountRes.data?.value || "{}");
-      Object.entries(parsed).forEach(([k, v]) => { discountMap[k] = parseFloat(String(v)) || 0; });
+      const rateResp = await fetch("https://economia.awesomeapi.com.br/json/last/USD-BRL");
+      const rateData = await rateResp.json();
+      usdToBrl = parseFloat(rateData?.USDBRL?.bid) || 5.5;
     } catch {}
 
-    // ProxyBR auto-costs
-    let apiPriceMap = new Map<string, number>();
-    try {
-      const { data: apiData } = await supabase.functions.invoke("proxybr-api", { body: { action: "get-products" } });
-      const apiProducts = apiData?.data || apiData || [];
-      if (Array.isArray(apiProducts)) {
-        apiProducts.forEach((p: any) => {
-          const variants = p.variant || p.variants || [];
-          if (Array.isArray(variants) && variants.length > 0) {
-            const avgPrice = variants.reduce((s: number, v: any) => s + (v.price || 0), 0) / variants.length;
-            const disc = discountMap[String(p.id)] || 0;
-            apiPriceMap.set(String(p.id), avgPrice * (1 - disc / 100));
-          }
-        });
-      }
-      products.forEach((p: any) => {
-        if (p.external_id && apiPriceMap.has(p.external_id.trim())) {
-          autoCostMap[p.id] = apiPriceMap.get(p.external_id.trim())!;
-        }
-      });
-    } catch (err) {
-      console.warn("Could not fetch proxy costs:", err);
-    }
-
     // Webshare auto-costs
+    let apiPriceMap = new Map<string, number>(); // keep for proxy subscription cost below (now unused)
     if (webShareRes.data) {
       const plan = webShareRes.data?.plan;
       const monthlyPrice = plan?.monthly_price || 0;
-      const totalProxies = plan?.proxy_count || 1;
-      const usdToBrl = 5.5;
-      const costPerProxy = (monthlyPrice / totalProxies) * usdToBrl;
+      // Fetch real proxy count as fallback
+      let totalPlanProxies = plan?.proxy_count || 0;
+      if (!totalPlanProxies) {
+        try {
+          const { data: proxyListData } = await supabase.functions.invoke("webshare-api", { body: { action: "get-proxy-list", mode: "direct", page: 1, page_size: 1 } });
+          totalPlanProxies = proxyListData?.count || 1;
+        } catch { totalPlanProxies = 1; }
+      }
+      const costPerProxy = (monthlyPrice / totalPlanProxies) * usdToBrl;
       if (costPerProxy > 0) {
         products.forEach((p: any) => {
-          if (autoCostMap[p.id]) return;
           const tags = p.tags || [];
           const isWebshare = tags.includes("webshare") || tags.includes("proxy") ||
             (p.category_id === proxyCategoryId && !p.external_id && (p.name.toLowerCase().includes("webshare") || p.name.toLowerCase().includes("proxy")));
