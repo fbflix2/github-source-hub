@@ -58,6 +58,6 @@ export function useShopCloneProductInfo(productId: string | null) {
   });
 }
 
-export async function buyShopCloneResource(productId: string, amount: number) {
-  return callShopClone("buy-resource", { productId, amount });
+export async function buyShopCloneResource(productId: string, amount: number, productName?: string, folderName?: string) {
+  return callShopClone("buy-resource", { productId, amount, productName, folderName });
 }
