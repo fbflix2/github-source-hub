@@ -78,6 +78,29 @@ function translateText(text: string): string {
   return translated;
 }
 
+function useTimezoneComparison() {
+  const [times, setTimes] = useState({ vietnam: "", brazil: "", isOpen: false });
+  useEffect(() => {
+    const update = () => {
+      const now = new Date();
+      const vnTime = new Intl.DateTimeFormat("pt-BR", {
+        timeZone: "Asia/Ho_Chi_Minh",
+        hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
+      }).format(now);
+      const brTime = new Intl.DateTimeFormat("pt-BR", {
+        timeZone: "America/Sao_Paulo",
+        hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
+      }).format(now);
+      const vnHour = parseInt(vnTime.split(":")[0]);
+      setTimes({ vietnam: vnTime, brazil: brTime, isOpen: vnHour >= 9 && vnHour < 20 });
+    };
+    update();
+    const id = setInterval(update, 1000);
+    return () => clearInterval(id);
+  }, []);
+  return times;
+}
+
 function useUsdToBrl() {
   const [rate, setRate] = useState(5.5);
   useEffect(() => {
