@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Upload, X, ZoomIn, ZoomOut, RotateCw, Download, UserCircle, Hand, Move } from "lucide-react";
+import { Upload, X, ZoomIn, ZoomOut, RotateCw, Download, UserCircle, Hand, MousePointer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -270,9 +270,18 @@ export default function AdminImageViewer() {
               <div className="flex items-center gap-1">
                 <Button
                   size="icon"
+                  variant={!panMode ? "default" : "ghost"}
+                  className="size-8"
+                  onClick={() => setPanMode(false)}
+                  title="Selecionar / Mover foto"
+                >
+                  <MousePointer className="size-4" />
+                </Button>
+                <Button
+                  size="icon"
                   variant={panMode ? "default" : "ghost"}
                   className="size-8"
-                  onClick={() => setPanMode((p) => !p)}
+                  onClick={() => setPanMode(true)}
                   title="Mover imagem"
                 >
                   <Hand className="size-4" />
