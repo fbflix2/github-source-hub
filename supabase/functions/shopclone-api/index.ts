@@ -8,6 +8,116 @@ const corsHeaders = {
 
 const ACCFACE_BASE = "https://accface.com/api";
 
+function extractRawAccounts(parsed: any): string[] {
+  const collected: string[] = [];
+
+  const pushValue = (value: unknown) => {
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (trimmed) collected.push(trimmed);
+      return;
+    }
+    if (value && typeof value === "object") {
+      const obj = value as Record<string, unknown>;
+      if (typeof obj.account === "string") {
+        const trimmed = obj.account.trim();
+        if (trimmed) collected.push(trimmed);
+        return;
+      }
+      collected.push(JSON.stringify(value));
+    }
+  };
+
+  if (parsed?._rawText && typeof parsed._rawText === "string") {
+    parsed._rawText.split("\n").forEach((line: string) => pushValue(line));
+  }
+
+  if (Array.isArray(parsed?.accounts)) {
+    parsed.accounts.forEach(pushValue);
+  }
+
+  if (typeof parsed?.data === "string") {
+    parsed.data.split("\n").forEach((line: string) => pushValue(line));
+  } else if (Array.isArray(parsed?.data)) {
+    parsed.data.forEach(pushValue);
+  } else if (parsed?.data && typeof parsed.data === "object") {
+    const dataObj = parsed.data as Record<string, unknown>;
+
+    if (Array.isArray(dataObj.lists)) {
+      dataObj.lists.forEach(pushValue);
+    }
+
+    for (const value of Object.values(dataObj)) {
+      if (Array.isArray(value)) value.forEach(pushValue);
+    }
+  }
+
+  if (Array.isArray(parsed)) {
+    parsed.forEach(pushValue);
+  }
+
+  if (parsed?.account) {
+    pushValue(parsed.account);
+  }
+
+  const cleaned = collected
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter((line) => {
+      const isHeaderLike = /^\d+\s+.+$/i.test(line) && !line.includes("|");
+      return !isHeaderLike;
+    });
+
+  return [...new Set(cleaned)];
+}
+
+function buildStockItems(rawAccounts: string[], productId: string, productName: string | undefined, folder: string) {
+  return rawAccounts.map((acc) => {
+    const parts = acc.split("|");
+
+    return {
+      name: productName || `AccFace #${productId}`,
+      type: "perfil",
+      status: "aguardando",
+      folder,
+      identification: parts[0] || acc.substring(0, 100),
+      data: {
+        raw: acc,
+        source: "accface",
+        productId: String(productId),
+        purchasedAt: new Date().toISOString(),
+        ...(parts.length >= 2 && { uid: parts[0], pass: parts[1] }),
+        ...(parts.length >= 3 && { token2fa: parts[2] }),
+        ...(parts.length >= 4 && { mail: parts[3] }),
+        ...(parts.length >= 5 && { mailPass: parts[4] }),
+      },
+    };
+  });
+}
+
+async function saveStockItems(adminClient: ReturnType<typeof createClient>, folder: string, stockItems: any[]) {
+  if (stockItems.length === 0) return { savedCount: 0 };
+
+  const { data: existingFolder } = await adminClient
+    .from("stock_folders")
+    .select("id")
+    .eq("name", folder)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (!existingFolder) {
+    await adminClient.from("stock_folders").insert({ name: folder });
+  }
+
+  const { error: insertError } = await adminClient.from("stock_items").insert(stockItems);
+  if (insertError) {
+    console.error("[shopclone-api] Error saving to stock:", insertError);
+    return { savedCount: 0, error: insertError.message };
+  }
+
+  return { savedCount: stockItems.length };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -49,7 +159,7 @@ Deno.serve(async (req) => {
     const userId = claimsData.claims.sub as string;
 
     // Staff-only actions
-    const staffActions = ["list-products", "get-balance", "product-info", "buy-resource"];
+    const staffActions = ["list-products", "get-balance", "product-info", "buy-resource", "import-accounts"];
     if (staffActions.includes(action)) {
       const adminClient = createClient(
         Deno.env.get("SUPABASE_URL")!,
@@ -105,122 +215,77 @@ Deno.serve(async (req) => {
       case "buy-resource": {
         const { productId, amount, productName, folderName } = params;
         if (!productId || !amount) throw new Error("productId and amount are required");
-        
+
         const url = `${ACCFACE_BASE}/BResource.php?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&id=${encodeURIComponent(String(productId))}&amount=${encodeURIComponent(String(amount))}`;
         console.log("[shopclone-api] buy-resource URL:", url.replace(password, "***"));
-        
+
         const resp = await fetch(url);
         const text = await resp.text();
         console.log("[shopclone-api] buy-resource raw response:", text.substring(0, 2000));
-        
+
         let parsed: any;
         try {
           parsed = JSON.parse(text);
         } catch {
-          // Not JSON — might be raw account data directly
-          console.log("[shopclone-api] Response is not JSON, treating as raw text");
           parsed = { _rawText: text };
         }
 
         console.log("[shopclone-api] parsed keys:", Object.keys(parsed || {}));
 
-        // If the API returned an error status
         if (parsed?.status === "error" || parsed?.error) {
           result = parsed;
           break;
         }
 
-        // Save accounts to stock_items using service role
         const adminClient = createClient(
           Deno.env.get("SUPABASE_URL")!,
           Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
         );
 
-        const folder = folderName || "AccFace Import";
-
-        // AccFace returns accounts in various formats - handle them all
-        let rawAccounts: string[] = [];
-
-        if (parsed?._rawText) {
-          // Raw text response — split by newlines
-          rawAccounts = parsed._rawText.split("\n").filter((l: string) => l.trim());
-        } else if (Array.isArray(parsed?.accounts)) {
-          rawAccounts = parsed.accounts.map((a: any) => typeof a === "string" ? a : JSON.stringify(a));
-        } else if (typeof parsed?.data === "string") {
-          rawAccounts = parsed.data.split("\n").filter((l: string) => l.trim());
-        } else if (Array.isArray(parsed?.data)) {
-          rawAccounts = parsed.data.map((a: any) => typeof a === "string" ? a : JSON.stringify(a));
-        } else if (Array.isArray(parsed)) {
-          rawAccounts = parsed.map((a: any) => typeof a === "string" ? a : JSON.stringify(a));
-        } else if (parsed?.account) {
-          // Single account response
-          rawAccounts = [typeof parsed.account === "string" ? parsed.account : JSON.stringify(parsed.account)];
-        } else {
-          // Try to find any array property that looks like accounts
-          for (const key of Object.keys(parsed || {})) {
-            const val = parsed[key];
-            if (Array.isArray(val) && val.length > 0) {
-              console.log(`[shopclone-api] Found array in key "${key}" with ${val.length} items`);
-              rawAccounts = val.map((a: any) => typeof a === "string" ? a : JSON.stringify(a));
-              break;
-            }
-          }
-        }
+        const folder = String(folderName || "AccFace Import");
+        const rawAccounts = extractRawAccounts(parsed);
 
         console.log("[shopclone-api] rawAccounts count:", rawAccounts.length);
         if (rawAccounts.length > 0) {
           console.log("[shopclone-api] first account sample:", rawAccounts[0].substring(0, 200));
         }
 
-        // Create stock_items for each account
-        const stockItems = rawAccounts.map((acc: string) => {
-          const parts = acc.split("|");
-          
-          return {
-            name: productName || `AccFace #${productId}`,
-            type: "perfil",
-            status: "aguardando",
-            folder,
-            identification: parts[0] || acc.substring(0, 100),
-            data: {
-              raw: acc,
-              source: "accface",
-              productId: String(productId),
-              purchasedAt: new Date().toISOString(),
-              ...(parts.length >= 2 && { uid: parts[0], pass: parts[1] }),
-              ...(parts.length >= 3 && { token2fa: parts[2] }),
-              ...(parts.length >= 4 && { mail: parts[3] }),
-              ...(parts.length >= 5 && { mailPass: parts[4] }),
-            },
-          };
-        });
-
-        if (stockItems.length > 0) {
-          const { data: existingFolder } = await adminClient
-            .from("stock_folders")
-            .select("id")
-            .eq("name", folder)
-            .is("deleted_at", null)
-            .maybeSingle();
-
-          if (!existingFolder) {
-            await adminClient.from("stock_folders").insert({ name: folder });
-          }
-
-          const { error: insertError } = await adminClient.from("stock_items").insert(stockItems);
-          if (insertError) {
-            console.error("[shopclone-api] Error saving to stock:", insertError);
-          } else {
-            console.log("[shopclone-api] Saved", stockItems.length, "items to stock");
-          }
-        }
+        const stockItems = buildStockItems(rawAccounts, String(productId), productName ? String(productName) : undefined, folder);
+        const saveResult = await saveStockItems(adminClient, folder, stockItems);
 
         result = {
-          status: "success",
-          saved_count: stockItems.length,
+          status: parsed?.status || "success",
+          msg: parsed?.msg,
+          trans_id: parsed?.data?.trans_id,
+          saved_count: saveResult.savedCount,
           folder,
           raw_accounts: rawAccounts,
           api_response_keys: Object.keys(parsed || {}),
+          ...(saveResult.error && { save_error: saveResult.error }),
+        };
+        break;
+      }
+
+      case "import-accounts": {
+        const { productId, productName, folderName, sourcePayload, accounts } = params;
+        if (!productId) throw new Error("productId is required");
+
+        const adminClient = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+        );
+
+        const folder = String(folderName || "AccFace Import");
+        const rawAccounts = extractRawAccounts(sourcePayload ?? { accounts });
+        const stockItems = buildStockItems(rawAccounts, String(productId), productName ? String(productName) : undefined, folder);
+        const saveResult = await saveStockItems(adminClient, folder, stockItems);
+
+        result = {
+          status: saveResult.error ? "error" : "success",
+          saved_count: saveResult.savedCount,
+          folder,
+          raw_accounts: rawAccounts,
+          ...(saveResult.error && { error: saveResult.error }),
         };
         break;
       }
