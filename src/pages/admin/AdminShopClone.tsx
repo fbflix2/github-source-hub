@@ -1,5 +1,5 @@
 import { useState } from "react";
-import AdminLayout from "@/components/admin/AdminLayout";
+import { AdminLayout } from "@/components/admin/AdminLayout";
 import { useShopCloneProducts, useShopCloneBalance, ShopCloneCategory, ShopCloneProduct } from "@/hooks/useShopClone";
 import { Loader2, Store, DollarSign, Package, RefreshCw, ExternalLink, Eye, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
