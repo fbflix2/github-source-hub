@@ -95,27 +95,74 @@ function buildStockItems(rawAccounts: string[], productId: string, productName: 
   });
 }
 
-async function saveStockItems(adminClient: ReturnType<typeof createClient>, folder: string, stockItems: any[]) {
-  if (stockItems.length === 0) return { savedCount: 0 };
+async function ensureFolderId(adminClient: ReturnType<typeof createClient>, folderName: string) {
+  const normalizedFolderName = folderName.trim() || "AccFace Import";
 
-  const { data: existingFolder } = await adminClient
+  const { data: existingFolder, error: findFolderError } = await adminClient
     .from("stock_folders")
-    .select("id")
-    .eq("name", folder)
+    .select("id, name")
+    .eq("name", normalizedFolderName)
     .is("deleted_at", null)
     .maybeSingle();
 
-  if (!existingFolder) {
-    await adminClient.from("stock_folders").insert({ name: folder });
+  if (findFolderError) {
+    throw new Error(`Erro ao buscar pasta: ${findFolderError.message}`);
   }
 
-  const { error: insertError } = await adminClient.from("stock_items").insert(stockItems);
+  if (existingFolder?.id) {
+    return { folderId: existingFolder.id, folderName: existingFolder.name };
+  }
+
+  const { data: createdFolder, error: createFolderError } = await adminClient
+    .from("stock_folders")
+    .insert({ name: normalizedFolderName })
+    .select("id, name")
+    .single();
+
+  if (createFolderError || !createdFolder?.id) {
+    throw new Error(`Erro ao criar pasta: ${createFolderError?.message || "sem retorno"}`);
+  }
+
+  return { folderId: createdFolder.id, folderName: createdFolder.name };
+}
+
+async function normalizeFolderLinks(
+  adminClient: ReturnType<typeof createClient>,
+  folderName: string,
+  folderId: string,
+) {
+  const { data, error } = await adminClient
+    .from("stock_items")
+    .update({ folder: folderId })
+    .eq("folder", folderName)
+    .is("deleted_at", null)
+    .select("id");
+
+  if (error) {
+    console.error("[shopclone-api] Error normalizing folder links:", error);
+    return 0;
+  }
+
+  return data?.length ?? 0;
+}
+
+async function saveStockItems(adminClient: ReturnType<typeof createClient>, folderName: string, stockItems: any[]) {
+  const { folderId, folderName: resolvedFolderName } = await ensureFolderId(adminClient, folderName);
+  const repairedCount = await normalizeFolderLinks(adminClient, resolvedFolderName, folderId);
+
+  if (stockItems.length === 0) {
+    return { savedCount: 0, folderId, folderName: resolvedFolderName, repairedCount };
+  }
+
+  const normalizedItems = stockItems.map((item) => ({ ...item, folder: folderId }));
+
+  const { error: insertError } = await adminClient.from("stock_items").insert(normalizedItems);
   if (insertError) {
     console.error("[shopclone-api] Error saving to stock:", insertError);
-    return { savedCount: 0, error: insertError.message };
+    return { savedCount: 0, error: insertError.message, folderId, folderName: resolvedFolderName, repairedCount };
   }
 
-  return { savedCount: stockItems.length };
+  return { savedCount: normalizedItems.length, folderId, folderName: resolvedFolderName, repairedCount };
 }
 
 Deno.serve(async (req) => {
@@ -159,7 +206,7 @@ Deno.serve(async (req) => {
     const userId = claimsData.claims.sub as string;
 
     // Staff-only actions
-    const staffActions = ["list-products", "get-balance", "product-info", "buy-resource", "import-accounts"];
+    const staffActions = ["list-products", "get-balance", "product-info", "buy-resource", "import-accounts", "repair-folder-links"];
     if (staffActions.includes(action)) {
       const adminClient = createClient(
         Deno.env.get("SUPABASE_URL")!,
@@ -258,7 +305,9 @@ Deno.serve(async (req) => {
           msg: parsed?.msg,
           trans_id: parsed?.data?.trans_id,
           saved_count: saveResult.savedCount,
-          folder,
+          repaired_count: saveResult.repairedCount,
+          folder: saveResult.folderName,
+          folder_id: saveResult.folderId,
           raw_accounts: rawAccounts,
           api_response_keys: Object.keys(parsed || {}),
           ...(saveResult.error && { save_error: saveResult.error }),
@@ -283,9 +332,30 @@ Deno.serve(async (req) => {
         result = {
           status: saveResult.error ? "error" : "success",
           saved_count: saveResult.savedCount,
-          folder,
+          repaired_count: saveResult.repairedCount,
+          folder: saveResult.folderName,
+          folder_id: saveResult.folderId,
           raw_accounts: rawAccounts,
           ...(saveResult.error && { error: saveResult.error }),
+        };
+        break;
+      }
+
+      case "repair-folder-links": {
+        const adminClient = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+        );
+
+        const folder = String(params.folderName || "AccFace Import");
+        const { folderId, folderName: resolvedFolderName } = await ensureFolderId(adminClient, folder);
+        const repairedCount = await normalizeFolderLinks(adminClient, resolvedFolderName, folderId);
+
+        result = {
+          status: "success",
+          folder: resolvedFolderName,
+          folder_id: folderId,
+          repaired_count: repairedCount,
         };
         break;
       }
