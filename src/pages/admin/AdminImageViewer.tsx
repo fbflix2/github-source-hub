@@ -270,9 +270,18 @@ export default function AdminImageViewer() {
               <div className="flex items-center gap-1">
                 <Button
                   size="icon"
+                  variant={!panMode ? "default" : "ghost"}
+                  className="size-8"
+                  onClick={() => setPanMode(false)}
+                  title="Selecionar / Mover foto"
+                >
+                  <MousePointer className="size-4" />
+                </Button>
+                <Button
+                  size="icon"
                   variant={panMode ? "default" : "ghost"}
                   className="size-8"
-                  onClick={() => setPanMode((p) => !p)}
+                  onClick={() => setPanMode(true)}
                   title="Mover imagem"
                 >
                   <Hand className="size-4" />
