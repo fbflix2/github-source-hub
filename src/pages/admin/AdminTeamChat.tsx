@@ -284,7 +284,7 @@ export default function AdminTeamChat() {
       : "Mensagem direta";
 
   return (
-    <div className="flex h-[calc(100vh-6rem)] max-w-5xl mx-auto gap-0">
+    <div className="flex h-[calc(100vh-6rem)] max-w-5xl mx-auto gap-0 overflow-hidden">
       {/* Sidebar - Members */}
       <div
         className={cn(
@@ -308,9 +308,9 @@ export default function AdminTeamChat() {
       </div>
 
       {/* Chat area */}
-      <div className={cn("flex-1 flex flex-col min-w-0 pl-4", !showSidebar ? "block" : "hidden md:block")}>
-        {/* Header */}
-        <div className="flex items-center gap-3 pb-4 border-b border-border mb-4">
+      <div className={cn("flex-1 flex flex-col min-w-0 pl-4 overflow-hidden", !showSidebar ? "block" : "hidden md:block")}>
+        {/* Header - fixed */}
+        <div className="flex items-center gap-3 pb-4 border-b border-border mb-4 flex-shrink-0">
           <button
             onClick={() => setShowSidebar(true)}
             className="md:hidden text-muted-foreground hover:text-foreground"
@@ -470,7 +470,7 @@ export default function AdminTeamChat() {
         </div>
 
         {/* Input */}
-        <div className="pt-3 border-t border-border mt-2">
+        <div className="pt-3 border-t border-border mt-2 flex-shrink-0">
           {/* Reply preview bar */}
           {replyTo && (
             <div className="flex items-center gap-2 mb-2 px-3 py-2 rounded-xl bg-primary/5 border border-primary/20">
