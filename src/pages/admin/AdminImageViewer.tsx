@@ -441,7 +441,7 @@ export default function AdminImageViewer() {
                       style={{ left: textPositions.nascimento.x, top: textPositions.nascimento.y, cursor: panMode ? "inherit" : "move" }}
                       onMouseDown={(e) => onTextMouseDown("nascimento", e)}
                     >
-                      <span className="text-[10px] font-semibold text-black/90" style={{ fontFamily: "Arial Narrow, Arial, sans-serif" }}>
+                      <span className="font-semibold text-black/90" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${fontSizes.nascimento}px` }}>
                         {new Date(formData.dataNascimento).toLocaleDateString("pt-BR")}
                       </span>
                     </div>
