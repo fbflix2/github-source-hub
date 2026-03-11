@@ -387,30 +387,42 @@ export default function AdminImageViewer() {
                     </div>
                   )}
 
-                  {/* Text overlays from form - rendered on the image */}
+                  {/* Text overlays - draggable */}
                   {formData.nomeCompleto && (
-                    <div className="absolute pointer-events-none select-none" style={{ top: "18%", left: "30%", right: "10%" }}>
-                      <span className="text-[11px] font-bold tracking-wide text-black/80 uppercase" style={{ fontFamily: "Arial Narrow, Arial, sans-serif" }}>
+                    <div
+                      className="absolute select-none whitespace-nowrap"
+                      style={{ left: textPositions.nome.x, top: textPositions.nome.y, cursor: panMode ? "inherit" : "move" }}
+                      onMouseDown={(e) => onTextMouseDown("nome", e)}
+                    >
+                      <span className="text-[11px] font-bold tracking-wide text-black/90 uppercase" style={{ fontFamily: "Arial Narrow, Arial, sans-serif" }}>
                         {formData.nomeCompleto}
                       </span>
                     </div>
                   )}
                   {formData.dataNascimento && (
-                    <div className="absolute pointer-events-none select-none" style={{ top: "25%", left: "30%", right: "40%" }}>
-                      <span className="text-[10px] font-semibold text-black/80" style={{ fontFamily: "Arial Narrow, Arial, sans-serif" }}>
+                    <div
+                      className="absolute select-none whitespace-nowrap"
+                      style={{ left: textPositions.nascimento.x, top: textPositions.nascimento.y, cursor: panMode ? "inherit" : "move" }}
+                      onMouseDown={(e) => onTextMouseDown("nascimento", e)}
+                    >
+                      <span className="text-[10px] font-semibold text-black/90" style={{ fontFamily: "Arial Narrow, Arial, sans-serif" }}>
                         {new Date(formData.dataNascimento).toLocaleDateString("pt-BR")}
                       </span>
                     </div>
                   )}
                   {(formData.nomePai || formData.nomeMae) && (
-                    <div className="absolute pointer-events-none select-none flex flex-col" style={{ top: "52%", left: "30%", right: "10%" }}>
+                    <div
+                      className="absolute select-none flex flex-col"
+                      style={{ left: textPositions.filiacao.x, top: textPositions.filiacao.y, cursor: panMode ? "inherit" : "move" }}
+                      onMouseDown={(e) => onTextMouseDown("filiacao", e)}
+                    >
                       {formData.nomePai && (
-                        <span className="text-[9px] font-semibold text-black/80 uppercase" style={{ fontFamily: "Arial Narrow, Arial, sans-serif" }}>
+                        <span className="text-[9px] font-semibold text-black/90 uppercase whitespace-nowrap" style={{ fontFamily: "Arial Narrow, Arial, sans-serif" }}>
                           {formData.nomePai}
                         </span>
                       )}
                       {formData.nomeMae && (
-                        <span className="text-[9px] font-semibold text-black/80 uppercase" style={{ fontFamily: "Arial Narrow, Arial, sans-serif" }}>
+                        <span className="text-[9px] font-semibold text-black/90 uppercase whitespace-nowrap" style={{ fontFamily: "Arial Narrow, Arial, sans-serif" }}>
                           {formData.nomeMae}
                         </span>
                       )}
