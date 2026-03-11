@@ -1,12 +1,10 @@
 import { useState } from "react";
-import { AdminLayout } from "@/components/admin/AdminLayout";
 import { useShopCloneProducts, useShopCloneBalance, ShopCloneCategory, ShopCloneProduct } from "@/hooks/useShopClone";
 import { Loader2, Store, DollarSign, Package, RefreshCw, ExternalLink, Eye, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function AdminShopClone() {
   const { data: categories, isLoading, error, refetch } = useShopCloneProducts();
@@ -31,8 +29,7 @@ export default function AdminShopClone() {
   );
 
   return (
-    <AdminLayout>
-      <div className="space-y-4">
+    <div className="space-y-4">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
