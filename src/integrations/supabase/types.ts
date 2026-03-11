@@ -1992,6 +1992,7 @@ export type Database = {
       }
       get_client_count: { Args: never; Returns: number }
       get_total_wallet_balance: { Args: never; Returns: number }
+      get_user_id_by_email: { Args: { target_email: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
