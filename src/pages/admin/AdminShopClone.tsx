@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useShopCloneProducts, useShopCloneBalance, ShopCloneCategory, ShopCloneProduct } from "@/hooks/useShopClone";
-import { Loader2, Store, DollarSign, Package, RefreshCw, ExternalLink, Eye, Search } from "lucide-react";
+import { Loader2, Store, DollarSign, Package, RefreshCw, ExternalLink, Eye, Search, Clock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -78,6 +78,29 @@ function translateText(text: string): string {
   return translated;
 }
 
+function useTimezoneComparison() {
+  const [times, setTimes] = useState({ vietnam: "", brazil: "", isOpen: false });
+  useEffect(() => {
+    const update = () => {
+      const now = new Date();
+      const vnTime = new Intl.DateTimeFormat("pt-BR", {
+        timeZone: "Asia/Ho_Chi_Minh",
+        hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
+      }).format(now);
+      const brTime = new Intl.DateTimeFormat("pt-BR", {
+        timeZone: "America/Sao_Paulo",
+        hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
+      }).format(now);
+      const vnHour = parseInt(vnTime.split(":")[0]);
+      setTimes({ vietnam: vnTime, brazil: brTime, isOpen: vnHour >= 9 && vnHour < 20 });
+    };
+    update();
+    const id = setInterval(update, 1000);
+    return () => clearInterval(id);
+  }, []);
+  return times;
+}
+
 function useUsdToBrl() {
   const [rate, setRate] = useState(5.5);
   useEffect(() => {
@@ -96,6 +119,7 @@ export default function AdminShopClone() {
   const { data: categories, isLoading, error, refetch } = useShopCloneProducts();
   const { data: balance, isLoading: balanceLoading } = useShopCloneBalance();
   const usdToBrl = useUsdToBrl();
+  const tz = useTimezoneComparison();
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
@@ -142,6 +166,29 @@ export default function AdminShopClone() {
             </a>
           </div>
         </div>
+
+        {/* Timezone */}
+        <Card className="border-dashed">
+          <CardContent className="p-3 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Clock className="size-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Fuso Horário do Fornecedor</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-4 text-sm">
+              <div className="flex items-center gap-1.5">
+                <span className="text-muted-foreground">🇻🇳 Vietnã (GMT+7):</span>
+                <span className="font-mono font-semibold">{tz.vietnam}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-muted-foreground">🇧🇷 Brasil (GMT-3):</span>
+                <span className="font-mono font-semibold">{tz.brazil}</span>
+              </div>
+              <Badge variant={tz.isOpen ? "default" : "destructive"} className="text-xs">
+                {tz.isOpen ? "🟢 Atendimento aberto (9h–20h)" : "🔴 Fora do horário (9h–20h)"}
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
