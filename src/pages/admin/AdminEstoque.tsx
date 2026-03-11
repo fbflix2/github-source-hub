@@ -196,6 +196,10 @@ export default function AdminEstoque() {
   const handleBulkDelete = async () => {
     if (selectedItems.length === 0) return;
     setBulkDeleting(true);
+    // Clear FK references first
+    await supabase.from("bm_tracking").update({ stock_item_id: null }).in("stock_item_id", selectedItems);
+    await supabase.from("replacements").update({ stock_item_id: null }).in("stock_item_id", selectedItems);
+    await supabase.from("replacements").update({ new_stock_item_id: null }).in("new_stock_item_id", selectedItems);
     const { error } = await supabase.from("stock_items").delete().in("id", selectedItems);
     setBulkDeleting(false);
     setShowDeleteConfirm(false);
