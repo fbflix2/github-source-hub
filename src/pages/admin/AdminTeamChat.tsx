@@ -59,6 +59,8 @@ export default function AdminTeamChat() {
   const [userProfiles, setUserProfiles] = useState<Record<string, UserInfo>>({});
   const [selectedChat, setSelectedChat] = useState<SelectedChat>({ type: "group" });
   const [showSidebar, setShowSidebar] = useState(true);
+  const [replyTo, setReplyTo] = useState<TeamMessage | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const profilesRef = useRef<Record<string, UserInfo>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
