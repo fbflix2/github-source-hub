@@ -161,7 +161,7 @@ export default function AdminCentralInvestimentos() {
     }
 
     return map;
-  }, [products, webSharePlan, proxyCategory, usdToBrl]);
+  }, [products, webSharePlan, proxyCategory, usdToBrl, webshareProxyCount]);
 
   // Calculate per-product fixed cost dilution by category
   const getFixedCostPerProduct = useMemo(() => {
