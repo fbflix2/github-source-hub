@@ -910,11 +910,43 @@ export default function AdminProducts() {
         {/* Sales Overview Tab */}
         <TabsContent value="vendas">
           <div className="glass-panel rounded-xl p-4 space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-3">
               <h3 className="font-medium text-white">Visão Geral de Vendas</h3>
-              <div className="flex items-center gap-4 text-sm">
-                <span className="text-zinc-400">Total de produtos: <span className="text-white font-medium">{products.length}</span></span>
-                <span className="text-zinc-400">Total vendidos: <span className="text-green-400 font-medium">{Object.values(salesByProduct).reduce((a, b) => a + b, 0)}</span></span>
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                  <Input placeholder="Buscar..." value={searchTerm} onChange={e => { setSearchTerm(e.target.value); setCurrentPage(1); }} className="bg-zinc-900/50 border-zinc-700 text-white placeholder:text-zinc-500 pl-8 w-[180px] text-sm" />
+                </div>
+                <Select value={filterCategory} onValueChange={v => { setFilterCategory(v); setCurrentPage(1); }}>
+                  <SelectTrigger className="bg-zinc-900/50 border-zinc-700 text-white w-[160px] text-sm"><SelectValue placeholder="Todas Categorias" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas Categorias</SelectItem>
+                    {categories.map(cat => <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Select value={filterType} onValueChange={v => { setFilterType(v); setCurrentPage(1); }}>
+                  <SelectTrigger className="bg-zinc-900/50 border-zinc-700 text-white w-[140px] text-sm"><SelectValue placeholder="Todos Tipos" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos Tipos</SelectItem>
+                    <SelectItem value="perfil">Perfil</SelectItem>
+                    <SelectItem value="bm">BM</SelectItem>
+                    <SelectItem value="proxy">Proxy</SelectItem>
+                    <SelectItem value="page">Página</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={filterStatus} onValueChange={v => { setFilterStatus(v); setCurrentPage(1); }}>
+                  <SelectTrigger className="bg-zinc-900/50 border-zinc-700 text-white w-[150px] text-sm"><SelectValue placeholder="Todos Status" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos Status</SelectItem>
+                    <SelectItem value="active">Ativo</SelectItem>
+                    <SelectItem value="estoque_interno">Estoque Interno</SelectItem>
+                    <SelectItem value="inactive">Inativo</SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="flex items-center gap-4 text-sm ml-2">
+                  <span className="text-zinc-400">Total: <span className="text-white font-medium">{filtered.length}</span></span>
+                  <span className="text-zinc-400">Vendidos: <span className="text-green-400 font-medium">{filtered.reduce((sum, p) => sum + (salesByProduct[p.id] || 0), 0)}</span></span>
+                </div>
               </div>
             </div>
 
@@ -932,13 +964,13 @@ export default function AdminProducts() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {products.length === 0 ? (
+                  {filtered.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={7} className="text-center text-zinc-500 py-12">
-                        Nenhum produto cadastrado ainda.
+                        Nenhum produto encontrado.
                       </TableCell>
                     </TableRow>
-                  ) : [...products].sort((a, b) => (salesByProduct[b.id] || 0) - (salesByProduct[a.id] || 0)).map(product => {
+                  ) : [...filtered].sort((a, b) => (salesByProduct[b.id] || 0) - (salesByProduct[a.id] || 0)).map(product => {
                     const iconKey = (product.icon_type as ProductIcon) || "perfil";
                     const sold = salesByProduct[product.id] || 0;
                     return (
