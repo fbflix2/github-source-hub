@@ -47,9 +47,15 @@ export default function AdminReposicoes() {
 
   const fetchReplacements = async () => {
     setLoading(true);
+    const [year, month] = selectedMonth.split("-").map(Number);
+    const monthStart = new Date(year, month - 1, 1).toISOString();
+    const monthEnd = new Date(year, month, 0, 23, 59, 59, 999).toISOString();
+
     const { data, error } = await supabase
       .from("replacements")
       .select("*")
+      .gte("created_at", monthStart)
+      .lte("created_at", monthEnd)
       .order("created_at", { ascending: false });
 
     if (error) {
