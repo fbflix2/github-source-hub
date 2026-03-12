@@ -143,9 +143,14 @@ export default function SalesBalanceTab() {
   // Proxy sales rows (from subscriptions)
   const proxySales = useMemo(() => {
     if (!subsWithPrices?.length) return [];
-    const since = new Date(getSince());
+    const sinceDate = new Date(getSince());
+    const untilStr = getUntil();
+    const untilDate = untilStr ? new Date(untilStr) : null;
     return subsWithPrices
-      .filter(s => new Date(s.created_at) >= since)
+      .filter(s => {
+        const d = new Date(s.created_at);
+        return d >= sinceDate && (!untilDate || d <= untilDate);
+      })
       .map(s => ({
         category: "Proxy",
         product: s.name || "Proxy",
@@ -153,7 +158,7 @@ export default function SalesBalanceTab() {
         revenue: s.price * s.proxyCount,
         date: new Date(s.created_at).toLocaleDateString("pt-BR"),
       }));
-  }, [subsWithPrices, dateFilter]);
+  }, [subsWithPrices, dateFilter, customRange]);
 
   const allSales = useMemo(() => [...sales, ...proxySales], [sales, proxySales]);
 
