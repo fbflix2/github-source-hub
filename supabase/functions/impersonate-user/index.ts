@@ -83,7 +83,10 @@ Deno.serve(async (req) => {
     }
 
     // Build the verification URL with the token hash
-    const redirectUrl = `${supabaseUrl}/auth/v1/verify?token=${linkData.properties.hashed_token}&type=magiclink&redirect_to=${encodeURIComponent(supabaseUrl.replace('.supabase.co', '.lovableproject.com') + '/')}`;
+    // Use the published app URL so the impersonated session lives on a different origin
+    // This prevents the admin session (on preview/admin domain) from being overwritten
+    const publishedUrl = Deno.env.get("PUBLIC_SITE_URL") || "https://fbflix1.lovable.app";
+    const redirectUrl = `${supabaseUrl}/auth/v1/verify?token=${linkData.properties.hashed_token}&type=magiclink&redirect_to=${encodeURIComponent(publishedUrl + '/')}`;
 
     return new Response(
       JSON.stringify({ url: redirectUrl }),
