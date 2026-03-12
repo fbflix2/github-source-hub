@@ -204,9 +204,26 @@ export default function Dashboard() {
         return cat && p.category_id === cat.id;
       });
 
-  const allProducts = showProxiesInAll
+  // Priority order for "Todos": Perfis → BM → Proxy → rest
+  const getCategoryPriority = (product: Product) => {
+    const cat = categories.find((c) => c.id === product.category_id);
+    const slug = cat?.slug?.toLowerCase() || "";
+    const name = cat?.name?.toLowerCase() || "";
+    if (slug === "perfis" || name === "perfis") return 0;
+    if (slug === "bm" || name === "bm") return 1;
+    if (slug === "proxy" || name === "proxy") return 2;
+    return 3;
+  };
+
+  const allProducts = (showProxiesInAll
     ? [...filteredProducts, ...proxyAsProducts]
-    : filteredProducts;
+    : filteredProducts
+  ).sort((a, b) => {
+    if (activeFilter === "Todos") {
+      return getCategoryPriority(a) - getCategoryPriority(b);
+    }
+    return 0;
+  });
 
   const getQuantity = (id: string) => quantities[id] || 1;
 
