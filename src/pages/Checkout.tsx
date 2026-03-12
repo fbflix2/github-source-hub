@@ -628,8 +628,8 @@ export default function Checkout() {
           return;
         }
 
-        // Check if this is a WEBSHARE proxy purchase
-        const isWebshareProduct = product?.tags?.includes('webshare');
+        // Detect proxy provider: Webshare = icon_type proxy + no external_id; ProxyBR = icon_type proxy + external_id
+        const isWebshareProduct = product?.icon_type === 'proxy' && !product?.external_id;
         if (isWebshareProduct) {
           updateData.status = "processing";
           await supabase.from("orders").update(updateData).eq("id", orderId);
