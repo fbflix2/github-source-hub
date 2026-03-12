@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { 
   Search, Plus, Upload, User, Briefcase, Globe, Server, Tag, Save, X,
   Filter, ChevronLeft, ChevronRight, Edit, Trash2, Image as ImageIcon, Loader2, ImagePlus,
-  BarChart3, Download, BellRing, Clock, CheckSquare, Square, CheckCheck, Store
+  BarChart3, Download, BellRing, Clock, CheckSquare, Square, CheckCheck, Store, Sparkles
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
@@ -87,6 +87,8 @@ export default function AdminProducts() {
   const [formBadgeColor, setFormBadgeColor] = useState("");
   const [productImages, setProductImages] = useState<{ id: string; name: string; url: string }[]>([]);
   const [showImagePicker, setShowImagePicker] = useState(false);
+  const [aiImagePrompt, setAiImagePrompt] = useState("");
+  const [generatingImage, setGeneratingImage] = useState(false);
 
   // Table state
   const [searchTerm, setSearchTerm] = useState("");
@@ -233,8 +235,33 @@ export default function AdminProducts() {
     setFormName(""); setFormPrice(""); setFormStock(""); setFormDescription("");
     setFormCategory(""); setFormIcon("perfil"); setFormTags([]); setFormStatus("estoque_interno");
     setFormImageUrl(""); setFormBadgeText(""); setFormBadgeIcon(""); setFormBadgeColor("");
+    setAiImagePrompt("");
     setEditingProduct(null);
   };
+
+  const handleGenerateImage = async () => {
+    if (!aiImagePrompt.trim() || generatingImage) return;
+    setGeneratingImage(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-product-image", {
+        body: { prompt: aiImagePrompt.trim() },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (data?.image_url) {
+        setFormImageUrl(data.image_url);
+        toast.success("Imagem gerada com sucesso!");
+      } else {
+        throw new Error("Nenhuma imagem foi gerada");
+      }
+    } catch (err: any) {
+      console.error("Generate image error:", err);
+      toast.error(err?.message || "Erro ao gerar imagem");
+    } finally {
+      setGeneratingImage(false);
+    }
+  };
+
 
   const openEditForm = (product: Product) => {
     setEditingProduct(product);
@@ -605,7 +632,7 @@ export default function AdminProducts() {
             </div>
 
             {/* Image selector */}
-            <div className="space-y-2">
+            <div className="space-y-3">
               <label className="text-sm text-zinc-400">Foto do Produto</label>
               {formImageUrl ? (
                 <div className="flex items-center gap-3">
@@ -618,10 +645,44 @@ export default function AdminProducts() {
                   </div>
                 </div>
               ) : (
-                <Button type="button" variant="outline" className="border-zinc-700 text-zinc-400 hover:bg-zinc-700 gap-2 w-full justify-center" onClick={() => setShowImagePicker(true)}>
-                  <ImagePlus className="h-4 w-4" /> Selecionar imagem
-                </Button>
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" className="border-zinc-700 text-zinc-400 hover:bg-zinc-700 gap-2 flex-1 justify-center" onClick={() => setShowImagePicker(true)}>
+                    <ImagePlus className="h-4 w-4" /> Selecionar imagem
+                  </Button>
+                </div>
               )}
+
+              {/* AI Image Generator */}
+              <div className="border border-zinc-700/50 rounded-lg p-3 space-y-2 bg-gradient-to-b from-purple-500/5 to-transparent">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-3.5 w-3.5 text-purple-400" />
+                  <span className="text-[11px] font-medium text-purple-300">Gerar imagem com IA</span>
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    value={aiImagePrompt}
+                    onChange={e => setAiImagePrompt(e.target.value)}
+                    placeholder={`Ex: ${formName || "Proxy residencial premium"}`}
+                    className="bg-zinc-900/50 border-zinc-700 text-white placeholder:text-zinc-500 h-9 text-sm flex-1"
+                    onKeyDown={e => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleGenerateImage();
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={generatingImage || !aiImagePrompt.trim()}
+                    onClick={handleGenerateImage}
+                    className="bg-purple-600 hover:bg-purple-500 text-white h-9 px-4 gap-1.5 shrink-0"
+                  >
+                    {generatingImage ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                    Gerar
+                  </Button>
+                </div>
+              </div>
             </div>
 
             {/* Image picker modal */}
