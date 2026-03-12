@@ -94,7 +94,7 @@ export function ProxyProductCard({ product, proxyImage, quantity, onQuantityChan
         </div>
 
         {/* Product name - full single line */}
-        <h3 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors leading-tight">
+        <h3 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors leading-tight whitespace-nowrap overflow-hidden text-ellipsis">
           {displayName}
         </h3>
 
