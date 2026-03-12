@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { X, Send, Loader2, Paperclip, XCircle, MessageSquareText, ChevronDown } from "lucide-react";
+import { X, Send, Loader2, Paperclip, XCircle, MessageSquareText, ChevronDown, ExternalLink } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { validateSupportFile } from "@/lib/file-validation";
@@ -83,6 +84,7 @@ function QuickTemplateSelector({ clientName, onSelect }: { clientName: string; o
 }
 
 export default function AdminTicketModal({ ticket, profileName, mode, onClose, onStatusChange, onOpenSupport }: Props) {
+  const navigate = useNavigate();
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [reply, setReply] = useState("");
@@ -238,6 +240,21 @@ export default function AdminTicketModal({ ticket, profileName, mode, onClose, o
             </p>
           </div>
           <div className="flex items-center gap-2">
+            {(() => {
+              const orderMatch = ticket.title.match(/ORD-[A-Z0-9]+/i);
+              if (orderMatch) {
+                return (
+                  <button
+                    onClick={() => { onClose(); navigate(`/admin/pedidos?search=${orderMatch[0]}`); }}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold border bg-white/5 text-white/60 border-white/10 hover:bg-white/10 hover:text-white transition-colors flex items-center gap-1.5"
+                  >
+                    <ExternalLink className="size-3.5" />
+                    Acessar Pedido
+                  </button>
+                );
+              }
+              return null;
+            })()}
             {ticket.status !== "closed" && (
               <button
                 onClick={async () => {
