@@ -664,11 +664,10 @@ export default function Checkout() {
           return;
         }
 
-        // Check if this is a ProxyBR proxy purchase - handle entirely server-side
-        // Detect by icon_type (reliable) OR sessionStorage (user variant choice)
-        const isProxyProduct = product?.icon_type === 'proxy';
+        // Check if this is a ProxyBR proxy purchase (has external_id)
+        const isProxyBRProduct = product?.icon_type === 'proxy' && !!product?.external_id;
         const proxyData = getProxyPurchaseData();
-        if (isProxyProduct || proxyData?.product_variant_id) {
+        if (isProxyBRProduct || proxyData?.product_variant_id) {
           // Build proxy params: prefer sessionStorage variant, fallback to product external_id
           let variantId = proxyData?.product_variant_id;
           let proxyQuantity = proxyData?.quantity || quantity || 1;

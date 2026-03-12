@@ -150,9 +150,7 @@ export default function AdminCentralInvestimentos() {
 
       if (costPerProxyBRL > 0) {
         products.forEach(p => {
-          const tags = p.tags || [];
-          const isWebshare = tags.includes("webshare") || tags.includes("proxy") ||
-            (p.category_id === proxyCategory && !p.external_id && (p.name.toLowerCase().includes("webshare") || p.name.toLowerCase().includes("proxy")));
+          const isWebshare = p.icon_type === 'proxy' && !p.external_id;
           if (isWebshare) {
             map[p.id] = { cost: costPerProxyBRL, source: "Webshare" };
           }
