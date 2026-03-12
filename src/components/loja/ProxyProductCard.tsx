@@ -69,11 +69,23 @@ export function ProxyProductCard({ product, proxyImage, quantity, onQuantityChan
               <span className="material-symbols-outlined text-[20px] text-muted-foreground">dns</span>
             )}
           </div>
-          <div className="flex-1 flex items-center justify-center">
+          <div className="flex-1 flex items-center justify-center gap-1.5 flex-wrap">
             <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border bg-primary/10 text-primary border-primary/20">
               <span className="material-symbols-outlined text-[11px]">bolt</span>
               {typeLabel}
             </span>
+            {localData?.badge_text && (
+              <span
+                className={`text-[10px] font-bold px-2 py-0.5 rounded-full border inline-flex items-center gap-1 ${
+                  localData.badge_color || "bg-muted text-foreground border-border"
+                }`}
+              >
+                {localData.badge_icon && (
+                  <span className="material-symbols-outlined text-[11px]">{localData.badge_icon}</span>
+                )}
+                {localData.badge_text}
+              </span>
+            )}
           </div>
           <div className="text-right shrink-0 whitespace-nowrap">
             <p className="text-xl font-bold text-foreground">{formattedPrice}</p>
