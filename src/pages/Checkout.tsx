@@ -828,11 +828,11 @@ export default function Checkout() {
         const { error: updateError } = await supabase.from("orders").update(updateData).eq("id", orderId);
         if (updateError) throw updateError;
 
-        // Pass proxy_data to create-pix-payment so server persists delivery_data
+        // Pass proxy_data to create-pix-payment so server persists delivery_data (ProxyBR only)
         const proxyDataForPix = getProxyPurchaseData();
-        const isProxyPix = product?.icon_type === 'proxy';
+        const isProxyBRPix = product?.icon_type === 'proxy' && !!product?.external_id;
         const pixBody: any = { amount: total, order_id: orderId };
-        if (proxyDataForPix?.product_variant_id || isProxyPix) {
+        if (proxyDataForPix?.product_variant_id || isProxyBRPix) {
           let pixVariantId = proxyDataForPix?.product_variant_id;
           // Fallback: fetch variant from ProxyBR products API
           if (!pixVariantId && product?.external_id) {
