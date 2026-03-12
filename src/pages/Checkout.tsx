@@ -646,7 +646,7 @@ export default function Checkout() {
 
           if (wsError || wsResult?.error) {
             console.error("Webshare purchase error:", wsError || wsResult?.error);
-            toast.error(wsResult?.error || "Erro ao ativar proxy Webshare. Contate o suporte.");
+            toast.error(wsResult?.error || "Erro ao ativar proxy. Contate o suporte.");
             navigate("/orders");
             return;
           }
