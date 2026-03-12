@@ -43,10 +43,16 @@ export default function SalesBalanceTab() {
   const [categories, setCategories] = useState<{ id: string; name: string; slug: string }[]>([]);
   const { totalRevenue: proxyRevenue, count: proxyCount, subsWithPrices } = useProxyRevenue();
 
-  const getSince = () => {
+  const getSince = (): string => {
+    if (dateFilter === "custom" && customRange.from) {
+      const d = new Date(customRange.from);
+      d.setHours(0, 0, 0, 0);
+      return d.toISOString();
+    }
     const now = new Date();
     switch (dateFilter) {
       case "hoje": now.setHours(0, 0, 0, 0); break;
+      case "ontem": now.setDate(now.getDate() - 1); now.setHours(0, 0, 0, 0); break;
       case "7dias": now.setDate(now.getDate() - 7); break;
       case "30dias": now.setDate(now.getDate() - 30); break;
       case "ano": now.setMonth(0, 1); now.setHours(0, 0, 0, 0); break;
@@ -54,7 +60,21 @@ export default function SalesBalanceTab() {
     return now.toISOString();
   };
 
-  useEffect(() => { fetchSales(); }, [dateFilter]);
+  const getUntil = (): string | null => {
+    if (dateFilter === "ontem") {
+      const d = new Date();
+      d.setHours(0, 0, 0, 0);
+      return d.toISOString();
+    }
+    if (dateFilter === "custom" && customRange.to) {
+      const d = new Date(customRange.to);
+      d.setHours(23, 59, 59, 999);
+      return d.toISOString();
+    }
+    return null;
+  };
+
+  useEffect(() => { fetchSales(); }, [dateFilter, customRange]);
 
   const fetchSales = async () => {
     setLoading(true);
