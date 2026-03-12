@@ -401,7 +401,8 @@ export default function AdminProducts() {
     const matchesSearch = !searchTerm || p.name.toLowerCase().includes(searchTerm.toLowerCase()) || p.tags?.some(t => t.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesCategory = filterCategory === "all" || p.category_id === filterCategory;
     const matchesStatus = filterStatus === "all" || p.status === filterStatus;
-    return matchesSearch && matchesCategory && matchesStatus;
+    const matchesType = filterType === "all" || p.icon_type === filterType;
+    return matchesSearch && matchesCategory && matchesStatus && matchesType;
   });
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
