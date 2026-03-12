@@ -38,6 +38,10 @@ export default function AdminReposicoes() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterReason, setFilterReason] = useState("all");
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  });
 
   const [orderCodes, setOrderCodes] = useState<Record<string, string>>({});
 
