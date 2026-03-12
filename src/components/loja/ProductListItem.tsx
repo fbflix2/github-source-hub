@@ -95,7 +95,7 @@ export function ProductListItem({ product, quantity, onQuantityChange, onReadMor
         <div className="flex items-start gap-3 justify-between">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="text-sm font-bold text-foreground truncate">{product.name}</h3>
+              <h3 className="text-sm font-bold text-foreground line-clamp-2 leading-tight">{product.name}</h3>
               {product.badge_text && (
                 <span
                   className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 shrink-0 ${
