@@ -534,8 +534,9 @@ export default function Dashboard() {
                           )}
                         </div>
                         <div className="flex flex-col gap-1 min-w-0">
-                          <h3 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-tight">
+                          <h3 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors leading-tight whitespace-nowrap overflow-hidden text-ellipsis">
                             {product.name}
+                          </h3>
                           </h3>
                           {product.badge_text && (
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 shrink-0 ${product.badge_color || "bg-muted text-foreground border-border"}`}>
