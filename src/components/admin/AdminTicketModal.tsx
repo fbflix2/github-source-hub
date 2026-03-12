@@ -245,7 +245,27 @@ export default function AdminTicketModal({ ticket, profileName, mode, onClose, o
               if (orderMatch) {
                 return (
                   <button
-                    onClick={() => { onClose(); navigate(`/admin/pedidos?search=${orderMatch[0]}`); }}
+                    onClick={async () => {
+                      const { data: order } = await supabase
+                        .from("orders")
+                        .select("id")
+                        .eq("code", orderMatch[0])
+                        .single();
+                      if (order) {
+                        const { data: items } = await supabase
+                          .from("order_items")
+                          .select("id")
+                          .eq("order_id", order.id)
+                          .limit(1);
+                        const firstItemId = items?.[0]?.id;
+                        if (firstItemId) {
+                          onClose();
+                          navigate(`/item-details/${order.id}/${firstItemId}`);
+                          return;
+                        }
+                      }
+                      toast.error("Pedido não encontrado");
+                    }}
                     className="px-3 py-1.5 rounded-lg text-xs font-semibold border bg-white/5 text-white/60 border-white/10 hover:bg-white/10 hover:text-white transition-colors flex items-center gap-1.5"
                   >
                     <ExternalLink className="size-3.5" />
