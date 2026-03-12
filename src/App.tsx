@@ -140,39 +140,45 @@ const App = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // IMPORTANT: Do NOT use async/await inside onAuthStateChange to avoid deadlocks
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
 
-        // On sign-in (including OAuth), check if user is admin/moderator and redirect
+        // On sign-in, check staff redirect in a separate non-blocking call
         if (event === 'SIGNED_IN' && session?.user) {
-          // Prevent redirect loop: only redirect once per session
-          const redirectKey = `staff_redirect_${session.user.id}`;
+          const userId = session.user.id;
+          const redirectKey = `staff_redirect_${userId}`;
           if (sessionStorage.getItem(redirectKey)) return;
 
-          // Don't redirect if user is already on admin or explicitly visiting client pages
           const currentPath = window.location.pathname;
           if (currentPath.startsWith('/admin') || currentPath === '/loja' || currentPath === '/profile' || currentPath === '/wallet' || currentPath.startsWith('/subscriptions') || currentPath.startsWith('/orders') || currentPath.startsWith('/item-details')) return;
 
-          const userId = session.user.id;
-          const { data: isAdmin } = await supabase.rpc('has_role', {
-            _user_id: userId,
-            _role: 'admin' as const,
-          });
-          let isStaff = !!isAdmin;
-          if (!isStaff) {
-            const { data: isMod } = await supabase.rpc('has_role', {
-              _user_id: userId,
-              _role: 'moderator' as const,
-            });
-            isStaff = !!isMod;
-          }
-          if (isStaff) {
-            sessionStorage.setItem(redirectKey, 'true');
-            window.location.href = '/admin';
-          }
+          // Use setTimeout to avoid blocking auth state processing
+          setTimeout(async () => {
+            try {
+              const { data: isAdmin } = await supabase.rpc('has_role', {
+                _user_id: userId,
+                _role: 'admin' as const,
+              });
+              let isStaff = !!isAdmin;
+              if (!isStaff) {
+                const { data: isMod } = await supabase.rpc('has_role', {
+                  _user_id: userId,
+                  _role: 'moderator' as const,
+                });
+                isStaff = !!isMod;
+              }
+              if (isStaff) {
+                sessionStorage.setItem(redirectKey, 'true');
+                window.location.href = '/admin';
+              }
+            } catch (err) {
+              console.warn('[auth] Staff redirect check failed:', err);
+            }
+          }, 0);
         }
       }
     );
