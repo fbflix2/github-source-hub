@@ -206,9 +206,20 @@ export default function AdminReposicoes() {
           </h1>
           <p className="text-sm text-zinc-400 mt-1">Rastreie todas as reposições de itens para clientes</p>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchReplacements} className="border-zinc-700 gap-2">
-          <RefreshCw className="h-4 w-4" /> Atualizar
-        </Button>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 rounded-lg bg-zinc-900 border border-zinc-800 px-3 py-1.5">
+            <Calendar className="h-4 w-4 text-yellow-400" />
+            <input
+              type="month"
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="bg-transparent text-sm text-zinc-200 outline-none [&::-webkit-calendar-picker-indicator]:invert"
+            />
+          </div>
+          <Button variant="outline" size="sm" onClick={fetchReplacements} className="border-zinc-700 gap-2">
+            <RefreshCw className="h-4 w-4" /> Atualizar
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
