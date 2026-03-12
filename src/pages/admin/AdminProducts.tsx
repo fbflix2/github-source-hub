@@ -239,7 +239,30 @@ export default function AdminProducts() {
     setEditingProduct(null);
   };
 
-  const openEditForm = (product: Product) => {
+  const handleGenerateImage = async () => {
+    if (!aiImagePrompt.trim() || generatingImage) return;
+    setGeneratingImage(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-product-image", {
+        body: { prompt: aiImagePrompt.trim() },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (data?.image_url) {
+        setFormImageUrl(data.image_url);
+        toast.success("Imagem gerada com sucesso!");
+      } else {
+        throw new Error("Nenhuma imagem foi gerada");
+      }
+    } catch (err: any) {
+      console.error("Generate image error:", err);
+      toast.error(err?.message || "Erro ao gerar imagem");
+    } finally {
+      setGeneratingImage(false);
+    }
+  };
+
+
     setEditingProduct(product);
     setFormName(product.name);
     setFormPrice(product.price.toString());
