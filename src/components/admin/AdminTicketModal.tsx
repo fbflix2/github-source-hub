@@ -84,6 +84,7 @@ function QuickTemplateSelector({ clientName, onSelect }: { clientName: string; o
 }
 
 export default function AdminTicketModal({ ticket, profileName, mode, onClose, onStatusChange, onOpenSupport }: Props) {
+  const navigate = useNavigate();
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
   const [reply, setReply] = useState("");
