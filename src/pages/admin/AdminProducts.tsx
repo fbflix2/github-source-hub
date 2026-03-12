@@ -519,24 +519,82 @@ export default function AdminProducts() {
             </div>
 
             {/* Badge / Etiqueta */}
-            <div className="space-y-2">
+            <div className="space-y-3">
               <label className="text-sm text-zinc-400">Etiqueta (Badge)</label>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="space-y-1">
-                  <span className="text-[11px] text-zinc-500">Texto</span>
-                  <Input value={formBadgeText} onChange={e => setFormBadgeText(e.target.value)} placeholder="Ex: SOCKS5" className="bg-zinc-900/50 border-zinc-700 text-white placeholder:text-zinc-500 h-9 text-sm" />
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[11px] text-zinc-500">Ícone (Material)</span>
-                  <Input value={formBadgeIcon} onChange={e => setFormBadgeIcon(e.target.value)} placeholder="Ex: bolt" className="bg-zinc-900/50 border-zinc-700 text-white placeholder:text-zinc-500 h-9 text-sm" />
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[11px] text-zinc-500">Cor CSS</span>
-                  <Input value={formBadgeColor} onChange={e => setFormBadgeColor(e.target.value)} placeholder="Ex: bg-red-500/20 text-red-400 border-red-500/30" className="bg-zinc-900/50 border-zinc-700 text-white placeholder:text-zinc-500 h-9 text-sm" />
+              
+              {/* Texto */}
+              <div className="space-y-1">
+                <span className="text-[11px] text-zinc-500">Texto</span>
+                <Input value={formBadgeText} onChange={e => setFormBadgeText(e.target.value)} placeholder="Ex: SOCKS5, TURBO, Premium" className="bg-zinc-900/50 border-zinc-700 text-white placeholder:text-zinc-500 h-9 text-sm" />
+              </div>
+
+              {/* Cor - Seletor visual */}
+              <div className="space-y-1.5">
+                <span className="text-[11px] text-zinc-500">Cor</span>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { label: "Vermelho", value: "bg-red-500/20 text-red-400 border-red-500/30" },
+                    { label: "Verde", value: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" },
+                    { label: "Azul", value: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
+                    { label: "Roxo", value: "bg-purple-500/20 text-purple-400 border-purple-500/30" },
+                    { label: "Amarelo", value: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
+                    { label: "Laranja", value: "bg-orange-500/20 text-orange-400 border-orange-500/30" },
+                    { label: "Rosa", value: "bg-pink-500/20 text-pink-400 border-pink-500/30" },
+                    { label: "Ciano", value: "bg-cyan-500/20 text-cyan-400 border-cyan-500/30" },
+                    { label: "Cinza", value: "bg-zinc-500/20 text-zinc-400 border-zinc-500/30" },
+                  ].map((color) => (
+                    <button
+                      key={color.label}
+                      type="button"
+                      onClick={() => setFormBadgeColor(color.value)}
+                      className={`text-[10px] font-bold px-2.5 py-1 rounded-full border flex items-center gap-1 transition-all ${color.value} ${formBadgeColor === color.value ? "ring-2 ring-white/50 scale-105" : "opacity-70 hover:opacity-100"}`}
+                    >
+                      {color.label}
+                    </button>
+                  ))}
                 </div>
               </div>
+
+              {/* Ícone - Seletor visual */}
+              <div className="space-y-1.5">
+                <span className="text-[11px] text-zinc-500">Ícone</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { name: "bolt", label: "Raio" },
+                    { name: "star", label: "Estrela" },
+                    { name: "verified", label: "Verificado" },
+                    { name: "diamond", label: "Diamante" },
+                    { name: "shield", label: "Escudo" },
+                    { name: "rocket_launch", label: "Foguete" },
+                    { name: "speed", label: "Velocidade" },
+                    { name: "lock", label: "Cadeado" },
+                    { name: "public", label: "Global" },
+                    { name: "dns", label: "DNS" },
+                    { name: "vpn_key", label: "VPN" },
+                    { name: "wifi", label: "WiFi" },
+                    { name: "trending_up", label: "Subindo" },
+                    { name: "local_fire_department", label: "Fogo" },
+                    { name: "workspace_premium", label: "Premium" },
+                    { name: "new_releases", label: "Novo" },
+                    { name: "thumb_up", label: "Joinha" },
+                    { name: "visibility", label: "Olho" },
+                  ].map((icon) => (
+                    <button
+                      key={icon.name}
+                      type="button"
+                      onClick={() => setFormBadgeIcon(formBadgeIcon === icon.name ? "" : icon.name)}
+                      title={icon.label}
+                      className={`w-8 h-8 rounded-lg border flex items-center justify-center transition-all ${formBadgeIcon === icon.name ? "bg-primary/20 border-primary/50 text-primary ring-1 ring-primary/30" : "bg-zinc-900/50 border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500"}`}
+                    >
+                      <span className="material-symbols-outlined text-[16px]">{icon.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Preview */}
               {formBadgeText && (
-                <div className="flex items-center gap-2 mt-1.5">
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-zinc-900/50 border border-zinc-700/50">
                   <span className="text-[11px] text-zinc-500">Preview:</span>
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${formBadgeColor || "bg-muted text-foreground border-border"}`}>
                     {formBadgeIcon && <span className="material-symbols-outlined text-[11px]">{formBadgeIcon}</span>}
