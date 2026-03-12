@@ -94,6 +94,7 @@ export default function AdminProducts() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
+  const [filterType, setFilterType] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
@@ -400,7 +401,8 @@ export default function AdminProducts() {
     const matchesSearch = !searchTerm || p.name.toLowerCase().includes(searchTerm.toLowerCase()) || p.tags?.some(t => t.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesCategory = filterCategory === "all" || p.category_id === filterCategory;
     const matchesStatus = filterStatus === "all" || p.status === filterStatus;
-    return matchesSearch && matchesCategory && matchesStatus;
+    const matchesType = filterType === "all" || p.icon_type === filterType;
+    return matchesSearch && matchesCategory && matchesStatus && matchesType;
   });
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
@@ -755,6 +757,16 @@ export default function AdminProducts() {
                     <SelectItem value="active">Ativo</SelectItem>
                     <SelectItem value="estoque_interno">Estoque Interno</SelectItem>
                     <SelectItem value="inactive">Inativo</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={filterType} onValueChange={v => { setFilterType(v); setCurrentPage(1); }}>
+                  <SelectTrigger className="bg-zinc-900/50 border-zinc-700 text-white w-[140px] text-sm"><SelectValue placeholder="Todos Tipos" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos Tipos</SelectItem>
+                    <SelectItem value="perfil">Perfil</SelectItem>
+                    <SelectItem value="bm">BM</SelectItem>
+                    <SelectItem value="proxy">Proxy</SelectItem>
+                    <SelectItem value="page">Página</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
