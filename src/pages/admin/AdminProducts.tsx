@@ -964,13 +964,13 @@ export default function AdminProducts() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {products.length === 0 ? (
+                  {filtered.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={7} className="text-center text-zinc-500 py-12">
-                        Nenhum produto cadastrado ainda.
+                        Nenhum produto encontrado.
                       </TableCell>
                     </TableRow>
-                  ) : [...products].sort((a, b) => (salesByProduct[b.id] || 0) - (salesByProduct[a.id] || 0)).map(product => {
+                  ) : [...filtered].sort((a, b) => (salesByProduct[b.id] || 0) - (salesByProduct[a.id] || 0)).map(product => {
                     const iconKey = (product.icon_type as ProductIcon) || "perfil";
                     const sold = salesByProduct[product.id] || 0;
                     return (
