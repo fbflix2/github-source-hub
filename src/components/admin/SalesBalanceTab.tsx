@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useProxyRevenue } from "@/hooks/useProxyRevenue";
 import {
-  Wallet, TrendingUp, ShoppingCart, Package, Loader2, Filter,
+  Wallet, TrendingUp, ShoppingCart, Package, Loader2, Filter, CalendarDays,
 } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
