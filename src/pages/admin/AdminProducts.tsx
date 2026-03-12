@@ -235,6 +235,7 @@ export default function AdminProducts() {
     setFormName(""); setFormPrice(""); setFormStock(""); setFormDescription("");
     setFormCategory(""); setFormIcon("perfil"); setFormTags([]); setFormStatus("estoque_interno");
     setFormImageUrl(""); setFormBadgeText(""); setFormBadgeIcon(""); setFormBadgeColor("");
+    setAiImagePrompt("");
     setEditingProduct(null);
   };
 
