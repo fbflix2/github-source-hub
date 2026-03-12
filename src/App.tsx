@@ -78,6 +78,7 @@ import AdminParceiros from "./pages/admin/AdminParceiros";
 import PartnerRedirect from "./pages/PartnerRedirect";
 import AdminFBX from "./pages/admin/AdminFBX";
 import AdminCentralInvestimentos from "./pages/admin/AdminCentralInvestimentos";
+import AdminProjecaoLucro from "./pages/admin/AdminProjecaoLucro";
 import AdminAquecimento from "./pages/admin/AdminAquecimento";
 import AdminShopClone from "./pages/admin/AdminShopClone";
 import AdminFerramentas2FA from "./pages/admin/AdminFerramentas2FA";
@@ -269,6 +270,7 @@ const App = () => {
                   <Route path="auditoria/balanco" element={<AdminBalanco />} />
                   <Route path="auditoria/centro-custos" element={<AdminCentroCustos />} />
                   <Route path="auditoria/investimentos" element={<AdminCentralInvestimentos />} />
+                  <Route path="auditoria/projecao-lucro" element={<AdminProjecaoLucro />} />
                   <Route path="pedidos" element={<AdminPedidos />} />
                   <Route path="pagamentos" element={<AdminPagamentos />} />
                   <Route path="carrinhos-abandonados" element={<AdminCarrinhosAbandonados />} />
