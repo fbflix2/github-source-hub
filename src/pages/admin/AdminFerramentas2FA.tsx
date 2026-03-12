@@ -15,12 +15,15 @@ import { supabase } from "@/integrations/supabase/client";
 
 function generateTOTP(secret: string): { code: string; remaining: number; period: number } | null {
   try {
-    const cleanSecret = secret.replace(/\s+/g, "").toUpperCase();
+    const cleanSecret = secret.replace(/\s+/g, "").replace(/=+$/, "").toUpperCase();
+    if (!/^[A-Z2-7]+$/.test(cleanSecret)) return null;
     const totp = new OTPAuth.TOTP({
-      secret: OTPAuth.Secret.fromBase32(cleanSecret),
+      issuer: "FBFLIX",
+      label: "2FA",
+      algorithm: "SHA1",
       digits: 6,
       period: 30,
-      algorithm: "SHA1",
+      secret: cleanSecret,
     });
     const code = totp.generate();
     const now = Math.floor(Date.now() / 1000);
