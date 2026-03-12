@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { RefreshCw, Search, Loader2, Trash2, Download } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { RefreshCw, Search, Loader2, Trash2, Download, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -38,14 +38,24 @@ export default function AdminReposicoes() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterReason, setFilterReason] = useState("all");
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  });
 
   const [orderCodes, setOrderCodes] = useState<Record<string, string>>({});
 
   const fetchReplacements = async () => {
     setLoading(true);
+    const [year, month] = selectedMonth.split("-").map(Number);
+    const monthStart = new Date(year, month - 1, 1).toISOString();
+    const monthEnd = new Date(year, month, 0, 23, 59, 59, 999).toISOString();
+
     const { data, error } = await supabase
       .from("replacements")
       .select("*")
+      .gte("created_at", monthStart)
+      .lte("created_at", monthEnd)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -116,7 +126,7 @@ export default function AdminReposicoes() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchReplacements(); }, []);
+  useEffect(() => { fetchReplacements(); }, [selectedMonth]);
 
   const handleDelete = async (id: string) => {
     if (!window.confirm("Excluir este registro de reposição?")) return;
@@ -194,11 +204,30 @@ export default function AdminReposicoes() {
             <RefreshCw className="h-6 w-6 text-yellow-400" />
             Reposições
           </h1>
-          <p className="text-sm text-zinc-400 mt-1">Rastreie todas as reposições de itens para clientes</p>
+          {(() => {
+            const [y, m] = selectedMonth.split("-").map(Number);
+            const monthName = new Date(y, m - 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+            return (
+              <p className="text-sm text-zinc-400 mt-1">
+                Referência: <span className="text-yellow-400 font-medium capitalize">{monthName}</span>
+              </p>
+            );
+          })()}
         </div>
-        <Button variant="outline" size="sm" onClick={fetchReplacements} className="border-zinc-700 gap-2">
-          <RefreshCw className="h-4 w-4" /> Atualizar
-        </Button>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 rounded-lg bg-zinc-900 border border-zinc-800 px-3 py-1.5">
+            <Calendar className="h-4 w-4 text-yellow-400" />
+            <input
+              type="month"
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="bg-transparent text-sm text-zinc-200 outline-none [&::-webkit-calendar-picker-indicator]:invert"
+            />
+          </div>
+          <Button variant="outline" size="sm" onClick={fetchReplacements} className="border-zinc-700 gap-2">
+            <RefreshCw className="h-4 w-4" /> Atualizar
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
