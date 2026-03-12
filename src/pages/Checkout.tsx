@@ -659,6 +659,7 @@ export default function Checkout() {
           toast.success("Proxy ativado com sucesso!");
           queryClient.invalidateQueries({ queryKey: ["webshare-subscriptions"] });
           queryClient.invalidateQueries({ queryKey: ["proxybr-subscriptions"] });
+          queryClient.invalidateQueries({ queryKey: ["subscriptions"] });
           navigate("/subscriptions");
           return;
         }
