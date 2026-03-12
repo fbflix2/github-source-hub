@@ -554,7 +554,6 @@ export default function Dashboard() {
                     <h3 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors leading-tight whitespace-nowrap overflow-hidden text-ellipsis">
                       {product.name}
                     </h3>
-                    </div>
 
                     {/* Description */}
                     <p className="text-sm text-muted-foreground">
