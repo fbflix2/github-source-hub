@@ -126,7 +126,7 @@ export default function AdminReposicoes() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchReplacements(); }, []);
+  useEffect(() => { fetchReplacements(); }, [selectedMonth]);
 
   const handleDelete = async (id: string) => {
     if (!window.confirm("Excluir este registro de reposição?")) return;
