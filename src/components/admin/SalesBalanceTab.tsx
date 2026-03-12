@@ -36,7 +36,8 @@ interface SaleRow {
 export default function SalesBalanceTab() {
   const [dateFilter, setDateFilter] = useState<DateFilter>("30dias");
   const [categoryFilter, setCategoryFilter] = useState("todos");
-  const [loading, setLoading] = useState(true);
+  const [customRange, setCustomRange] = useState<{ from?: Date; to?: Date }>({});
+  const [rangePickerOpen, setRangePickerOpen] = useState(false);
   const [sales, setSales] = useState<SaleRow[]>([]);
   const [categories, setCategories] = useState<{ id: string; name: string; slug: string }[]>([]);
   const { totalRevenue: proxyRevenue, count: proxyCount, subsWithPrices } = useProxyRevenue();
