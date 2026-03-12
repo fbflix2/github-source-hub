@@ -79,12 +79,21 @@ export default function SalesBalanceTab() {
   const fetchSales = async () => {
     setLoading(true);
     const since = getSince();
+    const until = getUntil();
+
+    let ordersQuery = supabase.from("orders").select("id, total, subtotal, discount, status, created_at")
+      .in("status", ["completed", "delivered"]).gte("created_at", since);
+    let itemsQuery = supabase.from("order_items").select("order_id, product_id, name, price, quantity, created_at")
+      .gte("created_at", since);
+    
+    if (until) {
+      ordersQuery = ordersQuery.lte("created_at", until);
+      itemsQuery = itemsQuery.lte("created_at", until);
+    }
 
     const [ordersRes, itemsRes, productsRes, catsRes] = await Promise.all([
-      supabase.from("orders").select("id, total, subtotal, discount, status, created_at")
-        .in("status", ["completed", "delivered"]).gte("created_at", since),
-      supabase.from("order_items").select("order_id, product_id, name, price, quantity, created_at")
-        .gte("created_at", since),
+      ordersQuery,
+      itemsQuery,
       supabase.from("products").select("id, name, category_id"),
       supabase.from("product_categories").select("id, name, slug"),
     ]);
