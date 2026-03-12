@@ -101,12 +101,100 @@ export default function AdminImageViewer() {
     if (photoInputRef.current) photoInputRef.current.value = "";
   };
 
-  const downloadImage = () => {
+  const downloadImage = async () => {
     if (!selectedImage) return;
-    const a = document.createElement("a");
-    a.href = selectedImage;
-    a.download = "imagem";
-    a.click();
+
+    const baseImg = new Image();
+    baseImg.crossOrigin = "anonymous";
+    baseImg.src = selectedImage;
+    await new Promise<void>((res, rej) => { baseImg.onload = () => res(); baseImg.onerror = rej; });
+
+    const W = baseImg.naturalWidth;
+    const H = baseImg.naturalHeight;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext("2d")!;
+
+    // Apply contrast
+    ctx.filter = `contrast(${contrast}%)`;
+    ctx.drawImage(baseImg, 0, 0, W, H);
+    ctx.filter = "none";
+
+    // Draw photo overlay
+    if (photoOverlay) {
+      const pImg = new Image();
+      pImg.crossOrigin = "anonymous";
+      pImg.src = photoOverlay;
+      await new Promise<void>((res) => { pImg.onload = () => res(); pImg.onerror = () => res(); });
+      const px = (photoPos.xPct / 100) * W;
+      const py = (photoPos.yPct / 100) * H;
+      const pw = (photoPos.wPct / 100) * W;
+      const ph = (photoPos.hPct / 100) * H;
+      ctx.drawImage(pImg, px, py, pw, ph);
+    }
+
+    // Helper to compute font size scaled to natural resolution
+    const scaledFont = (sizePx: number) => {
+      const imgRect = getImgRect();
+      if (!imgRect) return sizePx;
+      return sizePx * (W / imgRect.w);
+    };
+
+    // Draw nome
+    if (formData.nomeCompleto) {
+      const fs = scaledFont(fontSizes.nome);
+      ctx.font = `bold ${fs}px "Arial Narrow", Arial, sans-serif`;
+      ctx.fillStyle = "rgba(0,0,0,0.9)";
+      ctx.letterSpacing = "0.05em";
+      const x = (textPos.nome.xPct / 100) * W;
+      const y = (textPos.nome.yPct / 100) * H + fs;
+      ctx.fillText(formData.nomeCompleto.toUpperCase(), x, y);
+    }
+
+    // Draw nascimento
+    if (formData.dataNascimento) {
+      const fs = scaledFont(fontSizes.nascimento);
+      ctx.font = `600 ${fs}px "Arial Narrow", Arial, sans-serif`;
+      ctx.fillStyle = "rgba(0,0,0,0.9)";
+      const x = (textPos.nascimento.xPct / 100) * W;
+      const y = (textPos.nascimento.yPct / 100) * H + fs;
+      ctx.fillText(new Date(formData.dataNascimento).toLocaleDateString("pt-BR"), x, y);
+    }
+
+    // Draw filiação
+    if (formData.nomePai || formData.nomeMae) {
+      const fs = scaledFont(fontSizes.filiacao);
+      ctx.font = `600 ${fs}px "Arial Narrow", Arial, sans-serif`;
+      ctx.fillStyle = "rgba(0,0,0,0.9)";
+      const x = (textPos.filiacao.xPct / 100) * W;
+      let y = (textPos.filiacao.yPct / 100) * H + fs;
+      if (formData.nomePai) { ctx.fillText(formData.nomePai.toUpperCase(), x, y); y += fs * 1.2; }
+      if (formData.nomeMae) { ctx.fillText(formData.nomeMae.toUpperCase(), x, y); }
+    }
+
+    // Draw assinatura
+    if (formData.nomeCompleto) {
+      const fs = scaledFont(fontSizes.assinatura);
+      ctx.font = `${fs}px "${signatureFont}", cursive`;
+      ctx.fillStyle = "#1a1a8a";
+      const x = (textPos.assinatura.xPct / 100) * W;
+      const y = (textPos.assinatura.yPct / 100) * H + fs;
+      ctx.fillText(formData.nomeCompleto, x, y);
+    }
+
+    // Download
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `documento_${formData.nomeCompleto?.replace(/\s+/g, "_") || "imagem"}.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("Imagem exportada com sucesso!");
+    }, "image/png");
   };
 
   const onViewerMouseDown = (e: React.MouseEvent) => {
