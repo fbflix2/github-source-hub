@@ -235,6 +235,36 @@ export default function SalesBalanceTab() {
               </button>
             ))}
           </div>
+          <Popover open={rangePickerOpen} onOpenChange={setRangePickerOpen}>
+            <PopoverTrigger asChild>
+              <button
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                  dateFilter === "custom"
+                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                    : "border-border text-muted-foreground hover:text-foreground hover:bg-muted"
+                }`}
+              >
+                <CalendarDays className="size-3.5" />
+                {dateFilter === "custom" && customRange.from
+                  ? `${format(customRange.from, "dd/MM", { locale: ptBR })} - ${customRange.to ? format(customRange.to, "dd/MM", { locale: ptBR }) : "..."}`
+                  : "Período"}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <Calendar
+                mode="range"
+                selected={{ from: customRange.from, to: customRange.to }}
+                onSelect={(range: any) => {
+                  setCustomRange({ from: range?.from, to: range?.to });
+                  if (range?.from) setDateFilter("custom");
+                  if (range?.from && range?.to) setRangePickerOpen(false);
+                }}
+                locale={ptBR}
+                numberOfMonths={2}
+                disabled={{ after: new Date() }}
+              />
+            </PopoverContent>
+          </Popover>
           <Select value={categoryFilter} onValueChange={setCategoryFilter}>
             <SelectTrigger className="h-9 w-[180px] rounded-lg border-border bg-background text-sm">
               <SelectValue placeholder="Categoria" />
