@@ -431,24 +431,28 @@ export default function Dashboard() {
                       </div>
                     )}
                     <div className="p-5 flex flex-col flex-1 gap-4">
-                      <div className="flex items-start gap-3">
-                        <div className="shrink-0 w-10 h-10 rounded-lg overflow-hidden bg-secondary flex items-center justify-center mt-0.5">
+                      <div className="flex items-center gap-3">
+                        <div className="shrink-0 w-10 h-10 rounded-lg overflow-hidden bg-secondary flex items-center justify-center">
                           {product.image_url ? (
                             <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                           ) : (
                             <span className="material-symbols-outlined text-[20px] text-muted-foreground">dns</span>
                           )}
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2">
-                            <h3 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-tight">{product.name}</h3>
-                            <div className="text-right shrink-0 whitespace-nowrap">
-                              <p className="text-xl font-bold text-foreground">R$ {product.price.toFixed(2).replace(".", ",")}</p>
-                              <p className="text-[10px] text-muted-foreground">mensal</p>
-                            </div>
-                          </div>
+                        <div className="flex-1 flex items-center justify-center gap-1.5 flex-wrap">
+                          {product.badge_text && (
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border inline-flex items-center gap-1 ${product.badge_color || "bg-muted text-foreground border-border"}`}>
+                              {product.badge_icon && <span className="material-symbols-outlined text-[11px]">{product.badge_icon}</span>}
+                              {product.badge_text}
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-right shrink-0 whitespace-nowrap">
+                          <p className="text-xl font-bold text-foreground">R$ {product.price.toFixed(2).replace(".", ",")}</p>
+                          <p className="text-[10px] text-muted-foreground">mensal</p>
                         </div>
                       </div>
+                      <h3 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors leading-tight whitespace-nowrap overflow-hidden text-ellipsis">{product.name}</h3>
                       {product.description && <p className="text-sm text-muted-foreground">{product.description.length > 150 ? product.description.substring(0, 150) + "..." : product.description}</p>}
                       {product.tags && product.tags.length > 0 && (
                         <div className="flex items-center gap-1.5 flex-wrap">
