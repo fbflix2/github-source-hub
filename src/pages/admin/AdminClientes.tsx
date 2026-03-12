@@ -178,7 +178,7 @@ export default function AdminClientes() {
             Authorization: `Bearer ${session?.access_token}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ target_user_id: userId }),
+          body: JSON.stringify({ target_user_id: userId, admin_origin: window.location.origin }),
         }
       );
       const result = await res.json();
