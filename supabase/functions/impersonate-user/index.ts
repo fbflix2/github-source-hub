@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { target_user_id } = await req.json();
+    const { target_user_id, admin_origin } = await req.json();
     if (!target_user_id) {
       return new Response(JSON.stringify({ error: "target_user_id é obrigatório" }), {
         status: 400,
@@ -82,11 +82,19 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Build the verification URL with the token hash
-    // Use the published app URL so the impersonated session lives on a different origin
-    // This prevents the admin session (on preview/admin domain) from being overwritten
-    const publishedUrl = Deno.env.get("PUBLIC_SITE_URL") || "https://fbflix1.lovable.app";
-    const redirectUrl = `${supabaseUrl}/auth/v1/verify?token=${linkData.properties.hashed_token}&type=magiclink&redirect_to=${encodeURIComponent(publishedUrl + '/')}`;
+    // Pick a redirect URL on a DIFFERENT origin than the admin's current origin
+    // This ensures the impersonated session lives in separate localStorage
+    const publishedUrl = "https://fbflix1.lovable.app";
+    const previewUrl = "https://id-preview--26f1d1f2-11d9-44cb-a3de-f54769701ec2.lovable.app";
+    
+    let clientUrl = publishedUrl;
+    if (admin_origin && admin_origin.includes("fbflix1.lovable.app")) {
+      clientUrl = previewUrl;
+    } else if (admin_origin && admin_origin.includes("id-preview")) {
+      clientUrl = publishedUrl;
+    }
+    
+    const redirectUrl = `${supabaseUrl}/auth/v1/verify?token=${linkData.properties.hashed_token}&type=magiclink&redirect_to=${encodeURIComponent(clientUrl + '/')}`;
 
     return new Response(
       JSON.stringify({ url: redirectUrl }),
