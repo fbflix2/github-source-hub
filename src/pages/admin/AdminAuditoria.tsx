@@ -167,16 +167,17 @@ export default function AdminAuditoria() {
     },
     {
       label: "Projeção de Lucro",
-      value: loading ? "..." : formatCurrency(projectedProfit),
-      badge: projectedProfit >= 0 ? "Positivo" : "Negativo",
-      badgeColor: projectedProfit >= 0 
+      value: loading ? "..." : formatCurrency(projectedProfit - totalMonthlyCosts),
+      badge: (projectedProfit - totalMonthlyCosts) >= 0 ? "Positivo" : "Negativo",
+      badgeColor: (projectedProfit - totalMonthlyCosts) >= 0 
         ? "text-emerald-400 bg-emerald-400/10 border-emerald-400/20" 
         : "text-red-400 bg-red-400/10 border-red-400/20",
       icon: TrendingUp,
       iconBg: "bg-primary/20 border-primary/30",
       iconColor: "text-primary",
-      subtitle: `Margem estimada: ${projectedMargin}%`,
-      highlighted: true
+      subtitle: `Lucro real após custos fixos`,
+      highlighted: true,
+      onClick: () => navigate("/admin/auditoria/projecao-lucro"),
     }
   ];
 

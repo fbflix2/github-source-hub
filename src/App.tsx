@@ -270,6 +270,7 @@ const App = () => {
                   <Route path="auditoria/balanco" element={<AdminBalanco />} />
                   <Route path="auditoria/centro-custos" element={<AdminCentroCustos />} />
                   <Route path="auditoria/investimentos" element={<AdminCentralInvestimentos />} />
+                  <Route path="auditoria/projecao-lucro" element={<AdminProjecaoLucro />} />
                   <Route path="pedidos" element={<AdminPedidos />} />
                   <Route path="pagamentos" element={<AdminPagamentos />} />
                   <Route path="carrinhos-abandonados" element={<AdminCarrinhosAbandonados />} />
