@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { 
   Search, Plus, Upload, User, Briefcase, Globe, Server, Tag, Save, X,
   Filter, ChevronLeft, ChevronRight, Edit, Trash2, Image as ImageIcon, Loader2, ImagePlus,
-  BarChart3, Download, BellRing, Clock, CheckSquare, Square, CheckCheck, Store
+  BarChart3, Download, BellRing, Clock, CheckSquare, Square, CheckCheck, Store, Sparkles
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
