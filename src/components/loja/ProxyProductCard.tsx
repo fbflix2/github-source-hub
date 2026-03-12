@@ -60,31 +60,31 @@ export function ProxyProductCard({ product, proxyImage, quantity, onQuantityChan
         </div>
       )}
       <div className="p-5 flex flex-col flex-1 gap-4">
-        {/* Header: image + name + price */}
-        <div className="flex items-start gap-3">
-          <div className="shrink-0 w-10 h-10 rounded-lg overflow-hidden bg-secondary flex items-center justify-center mt-0.5">
+        {/* Header row: image + badge + price */}
+        <div className="flex items-center gap-3">
+          <div className="shrink-0 w-10 h-10 rounded-lg overflow-hidden bg-secondary flex items-center justify-center">
             {imageUrl ? (
               <img src={imageUrl} alt={product.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
             ) : (
               <span className="material-symbols-outlined text-[20px] text-muted-foreground">dns</span>
             )}
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-start justify-between gap-2">
-              <h3 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-tight">
-                {displayName}
-              </h3>
-              <div className="text-right shrink-0 whitespace-nowrap">
-                <p className="text-xl font-bold text-foreground">{formattedPrice}</p>
-                <p className="text-[10px] text-muted-foreground">mensal</p>
-              </div>
-            </div>
-            <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-bold px-2 py-0.5 rounded-full border bg-primary/10 text-primary border-primary/20">
+          <div className="flex-1 flex items-center justify-center">
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border bg-primary/10 text-primary border-primary/20">
               <span className="material-symbols-outlined text-[11px]">bolt</span>
               {typeLabel}
             </span>
           </div>
+          <div className="text-right shrink-0 whitespace-nowrap">
+            <p className="text-xl font-bold text-foreground">{formattedPrice}</p>
+            <p className="text-[10px] text-muted-foreground">mensal</p>
+          </div>
         </div>
+
+        {/* Product name - full single line */}
+        <h3 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors leading-tight">
+          {displayName}
+        </h3>
 
         {/* Description */}
         {description && (
