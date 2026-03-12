@@ -87,6 +87,8 @@ export default function AdminProducts() {
   const [formBadgeColor, setFormBadgeColor] = useState("");
   const [productImages, setProductImages] = useState<{ id: string; name: string; url: string }[]>([]);
   const [showImagePicker, setShowImagePicker] = useState(false);
+  const [aiImagePrompt, setAiImagePrompt] = useState("");
+  const [generatingImage, setGeneratingImage] = useState(false);
 
   // Table state
   const [searchTerm, setSearchTerm] = useState("");
