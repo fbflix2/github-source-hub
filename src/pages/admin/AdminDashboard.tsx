@@ -273,8 +273,9 @@ export default function AdminDashboard() {
       }));
 
       // Calculate replacement rate for current month (non-proxy products)
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-      const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString();
+      const replNow = new Date();
+      const monthStart = new Date(replNow.getFullYear(), replNow.getMonth(), 1).toISOString();
+      const monthEnd = new Date(replNow.getFullYear(), replNow.getMonth() + 1, 0, 23, 59, 59).toISOString();
       const [replacementsRes] = await Promise.all([
         supabase.from("replacements").select("id", { count: "exact", head: true })
           .gte("created_at", monthStart).lte("created_at", monthEnd),
