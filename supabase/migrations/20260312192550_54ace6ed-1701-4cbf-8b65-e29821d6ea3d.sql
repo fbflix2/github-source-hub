@@ -1,0 +1,1 @@
+UPDATE products SET tags = array_remove(tags, 'webshare') WHERE tags IS NOT NULL AND 'webshare' = ANY(tags);

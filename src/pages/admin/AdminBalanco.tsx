@@ -139,9 +139,7 @@ export default function AdminBalanco() {
       const costPerProxy = (monthlyPrice / totalPlanProxies) * usdToBrl;
       if (costPerProxy > 0) {
         products.forEach((p: any) => {
-          const tags = p.tags || [];
-          const isWebshare = tags.includes("webshare") || tags.includes("proxy") ||
-            (p.category_id === proxyCategoryId && !p.external_id && (p.name.toLowerCase().includes("webshare") || p.name.toLowerCase().includes("proxy")));
+          const isWebshare = p.icon_type === 'proxy' && !p.external_id;
           if (isWebshare) autoCostMap[p.id] = costPerProxy;
         });
       }

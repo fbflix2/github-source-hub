@@ -628,13 +628,13 @@ export default function Checkout() {
           return;
         }
 
-        // Check if this is a WEBSHARE proxy purchase
-        const isWebshareProduct = product?.tags?.includes('webshare');
+        // Detect proxy provider: Webshare = icon_type proxy + no external_id; ProxyBR = icon_type proxy + external_id
+        const isWebshareProduct = product?.icon_type === 'proxy' && !product?.external_id;
         if (isWebshareProduct) {
           updateData.status = "processing";
           await supabase.from("orders").update(updateData).eq("id", orderId);
 
-          toast.info("Ativando seu proxy Webshare...");
+          toast.info("Ativando seu proxy...");
           const { data: wsResult, error: wsError } = await supabase.functions.invoke("webshare-api", {
             body: {
               action: "purchase-proxy-with-balance",
@@ -646,7 +646,7 @@ export default function Checkout() {
 
           if (wsError || wsResult?.error) {
             console.error("Webshare purchase error:", wsError || wsResult?.error);
-            toast.error(wsResult?.error || "Erro ao ativar proxy Webshare. Contate o suporte.");
+            toast.error(wsResult?.error || "Erro ao ativar proxy. Contate o suporte.");
             navigate("/orders");
             return;
           }
@@ -656,18 +656,18 @@ export default function Checkout() {
             if (cpn) await supabase.from("coupons").update({ used_count: cpn.used_count + 1 }).eq("code", coupon.trim().toUpperCase());
           }
 
-          toast.success("Proxy Webshare ativado com sucesso!");
+          toast.success("Proxy ativado com sucesso!");
           queryClient.invalidateQueries({ queryKey: ["webshare-subscriptions"] });
           queryClient.invalidateQueries({ queryKey: ["proxybr-subscriptions"] });
+          queryClient.invalidateQueries({ queryKey: ["subscriptions"] });
           navigate("/subscriptions");
           return;
         }
 
-        // Check if this is a ProxyBR proxy purchase - handle entirely server-side
-        // Detect by icon_type (reliable) OR sessionStorage (user variant choice)
-        const isProxyProduct = product?.icon_type === 'proxy';
+        // Check if this is a ProxyBR proxy purchase (has external_id)
+        const isProxyBRProduct = product?.icon_type === 'proxy' && !!product?.external_id;
         const proxyData = getProxyPurchaseData();
-        if (isProxyProduct || proxyData?.product_variant_id) {
+        if (isProxyBRProduct || proxyData?.product_variant_id) {
           // Build proxy params: prefer sessionStorage variant, fallback to product external_id
           let variantId = proxyData?.product_variant_id;
           let proxyQuantity = proxyData?.quantity || quantity || 1;
@@ -828,11 +828,11 @@ export default function Checkout() {
         const { error: updateError } = await supabase.from("orders").update(updateData).eq("id", orderId);
         if (updateError) throw updateError;
 
-        // Pass proxy_data to create-pix-payment so server persists delivery_data
+        // Pass proxy_data to create-pix-payment so server persists delivery_data (ProxyBR only)
         const proxyDataForPix = getProxyPurchaseData();
-        const isProxyPix = product?.icon_type === 'proxy';
+        const isProxyBRPix = product?.icon_type === 'proxy' && !!product?.external_id;
         const pixBody: any = { amount: total, order_id: orderId };
-        if (proxyDataForPix?.product_variant_id || isProxyPix) {
+        if (proxyDataForPix?.product_variant_id || isProxyBRPix) {
           let pixVariantId = proxyDataForPix?.product_variant_id;
           // Fallback: fetch variant from ProxyBR products API
           if (!pixVariantId && product?.external_id) {

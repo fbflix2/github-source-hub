@@ -477,16 +477,16 @@ Deno.serve(async (req) => {
           }
 
           // ========== WEBSHARE PROXY FULFILLMENT ==========
-          // Detect Webshare product by checking tags for 'webshare'
+          // Detect Webshare product: icon_type=proxy + no external_id
           if (oi.product_id) {
             const { data: wsProductInfo } = await supabase
               .from("products")
-              .select("tags")
+              .select("icon_type, external_id")
               .eq("id", oi.product_id)
               .single();
 
-            const tags = wsProductInfo?.tags || [];
-            if (Array.isArray(tags) && (tags.includes("webshare") || tags.includes("proxy"))) {
+            const isWebshareProxy = wsProductInfo?.icon_type === 'proxy' && !wsProductInfo?.external_id;
+            if (isWebshareProxy) {
               console.log(`[webhook-webshare] Webshare product detected for item ${oi.id}, qty=${oi.quantity || 1}`);
               
               const WEBSHARE_API_KEY = Deno.env.get("WEBSHARE_API_KEY");
