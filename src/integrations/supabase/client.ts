@@ -5,12 +5,37 @@ import type { Database } from './types';
 const SUPABASE_URL = "https://mxnlerkeygfvdnznoxld.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im14bmxlcmtleWdmdmRuem5veGxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE0NDQ1NTAsImV4cCI6MjA4NzAyMDU1MH0.CTNgMcfo3AdbiiKIONkE0svroKgekXQ4x71bDpqwEV8";
 
+const IMPERSONATION_QUERY_KEY = "impersonated";
+const IMPERSONATION_TAB_KEY = "fbflix_impersonation_tab";
+const isBrowser = typeof window !== "undefined";
+
+if (isBrowser) {
+  const currentUrl = new URL(window.location.href);
+  if (currentUrl.searchParams.get(IMPERSONATION_QUERY_KEY) === "1") {
+    sessionStorage.setItem(IMPERSONATION_TAB_KEY, "1");
+    currentUrl.searchParams.delete(IMPERSONATION_QUERY_KEY);
+    window.history.replaceState({}, "", currentUrl.toString());
+  }
+}
+
+const fallbackStorage = {
+  getItem: (_key: string) => null,
+  setItem: (_key: string, _value: string) => {},
+  removeItem: (_key: string) => {},
+};
+
+const authStorage = !isBrowser
+  ? fallbackStorage
+  : sessionStorage.getItem(IMPERSONATION_TAB_KEY) === "1"
+    ? sessionStorage
+    : localStorage;
+
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    storage: localStorage,
+    storage: authStorage,
     persistSession: true,
     autoRefreshToken: true,
   }
@@ -44,17 +69,19 @@ function startSessionKeepAlive() {
   refreshInterval = setInterval(refreshIfNeeded, 60 * 1000);
 }
 
-// Refresh session when tab becomes visible again (user returns to tab)
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') {
-    refreshIfNeeded();
-  }
-});
+if (isBrowser) {
+  // Refresh session when tab becomes visible again (user returns to tab)
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      refreshIfNeeded();
+    }
+  });
 
-// Also refresh on window focus (covers more cases)
-window.addEventListener('focus', () => {
-  refreshIfNeeded();
-});
+  // Also refresh on window focus (covers more cases)
+  window.addEventListener('focus', () => {
+    refreshIfNeeded();
+  });
+}
 
 supabase.auth.onAuthStateChange((event, session) => {
   if (session) {
