@@ -608,7 +608,7 @@ export default function AdminProducts() {
             </div>
 
             {/* Image selector */}
-            <div className="space-y-2">
+            <div className="space-y-3">
               <label className="text-sm text-zinc-400">Foto do Produto</label>
               {formImageUrl ? (
                 <div className="flex items-center gap-3">
@@ -621,10 +621,44 @@ export default function AdminProducts() {
                   </div>
                 </div>
               ) : (
-                <Button type="button" variant="outline" className="border-zinc-700 text-zinc-400 hover:bg-zinc-700 gap-2 w-full justify-center" onClick={() => setShowImagePicker(true)}>
-                  <ImagePlus className="h-4 w-4" /> Selecionar imagem
-                </Button>
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" className="border-zinc-700 text-zinc-400 hover:bg-zinc-700 gap-2 flex-1 justify-center" onClick={() => setShowImagePicker(true)}>
+                    <ImagePlus className="h-4 w-4" /> Selecionar imagem
+                  </Button>
+                </div>
               )}
+
+              {/* AI Image Generator */}
+              <div className="border border-zinc-700/50 rounded-lg p-3 space-y-2 bg-gradient-to-b from-purple-500/5 to-transparent">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-3.5 w-3.5 text-purple-400" />
+                  <span className="text-[11px] font-medium text-purple-300">Gerar imagem com IA</span>
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    value={aiImagePrompt}
+                    onChange={e => setAiImagePrompt(e.target.value)}
+                    placeholder={`Ex: ${formName || "Proxy residencial premium"}`}
+                    className="bg-zinc-900/50 border-zinc-700 text-white placeholder:text-zinc-500 h-9 text-sm flex-1"
+                    onKeyDown={e => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleGenerateImage();
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={generatingImage || !aiImagePrompt.trim()}
+                    onClick={handleGenerateImage}
+                    className="bg-purple-600 hover:bg-purple-500 text-white h-9 px-4 gap-1.5 shrink-0"
+                  >
+                    {generatingImage ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                    Gerar
+                  </Button>
+                </div>
+              </div>
             </div>
 
             {/* Image picker modal */}
