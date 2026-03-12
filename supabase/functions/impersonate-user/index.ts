@@ -82,19 +82,31 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Pick a redirect URL on a DIFFERENT origin than the admin's current origin
-    // This ensures the impersonated session lives in separate localStorage
-    const publishedUrl = "https://fbflix1.lovable.app";
-    const previewUrl = "https://id-preview--26f1d1f2-11d9-44cb-a3de-f54769701ec2.lovable.app";
-    
-    let clientUrl = publishedUrl;
-    if (admin_origin && admin_origin.includes("fbflix1.lovable.app")) {
-      clientUrl = previewUrl;
-    } else if (admin_origin && admin_origin.includes("id-preview")) {
-      clientUrl = publishedUrl;
+    // Redirect back to the current admin origin with an impersonation flag.
+    // The frontend client uses this flag to isolate auth in sessionStorage per-tab.
+    const allowedOrigins = new Set([
+      "https://fbflix.com.br",
+      "https://www.fbflix.com.br",
+      "https://fbflix1.lovable.app",
+      "https://id-preview--26f1d1f2-11d9-44cb-a3de-f54769701ec2.lovable.app",
+    ]);
+
+    const defaultOrigin = "https://fbflix.com.br";
+    let clientOrigin = defaultOrigin;
+
+    if (admin_origin) {
+      try {
+        const parsedOrigin = new URL(admin_origin).origin;
+        if (allowedOrigins.has(parsedOrigin)) {
+          clientOrigin = parsedOrigin;
+        }
+      } catch (_) {
+        // Keep default origin on invalid admin_origin
+      }
     }
-    
-    const redirectUrl = `${supabaseUrl}/auth/v1/verify?token=${linkData.properties.hashed_token}&type=magiclink&redirect_to=${encodeURIComponent(clientUrl + '/')}`;
+
+    const redirectTo = `${clientOrigin}/?impersonated=1`;
+    const redirectUrl = `${supabaseUrl}/auth/v1/verify?token=${linkData.properties.hashed_token}&type=magiclink&redirect_to=${encodeURIComponent(redirectTo)}`;
 
     return new Response(
       JSON.stringify({ url: redirectUrl }),
