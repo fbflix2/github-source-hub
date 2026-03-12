@@ -140,12 +140,27 @@ const App = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
+    const loadingTimeout = window.setTimeout(() => {
+      if (!mounted) return;
+      console.warn('[auth] Initialization timeout, forcing unauthenticated state');
+      setSession(null);
+      setUser(null);
+      setLoading(false);
+    }, 8000);
+
+    const finishAuthInit = (nextSession: Session | null) => {
+      if (!mounted) return;
+      window.clearTimeout(loadingTimeout);
+      setSession(nextSession);
+      setUser(nextSession?.user ?? null);
+      setLoading(false);
+    };
+
     // IMPORTANT: Do NOT use async/await inside onAuthStateChange to avoid deadlocks
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
+        finishAuthInit(session);
 
         // On sign-in, check staff redirect in a separate non-blocking call
         if (event === 'SIGNED_IN' && session?.user) {
@@ -183,13 +198,20 @@ const App = () => {
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        finishAuthInit(session);
+      })
+      .catch((err) => {
+        console.warn('[auth] getSession failed:', err);
+        finishAuthInit(null);
+      });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      window.clearTimeout(loadingTimeout);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const handleLogout = async () => {
