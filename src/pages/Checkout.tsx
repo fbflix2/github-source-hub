@@ -634,7 +634,7 @@ export default function Checkout() {
           updateData.status = "processing";
           await supabase.from("orders").update(updateData).eq("id", orderId);
 
-          toast.info("Ativando seu proxy Webshare...");
+          toast.info("Ativando seu proxy...");
           const { data: wsResult, error: wsError } = await supabase.functions.invoke("webshare-api", {
             body: {
               action: "purchase-proxy-with-balance",
