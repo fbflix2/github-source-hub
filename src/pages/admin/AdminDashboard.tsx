@@ -272,14 +272,19 @@ export default function AdminDashboard() {
         };
       }));
 
-      // Calculate replacement rate for non-proxy products
+      // Calculate replacement rate for current month (non-proxy products)
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString();
       const [replacementsRes] = await Promise.all([
-        supabase.from("replacements").select("id", { count: "exact", head: true }),
+        supabase.from("replacements").select("id", { count: "exact", head: true })
+          .gte("created_at", monthStart).lte("created_at", monthEnd),
       ]);
       const proxyProductIds = new Set(
         (prodsByCat.data ?? []).filter(p => p.external_id).map(p => p.id)
       );
-      const completedOrderIdsForRepl = new Set(ords.filter(o => ["completed", "delivered"].includes(o.status)).map(o => o.id));
+      const completedOrderIdsForRepl = new Set(
+        ords.filter(o => ["completed", "delivered"].includes(o.status) && o.created_at >= monthStart && o.created_at <= monthEnd).map(o => o.id)
+      );
       const nonProxyOrderItems = (orderItemsRes.data ?? []).filter(item => 
         completedOrderIdsForRepl.has(item.order_id) && (!item.product_id || !proxyProductIds.has(item.product_id))
       );
