@@ -759,6 +759,16 @@ export default function AdminProducts() {
                     <SelectItem value="inactive">Inativo</SelectItem>
                   </SelectContent>
                 </Select>
+                <Select value={filterType} onValueChange={v => { setFilterType(v); setCurrentPage(1); }}>
+                  <SelectTrigger className="bg-zinc-900/50 border-zinc-700 text-white w-[140px] text-sm"><SelectValue placeholder="Todos Tipos" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos Tipos</SelectItem>
+                    <SelectItem value="perfil">Perfil</SelectItem>
+                    <SelectItem value="bm">BM</SelectItem>
+                    <SelectItem value="proxy">Proxy</SelectItem>
+                    <SelectItem value="page">Página</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
