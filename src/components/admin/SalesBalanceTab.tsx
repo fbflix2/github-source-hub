@@ -8,13 +8,18 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 const formatCurrency = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-type DateFilter = "hoje" | "7dias" | "30dias" | "ano";
+type DateFilter = "hoje" | "ontem" | "7dias" | "30dias" | "ano" | "custom";
 const dateFilters: { value: DateFilter; label: string }[] = [
   { value: "hoje", label: "Hoje" },
+  { value: "ontem", label: "Ontem" },
   { value: "7dias", label: "7 Dias" },
   { value: "30dias", label: "30 Dias" },
   { value: "ano", label: "Ano Atual" },
