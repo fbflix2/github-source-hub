@@ -656,7 +656,7 @@ export default function Checkout() {
             if (cpn) await supabase.from("coupons").update({ used_count: cpn.used_count + 1 }).eq("code", coupon.trim().toUpperCase());
           }
 
-          toast.success("Proxy Webshare ativado com sucesso!");
+          toast.success("Proxy ativado com sucesso!");
           queryClient.invalidateQueries({ queryKey: ["webshare-subscriptions"] });
           queryClient.invalidateQueries({ queryKey: ["proxybr-subscriptions"] });
           navigate("/subscriptions");
