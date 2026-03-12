@@ -204,7 +204,15 @@ export default function AdminReposicoes() {
             <RefreshCw className="h-6 w-6 text-yellow-400" />
             Reposições
           </h1>
-          <p className="text-sm text-zinc-400 mt-1">Rastreie todas as reposições de itens para clientes</p>
+          {(() => {
+            const [y, m] = selectedMonth.split("-").map(Number);
+            const monthName = new Date(y, m - 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+            return (
+              <p className="text-sm text-zinc-400 mt-1">
+                Referência: <span className="text-yellow-400 font-medium capitalize">{monthName}</span>
+              </p>
+            );
+          })()}
         </div>
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-2 rounded-lg bg-zinc-900 border border-zinc-800 px-3 py-1.5">
