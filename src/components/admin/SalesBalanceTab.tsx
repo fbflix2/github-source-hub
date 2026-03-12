@@ -2,19 +2,24 @@ import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useProxyRevenue } from "@/hooks/useProxyRevenue";
 import {
-  Wallet, TrendingUp, ShoppingCart, Package, Loader2, Filter,
+  Wallet, TrendingUp, ShoppingCart, Package, Loader2, Filter, CalendarDays,
 } from "lucide-react";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip } from "recharts";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 const formatCurrency = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-type DateFilter = "hoje" | "7dias" | "30dias" | "ano";
+type DateFilter = "hoje" | "ontem" | "7dias" | "30dias" | "ano" | "custom";
 const dateFilters: { value: DateFilter; label: string }[] = [
   { value: "hoje", label: "Hoje" },
+  { value: "ontem", label: "Ontem" },
   { value: "7dias", label: "7 Dias" },
   { value: "30dias", label: "30 Dias" },
   { value: "ano", label: "Ano Atual" },
@@ -32,14 +37,22 @@ export default function SalesBalanceTab() {
   const [dateFilter, setDateFilter] = useState<DateFilter>("30dias");
   const [categoryFilter, setCategoryFilter] = useState("todos");
   const [loading, setLoading] = useState(true);
+  const [customRange, setCustomRange] = useState<{ from?: Date; to?: Date }>({});
+  const [rangePickerOpen, setRangePickerOpen] = useState(false);
   const [sales, setSales] = useState<SaleRow[]>([]);
   const [categories, setCategories] = useState<{ id: string; name: string; slug: string }[]>([]);
   const { totalRevenue: proxyRevenue, count: proxyCount, subsWithPrices } = useProxyRevenue();
 
-  const getSince = () => {
+  const getSince = (): string => {
+    if (dateFilter === "custom" && customRange.from) {
+      const d = new Date(customRange.from);
+      d.setHours(0, 0, 0, 0);
+      return d.toISOString();
+    }
     const now = new Date();
     switch (dateFilter) {
       case "hoje": now.setHours(0, 0, 0, 0); break;
+      case "ontem": now.setDate(now.getDate() - 1); now.setHours(0, 0, 0, 0); break;
       case "7dias": now.setDate(now.getDate() - 7); break;
       case "30dias": now.setDate(now.getDate() - 30); break;
       case "ano": now.setMonth(0, 1); now.setHours(0, 0, 0, 0); break;
@@ -47,17 +60,40 @@ export default function SalesBalanceTab() {
     return now.toISOString();
   };
 
-  useEffect(() => { fetchSales(); }, [dateFilter]);
+  const getUntil = (): string | null => {
+    if (dateFilter === "ontem") {
+      const d = new Date();
+      d.setHours(0, 0, 0, 0);
+      return d.toISOString();
+    }
+    if (dateFilter === "custom" && customRange.to) {
+      const d = new Date(customRange.to);
+      d.setHours(23, 59, 59, 999);
+      return d.toISOString();
+    }
+    return null;
+  };
+
+  useEffect(() => { fetchSales(); }, [dateFilter, customRange]);
 
   const fetchSales = async () => {
     setLoading(true);
     const since = getSince();
+    const until = getUntil();
+
+    let ordersQuery = supabase.from("orders").select("id, total, subtotal, discount, status, created_at")
+      .in("status", ["completed", "delivered"]).gte("created_at", since);
+    let itemsQuery = supabase.from("order_items").select("order_id, product_id, name, price, quantity, created_at")
+      .gte("created_at", since);
+    
+    if (until) {
+      ordersQuery = ordersQuery.lte("created_at", until);
+      itemsQuery = itemsQuery.lte("created_at", until);
+    }
 
     const [ordersRes, itemsRes, productsRes, catsRes] = await Promise.all([
-      supabase.from("orders").select("id, total, subtotal, discount, status, created_at")
-        .in("status", ["completed", "delivered"]).gte("created_at", since),
-      supabase.from("order_items").select("order_id, product_id, name, price, quantity, created_at")
-        .gte("created_at", since),
+      ordersQuery,
+      itemsQuery,
       supabase.from("products").select("id, name, category_id"),
       supabase.from("product_categories").select("id, name, slug"),
     ]);
@@ -107,9 +143,14 @@ export default function SalesBalanceTab() {
   // Proxy sales rows (from subscriptions)
   const proxySales = useMemo(() => {
     if (!subsWithPrices?.length) return [];
-    const since = new Date(getSince());
+    const sinceDate = new Date(getSince());
+    const untilStr = getUntil();
+    const untilDate = untilStr ? new Date(untilStr) : null;
     return subsWithPrices
-      .filter(s => new Date(s.created_at) >= since)
+      .filter(s => {
+        const d = new Date(s.created_at);
+        return d >= sinceDate && (!untilDate || d <= untilDate);
+      })
       .map(s => ({
         category: "Proxy",
         product: s.name || "Proxy",
@@ -117,7 +158,7 @@ export default function SalesBalanceTab() {
         revenue: s.price * s.proxyCount,
         date: new Date(s.created_at).toLocaleDateString("pt-BR"),
       }));
-  }, [subsWithPrices, dateFilter]);
+  }, [subsWithPrices, dateFilter, customRange]);
 
   const allSales = useMemo(() => [...sales, ...proxySales], [sales, proxySales]);
 
@@ -199,6 +240,36 @@ export default function SalesBalanceTab() {
               </button>
             ))}
           </div>
+          <Popover open={rangePickerOpen} onOpenChange={setRangePickerOpen}>
+            <PopoverTrigger asChild>
+              <button
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                  dateFilter === "custom"
+                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                    : "border-border text-muted-foreground hover:text-foreground hover:bg-muted"
+                }`}
+              >
+                <CalendarDays className="size-3.5" />
+                {dateFilter === "custom" && customRange.from
+                  ? `${format(customRange.from, "dd/MM", { locale: ptBR })} - ${customRange.to ? format(customRange.to, "dd/MM", { locale: ptBR }) : "..."}`
+                  : "Período"}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <Calendar
+                mode="range"
+                selected={{ from: customRange.from, to: customRange.to }}
+                onSelect={(range: any) => {
+                  setCustomRange({ from: range?.from, to: range?.to });
+                  if (range?.from) setDateFilter("custom");
+                  if (range?.from && range?.to) setRangePickerOpen(false);
+                }}
+                locale={ptBR}
+                numberOfMonths={2}
+                disabled={{ after: new Date() }}
+              />
+            </PopoverContent>
+          </Popover>
           <Select value={categoryFilter} onValueChange={setCategoryFilter}>
             <SelectTrigger className="h-9 w-[180px] rounded-lg border-border bg-background text-sm">
               <SelectValue placeholder="Categoria" />
