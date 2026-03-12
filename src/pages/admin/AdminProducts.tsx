@@ -263,6 +263,7 @@ export default function AdminProducts() {
   };
 
 
+  const openEditForm = (product: Product) => {
     setEditingProduct(product);
     setFormName(product.name);
     setFormPrice(product.price.toString());
