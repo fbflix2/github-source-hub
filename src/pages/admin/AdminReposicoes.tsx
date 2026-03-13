@@ -229,6 +229,9 @@ export default function AdminReposicoes() {
           <Button variant="outline" size="sm" onClick={fetchReplacements} className="border-zinc-700 gap-2">
             <RefreshCw className="h-4 w-4" /> Atualizar
           </Button>
+          <Button size="sm" className="bg-yellow-500 hover:bg-yellow-600 text-black gap-2" onClick={() => setShowNewModal(true)}>
+            <Plus className="h-4 w-4" /> Nova Reposição
+          </Button>
         </div>
       </div>
 
