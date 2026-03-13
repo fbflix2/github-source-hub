@@ -126,9 +126,7 @@ export function AdminHeader() {
         // Mark as seen immediately so polling doesn't double-play
         seenIdsRef.current.add(notif.id);
         const eventKey = getEventKey(notif.type);
-        if (eventKey) {
-          playNotificationSound(eventKey);
-        }
+        playNotificationSound(eventKey);
         fetchNotifications();
       })
       .subscribe();
