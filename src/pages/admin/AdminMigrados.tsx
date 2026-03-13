@@ -235,7 +235,7 @@ export default function AdminMigrados() {
       const msg = buildMigrationMessage(email, fullName);
       await navigator.clipboard.writeText(msg);
       
-      const actionLabel = result.action === "created" ? "Conta criada" : "Senha resetada";
+      const actionLabel = result.action === "created" ? "Conta criada" : "Credenciais geradas";
       toast.success(`${actionLabel}! Mensagem copiada para área de transferência 📋`);
       fetchData();
     } catch (err: any) {
