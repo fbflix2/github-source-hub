@@ -1302,6 +1302,7 @@ export type Database = {
           document_url: string | null
           estado: string | null
           fbx_balance: number
+          first_login_at: string | null
           full_name: string | null
           id: string
           numero: string | null
@@ -1325,6 +1326,7 @@ export type Database = {
           document_url?: string | null
           estado?: string | null
           fbx_balance?: number
+          first_login_at?: string | null
           full_name?: string | null
           id?: string
           numero?: string | null
@@ -1348,6 +1350,7 @@ export type Database = {
           document_url?: string | null
           estado?: string | null
           fbx_balance?: number
+          first_login_at?: string | null
           full_name?: string | null
           id?: string
           numero?: string | null
