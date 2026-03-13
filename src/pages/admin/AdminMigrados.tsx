@@ -92,6 +92,34 @@ export default function AdminMigrados() {
 
   useEffect(() => { fetchData(); }, []);
 
+  // Realtime: auto-refresh when a profile's first_login_at is filled (migration detected)
+  useEffect(() => {
+    const channel = supabase
+      .channel("migration-first-login")
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "profiles",
+          filter: "first_login_at=neq.null",
+        },
+        (payload) => {
+          // Only re-fetch if first_login_at was just set (changed from null)
+          if (payload.new?.first_login_at && !payload.old?.first_login_at) {
+            console.log("Migration detected: user first login", payload.new.user_id);
+            toast.info("Cliente migrou! Atualizando lista...");
+            fetchData();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   async function fetchData() {
     setLoading(true);
     try {
