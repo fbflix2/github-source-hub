@@ -94,7 +94,9 @@ Deno.serve(async (req) => {
         const email = u.email.toLowerCase();
         const pr = uidToProfile.get(u.id);
         const trackingEntry = tracking.find((t: any) => t.email.toLowerCase() === email);
-        const neverLoggedIn = !u.last_sign_in_at;
+        // Use first_login_at from profile (only set on real client login, not impersonation)
+        const reallyLoggedIn = !!pr?.first_login_at;
+        const neverLoggedIn = !reallyLoggedIn;
         const hasImportedFlag = u.user_metadata?.must_change_password === true && !u.user_metadata?.migrated_at;
 
         enrichedByEmail.set(email, {
@@ -110,6 +112,7 @@ Deno.serve(async (req) => {
           profile_data: pr
             ? { full_name: pr.full_name, cpf: pr.cpf ? `***${pr.cpf.slice(-4)}` : null, phone: pr.phone, birth_date: pr.birth_date }
             : null,
+          first_login_at: pr?.first_login_at || null,
           last_sign_in: u.last_sign_in_at || null,
           in_tracking: !!trackingEntry,
           migration_method: u.user_metadata?.migrated_at ? "link" : (hasImportedFlag ? "excel" : null),
