@@ -147,8 +147,8 @@ Deno.serve(async (req) => {
       // Categories:
       // Pending = never logged in (no last_sign_in)
       const pendingList = allEnriched.filter((u: any) => u.never_logged_in);
-      // Migrated = has logged in AND was in tracking or has migration metadata
-      const migratedList = allEnriched.filter((u: any) => !u.never_logged_in && (u.in_tracking || u.migration_method));
+      // Migrated = has logged in at least once (regardless of tracking/method)
+      const migratedList = allEnriched.filter((u: any) => !u.never_logged_in);
       // Direct = has logged in AND was NOT in tracking AND no migration metadata
       const directList = allEnriched.filter((u: any) => !u.never_logged_in && !u.in_tracking && !u.migration_method);
       // Complete profiles (all users)
