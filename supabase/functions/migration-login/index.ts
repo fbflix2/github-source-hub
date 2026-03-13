@@ -62,6 +62,51 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // ===== BACKFILL first_login_at for clients with orders =====
+    if (body.action === "backfill-first-login") {
+      await verifyStaff(req, supabaseAdmin);
+
+      // Get all profiles without first_login_at
+      const { data: profiles } = await supabaseAdmin
+        .from("profiles")
+        .select("user_id")
+        .is("first_login_at", null);
+
+      // Get first order date per user
+      const { data: orders } = await supabaseAdmin
+        .from("orders")
+        .select("user_id, created_at")
+        .order("created_at", { ascending: true });
+
+      if (!orders || !profiles) {
+        return new Response(JSON.stringify({ updated: 0 }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const profileSet = new Set(profiles.map((p: any) => p.user_id));
+      const firstOrderByUser = new Map<string, string>();
+      for (const o of orders) {
+        if (profileSet.has(o.user_id) && !firstOrderByUser.has(o.user_id)) {
+          firstOrderByUser.set(o.user_id, o.created_at);
+        }
+      }
+
+      let updated = 0;
+      for (const [userId, firstOrder] of firstOrderByUser) {
+        const { error } = await supabaseAdmin
+          .from("profiles")
+          .update({ first_login_at: firstOrder })
+          .eq("user_id", userId)
+          .is("first_login_at", null);
+        if (!error) updated++;
+      }
+
+      return new Response(JSON.stringify({ updated, total_candidates: firstOrderByUser.size }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // ===== MIGRATION STATS =====
     if (body.action === "migration-stats") {
       await verifyStaff(req, supabaseAdmin);
