@@ -318,13 +318,11 @@ Deno.serve(async (req) => {
               }
             }
 
-            // Preserve user-set fields (like profile_tag) from existing raw_data
+            // Preserve user-set fields (like profile_tag*) from existing raw_data
             const existingForRaw = existingMap.get(code);
             const existingRaw = (existingForRaw?.raw_data || {}) as Record<string, any>;
-            const preservedProfileTag = existingRaw.profile_tag;
-            const mergedRawData = preservedProfileTag
-              ? { ...sub, profile_tag: preservedProfileTag }
-              : sub;
+            const preservedTags = Object.fromEntries(Object.entries(existingRaw).filter(([k]) => k.startsWith("profile_tag")));
+            const mergedRawData = { ...sub, ...preservedTags };
 
             const record: Record<string, any> = {
               name: code, type: "proxybr", status: mappedStatus,
