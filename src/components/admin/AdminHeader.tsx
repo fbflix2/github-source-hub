@@ -104,9 +104,7 @@ export function AdminHeader() {
           if (!seenIdsRef.current.has(n.id)) {
             console.log("[NotifSounds] New notification via polling:", n.type, n.title);
             const eventKey = getEventKey(n.type);
-            if (eventKey) {
-              playNotificationSound(eventKey);
-            }
+            playNotificationSound(eventKey);
           }
         }
       }
