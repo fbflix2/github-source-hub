@@ -360,6 +360,12 @@ export default function AdminReposicoes() {
           </Table>
         </div>
       )}
+
+      <NewReplacementModal
+        open={showNewModal}
+        onOpenChange={setShowNewModal}
+        onCreated={fetchReplacements}
+      />
     </div>
   );
 }
