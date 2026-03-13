@@ -95,13 +95,17 @@ export default function AdminMigrados() {
   async function fetchData() {
     setLoading(true);
     try {
+      // Backfill first_login_at for clients with orders (idempotent, runs once per load)
+      await supabase.functions.invoke("migration-login", {
+        body: { action: "backfill-first-login" },
+      }).catch(() => {}); // silent — best effort
+
       const { data: result, error } = await supabase.functions.invoke("migration-login", {
         body: { action: "migration-stats" },
       });
       console.log("migration-stats response:", { result, error });
       if (error) throw error;
       if (result?.error) throw new Error(result.error);
-      // Ensure expected structure
       setData({
         pending_users: result?.pending_users || [],
         migrated_users: result?.migrated_users || [],
