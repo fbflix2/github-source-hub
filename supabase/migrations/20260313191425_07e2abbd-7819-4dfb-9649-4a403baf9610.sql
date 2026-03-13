@@ -1,0 +1,1 @@
+UPDATE products SET stock = 0 WHERE id = '021d171c-fe01-44eb-98fc-1f881a0603e9' AND stock = -1;
