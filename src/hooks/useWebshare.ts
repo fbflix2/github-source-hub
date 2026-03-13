@@ -10,20 +10,24 @@ async function callWebshare(action: string, params: Record<string, unknown> = {}
     body: { action, ...params },
   });
 
+  // Extract real error message from response body when edge function returns non-2xx
+  const realErrorMsg = data?.error || error?.message || "Erro Webshare API";
+
   if (error) {
     // Retry once on auth failure
-    if (error.message?.includes("401")) {
+    if (error.message?.includes("401") || data?.error?.includes("Token inválido")) {
       const { error: refreshErr } = await supabase.auth.refreshSession();
       if (!refreshErr) {
         const retry = await supabase.functions.invoke("webshare-api", {
           body: { action, ...params },
         });
-        if (retry.error) throw new Error(retry.error.message || "Erro Webshare API");
+        const retryRealErr = retry.data?.error || retry.error?.message || "Erro Webshare API";
+        if (retry.error) throw new Error(retryRealErr);
         if (retry.data?.error && !retry.data?.data) throw new Error(retry.data.error);
         return retry.data;
       }
     }
-    throw new Error(error.message || "Erro Webshare API");
+    throw new Error(realErrorMsg);
   }
 
   if (data?.error && !data?.data) throw new Error(data.error);
