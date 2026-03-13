@@ -125,9 +125,11 @@ export default function SubscriptionManage() {
 
   const { status, label, color } = getStatusInfo(sub);
   const endDate = sub.end_date ? parseISO(sub.end_date) : new Date();
-  const startDate = sub.start_date ? parseISO(sub.start_date) : new Date();
+  // For monthly subscriptions, show cycle start as endDate - 30 days instead of original start_date
+  const cycleStart = sub.end_date ? new Date(endDate.getTime() - 30 * 24 * 60 * 60 * 1000) : new Date();
+  const startDate = cycleStart;
   const daysLeft = Math.max(0, differenceInDays(endDate, new Date()));
-  const totalDays = differenceInDays(endDate, startDate);
+  const totalDays = 30;
   const elapsed = totalDays - daysLeft;
   const progress = totalDays > 0 ? Math.min(100, Math.max(0, (elapsed / totalDays) * 100)) : 0;
 
