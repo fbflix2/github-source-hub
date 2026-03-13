@@ -60,14 +60,16 @@ export function AdminHeader() {
   }, []);
 
   // Map notification type to event_key
-  const getEventKey = useCallback((type: string): string | null => {
+  const getEventKey = useCallback((type: string): string => {
     const map: Record<string, string> = {
       order: "order_completed",
       wallet: "wallet_deposit",
       pix: "wallet_deposit",
       ticket: "new_ticket",
+      success: "order_completed",
     };
-    return map[type] || null;
+    // Fallback to order_completed so every notification plays a sound
+    return map[type] || "order_completed";
   }, []);
 
   const playNotificationSound = useCallback((eventKey: string) => {
