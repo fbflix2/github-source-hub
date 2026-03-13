@@ -25,7 +25,7 @@ async function getAllProfiles(admin: any) {
   while (true) {
     const { data, error } = await admin
       .from("profiles")
-      .select("user_id, full_name, cpf, phone, birth_date, created_at, status")
+      .select("user_id, full_name, cpf, phone, birth_date, created_at, status, first_login_at")
       .range(from, from + size - 1);
     if (error) throw error;
     all.push(...(data || []));
