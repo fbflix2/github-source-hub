@@ -682,23 +682,75 @@ Deno.serve(async (req) => {
       let newProxyData: Record<string, any> | null = null;
       let method = "api"; // track which method succeeded
 
-      // Try 1: Webshare API replace
-      if (currentProxyId) {
+      // Try 1: Webshare API replace (v3 replacement flow)
+      if (currentProxyId && raw.proxy_address) {
         try {
           console.log(`[webshare-exchange] Trying API replace for proxy ${currentProxyId}`);
-          const replaceResp = await webFetch(`/proxy/replace/`, WEBSHARE_API_KEY, "POST", JSON.stringify({
-            proxy_ids: [currentProxyId],
-          }));
 
-          if (replaceResp.ok) {
-            // Wait for propagation
-            await new Promise(r => setTimeout(r, 2000));
+          const replacePayload = {
+            to_replace: {
+              type: "ip_address",
+              ip_addresses: [raw.proxy_address],
+              count: 1,
+            },
+            replace_with: [
+              raw.country_code
+                ? { type: "country", country_code: String(raw.country_code).toUpperCase(), count: 1 }
+                : { type: "any", count: 1 },
+            ],
+            dry_run: false,
+          };
 
-            // Fetch updated proxy list to find the new proxy
-            const listResp = await webFetch(`/proxy/list/?mode=direct&page=1&page_size=250`, WEBSHARE_API_KEY);
-            if (listResp.ok) {
-              const listData = await listResp.json();
-              // The replaced proxy should have a new ID or new IP
+          const replaceResp = await webFetch(
+            "https://proxy.webshare.io/api/v3/proxy/replace/",
+            WEBSHARE_API_KEY,
+            "POST",
+            JSON.stringify(replacePayload),
+          );
+          const replaceData = await replaceResp.json().catch(() => ({}));
+
+          if (!replaceResp.ok) {
+            console.warn(`[webshare-exchange] API replace failed [${replaceResp.status}]: ${JSON.stringify(replaceData)}`);
+          } else {
+            const replacementId = replaceData?.id;
+            let replacementState = replaceData?.state;
+
+            if (replacementId) {
+              for (let attempt = 0; attempt < 10; attempt++) {
+                if (replacementState === "completed" || replacementState === "failed") break;
+                await new Promise((r) => setTimeout(r, 1200));
+
+                const statusResp = await webFetch(
+                  `https://proxy.webshare.io/api/v3/proxy/replace/${replacementId}/`,
+                  WEBSHARE_API_KEY,
+                );
+                const statusData = await statusResp.json().catch(() => ({}));
+                if (!statusResp.ok) {
+                  console.warn(`[webshare-exchange] Replace status failed [${statusResp.status}]: ${JSON.stringify(statusData)}`);
+                  break;
+                }
+
+                replacementState = statusData?.state;
+                if (replacementState === "failed") {
+                  console.warn(`[webshare-exchange] Replace request failed: ${statusData?.error || "unknown error"}`);
+                }
+              }
+            }
+
+            if (replacementState === "completed") {
+              const allCurrentProxies: any[] = [];
+              let page = 1;
+
+              while (true) {
+                const listResp = await webFetch(`/proxy/list/?mode=direct&page=${page}&page_size=250`, WEBSHARE_API_KEY);
+                const listData = await listResp.json().catch(() => ({}));
+                if (!listResp.ok) break;
+
+                if (listData.results?.length) allCurrentProxies.push(...listData.results);
+                if (!listData.next) break;
+                page++;
+              }
+
               // Find proxy that wasn't the old one by checking all proxies assigned to active subs
               const { data: allActiveSubs } = await supabaseAdmin
                 .from("subscriptions")
@@ -714,8 +766,8 @@ Deno.serve(async (req) => {
               }
 
               // Find a valid proxy not assigned to others
-              const candidates = (listData.results || []).filter(
-                (p: any) => p.valid && !otherAssignedIds.has(p.id) && p.id !== currentProxyId
+              const candidates = allCurrentProxies.filter(
+                (p: any) => p.valid && !otherAssignedIds.has(p.id) && p.id !== currentProxyId && p.proxy_address !== raw.proxy_address,
               );
 
               if (candidates.length > 0) {
@@ -730,11 +782,12 @@ Deno.serve(async (req) => {
                   city_name: np.city_name,
                 };
                 console.log(`[webshare-exchange] API replace succeeded: ${np.proxy_address}:${np.port}`);
+              } else {
+                console.warn("[webshare-exchange] API completed but no replacement candidate was found");
               }
+            } else {
+              console.warn(`[webshare-exchange] API replacement did not complete (state=${replacementState || "unknown"})`);
             }
-          } else {
-            const errData = await replaceResp.text();
-            console.warn(`[webshare-exchange] API replace failed [${replaceResp.status}]: ${errData}`);
           }
         } catch (e: any) {
           console.warn(`[webshare-exchange] API replace error: ${e.message}`);
