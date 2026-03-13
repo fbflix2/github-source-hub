@@ -145,6 +145,7 @@ export function useProxyBRSubscriptions() {
           const perProxyPaid = Math.floor(rawPaidQuota / proxies.length);
 
           proxies.forEach((proxy: any, index: number) => {
+            const proxyTagKey = `profile_tag_${proxy.id}`;
             results.push({
               ...baseEntry,
               code: `${sub.name}__proxy_${proxy.id}`,
@@ -153,6 +154,7 @@ export function useProxyBRSubscriptions() {
               proxyIndex: index + 1,
               totalProxies: proxies.length,
               proxyLabel: `Proxy ${index + 1}/${proxies.length}`,
+              profile_tag: raw[proxyTagKey] || null,
               raw_data: {
                 ...raw,
                 exchange_quota_free: perProxyFree,

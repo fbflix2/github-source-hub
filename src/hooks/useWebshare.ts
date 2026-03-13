@@ -122,6 +122,7 @@ export function useWebshareSubscriptions() {
           end_date: sub.end_date || sub.start_date,
           auto_renew: sub.auto_renew,
           raw_data: raw,
+          profile_tag: raw.profile_tag || null,
           provider: "webshare",
           proxy: raw.proxy_address ? {
             id: raw.webshare_proxy_id,
