@@ -1131,7 +1131,8 @@ Deno.serve(async (req) => {
             // Preserve profile_tag during renewal refresh
             const { data: renewSub } = await supabaseAdmin.from("subscriptions").select("raw_data").eq("name", params.subscriptionCode).eq("type", "proxybr").maybeSingle();
             const renewPrevRaw = (renewSub?.raw_data || {}) as Record<string, any>;
-            const renewMerged = renewPrevRaw.profile_tag ? { ...freshData, profile_tag: renewPrevRaw.profile_tag } : freshData;
+            const renewProfileTags = Object.fromEntries(Object.entries(renewPrevRaw).filter(([k]) => k.startsWith("profile_tag")));
+            const renewMerged = { ...freshData, ...renewProfileTags };
             await supabaseAdmin
               .from("subscriptions")
               .update({
