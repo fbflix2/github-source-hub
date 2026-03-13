@@ -447,9 +447,14 @@ Deno.serve(async (req) => {
         .eq("id", order_id);
 
       // 10. Notify admin
+      const productLabel = product_id
+        ? (await supabaseAdmin.from("products").select("name").eq("id", product_id).single())?.data?.name || "Proxy"
+        : "Proxy Webshare";
+      const clientName = (await supabaseAdmin.from("profiles").select("full_name").eq("user_id", user.id).single())?.data?.full_name || "Cliente";
+
       await supabaseAdmin.from("notifications").insert({
-        title: "Proxy Webshare Vendido",
-        message: `Proxy ${assignedProxy.proxy_address}:${assignedProxy.port} atribuído ao cliente. Pedido #${orderData?.code || ""}`,
+        title: `${productLabel} Vendido`,
+        message: `${clientName} • R$ ${Number(total).toFixed(2)} • ${assignedProxy.proxy_address}:${assignedProxy.port} • Pedido #${orderData?.code || ""}`,
         type: "order",
         global: true,
       });
