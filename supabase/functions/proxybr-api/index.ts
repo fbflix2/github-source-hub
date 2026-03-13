@@ -936,7 +936,8 @@ Deno.serve(async (req) => {
 
           if (existingSub) {
             const prevRaw2 = (existingSub.raw_data || {}) as Record<string, any>;
-            const mergedRaw2 = prevRaw2.profile_tag ? { ...contractData, profile_tag: prevRaw2.profile_tag } : contractData;
+            const profileTags3 = Object.fromEntries(Object.entries(prevRaw2).filter(([k]) => k.startsWith("profile_tag")));
+            const mergedRaw2 = { ...contractData, ...profileTags3 };
             await supabaseAdmin.from("subscriptions").update({
               user_id: user.id,
               status: "active",
