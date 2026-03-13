@@ -45,6 +45,7 @@ export default function AdminReposicoes() {
   });
 
   const [orderCodes, setOrderCodes] = useState<Record<string, string>>({});
+  const [showNewModal, setShowNewModal] = useState(false);
 
   const fetchReplacements = async () => {
     setLoading(true);
