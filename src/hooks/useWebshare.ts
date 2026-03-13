@@ -2,31 +2,68 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+type FunctionInvokeError = Error & {
+  context?: {
+    json?: () => Promise<any>;
+    text?: () => Promise<string>;
+  };
+};
+
+async function extractWebshareErrorMessage(error: unknown, fallback = "Erro Webshare API") {
+  const err = error as FunctionInvokeError;
+
+  try {
+    const payload = await err?.context?.json?.();
+    if (typeof payload?.error === "string") return payload.error;
+    if (typeof payload?.message === "string") return payload.message;
+  } catch {
+    // ignore JSON parse errors
+  }
+
+  try {
+    const raw = await err?.context?.text?.();
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (typeof parsed?.error === "string") return parsed.error;
+      } catch {
+        return raw;
+      }
+    }
+  } catch {
+    // ignore text read errors
+  }
+
+  return err?.message || fallback;
+}
+
 async function callWebshare(action: string, params: Record<string, unknown> = {}) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return null;
 
-  const { data, error } = await supabase.functions.invoke("webshare-api", {
+  const invokeWebshare = () => supabase.functions.invoke("webshare-api", {
     body: { action, ...params },
   });
 
-  // Extract real error message from response body when edge function returns non-2xx
-  const realErrorMsg = data?.error || error?.message || "Erro Webshare API";
+  const { data, error } = await invokeWebshare();
 
   if (error) {
+    const realErrorMsg = await extractWebshareErrorMessage(error, data?.error || "Erro Webshare API");
+
     // Retry once on auth failure
-    if (error.message?.includes("401") || data?.error?.includes("Token inválido")) {
+    if (error.message?.includes("401") || realErrorMsg.includes("Token inválido")) {
       const { error: refreshErr } = await supabase.auth.refreshSession();
       if (!refreshErr) {
-        const retry = await supabase.functions.invoke("webshare-api", {
-          body: { action, ...params },
-        });
-        const retryRealErr = retry.data?.error || retry.error?.message || "Erro Webshare API";
-        if (retry.error) throw new Error(retryRealErr);
+        const retry = await invokeWebshare();
+        if (retry.error) {
+          const retryRealErr = await extractWebshareErrorMessage(retry.error, retry.data?.error || "Erro Webshare API");
+          throw new Error(retryRealErr);
+        }
         if (retry.data?.error && !retry.data?.data) throw new Error(retry.data.error);
         return retry.data;
       }
     }
+
     throw new Error(realErrorMsg);
   }
 
