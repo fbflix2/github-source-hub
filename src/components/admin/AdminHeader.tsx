@@ -60,14 +60,16 @@ export function AdminHeader() {
   }, []);
 
   // Map notification type to event_key
-  const getEventKey = useCallback((type: string): string | null => {
+  const getEventKey = useCallback((type: string): string => {
     const map: Record<string, string> = {
       order: "order_completed",
       wallet: "wallet_deposit",
       pix: "wallet_deposit",
       ticket: "new_ticket",
+      success: "order_completed",
     };
-    return map[type] || null;
+    // Fallback to order_completed so every notification plays a sound
+    return map[type] || "order_completed";
   }, []);
 
   const playNotificationSound = useCallback((eventKey: string) => {
@@ -102,9 +104,7 @@ export function AdminHeader() {
           if (!seenIdsRef.current.has(n.id)) {
             console.log("[NotifSounds] New notification via polling:", n.type, n.title);
             const eventKey = getEventKey(n.type);
-            if (eventKey) {
-              playNotificationSound(eventKey);
-            }
+            playNotificationSound(eventKey);
           }
         }
       }
@@ -126,9 +126,7 @@ export function AdminHeader() {
         // Mark as seen immediately so polling doesn't double-play
         seenIdsRef.current.add(notif.id);
         const eventKey = getEventKey(notif.type);
-        if (eventKey) {
-          playNotificationSound(eventKey);
-        }
+        playNotificationSound(eventKey);
         fetchNotifications();
       })
       .subscribe();
