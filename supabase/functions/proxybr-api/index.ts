@@ -784,7 +784,8 @@ Deno.serve(async (req) => {
                 .from("subscriptions").select("id, user_id, raw_data").eq("name", code).eq("type", "proxybr").maybeSingle();
 
               const prevRaw = (existing?.raw_data || {}) as Record<string, any>;
-              const mergedSub = prevRaw.profile_tag ? { ...sub, profile_tag: prevRaw.profile_tag } : sub;
+              const profileTags2 = Object.fromEntries(Object.entries(prevRaw).filter(([k]) => k.startsWith("profile_tag")));
+              const mergedSub = { ...sub, ...profileTags2 };
 
               const record: Record<string, any> = {
                 name: code, type: "proxybr", status: mappedStatus,
