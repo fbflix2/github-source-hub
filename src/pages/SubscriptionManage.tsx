@@ -152,8 +152,8 @@ export default function SubscriptionManage() {
         .maybeSingle();
 
       if (subRow) {
-        const updatedRaw = { ...((subRow.raw_data as Record<string, unknown>) || {}), [tagKey]: trimmed || null };
-        await supabase.from("subscriptions").update({ raw_data: updatedRaw }).eq("id", subRow.id);
+        const updatedRaw = { ...((subRow.raw_data as Record<string, any>) || {}), [tagKey]: trimmed || null };
+        await supabase.from("subscriptions").update({ raw_data: updatedRaw as any }).eq("id", subRow.id);
         queryClient.invalidateQueries({ queryKey: isWebshare ? ["webshare-subscriptions"] : ["proxybr-subscriptions"] });
       }
     }
