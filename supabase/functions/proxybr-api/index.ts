@@ -197,7 +197,8 @@ Deno.serve(async (req) => {
             }
             const { data: existing } = await supabaseAdmin.from("subscriptions").select("raw_data").eq("name", code).eq("type", "proxybr").maybeSingle();
             const existingRaw = (existing?.raw_data || {}) as Record<string, any>;
-            freshData.profile_tag = existingRaw.profile_tag || null;
+            // Preserve all profile_tag* keys (per-proxy tags)
+            Object.keys(existingRaw).filter(k => k.startsWith("profile_tag")).forEach(k => { freshData[k] = existingRaw[k]; });
             const { error: updateErr } = await supabaseAdmin.from("subscriptions").update({ raw_data: freshData, updated_at: new Date().toISOString() }).eq("name", code).eq("type", "proxybr");
             results.push({ code, status: updateErr ? "error" : "ok", message: updateErr?.message });
             console.log(`Admin refresh ${code}: ${updateErr ? 'FAIL ' + updateErr.message : 'OK'}`);
@@ -430,7 +431,8 @@ Deno.serve(async (req) => {
         if (existingSub) {
           const prevRaw = (existingSub.raw_data || {}) as Record<string, any>;
           const newRaw = contractData.subscription || contractData;
-          const mergedRaw = prevRaw.profile_tag ? { ...newRaw, profile_tag: prevRaw.profile_tag } : newRaw;
+          const profileTags = Object.fromEntries(Object.entries(prevRaw).filter(([k]) => k.startsWith("profile_tag")));
+          const mergedRaw = { ...newRaw, ...profileTags };
           await supabaseAdmin.from("subscriptions").update({
             user_id: user.id,
             status: "active",
@@ -782,7 +784,8 @@ Deno.serve(async (req) => {
                 .from("subscriptions").select("id, user_id, raw_data").eq("name", code).eq("type", "proxybr").maybeSingle();
 
               const prevRaw = (existing?.raw_data || {}) as Record<string, any>;
-              const mergedSub = prevRaw.profile_tag ? { ...sub, profile_tag: prevRaw.profile_tag } : sub;
+              const profileTags2 = Object.fromEntries(Object.entries(prevRaw).filter(([k]) => k.startsWith("profile_tag")));
+              const mergedSub = { ...sub, ...profileTags2 };
 
               const record: Record<string, any> = {
                 name: code, type: "proxybr", status: mappedStatus,
@@ -933,7 +936,8 @@ Deno.serve(async (req) => {
 
           if (existingSub) {
             const prevRaw2 = (existingSub.raw_data || {}) as Record<string, any>;
-            const mergedRaw2 = prevRaw2.profile_tag ? { ...contractData, profile_tag: prevRaw2.profile_tag } : contractData;
+            const profileTags3 = Object.fromEntries(Object.entries(prevRaw2).filter(([k]) => k.startsWith("profile_tag")));
+            const mergedRaw2 = { ...contractData, ...profileTags3 };
             await supabaseAdmin.from("subscriptions").update({
               user_id: user.id,
               status: "active",
@@ -1127,7 +1131,8 @@ Deno.serve(async (req) => {
             // Preserve profile_tag during renewal refresh
             const { data: renewSub } = await supabaseAdmin.from("subscriptions").select("raw_data").eq("name", params.subscriptionCode).eq("type", "proxybr").maybeSingle();
             const renewPrevRaw = (renewSub?.raw_data || {}) as Record<string, any>;
-            const renewMerged = renewPrevRaw.profile_tag ? { ...freshData, profile_tag: renewPrevRaw.profile_tag } : freshData;
+            const renewProfileTags = Object.fromEntries(Object.entries(renewPrevRaw).filter(([k]) => k.startsWith("profile_tag")));
+            const renewMerged = { ...freshData, ...renewProfileTags };
             await supabaseAdmin
               .from("subscriptions")
               .update({

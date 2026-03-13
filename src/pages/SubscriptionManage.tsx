@@ -132,6 +132,10 @@ export default function SubscriptionManage() {
   const progress = totalDays > 0 ? Math.min(100, Math.max(0, (elapsed / totalDays) * 100)) : 0;
 
 
+  // Determine the tag key: for multi-proxy subs use per-proxy key, otherwise use profile_tag
+  const proxyIdFromCode = code?.includes("__proxy_") ? code.split("__proxy_")[1] : null;
+  const tagKey = proxyIdFromCode ? `profile_tag_${proxyIdFromCode}` : "profile_tag";
+
   const handleSaveProfile = async () => {
     const trimmed = profileName.trim();
     setSavedProfile(trimmed || null);
@@ -143,13 +147,13 @@ export default function SubscriptionManage() {
       const { data: subRow } = await supabase
         .from("subscriptions")
         .select("id, raw_data")
-        .eq("name", code)
+        .eq("name", realSubName!)
         .eq("type", subType)
         .maybeSingle();
 
       if (subRow) {
-        const updatedRaw = { ...((subRow.raw_data as Record<string, unknown>) || {}), profile_tag: trimmed || null };
-        await supabase.from("subscriptions").update({ raw_data: updatedRaw }).eq("id", subRow.id);
+        const updatedRaw = { ...((subRow.raw_data as Record<string, any>) || {}), [tagKey]: trimmed || null };
+        await supabase.from("subscriptions").update({ raw_data: updatedRaw as any }).eq("id", subRow.id);
         queryClient.invalidateQueries({ queryKey: isWebshare ? ["webshare-subscriptions"] : ["proxybr-subscriptions"] });
       }
     }
@@ -166,13 +170,13 @@ export default function SubscriptionManage() {
       const { data: subRow } = await supabase
         .from("subscriptions")
         .select("id, raw_data")
-        .eq("name", code)
+        .eq("name", realSubName!)
         .eq("type", subType)
         .maybeSingle();
 
       if (subRow) {
-        const updatedRaw = { ...((subRow.raw_data as Record<string, unknown>) || {}), profile_tag: null };
-        await supabase.from("subscriptions").update({ raw_data: updatedRaw }).eq("id", subRow.id);
+        const updatedRaw = { ...((subRow.raw_data as Record<string, any>) || {}), [tagKey]: null };
+        await supabase.from("subscriptions").update({ raw_data: updatedRaw as any }).eq("id", subRow.id);
         queryClient.invalidateQueries({ queryKey: isWebshare ? ["webshare-subscriptions"] : ["proxybr-subscriptions"] });
       }
     }
