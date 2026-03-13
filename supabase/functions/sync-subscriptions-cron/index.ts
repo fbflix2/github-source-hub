@@ -271,9 +271,8 @@ Deno.serve(async (req) => {
                 // Mark as cancelled with timestamp if not already cancelled
                 if (existing.status !== "cancelled") {
                   const existingRawCancelled = (existing.raw_data || {}) as Record<string, any>;
-                  const cancelledRaw = existingRawCancelled.profile_tag
-                    ? { ...sub, profile_tag: existingRawCancelled.profile_tag }
-                    : sub;
+                  const cancelProfileTags = Object.fromEntries(Object.entries(existingRawCancelled).filter(([k]) => k.startsWith("profile_tag")));
+                  const cancelledRaw = { ...sub, ...cancelProfileTags };
                   toUpdate.push({ id: existing.id, record: { 
                     name: code, type: "proxybr", status: "cancelled", 
                     cancelled_at: new Date().toISOString(),
