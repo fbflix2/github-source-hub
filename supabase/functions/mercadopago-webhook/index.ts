@@ -572,10 +572,14 @@ Deno.serve(async (req) => {
                 }
 
                 // Notify admin
-                const { data: wsOrderData } = await supabase.from("orders").select("code").eq("id", orderId).single();
+                const { data: wsOrderData } = await supabase.from("orders").select("code, total").eq("id", orderId).single();
+                const wsProductLabel = oi.name || "Proxy Webshare";
+                const { data: wsClientProfile } = await supabase.from("profiles").select("full_name").eq("user_id", userId).single();
+                const wsClientName = wsClientProfile?.full_name || "Cliente";
+
                 await supabase.from("notifications").insert({
-                  title: "Proxy Webshare Vendido (PIX)",
-                  message: `${assignedCount} proxy(s) Webshare atribuído(s) ao cliente. Pedido #${wsOrderData?.code || ""}`,
+                  title: `${wsProductLabel} Vendido (PIX)`,
+                  message: `${wsClientName} • R$ ${Number(wsOrderData?.total || oi.price || 0).toFixed(2)} • ${assignedCount} proxy(s) • Pedido #${wsOrderData?.code || ""}`,
                   type: "order",
                   global: true,
                 });
