@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { RefreshCw, Search, Loader2, Trash2, Download, Calendar } from "lucide-react";
+import { RefreshCw, Search, Loader2, Trash2, Download, Calendar, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { NewReplacementModal } from "@/components/admin/NewReplacementModal";
 
 interface Replacement {
   id: string;
@@ -44,6 +45,7 @@ export default function AdminReposicoes() {
   });
 
   const [orderCodes, setOrderCodes] = useState<Record<string, string>>({});
+  const [showNewModal, setShowNewModal] = useState(false);
 
   const fetchReplacements = async () => {
     setLoading(true);
@@ -227,6 +229,9 @@ export default function AdminReposicoes() {
           <Button variant="outline" size="sm" onClick={fetchReplacements} className="border-zinc-700 gap-2">
             <RefreshCw className="h-4 w-4" /> Atualizar
           </Button>
+          <Button size="sm" className="bg-yellow-500 hover:bg-yellow-600 text-black gap-2" onClick={() => setShowNewModal(true)}>
+            <Plus className="h-4 w-4" /> Nova Reposição
+          </Button>
         </div>
       </div>
 
@@ -355,6 +360,12 @@ export default function AdminReposicoes() {
           </Table>
         </div>
       )}
+
+      <NewReplacementModal
+        open={showNewModal}
+        onOpenChange={setShowNewModal}
+        onCreated={fetchReplacements}
+      />
     </div>
   );
 }
