@@ -166,6 +166,29 @@ const App = () => {
         // On sign-in, check staff redirect in a separate non-blocking call
         if (event === 'SIGNED_IN' && session?.user) {
           const userId = session.user.id;
+          const isImpersonated = new URLSearchParams(window.location.search).has('impersonated');
+
+          // Track real client first login (not impersonation)
+          if (!isImpersonated) {
+            setTimeout(async () => {
+              try {
+                const { data: profile } = await supabase
+                  .from('profiles')
+                  .select('first_login_at')
+                  .eq('user_id', userId)
+                  .maybeSingle();
+                if (profile && !profile.first_login_at) {
+                  await supabase
+                    .from('profiles')
+                    .update({ first_login_at: new Date().toISOString() })
+                    .eq('user_id', userId);
+                }
+              } catch (err) {
+                console.warn('[auth] first_login_at update failed:', err);
+              }
+            }, 100);
+          }
+
           const redirectKey = `staff_redirect_${userId}`;
           if (sessionStorage.getItem(redirectKey)) return;
 
