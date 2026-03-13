@@ -1148,7 +1148,19 @@ Deno.serve(async (req) => {
           const freshResp = await proxyFetch(freshUrl, PROXYBR_API_KEY);
           if (freshResp.ok) {
             const freshData = await freshResp.json();
-            const newEndDate = freshData.due_date ? new Date(freshData.due_date).toISOString() : null;
+            // Cap renewal end_date to 30 days from now to prevent accumulation
+            let newEndDate: string | null = null;
+            if (freshData.due_date) {
+              const apiEndMs = new Date(freshData.due_date).getTime();
+              const daysFromNow = (apiEndMs - Date.now()) / (1000 * 60 * 60 * 24);
+              if (daysFromNow > 35) {
+                const capped = new Date();
+                capped.setDate(capped.getDate() + 30);
+                newEndDate = capped.toISOString();
+              } else {
+                newEndDate = new Date(freshData.due_date).toISOString();
+              }
+            }
             // Preserve profile_tag during renewal refresh
             const { data: renewSub } = await supabaseAdmin.from("subscriptions").select("raw_data").eq("name", params.subscriptionCode).eq("type", "proxybr").maybeSingle();
             const renewPrevRaw = (renewSub?.raw_data || {}) as Record<string, any>;
