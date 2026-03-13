@@ -197,7 +197,8 @@ Deno.serve(async (req) => {
             }
             const { data: existing } = await supabaseAdmin.from("subscriptions").select("raw_data").eq("name", code).eq("type", "proxybr").maybeSingle();
             const existingRaw = (existing?.raw_data || {}) as Record<string, any>;
-            freshData.profile_tag = existingRaw.profile_tag || null;
+            // Preserve all profile_tag* keys (per-proxy tags)
+            Object.keys(existingRaw).filter(k => k.startsWith("profile_tag")).forEach(k => { freshData[k] = existingRaw[k]; });
             const { error: updateErr } = await supabaseAdmin.from("subscriptions").update({ raw_data: freshData, updated_at: new Date().toISOString() }).eq("name", code).eq("type", "proxybr");
             results.push({ code, status: updateErr ? "error" : "ok", message: updateErr?.message });
             console.log(`Admin refresh ${code}: ${updateErr ? 'FAIL ' + updateErr.message : 'OK'}`);
