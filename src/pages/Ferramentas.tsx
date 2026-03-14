@@ -171,7 +171,7 @@ export default function Ferramentas() {
   if (activeTool === "verificador") return <VerificadorTool onBack={() => setActiveTool(null)} />;
 
   return (
-    <div className="relative overflow-hidden pt-8 pb-24 px-4 sm:px-8 lg:px-20">
+    <div className="relative overflow-hidden pt-4 pb-6 px-4 sm:px-6 lg:px-12">
       {/* Background Accents */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-full -z-10 pointer-events-none opacity-20">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 blur-[120px] rounded-full" />
@@ -180,17 +180,17 @@ export default function Ferramentas() {
 
       <main className="max-w-6xl mx-auto">
         {/* Header Section */}
-        <header className="text-center mb-16">
-          <h1 className="text-5xl md:text-6xl font-black tracking-tight mb-6 text-white">
+        <header className="text-center mb-6">
+          <h1 className="text-3xl md:text-4xl font-black tracking-tight mb-2 text-white">
             Central de <span className="text-primary">Ferramentas</span>
           </h1>
-          <p className="text-lg text-slate-400 max-w-2xl mx-auto font-medium">
-            Otimize seu fluxo de trabalho com nossas ferramentas exclusivas de alta performance para gestão de contingência.
+          <p className="text-sm text-slate-400 max-w-xl mx-auto font-medium">
+            Otimize seu fluxo de trabalho com nossas ferramentas exclusivas de alta performance.
           </p>
         </header>
 
         {/* Tools Grid - 3 columns */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-20">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           {/* Tool 1: Gerador de 2FA */}
           <GlassCard bgImage={BG_IMAGES["2fa"]} onClick={() => setActiveTool("2fa")}>
             <div className="w-16 h-16 bg-primary/10 text-primary rounded-xl flex items-center justify-center mb-6 group-hover:bg-primary group-hover:text-white transition-colors duration-300">
