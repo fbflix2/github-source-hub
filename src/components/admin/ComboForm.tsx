@@ -465,7 +465,7 @@ function ProfileCard({
 
       {/* Expanded Form */}
       {expanded && (
-        <div className="p-4 pt-0 border-t border-white/5 max-h-[600px] overflow-y-auto">
+        <div className="p-4 pt-0 border-t border-white/5">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3">
             {/* Left - Identificação */}
             <div className="flex flex-col gap-2.5">
