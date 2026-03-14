@@ -88,6 +88,61 @@ export default function WebshareProxyTab() {
     staleTime: 60_000,
   });
 
+  // Fetch client profiles for subscriptions
+  const wsUserIds = useMemo(() => {
+    if (!wsSubs) return [];
+    const ids = new Set<string>();
+    wsSubs.forEach(s => { if (s.user_id) ids.add(s.user_id); });
+    return Array.from(ids);
+  }, [wsSubs]);
+
+  const { data: wsProfiles } = useQuery({
+    queryKey: ["webshare-client-profiles", wsUserIds],
+    queryFn: async () => {
+      if (wsUserIds.length === 0) return [];
+      const chunks: any[] = [];
+      for (let i = 0; i < wsUserIds.length; i += 50) {
+        const batch = wsUserIds.slice(i, i + 50);
+        const { data } = await supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .in("user_id", batch);
+        if (data) chunks.push(...data);
+      }
+      return chunks;
+    },
+    enabled: wsUserIds.length > 0,
+    staleTime: 60_000,
+  });
+
+  const profileMap = useMemo(() => {
+    const map = new Map<string, string>();
+    (wsProfiles || []).forEach(p => map.set(p.user_id, p.full_name || "Sem nome"));
+    return map;
+  }, [wsProfiles]);
+
+  // Compute sold proxy IDs to filter available list
+  const soldProxyIds = useMemo(() => {
+    if (!wsSubs) return new Set<number>();
+    const ids = new Set<number>();
+    wsSubs.forEach(s => {
+      const raw = s.raw_data as any;
+      if (raw?.webshare_proxy_id) ids.add(Number(raw.webshare_proxy_id));
+    });
+    return ids;
+  }, [wsSubs]);
+
+  // Count exchanges (from raw_data exchange markers)
+  const exchangeCount = useMemo(() => {
+    if (!wsSubs) return 0;
+    let count = 0;
+    wsSubs.forEach(s => {
+      const raw = s.raw_data as any;
+      if (raw?.exchange_count) count += Number(raw.exchange_count);
+    });
+    return count;
+  }, [wsSubs]);
+
   // Fetch live USD→BRL exchange rate
   const { data: usdToBrl } = useQuery({
     queryKey: ["usd-brl-rate"],
