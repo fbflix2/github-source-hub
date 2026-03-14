@@ -3,8 +3,9 @@ import { ImageIcon } from "lucide-react";
 import {
   Building2, CircleUser, PackageOpen, FolderOpen, ArrowLeft, Link, FileText, Info,
   Shield, Save, Hash, Mail, AtSign, KeyRound, Clock, BadgeCheck, Cookie, Eye, EyeOff,
-  Plus, X, Loader2, Trash2, DollarSign, Tag, ChevronDown, ChevronUp
+  Plus, X, Loader2, Trash2, DollarSign, Tag, ChevronDown, ChevronUp, Package
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -26,7 +27,7 @@ interface ProfileData {
 interface ComboData {
   nomeCombo: string; preco: string; categoryId: string;
   nomeProduto: string; fotoUrl: string; tags: string[];
-  descricaoCombo: string;
+  descricaoCombo: string; isPacote: boolean;
   profiles: ProfileData[];
 }
 
@@ -41,7 +42,7 @@ const emptyProfile = (): ProfileData => ({
 const emptyCombo = (): ComboData => ({
   nomeCombo: "", preco: "", categoryId: "",
   nomeProduto: "", fotoUrl: "", tags: [],
-  descricaoCombo: "",
+  descricaoCombo: "", isPacote: true,
   profiles: [emptyProfile(), emptyProfile(), emptyProfile()],
 });
 
@@ -139,6 +140,7 @@ export default function ComboForm({ folder, onBack, onSaved }: { folder: Folder;
         data: {
           nomeCombo: formData.nomeCombo,
           descricaoCombo: formData.descricaoCombo,
+          isPacote: formData.isPacote,
           preco: formData.preco ? parseFloat(formData.preco) : undefined,
           categoryId: formData.categoryId || undefined,
           nomeProduto: formData.nomeProduto || undefined,
@@ -190,7 +192,7 @@ export default function ComboForm({ folder, onBack, onSaved }: { folder: Folder;
 
       localStorage.removeItem(COMBO_DRAFT_KEY);
       setHasDraft(false);
-      toast.success(`Combo "${formData.nomeCombo}" com ${filledProfiles.length} perfis adicionado!`);
+      toast.success(`${formData.isPacote ? "📦 Pacote" : "Combo"} "${formData.nomeCombo}" com ${filledProfiles.length} perfis adicionado!`);
       setFormData(emptyCombo());
       onSaved();
     } catch (err: any) {
@@ -236,6 +238,32 @@ export default function ComboForm({ folder, onBack, onSaved }: { folder: Folder;
           <h2 className="text-sm font-bold text-white">Informações do Combo</h2>
           <Badge className="bg-primary/20 text-primary text-[10px] ml-auto">{formData.profiles.length} perfis</Badge>
         </div>
+
+        {/* Modo Pacote Toggle */}
+        <div className={`flex items-center gap-3 p-3 rounded-xl mb-3 transition-all ${formData.isPacote ? "bg-primary/10 border border-primary/30" : "bg-muted/30 border border-border"}`}>
+          <Package className={`h-5 w-5 shrink-0 ${formData.isPacote ? "text-primary" : "text-muted-foreground"}`} />
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <span className={`text-sm font-bold ${formData.isPacote ? "text-primary" : "text-foreground"}`}>Modo Pacote</span>
+              {formData.isPacote && <Badge className="bg-primary/20 text-primary text-[10px]">Ativo</Badge>}
+            </div>
+            <p className="text-[11px] text-muted-foreground leading-tight mt-0.5">
+              {formData.isPacote
+                ? "Todos os perfis serão agrupados em um único pacote. O cliente compra por um preço único e recebe todos os itens dentro."
+                : "Ative para agrupar os perfis em um pacote único de venda."}
+            </p>
+          </div>
+          <Switch checked={formData.isPacote} onCheckedChange={v => setFormData({ ...formData, isPacote: v })} />
+        </div>
+
+        {formData.isPacote && (
+          <div className="flex items-center gap-2 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 mb-3">
+            <Info className="h-4 w-4 text-amber-400 shrink-0" />
+            <p className="text-[11px] text-amber-300">
+              📦 Pacote com {formData.profiles.length} {formData.profiles.length === 1 ? "item" : "itens"} — preço único de R$ {formData.preco || "0,00"}. Na compra, o cliente recebe {formData.profiles.length} {formData.profiles.length === 1 ? "perfil separado" : "perfis separados"}.
+            </p>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div className="flex flex-col gap-1">
@@ -356,8 +384,8 @@ export default function ComboForm({ folder, onBack, onSaved }: { folder: Folder;
       <div className="flex items-center justify-between pt-3 border-t border-white/10">
         <Button type="button" variant="ghost" onClick={onBack} className="text-zinc-400 hover:text-white hover:bg-white/5">Voltar</Button>
         <Button onClick={handleSave} disabled={saving} className="bg-primary hover:bg-primary/90 text-white gap-2">
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          Salvar Combo ({formData.profiles.filter(p => p.linkPerfil || p.idPerfil || p.emailAcesso).length} perfis)
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : formData.isPacote ? <Package className="h-4 w-4" /> : <Save className="h-4 w-4" />}
+          {formData.isPacote ? "Salvar Pacote" : "Salvar Combo"} ({formData.profiles.filter(p => p.linkPerfil || p.idPerfil || p.emailAcesso).length} perfis)
         </Button>
       </div>
     </div>
