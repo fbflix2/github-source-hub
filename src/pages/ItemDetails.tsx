@@ -40,6 +40,7 @@ export default function ItemDetails() {
   const { orderId, itemId } = useParams();
   const [searchParams] = useSearchParams();
   const comboProfileId = searchParams.get("profile"); // specific child stock_item_id
+  const [showPassword, setShowPassword] = useState(false);
   const [showToken, setShowToken] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [itemStatus, setItemStatus] = useState(false);
