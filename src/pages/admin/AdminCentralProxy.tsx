@@ -1,8 +1,4 @@
 import { Globe } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import ProxyCostManagement from "@/components/admin/proxy/ProxyCostManagement";
-import ProxyFinancialOverview from "@/components/admin/proxy/ProxyFinancialOverview";
-import ProxyUnlinkedList from "@/components/admin/proxy/ProxyUnlinkedList";
 import WebshareProxyTab from "@/components/admin/proxy/WebshareProxyTab";
 
 export default function AdminCentralProxy() {
@@ -14,36 +10,12 @@ export default function AdminCentralProxy() {
           <Globe className="text-primary-foreground size-5" />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-foreground">Central Proxy</h1>
-          <p className="text-xs text-muted-foreground">Gestão completa de proxies, custos e finanças</p>
+          <h1 className="text-xl font-bold text-foreground">Central Proxy — Webshare</h1>
+          <p className="text-xs text-muted-foreground">Gestão de proxies do fornecedor Webshare</p>
         </div>
       </div>
 
-      {/* Tabs */}
-      <Tabs defaultValue="costs" className="space-y-6">
-        <TabsList className="bg-card/60 border border-border/40">
-          <TabsTrigger value="costs">Custos & Estoque</TabsTrigger>
-          <TabsTrigger value="financial">Balanço Financeiro</TabsTrigger>
-          <TabsTrigger value="unlinked">Sem Cliente</TabsTrigger>
-          <TabsTrigger value="webshare">Webshare</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="costs">
-          <ProxyCostManagement />
-        </TabsContent>
-
-        <TabsContent value="financial">
-          <ProxyFinancialOverview />
-        </TabsContent>
-
-        <TabsContent value="unlinked">
-          <ProxyUnlinkedList />
-        </TabsContent>
-
-        <TabsContent value="webshare">
-          <WebshareProxyTab />
-        </TabsContent>
-      </Tabs>
+      <WebshareProxyTab />
     </div>
   );
 }
