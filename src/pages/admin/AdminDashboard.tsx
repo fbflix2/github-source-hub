@@ -96,8 +96,9 @@ export default function AdminDashboard() {
   useEffect(() => {
     async function fetchStats() {
       try {
-      const [profilesRes, transactionsRes, balanceRes, productsRes, ordersRes, orderItemsRes, categoriesRes, pendingPaymentsRes] = await Promise.all([
+      const [profilesRes, loggedInRes, transactionsRes, balanceRes, productsRes, ordersRes, orderItemsRes, categoriesRes, pendingPaymentsRes] = await Promise.all([
         supabase.from("profiles").select("id", { count: "exact", head: true }).limit(0),
+        supabase.from("profiles").select("id", { count: "exact", head: true }).not("first_login_at", "is", null).limit(0),
         supabase.from("wallet_transactions").select("id", { count: "exact", head: true }),
         supabase.rpc("get_total_wallet_balance"),
         supabase.from("products").select("id, available"),
@@ -107,7 +108,8 @@ export default function AdminDashboard() {
         supabase.from("payments").select("id", { count: "exact", head: true }).eq("status", "pending"),
       ]);
 
-      setTotalClients(profilesRes.count ?? 0);
+      setTotalClients(loggedInRes.count ?? 0);
+      setTotalInBase(profilesRes.count ?? 0);
       setTotalTransactions(transactionsRes.count ?? 0);
       setTotalBalance(balanceRes.data ?? 0);
 
