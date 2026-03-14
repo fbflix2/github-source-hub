@@ -344,7 +344,7 @@ export default function AdminDashboard() {
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { title: "Total de Clientes", value: totalClients.toLocaleString("pt-BR"), icon: Users, iconBg: "bg-blue-500/20", iconColor: "text-blue-400" },
+          { title: "Total de Clientes", value: totalClients.toLocaleString("pt-BR"), icon: Users, iconBg: "bg-blue-500/20", iconColor: "text-blue-400", sub: `${totalInBase.toLocaleString("pt-BR")} na base` },
           { title: "Total de Transações", value: totalTransactions.toLocaleString("pt-BR"), icon: Receipt, iconBg: "bg-purple-500/20", iconColor: "text-purple-400" },
           { title: "Saldo em Carteiras", value: formatCurrency(totalBalance), icon: Wallet, iconBg: "bg-primary/20", iconColor: "text-primary" },
           { title: "Faturado Hoje", value: formatCurrency(todayRevenue), icon: TrendingUp, iconBg: "bg-green-500/20", iconColor: "text-green-400" },
