@@ -384,8 +384,8 @@ export default function ComboForm({ folder, onBack, onSaved }: { folder: Folder;
       <div className="flex items-center justify-between pt-3 border-t border-white/10">
         <Button type="button" variant="ghost" onClick={onBack} className="text-zinc-400 hover:text-white hover:bg-white/5">Voltar</Button>
         <Button onClick={handleSave} disabled={saving} className="bg-primary hover:bg-primary/90 text-white gap-2">
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          Salvar Combo ({formData.profiles.filter(p => p.linkPerfil || p.idPerfil || p.emailAcesso).length} perfis)
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : formData.isPacote ? <Package className="h-4 w-4" /> : <Save className="h-4 w-4" />}
+          {formData.isPacote ? "Salvar Pacote" : "Salvar Combo"} ({formData.profiles.filter(p => p.linkPerfil || p.idPerfil || p.emailAcesso).length} perfis)
         </Button>
       </div>
     </div>
