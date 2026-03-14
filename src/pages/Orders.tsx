@@ -416,6 +416,7 @@ export default function Orders() {
                                 totalPrice: unitPrice,
                                 hidePrice: true,
                                 itemId: item.id,
+                                comboStockItemId: profile.id,
                                 isBlocked: !!item.isBlocked,
                                 isReplaced: !!item.isReplaced,
                                 replacedAt: item.replacedAt || null,
