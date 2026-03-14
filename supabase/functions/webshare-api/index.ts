@@ -305,27 +305,7 @@ Deno.serve(async (req) => {
           .single();
 
         if (productData) {
-          const tags = (productData.tags || []) as string[];
-          const name = (productData.name || "").toLowerCase();
-          
-          // Check tags first for country codes
-          const countryTags = ["br", "us", "uk", "de", "fr", "ca", "au", "jp"];
-          for (const tag of tags) {
-            const lowerTag = tag.toLowerCase().trim();
-            if (countryTags.includes(lowerTag)) {
-              targetCountryCode = lowerTag.toUpperCase();
-              break;
-            }
-          }
-          
-          // Fallback: check product name for country hints
-          if (!targetCountryCode) {
-            if (name.includes("brasil") || name.includes("brazil") || name.includes(" br")) {
-              targetCountryCode = "BR";
-            } else if (name.includes("usa") || name.includes("estados unidos") || name.includes(" us")) {
-              targetCountryCode = "US";
-            }
-          }
+          targetCountryCode = detectCountryFromProduct(productData);
         }
       }
       
