@@ -395,7 +395,9 @@ export default function ItemDetails() {
 
   const formatDate = (d: string) => new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
 
-  const itemName = orderItem?.name || product?.name || "Item";
+  const itemName = comboProfileId && stockData.nomePerfil
+    ? `${orderItem?.name || product?.name || "Item"} • ${stockData.nomePerfil}`
+    : (orderItem?.name || product?.name || "Item");
   const email = stockData.emailAcesso || "—";
   const senha = stockData.senha || "—";
   const token2fa = stockData.token2fa || "—";
