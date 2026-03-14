@@ -414,6 +414,7 @@ export default function Orders() {
                                 subtitle: profile.identificationLink || profile.identification || profile.name,
                                 price: unitPrice,
                                 totalPrice: unitPrice,
+                                hidePrice: true,
                                 itemId: item.id,
                                 isBlocked: !!item.isBlocked,
                                 isReplaced: !!item.isReplaced,
