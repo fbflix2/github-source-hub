@@ -232,16 +232,16 @@ export default function Ferramentas() {
 
           {/* Tool 3: Verificador de Perfis */}
           <GlassCard bgImage={BG_IMAGES.verificador} onClick={() => setActiveTool("verificador")}>
-            <div className="w-16 h-16 bg-primary/10 text-primary rounded-xl flex items-center justify-center mb-6 group-hover:bg-primary group-hover:text-white transition-colors duration-300">
-              <MaterialIcon name="how_to_reg" className="text-4xl" />
+            <div className="w-11 h-11 bg-primary/10 text-primary rounded-lg flex items-center justify-center mb-3 group-hover:bg-primary group-hover:text-white transition-colors duration-300">
+              <MaterialIcon name="how_to_reg" className="text-2xl" />
             </div>
-            <h3 className="text-xl font-bold mb-3 text-white">Verificador de Perfis</h3>
-            <p className="text-slate-400 mb-8 flex-grow leading-relaxed">
+            <h3 className="text-base font-bold mb-1.5 text-white">Verificador de Perfis</h3>
+            <p className="text-slate-400 mb-4 flex-grow leading-relaxed text-xs">
               Verifique o status de múltiplas contas simultaneamente e identifique restrições em tempo real.
             </p>
-            <button className="w-full py-4 px-6 bg-primary hover:bg-red-700 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2 group/btn">
+            <button className="w-full py-2.5 px-4 bg-primary hover:bg-red-700 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2 text-sm group/btn">
               <span>Acessar Ferramenta</span>
-              <MaterialIcon name="arrow_forward" className="text-xl group-hover/btn:translate-x-1 transition-transform" />
+              <MaterialIcon name="arrow_forward" className="text-lg group-hover/btn:translate-x-1 transition-transform" />
             </button>
           </GlassCard>
         </div>
