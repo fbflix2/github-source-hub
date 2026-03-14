@@ -302,6 +302,7 @@ const App = () => {
                   <Route path="carrinhos-abandonados" element={<AdminCarrinhosAbandonados />} />
                   <Route path="assinaturas" element={<AdminAssinaturas />} />
                   <Route path="central-proxy" element={<AdminCentralProxy />} />
+                  <Route path="central-proxy/proxybr" element={<AdminProxyBR />} />
                   <Route path="clientes" element={<AdminClientes />} />
                   <Route path="clientes/ativos" element={<AdminClientesAtivos />} />
                   <Route path="afiliados" element={<AdminAfiliados />} />
