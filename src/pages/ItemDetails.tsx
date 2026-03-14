@@ -404,7 +404,8 @@ export default function ItemDetails() {
   const descricao = stockData.descricao || product?.description || "";
   const tags = product?.tags || [];
   const isBM = product?.icon_type === "bm";
-  const isPage = product?.icon_type === "page" && !isCombo;
+  const isComboProfileView = !!comboProfileId;
+  const isPage = product?.icon_type === "page" && !isCombo && !isComboProfileView;
   const itemQuantity = orderItem?.quantity || 1;
 
   const downloadBmBloco = () => {
