@@ -160,7 +160,6 @@ export default function Orders() {
         if (children.length > 0 || parent.type === "combo") {
           comboProfilesByOrderItemId.set(parent.order_item_id, children);
         }
-        }
       });
 
       // Filter out proxy-only orders
