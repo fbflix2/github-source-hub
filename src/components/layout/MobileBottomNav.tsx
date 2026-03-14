@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { ShoppingBag, Repeat, ClipboardList, GraduationCap, Megaphone, HandCoins, Store } from "lucide-react";
+import { ShoppingBag, Repeat, ClipboardList, GraduationCap, Megaphone, HandCoins, Store, Wrench } from "lucide-react";
 import { useNavVisibility } from "@/hooks/useNavVisibility";
 import { cn } from "@/lib/utils";
 
