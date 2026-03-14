@@ -67,6 +67,8 @@ export default function ItemDetails() {
   const [exchangeLocked, setExchangeLocked] = useState(false);
   const [requestingPage, setRequestingPage] = useState(false);
   const [clientFullName, setClientFullName] = useState<string | null>(null);
+  const [isCombo, setIsCombo] = useState(false);
+  const [comboChildren, setComboChildren] = useState<any[]>([]);
   // Countdown from order created_at + 24h
   const [countdown, setCountdown] = useState({ hours: 0, minutes: 0, seconds: 0 });
   // Warranty countdown from order created_at + 7 days
