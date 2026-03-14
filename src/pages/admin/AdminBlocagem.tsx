@@ -1011,16 +1011,29 @@ function ComboForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => 
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-3">
-        <button onClick={onBack} className="w-8 h-8 rounded-full bg-zinc-800/50 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors">
-          <ArrowLeft className="h-4 w-4" />
-        </button>
-        <div>
-          <h1 className="text-xl font-bold text-white">Blocagem de Combo</h1>
-          <div className="flex items-center gap-2 text-xs text-zinc-400">
-            <FolderOpen className="h-3 w-3" />
-            <span>Pasta: {folder.name}</span>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button onClick={onBack} className="w-8 h-8 rounded-full bg-zinc-800/50 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors">
+            <ArrowLeft className="h-4 w-4" />
+          </button>
+          <div>
+            <h1 className="text-xl font-bold text-white">Blocagem de Combo</h1>
+            <div className="flex items-center gap-2 text-xs text-zinc-400">
+              <FolderOpen className="h-3 w-3" />
+              <span>Pasta: {folder.name}</span>
+            </div>
           </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {hasDraft && (
+            <Button type="button" variant="ghost" size="sm" onClick={handleClearDraft} className="text-xs text-zinc-500 hover:text-destructive">
+              <Trash2 className="h-3.5 w-3.5 mr-1" /> Descartar rascunho
+            </Button>
+          )}
+          <Button type="button" variant="outline" size="sm" onClick={handleSaveDraft} disabled={savingDraft} className="text-xs border-amber-500/30 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300 gap-1.5">
+            {savingDraft ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+            Salvar como rascunho
+          </Button>
         </div>
       </div>
 
