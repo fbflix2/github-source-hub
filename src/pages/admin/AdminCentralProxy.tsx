@@ -10,7 +10,7 @@ export default function AdminCentralProxy() {
           <Globe className="text-primary-foreground size-5" />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-foreground">Central Proxy</h1>
+          <h1 className="text-xl font-bold text-foreground">Proxy WebShare</h1>
           <p className="text-xs text-muted-foreground">Gestão de proxies do fornecedor Webshare</p>
         </div>
       </div>
