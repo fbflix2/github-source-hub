@@ -629,19 +629,39 @@ function PaginaForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
 
 // ─── BM Form ───
 function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => void; onSaved: () => void }) {
-  const [urls, setUrls] = useState("");
-  const [descricao, setDescricao] = useState("");
-  const [perfilBackup, setPerfilBackup] = useState("");
+  const BM_DRAFT_KEY = "bm_form_draft";
   const [saving, setSaving] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [hasDraft, setHasDraft] = useState(() => !!localStorage.getItem(BM_DRAFT_KEY));
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
-  const [preco, setPreco] = useState("");
-  const [categoryId, setCategoryId] = useState("");
-  const [tags, setTags] = useState<string[]>([]);
-  const [nomeProduto, setNomeProduto] = useState("");
   const [productDefaults, setProductDefaults] = useState<{ id: string; name: string; tags: string[] }[]>([]);
   const [productImages, setProductImages] = useState<{ id: string; name: string; url: string }[]>([]);
   const [showImagePicker, setShowImagePicker] = useState(false);
-  const [selectedImageUrl, setSelectedImageUrl] = useState("");
+
+  const emptyBmForm = { urls: "", descricao: "", perfilBackup: "", preco: "", categoryId: "", tags: [] as string[], nomeProduto: "", selectedImageUrl: "" };
+
+  const [bmData, setBmData] = useState(() => {
+    try {
+      const saved = localStorage.getItem(BM_DRAFT_KEY);
+      if (saved) return { ...emptyBmForm, ...JSON.parse(saved) };
+    } catch {}
+    return emptyBmForm;
+  });
+
+  const handleSaveBmDraft = () => {
+    setSavingDraft(true);
+    localStorage.setItem(BM_DRAFT_KEY, JSON.stringify(bmData));
+    setHasDraft(true);
+    setTimeout(() => setSavingDraft(false), 600);
+    toast.success("Rascunho salvo com sucesso!");
+  };
+
+  const handleClearBmDraft = () => {
+    localStorage.removeItem(BM_DRAFT_KEY);
+    setHasDraft(false);
+    setBmData(emptyBmForm);
+    toast.info("Rascunho descartado.");
+  };
 
   useEffect(() => {
     supabase.from("product_categories").select("id, name").then(({ data }) => setCategories(data ?? []));
