@@ -24,6 +24,7 @@ interface PendingItem {
 export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [totalClients, setTotalClients] = useState(0);
+  const [totalInBase, setTotalInBase] = useState(0);
   const [totalTransactions, setTotalTransactions] = useState(0);
   const [totalBalance, setTotalBalance] = useState(0);
   const [totalProducts, setTotalProducts] = useState(0);
@@ -95,8 +96,9 @@ export default function AdminDashboard() {
   useEffect(() => {
     async function fetchStats() {
       try {
-      const [profilesRes, transactionsRes, balanceRes, productsRes, ordersRes, orderItemsRes, categoriesRes, pendingPaymentsRes] = await Promise.all([
+      const [profilesRes, loggedInRes, transactionsRes, balanceRes, productsRes, ordersRes, orderItemsRes, categoriesRes, pendingPaymentsRes] = await Promise.all([
         supabase.from("profiles").select("id", { count: "exact", head: true }).limit(0),
+        supabase.from("profiles").select("id", { count: "exact", head: true }).not("first_login_at", "is", null).limit(0),
         supabase.from("wallet_transactions").select("id", { count: "exact", head: true }),
         supabase.rpc("get_total_wallet_balance"),
         supabase.from("products").select("id, available"),
@@ -106,7 +108,8 @@ export default function AdminDashboard() {
         supabase.from("payments").select("id", { count: "exact", head: true }).eq("status", "pending"),
       ]);
 
-      setTotalClients(profilesRes.count ?? 0);
+      setTotalClients(loggedInRes.count ?? 0);
+      setTotalInBase(profilesRes.count ?? 0);
       setTotalTransactions(transactionsRes.count ?? 0);
       setTotalBalance(balanceRes.data ?? 0);
 
@@ -341,7 +344,7 @@ export default function AdminDashboard() {
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { title: "Total de Clientes", value: totalClients.toLocaleString("pt-BR"), icon: Users, iconBg: "bg-blue-500/20", iconColor: "text-blue-400" },
+          { title: "Total de Clientes", value: totalClients.toLocaleString("pt-BR"), icon: Users, iconBg: "bg-blue-500/20", iconColor: "text-blue-400", sub: `${totalInBase.toLocaleString("pt-BR")} na base` },
           { title: "Total de Transações", value: totalTransactions.toLocaleString("pt-BR"), icon: Receipt, iconBg: "bg-purple-500/20", iconColor: "text-purple-400" },
           { title: "Saldo em Carteiras", value: formatCurrency(totalBalance), icon: Wallet, iconBg: "bg-primary/20", iconColor: "text-primary" },
           { title: "Faturado Hoje", value: formatCurrency(todayRevenue), icon: TrendingUp, iconBg: "bg-green-500/20", iconColor: "text-green-400" },
@@ -358,6 +361,7 @@ export default function AdminDashboard() {
                 <p className="text-white/60 text-xs font-medium">{card.title}</p>
               </div>
               <h3 className="text-2xl font-bold text-white tracking-tight">{card.value}</h3>
+              {(card as any).sub && <p className="text-white/40 text-[10px]">{(card as any).sub}</p>}
             </div>
           </div>
         ))}
