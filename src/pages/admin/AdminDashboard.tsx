@@ -361,6 +361,7 @@ export default function AdminDashboard() {
                 <p className="text-white/60 text-xs font-medium">{card.title}</p>
               </div>
               <h3 className="text-2xl font-bold text-white tracking-tight">{card.value}</h3>
+              {(card as any).sub && <p className="text-white/40 text-[10px]">{(card as any).sub}</p>}
             </div>
           </div>
         ))}
