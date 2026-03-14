@@ -375,7 +375,7 @@ export default function ItemDetails() {
   const descricao = stockData.descricao || product?.description || "";
   const tags = product?.tags || [];
   const isBM = product?.icon_type === "bm";
-  const isPage = product?.icon_type === "page";
+  const isPage = product?.icon_type === "page" && !isCombo;
   const itemQuantity = orderItem?.quantity || 1;
 
   const downloadBmBloco = () => {
