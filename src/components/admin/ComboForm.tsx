@@ -3,8 +3,9 @@ import { ImageIcon } from "lucide-react";
 import {
   Building2, CircleUser, PackageOpen, FolderOpen, ArrowLeft, Link, FileText, Info,
   Shield, Save, Hash, Mail, AtSign, KeyRound, Clock, BadgeCheck, Cookie, Eye, EyeOff,
-  Plus, X, Loader2, Trash2, DollarSign, Tag, ChevronDown, ChevronUp
+  Plus, X, Loader2, Trash2, DollarSign, Tag, ChevronDown, ChevronUp, Package
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
