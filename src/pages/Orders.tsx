@@ -106,33 +106,49 @@ export default function Orders() {
         .select("*, products:product_id(icon_type)")
         .in("order_id", orderIds.length > 0 ? orderIds : ["__none__"]);
 
-      // Fetch stock_items linked to order_items (combo parent/main items only - exclude children)
+      // Fetch ALL stock_items linked to order_items
       const itemIds = (itemsData || []).map((i) => i.id);
-      const { data: parentStockItems } = await supabase
+      const { data: allStockItems } = await supabase
         .from("stock_items")
-        .select("id, order_item_id, status, type, parent_id")
-        .in("order_item_id", itemIds.length > 0 ? itemIds : ["__none__"])
-        .is("parent_id", null);
+        .select("id, order_item_id, status, type, parent_id, name, identification, identification_link")
+        .in("order_item_id", itemIds.length > 0 ? itemIds : ["__none__"]);
 
-      // Fetch combo children (profiles) by parent_id OR by order_item_id with parent_id set
-      const parentStockIds = (parentStockItems || []).map((s: any) => s.id);
-      const { data: childStockItems } = await supabase
-        .from("stock_items")
-        .select("id, parent_id, name, identification, identification_link, order_item_id")
-        .in("parent_id", parentStockIds.length > 0 ? parentStockIds : ["__none__"]);
+      // Separate parents (no parent_id) and children (have parent_id)
+      const parentStockItems = (allStockItems || []).filter((s: any) => !s.parent_id);
+      const childStockItems = (allStockItems || []).filter((s: any) => !!s.parent_id);
+
+      // Also fetch children by parent_id if not already found via order_item_id
+      const comboParentIds = parentStockItems
+        .filter((s: any) => s.type === 'combo')
+        .map((s: any) => s.id);
+      
+      let extraChildren: any[] = [];
+      if (comboParentIds.length > 0) {
+        const existingChildParentIds = new Set(childStockItems.map((c: any) => c.parent_id));
+        const missingParentIds = comboParentIds.filter((id: string) => !existingChildParentIds.has(id));
+        if (missingParentIds.length > 0) {
+          const { data: extra } = await supabase
+            .from("stock_items")
+            .select("id, parent_id, name, identification, identification_link, order_item_id")
+            .in("parent_id", missingParentIds);
+          extraChildren = extra || [];
+        }
+      }
+
+      const allChildren = [...childStockItems, ...extraChildren];
 
       const blockedItemIds = new Set(
-        (parentStockItems || [])
+        parentStockItems
           .filter((s: any) => s.status === "bloqueado")
           .map((s: any) => s.order_item_id)
           .filter(Boolean)
       );
 
       const comboProfilesByOrderItemId = new Map<string, ComboProfile[]>();
-      (parentStockItems || []).forEach((parent: any) => {
+      parentStockItems.forEach((parent: any) => {
         if (!parent.order_item_id) return;
 
-        const children = (childStockItems || [])
+        const children = allChildren
           .filter((child: any) => child.parent_id === parent.id)
           .map((child: any) => ({
             id: child.id,
