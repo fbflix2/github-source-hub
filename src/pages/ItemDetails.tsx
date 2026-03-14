@@ -67,6 +67,8 @@ export default function ItemDetails() {
   const [exchangeLocked, setExchangeLocked] = useState(false);
   const [requestingPage, setRequestingPage] = useState(false);
   const [clientFullName, setClientFullName] = useState<string | null>(null);
+  const [isCombo, setIsCombo] = useState(false);
+  const [comboChildren, setComboChildren] = useState<any[]>([]);
   // Countdown from order created_at + 24h
   const [countdown, setCountdown] = useState({ hours: 0, minutes: 0, seconds: 0 });
   // Warranty countdown from order created_at + 7 days
@@ -144,22 +146,32 @@ export default function ItemDetails() {
         }
       }
 
-      // Fetch linked stock_item
-      const { data: stockItem } = await supabase
+      // Fetch linked stock_item (including combo children)
+      const { data: stockItems } = await supabase
         .from("stock_items")
         .select("*")
-        .eq("order_item_id", itemId)
-        .maybeSingle();
+        .eq("order_item_id", itemId);
 
-      if (stockItem) {
-        setStockItemId(stockItem.id);
-        if (stockItem.status === "bloqueado") setIsBlocked(true);
-        if (stockItem.status === "ok") setIsConfirmedOk(true);
-        const baseData = (stockItem.data && typeof stockItem.data === "object") ? stockItem.data as StockData : {} as StockData;
+      const mainStockItem = stockItems?.find((s: any) => !s.parent_id) || stockItems?.[0] || null;
+
+      if (mainStockItem) {
+        setStockItemId(mainStockItem.id);
+        if (mainStockItem.status === "bloqueado") setIsBlocked(true);
+        if (mainStockItem.status === "ok") setIsConfirmedOk(true);
+        const baseData = (mainStockItem.data && typeof mainStockItem.data === "object") ? mainStockItem.data as StockData : {} as StockData;
         // Merge top-level stock_items fields into stockData for template replacement
-        if (stockItem.identification_link) baseData.linkPerfil = stockItem.identification_link;
-        if (stockItem.identification) baseData.idPerfil = stockItem.identification;
+        if (mainStockItem.identification_link) baseData.linkPerfil = mainStockItem.identification_link;
+        if (mainStockItem.identification) baseData.idPerfil = mainStockItem.identification;
         setStockData(baseData);
+
+        // If it's a combo (has children), mark it so we don't show page flow
+        const hasChildren = stockItems && stockItems.some((s: any) => s.parent_id === mainStockItem.id);
+        if (mainStockItem.type === "combo" || hasChildren) {
+          setIsCombo(true);
+          // Collect all child stock items for display
+          const children = stockItems?.filter((s: any) => s.parent_id === mainStockItem.id) || [];
+          setComboChildren(children);
+        }
       }
 
       // Fetch product info
@@ -363,7 +375,7 @@ export default function ItemDetails() {
   const descricao = stockData.descricao || product?.description || "";
   const tags = product?.tags || [];
   const isBM = product?.icon_type === "bm";
-  const isPage = product?.icon_type === "page";
+  const isPage = product?.icon_type === "page" && !isCombo;
   const itemQuantity = orderItem?.quantity || 1;
 
   const downloadBmBloco = () => {
@@ -864,6 +876,74 @@ export default function ItemDetails() {
                         </button>
                       </>
                     )}
+                  </>
+                ) : isCombo && comboChildren.length > 0 ? (
+                  <>
+                    <h3 className="text-[10px] font-bold text-foreground mb-2 uppercase tracking-wider">
+                      Perfis do Combo ({comboChildren.length})
+                    </h3>
+                    <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
+                      {comboChildren.map((child: any, idx: number) => {
+                        const cd = (child.data && typeof child.data === "object") ? child.data as StockData : {} as StockData;
+                        const cEmail = cd.emailAcesso || "—";
+                        const cSenha = cd.senha || "—";
+                        const cToken = cd.token2fa || "—";
+                        return (
+                          <div key={child.id} className="p-2.5 rounded-lg bg-background/50 border border-border space-y-1.5">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-[10px] font-bold text-primary uppercase">Perfil #{idx + 1}</span>
+                              {child.identification && (
+                                <span className="text-[10px] text-muted-foreground font-mono">{child.identification}</span>
+                              )}
+                            </div>
+                            <div>
+                              <label className="text-[10px] text-muted-foreground mb-0.5 block">Login / Email</label>
+                              <div className="flex items-center gap-1">
+                                <code className="flex-1 bg-muted/30 px-2 py-1 rounded border border-border text-xs font-mono text-foreground truncate">{cEmail}</code>
+                                <button onClick={() => copyToClipboard(cEmail, `combo-email-${idx}`)} className="p-1 rounded bg-muted/50 hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
+                                  <span className="material-symbols-outlined text-[12px]">{copied === `combo-email-${idx}` ? 'check' : 'content_copy'}</span>
+                                </button>
+                              </div>
+                            </div>
+                            <div>
+                              <label className="text-[10px] text-muted-foreground mb-0.5 block">Senha</label>
+                              <div className="flex items-center gap-1">
+                                <code className="flex-1 bg-muted/30 px-2 py-1 rounded border border-border text-xs font-mono text-foreground">{cSenha}</code>
+                                <button onClick={() => copyToClipboard(cSenha, `combo-senha-${idx}`)} className="p-1 rounded bg-muted/50 hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
+                                  <span className="material-symbols-outlined text-[12px]">{copied === `combo-senha-${idx}` ? 'check' : 'content_copy'}</span>
+                                </button>
+                              </div>
+                            </div>
+                            <div>
+                              <label className="text-[10px] text-muted-foreground mb-0.5 block">2FA</label>
+                              <div className="flex items-center gap-1">
+                                <code className="flex-1 bg-muted/30 px-2 py-1 rounded border border-border text-xs font-mono text-foreground">{cToken}</code>
+                                <button onClick={() => requireDisclaimer(() => copyToClipboard(cToken, `combo-2fa-${idx}`))} className="p-1 rounded bg-muted/50 hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
+                                  <span className="material-symbols-outlined text-[12px]">{copied === `combo-2fa-${idx}` ? 'check' : 'content_copy'}</span>
+                                </button>
+                              </div>
+                            </div>
+                            {child.identification_link && (
+                              <div>
+                                <label className="text-[10px] text-muted-foreground mb-0.5 block">Link do Perfil</label>
+                                <div className="flex items-center gap-1">
+                                  <code className="flex-1 bg-muted/30 px-2 py-1 rounded border border-border text-xs font-mono text-green-400 truncate">{child.identification_link}</code>
+                                  <button onClick={() => copyToClipboard(child.identification_link, `combo-link-${idx}`)} className="p-1 rounded bg-muted/50 hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
+                                    <span className="material-symbols-outlined text-[12px]">{copied === `combo-link-${idx}` ? 'check' : 'content_copy'}</span>
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="mt-2 pt-2 border-t border-border flex gap-2">
+                      <button onClick={() => requireDisclaimer(downloadBloco)} className="flex-1 py-1.5 bg-muted/50 border border-border text-foreground font-semibold rounded-lg hover:bg-muted transition-all flex items-center justify-center gap-1.5 text-xs">
+                        <span className="material-symbols-outlined text-[14px]">download</span>
+                        Baixar Bloco
+                      </button>
+                    </div>
                   </>
                 ) : (
                   <>
