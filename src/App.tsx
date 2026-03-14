@@ -129,6 +129,7 @@ function AuthenticatedApp({ user, onLogout }: { user: User; onLogout: () => void
         <Route path="/mercado" element={<Mercado />} />
         <Route path="/mercado/token-fbx" element={<TokenFBX />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/ferramentas" element={<Ferramentas />} />
         <Route path="/" element={<Navigate to="/loja" replace />} />
       </Route>
       <Route path="*" element={<NotFound />} />

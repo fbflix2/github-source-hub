@@ -11,6 +11,7 @@ const allNavItems = [
   { key: "advertise", title: "Anuncie", url: "/advertise", icon: Megaphone },
   { key: "ganhe-aqui", title: "Ganhe", url: "/parceria", icon: HandCoins },
   { key: "mercado", title: "Mercado", url: "/mercado", icon: Store },
+  { key: "ferramentas", title: "Ferramentas", url: "/ferramentas", icon: Wrench },
 ];
 
 export function MobileBottomNav() {
