@@ -132,13 +132,25 @@ export default function WebshareProxyTab() {
     return ids;
   }, [wsSubs]);
 
-  // Count exchanges (from raw_data exchange markers)
+  // Count exchanges by checking subscriptions that had exchanges performed
   const exchangeCount = useMemo(() => {
     if (!wsSubs) return 0;
     let count = 0;
     wsSubs.forEach(s => {
       const raw = s.raw_data as any;
-      if (raw?.exchange_count) count += Number(raw.exchange_count);
+      if (!raw) return;
+      // Count explicit exchange_count if present
+      if (raw.exchange_count) {
+        count += Number(raw.exchange_count);
+      } else if (raw.last_exchange) {
+        // If last_exchange exists, at least 1 exchange was done
+        // Calculate from initial quota minus remaining quota
+        const initialFree = raw.initial_exchange_quota_free ?? 2; // default 2
+        const currentFree = raw.exchange_quota_free ?? 0;
+        const used = Math.max(0, initialFree - currentFree);
+        if (used > 0) count += used;
+        else if (raw.last_exchange) count += 1; // at minimum 1 if last_exchange exists
+      }
     });
     return count;
   }, [wsSubs]);
