@@ -84,6 +84,7 @@ import AdminAquecimento from "./pages/admin/AdminAquecimento";
 import AdminShopClone from "./pages/admin/AdminShopClone";
 import AdminFerramentas2FA from "./pages/admin/AdminFerramentas2FA";
 import AdminImageViewer from "./pages/admin/AdminImageViewer";
+import AdminProxyBR from "./pages/admin/AdminProxyBR";
 import { AdminLayout } from "./components/admin/AdminLayout";
 
 // Layout
@@ -301,6 +302,7 @@ const App = () => {
                   <Route path="carrinhos-abandonados" element={<AdminCarrinhosAbandonados />} />
                   <Route path="assinaturas" element={<AdminAssinaturas />} />
                   <Route path="central-proxy" element={<AdminCentralProxy />} />
+                  <Route path="central-proxy/proxybr" element={<AdminProxyBR />} />
                   <Route path="clientes" element={<AdminClientes />} />
                   <Route path="clientes/ativos" element={<AdminClientesAtivos />} />
                   <Route path="afiliados" element={<AdminAfiliados />} />

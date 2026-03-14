@@ -73,7 +73,9 @@ const allMenuItems: MenuItem[] = [
   { title: "Pagamentos", icon: CreditCard, path: "/admin/pagamentos" },
   { title: "Carrinhos Abandonados", icon: ShoppingCart, path: "/admin/carrinhos-abandonados" },
   { title: "Assinaturas", icon: Monitor, path: "/admin/assinaturas" },
-  { title: "Central Proxy", icon: Globe, path: "/admin/central-proxy" },
+  { title: "Central Proxy", icon: Globe, path: "/admin/central-proxy", subItems: [
+    { title: "ProxyBR", icon: Globe, path: "/admin/central-proxy/proxybr" },
+  ]},
   { title: "Fornecedor AccFace", icon: Store, path: "/admin/fornecedor" },
   { title: "Ferramentas", icon: KeyRound, path: "/admin/ferramentas-2fa" },
   { title: "Imagens", icon: ImageIcon, path: "/admin/imagens" },
