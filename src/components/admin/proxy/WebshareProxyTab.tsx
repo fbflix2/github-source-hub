@@ -249,6 +249,9 @@ export default function WebshareProxyTab() {
         </Card>
       )}
 
+      {/* Bandwidth Usage */}
+      <WebshareBandwidthCard bandwidthLimitGB={plan?.bandwidth_limit || null} />
+
       {/* Financial Overview */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="border-border/40 bg-card/60 backdrop-blur-sm">
