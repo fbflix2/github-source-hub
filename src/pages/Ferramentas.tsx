@@ -134,7 +134,7 @@ function GlassCard({
   const [hovered, setHovered] = useState(false);
   return (
     <div
-      className={`p-8 rounded-xl flex flex-col group h-full ${disabled ? "cursor-not-allowed" : "cursor-pointer"} ${className}`}
+      className={`p-5 rounded-xl flex flex-col group h-full ${disabled ? "cursor-not-allowed" : "cursor-pointer"} ${className}`}
       style={{
         ...glassCardStyle,
         ...(hovered && !disabled
@@ -171,7 +171,7 @@ export default function Ferramentas() {
   if (activeTool === "verificador") return <VerificadorTool onBack={() => setActiveTool(null)} />;
 
   return (
-    <div className="relative overflow-hidden pt-8 pb-24 px-4 sm:px-8 lg:px-20">
+    <div className="relative overflow-hidden pt-4 pb-6 px-4 sm:px-6 lg:px-12">
       {/* Background Accents */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-full -z-10 pointer-events-none opacity-20">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 blur-[120px] rounded-full" />
@@ -180,130 +180,121 @@ export default function Ferramentas() {
 
       <main className="max-w-6xl mx-auto">
         {/* Header Section */}
-        <header className="text-center mb-16">
-          <h1 className="text-5xl md:text-6xl font-black tracking-tight mb-6 text-white">
+        <header className="text-center mb-6">
+          <h1 className="text-3xl md:text-4xl font-black tracking-tight mb-2 text-white">
             Central de <span className="text-primary">Ferramentas</span>
           </h1>
-          <p className="text-lg text-slate-400 max-w-2xl mx-auto font-medium">
-            Otimize seu fluxo de trabalho com nossas ferramentas exclusivas de alta performance para gestão de contingência.
+          <p className="text-sm text-slate-400 max-w-xl mx-auto font-medium">
+            Otimize seu fluxo de trabalho com nossas ferramentas exclusivas de alta performance.
           </p>
         </header>
 
         {/* Tools Grid - 3 columns */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-20">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           {/* Tool 1: Gerador de 2FA */}
           <GlassCard bgImage={BG_IMAGES["2fa"]} onClick={() => setActiveTool("2fa")}>
-            <div className="w-16 h-16 bg-primary/10 text-primary rounded-xl flex items-center justify-center mb-6 group-hover:bg-primary group-hover:text-white transition-colors duration-300">
-              <MaterialIcon name="security" className="text-4xl" />
+            <div className="w-11 h-11 bg-primary/10 text-primary rounded-lg flex items-center justify-center mb-3 group-hover:bg-primary group-hover:text-white transition-colors duration-300">
+              <MaterialIcon name="security" className="text-2xl" />
             </div>
-            <h3 className="text-xl font-bold mb-3 text-white">Gerador de 2FA</h3>
-            <p className="text-slate-400 mb-8 flex-grow leading-relaxed">
+            <h3 className="text-base font-bold mb-1.5 text-white">Gerador de 2FA</h3>
+            <p className="text-slate-400 mb-4 flex-grow leading-relaxed text-xs">
               Gere códigos de autenticação de dois fatores instantaneamente com segurança máxima.
             </p>
-            <button className="w-full py-4 px-6 bg-primary hover:bg-red-700 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2 group/btn">
+            <button className="w-full py-2.5 px-4 bg-primary hover:bg-red-700 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2 text-sm group/btn">
               <span>Acessar Ferramenta</span>
-              <MaterialIcon name="arrow_forward" className="text-xl group-hover/btn:translate-x-1 transition-transform" />
+              <MaterialIcon name="arrow_forward" className="text-lg group-hover/btn:translate-x-1 transition-transform" />
             </button>
           </GlassCard>
 
           {/* Tool 2: Emissor de Documentos (Em Desenvolvimento) */}
           <GlassCard bgImage={BG_IMAGES.emissor} disabled>
-            <div className="w-16 h-16 bg-primary/10 text-primary rounded-xl flex items-center justify-center mb-6">
-              <MaterialIcon name="article" className="text-4xl" />
+            <div className="w-11 h-11 bg-primary/10 text-primary rounded-lg flex items-center justify-center mb-3">
+              <MaterialIcon name="article" className="text-2xl" />
             </div>
-            <div className="flex items-center gap-2 mb-3">
-              <h3 className="text-xl font-bold text-white">Emissor de Documentos</h3>
-            </div>
-            <div className="mb-3">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-400 text-xs font-semibold border border-yellow-500/30">
-                <Construction className="size-3" />
+            <h3 className="text-base font-bold mb-1.5 text-white">Emissor de Documentos</h3>
+            <div className="mb-2">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 text-[10px] font-semibold border border-yellow-500/30">
+                <Construction className="size-2.5" />
                 Em Desenvolvimento
               </span>
             </div>
-            <p className="text-slate-400 mb-8 flex-grow leading-relaxed">
+            <p className="text-slate-400 mb-4 flex-grow leading-relaxed text-xs">
               Crie documentos personalizados em segundos para verificação de perfis e contas business.
             </p>
             <button
               disabled
-              className="w-full py-4 px-6 bg-slate-700/50 text-slate-500 font-bold rounded-lg transition-all flex items-center justify-center gap-2 cursor-not-allowed"
+              className="w-full py-2.5 px-4 bg-slate-700/50 text-slate-500 font-bold rounded-lg transition-all flex items-center justify-center gap-2 cursor-not-allowed text-sm"
             >
               <span>Em Breve</span>
-              <MaterialIcon name="arrow_forward" className="text-xl" />
+              <MaterialIcon name="arrow_forward" className="text-lg" />
             </button>
           </GlassCard>
 
           {/* Tool 3: Verificador de Perfis */}
           <GlassCard bgImage={BG_IMAGES.verificador} onClick={() => setActiveTool("verificador")}>
-            <div className="w-16 h-16 bg-primary/10 text-primary rounded-xl flex items-center justify-center mb-6 group-hover:bg-primary group-hover:text-white transition-colors duration-300">
-              <MaterialIcon name="how_to_reg" className="text-4xl" />
+            <div className="w-11 h-11 bg-primary/10 text-primary rounded-lg flex items-center justify-center mb-3 group-hover:bg-primary group-hover:text-white transition-colors duration-300">
+              <MaterialIcon name="how_to_reg" className="text-2xl" />
             </div>
-            <h3 className="text-xl font-bold mb-3 text-white">Verificador de Perfis</h3>
-            <p className="text-slate-400 mb-8 flex-grow leading-relaxed">
+            <h3 className="text-base font-bold mb-1.5 text-white">Verificador de Perfis</h3>
+            <p className="text-slate-400 mb-4 flex-grow leading-relaxed text-xs">
               Verifique o status de múltiplas contas simultaneamente e identifique restrições em tempo real.
             </p>
-            <button className="w-full py-4 px-6 bg-primary hover:bg-red-700 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2 group/btn">
+            <button className="w-full py-2.5 px-4 bg-primary hover:bg-red-700 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2 text-sm group/btn">
               <span>Acessar Ferramenta</span>
-              <MaterialIcon name="arrow_forward" className="text-xl group-hover/btn:translate-x-1 transition-transform" />
+              <MaterialIcon name="arrow_forward" className="text-lg group-hover/btn:translate-x-1 transition-transform" />
             </button>
           </GlassCard>
         </div>
 
         {/* Recent Activity Section */}
         <section className="max-w-4xl mx-auto">
-          <div className="flex items-center justify-between mb-8 px-4">
-            <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-              <MaterialIcon name="history" className="text-primary" />
+          <div className="flex items-center justify-between mb-3 px-2">
+            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              <MaterialIcon name="history" className="text-primary text-xl" />
               Atividades Recentes
             </h2>
-            <span className="text-sm font-medium text-primary cursor-pointer hover:underline">Ver tudo</span>
+            <span className="text-xs font-medium text-primary cursor-pointer hover:underline">Ver tudo</span>
           </div>
           <div
             className="rounded-xl overflow-hidden divide-y divide-white/5"
             style={glassCardStyle}
           >
-            <div className="flex items-center gap-5 p-5 hover:bg-white/5 transition-colors relative z-10">
-              <div className="w-12 h-12 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
-                <MaterialIcon name="verified" />
+            <div className="flex items-center gap-3 p-3 hover:bg-white/5 transition-colors relative z-10">
+              <div className="w-9 h-9 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                <MaterialIcon name="verified" className="text-lg" />
               </div>
-              <div className="flex-grow">
-                <p className="font-bold text-white">Documento Gerado com Sucesso</p>
-                <p className="text-sm text-slate-400">RG Digital - Perfil VIP 04</p>
+              <div className="flex-grow min-w-0">
+                <p className="font-bold text-white text-sm">Documento Gerado com Sucesso</p>
+                <p className="text-xs text-slate-400">RG Digital - Perfil VIP 04</p>
               </div>
-              <div className="text-right">
-                <p className="text-xs font-semibold text-slate-500">Há 2 minutos</p>
-              </div>
+              <p className="text-[10px] font-semibold text-slate-500 shrink-0">Há 2 min</p>
             </div>
-            <div className="flex items-center gap-5 p-5 hover:bg-white/5 transition-colors relative z-10">
-              <div className="w-12 h-12 rounded-lg bg-primary/20 text-primary flex items-center justify-center shrink-0">
-                <MaterialIcon name="key" />
+            <div className="flex items-center gap-3 p-3 hover:bg-white/5 transition-colors relative z-10">
+              <div className="w-9 h-9 rounded-lg bg-primary/20 text-primary flex items-center justify-center shrink-0">
+                <MaterialIcon name="key" className="text-lg" />
               </div>
-              <div className="flex-grow">
-                <p className="font-bold text-white">Código 2FA Solicitado</p>
-                <p className="text-sm text-slate-400">Conta Business Manager #129</p>
+              <div className="flex-grow min-w-0">
+                <p className="font-bold text-white text-sm">Código 2FA Solicitado</p>
+                <p className="text-xs text-slate-400">Conta Business Manager #129</p>
               </div>
-              <div className="text-right">
-                <p className="text-xs font-semibold text-slate-500">Há 15 minutos</p>
-              </div>
+              <p className="text-[10px] font-semibold text-slate-500 shrink-0">Há 15 min</p>
             </div>
-            <div className="flex items-center gap-5 p-5 hover:bg-white/5 transition-colors relative z-10">
-              <div className="w-12 h-12 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
-                <MaterialIcon name="search_check" />
+            <div className="flex items-center gap-3 p-3 hover:bg-white/5 transition-colors relative z-10">
+              <div className="w-9 h-9 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
+                <MaterialIcon name="search_check" className="text-lg" />
               </div>
-              <div className="flex-grow">
-                <p className="font-bold text-white">Verificação de Lote Concluída</p>
-                <p className="text-sm text-slate-400">50 perfis analisados • 48 ativos</p>
+              <div className="flex-grow min-w-0">
+                <p className="font-bold text-white text-sm">Verificação de Lote Concluída</p>
+                <p className="text-xs text-slate-400">50 perfis analisados • 48 ativos</p>
               </div>
-              <div className="text-right">
-                <p className="text-xs font-semibold text-slate-500">Há 1 hora</p>
-              </div>
+              <p className="text-[10px] font-semibold text-slate-500 shrink-0">Há 1 hora</p>
             </div>
           </div>
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="mt-24 text-center border-t border-white/5 pt-8">
-        <p className="text-sm text-slate-500 font-medium">
+      <footer className="mt-6 text-center border-t border-white/5 pt-4">
+        <p className="text-xs text-slate-500 font-medium">
           © 2024 FBFLIX 2.0 • Sistema de Gestão de Contingência Profissional
         </p>
       </footer>
