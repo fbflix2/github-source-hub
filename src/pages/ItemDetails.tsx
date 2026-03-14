@@ -38,7 +38,8 @@ interface StockData {
 export default function ItemDetails() {
   const navigate = useNavigate();
   const { orderId, itemId } = useParams();
-  const [showPassword, setShowPassword] = useState(false);
+  const [searchParams] = useSearchParams();
+  const comboProfileId = searchParams.get("profile"); // specific child stock_item_id
   const [showToken, setShowToken] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [itemStatus, setItemStatus] = useState(false);
