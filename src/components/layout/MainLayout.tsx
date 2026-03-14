@@ -15,7 +15,7 @@ interface MainLayoutProps {
   unreadTickets?: number;
 }
 
-const WHATSAPP_NUMBER = "5511999999999"; // Substitua pelo número real
+const WHATSAPP_NUMBER = "5519989411105";
 const WHATSAPP_MESSAGE = encodeURIComponent("oi tenho uma dúvida rápida");
 
 export function MainLayout({ userName, userEmail, onLogout, unreadTickets = 0 }: MainLayoutProps) {
