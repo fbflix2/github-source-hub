@@ -326,6 +326,41 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ========== GET BANDWIDTH STATS ==========
+    if (action === "get-bandwidth-stats") {
+      const subResp = await webFetch("/subscription/", WEBSHARE_API_KEY);
+      const subData = await subResp.json();
+      if (!subResp.ok) throw new Error(`Webshare API error [${subResp.status}]`);
+
+      const startDate = subData.start_date;
+      const endDate = subData.end_date;
+
+      // Fetch aggregate stats for the current billing cycle
+      const aggResp = await webFetch(
+        `/stats/aggregate/?timestamp__gte=${startDate}&timestamp__lte=${endDate}`,
+        WEBSHARE_API_KEY
+      );
+      const aggData = await aggResp.json();
+      if (!aggResp.ok) throw new Error(`Webshare stats error [${aggResp.status}]`);
+
+      // Fetch daily stats for chart
+      const statsResp = await webFetch(
+        `/stats/?timestamp__gte=${startDate}&timestamp__lte=${endDate}`,
+        WEBSHARE_API_KEY
+      );
+      const statsData = await statsResp.json();
+      if (!statsResp.ok) throw new Error(`Webshare stats error [${statsResp.status}]`);
+
+      return new Response(JSON.stringify({
+        aggregate: aggData,
+        hourly: statsData,
+        billing_start: startDate,
+        billing_end: endDate,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // ========== REPLACE PROXY ==========
     if (action === "replace-proxy") {
       const { proxy_id } = params as { proxy_id: string };
