@@ -5,6 +5,13 @@ import { Loader2 } from "lucide-react";
 
 type OrderStatus = "completed" | "processing" | "cancelled";
 
+interface ComboProfile {
+  id: string;
+  name: string;
+  identification: string | null;
+  identificationLink: string | null;
+}
+
 interface OrderItem {
   id: string;
   name: string;
@@ -15,6 +22,7 @@ interface OrderItem {
   iconType?: string;
   isReplaced?: boolean;
   replacedAt?: string;
+  comboProfiles?: ComboProfile[];
 }
 
 interface Order {
