@@ -907,6 +907,351 @@ function FolderItemsView({ folder, onBack }: { folder: Folder; onBack: () => voi
   );
 }
 
+// ─── Combo Form (same as Perfil) ───
+function ComboForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => void; onSaved: () => void }) {
+  const [showPassword, setShowPassword] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [productDefaults, setProductDefaults] = useState<{ id: string; name: string; tags: string[] }[]>([]);
+  const [productImages, setProductImages] = useState<{ id: string; name: string; url: string }[]>([]);
+  const [showImagePicker, setShowImagePicker] = useState(false);
+  const [formData, setFormData] = useState({
+    linkPerfil: "", idPerfil: "", emailAcesso: "", emailAlternativo: "",
+    senha: "", senhaEmail: "", token2fa: "", tempoPlataforma: "3-meses", statusAtual: "aquecido",
+    cookies: "", descricao: "", nomePerfil: "", dataNascimento: "", genero: "masculino",
+    linkDocumento: "", fotoUrl: "", preco: "", categoryId: "", tags: [] as string[], nomeProduto: ""
+  });
+
+  useEffect(() => {
+    supabase.from("product_categories").select("id, name").then(({ data }) => setCategories(data ?? []));
+    supabase.from("product_images").select("id, name, url").eq("category", "perfil").order("created_at", { ascending: false }).then(({ data }) => setProductImages(data ?? []));
+    supabase.from("product_defaults").select("id, name, tags, price, tempo_plataforma, description, default_image").order("name").then(({ data }) => setProductDefaults((data as any) ?? []));
+  }, []);
+
+  const handleSave = async () => {
+    if (!formData.linkPerfil && !formData.idPerfil) {
+      toast.error("Preencha ao menos o link ou ID do perfil");
+      return;
+    }
+    setSaving(true);
+    const insertData: any = {
+      name: formData.nomePerfil || formData.emailAcesso || `Combo ${formData.idPerfil}`,
+      type: "combo",
+      identification: formData.idPerfil || null,
+      identification_link: formData.linkPerfil || null,
+      status: "aguardando",
+      folder: folder.id,
+      data: {
+        nomePerfil: formData.nomePerfil,
+        dataNascimento: formData.dataNascimento,
+        genero: formData.genero,
+        linkDocumento: formData.linkDocumento,
+        senhaEmail: formData.senhaEmail,
+        emailAcesso: formData.emailAcesso,
+        emailAlternativo: formData.emailAlternativo,
+        senha: formData.senha,
+        token2fa: formData.token2fa,
+        tempoPlataforma: formData.tempoPlataforma,
+        statusAtual: formData.statusAtual,
+        cookies: formData.cookies,
+        descricao: formData.descricao,
+        foto_url: formData.fotoUrl || undefined,
+        preco: formData.preco ? parseFloat(formData.preco) : undefined,
+        categoryId: formData.categoryId || undefined,
+        tags: formData.tags.length > 0 ? formData.tags : undefined,
+        nomeProduto: formData.nomeProduto || undefined,
+      },
+    };
+    const { error } = await supabase.from("stock_items").insert(insertData);
+    setSaving(false);
+    if (error) { toast.error("Erro ao salvar: " + error.message); return; }
+    toast.success("Combo adicionado à pasta! Formulário pronto para novo cadastro.");
+    setFormData({
+      linkPerfil: "", idPerfil: "", emailAcesso: "", emailAlternativo: "",
+      senha: "", senhaEmail: "", token2fa: "", tempoPlataforma: "3-meses", statusAtual: "aquecido",
+      cookies: "", descricao: "", nomePerfil: "", dataNascimento: "", genero: "masculino",
+      linkDocumento: "", fotoUrl: "", preco: "", categoryId: "", tags: [] as string[], nomeProduto: ""
+    });
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-3">
+        <button onClick={onBack} className="w-8 h-8 rounded-full bg-zinc-800/50 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors">
+          <ArrowLeft className="h-4 w-4" />
+        </button>
+        <div>
+          <h1 className="text-xl font-bold text-white">Blocagem de Combo</h1>
+          <div className="flex items-center gap-2 text-xs text-zinc-400">
+            <FolderOpen className="h-3 w-3" />
+            <span>Pasta: {folder.name}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="glass-panel rounded-xl p-4 md:p-5">
+        <form className="flex flex-col gap-4" onSubmit={e => { e.preventDefault(); handleSave(); }}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Left - Identificação */}
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-2 pb-1 border-b border-white/10">
+                <BadgeCheck className="h-4 w-4 text-primary" />
+                <h2 className="text-sm font-bold text-white">Identificação</h2>
+              </div>
+              <div className="flex flex-col gap-1 group">
+                <label className="text-xs font-medium text-zinc-400 group-focus-within:text-white transition-colors">Nome do Perfil</label>
+                <div className="relative">
+                  <CircleUser className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                  <Input type="text" placeholder="Nome completo do perfil" value={formData.nomePerfil} onChange={e => setFormData({ ...formData, nomePerfil: e.target.value })} className="pl-10 bg-black/30 border-white/5 text-white placeholder:text-zinc-600" />
+                </div>
+              </div>
+              <div className="flex flex-col gap-1 group">
+                <label className="text-xs font-medium text-zinc-400 group-focus-within:text-white transition-colors">Link do Perfil</label>
+                <div className="relative">
+                  <Link className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                  <Input type="url" placeholder="https://facebook.com/profile.php?id=..." value={formData.linkPerfil} onChange={e => {
+                    const url = e.target.value;
+                    setFormData(prev => {
+                      const next = { ...prev, linkPerfil: url };
+                      const idMatch = url.match(/[?&]id=(\d+)/i);
+                      if (idMatch?.[1]) {
+                        next.idPerfil = idMatch[1];
+                      } else {
+                        const handleMatch = url.match(/facebook\.com\/([^/?#]+)/i);
+                        const handle = handleMatch?.[1];
+                        const blocked = ["profile.php","people","pages","watch","reel","marketplace","groups","login","settings","help","photo","photo.php","photos"];
+                        if (handle && !blocked.includes(handle.toLowerCase())) {
+                          next.idPerfil = handle;
+                        }
+                      }
+                      return next;
+                    });
+                  }} className="pl-10 bg-black/30 border-white/5 text-white placeholder:text-zinc-600" />
+                </div>
+              </div>
+              <div className="flex flex-col gap-1 group">
+                <label className="text-xs font-medium text-zinc-400 group-focus-within:text-white transition-colors">ID do Perfil</label>
+                <div className="relative">
+                  <Hash className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                  <Input type="text" placeholder="10000843..." value={formData.idPerfil} onChange={e => setFormData({ ...formData, idPerfil: e.target.value })} className="pl-10 bg-black/30 border-white/5 text-white placeholder:text-zinc-600 font-mono" readOnly />
+                </div>
+              </div>
+              <div className="flex flex-col gap-1 group">
+                <label className="text-xs font-medium text-zinc-400 group-focus-within:text-white transition-colors">E-mail</label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                  <Input type="email" placeholder="exemplo@fbflix.com" value={formData.emailAcesso} onChange={e => setFormData({ ...formData, emailAcesso: e.target.value })} className="pl-10 bg-black/30 border-white/5 text-white placeholder:text-zinc-600" />
+                </div>
+              </div>
+              <div className="flex flex-col gap-1 group">
+                <label className="text-xs font-medium text-zinc-400 group-focus-within:text-white transition-colors">Senha Email</label>
+                <div className="relative">
+                  <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                  <Input type="text" placeholder="Senha do email" value={formData.senhaEmail} onChange={e => setFormData({ ...formData, senhaEmail: e.target.value })} className="pl-10 bg-black/30 border-white/5 text-white placeholder:text-zinc-600" />
+                </div>
+              </div>
+              <div className="flex flex-col gap-1 group">
+                <label className="text-xs font-medium text-zinc-400 group-focus-within:text-white transition-colors">Email Alternativo</label>
+                <div className="relative">
+                  <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                  <Input type="email" placeholder="recuperacao@email.com" value={formData.emailAlternativo} onChange={e => setFormData({ ...formData, emailAlternativo: e.target.value })} className="pl-10 bg-black/30 border-white/5 text-white placeholder:text-zinc-600" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1 group">
+                  <label className="text-xs font-medium text-zinc-400">Data de Nascimento</label>
+                  <div className="relative">
+                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                    <Input type="date" value={formData.dataNascimento} onChange={e => setFormData({ ...formData, dataNascimento: e.target.value })} className="pl-10 bg-black/30 border-white/5 text-white" />
+                  </div>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-zinc-400">Gênero</label>
+                  <Select value={formData.genero} onValueChange={v => setFormData({ ...formData, genero: v })}>
+                    <SelectTrigger className="bg-black/30 border-white/5 text-white"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="masculino">Masculino</SelectItem>
+                      <SelectItem value="feminino">Feminino</SelectItem>
+                      <SelectItem value="outro">Outro</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="flex flex-col gap-1 group">
+                <label className="text-xs font-medium text-zinc-400 group-focus-within:text-white transition-colors">
+                  Link do Documento <span className="text-zinc-600">(opcional)</span>
+                </label>
+                <div className="relative">
+                  <Link className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                  <Input type="url" placeholder="https://drive.google.com/..." value={formData.linkDocumento} onChange={e => setFormData({ ...formData, linkDocumento: e.target.value })} className="pl-10 bg-black/30 border-white/5 text-white placeholder:text-zinc-600" />
+                </div>
+              </div>
+            </div>
+
+            {/* Right - Segurança */}
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-2 pb-1 border-b border-white/10">
+                <Shield className="h-4 w-4 text-primary" />
+                <h2 className="text-sm font-bold text-white">Segurança & Status</h2>
+              </div>
+              <div className="flex flex-col gap-1 group">
+                <label className="text-xs font-medium text-zinc-400">Senha FB</label>
+                <div className="relative">
+                  <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                  <Input type="text" placeholder="Cole a senha aqui" value={formData.senha} onChange={e => setFormData({ ...formData, senha: e.target.value })} className="pl-10 pr-10 bg-black/30 border-white/5 text-white" />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white">
+                    {showPassword ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+              <div className="flex flex-col gap-1 group">
+                <label className="text-xs font-medium text-zinc-400">Token 2FA</label>
+                <div className="relative">
+                  <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                  <Input type="text" placeholder="JBSWY3DPEHPK3PXP" value={formData.token2fa} onChange={e => setFormData({ ...formData, token2fa: e.target.value })} className="pl-10 bg-black/30 border-white/5 text-white font-mono" />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-zinc-400">Tempo Plataforma</label>
+                  <Select value={formData.tempoPlataforma} onValueChange={v => setFormData({ ...formData, tempoPlataforma: v })}>
+                    <SelectTrigger className="bg-black/30 border-white/5 text-white text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0-1-mes">0-1 mês</SelectItem>
+                      <SelectItem value="3-meses">3 meses</SelectItem>
+                      <SelectItem value="6-meses">6 meses</SelectItem>
+                      <SelectItem value="1-ano">1 ano+</SelectItem>
+                      <SelectItem value="2-anos">2 anos+</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-zinc-400">Status Atual</label>
+                  <Select value={formData.statusAtual} onValueChange={v => setFormData({ ...formData, statusAtual: v })}>
+                    <SelectTrigger className="bg-black/30 border-white/5 text-white text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="novo">Novo</SelectItem>
+                      <SelectItem value="antigo">Antigo</SelectItem>
+                      <SelectItem value="aquecido">Aquecido</SelectItem>
+                      <SelectItem value="verificado">Verificado</SelectItem>
+                      <SelectItem value="restrito">Restrito</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-zinc-400">Nome do Produto</label>
+                  <Select value={formData.nomeProduto} onValueChange={v => {
+                    const def = productDefaults.find(d => d.name === v);
+                    setFormData({
+                      ...formData,
+                      nomeProduto: v,
+                      tags: def?.tags ?? [],
+                      preco: (def as any)?.price ? String((def as any).price) : formData.preco,
+                      tempoPlataforma: (def as any)?.tempo_plataforma || formData.tempoPlataforma,
+                      descricao: (def as any)?.description || formData.descricao,
+                      fotoUrl: (def as any)?.default_image || formData.fotoUrl,
+                    });
+                  }}>
+                    <SelectTrigger className="bg-black/30 border-white/5 text-white text-xs"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                    <SelectContent>
+                      {productDefaults.filter(d => !d.name.toLowerCase().includes('proxy')).map(d => <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><DollarSign className="h-3 w-3" />Preço (R$)</label>
+                  <Input type="number" step="0.01" min="0" placeholder="0.00" value={formData.preco} onChange={e => setFormData({ ...formData, preco: e.target.value })} className="bg-black/30 border-white/5 text-white" />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><FolderOpen className="h-3 w-3" />Categoria</label>
+                  <Select value={formData.categoryId} onValueChange={v => setFormData({ ...formData, categoryId: v })}>
+                    <SelectTrigger className="bg-black/30 border-white/5 text-white"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                    <SelectContent>
+                      {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              {formData.tags.length > 0 && (
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><Tag className="h-3 w-3" />Tags (do padrão)</label>
+                  <div className="flex flex-wrap gap-1">
+                    {formData.tags.map(tag => (
+                      <Badge key={tag} className="bg-primary/20 text-primary text-xs">{tag}</Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><ImageIcon className="h-3 w-3" />Foto do Produto</label>
+                {formData.fotoUrl ? (
+                  <div className="flex items-center gap-2">
+                    <img src={formData.fotoUrl} alt="Produto" className="w-12 h-12 rounded-lg object-cover border border-white/10" />
+                    <Button type="button" variant="ghost" size="sm" className="text-xs text-zinc-400" onClick={() => setFormData({ ...formData, fotoUrl: "" })}>
+                      <X className="h-3 w-3 mr-1" /> Remover
+                    </Button>
+                  </div>
+                ) : (
+                  <Button type="button" variant="outline" size="sm" className="w-full bg-black/30 border-white/5 text-zinc-400 hover:text-white" onClick={() => setShowImagePicker(true)}>
+                    <ImageIcon className="h-3.5 w-3.5 mr-2" /> Selecionar imagem
+                  </Button>
+                )}
+                {showImagePicker && (
+                  <div className="mt-2 p-3 rounded-lg bg-black/40 border border-white/10 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-zinc-400">Imagens cadastradas</span>
+                      <button type="button" onClick={() => setShowImagePicker(false)} className="text-zinc-500 hover:text-white"><X className="h-3.5 w-3.5" /></button>
+                    </div>
+                    {productImages.length === 0 ? (
+                      <p className="text-xs text-zinc-500 text-center py-4">Nenhuma imagem cadastrada.</p>
+                    ) : (
+                      <div className="grid grid-cols-4 gap-2 max-h-40 overflow-y-auto">
+                        {productImages.map(img => (
+                          <button key={img.id} type="button" onClick={() => { setFormData({ ...formData, fotoUrl: img.url }); setShowImagePicker(false); }} className="aspect-square rounded-lg overflow-hidden border border-white/10 hover:border-primary/50 transition-all">
+                            <img src={img.url} alt={img.name} className="w-full h-full object-cover" />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              <div className="bg-primary/10 border border-primary/20 rounded-lg p-2 flex items-start gap-2 mt-auto">
+                <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                <p className="text-[11px] text-primary/80 leading-relaxed">
+                  Combo inclui perfil + BM. Preencha os dados do perfil principal.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom - Cookies & Description */}
+          <div className="flex flex-col md:flex-row gap-4 pt-3 border-t border-white/5">
+            <div className="flex-1 flex flex-col gap-1">
+              <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><Cookie className="h-3 w-3" />Cookies JSON/Netscape</label>
+              <Textarea placeholder='[{"domain": ".facebook.com", ...}]' value={formData.cookies} onChange={e => setFormData({ ...formData, cookies: e.target.value })} className="h-20 bg-black/30 border-white/5 text-zinc-300 font-mono text-xs resize-none" />
+            </div>
+            <div className="flex-1 flex flex-col gap-1">
+              <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><FileText className="h-3 w-3" />Descrição</label>
+              <Textarea placeholder="Notas sobre aquecimento, proxy..." value={formData.descricao} onChange={e => setFormData({ ...formData, descricao: e.target.value })} className="h-20 bg-black/30 border-white/5 text-white resize-none" />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between pt-3 border-t border-white/10">
+            <Button type="button" variant="ghost" onClick={onBack} className="text-zinc-400 hover:text-white hover:bg-white/5">Voltar</Button>
+            <Button type="submit" disabled={saving} className="bg-primary hover:bg-primary/90 text-white gap-2">
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              Adicionar à Pasta
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Component ───
 export default function AdminBlocagem() {
   const [selectedType, setSelectedType] = useState<string | null>(null);
