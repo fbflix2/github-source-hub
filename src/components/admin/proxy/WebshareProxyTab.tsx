@@ -637,16 +637,20 @@ export default function WebshareProxyTab() {
         </CardContent>
       </Card>
 
-      {/* Proxy Table - Available Only */}
       {(() => {
-        const availableProxies = proxies.filter((p: any) => !soldProxyIds.has(Number(p.id)));
-        const availableCount = availableProxies.length;
+        const availableProxies = allProxies.filter((p: any) => !soldProxyIds.has(Number(p.id)));
+        const totalAvailable = availableProxies.length;
+        const totalAvailablePages = Math.ceil(totalAvailable / availablePageSize);
+        const pagedProxies = availableProxies.slice(
+          (availablePage - 1) * availablePageSize,
+          availablePage * availablePageSize
+        );
 
         return (
           <Card className="border-border/40 bg-card/60 backdrop-blur-sm overflow-hidden">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold text-foreground">
-                Proxies Disponíveis ({proxyLoading ? "..." : availableCount})
+                Proxies Disponíveis ({proxyLoading ? "..." : totalAvailable})
               </CardTitle>
             </CardHeader>
             <div className="overflow-x-auto">
@@ -671,17 +675,17 @@ export default function WebshareProxyTab() {
                         ))}
                       </TableRow>
                     ))
-                  ) : availableProxies.length === 0 ? (
+                  ) : pagedProxies.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                        Todos os proxies estão alocados
+                        {totalAvailable === 0 ? "Todos os proxies estão alocados" : "Nenhum proxy nesta página"}
                       </TableCell>
                     </TableRow>
                   ) : (
-                    availableProxies.map((proxy: any, i: number) => (
+                    pagedProxies.map((proxy: any, i: number) => (
                       <TableRow key={proxy.id} className="border-border/20">
                         <TableCell className="text-xs text-muted-foreground font-mono">
-                          {i + 1}
+                          {(availablePage - 1) * availablePageSize + i + 1}
                         </TableCell>
                         <TableCell className="font-mono text-sm text-foreground">
                           {proxy.proxy_address || "backbone"}
@@ -720,16 +724,16 @@ export default function WebshareProxyTab() {
             </div>
 
             {/* Pagination */}
-            {totalPages > 1 && (
+            {totalAvailablePages > 1 && (
               <div className="flex items-center justify-between px-4 py-3 border-t border-border/30">
                 <p className="text-xs text-muted-foreground">
-                  Página {page} de {totalPages} • {totalProxies} proxies total • {availableCount} disponíveis
+                  Página {availablePage} de {totalAvailablePages} • {totalProxies} proxies total • {totalAvailable} disponíveis
                 </p>
                 <div className="flex gap-1">
-                  <Button variant="ghost" size="icon" className="size-7" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+                  <Button variant="ghost" size="icon" className="size-7" disabled={availablePage <= 1} onClick={() => setAvailablePage(p => p - 1)}>
                     <ChevronLeft className="size-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="size-7" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+                  <Button variant="ghost" size="icon" className="size-7" disabled={availablePage >= totalAvailablePages} onClick={() => setAvailablePage(p => p + 1)}>
                     <ChevronRight className="size-4" />
                   </Button>
                 </div>
