@@ -216,8 +216,6 @@ export default function AdminAquecimento() {
     fetchProfiles();
   };
 
-  const updateTrustTier = async (profileId: string) => {
-
   const handleResetAll = async () => {
     if (!resetPassword) return;
     setResetting(true);
@@ -227,7 +225,6 @@ export default function AdminAquecimento() {
       if (!user?.email) { setResetError("Usuário não autenticado"); setResetting(false); return; }
       const { error: signInError } = await supabase.auth.signInWithPassword({ email: user.email, password: resetPassword });
       if (signInError) { setResetError("Senha incorreta. Tente novamente."); setResetting(false); return; }
-      // Delete all tasks first, then profiles
       const profileIds = profiles.map(p => p.id);
       if (profileIds.length > 0) {
         await supabase.from("warming_tasks").delete().in("profile_id", profileIds);
@@ -245,6 +242,8 @@ export default function AdminAquecimento() {
     }
     setResetting(false);
   };
+
+  const updateTrustTier = async (profileId: string) => {
     const tier = prompt("Digite o Nível de Confiança atual (ex: Nível 1, Nível 2, Nível 3):");
     if (!tier) return;
     await supabase.from("warming_profiles").update({ trust_tier: tier, updated_at: new Date().toISOString() }).eq("id", profileId);
