@@ -106,16 +106,44 @@ export default function Orders() {
         .select("*, products:product_id(icon_type)")
         .in("order_id", orderIds.length > 0 ? orderIds : ["__none__"]);
 
-      // Fetch stock_items to check blocked status
+      // Fetch stock_items linked to order_items (combo parent/main items)
       const itemIds = (itemsData || []).map((i) => i.id);
-      const { data: stockItems } = await supabase
+      const { data: parentStockItems } = await supabase
         .from("stock_items")
-        .select("order_item_id, status")
+        .select("id, order_item_id, status, type")
         .in("order_item_id", itemIds.length > 0 ? itemIds : ["__none__"]);
 
+      // Fetch combo children (profiles) by parent_id
+      const parentStockIds = (parentStockItems || []).map((s: any) => s.id);
+      const { data: childStockItems } = await supabase
+        .from("stock_items")
+        .select("id, parent_id, name, identification, identification_link")
+        .in("parent_id", parentStockIds.length > 0 ? parentStockIds : ["__none__"]);
+
       const blockedItemIds = new Set(
-        (stockItems || []).filter((s) => s.status === "bloqueado").map((s) => s.order_item_id)
+        (parentStockItems || [])
+          .filter((s: any) => s.status === "bloqueado")
+          .map((s: any) => s.order_item_id)
+          .filter(Boolean)
       );
+
+      const comboProfilesByOrderItemId = new Map<string, ComboProfile[]>();
+      (parentStockItems || []).forEach((parent: any) => {
+        if (!parent.order_item_id) return;
+
+        const children = (childStockItems || [])
+          .filter((child: any) => child.parent_id === parent.id)
+          .map((child: any) => ({
+            id: child.id,
+            name: child.name || "Perfil",
+            identification: child.identification || null,
+            identificationLink: child.identification_link || null,
+          }));
+
+        if (children.length > 0 || parent.type === "combo") {
+          comboProfilesByOrderItemId.set(parent.order_item_id, children);
+        }
+      });
 
       // Filter out proxy-only orders
       const nonProxyOrders = ordersData.filter((order) => {
@@ -134,6 +162,7 @@ export default function Orders() {
             iconType: i.products?.icon_type,
             isReplaced: !!(i.delivery_data as any)?._replaced,
             replacedAt: (i.delivery_data as any)?._replaced_at || null,
+            comboProfiles: comboProfilesByOrderItemId.get(i.id) || [],
           })),
       })).filter(o => o.items.length > 0);
 
