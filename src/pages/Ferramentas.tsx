@@ -248,52 +248,46 @@ export default function Ferramentas() {
 
         {/* Recent Activity Section */}
         <section className="max-w-4xl mx-auto">
-          <div className="flex items-center justify-between mb-8 px-4">
-            <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-              <MaterialIcon name="history" className="text-primary" />
+          <div className="flex items-center justify-between mb-3 px-2">
+            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              <MaterialIcon name="history" className="text-primary text-xl" />
               Atividades Recentes
             </h2>
-            <span className="text-sm font-medium text-primary cursor-pointer hover:underline">Ver tudo</span>
+            <span className="text-xs font-medium text-primary cursor-pointer hover:underline">Ver tudo</span>
           </div>
           <div
             className="rounded-xl overflow-hidden divide-y divide-white/5"
             style={glassCardStyle}
           >
-            <div className="flex items-center gap-5 p-5 hover:bg-white/5 transition-colors relative z-10">
-              <div className="w-12 h-12 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
-                <MaterialIcon name="verified" />
+            <div className="flex items-center gap-3 p-3 hover:bg-white/5 transition-colors relative z-10">
+              <div className="w-9 h-9 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                <MaterialIcon name="verified" className="text-lg" />
               </div>
-              <div className="flex-grow">
-                <p className="font-bold text-white">Documento Gerado com Sucesso</p>
-                <p className="text-sm text-slate-400">RG Digital - Perfil VIP 04</p>
+              <div className="flex-grow min-w-0">
+                <p className="font-bold text-white text-sm">Documento Gerado com Sucesso</p>
+                <p className="text-xs text-slate-400">RG Digital - Perfil VIP 04</p>
               </div>
-              <div className="text-right">
-                <p className="text-xs font-semibold text-slate-500">Há 2 minutos</p>
-              </div>
+              <p className="text-[10px] font-semibold text-slate-500 shrink-0">Há 2 min</p>
             </div>
-            <div className="flex items-center gap-5 p-5 hover:bg-white/5 transition-colors relative z-10">
-              <div className="w-12 h-12 rounded-lg bg-primary/20 text-primary flex items-center justify-center shrink-0">
-                <MaterialIcon name="key" />
+            <div className="flex items-center gap-3 p-3 hover:bg-white/5 transition-colors relative z-10">
+              <div className="w-9 h-9 rounded-lg bg-primary/20 text-primary flex items-center justify-center shrink-0">
+                <MaterialIcon name="key" className="text-lg" />
               </div>
-              <div className="flex-grow">
-                <p className="font-bold text-white">Código 2FA Solicitado</p>
-                <p className="text-sm text-slate-400">Conta Business Manager #129</p>
+              <div className="flex-grow min-w-0">
+                <p className="font-bold text-white text-sm">Código 2FA Solicitado</p>
+                <p className="text-xs text-slate-400">Conta Business Manager #129</p>
               </div>
-              <div className="text-right">
-                <p className="text-xs font-semibold text-slate-500">Há 15 minutos</p>
-              </div>
+              <p className="text-[10px] font-semibold text-slate-500 shrink-0">Há 15 min</p>
             </div>
-            <div className="flex items-center gap-5 p-5 hover:bg-white/5 transition-colors relative z-10">
-              <div className="w-12 h-12 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
-                <MaterialIcon name="search_check" />
+            <div className="flex items-center gap-3 p-3 hover:bg-white/5 transition-colors relative z-10">
+              <div className="w-9 h-9 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
+                <MaterialIcon name="search_check" className="text-lg" />
               </div>
-              <div className="flex-grow">
-                <p className="font-bold text-white">Verificação de Lote Concluída</p>
-                <p className="text-sm text-slate-400">50 perfis analisados • 48 ativos</p>
+              <div className="flex-grow min-w-0">
+                <p className="font-bold text-white text-sm">Verificação de Lote Concluída</p>
+                <p className="text-xs text-slate-400">50 perfis analisados • 48 ativos</p>
               </div>
-              <div className="text-right">
-                <p className="text-xs font-semibold text-slate-500">Há 1 hora</p>
-              </div>
+              <p className="text-[10px] font-semibold text-slate-500 shrink-0">Há 1 hora</p>
             </div>
           </div>
         </section>
