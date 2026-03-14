@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useWebsharePlan, useWebshareProxyList } from "@/hooks/useWebshare";
+import { useWebsharePlan, useWebshareAllProxies } from "@/hooks/useWebshare";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
