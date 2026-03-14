@@ -382,8 +382,31 @@ export default function Orders() {
                           });
                         }
 
-                        // Others: expand as before
+                        // Others: expand as before (with combo profiles as separate rows)
                         otherItems.forEach(item => {
+                          const comboProfiles = item.comboProfiles || [];
+
+                          if (comboProfiles.length > 0) {
+                            const unitPrice = item.price / comboProfiles.length;
+                            comboProfiles.forEach((profile, idx) => {
+                              rows.push({
+                                key: `${item.id}-combo-${profile.id}`,
+                                name: `${item.name} • Item ${idx + 1}`,
+                                subtitle: profile.identificationLink || profile.identification || profile.name,
+                                price: unitPrice,
+                                totalPrice: unitPrice,
+                                itemId: item.id,
+                                isBlocked: !!item.isBlocked,
+                                isReplaced: !!item.isReplaced,
+                                replacedAt: item.replacedAt || null,
+                                isBm: false,
+                                isPage: false,
+                                isProxy: false,
+                              });
+                            });
+                            return;
+                          }
+
                           const count = item.quantity > 1 ? item.quantity : 1;
                           for (let idx = 0; idx < count; idx++) {
                             rows.push({
