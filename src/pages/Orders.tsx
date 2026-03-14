@@ -339,7 +339,7 @@ export default function Orders() {
                         const otherItems = selectedOrder.items.filter(i => (
                           i.iconType !== 'bm' && i.iconType !== 'page' && i.iconType !== 'proxy'
                         ) || !!i.comboProfiles?.length);
-                        const rows: { key: string; name: string; subtitle: string; price: number; totalPrice: number; itemId: string; isBlocked: boolean; isReplaced: boolean; replacedAt: string | null; isBm: boolean; isPage: boolean; isProxy: boolean }[] = [];
+                        const rows: { key: string; name: string; subtitle: string; price: number; totalPrice: number; itemId: string; isBlocked: boolean; isReplaced: boolean; replacedAt: string | null; isBm: boolean; isPage: boolean; isProxy: boolean; hidePrice?: boolean }[] = [];
 
                         // BM: single grouped row
                         if (bmItems.length > 0) {
@@ -414,6 +414,7 @@ export default function Orders() {
                                 subtitle: profile.identificationLink || profile.identification || profile.name,
                                 price: unitPrice,
                                 totalPrice: unitPrice,
+                                hidePrice: true,
                                 itemId: item.id,
                                 isBlocked: !!item.isBlocked,
                                 isReplaced: !!item.isReplaced,
@@ -474,7 +475,7 @@ export default function Orders() {
                               </p>
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
-                              <span className="text-foreground font-bold text-sm">R$ {row.price.toFixed(2).replace(".", ",")}</span>
+                              <span className="text-foreground font-bold text-sm">{row.hidePrice ? '' : `R$ ${row.price.toFixed(2).replace(".", ",")}`}</span>
                               {selectedOrder.status === "completed" && (
                                 row.isProxy ? (
                                   <button
