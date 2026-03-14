@@ -164,12 +164,20 @@ export default function ItemDetails() {
         if (mainStockItem.identification) baseData.idPerfil = mainStockItem.identification;
         setStockData(baseData);
 
-        // If it's a combo (has children), mark it so we don't show page flow
-        const hasChildren = stockItems && stockItems.some((s: any) => s.parent_id === mainStockItem.id);
-        if (mainStockItem.type === "combo" || hasChildren) {
+        // Check for combo: children may be in the same query OR need a separate fetch by parent_id
+        let children = stockItems?.filter((s: any) => s.parent_id === mainStockItem.id) || [];
+        
+        // If no children found in current results, fetch them separately by parent_id
+        if (children.length === 0 && (mainStockItem.type === "combo")) {
+          const { data: childItems } = await supabase
+            .from("stock_items")
+            .select("*")
+            .eq("parent_id", mainStockItem.id);
+          children = childItems || [];
+        }
+
+        if (mainStockItem.type === "combo" || children.length > 0) {
           setIsCombo(true);
-          // Collect all child stock items for display
-          const children = stockItems?.filter((s: any) => s.parent_id === mainStockItem.id) || [];
           setComboChildren(children);
         }
       }
