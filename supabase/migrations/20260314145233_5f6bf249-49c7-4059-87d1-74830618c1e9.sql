@@ -1,0 +1,1 @@
+ALTER TABLE public.stock_items ADD COLUMN parent_id uuid REFERENCES public.stock_items(id) ON DELETE CASCADE DEFAULT NULL;

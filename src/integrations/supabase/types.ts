@@ -1547,6 +1547,7 @@ export type Database = {
           identification_link: string | null
           name: string
           order_item_id: string | null
+          parent_id: string | null
           product_id: string | null
           status: string
           type: string
@@ -1562,6 +1563,7 @@ export type Database = {
           identification_link?: string | null
           name: string
           order_item_id?: string | null
+          parent_id?: string | null
           product_id?: string | null
           status?: string
           type: string
@@ -1577,6 +1579,7 @@ export type Database = {
           identification_link?: string | null
           name?: string
           order_item_id?: string | null
+          parent_id?: string | null
           product_id?: string | null
           status?: string
           type?: string
@@ -1588,6 +1591,13 @@ export type Database = {
             columns: ["order_item_id"]
             isOneToOne: false
             referencedRelation: "order_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_items_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "stock_items"
             referencedColumns: ["id"]
           },
           {
