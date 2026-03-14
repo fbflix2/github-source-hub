@@ -106,12 +106,13 @@ export default function Orders() {
         .select("*, products:product_id(icon_type)")
         .in("order_id", orderIds.length > 0 ? orderIds : ["__none__"]);
 
-      // Fetch stock_items linked to order_items (combo parent/main items)
+      // Fetch stock_items linked to order_items (combo parent/main items only - exclude children)
       const itemIds = (itemsData || []).map((i) => i.id);
       const { data: parentStockItems } = await supabase
         .from("stock_items")
-        .select("id, order_item_id, status, type")
-        .in("order_item_id", itemIds.length > 0 ? itemIds : ["__none__"]);
+        .select("id, order_item_id, status, type, parent_id")
+        .in("order_item_id", itemIds.length > 0 ? itemIds : ["__none__"])
+        .is("parent_id", null);
 
       // Fetch combo children (profiles) by parent_id
       const parentStockIds = (parentStockItems || []).map((s: any) => s.id);
