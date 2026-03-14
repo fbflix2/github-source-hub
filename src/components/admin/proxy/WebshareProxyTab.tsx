@@ -473,6 +473,9 @@ export default function WebshareProxyTab() {
         </CardContent>
       </Card>
 
+      {/* Bandwidth Usage */}
+      <WebshareBandwidthCard bandwidthLimitGB={plan?.bandwidth_limit || null} />
+
       {/* Proxy Table */}
       <Card className="border-border/40 bg-card/60 backdrop-blur-sm overflow-hidden">
         <CardHeader className="pb-2">
