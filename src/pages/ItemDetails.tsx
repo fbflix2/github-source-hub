@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { PlatformFeedback } from "@/components/PlatformFeedback";
@@ -38,6 +38,8 @@ interface StockData {
 export default function ItemDetails() {
   const navigate = useNavigate();
   const { orderId, itemId } = useParams();
+  const [searchParams] = useSearchParams();
+  const comboProfileId = searchParams.get("profile"); // specific child stock_item_id
   const [showPassword, setShowPassword] = useState(false);
   const [showToken, setShowToken] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
@@ -155,15 +157,6 @@ export default function ItemDetails() {
       const mainStockItem = stockItems?.find((s: any) => !s.parent_id) || stockItems?.[0] || null;
 
       if (mainStockItem) {
-        setStockItemId(mainStockItem.id);
-        if (mainStockItem.status === "bloqueado") setIsBlocked(true);
-        if (mainStockItem.status === "ok") setIsConfirmedOk(true);
-        const baseData = (mainStockItem.data && typeof mainStockItem.data === "object") ? mainStockItem.data as StockData : {} as StockData;
-        // Merge top-level stock_items fields into stockData for template replacement
-        if (mainStockItem.identification_link) baseData.linkPerfil = mainStockItem.identification_link;
-        if (mainStockItem.identification) baseData.idPerfil = mainStockItem.identification;
-        setStockData(baseData);
-
         // Check for combo: children may be in the same query OR need a separate fetch by parent_id
         let children = stockItems?.filter((s: any) => s.parent_id === mainStockItem.id) || [];
         
@@ -176,9 +169,35 @@ export default function ItemDetails() {
           children = childItems || [];
         }
 
-        if (mainStockItem.type === "combo" || children.length > 0) {
-          setIsCombo(true);
-          setComboChildren(children);
+        // If a specific combo profile is requested, show only that child as the main item
+        if (comboProfileId && children.length > 0) {
+          const targetChild = children.find((c: any) => c.id === comboProfileId);
+          if (targetChild) {
+            setStockItemId(targetChild.id);
+            if (targetChild.status === "bloqueado") setIsBlocked(true);
+            if (targetChild.status === "ok") setIsConfirmedOk(true);
+            const childData = (targetChild.data && typeof targetChild.data === "object") ? targetChild.data as StockData : {} as StockData;
+            if (targetChild.identification_link) childData.linkPerfil = targetChild.identification_link;
+            if (targetChild.identification) childData.idPerfil = targetChild.identification;
+            setStockData(childData);
+            // Don't set isCombo - show as individual profile
+            setIsCombo(false);
+            setComboChildren([]);
+          }
+        } else {
+          // Default behavior: show combo or single item
+          setStockItemId(mainStockItem.id);
+          if (mainStockItem.status === "bloqueado") setIsBlocked(true);
+          if (mainStockItem.status === "ok") setIsConfirmedOk(true);
+          const baseData = (mainStockItem.data && typeof mainStockItem.data === "object") ? mainStockItem.data as StockData : {} as StockData;
+          if (mainStockItem.identification_link) baseData.linkPerfil = mainStockItem.identification_link;
+          if (mainStockItem.identification) baseData.idPerfil = mainStockItem.identification;
+          setStockData(baseData);
+
+          if (mainStockItem.type === "combo" || children.length > 0) {
+            setIsCombo(true);
+            setComboChildren(children);
+          }
         }
       }
 
@@ -376,7 +395,9 @@ export default function ItemDetails() {
 
   const formatDate = (d: string) => new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
 
-  const itemName = orderItem?.name || product?.name || "Item";
+  const itemName = comboProfileId && stockData.nomePerfil
+    ? `${orderItem?.name || product?.name || "Item"} • ${stockData.nomePerfil}`
+    : (orderItem?.name || product?.name || "Item");
   const email = stockData.emailAcesso || "—";
   const senha = stockData.senha || "—";
   const token2fa = stockData.token2fa || "—";

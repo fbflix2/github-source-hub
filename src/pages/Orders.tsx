@@ -339,7 +339,7 @@ export default function Orders() {
                         const otherItems = selectedOrder.items.filter(i => (
                           i.iconType !== 'bm' && i.iconType !== 'page' && i.iconType !== 'proxy'
                         ) || !!i.comboProfiles?.length);
-                        const rows: { key: string; name: string; subtitle: string; price: number; totalPrice: number; itemId: string; isBlocked: boolean; isReplaced: boolean; replacedAt: string | null; isBm: boolean; isPage: boolean; isProxy: boolean; hidePrice?: boolean }[] = [];
+                        const rows: { key: string; name: string; subtitle: string; price: number; totalPrice: number; itemId: string; isBlocked: boolean; isReplaced: boolean; replacedAt: string | null; isBm: boolean; isPage: boolean; isProxy: boolean; hidePrice?: boolean; comboStockItemId?: string }[] = [];
 
                         // BM: single grouped row
                         if (bmItems.length > 0) {
@@ -416,6 +416,7 @@ export default function Orders() {
                                 totalPrice: unitPrice,
                                 hidePrice: true,
                                 itemId: item.id,
+                                comboStockItemId: profile.id,
                                 isBlocked: !!item.isBlocked,
                                 isReplaced: !!item.isReplaced,
                                 replacedAt: item.replacedAt || null,
@@ -487,7 +488,7 @@ export default function Orders() {
                                   </button>
                                 ) : (
                                   <button
-                                    onClick={() => navigate(`/item-details/${encodeURIComponent(selectedOrder.code)}/${row.itemId}`)}
+                                    onClick={() => navigate(`/item-details/${encodeURIComponent(selectedOrder.code)}/${row.itemId}${row.comboStockItemId ? `?profile=${row.comboStockItemId}` : ''}`)}
                                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white text-black font-semibold hover:bg-white/90 transition-colors text-xs shadow-sm"
                                   >
                                     <span className="material-symbols-outlined text-[14px]">visibility</span>
