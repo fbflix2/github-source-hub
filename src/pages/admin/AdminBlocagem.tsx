@@ -908,19 +908,54 @@ function FolderItemsView({ folder, onBack }: { folder: Folder; onBack: () => voi
 }
 
 // ─── Combo Form (same as Perfil) ───
+const COMBO_DRAFT_KEY = "combo_form_draft";
+
 function ComboForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => void; onSaved: () => void }) {
   const [showPassword, setShowPassword] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [hasDraft, setHasDraft] = useState(false);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [productDefaults, setProductDefaults] = useState<{ id: string; name: string; tags: string[] }[]>([]);
   const [productImages, setProductImages] = useState<{ id: string; name: string; url: string }[]>([]);
   const [showImagePicker, setShowImagePicker] = useState(false);
-  const [formData, setFormData] = useState({
+
+  const emptyForm = {
     linkPerfil: "", idPerfil: "", emailAcesso: "", emailAlternativo: "",
     senha: "", senhaEmail: "", token2fa: "", tempoPlataforma: "3-meses", statusAtual: "aquecido",
     cookies: "", descricao: "", nomePerfil: "", dataNascimento: "", genero: "masculino",
     linkDocumento: "", fotoUrl: "", preco: "", categoryId: "", tags: [] as string[], nomeProduto: ""
+  };
+
+  const [formData, setFormData] = useState(() => {
+    try {
+      const saved = localStorage.getItem(COMBO_DRAFT_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return { ...emptyForm, ...parsed };
+      }
+    } catch {}
+    return emptyForm;
   });
+
+  useEffect(() => {
+    setHasDraft(!!localStorage.getItem(COMBO_DRAFT_KEY));
+  }, []);
+
+  const handleSaveDraft = () => {
+    setSavingDraft(true);
+    localStorage.setItem(COMBO_DRAFT_KEY, JSON.stringify(formData));
+    setHasDraft(true);
+    setTimeout(() => setSavingDraft(false), 600);
+    toast.success("Rascunho salvo com sucesso!");
+  };
+
+  const handleClearDraft = () => {
+    localStorage.removeItem(COMBO_DRAFT_KEY);
+    setHasDraft(false);
+    setFormData(emptyForm);
+    toast.info("Rascunho descartado.");
+  };
 
   useEffect(() => {
     supabase.from("product_categories").select("id, name").then(({ data }) => setCategories(data ?? []));
