@@ -482,25 +482,7 @@ Deno.serve(async (req) => {
           .single();
 
         if (productData) {
-          const tags = (productData.tags || []) as string[];
-          const name = (productData.name || "").toLowerCase();
-          
-          const countryTags = ["br", "us", "uk", "de", "fr", "ca", "au", "jp"];
-          for (const tag of tags) {
-            const lowerTag = tag.toLowerCase().trim();
-            if (countryTags.includes(lowerTag)) {
-              targetCountry = lowerTag.toUpperCase();
-              break;
-            }
-          }
-          
-          if (!targetCountry) {
-            if (name.includes("brasil") || name.includes("brazil") || name.includes(" br")) {
-              targetCountry = "BR";
-            } else if (name.includes("usa") || name.includes("estados unidos") || name.includes(" us")) {
-              targetCountry = "US";
-            }
-          }
+          targetCountry = detectCountryFromProduct(productData);
         }
       }
       
