@@ -152,7 +152,36 @@ Deno.serve(async (req) => {
       });
     }
 
-    const authHeader = req.headers.get("Authorization");
+    // ========== INTERNAL: UPDATE SUBSCRIPTION (no user JWT needed) ==========
+    if (bodyClone.action === "internal-update-subscription") {
+      const supabaseInternal = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+
+      const { subscription_id: iSubId, raw_data: iRawData, status: iStatus } = bodyClone;
+      if (!iSubId) throw new Error("subscription_id é obrigatório");
+
+      const updatePayload: Record<string, any> = { updated_at: new Date().toISOString() };
+      if (iRawData) updatePayload.raw_data = iRawData;
+      if (iStatus) {
+        updatePayload.status = iStatus;
+        if (iStatus === "cancelled") updatePayload.cancelled_at = new Date().toISOString();
+      }
+
+      const { error: iUpdErr } = await supabaseInternal
+        .from("subscriptions")
+        .update(updatePayload)
+        .eq("id", iSubId);
+
+      if (iUpdErr) throw new Error(`Erro ao atualizar: ${iUpdErr.message}`);
+
+      console.log(`[internal-update] Updated subscription ${iSubId}`);
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Missing authorization" }), {
         status: 401,
@@ -855,6 +884,36 @@ Deno.serve(async (req) => {
           password: newProxyData.password,
         },
       }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ========== ADMIN: UPDATE SUBSCRIPTION RAW_DATA ==========
+    if (action === "admin-update-subscription") {
+      const { subscription_id: updSubId, raw_data: newRawData, status: newStatus } = params as {
+        subscription_id: string;
+        raw_data?: Record<string, any>;
+        status?: string;
+      };
+      if (!updSubId) throw new Error("subscription_id é obrigatório");
+
+      const { data: isAdmin } = await supabaseAdmin.rpc("has_role", { _user_id: user.id, _role: "admin" });
+      if (!isAdmin) throw new Error("Acesso negado: apenas administradores");
+
+      const updatePayload: Record<string, any> = { updated_at: new Date().toISOString() };
+      if (newRawData) updatePayload.raw_data = newRawData;
+      if (newStatus) updatePayload.status = newStatus;
+      if (newStatus === "cancelled") updatePayload.cancelled_at = new Date().toISOString();
+
+      const { error: updErr } = await supabaseAdmin
+        .from("subscriptions")
+        .update(updatePayload)
+        .eq("id", updSubId);
+
+      if (updErr) throw new Error(`Erro ao atualizar: ${updErr.message}`);
+
+      console.log(`[webshare-api] Admin ${user.id} updated subscription ${updSubId}`);
+      return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
