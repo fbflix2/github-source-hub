@@ -293,9 +293,8 @@ export default function Ferramentas() {
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="mt-24 text-center border-t border-white/5 pt-8">
-        <p className="text-sm text-slate-500 font-medium">
+      <footer className="mt-6 text-center border-t border-white/5 pt-4">
+        <p className="text-xs text-slate-500 font-medium">
           © 2024 FBFLIX 2.0 • Sistema de Gestão de Contingência Profissional
         </p>
       </footer>
