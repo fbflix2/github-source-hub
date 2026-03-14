@@ -859,6 +859,36 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ========== ADMIN: UPDATE SUBSCRIPTION RAW_DATA ==========
+    if (action === "admin-update-subscription") {
+      const { subscription_id: updSubId, raw_data: newRawData, status: newStatus } = params as {
+        subscription_id: string;
+        raw_data?: Record<string, any>;
+        status?: string;
+      };
+      if (!updSubId) throw new Error("subscription_id é obrigatório");
+
+      const { data: isAdmin } = await supabaseAdmin.rpc("has_role", { _user_id: user.id, _role: "admin" });
+      if (!isAdmin) throw new Error("Acesso negado: apenas administradores");
+
+      const updatePayload: Record<string, any> = { updated_at: new Date().toISOString() };
+      if (newRawData) updatePayload.raw_data = newRawData;
+      if (newStatus) updatePayload.status = newStatus;
+      if (newStatus === "cancelled") updatePayload.cancelled_at = new Date().toISOString();
+
+      const { error: updErr } = await supabaseAdmin
+        .from("subscriptions")
+        .update(updatePayload)
+        .eq("id", updSubId);
+
+      if (updErr) throw new Error(`Erro ao atualizar: ${updErr.message}`);
+
+      console.log(`[webshare-api] Admin ${user.id} updated subscription ${updSubId}`);
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     throw new Error(`Ação desconhecida: ${action}`);
   } catch (err: any) {
     console.error("[webshare-api] Error:", err.message);
