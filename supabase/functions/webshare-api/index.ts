@@ -912,11 +912,14 @@ Deno.serve(async (req) => {
       }
 
       // 3. Update subscription raw_data
+      const prevExchangeCount = raw.exchange_count ? Number(raw.exchange_count) : 0;
       const updatedRaw = {
         ...raw,
         ...newProxyData,
         provider: "webshare",
         exchange_quota_free: freeLeft - 1,
+        exchange_count: prevExchangeCount + 1,
+        initial_exchange_quota_free: raw.initial_exchange_quota_free ?? (freeLeft),
         last_exchange: new Date().toISOString(),
         last_exchange_method: method,
       };
