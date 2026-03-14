@@ -670,8 +670,7 @@ function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => voi
   }, []);
 
   const urlLines = useMemo(() => {
-    const lines = urls.split("\n").filter(l => l.trim());
-    // Remove duplicates keeping first occurrence
+    const lines = bmData.urls.split("\n").filter(l => l.trim());
     const seen = new Set<string>();
     return lines.filter(l => {
       const normalized = l.trim().toLowerCase();
@@ -679,7 +678,7 @@ function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => voi
       seen.add(normalized);
       return true;
     });
-  }, [urls]);
+  }, [bmData.urls]);
 
   const handleUrlsChange = (value: string) => {
     const lines = value.split("\n");
@@ -694,7 +693,7 @@ function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => voi
       seen.add(normalized);
       deduped.push(line);
     }
-    setUrls(deduped.join("\n"));
+    setBmData(prev => ({ ...prev, urls: deduped.join("\n") }));
     if (removedCount > 0) {
       toast.warning(`${removedCount} URL(s) duplicada(s) removida(s)`);
     }
@@ -710,37 +709,45 @@ function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => voi
       status: "aguardando",
       folder: folder.id,
       data: {
-        descricao: descricao || undefined,
-        perfilBackup: perfilBackup || undefined,
-        preco: preco ? parseFloat(preco) : undefined,
-        categoryId: categoryId || undefined,
-        tags: tags.length > 0 ? tags : undefined,
-        foto_url: selectedImageUrl || undefined,
-        nomeProduto: nomeProduto || undefined,
+        descricao: bmData.descricao || undefined,
+        perfilBackup: bmData.perfilBackup || undefined,
+        preco: bmData.preco ? parseFloat(bmData.preco) : undefined,
+        categoryId: bmData.categoryId || undefined,
+        tags: bmData.tags.length > 0 ? bmData.tags : undefined,
+        foto_url: bmData.selectedImageUrl || undefined,
+        nomeProduto: bmData.nomeProduto || undefined,
       },
     }));
     const { error } = await supabase.from("stock_items").insert(items);
     setSaving(false);
     if (error) { toast.error("Erro: " + error.message); return; }
+    localStorage.removeItem(BM_DRAFT_KEY);
+    setHasDraft(false);
     toast.success(`${urlLines.length} BM(s) adicionados! Formulário pronto para novo cadastro.`);
-    setUrls("");
-    setDescricao("");
-    setPerfilBackup("");
-    setPreco("");
-    setCategoryId("");
-    setTags([]);
-    setNomeProduto("");
-    setSelectedImageUrl("");
+    setBmData(emptyBmForm);
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2 text-sm">
-        <button onClick={onBack} className="flex items-center gap-1.5 text-zinc-400 hover:text-white transition-colors">
-          <ArrowLeft className="h-4 w-4" />Voltar
-        </button>
-        <span className="text-zinc-600">/</span>
-        <span className="text-primary font-medium">Nova Blocagem</span>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-sm">
+          <button onClick={onBack} className="flex items-center gap-1.5 text-zinc-400 hover:text-white transition-colors">
+            <ArrowLeft className="h-4 w-4" />Voltar
+          </button>
+          <span className="text-zinc-600">/</span>
+          <span className="text-primary font-medium">Nova Blocagem</span>
+        </div>
+        <div className="flex items-center gap-2">
+          {hasDraft && (
+            <Button type="button" variant="ghost" size="sm" onClick={handleClearBmDraft} className="text-xs text-zinc-500 hover:text-destructive">
+              <Trash2 className="h-3.5 w-3.5 mr-1" /> Descartar rascunho
+            </Button>
+          )}
+          <Button type="button" variant="outline" size="sm" onClick={handleSaveBmDraft} disabled={savingDraft} className="text-xs border-amber-500/30 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300 gap-1.5">
+            {savingDraft ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+            Salvar como rascunho
+          </Button>
+        </div>
       </div>
 
       <div className="glass-panel rounded-2xl p-6 space-y-6">
@@ -765,7 +772,7 @@ function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => voi
               </div>
               <Badge variant="outline" className="border-green-500/50 text-green-400 text-xs">Aceita múltiplas linhas</Badge>
             </div>
-            <Textarea value={urls} onChange={e => handleUrlsChange(e.target.value)} placeholder="https://business.facebook.com/overview..." className="min-h-[280px] bg-zinc-900/50 border-zinc-700 text-white font-mono text-sm resize-none" />
+            <Textarea value={bmData.urls} onChange={e => handleUrlsChange(e.target.value)} placeholder="https://business.facebook.com/overview..." className="min-h-[280px] bg-zinc-900/50 border-zinc-700 text-white font-mono text-sm resize-none" />
             <div className="flex items-center justify-between text-sm">
               <span className="text-zinc-500">Pressione Enter para nova linha.</span>
               <span className="text-primary font-medium">Total: {urlLines.length}</span>
@@ -776,11 +783,11 @@ function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => voi
             <div className="space-y-3 pt-2">
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><DollarSign className="h-3 w-3" />Preço (R$)</label>
-                <Input type="number" step="0.01" min="0" placeholder="0.00" value={preco} onChange={e => setPreco(e.target.value)} className="bg-zinc-900/50 border-zinc-700 text-white" />
+                <Input type="number" step="0.01" min="0" placeholder="0.00" value={bmData.preco} onChange={e => setBmData(prev => ({ ...prev, preco: e.target.value }))} className="bg-zinc-900/50 border-zinc-700 text-white" />
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><FolderOpen className="h-3 w-3" />Categoria</label>
-                <Select value={categoryId} onValueChange={setCategoryId}>
+                <Select value={bmData.categoryId} onValueChange={v => setBmData(prev => ({ ...prev, categoryId: v }))}>
                   <SelectTrigger className="bg-zinc-900/50 border-zinc-700 text-white"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                   <SelectContent>
                     {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
@@ -789,13 +796,16 @@ function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => voi
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><PackageOpen className="h-3 w-3" />Nome do Produto</label>
-              <Select value={nomeProduto} onValueChange={v => {
+              <Select value={bmData.nomeProduto} onValueChange={v => {
                   const def = productDefaults.find(d => d.name === v) as any;
-                  setNomeProduto(v);
-                  setTags(def?.tags ?? []);
-                  if (def?.price) setPreco(String(def.price));
-                  if (def?.default_image) setSelectedImageUrl(def.default_image);
-                  if (def?.description) setDescricao(def.description);
+                  setBmData(prev => ({
+                    ...prev,
+                    nomeProduto: v,
+                    tags: def?.tags ?? [],
+                    preco: def?.price ? String(def.price) : prev.preco,
+                    selectedImageUrl: def?.default_image || prev.selectedImageUrl,
+                    descricao: def?.description || prev.descricao,
+                  }));
                 }}>
                   <SelectTrigger className="bg-zinc-900/50 border-zinc-700 text-white"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                   <SelectContent>
@@ -803,11 +813,11 @@ function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => voi
                   </SelectContent>
                 </Select>
               </div>
-              {tags.length > 0 && (
+              {bmData.tags.length > 0 && (
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><Tag className="h-3 w-3" />Tags (do padrão)</label>
                   <div className="flex flex-wrap gap-1">
-                    {tags.map(tag => (
+                    {bmData.tags.map(tag => (
                       <Badge key={tag} className="bg-primary/20 text-primary text-xs">{tag}</Badge>
                     ))}
                   </div>
@@ -816,10 +826,10 @@ function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => voi
               {/* Product Image Picker */}
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><ImageIcon className="h-3 w-3" />Foto do Produto</label>
-                {selectedImageUrl ? (
+                {bmData.selectedImageUrl ? (
                   <div className="flex items-center gap-2">
-                    <img src={selectedImageUrl} alt="Produto" className="w-12 h-12 rounded-lg object-cover border border-white/10" />
-                    <Button type="button" variant="ghost" size="sm" className="text-xs text-zinc-400" onClick={() => setSelectedImageUrl("")}>
+                    <img src={bmData.selectedImageUrl} alt="Produto" className="w-12 h-12 rounded-lg object-cover border border-white/10" />
+                    <Button type="button" variant="ghost" size="sm" className="text-xs text-zinc-400" onClick={() => setBmData(prev => ({ ...prev, selectedImageUrl: "" }))}>
                       <X className="h-3 w-3 mr-1" /> Remover
                     </Button>
                   </div>
@@ -839,7 +849,7 @@ function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => voi
                     ) : (
                       <div className="grid grid-cols-4 gap-2 max-h-40 overflow-y-auto">
                         {productImages.map(img => (
-                          <button key={img.id} type="button" onClick={() => { setSelectedImageUrl(img.url); setShowImagePicker(false); }} className="aspect-square rounded-lg overflow-hidden border border-white/10 hover:border-primary/50 transition-all">
+                          <button key={img.id} type="button" onClick={() => { setBmData(prev => ({ ...prev, selectedImageUrl: img.url })); setShowImagePicker(false); }} className="aspect-square rounded-lg overflow-hidden border border-white/10 hover:border-primary/50 transition-all">
                             <img src={img.url} alt={img.name} className="w-full h-full object-cover" />
                           </button>
                         ))}
@@ -850,12 +860,12 @@ function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => voi
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><CircleUser className="h-3 w-3" />Perfil Backup (Admin)</label>
-                <Input type="text" placeholder="Nome ou link do perfil backup admin" value={perfilBackup} onChange={e => setPerfilBackup(e.target.value)} className="bg-zinc-900/50 border-zinc-700 text-white" />
+                <Input type="text" placeholder="Nome ou link do perfil backup admin" value={bmData.perfilBackup} onChange={e => setBmData(prev => ({ ...prev, perfilBackup: e.target.value }))} className="bg-zinc-900/50 border-zinc-700 text-white" />
                 <span className="text-[10px] text-zinc-600">Perfil que ficará como admin na BM do cliente</span>
               </div>
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-medium text-zinc-400 flex items-center gap-2"><FileText className="h-3 w-3" />Descrição</label>
-                <Textarea value={descricao} onChange={e => setDescricao(e.target.value)} placeholder="Descrição do item..." className="min-h-[80px] bg-zinc-900/50 border-zinc-700 text-white resize-none" />
+                <Textarea value={bmData.descricao} onChange={e => setBmData(prev => ({ ...prev, descricao: e.target.value }))} placeholder="Descrição do item..." className="min-h-[80px] bg-zinc-900/50 border-zinc-700 text-white resize-none" />
               </div>
               <Button onClick={handleSave} disabled={saving} className="w-full bg-primary hover:bg-primary/90 text-white gap-2 h-12">
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
