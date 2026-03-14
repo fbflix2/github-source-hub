@@ -367,14 +367,27 @@ export default function ComboForm({ folder, onBack, onSaved }: { folder: Folder;
 
       {/* Profiles */}
       <div className="space-y-2">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
             <CircleUser className="h-4 w-4 text-primary" />
             <h2 className="text-sm font-bold text-white">Perfis do Combo</h2>
           </div>
-          <Button type="button" size="sm" onClick={addProfile} className="gap-1.5 text-xs h-7 bg-primary/20 text-primary hover:bg-primary/30 border-0">
-            <Plus className="h-3 w-3" /> Adicionar Perfil
-          </Button>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-zinc-400 whitespace-nowrap">Qtd perfis:</label>
+              <Input
+                type="number"
+                min={1}
+                max={20}
+                value={formData.profiles.length}
+                onChange={e => setProfileCount(parseInt(e.target.value) || 1)}
+                className="w-16 h-7 bg-black/30 border-white/5 text-white text-center text-xs"
+              />
+            </div>
+            <Button type="button" size="sm" onClick={addProfile} className="gap-1.5 text-xs h-7 bg-primary/20 text-primary hover:bg-primary/30 border-0">
+              <Plus className="h-3 w-3" /> Adicionar Perfil
+            </Button>
+          </div>
         </div>
 
         {formData.profiles.map((profile, index) => (
