@@ -208,27 +208,25 @@ export default function Ferramentas() {
 
           {/* Tool 2: Emissor de Documentos (Em Desenvolvimento) */}
           <GlassCard bgImage={BG_IMAGES.emissor} disabled>
-            <div className="w-16 h-16 bg-primary/10 text-primary rounded-xl flex items-center justify-center mb-6">
-              <MaterialIcon name="article" className="text-4xl" />
+            <div className="w-11 h-11 bg-primary/10 text-primary rounded-lg flex items-center justify-center mb-3">
+              <MaterialIcon name="article" className="text-2xl" />
             </div>
-            <div className="flex items-center gap-2 mb-3">
-              <h3 className="text-xl font-bold text-white">Emissor de Documentos</h3>
-            </div>
-            <div className="mb-3">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-400 text-xs font-semibold border border-yellow-500/30">
-                <Construction className="size-3" />
+            <h3 className="text-base font-bold mb-1.5 text-white">Emissor de Documentos</h3>
+            <div className="mb-2">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 text-[10px] font-semibold border border-yellow-500/30">
+                <Construction className="size-2.5" />
                 Em Desenvolvimento
               </span>
             </div>
-            <p className="text-slate-400 mb-8 flex-grow leading-relaxed">
+            <p className="text-slate-400 mb-4 flex-grow leading-relaxed text-xs">
               Crie documentos personalizados em segundos para verificação de perfis e contas business.
             </p>
             <button
               disabled
-              className="w-full py-4 px-6 bg-slate-700/50 text-slate-500 font-bold rounded-lg transition-all flex items-center justify-center gap-2 cursor-not-allowed"
+              className="w-full py-2.5 px-4 bg-slate-700/50 text-slate-500 font-bold rounded-lg transition-all flex items-center justify-center gap-2 cursor-not-allowed text-sm"
             >
               <span>Em Breve</span>
-              <MaterialIcon name="arrow_forward" className="text-xl" />
+              <MaterialIcon name="arrow_forward" className="text-lg" />
             </button>
           </GlassCard>
 
