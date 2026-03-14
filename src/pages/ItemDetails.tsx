@@ -877,6 +877,74 @@ export default function ItemDetails() {
                       </>
                     )}
                   </>
+                ) : isCombo && comboChildren.length > 0 ? (
+                  <>
+                    <h3 className="text-[10px] font-bold text-foreground mb-2 uppercase tracking-wider">
+                      Perfis do Combo ({comboChildren.length})
+                    </h3>
+                    <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
+                      {comboChildren.map((child: any, idx: number) => {
+                        const cd = (child.data && typeof child.data === "object") ? child.data as StockData : {} as StockData;
+                        const cEmail = cd.emailAcesso || "—";
+                        const cSenha = cd.senha || "—";
+                        const cToken = cd.token2fa || "—";
+                        return (
+                          <div key={child.id} className="p-2.5 rounded-lg bg-background/50 border border-border space-y-1.5">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-[10px] font-bold text-primary uppercase">Perfil #{idx + 1}</span>
+                              {child.identification && (
+                                <span className="text-[10px] text-muted-foreground font-mono">{child.identification}</span>
+                              )}
+                            </div>
+                            <div>
+                              <label className="text-[10px] text-muted-foreground mb-0.5 block">Login / Email</label>
+                              <div className="flex items-center gap-1">
+                                <code className="flex-1 bg-muted/30 px-2 py-1 rounded border border-border text-xs font-mono text-foreground truncate">{cEmail}</code>
+                                <button onClick={() => copyToClipboard(cEmail, `combo-email-${idx}`)} className="p-1 rounded bg-muted/50 hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
+                                  <span className="material-symbols-outlined text-[12px]">{copied === `combo-email-${idx}` ? 'check' : 'content_copy'}</span>
+                                </button>
+                              </div>
+                            </div>
+                            <div>
+                              <label className="text-[10px] text-muted-foreground mb-0.5 block">Senha</label>
+                              <div className="flex items-center gap-1">
+                                <code className="flex-1 bg-muted/30 px-2 py-1 rounded border border-border text-xs font-mono text-foreground">{cSenha}</code>
+                                <button onClick={() => copyToClipboard(cSenha, `combo-senha-${idx}`)} className="p-1 rounded bg-muted/50 hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
+                                  <span className="material-symbols-outlined text-[12px]">{copied === `combo-senha-${idx}` ? 'check' : 'content_copy'}</span>
+                                </button>
+                              </div>
+                            </div>
+                            <div>
+                              <label className="text-[10px] text-muted-foreground mb-0.5 block">2FA</label>
+                              <div className="flex items-center gap-1">
+                                <code className="flex-1 bg-muted/30 px-2 py-1 rounded border border-border text-xs font-mono text-foreground">{cToken}</code>
+                                <button onClick={() => requireDisclaimer(() => copyToClipboard(cToken, `combo-2fa-${idx}`))} className="p-1 rounded bg-muted/50 hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
+                                  <span className="material-symbols-outlined text-[12px]">{copied === `combo-2fa-${idx}` ? 'check' : 'content_copy'}</span>
+                                </button>
+                              </div>
+                            </div>
+                            {child.identification_link && (
+                              <div>
+                                <label className="text-[10px] text-muted-foreground mb-0.5 block">Link do Perfil</label>
+                                <div className="flex items-center gap-1">
+                                  <code className="flex-1 bg-muted/30 px-2 py-1 rounded border border-border text-xs font-mono text-green-400 truncate">{child.identification_link}</code>
+                                  <button onClick={() => copyToClipboard(child.identification_link, `combo-link-${idx}`)} className="p-1 rounded bg-muted/50 hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
+                                    <span className="material-symbols-outlined text-[12px]">{copied === `combo-link-${idx}` ? 'check' : 'content_copy'}</span>
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="mt-2 pt-2 border-t border-border flex gap-2">
+                      <button onClick={() => requireDisclaimer(downloadBloco)} className="flex-1 py-1.5 bg-muted/50 border border-border text-foreground font-semibold rounded-lg hover:bg-muted transition-all flex items-center justify-center gap-1.5 text-xs">
+                        <span className="material-symbols-outlined text-[14px]">download</span>
+                        Baixar Bloco
+                      </button>
+                    </div>
+                  </>
                 ) : (
                   <>
                     <h3 className="text-[10px] font-bold text-foreground mb-2 uppercase tracking-wider">Dados de Acesso</h3>
