@@ -620,7 +620,7 @@ export default function WebshareProxyTab() {
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">{productName}</TableCell>
                         <TableCell>
-                          <Badge variant="default" className="text-xs">Ativo</Badge>
+                          <Badge className="text-xs bg-green-600 hover:bg-green-700 text-white border-0">Ativo</Badge>
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
                           {sub.start_date ? new Date(sub.start_date).toLocaleDateString("pt-BR") : "—"}
