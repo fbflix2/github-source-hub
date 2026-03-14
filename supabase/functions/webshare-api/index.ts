@@ -8,6 +8,32 @@ const corsHeaders = {
 
 const WEBSHARE_BASE = "https://proxy.webshare.io/api/v2";
 
+/** Detect target country from product tags and name */
+function detectCountryFromProduct(product: { name: string; tags: string[] | null }): string | null {
+  const tags = (product.tags || []) as string[];
+  const name = (product.name || "").toLowerCase();
+
+  // Direct country code tags
+  const countryTags = ["br", "us", "uk", "de", "fr", "ca", "au", "jp"];
+  for (const tag of tags) {
+    const lowerTag = tag.toLowerCase().trim();
+    if (countryTags.includes(lowerTag)) return lowerTag.toUpperCase();
+  }
+
+  // Country name tags (e.g. "Brasil", "Brazil")
+  for (const tag of tags) {
+    const lt = tag.toLowerCase().trim();
+    if (lt === "brasil" || lt === "brazil") return "BR";
+    if (lt === "usa" || lt === "estados unidos") return "US";
+  }
+
+  // Fallback: check product name
+  if (name.includes("brasil") || name.includes("brazil") || name.includes(" br")) return "BR";
+  if (name.includes("usa") || name.includes("estados unidos") || name.includes(" us")) return "US";
+
+  return null;
+}
+
 async function webFetch(path: string, apiKey: string, method = "GET", body?: string) {
   const url = path.startsWith("http") ? path : `${WEBSHARE_BASE}${path}`;
   const headers: Record<string, string> = {
@@ -305,27 +331,7 @@ Deno.serve(async (req) => {
           .single();
 
         if (productData) {
-          const tags = (productData.tags || []) as string[];
-          const name = (productData.name || "").toLowerCase();
-          
-          // Check tags first for country codes
-          const countryTags = ["br", "us", "uk", "de", "fr", "ca", "au", "jp"];
-          for (const tag of tags) {
-            const lowerTag = tag.toLowerCase().trim();
-            if (countryTags.includes(lowerTag)) {
-              targetCountryCode = lowerTag.toUpperCase();
-              break;
-            }
-          }
-          
-          // Fallback: check product name for country hints
-          if (!targetCountryCode) {
-            if (name.includes("brasil") || name.includes("brazil") || name.includes(" br")) {
-              targetCountryCode = "BR";
-            } else if (name.includes("usa") || name.includes("estados unidos") || name.includes(" us")) {
-              targetCountryCode = "US";
-            }
-          }
+          targetCountryCode = detectCountryFromProduct(productData);
         }
       }
       
@@ -502,25 +508,7 @@ Deno.serve(async (req) => {
           .single();
 
         if (productData) {
-          const tags = (productData.tags || []) as string[];
-          const name = (productData.name || "").toLowerCase();
-          
-          const countryTags = ["br", "us", "uk", "de", "fr", "ca", "au", "jp"];
-          for (const tag of tags) {
-            const lowerTag = tag.toLowerCase().trim();
-            if (countryTags.includes(lowerTag)) {
-              targetCountry = lowerTag.toUpperCase();
-              break;
-            }
-          }
-          
-          if (!targetCountry) {
-            if (name.includes("brasil") || name.includes("brazil") || name.includes(" br")) {
-              targetCountry = "BR";
-            } else if (name.includes("usa") || name.includes("estados unidos") || name.includes(" us")) {
-              targetCountry = "US";
-            }
-          }
+          targetCountry = detectCountryFromProduct(productData);
         }
       }
       
