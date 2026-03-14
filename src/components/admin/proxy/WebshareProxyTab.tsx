@@ -544,98 +544,189 @@ export default function WebshareProxyTab() {
       {/* Bandwidth Usage */}
       <WebshareBandwidthCard bandwidthLimitGB={plan?.bandwidth_limit || null} />
 
-      {/* Proxy Table */}
+      {/* Proxies Alocados (Vendidos) */}
       <Card className="border-border/40 bg-card/60 backdrop-blur-sm overflow-hidden">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-semibold text-foreground">Lista de Proxies</CardTitle>
-        </CardHeader>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow className="border-border/30">
-                <TableHead>#</TableHead>
-                <TableHead>IP</TableHead>
-                <TableHead>Porta</TableHead>
-                <TableHead>Usuário</TableHead>
-                <TableHead>País</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-center">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {proxyLoading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <TableRow key={i} className="border-border/20">
-                    {Array.from({ length: 7 }).map((_, j) => (
-                      <TableCell key={j}><Skeleton className="h-4 w-16" /></TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : proxies.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                    Nenhum proxy encontrado na conta Webshare
-                  </TableCell>
-                </TableRow>
-              ) : (
-                proxies.map((proxy: any, i: number) => (
-                  <TableRow key={proxy.id} className="border-border/20">
-                    <TableCell className="text-xs text-muted-foreground font-mono">
-                      {(page - 1) * pageSize + i + 1}
-                    </TableCell>
-                    <TableCell className="font-mono text-sm text-foreground">
-                      {proxy.proxy_address || "backbone"}
-                    </TableCell>
-                    <TableCell className="font-mono text-sm text-muted-foreground">{proxy.port}</TableCell>
-                    <TableCell className="font-mono text-xs text-muted-foreground">{proxy.username}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="text-xs">
-                        {proxy.country_code || "—"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={proxy.valid ? "default" : "destructive"} className="text-xs">
-                        {proxy.valid ? "Online" : "Offline"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-center">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-7"
-                        onClick={() => copyProxy(proxy)}
-                      >
-                        {copiedId === proxy.id ? (
-                          <CheckCircle2 className="size-3.5 text-green-500" />
-                        ) : (
-                          <Copy className="size-3.5" />
-                        )}
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-border/30">
-            <p className="text-xs text-muted-foreground">
-              Página {page} de {totalPages} • {totalProxies} proxies
-            </p>
-            <div className="flex gap-1">
-              <Button variant="ghost" size="icon" className="size-7" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
-                <ChevronLeft className="size-4" />
-              </Button>
-              <Button variant="ghost" size="icon" className="size-7" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
-                <ChevronRight className="size-4" />
-              </Button>
-            </div>
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <Users className="size-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-semibold text-foreground">
+              Proxies Alocados ({financials.activeCount})
+            </CardTitle>
           </div>
-        )}
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-border/30">
+                  <TableHead>Cliente</TableHead>
+                  <TableHead>Proxy IP:Porta</TableHead>
+                  <TableHead>ID Proxy</TableHead>
+                  <TableHead>Produto</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Início</TableHead>
+                  <TableHead>Vencimento</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(() => {
+                  const productMap = new Map<string, string>();
+                  (wsProducts || []).forEach(p => productMap.set(p.id, p.name));
+
+                  const activeSubs = (wsSubs || []).filter(s => {
+                    if (s.status !== "active") return false;
+                    if (!s.end_date) return true;
+                    return new Date(s.end_date) >= new Date();
+                  });
+
+                  if (!activeSubs.length) {
+                    return (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                          Nenhum proxy alocado
+                        </TableCell>
+                      </TableRow>
+                    );
+                  }
+
+                  return activeSubs.map((sub) => {
+                    const raw = (sub.raw_data || {}) as Record<string, any>;
+                    const clientName = profileMap.get(sub.user_id) || "—";
+                    const proxyIp = raw.proxy_address || "—";
+                    const proxyPort = raw.port || "—";
+                    const proxyId = raw.webshare_proxy_id || "—";
+                    const productName = sub.product_id ? (productMap.get(sub.product_id) || "Proxy Webshare") : "Proxy Webshare";
+
+                    return (
+                      <TableRow key={sub.id} className="border-border/20">
+                        <TableCell className="font-medium text-foreground text-sm">{clientName}</TableCell>
+                        <TableCell className="font-mono text-sm text-foreground">
+                          {proxyIp}:{proxyPort}
+                        </TableCell>
+                        <TableCell className="font-mono text-xs text-muted-foreground">
+                          #{proxyId}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{productName}</TableCell>
+                        <TableCell>
+                          <Badge variant="default" className="text-xs">Ativo</Badge>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {sub.start_date ? new Date(sub.start_date).toLocaleDateString("pt-BR") : "—"}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {sub.end_date ? new Date(sub.end_date).toLocaleDateString("pt-BR") : "—"}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  });
+                })()}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
       </Card>
+
+      {/* Proxy Table - Available Only */}
+      {(() => {
+        const availableProxies = proxies.filter((p: any) => !soldProxyIds.has(Number(p.id)));
+        const availableCount = availableProxies.length;
+
+        return (
+          <Card className="border-border/40 bg-card/60 backdrop-blur-sm overflow-hidden">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold text-foreground">
+                Proxies Disponíveis ({proxyLoading ? "..." : availableCount})
+              </CardTitle>
+            </CardHeader>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-border/30">
+                    <TableHead>#</TableHead>
+                    <TableHead>IP</TableHead>
+                    <TableHead>Porta</TableHead>
+                    <TableHead>Usuário</TableHead>
+                    <TableHead>País</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-center">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {proxyLoading ? (
+                    Array.from({ length: 5 }).map((_, i) => (
+                      <TableRow key={i} className="border-border/20">
+                        {Array.from({ length: 7 }).map((_, j) => (
+                          <TableCell key={j}><Skeleton className="h-4 w-16" /></TableCell>
+                        ))}
+                      </TableRow>
+                    ))
+                  ) : availableProxies.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                        Todos os proxies estão alocados
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    availableProxies.map((proxy: any, i: number) => (
+                      <TableRow key={proxy.id} className="border-border/20">
+                        <TableCell className="text-xs text-muted-foreground font-mono">
+                          {i + 1}
+                        </TableCell>
+                        <TableCell className="font-mono text-sm text-foreground">
+                          {proxy.proxy_address || "backbone"}
+                        </TableCell>
+                        <TableCell className="font-mono text-sm text-muted-foreground">{proxy.port}</TableCell>
+                        <TableCell className="font-mono text-xs text-muted-foreground">{proxy.username}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-xs">
+                            {proxy.country_code || "—"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={proxy.valid ? "default" : "destructive"} className="text-xs">
+                            {proxy.valid ? "Online" : "Offline"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="size-7"
+                            onClick={() => copyProxy(proxy)}
+                          >
+                            {copiedId === proxy.id ? (
+                              <CheckCircle2 className="size-3.5 text-green-500" />
+                            ) : (
+                              <Copy className="size-3.5" />
+                            )}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-4 py-3 border-t border-border/30">
+                <p className="text-xs text-muted-foreground">
+                  Página {page} de {totalPages} • {totalProxies} proxies total • {availableCount} disponíveis
+                </p>
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="icon" className="size-7" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
+                    <ChevronLeft className="size-4" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="size-7" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
+                    <ChevronRight className="size-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </Card>
+        );
+      })()}
     </div>
   );
 }
