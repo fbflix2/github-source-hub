@@ -175,14 +175,17 @@ export default function AdminAquecimento() {
     if (!profileCode.trim()) { toast.error("Digite o código do perfil"); return; }
     setCreating(true);
     const track = TRACKS[selectedTrack];
+    // Use tasks from Configurações (configTasks) instead of hardcoded TRACKS
+    const customTasks = configTasks[selectedTrack] || [];
+    const tasksToUse = customTasks.length > 0 ? customTasks : track.tasks;
     const { data: { user } } = await supabase.auth.getUser();
     const { data: profile, error } = await supabase
       .from("warming_profiles")
-      .insert({ profile_code: profileCode.trim(), track_type: selectedTrack, track_days: track.days, created_by: user?.id || null })
+      .insert({ profile_code: profileCode.trim(), track_type: selectedTrack, track_days: tasksToUse.length, created_by: user?.id || null })
       .select()
       .single();
     if (error || !profile) { toast.error("Erro ao criar perfil"); setCreating(false); return; }
-    const taskRows = track.tasks.map((t) => ({ profile_id: profile.id, day_number: t.day, title: t.title, description: t.description }));
+    const taskRows = tasksToUse.map((t, i) => ({ profile_id: profile.id, day_number: i + 1, title: t.title, description: t.description }));
     await supabase.from("warming_tasks").insert(taskRows);
     toast.success(`Perfil ${profileCode} atribuído à esteira ${track.label}`);
     setProfileCode("");
