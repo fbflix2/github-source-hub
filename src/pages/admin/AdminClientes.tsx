@@ -27,6 +27,7 @@ interface Client {
   created_at: string;
   has_active_subscription: boolean;
   profile_complete: boolean;
+  first_login_at: string | null;
 }
 
 type FilterType = "all" | "subscribers" | "with-balance" | "blocked";
@@ -52,6 +53,7 @@ export default function AdminClientes() {
 
   // Stats
   const [totalClients, setTotalClients] = useState(0);
+  const [totalInBase, setTotalInBase] = useState(0);
   const [clientsWithBalance, setClientsWithBalance] = useState(0);
   const [activeSubscriptions, setActiveSubscriptions] = useState(0);
   const [activeClients, setActiveClients] = useState(0);
@@ -133,11 +135,14 @@ export default function AdminClientes() {
         created_at: p.created_at,
         has_active_subscription: activeSubUserIds.has(p.user_id),
         profile_complete: isComplete,
+        first_login_at: p.first_login_at,
       };
     });
 
     setClients(clientList);
-    setTotalClients(clientList.length);
+    const loggedInClients = clientList.filter(c => c.first_login_at);
+    setTotalClients(loggedInClients.length);
+    setTotalInBase(clientList.length);
     setClientsWithBalance(clientList.filter(c => c.balance > 0).length);
     setActiveSubscriptions((activeSubs || []).length);
 
@@ -302,6 +307,9 @@ export default function AdminClientes() {
               <h3 className="text-2xl font-black text-white group-hover:text-primary transition-colors">
                 {loading ? "..." : totalClients.toLocaleString("pt-BR")}
               </h3>
+              <p className="text-white/40 text-[10px]">
+                {loading ? "" : `${totalInBase.toLocaleString("pt-BR")} na base`}
+              </p>
             </div>
             <div className="size-11 rounded-full bg-white/5 flex items-center justify-center border border-white/10">
               <Users className="w-5 h-5 text-white/80" />
