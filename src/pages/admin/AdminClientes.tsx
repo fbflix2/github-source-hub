@@ -133,11 +133,14 @@ export default function AdminClientes() {
         created_at: p.created_at,
         has_active_subscription: activeSubUserIds.has(p.user_id),
         profile_complete: isComplete,
+        first_login_at: p.first_login_at,
       };
     });
 
     setClients(clientList);
-    setTotalClients(clientList.length);
+    const loggedInClients = clientList.filter(c => c.first_login_at);
+    setTotalClients(loggedInClients.length);
+    setTotalInBase(clientList.length);
     setClientsWithBalance(clientList.filter(c => c.balance > 0).length);
     setActiveSubscriptions((activeSubs || []).length);
 
