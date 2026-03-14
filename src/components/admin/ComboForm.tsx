@@ -192,7 +192,7 @@ export default function ComboForm({ folder, onBack, onSaved }: { folder: Folder;
 
       localStorage.removeItem(COMBO_DRAFT_KEY);
       setHasDraft(false);
-      toast.success(`Combo "${formData.nomeCombo}" com ${filledProfiles.length} perfis adicionado!`);
+      toast.success(`${formData.isPacote ? "📦 Pacote" : "Combo"} "${formData.nomeCombo}" com ${filledProfiles.length} perfis adicionado!`);
       setFormData(emptyCombo());
       onSaved();
     } catch (err: any) {
