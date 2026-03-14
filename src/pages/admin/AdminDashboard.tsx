@@ -24,6 +24,7 @@ interface PendingItem {
 export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [totalClients, setTotalClients] = useState(0);
+  const [totalInBase, setTotalInBase] = useState(0);
   const [totalTransactions, setTotalTransactions] = useState(0);
   const [totalBalance, setTotalBalance] = useState(0);
   const [totalProducts, setTotalProducts] = useState(0);
