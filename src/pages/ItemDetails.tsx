@@ -144,22 +144,32 @@ export default function ItemDetails() {
         }
       }
 
-      // Fetch linked stock_item
-      const { data: stockItem } = await supabase
+      // Fetch linked stock_item (including combo children)
+      const { data: stockItems } = await supabase
         .from("stock_items")
         .select("*")
-        .eq("order_item_id", itemId)
-        .maybeSingle();
+        .eq("order_item_id", itemId);
 
-      if (stockItem) {
-        setStockItemId(stockItem.id);
-        if (stockItem.status === "bloqueado") setIsBlocked(true);
-        if (stockItem.status === "ok") setIsConfirmedOk(true);
-        const baseData = (stockItem.data && typeof stockItem.data === "object") ? stockItem.data as StockData : {} as StockData;
+      const mainStockItem = stockItems?.find((s: any) => !s.parent_id) || stockItems?.[0] || null;
+
+      if (mainStockItem) {
+        setStockItemId(mainStockItem.id);
+        if (mainStockItem.status === "bloqueado") setIsBlocked(true);
+        if (mainStockItem.status === "ok") setIsConfirmedOk(true);
+        const baseData = (mainStockItem.data && typeof mainStockItem.data === "object") ? mainStockItem.data as StockData : {} as StockData;
         // Merge top-level stock_items fields into stockData for template replacement
-        if (stockItem.identification_link) baseData.linkPerfil = stockItem.identification_link;
-        if (stockItem.identification) baseData.idPerfil = stockItem.identification;
+        if (mainStockItem.identification_link) baseData.linkPerfil = mainStockItem.identification_link;
+        if (mainStockItem.identification) baseData.idPerfil = mainStockItem.identification;
         setStockData(baseData);
+
+        // If it's a combo (has children), mark it so we don't show page flow
+        const hasChildren = stockItems && stockItems.some((s: any) => s.parent_id === mainStockItem.id);
+        if (mainStockItem.type === "combo" || hasChildren) {
+          setIsCombo(true);
+          // Collect all child stock items for display
+          const children = stockItems?.filter((s: any) => s.parent_id === mainStockItem.id) || [];
+          setComboChildren(children);
+        }
       }
 
       // Fetch product info
