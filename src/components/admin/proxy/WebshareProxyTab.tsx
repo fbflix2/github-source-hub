@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RefreshCw, Globe, Server, Wifi, ChevronLeft, ChevronRight, Copy, CheckCircle2, TrendingUp, TrendingDown, DollarSign, ShoppingBag, Wallet } from "lucide-react";
+import { RefreshCw, Globe, Server, Wifi, ChevronLeft, ChevronRight, Copy, CheckCircle2, TrendingUp, TrendingDown, DollarSign, ShoppingBag, Repeat, Users } from "lucide-react";
 import WebshareBandwidthCard from "./WebshareBandwidthCard";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { toast } from "sonner";
