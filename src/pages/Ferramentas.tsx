@@ -134,7 +134,7 @@ function GlassCard({
   const [hovered, setHovered] = useState(false);
   return (
     <div
-      className={`p-8 rounded-xl flex flex-col group h-full ${disabled ? "cursor-not-allowed" : "cursor-pointer"} ${className}`}
+      className={`p-5 rounded-xl flex flex-col group h-full ${disabled ? "cursor-not-allowed" : "cursor-pointer"} ${className}`}
       style={{
         ...glassCardStyle,
         ...(hovered && !disabled
