@@ -74,6 +74,7 @@ const allMenuItems: MenuItem[] = [
   { title: "Carrinhos Abandonados", icon: ShoppingCart, path: "/admin/carrinhos-abandonados" },
   { title: "Assinaturas", icon: Monitor, path: "/admin/assinaturas" },
   { title: "Central Proxy", icon: Globe, path: "/admin/central-proxy", subItems: [
+    { title: "Webshare", icon: Globe, path: "/admin/central-proxy" },
     { title: "ProxyBR", icon: Globe, path: "/admin/central-proxy/proxybr" },
   ]},
   { title: "Fornecedor AccFace", icon: Store, path: "/admin/fornecedor" },
