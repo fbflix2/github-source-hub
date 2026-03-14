@@ -488,7 +488,7 @@ export default function Orders() {
                                   </button>
                                 ) : (
                                   <button
-                                    onClick={() => navigate(`/item-details/${encodeURIComponent(selectedOrder.code)}/${row.itemId}`)}
+                                    onClick={() => navigate(`/item-details/${encodeURIComponent(selectedOrder.code)}/${row.itemId}${row.comboStockItemId ? `?profile=${row.comboStockItemId}` : ''}`)}
                                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white text-black font-semibold hover:bg-white/90 transition-colors text-xs shadow-sm"
                                   >
                                     <span className="material-symbols-outlined text-[14px]">visibility</span>
