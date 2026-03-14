@@ -104,6 +104,18 @@ export default function ComboForm({ folder, onBack, onSaved }: { folder: Folder;
     setExpandedProfiles(prev => [...prev, formData.profiles.length]);
   };
 
+  const setProfileCount = (count: number) => {
+    const clamped = Math.max(1, Math.min(20, count));
+    setFormData(prev => {
+      const current = prev.profiles;
+      if (clamped > current.length) {
+        const newProfiles = [...current, ...Array.from({ length: clamped - current.length }, () => emptyProfile())];
+        return { ...prev, profiles: newProfiles };
+      }
+      return { ...prev, profiles: current.slice(0, clamped) };
+    });
+  };
+
   const removeProfile = (index: number) => {
     if (formData.profiles.length <= 1) { toast.error("O combo precisa de pelo menos 1 perfil."); return; }
     setFormData(prev => ({ ...prev, profiles: prev.profiles.filter((_, i) => i !== index) }));
@@ -355,14 +367,27 @@ export default function ComboForm({ folder, onBack, onSaved }: { folder: Folder;
 
       {/* Profiles */}
       <div className="space-y-2">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
             <CircleUser className="h-4 w-4 text-primary" />
             <h2 className="text-sm font-bold text-white">Perfis do Combo</h2>
           </div>
-          <Button type="button" size="sm" onClick={addProfile} className="gap-1.5 text-xs h-7 bg-primary/20 text-primary hover:bg-primary/30 border-0">
-            <Plus className="h-3 w-3" /> Adicionar Perfil
-          </Button>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-zinc-400 whitespace-nowrap">Qtd perfis:</label>
+              <Input
+                type="number"
+                min={1}
+                max={20}
+                value={formData.profiles.length}
+                onChange={e => setProfileCount(parseInt(e.target.value) || 1)}
+                className="w-16 h-7 bg-black/30 border-white/5 text-white text-center text-xs"
+              />
+            </div>
+            <Button type="button" size="sm" onClick={addProfile} className="gap-1.5 text-xs h-7 bg-primary/20 text-primary hover:bg-primary/30 border-0">
+              <Plus className="h-3 w-3" /> Adicionar Perfil
+            </Button>
+          </div>
         </div>
 
         {formData.profiles.map((profile, index) => (
@@ -440,7 +465,7 @@ function ProfileCard({
 
       {/* Expanded Form */}
       {expanded && (
-        <div className="p-4 pt-0 border-t border-white/5">
+        <div className="p-4 pt-0 border-t border-white/5 max-h-[600px] overflow-y-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3">
             {/* Left - Identificação */}
             <div className="flex flex-col gap-2.5">
