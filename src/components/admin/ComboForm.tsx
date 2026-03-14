@@ -42,7 +42,7 @@ const emptyProfile = (): ProfileData => ({
 const emptyCombo = (): ComboData => ({
   nomeCombo: "", preco: "", categoryId: "",
   nomeProduto: "", fotoUrl: "", tags: [],
-  descricaoCombo: "",
+  descricaoCombo: "", isPacote: true,
   profiles: [emptyProfile(), emptyProfile(), emptyProfile()],
 });
 
