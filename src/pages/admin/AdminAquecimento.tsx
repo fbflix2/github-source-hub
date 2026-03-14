@@ -120,6 +120,10 @@ export default function AdminAquecimento() {
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [activeTab, setActiveTab] = useState<"dashboard" | "esteiras" | "relatorios" | "configuracoes">("dashboard");
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [resetPassword, setResetPassword] = useState("");
+  const [resetError, setResetError] = useState("");
+  const [resetting, setResetting] = useState(false);
   const [reportFilter, setReportFilter] = useState("");
   const [configTrack, setConfigTrack] = useState<"7_days" | "15_days" | "30_days">("7_days");
   const [configTasks, setConfigTasks] = useState<Record<string, { title: string; description: string }[]>>({
