@@ -339,7 +339,7 @@ export default function Orders() {
                         const otherItems = selectedOrder.items.filter(i => (
                           i.iconType !== 'bm' && i.iconType !== 'page' && i.iconType !== 'proxy'
                         ) || !!i.comboProfiles?.length);
-                        const rows: { key: string; name: string; subtitle: string; price: number; totalPrice: number; itemId: string; isBlocked: boolean; isReplaced: boolean; replacedAt: string | null; isBm: boolean; isPage: boolean; isProxy: boolean }[] = [];
+                        const rows: { key: string; name: string; subtitle: string; price: number; totalPrice: number; itemId: string; isBlocked: boolean; isReplaced: boolean; replacedAt: string | null; isBm: boolean; isPage: boolean; isProxy: boolean; hidePrice?: boolean }[] = [];
 
                         // BM: single grouped row
                         if (bmItems.length > 0) {
