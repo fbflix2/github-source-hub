@@ -1054,6 +1054,15 @@ export default function AdminBlocagem() {
     );
   }
 
+  // Show Combo form
+  if (selectedType === "combo" && selectedFolder) {
+    return (
+      <div className="py-6">
+        <ComboForm folder={selectedFolder} onBack={() => setSelectedType(null)} onSaved={() => { setSelectedType(null); fetchFolders(); }} />
+      </div>
+    );
+  }
+
   const formatUpdatedAt = (date: string) => {
     const d = new Date(date);
     const now = new Date();
