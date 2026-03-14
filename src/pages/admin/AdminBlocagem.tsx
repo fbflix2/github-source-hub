@@ -908,19 +908,54 @@ function FolderItemsView({ folder, onBack }: { folder: Folder; onBack: () => voi
 }
 
 // ─── Combo Form (same as Perfil) ───
+const COMBO_DRAFT_KEY = "combo_form_draft";
+
 function ComboForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => void; onSaved: () => void }) {
   const [showPassword, setShowPassword] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [hasDraft, setHasDraft] = useState(false);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [productDefaults, setProductDefaults] = useState<{ id: string; name: string; tags: string[] }[]>([]);
   const [productImages, setProductImages] = useState<{ id: string; name: string; url: string }[]>([]);
   const [showImagePicker, setShowImagePicker] = useState(false);
-  const [formData, setFormData] = useState({
+
+  const emptyForm = {
     linkPerfil: "", idPerfil: "", emailAcesso: "", emailAlternativo: "",
     senha: "", senhaEmail: "", token2fa: "", tempoPlataforma: "3-meses", statusAtual: "aquecido",
     cookies: "", descricao: "", nomePerfil: "", dataNascimento: "", genero: "masculino",
     linkDocumento: "", fotoUrl: "", preco: "", categoryId: "", tags: [] as string[], nomeProduto: ""
+  };
+
+  const [formData, setFormData] = useState(() => {
+    try {
+      const saved = localStorage.getItem(COMBO_DRAFT_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return { ...emptyForm, ...parsed };
+      }
+    } catch {}
+    return emptyForm;
   });
+
+  useEffect(() => {
+    setHasDraft(!!localStorage.getItem(COMBO_DRAFT_KEY));
+  }, []);
+
+  const handleSaveDraft = () => {
+    setSavingDraft(true);
+    localStorage.setItem(COMBO_DRAFT_KEY, JSON.stringify(formData));
+    setHasDraft(true);
+    setTimeout(() => setSavingDraft(false), 600);
+    toast.success("Rascunho salvo com sucesso!");
+  };
+
+  const handleClearDraft = () => {
+    localStorage.removeItem(COMBO_DRAFT_KEY);
+    setHasDraft(false);
+    setFormData(emptyForm);
+    toast.info("Rascunho descartado.");
+  };
 
   useEffect(() => {
     supabase.from("product_categories").select("id, name").then(({ data }) => setCategories(data ?? []));
@@ -965,27 +1000,37 @@ function ComboForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => 
     const { error } = await supabase.from("stock_items").insert(insertData);
     setSaving(false);
     if (error) { toast.error("Erro ao salvar: " + error.message); return; }
+    localStorage.removeItem(COMBO_DRAFT_KEY);
+    setHasDraft(false);
     toast.success("Combo adicionado à pasta! Formulário pronto para novo cadastro.");
-    setFormData({
-      linkPerfil: "", idPerfil: "", emailAcesso: "", emailAlternativo: "",
-      senha: "", senhaEmail: "", token2fa: "", tempoPlataforma: "3-meses", statusAtual: "aquecido",
-      cookies: "", descricao: "", nomePerfil: "", dataNascimento: "", genero: "masculino",
-      linkDocumento: "", fotoUrl: "", preco: "", categoryId: "", tags: [] as string[], nomeProduto: ""
-    });
+    setFormData(emptyForm);
   };
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-3">
-        <button onClick={onBack} className="w-8 h-8 rounded-full bg-zinc-800/50 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors">
-          <ArrowLeft className="h-4 w-4" />
-        </button>
-        <div>
-          <h1 className="text-xl font-bold text-white">Blocagem de Combo</h1>
-          <div className="flex items-center gap-2 text-xs text-zinc-400">
-            <FolderOpen className="h-3 w-3" />
-            <span>Pasta: {folder.name}</span>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <button onClick={onBack} className="w-8 h-8 rounded-full bg-zinc-800/50 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors">
+            <ArrowLeft className="h-4 w-4" />
+          </button>
+          <div>
+            <h1 className="text-xl font-bold text-white">Blocagem de Combo</h1>
+            <div className="flex items-center gap-2 text-xs text-zinc-400">
+              <FolderOpen className="h-3 w-3" />
+              <span>Pasta: {folder.name}</span>
+            </div>
           </div>
+        </div>
+        <div className="flex items-center gap-2">
+          {hasDraft && (
+            <Button type="button" variant="ghost" size="sm" onClick={handleClearDraft} className="text-xs text-zinc-500 hover:text-destructive">
+              <Trash2 className="h-3.5 w-3.5 mr-1" /> Descartar rascunho
+            </Button>
+          )}
+          <Button type="button" variant="outline" size="sm" onClick={handleSaveDraft} disabled={savingDraft} className="text-xs border-amber-500/30 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300 gap-1.5">
+            {savingDraft ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+            Salvar como rascunho
+          </Button>
         </div>
       </div>
 
