@@ -990,6 +990,62 @@ export default function AdminAquecimento() {
             </div>
           </section>
 
+          {/* Zerar Esteiras e Perfis */}
+          <section className="bg-white rounded-xl shadow-sm border border-red-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-red-100 flex items-center gap-3">
+              <MIcon name="warning" className="text-red-500" />
+              <h2 className="text-lg font-bold text-red-700">Zona de Perigo</h2>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="bg-red-50 border border-red-100 rounded-lg p-4">
+                <h3 className="font-bold text-sm text-red-800 mb-1">Zerar todas as Esteiras e Perfis</h3>
+                <p className="text-xs text-red-600 mb-4">
+                  Esta ação irá <strong>excluir permanentemente</strong> todos os perfis de aquecimento e suas tarefas associadas. Não é possível desfazer.
+                </p>
+                {!showResetConfirm ? (
+                  <button
+                    onClick={() => setShowResetConfirm(true)}
+                    className="flex items-center gap-2 bg-red-600 text-white font-bold text-sm px-5 py-2.5 rounded-lg hover:bg-red-700 transition-colors"
+                  >
+                    <MIcon name="delete_forever" className="text-base" />
+                    Zerar Tudo
+                  </button>
+                ) : (
+                  <div className="space-y-3 bg-white p-4 rounded-lg border border-red-200">
+                    <p className="text-xs font-bold text-red-800">Para confirmar, digite sua senha de administrador:</p>
+                    <input
+                      type="password"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-red-400/30 outline-none"
+                      placeholder="Senha do admin"
+                      value={resetPassword}
+                      onChange={(e) => setResetPassword(e.target.value)}
+                    />
+                    {resetError && <p className="text-xs text-red-600 font-medium">{resetError}</p>}
+                    <div className="flex gap-3">
+                      <button
+                        onClick={handleResetAll}
+                        disabled={resetting || !resetPassword}
+                        className="flex items-center gap-2 bg-red-600 text-white font-bold text-sm px-5 py-2 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                      >
+                        {resetting ? (
+                          <><MIcon name="hourglass_empty" className="text-base animate-spin" /> Zerando...</>
+                        ) : (
+                          <><MIcon name="delete_forever" className="text-base" /> Confirmar Reset</>
+                        )}
+                      </button>
+                      <button
+                        onClick={() => { setShowResetConfirm(false); setResetPassword(""); setResetError(""); }}
+                        className="px-5 py-2 text-sm font-bold text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+
           {/* Integrações de API */}
           <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
