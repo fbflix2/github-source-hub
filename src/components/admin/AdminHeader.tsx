@@ -35,12 +35,37 @@ export function AdminHeader() {
 
   const seenIdsRef = useRef<Set<string>>(new Set());
   const initialLoadDoneRef = useRef(false);
+  const audioUnlockedRef = useRef(false);
 
-  // Cash register sound for money-related notifications
   // Notification sounds from DB
   const soundCacheRef = useRef<Record<string, string>>({});
 
-  // Load sound URLs from DB once
+  // Unlock audio on first user interaction (browser autoplay policy)
+  useEffect(() => {
+    const unlockAudio = () => {
+      if (audioUnlockedRef.current) return;
+      audioUnlockedRef.current = true;
+      try {
+        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const buffer = ctx.createBuffer(1, 1, 22050);
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        source.connect(ctx.destination);
+        source.start(0);
+        console.log("[NotifSounds] Audio context unlocked via user gesture");
+      } catch (e) {
+        console.warn("[NotifSounds] Audio unlock failed:", e);
+      }
+    };
+    document.addEventListener("click", unlockAudio);
+    document.addEventListener("keydown", unlockAudio);
+    return () => {
+      document.removeEventListener("click", unlockAudio);
+      document.removeEventListener("keydown", unlockAudio);
+    };
+  }, []);
+
+  // Load sound URLs from DB once and pre-load audio files
   useEffect(() => {
     const loadSounds = async () => {
       const { data } = await supabase
@@ -54,6 +79,10 @@ export function AdminHeader() {
         });
         soundCacheRef.current = cache;
         console.log("[NotifSounds] Loaded sound cache:", Object.keys(cache));
+        // Pre-load audio files
+        Object.values(cache).forEach(url => {
+          try { const a = new Audio(url); a.preload = "auto"; a.load(); } catch (e) { /* ignore */ }
+        });
       }
     };
     loadSounds();
@@ -68,7 +97,6 @@ export function AdminHeader() {
       ticket: "new_ticket",
       success: "order_completed",
     };
-    // Fallback to order_completed so every notification plays a sound
     return map[type] || "order_completed";
   }, []);
 
@@ -79,10 +107,29 @@ export function AdminHeader() {
       try {
         const audio = new Audio(url);
         audio.volume = 0.7;
-        audio.play().catch((e) => console.warn("[NotifSounds] Play failed:", e));
+        const playPromise = audio.play();
+        if (playPromise) {
+          playPromise.catch((e) => {
+            console.warn("[NotifSounds] Play blocked, retrying:", e);
+            setTimeout(() => audio.play().catch(() => {}), 150);
+          });
+        }
       } catch (e) {
         console.warn("[NotifSounds] Audio error:", e);
       }
+    } else {
+      // Fallback beep when no sound URL configured
+      try {
+        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = 800;
+        gain.gain.value = 0.3;
+        osc.start();
+        osc.stop(ctx.currentTime + 0.2);
+      } catch (e) { /* ignore */ }
     }
   }, []);
 
