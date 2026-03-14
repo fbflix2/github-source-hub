@@ -238,6 +238,32 @@ export default function ComboForm({ folder, onBack, onSaved }: { folder: Folder;
           <Badge className="bg-primary/20 text-primary text-[10px] ml-auto">{formData.profiles.length} perfis</Badge>
         </div>
 
+        {/* Modo Pacote Toggle */}
+        <div className={`flex items-center gap-3 p-3 rounded-xl mb-3 transition-all ${formData.isPacote ? "bg-primary/10 border border-primary/30" : "bg-muted/30 border border-border"}`}>
+          <Package className={`h-5 w-5 shrink-0 ${formData.isPacote ? "text-primary" : "text-muted-foreground"}`} />
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <span className={`text-sm font-bold ${formData.isPacote ? "text-primary" : "text-foreground"}`}>Modo Pacote</span>
+              {formData.isPacote && <Badge className="bg-primary/20 text-primary text-[10px]">Ativo</Badge>}
+            </div>
+            <p className="text-[11px] text-muted-foreground leading-tight mt-0.5">
+              {formData.isPacote
+                ? "Todos os perfis serão agrupados em um único pacote. O cliente compra por um preço único e recebe todos os itens dentro."
+                : "Ative para agrupar os perfis em um pacote único de venda."}
+            </p>
+          </div>
+          <Switch checked={formData.isPacote} onCheckedChange={v => setFormData({ ...formData, isPacote: v })} />
+        </div>
+
+        {formData.isPacote && (
+          <div className="flex items-center gap-2 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 mb-3">
+            <Info className="h-4 w-4 text-amber-400 shrink-0" />
+            <p className="text-[11px] text-amber-300">
+              📦 Pacote com {formData.profiles.length} {formData.profiles.length === 1 ? "item" : "itens"} — preço único de R$ {formData.preco || "0,00"}. Na compra, o cliente recebe {formData.profiles.length} {formData.profiles.length === 1 ? "perfil separado" : "perfis separados"}.
+            </p>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div className="flex flex-col gap-1">
             <label className="text-xs font-medium text-zinc-400">Nome do Combo</label>
