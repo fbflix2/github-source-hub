@@ -28,20 +28,19 @@ function getPeriodDate(period: Period): string | null {
 }
 
 export default function WebshareProxyTab() {
-  const [page, setPage] = useState(1);
+  const [availablePage, setAvailablePage] = useState(1);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [period, setPeriod] = useState<Period>("30d");
-  const pageSize = 25;
+  const availablePageSize = 25;
 
   const { data: planData, isLoading: planLoading, refetch: refetchPlan } = useWebsharePlan();
-  const { data: proxyData, isLoading: proxyLoading, refetch: refetchProxies } = useWebshareProxyList(page, pageSize);
+  const { data: allProxiesData, isLoading: proxyLoading, refetch: refetchProxies } = useWebshareAllProxies("direct");
 
   const isLoading = planLoading || proxyLoading;
   const subscription = planData?.subscription;
   const plan = planData?.plan;
-  const proxies = proxyData?.results || [];
-  const totalProxies = proxyData?.count || 0;
-  const totalPages = Math.ceil(totalProxies / pageSize);
+  const allProxies: any[] = allProxiesData?.results || allProxiesData?.data || (Array.isArray(allProxiesData) ? allProxiesData : []);
+  const totalProxies = allProxies.length || allProxiesData?.count || 0;
 
   // Fetch all webshare subscriptions (sold to clients)
   const { data: wsSubs } = useQuery({
