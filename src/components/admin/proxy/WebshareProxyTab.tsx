@@ -53,7 +53,7 @@ export default function WebshareProxyTab() {
       while (true) {
         const { data } = await supabase
           .from("subscriptions")
-          .select("name, status, end_date, raw_data, created_at, product_id")
+          .select("id, name, status, end_date, start_date, raw_data, created_at, product_id, user_id")
           .eq("type", "webshare")
           .range(from, from + ps - 1);
         if (!data?.length) break;
