@@ -104,6 +104,18 @@ export default function ComboForm({ folder, onBack, onSaved }: { folder: Folder;
     setExpandedProfiles(prev => [...prev, formData.profiles.length]);
   };
 
+  const setProfileCount = (count: number) => {
+    const clamped = Math.max(1, Math.min(20, count));
+    setFormData(prev => {
+      const current = prev.profiles;
+      if (clamped > current.length) {
+        const newProfiles = [...current, ...Array.from({ length: clamped - current.length }, () => emptyProfile())];
+        return { ...prev, profiles: newProfiles };
+      }
+      return { ...prev, profiles: current.slice(0, clamped) };
+    });
+  };
+
   const removeProfile = (index: number) => {
     if (formData.profiles.length <= 1) { toast.error("O combo precisa de pelo menos 1 perfil."); return; }
     setFormData(prev => ({ ...prev, profiles: prev.profiles.filter((_, i) => i !== index) }));
