@@ -36,6 +36,7 @@ import TokenFBX from "./pages/TokenFBX";
 import ProductPage from "./pages/ProductPage";
 import SaibaMaisFBX from "./pages/SaibaMaisFBX";
 import MigrationLogin from "./pages/MigrationLogin";
+import Ferramentas from "./pages/Ferramentas";
 
 // Admin Pages
 import AdminLogin from "./pages/admin/AdminLogin";
