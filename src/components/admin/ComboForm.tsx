@@ -140,6 +140,7 @@ export default function ComboForm({ folder, onBack, onSaved }: { folder: Folder;
         data: {
           nomeCombo: formData.nomeCombo,
           descricaoCombo: formData.descricaoCombo,
+          isPacote: formData.isPacote,
           preco: formData.preco ? parseFloat(formData.preco) : undefined,
           categoryId: formData.categoryId || undefined,
           nomeProduto: formData.nomeProduto || undefined,
