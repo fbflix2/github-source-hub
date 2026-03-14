@@ -152,7 +152,36 @@ Deno.serve(async (req) => {
       });
     }
 
-    const authHeader = req.headers.get("Authorization");
+    // ========== INTERNAL: UPDATE SUBSCRIPTION (no user JWT needed) ==========
+    if (bodyClone.action === "internal-update-subscription") {
+      const supabaseInternal = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+
+      const { subscription_id: iSubId, raw_data: iRawData, status: iStatus } = bodyClone;
+      if (!iSubId) throw new Error("subscription_id é obrigatório");
+
+      const updatePayload: Record<string, any> = { updated_at: new Date().toISOString() };
+      if (iRawData) updatePayload.raw_data = iRawData;
+      if (iStatus) {
+        updatePayload.status = iStatus;
+        if (iStatus === "cancelled") updatePayload.cancelled_at = new Date().toISOString();
+      }
+
+      const { error: iUpdErr } = await supabaseInternal
+        .from("subscriptions")
+        .update(updatePayload)
+        .eq("id", iSubId);
+
+      if (iUpdErr) throw new Error(`Erro ao atualizar: ${iUpdErr.message}`);
+
+      console.log(`[internal-update] Updated subscription ${iSubId}`);
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Missing authorization" }), {
         status: 401,
