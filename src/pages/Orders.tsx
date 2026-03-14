@@ -317,10 +317,12 @@ export default function Orders() {
                     <div className="flex flex-col gap-2">
                       {(() => {
                         // Group BM and Page items into single rows, expand others individually
-                        const bmItems = selectedOrder.items.filter(i => i.iconType === 'bm');
-                        const pageItems = selectedOrder.items.filter(i => i.iconType === 'page');
-                        const proxyItems = selectedOrder.items.filter(i => i.iconType === 'proxy');
-                        const otherItems = selectedOrder.items.filter(i => i.iconType !== 'bm' && i.iconType !== 'page' && i.iconType !== 'proxy');
+                        const bmItems = selectedOrder.items.filter(i => i.iconType === 'bm' && !(i.comboProfiles?.length));
+                        const pageItems = selectedOrder.items.filter(i => i.iconType === 'page' && !(i.comboProfiles?.length));
+                        const proxyItems = selectedOrder.items.filter(i => i.iconType === 'proxy' && !(i.comboProfiles?.length));
+                        const otherItems = selectedOrder.items.filter(i => (
+                          i.iconType !== 'bm' && i.iconType !== 'page' && i.iconType !== 'proxy'
+                        ) || !!i.comboProfiles?.length);
                         const rows: { key: string; name: string; subtitle: string; price: number; totalPrice: number; itemId: string; isBlocked: boolean; isReplaced: boolean; replacedAt: string | null; isBm: boolean; isPage: boolean; isProxy: boolean }[] = [];
 
                         // BM: single grouped row
