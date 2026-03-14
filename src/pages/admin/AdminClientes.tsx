@@ -307,6 +307,9 @@ export default function AdminClientes() {
               <h3 className="text-2xl font-black text-white group-hover:text-primary transition-colors">
                 {loading ? "..." : totalClients.toLocaleString("pt-BR")}
               </h3>
+              <p className="text-white/40 text-[10px]">
+                {loading ? "" : `${totalInBase.toLocaleString("pt-BR")} na base`}
+              </p>
             </div>
             <div className="size-11 rounded-full bg-white/5 flex items-center justify-center border border-white/10">
               <Users className="w-5 h-5 text-white/80" />
