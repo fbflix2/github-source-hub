@@ -193,16 +193,16 @@ export default function Ferramentas() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           {/* Tool 1: Gerador de 2FA */}
           <GlassCard bgImage={BG_IMAGES["2fa"]} onClick={() => setActiveTool("2fa")}>
-            <div className="w-16 h-16 bg-primary/10 text-primary rounded-xl flex items-center justify-center mb-6 group-hover:bg-primary group-hover:text-white transition-colors duration-300">
-              <MaterialIcon name="security" className="text-4xl" />
+            <div className="w-11 h-11 bg-primary/10 text-primary rounded-lg flex items-center justify-center mb-3 group-hover:bg-primary group-hover:text-white transition-colors duration-300">
+              <MaterialIcon name="security" className="text-2xl" />
             </div>
-            <h3 className="text-xl font-bold mb-3 text-white">Gerador de 2FA</h3>
-            <p className="text-slate-400 mb-8 flex-grow leading-relaxed">
+            <h3 className="text-base font-bold mb-1.5 text-white">Gerador de 2FA</h3>
+            <p className="text-slate-400 mb-4 flex-grow leading-relaxed text-xs">
               Gere códigos de autenticação de dois fatores instantaneamente com segurança máxima.
             </p>
-            <button className="w-full py-4 px-6 bg-primary hover:bg-red-700 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2 group/btn">
+            <button className="w-full py-2.5 px-4 bg-primary hover:bg-red-700 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2 text-sm group/btn">
               <span>Acessar Ferramenta</span>
-              <MaterialIcon name="arrow_forward" className="text-xl group-hover/btn:translate-x-1 transition-transform" />
+              <MaterialIcon name="arrow_forward" className="text-lg group-hover/btn:translate-x-1 transition-transform" />
             </button>
           </GlassCard>
 
