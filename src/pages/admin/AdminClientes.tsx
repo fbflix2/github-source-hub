@@ -27,6 +27,7 @@ interface Client {
   created_at: string;
   has_active_subscription: boolean;
   profile_complete: boolean;
+  first_login_at: string | null;
 }
 
 type FilterType = "all" | "subscribers" | "with-balance" | "blocked";
