@@ -182,6 +182,29 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ========== INTERNAL: DELETE SUBSCRIPTION (permanent removal) ==========
+    if (bodyClone.action === "internal-delete-subscription") {
+      const supabaseInternal = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+
+      const { subscription_id: dSubId } = bodyClone;
+      if (!dSubId) throw new Error("subscription_id é obrigatório");
+
+      const { error: delErr } = await supabaseInternal
+        .from("subscriptions")
+        .delete()
+        .eq("id", dSubId);
+
+      if (delErr) throw new Error(`Erro ao deletar: ${delErr.message}`);
+
+      console.log(`[internal-delete] Deleted subscription ${dSubId}`);
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Missing authorization" }), {
         status: 401,
