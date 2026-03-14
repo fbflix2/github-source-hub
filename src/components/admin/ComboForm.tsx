@@ -27,7 +27,7 @@ interface ProfileData {
 interface ComboData {
   nomeCombo: string; preco: string; categoryId: string;
   nomeProduto: string; fotoUrl: string; tags: string[];
-  descricaoCombo: string;
+  descricaoCombo: string; isPacote: boolean;
   profiles: ProfileData[];
 }
 
