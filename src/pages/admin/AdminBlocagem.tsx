@@ -1000,13 +1000,10 @@ function ComboForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => 
     const { error } = await supabase.from("stock_items").insert(insertData);
     setSaving(false);
     if (error) { toast.error("Erro ao salvar: " + error.message); return; }
+    localStorage.removeItem(COMBO_DRAFT_KEY);
+    setHasDraft(false);
     toast.success("Combo adicionado à pasta! Formulário pronto para novo cadastro.");
-    setFormData({
-      linkPerfil: "", idPerfil: "", emailAcesso: "", emailAlternativo: "",
-      senha: "", senhaEmail: "", token2fa: "", tempoPlataforma: "3-meses", statusAtual: "aquecido",
-      cookies: "", descricao: "", nomePerfil: "", dataNascimento: "", genero: "masculino",
-      linkDocumento: "", fotoUrl: "", preco: "", categoryId: "", tags: [] as string[], nomeProduto: ""
-    });
+    setFormData(emptyForm);
   };
 
   return (
