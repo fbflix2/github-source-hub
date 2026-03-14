@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { ShoppingBag, Repeat, ClipboardList, GraduationCap, Megaphone, HandCoins, Store } from "lucide-react";
+import { ShoppingBag, Repeat, ClipboardList, GraduationCap, Megaphone, HandCoins, Store, Wrench } from "lucide-react";
 import { useNavVisibility } from "@/hooks/useNavVisibility";
 import { cn } from "@/lib/utils";
 
@@ -11,6 +11,7 @@ const allNavItems = [
   { key: "advertise", title: "Anuncie", url: "/advertise", icon: Megaphone },
   { key: "ganhe-aqui", title: "Ganhe", url: "/parceria", icon: HandCoins },
   { key: "mercado", title: "Mercado", url: "/mercado", icon: Store },
+  { key: "ferramentas", title: "Ferramentas", url: "/ferramentas", icon: Wrench },
 ];
 
 export function MobileBottomNav() {
