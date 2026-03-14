@@ -475,7 +475,7 @@ export default function Orders() {
                               </p>
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
-                              <span className="text-foreground font-bold text-sm">R$ {row.price.toFixed(2).replace(".", ",")}</span>
+                              <span className="text-foreground font-bold text-sm">{row.hidePrice ? '' : `R$ ${row.price.toFixed(2).replace(".", ",")}`}</span>
                               {selectedOrder.status === "completed" && (
                                 row.isProxy ? (
                                   <button
