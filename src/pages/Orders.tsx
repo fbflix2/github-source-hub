@@ -106,18 +106,19 @@ export default function Orders() {
         .select("*, products:product_id(icon_type)")
         .in("order_id", orderIds.length > 0 ? orderIds : ["__none__"]);
 
-      // Fetch stock_items linked to order_items (combo parent/main items)
+      // Fetch stock_items linked to order_items (combo parent/main items only - exclude children)
       const itemIds = (itemsData || []).map((i) => i.id);
       const { data: parentStockItems } = await supabase
         .from("stock_items")
-        .select("id, order_item_id, status, type")
-        .in("order_item_id", itemIds.length > 0 ? itemIds : ["__none__"]);
+        .select("id, order_item_id, status, type, parent_id")
+        .in("order_item_id", itemIds.length > 0 ? itemIds : ["__none__"])
+        .is("parent_id", null);
 
-      // Fetch combo children (profiles) by parent_id
+      // Fetch combo children (profiles) by parent_id OR by order_item_id with parent_id set
       const parentStockIds = (parentStockItems || []).map((s: any) => s.id);
       const { data: childStockItems } = await supabase
         .from("stock_items")
-        .select("id, parent_id, name, identification, identification_link")
+        .select("id, parent_id, name, identification, identification_link, order_item_id")
         .in("parent_id", parentStockIds.length > 0 ? parentStockIds : ["__none__"]);
 
       const blockedItemIds = new Set(
