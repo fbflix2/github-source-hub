@@ -1,0 +1,2 @@
+-- Add 'br' tag to PROXY IPV4 | SOCKS5 Premium product so it correctly allocates BR proxies
+UPDATE products SET tags = array_append(tags, 'br') WHERE id = '1a882c20-2d66-492f-8b64-3f150b15d586' AND NOT ('br' = ANY(tags));
