@@ -368,6 +368,9 @@ export default function AdminCupons() {
                   <div className="flex gap-1">
                     {isExpired ? (
                       <>
+                        <button onClick={() => handleEdit(coupon)} className="p-2 rounded-lg bg-white/5 hover:bg-blue-500/20 text-white/60 hover:text-blue-400 transition-colors" title="Editar">
+                          <Edit className="w-5 h-5" />
+                        </button>
                         <button onClick={() => handleStatusChange(coupon.id, "active")} className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 hover:text-white transition-colors" title="Reativar">
                           <RotateCcw className="w-5 h-5" />
                         </button>
@@ -377,6 +380,9 @@ export default function AdminCupons() {
                       </>
                     ) : isPaused ? (
                       <>
+                        <button onClick={() => handleEdit(coupon)} className="p-2 rounded-lg bg-white/5 hover:bg-blue-500/20 text-white/60 hover:text-blue-400 transition-colors" title="Editar">
+                          <Edit className="w-5 h-5" />
+                        </button>
                         <button onClick={() => handleStatusChange(coupon.id, "active")} className="p-2 rounded-lg bg-white/5 hover:bg-emerald-500/20 text-white/60 hover:text-emerald-400 transition-colors" title="Ativar">
                           <Play className="w-5 h-5" />
                         </button>
