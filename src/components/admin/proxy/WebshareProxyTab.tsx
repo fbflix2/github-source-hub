@@ -306,7 +306,7 @@ export default function WebshareProxyTab() {
 
 
       {/* Financial Overview */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <Card className="border-border/40 bg-card/60 backdrop-blur-sm">
           <CardContent className="p-4 flex items-center gap-3">
             <div className="flex items-center justify-center size-10 rounded-lg bg-green-500/10">
@@ -369,6 +369,19 @@ export default function WebshareProxyTab() {
               <p className="text-[10px] text-muted-foreground">
                 {plan?.proxy_count ? `${((financials.activeCount / (plan.proxy_count || 1)) * 100).toFixed(0)}% alocados` : ""}
               </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/40 bg-card/60 backdrop-blur-sm">
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="flex items-center justify-center size-10 rounded-lg bg-orange-500/10">
+              <Repeat className="size-5 text-orange-500" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Trocas Realizadas</p>
+              <p className="text-xl font-bold text-foreground">{exchangeCount}</p>
+              <p className="text-[10px] text-muted-foreground">Total de substituições</p>
             </div>
           </CardContent>
         </Card>
