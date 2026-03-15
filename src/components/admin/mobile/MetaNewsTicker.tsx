@@ -105,17 +105,17 @@ export function MetaNewsTicker() {
         } catch {}
       }
 
-      // Final fallback: The Verge Meta news
-      const vUrl = encodeURIComponent("https://www.theverge.com/rss/facebook/index.xml");
-      const vRes = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${vUrl}&count=10`);
+      // Fallback: Google News in Portuguese about Meta
+      const gnUrl = encodeURIComponent("https://news.google.com/rss/search?q=Meta+Facebook&hl=pt-BR&gl=BR&ceid=BR:pt-419");
+      const gnRes = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${gnUrl}&count=10`);
       
-      if (vRes.ok) {
-        const vData = await vRes.json();
-        if (vData.status === "ok" && vData.items?.length > 0) {
-          const items: NewsItem[] = vData.items.slice(0, 8).map((item: any) => ({
+      if (gnRes.ok) {
+        const gnData = await gnRes.json();
+        if (gnData.status === "ok" && gnData.items?.length > 0) {
+          const items: NewsItem[] = gnData.items.slice(0, 8).map((item: any) => ({
             title: item.title?.replace(/<[^>]*>/g, "").trim() || "",
             url: item.link || "",
-            source: "The Verge",
+            source: "Google News",
             date: item.pubDate ? new Date(item.pubDate).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }) : "",
           }));
           setNews(items);
