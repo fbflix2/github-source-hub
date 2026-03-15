@@ -317,7 +317,7 @@ export default function WebshareProxyTab() {
 
 
       {/* Financial Overview */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
         <Card className="border-border/40 bg-card/60 backdrop-blur-sm">
           <CardContent className="p-4 flex items-center gap-3">
             <div className="flex items-center justify-center size-10 rounded-lg bg-green-500/10">
@@ -396,6 +396,33 @@ export default function WebshareProxyTab() {
             </div>
           </CardContent>
         </Card>
+
+        {(() => {
+          const totalPlan = plan?.proxy_count || totalProxies || 0;
+          const consumed = financials.activeCount + exchangeCount;
+          const available = Math.max(0, totalPlan - consumed);
+          const pct = totalPlan > 0 ? ((available / totalPlan) * 100).toFixed(0) : "0";
+          const isLow = totalPlan > 0 && available <= Math.ceil(totalPlan * 0.1);
+          return (
+            <Card className={`border-border/40 bg-card/60 backdrop-blur-sm ${isLow ? "border-amber-500/40" : ""}`}>
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className={`flex items-center justify-center size-10 rounded-lg ${isLow ? "bg-amber-500/10" : "bg-cyan-500/10"}`}>
+                  <Server className={`size-5 ${isLow ? "text-amber-500" : "text-cyan-500"}`} />
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Disponíveis</p>
+                  <p className={`text-xl font-bold ${isLow ? "text-amber-500" : "text-foreground"}`}>
+                    {available}
+                    <span className="text-sm text-muted-foreground font-normal ml-1">/ {totalPlan}</span>
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {pct}% livres • {consumed} consumidos
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })()}
       </div>
 
       {/* Sales Chart */}
