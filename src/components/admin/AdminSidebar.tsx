@@ -63,11 +63,11 @@ const allMenuItems: MenuItem[] = [
   { title: "Auditoria", icon: ClipboardCheck, path: "/admin/auditoria" },
   { title: "Estoque", icon: Warehouse, path: "/admin/estoque" },
   { title: "Blocagem", icon: Shield, path: "/admin/blocagem" },
-  { title: "Reciclagem", icon: Recycle, path: "/admin/reciclagem" },
   { title: "Gestão Itens", icon: Briefcase, path: "/admin/gestao-bms", subItems: [
     { title: "Gestão BMs", icon: Briefcase, path: "/admin/gestao-bms" },
     { title: "Reposições", icon: RefreshCw, path: "/admin/reposicoes" },
     { title: "Trocas", icon: ArrowRightLeft, path: "/admin/trocas" },
+    { title: "Reciclagem", icon: Recycle, path: "/admin/reciclagem" },
   ]},
   { title: "Produtos", icon: Package, path: "/admin/produtos" },
   { title: "Pedidos", icon: ShoppingCart, path: "/admin/pedidos" },
