@@ -8,11 +8,15 @@ import { ProxyBRLowBalanceAlert } from "./ProxyBRLowBalanceAlert";
 import { PageRequestNotification } from "./PageRequestNotification";
 import { Play } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { AdminMobileHeader } from "./mobile/AdminMobileHeader";
+import { AdminMobileBottomNav } from "./mobile/AdminMobileBottomNav";
 
 export function AdminLayout() {
   const { isAdmin, loading, role } = useAdminAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [permChecked, setPermChecked] = useState(false);
   const hideHeader = location.pathname === "/admin/blocagem" || location.pathname === "/admin/clientes";
   const isAquecimento = location.pathname === "/admin/aquecimento";
@@ -43,12 +47,10 @@ export function AdminLayout() {
         }
 
         const allowed = perms.allowed_paths as string[];
-        // Auto-allow linked paths for all moderators
         const effectiveAllowed = [...allowed];
         if (allowed.includes("/admin/estoque") && !allowed.includes("/admin/blocagem")) {
           effectiveAllowed.push("/admin/blocagem");
         }
-        // Chat is available to all staff
         if (!effectiveAllowed.includes("/admin/chat")) {
           effectiveAllowed.push("/admin/chat");
         }
@@ -80,6 +82,22 @@ export function AdminLayout() {
     );
   }
 
+  // Mobile layout
+  if (isMobile) {
+    return (
+      <div className="min-h-screen bg-black text-white font-sans antialiased">
+        <AdminMobileHeader />
+        <main className="mt-20 px-5 pb-28">
+          <Outlet />
+        </main>
+        <AdminMobileBottomNav />
+        <ProxyBRLowBalanceAlert />
+        <PageRequestNotification />
+      </div>
+    );
+  }
+
+  // Desktop layout (unchanged)
   return (
     <div className={`flex h-screen w-full relative font-display overflow-hidden selection:bg-primary selection:text-white bg-[#0a0505] text-white`}>
       {/* Background Effects */}

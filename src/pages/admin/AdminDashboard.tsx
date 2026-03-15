@@ -8,6 +8,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { AdminMobileDashboard } from "@/components/admin/mobile/AdminMobileDashboard";
 
 interface PendingItem {
   id: string;
