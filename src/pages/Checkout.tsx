@@ -641,6 +641,7 @@ export default function Checkout() {
               order_id: orderId,
               total,
               product_id: product.id,
+              quantity: quantity,
             },
           });
 

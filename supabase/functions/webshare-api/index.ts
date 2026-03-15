@@ -389,11 +389,13 @@ Deno.serve(async (req) => {
     // ========== PURCHASE PROXY WITH BALANCE ==========
     // Assigns an unassigned Webshare proxy to the customer, debits balance, creates subscription
     if (action === "purchase-proxy-with-balance") {
-      const { order_id, total, product_id } = params as {
+      const { order_id, total, product_id, quantity: purchaseQty } = params as {
         order_id: string;
         total: number;
         product_id?: string;
+        quantity?: number;
       };
+      const qty = purchaseQty || 1;
 
       if (!order_id || total === undefined) {
         throw new Error("order_id e total são obrigatórios");
