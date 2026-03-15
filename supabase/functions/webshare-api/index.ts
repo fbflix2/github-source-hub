@@ -457,7 +457,7 @@ Deno.serve(async (req) => {
         if (raw.webshare_proxy_id) assignedIds.add(raw.webshare_proxy_id);
       }
 
-      // 4. Find first unassigned proxy, filtering by country if specified
+      // 4. Find unassigned proxies, filtering by country if specified
       let available = allProxies.filter(p => p.valid && !assignedIds.has(p.id));
       
       if (targetCountryCode) {
@@ -465,58 +465,63 @@ Deno.serve(async (req) => {
           p.country_code?.toUpperCase() === targetCountryCode
         );
         
-        if (countryFiltered.length === 0) {
-          throw new Error(`Nenhum proxy ${targetCountryCode} disponível. Estoque esgotado para este país.`);
+        if (countryFiltered.length < qty) {
+          throw new Error(`Apenas ${countryFiltered.length} proxy(s) ${targetCountryCode} disponível(is), mas ${qty} foram solicitados.`);
         }
         
         available = countryFiltered;
-        console.log(`[webshare-api] Found ${available.length} ${targetCountryCode} proxies available`);
+        console.log(`[webshare-api] Found ${available.length} ${targetCountryCode} proxies available, need ${qty}`);
       }
       
-      if (available.length === 0) throw new Error("Todos os proxies estão atribuídos. Sem estoque.");
+      if (available.length < qty) throw new Error(`Apenas ${available.length} proxy(s) disponível(is), mas ${qty} foram solicitados.`);
 
-      const assignedProxy = available[0];
-
-      // 5. Calculate end date (30 days from now)
+      // 5. Allocate qty proxies
+      const allocatedProxies = available.slice(0, qty);
       const startDate = new Date();
       const endDate = new Date(startDate);
       endDate.setDate(endDate.getDate() + 30);
 
-      // 6. Create subscription record
-      const subName = `WS-${Date.now().toString(36).toUpperCase()}`;
-      const { error: subErr } = await supabaseAdmin.from("subscriptions").insert({
-        user_id: user.id,
-        name: subName,
-        type: "webshare",
-        status: "active",
-        start_date: startDate.toISOString(),
-        end_date: endDate.toISOString(),
-        product_id: product_id || null,
-        auto_renew: false,
-        raw_data: {
-          webshare_proxy_id: assignedProxy.id,
-          proxy_address: assignedProxy.proxy_address,
-          port: assignedProxy.port,
-          username: assignedProxy.username,
-          password: assignedProxy.password,
-          country_code: assignedProxy.country_code,
-          city_name: assignedProxy.city_name,
-          provider: "webshare",
-          exchange_quota_free: 2,
-          exchange_quota_pay: 0,
-        },
-      });
+      const subscriptionNames: string[] = [];
 
-      if (subErr) throw new Error(`Erro ao criar assinatura: ${subErr.message}`);
+      for (const assignedProxy of allocatedProxies) {
+        const subName = `WS-${Date.now().toString(36).toUpperCase()}${allocatedProxies.length > 1 ? '-' + (subscriptionNames.length + 1) : ''}`;
+        subscriptionNames.push(subName);
 
-      // 7. Debit balance
+        const { error: subErr } = await supabaseAdmin.from("subscriptions").insert({
+          user_id: user.id,
+          name: subName,
+          type: "webshare",
+          status: "active",
+          start_date: startDate.toISOString(),
+          end_date: endDate.toISOString(),
+          product_id: product_id || null,
+          auto_renew: false,
+          raw_data: {
+            webshare_proxy_id: assignedProxy.id,
+            proxy_address: assignedProxy.proxy_address,
+            port: assignedProxy.port,
+            username: assignedProxy.username,
+            password: assignedProxy.password,
+            country_code: assignedProxy.country_code,
+            city_name: assignedProxy.city_name,
+            provider: "webshare",
+            exchange_quota_free: 2,
+            exchange_quota_pay: 0,
+          },
+        });
+
+        if (subErr) throw new Error(`Erro ao criar assinatura: ${subErr.message}`);
+        console.log(`[webshare-api] Proxy ${assignedProxy.id} assigned to user ${user.id}`);
+      }
+
+      // 6. Debit balance (full total for all proxies)
       const newBalance = profile.balance - total;
       await supabaseAdmin
         .from("profiles")
         .update({ balance: newBalance })
         .eq("user_id", user.id);
 
-      // 8. Record wallet transaction
+      // 7. Record wallet transaction
       const { data: orderData } = await supabaseAdmin
         .from("orders")
         .select("code")
@@ -532,7 +537,7 @@ Deno.serve(async (req) => {
         reference_id: order_id,
       });
 
-      // 9. Update order status
+      // 8. Update order status
       await supabaseAdmin
         .from("orders")
         .update({
@@ -542,30 +547,30 @@ Deno.serve(async (req) => {
         })
         .eq("id", order_id);
 
-      // 10. Notify admin
+      // 9. Notify admin
       const productLabel = product_id
         ? (await supabaseAdmin.from("products").select("name").eq("id", product_id).single())?.data?.name || "Proxy"
         : "Proxy Webshare";
       const clientName = (await supabaseAdmin.from("profiles").select("full_name").eq("user_id", user.id).single())?.data?.full_name || "Cliente";
 
+      const proxyList = allocatedProxies.map(p => `${p.proxy_address}:${p.port}`).join(", ");
       await supabaseAdmin.from("notifications").insert({
-        title: `${productLabel} Vendido`,
-        message: `${clientName} • R$ ${Number(total).toFixed(2)} • ${assignedProxy.proxy_address}:${assignedProxy.port} • Pedido #${orderData?.code || ""}`,
+        title: `${productLabel} Vendido (x${qty})`,
+        message: `${clientName} • R$ ${Number(total).toFixed(2)} • ${proxyList} • Pedido #${orderData?.code || ""}`,
         type: "order",
         global: true,
       });
 
-      console.log(`[webshare-api] Proxy ${assignedProxy.id} assigned to user ${user.id}`);
-
       return new Response(JSON.stringify({
         success: true,
-        subscription: subName,
-        proxy: {
-          ip: assignedProxy.proxy_address,
-          port: assignedProxy.port,
-          username: assignedProxy.username,
-          password: assignedProxy.password,
-        },
+        quantity: qty,
+        subscriptions: subscriptionNames,
+        proxies: allocatedProxies.map(p => ({
+          ip: p.proxy_address,
+          port: p.port,
+          username: p.username,
+          password: p.password,
+        })),
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
