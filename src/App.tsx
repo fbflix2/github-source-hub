@@ -80,6 +80,7 @@ import PartnerRedirect from "./pages/PartnerRedirect";
 import AdminFBX from "./pages/admin/AdminFBX";
 import AdminCentralInvestimentos from "./pages/admin/AdminCentralInvestimentos";
 import AdminProjecaoLucro from "./pages/admin/AdminProjecaoLucro";
+import AdminMetodologia from "./pages/admin/AdminMetodologia";
 import AdminAquecimento from "./pages/admin/AdminAquecimento";
 import AdminShopClone from "./pages/admin/AdminShopClone";
 import AdminFerramentas2FA from "./pages/admin/AdminFerramentas2FA";
