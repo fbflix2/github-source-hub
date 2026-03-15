@@ -220,3 +220,66 @@
   font-feature-settings: 'liga';
   -webkit-font-smoothing: antialiased;
 }
+
+/* ===== Admin Mobile Native App Styles ===== */
+.admin-mobile-glass {
+  background: rgba(17, 17, 17, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+}
+
+.admin-mobile-glow-red {
+  box-shadow: 0 0 20px rgba(229, 9, 20, 0.15);
+}
+
+.admin-mobile-wrapper {
+  background-color: #000000;
+  color: #ffffff;
+  -webkit-tap-highlight-color: transparent;
+  overflow-x: hidden;
+}
+
+.admin-mobile-wrapper .no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.admin-mobile-wrapper .no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.admin-mobile-active-indicator {
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: #E50914;
+}
+
+.admin-mobile-chart-container {
+  position: relative;
+  height: 160px;
+  width: 100%;
+}
+
+.admin-mobile-chart-line {
+  stroke: #E50914;
+  stroke-width: 3;
+  fill: none;
+  filter: drop-shadow(0 0 8px rgba(229, 9, 20, 0.6));
+}
+
+.admin-mobile-chart-area {
+  fill: url(#gradient-red);
+  opacity: 0.12;
+}
+
+.admin-mobile-chart-point {
+  fill: #ffffff;
+  stroke: #E50914;
+  stroke-width: 2;
+}
