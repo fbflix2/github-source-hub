@@ -175,7 +175,7 @@ export default function AdminAuditoria() {
       icon: TrendingUp,
       iconBg: "bg-primary/20 border-primary/30",
       iconColor: "text-primary",
-      subtitle: `Receita real − Custos de compra`,
+      subtitle: `Receita − Custos de compra − Custos fixos`,
       highlighted: true,
     }
   ];
