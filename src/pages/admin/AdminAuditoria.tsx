@@ -56,7 +56,7 @@ export default function AdminAuditoria() {
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const since = thirtyDaysAgo.toISOString();
 
-    const [ordersRes, orderItemsRes, productsRes, productCostsRes, purchasesRes, costCenterRes, webShareRes] = await Promise.all([
+    const [ordersRes, orderItemsRes, productsRes, productCostsRes, purchasesRes, costCenterRes, webShareRes, stockItemsRes] = await Promise.all([
       supabase
         .from("orders")
         .select("id, total, updated_at")
@@ -80,6 +80,12 @@ export default function AdminAuditoria() {
         .select("amount, active")
         .eq("active", true),
       supabase.functions.invoke("webshare-api", { body: { action: "get-plan" } }).catch(() => ({ data: null })),
+      supabase
+        .from("stock_items")
+        .select("product_id")
+        .eq("status", "revisado")
+        .is("order_item_id", null)
+        .is("deleted_at", null),
     ]);
 
     const orders = ordersRes.data ?? [];
