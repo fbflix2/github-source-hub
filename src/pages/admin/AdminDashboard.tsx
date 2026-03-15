@@ -334,6 +334,11 @@ export default function AdminDashboard() {
   const catColors = ["bg-blue-500", "bg-purple-500", "bg-primary", "bg-cyan-500"];
   const catIcons = [User, Briefcase, Database, Globe];
 
+  // Mobile: render dedicated mobile dashboard
+  if (isMobile) {
+    return <AdminMobileDashboard />;
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
