@@ -11,7 +11,8 @@ import {
   History,
   Loader2,
   Building2,
-  Package
+  Package,
+  Landmark
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import PurchasesListModal from "@/components/admin/PurchasesListModal";
