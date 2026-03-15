@@ -53,12 +53,21 @@ export default function AdminAuditoria() {
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const since = thirtyDaysAgo.toISOString();
 
-    const [ordersRes, purchasesRes, costCenterRes] = await Promise.all([
+    const [ordersRes, orderItemsRes, productsRes, productCostsRes, purchasesRes, costCenterRes, webShareRes] = await Promise.all([
       supabase
         .from("orders")
-        .select("total, updated_at")
+        .select("id, total, updated_at")
         .in("status", ["completed", "delivered"])
         .gte("created_at", since),
+      supabase
+        .from("order_items")
+        .select("order_id, product_id, name, price, quantity"),
+      supabase
+        .from("products")
+        .select("id, name, icon_type, external_id"),
+      supabase
+        .from("product_costs")
+        .select("product_id, unit_cost, labor_cost, other_costs, tax_percent"),
       supabase
         .from("purchases")
         .select("total_value, quantity, unit_value, sale_price, tax_rate, updated_at")
@@ -67,35 +76,84 @@ export default function AdminAuditoria() {
         .from("cost_center")
         .select("amount, active")
         .eq("active", true),
+      supabase.functions.invoke("webshare-api", { body: { action: "get-plan" } }).catch(() => ({ data: null })),
     ]);
 
     const orders = ordersRes.data ?? [];
+    const orderItems = orderItemsRes.data ?? [];
+    const products = productsRes.data ?? [];
+    const productCosts = productCostsRes.data ?? [];
     const purchases = purchasesRes.data ?? [];
 
-    const revenue = orders.reduce((sum, o) => sum + Number(o.total || 0), 0);
-    const cost = purchases.reduce((sum, p) => sum + Number(p.total_value || 0), 0);
+    // Build product cost map (same logic as AdminBalanco)
+    const productCostMap: Record<string, any> = {};
+    productCosts.forEach((c: any) => { productCostMap[c.product_id] = c; });
 
-    // Calcular projeção de lucro baseado em sale_price e tax_rate das compras
-    const projectedRevenue = purchases.reduce((sum, p) => {
-      const qty = Number(p.quantity || 0);
-      const salePrice = Number(p.sale_price || 0);
-      return sum + (qty * salePrice);
-    }, 0);
+    // Webshare auto-cost
+    const autoCostMap: Record<string, number> = {};
+    let usdToBrl = 5.5;
+    try {
+      const rateResp = await fetch("https://economia.awesomeapi.com.br/json/last/USD-BRL");
+      const rateData = await rateResp.json();
+      usdToBrl = parseFloat(rateData?.USDBRL?.bid) || 5.5;
+    } catch {}
+
+    if (webShareRes.data) {
+      const plan = webShareRes.data?.plan;
+      const monthlyPrice = plan?.monthly_price || 0;
+      let totalPlanProxies = plan?.proxy_count || 1;
+      const costPerProxy = (monthlyPrice / totalPlanProxies) * usdToBrl;
+      if (costPerProxy > 0) {
+        products.forEach((p: any) => {
+          if (p.icon_type === 'proxy' && !p.external_id) autoCostMap[p.id] = costPerProxy;
+        });
+      }
+    }
+
+    const getProductTotalCost = (productId: string): number => {
+      const c = productCostMap[productId];
+      const unitCost = (c && c.unit_cost > 0) ? c.unit_cost : (autoCostMap[productId] || 0);
+      if (unitCost <= 0 && (!c || (c.labor_cost <= 0 && c.other_costs <= 0))) return 0;
+      const laborCost = c?.labor_cost || 0;
+      const otherCosts = c?.other_costs || 0;
+      const taxPercent = c?.tax_percent || 0;
+      return (unitCost + laborCost + otherCosts) * (1 + taxPercent / 100);
+    };
+
+    const completedOrderIds = new Set(orders.map(o => o.id));
+    const revenue = orders.reduce((sum, o) => sum + Number(o.total || 0), 0);
+
+    // COGS based on sold items (same as Balanço)
+    const productByName: Record<string, any> = {};
+    products.forEach(p => { productByName[p.name.toLowerCase().trim()] = p; });
+    let cogs = 0;
+    orderItems.filter(i => completedOrderIds.has(i.order_id)).forEach(item => {
+      let productId = item.product_id;
+      if (!productId && item.name) {
+        const match = productByName[item.name.toLowerCase().trim()];
+        if (match) productId = match.id;
+      }
+      if (productId) {
+        cogs += getProductTotalCost(productId) * (item.quantity || 1);
+      }
+    });
+
+    // Projeção de lucro (baseado em purchases)
+    const projectedRevenue = purchases.reduce((sum, p) => sum + (Number(p.quantity || 0) * Number(p.sale_price || 0)), 0);
     const totalCostWithTax = purchases.reduce((sum, p) => {
       const qty = Number(p.quantity || 0);
       const unitCost = Number(p.unit_value || 0);
       const tax = Number(p.tax_rate || 0);
       return sum + (qty * unitCost * (1 + tax / 100));
     }, 0);
-    const projectedProfit = projectedRevenue - totalCostWithTax;
 
     const monthlyCosts = (costCenterRes.data ?? []).reduce((s: number, c: any) => s + Number(c.amount || 0), 0);
     setTotalMonthlyCosts(monthlyCosts);
 
     setTotalRevenue(revenue);
-    setTotalCost(cost);
-    setProjectedProfit(projectedProfit);
-    setProjectedMargin(projectedRevenue > 0 ? Math.round((projectedProfit / projectedRevenue) * 100) : 0);
+    setTotalCost(cogs);
+    setProjectedProfit(projectedRevenue - totalCostWithTax);
+    setProjectedMargin(projectedRevenue > 0 ? Math.round(((projectedRevenue - totalCostWithTax) / projectedRevenue) * 100) : 0);
 
     const allDates = [
       ...orders.map(o => new Date(o.updated_at)),
