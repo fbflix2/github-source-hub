@@ -325,7 +325,7 @@ export default function AdminAuditoria() {
             <div 
               key={index}
               onClick={stat.onClick}
-              className={`bg-white/[0.03] backdrop-blur-2xl border rounded-2xl p-5 relative overflow-hidden group transition-all duration-500 ${
+              className={`bg-white/[0.03] backdrop-blur-2xl border rounded-xl p-4 relative overflow-hidden group transition-all duration-500 ${
                 stat.highlighted 
                   ? "border-primary/30 shadow-[0_0_40px_-10px_rgba(249,6,6,0.15)]" 
                   : "border-white/10"
