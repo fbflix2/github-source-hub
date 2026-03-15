@@ -10,7 +10,8 @@ import {
   BarChart3,
   History,
   Loader2,
-  Building2
+  Building2,
+  Package
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import PurchasesListModal from "@/components/admin/PurchasesListModal";
