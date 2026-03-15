@@ -7,8 +7,62 @@ interface NewsItem {
   date: string;
 }
 
-const CACHE_KEY = "meta_news_cache";
+const CACHE_KEY = "meta_news_cache_v2";
 const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+
+const RSS_PROXY = "https://api.rss2json.com/v1/api.json";
+
+// Multiple Google News RSS queries in Portuguese focused on the business
+const GOOGLE_NEWS_QUERIES = [
+  "Meta Facebook anúncios política mudança",
+  "Facebook Business Manager BM bloqueio",
+  "Meta ads perfil verificação",
+  "Facebook contas publicidade atualização",
+  "Instagram Meta mudanças anunciantes",
+];
+
+// Brazilian tech sources with Meta-related feeds
+const BR_SOURCES = [
+  { url: "https://tecnoblog.net/tema/facebook/feed/", source: "Tecnoblog" },
+  { url: "https://tecnoblog.net/tema/instagram/feed/", source: "Tecnoblog" },
+  { url: "https://tecnoblog.net/tema/meta/feed/", source: "Tecnoblog" },
+  { url: "https://www.techtudo.com.br/rssfeeds/tudo-sobre-facebook.xml", source: "TechTudo" },
+];
+
+// Keywords relevant to the business
+const BUSINESS_KEYWORDS = [
+  "meta", "facebook", "instagram", "whatsapp", "zuckerberg", "threads",
+  "anúncio", "anuncio", "ads", "publicidade", "business manager", "bm",
+  "perfil", "conta", "bloqueio", "verificação", "verificacao", "política",
+  "politica", "proxy", "api", "plataforma", "moderação", "moderacao",
+  "restrição", "restricao", "suspensão", "suspensao", "banimento",
+];
+
+async function fetchRSS(rssUrl: string): Promise<any[]> {
+  try {
+    const res = await fetch(`${RSS_PROXY}?rss_url=${encodeURIComponent(rssUrl)}&count=12`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    if (data.status === "ok" && data.items?.length > 0) return data.items;
+  } catch {}
+  return [];
+}
+
+function isRelevant(item: any): boolean {
+  const text = ((item.title || "") + " " + (item.description || "") + " " + (item.categories?.join(" ") || "")).toLowerCase();
+  return BUSINESS_KEYWORDS.some(kw => text.includes(kw));
+}
+
+function parseItem(item: any, source: string): NewsItem {
+  return {
+    title: (item.title || "").replace(/<[^>]*>/g, "").trim(),
+    url: item.link || "",
+    source,
+    date: item.pubDate
+      ? new Date(item.pubDate).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })
+      : "",
+  };
+}
 
 export function MetaNewsTicker() {
   const [news, setNews] = useState<NewsItem[]>([]);
@@ -63,64 +117,71 @@ export function MetaNewsTicker() {
       }
     } catch {}
 
-    try {
-      // Fetch Meta news in Portuguese from Brazilian tech sources
-      const sources = [
-        { url: "https://tecnoblog.net/tema/meta/feed/", source: "Tecnoblog" },
-        { url: "https://canaltech.com.br/rss/", source: "Canaltech" },
-        { url: "https://olhardigital.com.br/feed/", source: "Olhar Digital" },
-      ];
+    const allItems: NewsItem[] = [];
+    const seenTitles = new Set<string>();
 
-      for (const src of sources) {
-        try {
-          const feedUrl = encodeURIComponent(src.url);
-          const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${feedUrl}&count=15`);
-          
-          if (res.ok) {
-            const data = await res.json();
-            if (data.status === "ok" && data.items?.length > 0) {
-              // Filter items related to Meta/Facebook/Instagram/WhatsApp
-              const metaKeywords = ["meta", "facebook", "instagram", "whatsapp", "zuckerberg", "threads", "messenger"];
-              const filtered = data.items.filter((item: any) => {
-                const text = (item.title + " " + (item.description || "")).toLowerCase();
-                return metaKeywords.some(kw => text.includes(kw));
-              });
-              
-              const targetItems = filtered.length >= 3 ? filtered : data.items;
-              const items: NewsItem[] = targetItems.slice(0, 8).map((item: any) => ({
-                title: item.title?.replace(/<[^>]*>/g, "").trim() || "",
-                url: item.link || "",
-                source: src.source,
-                date: item.pubDate ? new Date(item.pubDate).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }) : "",
-              }));
-              
-              if (items.length > 0) {
-                setNews(items);
-                localStorage.setItem(CACHE_KEY, JSON.stringify({ items, timestamp: Date.now() }));
-                setLoading(false);
-                return;
-              }
-            }
-          }
-        } catch {}
+    const addUnique = (item: NewsItem) => {
+      const key = item.title.toLowerCase().slice(0, 50);
+      if (!seenTitles.has(key) && item.title.length > 10) {
+        seenTitles.add(key);
+        allItems.push(item);
+      }
+    };
+
+    try {
+      // Strategy 1: Fetch from Brazilian tech sources in parallel
+      const brResults = await Promise.allSettled(
+        BR_SOURCES.map(src => fetchRSS(src.url).then(items => ({ items, source: src.source })))
+      );
+
+      for (const result of brResults) {
+        if (result.status === "fulfilled" && result.value.items.length > 0) {
+          const relevant = result.value.items.filter(isRelevant);
+          relevant.forEach((item: any) => addUnique(parseItem(item, result.value.source)));
+        }
       }
 
-      // Fallback: Google News in Portuguese about Meta
-      const gnUrl = encodeURIComponent("https://news.google.com/rss/search?q=Meta+Facebook&hl=pt-BR&gl=BR&ceid=BR:pt-419");
-      const gnRes = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${gnUrl}&count=10`);
-      
-      if (gnRes.ok) {
-        const gnData = await gnRes.json();
-        if (gnData.status === "ok" && gnData.items?.length > 0) {
-          const items: NewsItem[] = gnData.items.slice(0, 8).map((item: any) => ({
-            title: item.title?.replace(/<[^>]*>/g, "").trim() || "",
-            url: item.link || "",
-            source: "Google News",
-            date: item.pubDate ? new Date(item.pubDate).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }) : "",
-          }));
-          setNews(items);
-          localStorage.setItem(CACHE_KEY, JSON.stringify({ items, timestamp: Date.now() }));
+      // Strategy 2: Google News RSS in Portuguese (multiple queries in parallel)
+      if (allItems.length < 6) {
+        const gnQueries = GOOGLE_NEWS_QUERIES.slice(0, 3); // limit to avoid rate-limiting
+        const gnResults = await Promise.allSettled(
+          gnQueries.map(q => {
+            const gnUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=pt-BR&gl=BR&ceid=BR:pt-419`;
+            return fetchRSS(gnUrl);
+          })
+        );
+
+        for (const result of gnResults) {
+          if (result.status === "fulfilled") {
+            result.value.forEach((item: any) => {
+              // Google News titles often have " - Source" at the end
+              const rawTitle = (item.title || "").replace(/<[^>]*>/g, "").trim();
+              const parts = rawTitle.split(" - ");
+              const source = parts.length > 1 ? parts.pop()! : "Google News";
+              const title = parts.join(" - ");
+              addUnique({
+                title: title || rawTitle,
+                url: item.link || "",
+                source,
+                date: item.pubDate
+                  ? new Date(item.pubDate).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })
+                  : "",
+              });
+            });
+          }
         }
+      }
+
+      // Strategy 3: If still nothing, try about.fb.com (English fallback)
+      if (allItems.length < 3) {
+        const metaItems = await fetchRSS("https://about.fb.com/news/feed/");
+        metaItems.slice(0, 5).forEach((item: any) => addUnique(parseItem(item, "Meta Newsroom")));
+      }
+
+      const finalItems = allItems.slice(0, 10);
+      if (finalItems.length > 0) {
+        setNews(finalItems);
+        localStorage.setItem(CACHE_KEY, JSON.stringify({ items: finalItems, timestamp: Date.now() }));
       }
     } catch (err) {
       console.error("Failed to fetch Meta news:", err);
@@ -151,7 +212,7 @@ export function MetaNewsTicker() {
       {/* Header */}
       <div className="flex items-center gap-2 px-4 pt-3 pb-2">
         <span className="material-symbols-outlined text-base" style={{ color: '#1877F2' }}>newsmode</span>
-        <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Notícias Meta</span>
+        <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Notícias Meta & Ads</span>
         <div className="flex-1 h-px bg-white/5" />
         <span className="text-[9px] text-zinc-600 font-medium">Em tempo real</span>
       </div>
@@ -164,7 +225,7 @@ export function MetaNewsTicker() {
       >
         {duplicated.map((item, i) => (
           <a
-            key={`${item.title}-${i}`}
+            key={`${item.title.slice(0, 20)}-${i}`}
             href={item.url}
             target="_blank"
             rel="noopener noreferrer"
