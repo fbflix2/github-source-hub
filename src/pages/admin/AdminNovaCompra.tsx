@@ -466,6 +466,23 @@ export default function AdminNovaCompra() {
             </div>
           </form>
         </div>
+
+        {/* Link to Profit Projection */}
+        <div 
+          onClick={() => navigate("/admin/auditoria/projecao-lucro")}
+          className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-2xl p-5 cursor-pointer hover:border-primary/30 transition-all group flex items-center justify-between"
+        >
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-xl bg-primary/10 border border-primary/20 group-hover:bg-primary/20 transition-colors">
+              <DollarSign className="size-5 text-primary" />
+            </div>
+            <div>
+              <p className="text-white font-medium text-sm">Projeção de Lucro</p>
+              <p className="text-xs text-muted-foreground">Veja a projeção detalhada de lucro baseada em todas as compras registradas</p>
+            </div>
+          </div>
+          <ArrowLeft className="size-5 text-muted-foreground rotate-180 group-hover:text-primary transition-colors" />
+        </div>
       </div>
 
       {/* Bottom aesthetic glow */}

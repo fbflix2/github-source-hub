@@ -166,18 +166,17 @@ export default function AdminAuditoria() {
       highlighted: false
     },
     {
-      label: "Projeção de Lucro",
-      value: loading ? "..." : formatCurrency(projectedProfit - totalMonthlyCosts),
-      badge: (projectedProfit - totalMonthlyCosts) >= 0 ? "Positivo" : "Negativo",
-      badgeColor: (projectedProfit - totalMonthlyCosts) >= 0 
+      label: "Lucro Líquido",
+      value: loading ? "..." : formatCurrency(profit),
+      badge: profit >= 0 ? "Positivo" : "Negativo",
+      badgeColor: profit >= 0 
         ? "text-emerald-400 bg-emerald-400/10 border-emerald-400/20" 
         : "text-red-400 bg-red-400/10 border-red-400/20",
       icon: TrendingUp,
       iconBg: "bg-primary/20 border-primary/30",
       iconColor: "text-primary",
-      subtitle: `Lucro real após custos fixos`,
+      subtitle: `Receita real − Custos de compra`,
       highlighted: true,
-      onClick: () => navigate("/admin/auditoria/projecao-lucro"),
     }
   ];
 
