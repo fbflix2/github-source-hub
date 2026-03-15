@@ -267,19 +267,19 @@
 }
 
 .admin-mobile-chart-line {
-  stroke: #E50914;
+  stroke: #22c55e;
   stroke-width: 3;
   fill: none;
-  filter: drop-shadow(0 0 8px rgba(229, 9, 20, 0.6));
+  filter: drop-shadow(0 0 8px rgba(34, 197, 94, 0.6));
 }
 
 .admin-mobile-chart-area {
-  fill: url(#gradient-red);
+  fill: url(#gradient-green);
   opacity: 0.12;
 }
 
 .admin-mobile-chart-point {
   fill: #ffffff;
-  stroke: #E50914;
+  stroke: #22c55e;
   stroke-width: 2;
 }

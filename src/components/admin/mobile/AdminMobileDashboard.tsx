@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
+import { MetaNewsTicker } from "./MetaNewsTicker";
 
 interface MobileDashboardData {
   totalClients: number;
@@ -13,6 +14,7 @@ interface MobileDashboardData {
   totalOrders: number;
   replacementRate: number;
   chartData: { name: string; value: number }[];
+  chartGrowth: number;
   categoryStats: { name: string; sales: number; icon: string }[];
 }
 
@@ -51,6 +53,7 @@ export function AdminMobileDashboard() {
     totalOrders: 0,
     replacementRate: 0,
     chartData: [],
+    chartGrowth: 0,
     categoryStats: [],
   });
 
@@ -70,7 +73,7 @@ export function AdminMobileDashboard() {
         if (profile?.full_name) setUserName(profile.full_name.split(" ")[0]);
       }
 
-      const [profilesRes, loggedInRes, transactionsRes, balanceRes, productsRes, ordersRes, orderItemsRes, categoriesRes, replacementsRes] = await Promise.all([
+      const [profilesRes, loggedInRes, transactionsRes, balanceRes, productsRes, ordersRes, orderItemsRes, categoriesRes, replacementsRes, paymentsRes] = await Promise.all([
         supabase.from("profiles").select("id", { count: "exact", head: true }),
         supabase.from("profiles").select("id", { count: "exact", head: true }).not("first_login_at", "is", null),
         supabase.from("wallet_transactions").select("id", { count: "exact", head: true }),
@@ -80,6 +83,8 @@ export function AdminMobileDashboard() {
         supabase.from("order_items").select("product_id, price, quantity, order_id, name"),
         supabase.from("product_categories").select("id, name, slug"),
         supabase.from("replacements").select("id", { count: "exact", head: true }),
+        // Fetch ALL payments for chart (approved/paid in last 7 days)
+        supabase.from("payments").select("amount, created_at, status").in("status", ["approved", "paid"]).gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()).order("created_at", { ascending: true }),
       ]);
 
       const prods = productsRes.data ?? [];
@@ -94,19 +99,45 @@ export function AdminMobileDashboard() {
         .filter(o => new Date(o.created_at) >= todayStart)
         .reduce((sum, o) => sum + (o.total || 0), 0);
 
-      const hourMap: Record<string, number> = {};
-      const todayOrds = completedOrds.filter(o => new Date(o.created_at) >= todayStart);
-      todayOrds.forEach(o => {
-        const d = new Date(o.created_at);
-        const h = d.getHours();
-        const key = `${String(h).padStart(2, "0")}:00`;
-        hourMap[key] = (hourMap[key] || 0) + (o.total || 0);
-      });
-      const chartEntries = Object.entries(hourMap).sort(([a], [b]) => a.localeCompare(b)).slice(-5);
-      if (chartEntries.length === 0) {
-        chartEntries.push(["08:00", 0], ["12:00", 0], ["16:00", 0], ["20:00", 0]);
+      // Build chart from REAL payment data (last 7 days, grouped by day)
+      const payments = paymentsRes.data ?? [];
+      const dayMap: Record<string, number> = {};
+      const toLocalISO = (dt: Date) => {
+        const y = dt.getFullYear();
+        const m = String(dt.getMonth() + 1).padStart(2, "0");
+        const d2 = String(dt.getDate()).padStart(2, "0");
+        return `${y}-${m}-${d2}`;
+      };
+
+      // Initialize last 7 days
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        dayMap[toLocalISO(d)] = 0;
       }
 
+      payments.forEach(p => {
+        const d = new Date(p.created_at);
+        const key = toLocalISO(d);
+        if (dayMap[key] !== undefined) {
+          dayMap[key] = (dayMap[key] || 0) + (p.amount || 0);
+        }
+      });
+
+      const chartEntries = Object.entries(dayMap).sort(([a], [b]) => a.localeCompare(b));
+      const chartLabels = chartEntries.map(([iso]) => {
+        const d = new Date(iso + "T12:00:00");
+        return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+      });
+
+      // Calculate real growth: compare last half vs first half
+      const vals = chartEntries.map(([, v]) => v);
+      const mid = Math.floor(vals.length / 2);
+      const firstHalf = vals.slice(0, mid).reduce((s, v) => s + v, 0) || 1;
+      const secondHalf = vals.slice(mid).reduce((s, v) => s + v, 0);
+      const growth = Math.round(((secondHalf - firstHalf) / firstHalf) * 100);
+
+      // Category stats
       const cats = categoriesRes.data ?? [];
       const prodsByCat = await supabase.from("products").select("id, category_id");
       const prodCatMap: Record<string, string> = {};
@@ -137,7 +168,8 @@ export function AdminMobileDashboard() {
         pendingOrders: ords.filter(o => o.status === "processing").length,
         totalOrders: ords.length,
         replacementRate: replRate,
-        chartData: chartEntries.map(([name, value]) => ({ name, value })),
+        chartData: chartEntries.map(([iso, value], i) => ({ name: chartLabels[i], value })),
+        chartGrowth: growth,
         categoryStats: cats.map(c => ({
           name: c.name,
           sales: catStats[c.id] ?? 0,
@@ -198,8 +230,8 @@ export function AdminMobileDashboard() {
 
   return (
     <div className="space-y-8">
-      {/* Personalized Greeting - exact match */}
-      <div className="mb-8">
+      {/* Personalized Greeting */}
+      <div className="mb-2">
         <h2 className="text-2xl font-bold tracking-tight text-white">
           {getGreeting()}, <span style={{ color: '#E50914' }}>{userName}</span>
         </h2>
@@ -207,6 +239,9 @@ export function AdminMobileDashboard() {
           Bem-vindo ao seu painel de controle de hoje.
         </p>
       </div>
+
+      {/* META NEWS TICKER - Real news */}
+      <MetaNewsTicker />
 
       {/* VISÃO GERAL */}
       <section>
@@ -275,17 +310,19 @@ export function AdminMobileDashboard() {
         </div>
       </section>
 
-      {/* MOVIMENTAÇÃO DE PAGAMENTOS */}
+      {/* MOVIMENTAÇÃO DE PAGAMENTOS - GREEN chart with real data */}
       <section className="admin-mobile-glass p-6">
         <div className="flex justify-between items-start mb-6">
           <div>
             <h2 className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-1">Movimentação de Pagamentos</h2>
-            <p className="text-zinc-500 text-[10px]">Fluxo financeiro (24h)</p>
+            <p className="text-zinc-500 text-[10px]">Fluxo financeiro (7 dias)</p>
           </div>
           <div className="text-right">
-            <p className="text-lg font-bold">{formatCurrency(chartTotal || data.todayRevenue)}</p>
-            {chartTotal > 0 && (
-              <span className="text-emerald-500 text-[9px] font-black uppercase tracking-tighter">Crescimento de 15%</span>
+            <p className="text-lg font-bold">{formatCurrency(chartTotal)}</p>
+            {data.chartGrowth !== 0 && (
+              <span className={`text-[9px] font-black uppercase tracking-tighter ${data.chartGrowth >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                {data.chartGrowth >= 0 ? 'Crescimento de' : 'Queda de'} {Math.abs(data.chartGrowth)}%
+              </span>
             )}
           </div>
         </div>
@@ -293,9 +330,9 @@ export function AdminMobileDashboard() {
         <div className="admin-mobile-chart-container">
           <svg className="w-full h-full" preserveAspectRatio="none" viewBox="0 0 400 160">
             <defs>
-              <linearGradient id="gradient-red" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#E50914" stopOpacity={0.4} />
-                <stop offset="100%" stopColor="#E50914" stopOpacity={0} />
+              <linearGradient id="gradient-green" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#22c55e" stopOpacity={0.4} />
+                <stop offset="100%" stopColor="#22c55e" stopOpacity={0} />
               </linearGradient>
             </defs>
             {/* Horizontal Grid */}
@@ -317,7 +354,6 @@ export function AdminMobileDashboard() {
           {data.chartData.map((d, i) => (
             <span key={i}>{d.name}</span>
           ))}
-          <span>Agora</span>
         </div>
       </section>
 
