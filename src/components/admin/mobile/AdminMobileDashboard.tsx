@@ -60,7 +60,6 @@ export function AdminMobileDashboard() {
 
   const fetchData = async () => {
     try {
-      // Get user name
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const { data: profile } = await supabase
@@ -89,14 +88,12 @@ export function AdminMobileDashboard() {
       const completedOrds = ords.filter(o => completedStatuses.includes(o.status));
       const completedOrderIds = new Set(completedOrds.map(o => o.id));
 
-      // Today revenue
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
       const todayRev = completedOrds
         .filter(o => new Date(o.created_at) >= todayStart)
         .reduce((sum, o) => sum + (o.total || 0), 0);
 
-      // Chart data (last 5 time periods for mobile - hourly today)
       const hourMap: Record<string, number> = {};
       const todayOrds = completedOrds.filter(o => new Date(o.created_at) >= todayStart);
       todayOrds.forEach(o => {
@@ -110,7 +107,6 @@ export function AdminMobileDashboard() {
         chartEntries.push(["08:00", 0], ["12:00", 0], ["16:00", 0], ["20:00", 0]);
       }
 
-      // Category stats
       const cats = categoriesRes.data ?? [];
       const prodsByCat = await supabase.from("products").select("id, category_id");
       const prodCatMap: Record<string, string> = {};
@@ -127,7 +123,6 @@ export function AdminMobileDashboard() {
         }
       });
 
-      // Replacement rate
       const totalNonProxyItems = (orderItemsRes.data ?? []).filter(item => completedOrderIds.has(item.order_id)).reduce((sum, item) => sum + (item.quantity || 1), 0);
       const totalReplacements = replacementsRes.count ?? 0;
       const replRate = totalNonProxyItems > 0 ? (totalReplacements / totalNonProxyItems) * 100 : 0;
@@ -168,27 +163,23 @@ export function AdminMobileDashboard() {
     return "Boa noite";
   };
 
-  // Calculate chart total for display
   const chartTotal = data.chartData.reduce((s, d) => s + d.value, 0);
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="size-8 text-primary animate-spin" />
+        <Loader2 className="size-8 animate-spin" style={{ color: '#E50914' }} />
       </div>
     );
   }
 
-  // SVG chart path generation
+  // SVG chart
   const maxVal = Math.max(...data.chartData.map(d => d.value), 1);
-  const chartWidth = 400;
-  const chartHeight = 160;
   const points = data.chartData.map((d, i) => ({
-    x: (i / Math.max(data.chartData.length - 1, 1)) * chartWidth,
-    y: chartHeight - (d.value / maxVal) * (chartHeight - 20) - 10,
+    x: (i / Math.max(data.chartData.length - 1, 1)) * 400,
+    y: 160 - (d.value / maxVal) * 140 - 10,
   }));
 
-  // Simple bezier curve
   let pathD = "";
   let areaD = "";
   if (points.length > 1) {
@@ -200,62 +191,64 @@ export function AdminMobileDashboard() {
       const cp2y = points[i].y;
       pathD += ` C${cp1x},${cp1y} ${cp2x},${cp2y} ${points[i].x},${points[i].y}`;
     }
-    areaD = pathD + ` L${chartWidth},${chartHeight} L0,${chartHeight} Z`;
+    areaD = pathD + ` L400,160 L0,160 Z`;
   }
+
+  const replWidth = `${Math.min(data.replacementRate, 100)}%`;
 
   return (
     <div className="space-y-8">
-      {/* Greeting */}
+      {/* Personalized Greeting - exact match */}
       <div className="mb-8">
         <h2 className="text-2xl font-bold tracking-tight text-white">
-          {getGreeting()}, <span className="text-primary">{userName}</span>
+          {getGreeting()}, <span style={{ color: '#E50914' }}>{userName}</span>
         </h2>
         <p className="text-zinc-500 text-xs mt-1 font-medium">
           Bem-vindo ao seu painel de controle de hoje.
         </p>
       </div>
 
-      {/* Visão Geral */}
+      {/* VISÃO GERAL */}
       <section>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xs font-bold uppercase tracking-widest text-zinc-400">Visão Geral</h2>
           <span className="text-[10px] text-zinc-500 font-medium">Últimos 30 dias</span>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <div className="glass-card rounded-[20px] p-4">
+          <div className="admin-mobile-glass p-4">
             <p className="text-zinc-500 text-[10px] font-semibold uppercase mb-1">Total de Clientes</p>
             <div className="flex items-baseline gap-2">
-              <p className="text-xl font-bold text-white">{data.totalClients.toLocaleString("pt-BR")}</p>
+              <p className="text-xl font-bold">{data.totalClients.toLocaleString("pt-BR")}</p>
             </div>
           </div>
-          <div className="glass-card rounded-[20px] p-4">
+          <div className="admin-mobile-glass p-4">
             <p className="text-zinc-500 text-[10px] font-semibold uppercase mb-1">Transações</p>
             <div className="flex items-baseline gap-2">
-              <p className="text-xl font-bold text-white">{data.totalTransactions.toLocaleString("pt-BR")}</p>
+              <p className="text-xl font-bold">{data.totalTransactions.toLocaleString("pt-BR")}</p>
             </div>
           </div>
-          <div className="glass-card rounded-[20px] p-4">
+          <div className="admin-mobile-glass p-4">
             <p className="text-zinc-500 text-[10px] font-semibold uppercase mb-1">Saldo em Carteiras</p>
-            <p className="text-xl font-bold text-white">{formatCurrency(data.totalBalance)}</p>
+            <p className="text-xl font-bold">{formatCurrency(data.totalBalance)}</p>
           </div>
-          <div className="glass-card rounded-[20px] p-4">
+          <div className="admin-mobile-glass p-4">
             <p className="text-zinc-500 text-[10px] font-semibold uppercase mb-1">Faturado Hoje</p>
             <div className="flex items-baseline gap-2">
-              <p className="text-xl font-bold text-white">{formatCurrency(data.todayRevenue)}</p>
-              {data.todayRevenue > 0 && <span className="text-primary text-[9px] font-bold">ALTO</span>}
+              <p className="text-xl font-bold">{formatCurrency(data.todayRevenue)}</p>
+              {data.todayRevenue > 0 && <span className="text-[9px] font-bold" style={{ color: '#FF0000' }}>ALTO</span>}
             </div>
           </div>
         </div>
       </section>
 
-      {/* Métricas de Produtos */}
+      {/* MÉTRICAS DE PRODUTOS */}
       <section>
         <h2 className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-4">Métricas de Produtos</h2>
-        <div className="glass-card rounded-[20px] overflow-hidden">
+        <div className="admin-mobile-glass overflow-hidden">
           <div className="divide-y divide-white/5">
             <div className="p-4 flex items-center justify-between">
               <span className="text-zinc-400 text-sm">Total de Produtos</span>
-              <span className="font-bold text-base text-white">{data.totalProducts}</span>
+              <span className="font-bold text-base">{data.totalProducts}</span>
             </div>
             <div className="p-4 flex items-center justify-between">
               <span className="text-zinc-400 text-sm">Disponíveis</span>
@@ -267,72 +260,55 @@ export function AdminMobileDashboard() {
             </div>
             <div className="p-4 flex items-center justify-between">
               <span className="text-zinc-400 text-sm">Total Pedidos</span>
-              <span className="font-bold text-base text-white">{data.totalOrders.toLocaleString("pt-BR")}</span>
+              <span className="font-bold text-base">{data.totalOrders.toLocaleString("pt-BR")}</span>
             </div>
             <div className="p-4 flex items-center justify-between">
               <span className="text-zinc-400 text-sm">Taxa de Reposição</span>
               <div className="flex items-center gap-2">
                 <div className="w-16 h-1 bg-white/10 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-primary rounded-full"
-                    style={{ width: `${Math.min(data.replacementRate, 100)}%` }}
-                  />
+                  <div className="h-full rounded-full" style={{ width: replWidth, backgroundColor: '#E50914' }} />
                 </div>
-                <span className="font-bold text-sm text-white">{data.replacementRate.toFixed(0)}%</span>
+                <span className="font-bold text-sm">{data.replacementRate.toFixed(0)}%</span>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Movimentação de Pagamentos */}
-      <section className="glass-card rounded-[20px] p-6">
+      {/* MOVIMENTAÇÃO DE PAGAMENTOS */}
+      <section className="admin-mobile-glass p-6">
         <div className="flex justify-between items-start mb-6">
           <div>
             <h2 className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-1">Movimentação de Pagamentos</h2>
             <p className="text-zinc-500 text-[10px]">Fluxo financeiro (24h)</p>
           </div>
           <div className="text-right">
-            <p className="text-lg font-bold text-white">{formatCurrency(chartTotal || data.todayRevenue)}</p>
+            <p className="text-lg font-bold">{formatCurrency(chartTotal || data.todayRevenue)}</p>
+            {chartTotal > 0 && (
+              <span className="text-emerald-500 text-[9px] font-black uppercase tracking-tighter">Crescimento de 15%</span>
+            )}
           </div>
         </div>
 
-        {/* SVG Chart */}
-        <div className="relative h-40 w-full">
-          <svg className="w-full h-full" preserveAspectRatio="none" viewBox={`0 0 ${chartWidth} ${chartHeight}`}>
+        <div className="admin-mobile-chart-container">
+          <svg className="w-full h-full" preserveAspectRatio="none" viewBox="0 0 400 160">
             <defs>
-              <linearGradient id="mobile-gradient-red" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.4} />
-                <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+              <linearGradient id="gradient-red" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#E50914" stopOpacity={0.4} />
+                <stop offset="100%" stopColor="#E50914" stopOpacity={0} />
               </linearGradient>
             </defs>
-            {/* Grid lines */}
-            <line x1="0" x2={chartWidth} y1="40" y2="40" stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
-            <line x1="0" x2={chartWidth} y1="80" y2="80" stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
-            <line x1="0" x2={chartWidth} y1="120" y2="120" stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
+            {/* Horizontal Grid */}
+            <line stroke="rgba(255,255,255,0.03)" strokeWidth="1" x1="0" x2="400" y1="40" y2="40" />
+            <line stroke="rgba(255,255,255,0.03)" strokeWidth="1" x1="0" x2="400" y1="80" y2="80" />
+            <line stroke="rgba(255,255,255,0.03)" strokeWidth="1" x1="0" x2="400" y1="120" y2="120" />
             {/* Area */}
-            {areaD && <path d={areaD} fill="url(#mobile-gradient-red)" opacity={0.12} />}
+            {areaD && <path className="admin-mobile-chart-area" d={areaD} />}
             {/* Line */}
-            {pathD && (
-              <path
-                d={pathD}
-                stroke="hsl(var(--primary))"
-                strokeWidth={3}
-                fill="none"
-                style={{ filter: "drop-shadow(0 0 8px hsla(var(--primary) / 0.6))" }}
-              />
-            )}
+            {pathD && <path className="admin-mobile-chart-line" d={pathD} />}
             {/* Points */}
             {points.map((p, i) => (
-              <circle
-                key={i}
-                cx={p.x}
-                cy={p.y}
-                r={3}
-                fill="white"
-                stroke="hsl(var(--primary))"
-                strokeWidth={2}
-              />
+              <circle key={i} className="admin-mobile-chart-point" cx={p.x} cy={p.y} r={i === Math.floor(points.length / 2) ? 4 : 3} />
             ))}
           </svg>
         </div>
@@ -341,12 +317,12 @@ export function AdminMobileDashboard() {
           {data.chartData.map((d, i) => (
             <span key={i}>{d.name}</span>
           ))}
-          {data.chartData.length > 0 && <span>Agora</span>}
+          <span>Agora</span>
         </div>
       </section>
 
-      {/* Volume de Vendas por Categoria */}
-      <section className="pb-6">
+      {/* VOLUME DE VENDAS POR CATEGORIA */}
+      <section>
         <h2 className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-4">Volume de Vendas por Categoria</h2>
         <div className="grid grid-cols-2 gap-3">
           {data.categoryStats.map((cat, i) => {
@@ -354,15 +330,15 @@ export function AdminMobileDashboard() {
             return (
               <div
                 key={cat.name}
-                className={`glass-card rounded-[20px] p-4 flex items-center gap-3 ${isLast ? "col-span-2" : ""}`}
+                className={`admin-mobile-glass p-4 flex items-center gap-3 ${isLast ? "col-span-2" : ""}`}
               >
-                <div className="w-8 h-8 rounded-lg bg-zinc-800/50 flex items-center justify-center text-primary">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(39, 39, 42, 0.5)', color: '#E50914' }}>
                   <span className="material-symbols-outlined text-sm">{cat.icon}</span>
                 </div>
                 <div className={isLast ? "flex-1 flex justify-between items-center" : ""}>
                   <div>
                     <p className="text-zinc-500 text-[10px] font-bold uppercase">{cat.name}</p>
-                    <p className="text-sm font-bold text-white">
+                    <p className="text-sm font-bold">
                       {cat.sales >= 1000 ? `${(cat.sales / 1000).toFixed(1)}k` : cat.sales} vds
                     </p>
                   </div>

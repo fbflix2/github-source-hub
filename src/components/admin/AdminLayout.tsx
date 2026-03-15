@@ -82,12 +82,12 @@ export function AdminLayout() {
     );
   }
 
-  // Mobile layout
+  // Mobile layout - exact match to native app design
   if (isMobile) {
     return (
-      <div className="min-h-screen bg-black text-white font-sans antialiased">
+      <div className="admin-mobile-wrapper min-h-screen font-sans antialiased">
         <AdminMobileHeader />
-        <main className="mt-20 px-5 pb-28">
+        <main className="mt-20 px-5 pb-28 space-y-8">
           <Outlet />
         </main>
         <AdminMobileBottomNav />
