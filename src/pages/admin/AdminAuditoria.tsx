@@ -235,6 +235,18 @@ export default function AdminAuditoria() {
       onClick: () => navigate("/admin/auditoria/investimentos"),
     },
     {
+      label: "Estoque Atual",
+      value: loading ? "..." : formatCurrency(stockValue),
+      badge: "Investido",
+      badgeColor: "text-blue-400 bg-blue-400/10 border-blue-400/20",
+      icon: Package,
+      iconBg: "bg-blue-500/10 border-blue-500/20",
+      iconColor: "text-blue-400",
+      subtitle: `${stockItemCount} itens em estoque`,
+      highlighted: false,
+      onClick: () => navigate("/admin/estoque"),
+    },
+    {
       label: "Receita Total de Vendas",
       value: loading ? "..." : formatCurrency(combinedRevenue),
       badge: "Entrada",
