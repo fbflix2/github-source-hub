@@ -309,6 +309,60 @@ export type Database = {
           },
         ]
       }
+      cash_register: {
+        Row: {
+          bank_balance: number | null
+          closed_at: string | null
+          created_at: string
+          deposits: number
+          difference: number
+          id: string
+          notes: string | null
+          opened_at: string
+          opened_by: string
+          status: string
+          system_balance: number
+          system_expenses: number
+          system_revenue: number
+          updated_at: string
+          withdrawals: number
+        }
+        Insert: {
+          bank_balance?: number | null
+          closed_at?: string | null
+          created_at?: string
+          deposits?: number
+          difference?: number
+          id?: string
+          notes?: string | null
+          opened_at?: string
+          opened_by: string
+          status?: string
+          system_balance?: number
+          system_expenses?: number
+          system_revenue?: number
+          updated_at?: string
+          withdrawals?: number
+        }
+        Update: {
+          bank_balance?: number | null
+          closed_at?: string | null
+          created_at?: string
+          deposits?: number
+          difference?: number
+          id?: string
+          notes?: string | null
+          opened_at?: string
+          opened_by?: string
+          status?: string
+          system_balance?: number
+          system_expenses?: number
+          system_revenue?: number
+          updated_at?: string
+          withdrawals?: number
+        }
+        Relationships: []
+      }
       client_notes: {
         Row: {
           admin_id: string
