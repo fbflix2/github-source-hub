@@ -342,9 +342,9 @@ export default function AdminAuditoria() {
               }`} />
 
               <div className="relative z-10">
-                <div className="flex justify-between items-start mb-4">
-                  <div className={`p-3 rounded-xl border ${stat.iconBg}`}>
-                    <stat.icon className={`size-6 ${stat.iconColor}`} />
+                <div className="flex justify-between items-start mb-3">
+                  <div className={`p-2 rounded-lg border ${stat.iconBg}`}>
+                    <stat.icon className={`size-5 ${stat.iconColor}`} />
                   </div>
                   <span className={`flex items-center text-xs font-semibold px-2 py-1 rounded-md border ${stat.badgeColor}`}>
                     {stat.badge}
