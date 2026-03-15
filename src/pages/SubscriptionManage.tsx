@@ -459,7 +459,7 @@ export default function SubscriptionManage() {
             </h2>
             {sub.proxy && (
               <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-xs h-8" onClick={() => copyToClipboard(`${sub.proxy!.ip}:${sub.proxy!.port}:${sub.proxy!.username || ""}:${sub.proxy!.password || ""}`, "quick-conn")}>
-                <span className="material-symbols-outlined text-sm">content_copy</span>Copiar String de Conexão
+                <span className="material-symbols-outlined text-sm">content_copy</span>Copiar Proxy
               </Button>
             )}
             <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-xs h-8" onClick={() => navigate("/suporte")}>
