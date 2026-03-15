@@ -86,6 +86,7 @@ import AdminShopClone from "./pages/admin/AdminShopClone";
 import AdminFerramentas2FA from "./pages/admin/AdminFerramentas2FA";
 import AdminImageViewer from "./pages/admin/AdminImageViewer";
 import AdminProxyBR from "./pages/admin/AdminProxyBR";
+import AdminCaixa from "./pages/admin/AdminCaixa";
 import { AdminLayout } from "./components/admin/AdminLayout";
 
 // Layout
