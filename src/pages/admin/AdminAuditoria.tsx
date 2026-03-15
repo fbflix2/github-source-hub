@@ -126,7 +126,7 @@ export default function AdminAuditoria() {
   }, []);
 
   const combinedRevenue = totalRevenue + proxyRevenue;
-  const profit = combinedRevenue - totalCost;
+  const profit = combinedRevenue - totalCost - totalMonthlyCosts;
   const margin = combinedRevenue > 0 ? Math.round((profit / combinedRevenue) * 100) : 0;
 
   const stats = [
@@ -175,7 +175,7 @@ export default function AdminAuditoria() {
       icon: TrendingUp,
       iconBg: "bg-primary/20 border-primary/30",
       iconColor: "text-primary",
-      subtitle: `Receita real − Custos de compra`,
+      subtitle: `Receita − Custos de compra − Custos fixos`,
       highlighted: true,
     }
   ];
