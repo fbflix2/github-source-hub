@@ -64,44 +64,45 @@ export function MetaNewsTicker() {
     } catch {}
 
     try {
-      // Use a public RSS-to-JSON proxy to fetch real Meta news
-      const feedUrl = encodeURIComponent("https://about.fb.com/news/feed/");
-      const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${feedUrl}&count=10`);
-      
-      if (res.ok) {
-        const data = await res.json();
-        if (data.status === "ok" && data.items?.length > 0) {
-          const items: NewsItem[] = data.items.slice(0, 8).map((item: any) => ({
-            title: item.title?.replace(/<[^>]*>/g, "").trim() || "",
-            url: item.link || "",
-            source: "Meta Newsroom",
-            date: item.pubDate ? new Date(item.pubDate).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }) : "",
-          }));
-          setNews(items);
-          localStorage.setItem(CACHE_KEY, JSON.stringify({ items, timestamp: Date.now() }));
-          setLoading(false);
-          return;
-        }
-      }
+      // Fetch Meta news in Portuguese from Brazilian tech sources
+      const sources = [
+        { url: "https://tecnoblog.net/tema/meta/feed/", source: "Tecnoblog" },
+        { url: "https://canaltech.com.br/rss/", source: "Canaltech" },
+        { url: "https://olhardigital.com.br/feed/", source: "Olhar Digital" },
+      ];
 
-      // Fallback: try TechCrunch Meta/Facebook news
-      const tcUrl = encodeURIComponent("https://techcrunch.com/tag/meta/feed/");
-      const tcRes = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${tcUrl}&count=10`);
-      
-      if (tcRes.ok) {
-        const tcData = await tcRes.json();
-        if (tcData.status === "ok" && tcData.items?.length > 0) {
-          const items: NewsItem[] = tcData.items.slice(0, 8).map((item: any) => ({
-            title: item.title?.replace(/<[^>]*>/g, "").trim() || "",
-            url: item.link || "",
-            source: "TechCrunch",
-            date: item.pubDate ? new Date(item.pubDate).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }) : "",
-          }));
-          setNews(items);
-          localStorage.setItem(CACHE_KEY, JSON.stringify({ items, timestamp: Date.now() }));
-          setLoading(false);
-          return;
-        }
+      for (const src of sources) {
+        try {
+          const feedUrl = encodeURIComponent(src.url);
+          const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${feedUrl}&count=15`);
+          
+          if (res.ok) {
+            const data = await res.json();
+            if (data.status === "ok" && data.items?.length > 0) {
+              // Filter items related to Meta/Facebook/Instagram/WhatsApp
+              const metaKeywords = ["meta", "facebook", "instagram", "whatsapp", "zuckerberg", "threads", "messenger"];
+              const filtered = data.items.filter((item: any) => {
+                const text = (item.title + " " + (item.description || "")).toLowerCase();
+                return metaKeywords.some(kw => text.includes(kw));
+              });
+              
+              const targetItems = filtered.length >= 3 ? filtered : data.items;
+              const items: NewsItem[] = targetItems.slice(0, 8).map((item: any) => ({
+                title: item.title?.replace(/<[^>]*>/g, "").trim() || "",
+                url: item.link || "",
+                source: src.source,
+                date: item.pubDate ? new Date(item.pubDate).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }) : "",
+              }));
+              
+              if (items.length > 0) {
+                setNews(items);
+                localStorage.setItem(CACHE_KEY, JSON.stringify({ items, timestamp: Date.now() }));
+                setLoading(false);
+                return;
+              }
+            }
+          }
+        } catch {}
       }
 
       // Final fallback: The Verge Meta news
