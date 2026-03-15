@@ -320,12 +320,12 @@ export default function AdminAuditoria() {
         </header>
 
         {/* Metrics Dashboard */}
-        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <section className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
           {stats.map((stat, index) => (
             <div 
               key={index}
               onClick={stat.onClick}
-              className={`bg-white/[0.03] backdrop-blur-2xl border rounded-2xl p-5 relative overflow-hidden group transition-all duration-500 ${
+              className={`bg-white/[0.03] backdrop-blur-2xl border rounded-xl p-4 relative overflow-hidden group transition-all duration-500 ${
                 stat.highlighted 
                   ? "border-primary/30 shadow-[0_0_40px_-10px_rgba(249,6,6,0.15)]" 
                   : "border-white/10"
@@ -342,9 +342,9 @@ export default function AdminAuditoria() {
               }`} />
 
               <div className="relative z-10">
-                <div className="flex justify-between items-start mb-4">
-                  <div className={`p-3 rounded-xl border ${stat.iconBg}`}>
-                    <stat.icon className={`size-6 ${stat.iconColor}`} />
+                <div className="flex justify-between items-start mb-3">
+                  <div className={`p-2 rounded-lg border ${stat.iconBg}`}>
+                    <stat.icon className={`size-5 ${stat.iconColor}`} />
                   </div>
                   <span className={`flex items-center text-xs font-semibold px-2 py-1 rounded-md border ${stat.badgeColor}`}>
                     {stat.badge}
@@ -358,8 +358,8 @@ export default function AdminAuditoria() {
                   <div className="flex items-baseline gap-2">
                     <span className={`tracking-tight ${
                       stat.highlighted 
-                        ? "text-2xl lg:text-3xl font-black text-white drop-shadow-lg" 
-                        : "text-2xl lg:text-3xl font-bold text-white"
+                        ? "text-xl lg:text-2xl font-black text-white drop-shadow-lg" 
+                        : "text-xl lg:text-2xl font-bold text-white"
                     }`}>
                       {stat.value}
                     </span>
