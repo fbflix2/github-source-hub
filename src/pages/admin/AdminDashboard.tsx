@@ -24,6 +24,7 @@ interface PendingItem {
 }
 
 export default function AdminDashboard() {
+  const isMobile = useIsMobile();
   const [loading, setLoading] = useState(true);
   const [totalClients, setTotalClients] = useState(0);
   const [totalInBase, setTotalInBase] = useState(0);
