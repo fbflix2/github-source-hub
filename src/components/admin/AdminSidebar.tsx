@@ -67,7 +67,6 @@ const allMenuItems: MenuItem[] = [
   { title: "Reposições", icon: RefreshCw, path: "/admin/reposicoes" },
   { title: "Trocas", icon: ArrowRightLeft, path: "/admin/trocas" },
   { title: "Gestão BMs", icon: Briefcase, path: "/admin/gestao-bms" },
-  { title: "Aquecimento", icon: Flame, path: "/admin/aquecimento" },
   { title: "Produtos", icon: Package, path: "/admin/produtos" },
   { title: "Pedidos", icon: ShoppingCart, path: "/admin/pedidos" },
   { title: "Pagamentos", icon: CreditCard, path: "/admin/pagamentos" },
@@ -80,6 +79,7 @@ const allMenuItems: MenuItem[] = [
   { title: "Fornecedor AccFace", icon: Store, path: "/admin/fornecedor" },
   { title: "Ferramentas", icon: KeyRound, path: "/admin/ferramentas-2fa", subItems: [
     { title: "Ferramentas", icon: KeyRound, path: "/admin/ferramentas-2fa" },
+    { title: "Aquecimento", icon: Flame, path: "/admin/aquecimento" },
     { title: "Imagens", icon: ImageIcon, path: "/admin/imagens" },
   ]},
   { title: "Clientes", icon: Users, path: "/admin/clientes" },
