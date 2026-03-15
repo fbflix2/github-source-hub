@@ -12,6 +12,7 @@ import {
   Percent,
   ShoppingBag,
   AlertTriangle,
+  Info,
 } from "lucide-react";
 
 const fmt = (v: number) =>
@@ -128,13 +129,22 @@ export default function AdminProjecaoLucro() {
       <div className="relative z-10 w-full max-w-7xl mx-auto flex flex-col gap-8">
         {/* Header */}
         <header className="flex flex-col gap-4">
-          <button
-            onClick={() => navigate("/admin/auditoria")}
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-white transition-colors w-fit"
-          >
-            <ArrowLeft className="size-4" />
-            Voltar para Auditoria
-          </button>
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => navigate("/admin/auditoria")}
+              className="flex items-center gap-2 text-sm text-muted-foreground hover:text-white transition-colors w-fit"
+            >
+              <ArrowLeft className="size-4" />
+              Voltar para Auditoria
+            </button>
+            <button
+              onClick={() => navigate("/admin/auditoria/metodologia")}
+              className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-muted-foreground hover:text-white bg-white/5 backdrop-blur-lg border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all"
+            >
+              <Info className="size-4" />
+              Como calculamos?
+            </button>
+          </div>
           <div>
             <h1 className="text-3xl md:text-4xl font-black tracking-tight text-white">
               Projeção de{" "}
@@ -158,33 +168,37 @@ export default function AdminProjecaoLucro() {
             <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <SummaryCard
                 icon={ShoppingBag}
-                label="COGS Total"
+                label="Custo Real (COGS)"
                 value={fmt(totals.totalCOGS)}
                 subtitle="Custo dos produtos vendidos"
+                description="Soma de tudo que você gastou para comprar os produtos, incluindo impostos e taxas aplicadas."
                 color="text-red-400"
                 bgColor="bg-red-400/10 border-red-400/20"
               />
               <SummaryCard
+                icon={Building2}
+                label="Custos Fixos/Mês"
+                value={fmt(totals.monthlyCosts)}
+                subtitle="Centro de custos ativo"
+                description="Total das despesas fixas e variáveis cadastradas no Centro de Custos (servidores, ferramentas, etc)."
+                color="text-amber-400"
+                bgColor="bg-amber-400/10 border-amber-400/20"
+              />
+              <SummaryCard
                 icon={DollarSign}
-                label="Receita Projetada"
+                label="Receita Total"
                 value={fmt(totals.projectedRevenue)}
                 subtitle="Se tudo for vendido"
+                description="Valor total que você receberá ao vender todos os itens comprados pelo preço de venda definido."
                 color="text-emerald-400"
                 bgColor="bg-emerald-400/10 border-emerald-400/20"
               />
               <SummaryCard
                 icon={TrendingUp}
-                label="Lucro Bruto"
-                value={fmt(totals.grossProfit)}
-                subtitle={`Margem: ${totals.grossMargin.toFixed(1)}%`}
-                color={totals.grossProfit >= 0 ? "text-emerald-400" : "text-red-400"}
-                bgColor={totals.grossProfit >= 0 ? "bg-emerald-400/10 border-emerald-400/20" : "bg-red-400/10 border-red-400/20"}
-              />
-              <SummaryCard
-                icon={Building2}
                 label="Lucro Real"
                 value={fmt(totals.realProfit)}
-                subtitle={`Após ${fmt(totals.monthlyCosts)} de custos fixos`}
+                subtitle={`Margem: ${totals.realMargin.toFixed(1)}%`}
+                description="Lucro final após descontar o custo dos produtos E os custos fixos mensais. É o dinheiro que sobra de verdade."
                 color={totals.realProfit >= 0 ? "text-emerald-400" : "text-red-400"}
                 bgColor={totals.realProfit >= 0 ? "bg-emerald-400/10 border-emerald-400/20" : "bg-red-400/10 border-red-400/20"}
                 highlighted
@@ -420,6 +434,7 @@ function SummaryCard({
   label,
   value,
   subtitle,
+  description,
   color,
   bgColor,
   highlighted,
@@ -428,6 +443,7 @@ function SummaryCard({
   label: string;
   value: string;
   subtitle: string;
+  description: string;
   color: string;
   bgColor: string;
   highlighted?: boolean;
@@ -452,10 +468,13 @@ function SummaryCard({
             {label}
           </span>
         </div>
-        <p className={`text-2xl font-black tracking-tight text-white`}>
+        <p className="text-2xl font-black tracking-tight text-white">
           {value}
         </p>
         <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>
+        <p className="text-[11px] text-muted-foreground/60 mt-2 leading-relaxed">
+          {description}
+        </p>
       </div>
     </div>
   );
