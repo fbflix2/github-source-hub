@@ -39,12 +39,52 @@ const BUSINESS_KEYWORDS = [
 ];
 
 async function fetchRSS(rssUrl: string): Promise<any[]> {
+  // 1) Try rss2json free mode (without count/api_key)
   try {
-    const res = await fetch(`${RSS_PROXY}?rss_url=${encodeURIComponent(rssUrl)}&count=12`);
-    if (!res.ok) return [];
-    const data = await res.json();
-    if (data.status === "ok" && data.items?.length > 0) return data.items;
+    const res = await fetch(`${RSS_PROXY}?rss_url=${encodeURIComponent(rssUrl)}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.status === "ok" && data.items?.length > 0) {
+        return data.items;
+      }
+    }
   } catch {}
+
+  // 2) Fallback: fetch raw RSS via allorigins and parse XML client-side
+  try {
+    const rawRes = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(rssUrl)}`);
+    if (!rawRes.ok) return [];
+
+    const xmlText = await rawRes.text();
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+
+    const nodes = Array.from(xmlDoc.querySelectorAll("item, entry"));
+    return nodes.map((node) => {
+      const title = node.querySelector("title")?.textContent?.trim() || "";
+      const linkNode = node.querySelector("link");
+      const link = linkNode?.getAttribute("href") || linkNode?.textContent?.trim() || "";
+      const pubDate =
+        node.querySelector("pubDate")?.textContent?.trim() ||
+        node.querySelector("published")?.textContent?.trim() ||
+        node.querySelector("updated")?.textContent?.trim() ||
+        "";
+      const description =
+        node.querySelector("description")?.textContent?.trim() ||
+        node.querySelector("summary")?.textContent?.trim() ||
+        "";
+      const categories = Array.from(node.querySelectorAll("category")).map((c) => c.textContent?.trim() || "").filter(Boolean);
+
+      return {
+        title,
+        link,
+        pubDate,
+        description,
+        categories,
+      };
+    }).filter((item) => item.title && item.link);
+  } catch {}
+
   return [];
 }
 
