@@ -159,6 +159,19 @@ export default function AdminAuditoria() {
     const monthlyCosts = (costCenterRes.data ?? []).reduce((s: number, c: any) => s + Number(c.amount || 0), 0);
     setTotalMonthlyCosts(monthlyCosts);
 
+    // Stock value: sum cost of all "revisado" items in stock
+    const stockItems = stockItemsRes.data ?? [];
+    let totalStockVal = 0;
+    let totalStockCount = 0;
+    stockItems.forEach((si: any) => {
+      if (si.product_id) {
+        totalStockVal += getProductTotalCost(si.product_id);
+        totalStockCount++;
+      }
+    });
+    setStockValue(totalStockVal);
+    setStockItemCount(totalStockCount);
+
     setTotalRevenue(revenue);
     setTotalCost(cogs);
     setProjectedProfit(projectedRevenue - totalCostWithTax);
