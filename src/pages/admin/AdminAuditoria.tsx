@@ -126,7 +126,7 @@ export default function AdminAuditoria() {
   }, []);
 
   const combinedRevenue = totalRevenue + proxyRevenue;
-  const profit = combinedRevenue - totalCost;
+  const profit = combinedRevenue - totalCost - totalMonthlyCosts;
   const margin = combinedRevenue > 0 ? Math.round((profit / combinedRevenue) * 100) : 0;
 
   const stats = [
