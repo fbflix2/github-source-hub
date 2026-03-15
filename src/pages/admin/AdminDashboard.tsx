@@ -8,6 +8,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { AdminMobileDashboard } from "@/components/admin/mobile/AdminMobileDashboard";
 
 interface PendingItem {
   id: string;
@@ -22,6 +24,7 @@ interface PendingItem {
 }
 
 export default function AdminDashboard() {
+  const isMobile = useIsMobile();
   const [loading, setLoading] = useState(true);
   const [totalClients, setTotalClients] = useState(0);
   const [totalInBase, setTotalInBase] = useState(0);
@@ -330,6 +333,11 @@ export default function AdminDashboard() {
 
   const catColors = ["bg-blue-500", "bg-purple-500", "bg-primary", "bg-cyan-500"];
   const catIcons = [User, Briefcase, Database, Globe];
+
+  // Mobile: render dedicated mobile dashboard
+  if (isMobile) {
+    return <AdminMobileDashboard />;
+  }
 
   if (loading) {
     return (
