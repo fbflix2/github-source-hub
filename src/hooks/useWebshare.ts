@@ -150,7 +150,7 @@ export function useWebshareSubscriptions() {
       return (data || []).map((sub) => {
         const raw = (sub.raw_data || {}) as Record<string, any>;
         const productInfo = sub.products as any;
-        const productName = productInfo?.name || raw.product_name || "Proxy Webshare";
+        const productName = productInfo?.name || raw.product_name || "Proxy Residencial";
         const customerPrice = productInfo?.price || null;
         return {
           id: sub.id,
