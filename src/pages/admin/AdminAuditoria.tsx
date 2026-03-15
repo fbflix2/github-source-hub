@@ -358,8 +358,8 @@ export default function AdminAuditoria() {
                   <div className="flex items-baseline gap-2">
                     <span className={`tracking-tight ${
                       stat.highlighted 
-                        ? "text-2xl lg:text-3xl font-black text-white drop-shadow-lg" 
-                        : "text-2xl lg:text-3xl font-bold text-white"
+                        ? "text-xl lg:text-2xl font-black text-white drop-shadow-lg" 
+                        : "text-xl lg:text-2xl font-bold text-white"
                     }`}>
                       {stat.value}
                     </span>
