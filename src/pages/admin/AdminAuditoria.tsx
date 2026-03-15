@@ -10,7 +10,8 @@ import {
   BarChart3,
   History,
   Loader2,
-  Building2
+  Building2,
+  Package
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import PurchasesListModal from "@/components/admin/PurchasesListModal";
@@ -44,6 +45,8 @@ export default function AdminAuditoria() {
   const [projectedProfit, setProjectedProfit] = useState(0);
   const [projectedMargin, setProjectedMargin] = useState(0);
   const [totalMonthlyCosts, setTotalMonthlyCosts] = useState(0);
+  const [stockValue, setStockValue] = useState(0);
+  const [stockItemCount, setStockItemCount] = useState(0);
   const { totalRevenue: proxyRevenue, count: proxyCount } = useProxyRevenue();
 
   const fetchData = async () => {
@@ -53,7 +56,7 @@ export default function AdminAuditoria() {
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const since = thirtyDaysAgo.toISOString();
 
-    const [ordersRes, orderItemsRes, productsRes, productCostsRes, purchasesRes, costCenterRes, webShareRes] = await Promise.all([
+    const [ordersRes, orderItemsRes, productsRes, productCostsRes, purchasesRes, costCenterRes, webShareRes, stockItemsRes] = await Promise.all([
       supabase
         .from("orders")
         .select("id, total, updated_at")
@@ -77,6 +80,12 @@ export default function AdminAuditoria() {
         .select("amount, active")
         .eq("active", true),
       supabase.functions.invoke("webshare-api", { body: { action: "get-plan" } }).catch(() => ({ data: null })),
+      supabase
+        .from("stock_items")
+        .select("product_id")
+        .eq("status", "revisado")
+        .is("order_item_id", null)
+        .is("deleted_at", null),
     ]);
 
     const orders = ordersRes.data ?? [];
@@ -150,6 +159,19 @@ export default function AdminAuditoria() {
     const monthlyCosts = (costCenterRes.data ?? []).reduce((s: number, c: any) => s + Number(c.amount || 0), 0);
     setTotalMonthlyCosts(monthlyCosts);
 
+    // Stock value: sum cost of all "revisado" items in stock
+    const stockItems = stockItemsRes.data ?? [];
+    let totalStockVal = 0;
+    let totalStockCount = 0;
+    stockItems.forEach((si: any) => {
+      if (si.product_id) {
+        totalStockVal += getProductTotalCost(si.product_id);
+        totalStockCount++;
+      }
+    });
+    setStockValue(totalStockVal);
+    setStockItemCount(totalStockCount);
+
     setTotalRevenue(revenue);
     setTotalCost(cogs);
     setProjectedProfit(projectedRevenue - totalCostWithTax);
@@ -211,6 +233,18 @@ export default function AdminAuditoria() {
       subtitle: "Últimos 30 dias",
       highlighted: false,
       onClick: () => navigate("/admin/auditoria/investimentos"),
+    },
+    {
+      label: "Estoque Atual",
+      value: loading ? "..." : formatCurrency(stockValue),
+      badge: "Investido",
+      badgeColor: "text-blue-400 bg-blue-400/10 border-blue-400/20",
+      icon: Package,
+      iconBg: "bg-blue-500/10 border-blue-500/20",
+      iconColor: "text-blue-400",
+      subtitle: `${stockItemCount} itens em estoque`,
+      highlighted: false,
+      onClick: () => navigate("/admin/estoque"),
     },
     {
       label: "Receita Total de Vendas",
