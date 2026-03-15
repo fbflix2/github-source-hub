@@ -78,8 +78,10 @@ const allMenuItems: MenuItem[] = [
     { title: "ProxyBR", icon: Globe, path: "/admin/central-proxy/proxybr" },
   ]},
   { title: "Fornecedor AccFace", icon: Store, path: "/admin/fornecedor" },
-  { title: "Ferramentas", icon: KeyRound, path: "/admin/ferramentas-2fa" },
-  { title: "Imagens", icon: ImageIcon, path: "/admin/imagens" },
+  { title: "Ferramentas", icon: KeyRound, path: "/admin/ferramentas-2fa", subItems: [
+    { title: "Ferramentas", icon: KeyRound, path: "/admin/ferramentas-2fa" },
+    { title: "Imagens", icon: ImageIcon, path: "/admin/imagens" },
+  ]},
   { title: "Clientes", icon: Users, path: "/admin/clientes" },
   { title: "Afiliados", icon: UserCheck, path: "/admin/afiliados" },
   { title: "Parceiros", icon: Users, path: "/admin/parceiros" },
