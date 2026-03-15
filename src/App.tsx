@@ -86,6 +86,7 @@ import AdminShopClone from "./pages/admin/AdminShopClone";
 import AdminFerramentas2FA from "./pages/admin/AdminFerramentas2FA";
 import AdminImageViewer from "./pages/admin/AdminImageViewer";
 import AdminProxyBR from "./pages/admin/AdminProxyBR";
+import AdminCaixa from "./pages/admin/AdminCaixa";
 import { AdminLayout } from "./components/admin/AdminLayout";
 
 // Layout
@@ -299,6 +300,7 @@ const App = () => {
                   <Route path="auditoria/investimentos" element={<AdminCentralInvestimentos />} />
                   <Route path="auditoria/projecao-lucro" element={<AdminProjecaoLucro />} />
                   <Route path="auditoria/metodologia" element={<AdminMetodologia />} />
+                  <Route path="auditoria/caixa" element={<AdminCaixa />} />
                   <Route path="pedidos" element={<AdminPedidos />} />
                   <Route path="pagamentos" element={<AdminPagamentos />} />
                   <Route path="carrinhos-abandonados" element={<AdminCarrinhosAbandonados />} />

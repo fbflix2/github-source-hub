@@ -11,7 +11,8 @@ import {
   History,
   Loader2,
   Building2,
-  Package
+  Package,
+  Landmark
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import PurchasesListModal from "@/components/admin/PurchasesListModal";
@@ -314,6 +315,13 @@ export default function AdminAuditoria() {
             >
               <BarChart3 className="size-5 group-hover:text-primary transition-colors" />
               Ver Detalhes do Balanço
+            </button>
+            <button 
+              onClick={() => navigate("/admin/auditoria/caixa")}
+              className="group flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium text-white shadow-lg bg-white/5 backdrop-blur-lg border border-white/10 hover:bg-primary/15 hover:border-primary/40 hover:-translate-y-0.5 transition-all"
+            >
+              <Landmark className="size-5 group-hover:text-primary transition-colors" />
+              Controle de Caixa
             </button>
           </div>
         </header>
