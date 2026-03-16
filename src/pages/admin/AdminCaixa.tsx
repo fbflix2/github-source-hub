@@ -64,23 +64,7 @@ export default function AdminCaixa() {
   const [systemRevenue, setSystemRevenue] = useState(0);
   const [systemExpenses, setSystemExpenses] = useState(0);
 
-  // Mercado Pago balance
-  const [mpBalance, setMpBalance] = useState<{ available_balance?: number; total_amount?: number; unavailable_balance?: number } | null>(null);
-  const [mpLoading, setMpLoading] = useState(false);
 
-  const fetchMpBalance = async () => {
-    setMpLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("mercadopago-balance");
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      setMpBalance(data);
-    } catch (err: any) {
-      console.error("MP balance error:", err);
-    } finally {
-      setMpLoading(false);
-    }
-  };
 
   const fetchData = async () => {
     setLoading(true);
