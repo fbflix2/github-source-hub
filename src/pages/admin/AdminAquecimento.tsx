@@ -863,11 +863,19 @@ export default function AdminAquecimento() {
                               </p>
                               <p className="text-[11px] text-slate-500 truncate">{task.description}</p>
                             </div>
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded whitespace-nowrap ${
-                              task.completed ? "text-green-600 bg-green-50" : isCurrent ? "text-[#1876f2] animate-pulse" : "text-slate-400"
-                            }`}>
-                              {task.completed ? "Concluído" : isCurrent ? "Em andamento" : "Pendente"}
-                            </span>
+                            <div className="flex flex-col items-end gap-0.5">
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded whitespace-nowrap ${
+                                task.completed ? "text-green-600 bg-green-50" : isCurrent ? "text-[#1876f2] animate-pulse" : "text-slate-400"
+                              }`}>
+                                {task.completed ? "Concluído" : isCurrent ? "Em andamento" : "Pendente"}
+                              </span>
+                              {task.completed && task.duration_seconds != null && (
+                                <span className="text-[10px] font-medium text-slate-400 flex items-center gap-0.5">
+                                  <MIcon name="timer" className="text-[11px]" />
+                                  {formatDuration(task.duration_seconds)}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         );
                       })}
