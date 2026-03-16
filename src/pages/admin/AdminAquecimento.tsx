@@ -109,6 +109,17 @@ interface WarmingTask {
   duration_seconds: number | null;
 }
 
+function formatDuration(seconds: number | null): string {
+  if (seconds === null || seconds === undefined) return "";
+  if (seconds < 60) return `${seconds}s`;
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  if (mins < 60) return `${mins}min ${secs > 0 ? secs + "s" : ""}`.trim();
+  const hours = Math.floor(mins / 60);
+  const remMins = mins % 60;
+  return `${hours}h ${remMins > 0 ? remMins + "min" : ""}`.trim();
+}
+
 function MIcon({ name, className = "" }: { name: string; className?: string }) {
   return <span className={`material-symbols-outlined ${className}`}>{name}</span>;
 }
