@@ -1,0 +1,1 @@
+UPDATE cash_register SET opened_at = '2026-03-16T03:00:00+00:00' WHERE id = '0aafc7e7-c239-4aa4-a019-112e0f7408ee' AND status = 'open';
