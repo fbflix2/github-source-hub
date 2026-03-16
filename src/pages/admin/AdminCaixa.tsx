@@ -118,6 +118,11 @@ export default function AdminCaixa() {
   useEffect(() => { fetchData(); }, []);
 
   const handleOpen = async () => {
+    const obVal = parseFloat(openingBalanceInput);
+    if (isNaN(obVal)) {
+      toast.error("Informe o saldo atual do banco para abrir o caixa");
+      return;
+    }
     setSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -126,10 +131,12 @@ export default function AdminCaixa() {
       const { error } = await supabase.from("cash_register").insert({
         opened_by: user.id,
         status: "open",
+        opening_balance: obVal,
       });
       if (error) throw error;
 
       toast.success("Caixa aberto com sucesso!");
+      setOpeningBalanceInput("");
       fetchData();
     } catch (err: any) {
       toast.error(err.message || "Erro ao abrir caixa");
