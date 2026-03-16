@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import * as OTPAuth from "otpauth";
 import { Copy, CheckCircle, Trash2, Plus, Loader2, Search, ArrowLeft, Construction } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -8,23 +7,11 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
+import { generateTOTP } from "@/lib/totp";
 
 // ============= Material Icon helper =============
 function MaterialIcon({ name, className = "" }: { name: string; className?: string }) {
   return <span className={`material-symbols-outlined ${className}`}>{name}</span>;
-}
-
-// ============= 2FA TOTP =============
-function generateTOTP(secret: string): { code: string; remaining: number; period: number } | null {
-  try {
-    const cleanSecret = secret.replace(/\s+/g, "").replace(/=+$/, "").toUpperCase();
-    if (!/^[A-Z2-7]+$/.test(cleanSecret)) return null;
-    const totp = new OTPAuth.TOTP({ issuer: "FBFLIX", label: "2FA", algorithm: "SHA1", digits: 6, period: 30, secret: cleanSecret });
-    const code = totp.generate();
-    const now = Math.floor(Date.now() / 1000);
-    const remaining = 30 - (now % 30);
-    return { code, remaining, period: 30 };
-  } catch { return null; }
 }
 
 interface SavedSecret { id: string; label: string; secret: string; }

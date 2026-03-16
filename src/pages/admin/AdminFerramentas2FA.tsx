@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import * as OTPAuth from "otpauth";
 import { Copy, CheckCircle, ShieldCheck, RefreshCw, Trash2, Plus, Clock, UserCheck, Loader2, AlertTriangle, XCircle, HelpCircle, Wrench, Search } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,29 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
-
-// ============= 2FA TOTP SECTION =============
-
-function generateTOTP(secret: string): { code: string; remaining: number; period: number } | null {
-  try {
-    const cleanSecret = secret.replace(/\s+/g, "").replace(/=+$/, "").toUpperCase();
-    if (!/^[A-Z2-7]+$/.test(cleanSecret)) return null;
-    const totp = new OTPAuth.TOTP({
-      issuer: "FBFLIX",
-      label: "2FA",
-      algorithm: "SHA1",
-      digits: 6,
-      period: 30,
-      secret: cleanSecret,
-    });
-    const code = totp.generate();
-    const now = Math.floor(Date.now() / 1000);
-    const remaining = 30 - (now % 30);
-    return { code, remaining, period: 30 };
-  } catch {
-    return null;
-  }
-}
+import { generateTOTP } from "@/lib/totp";
 
 interface SavedSecret {
   id: string;
