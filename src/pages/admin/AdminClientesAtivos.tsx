@@ -163,9 +163,23 @@ export default function AdminClientesAtivos() {
             <Crown className="w-6 h-6 text-yellow-500" />
             Clientes Ativos
           </h1>
-          <p className="text-white/40 text-xs">Top consumidores nos últimos 30 dias</p>
+          <p className="text-white/40 text-xs">Top consumidores nos últimos {days} dias</p>
         </div>
-      </div>
+        <div className="flex items-center gap-1.5 ml-auto">
+          {PERIOD_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setDays(opt.value)}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                days === opt.value
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/60"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-3 gap-3">
