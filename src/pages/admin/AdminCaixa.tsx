@@ -135,7 +135,7 @@ export default function AdminCaixa() {
     setSystemExpenses(exp);
   };
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); fetchMpBalance(); }, []);
 
   const handleOpen = async () => {
     const obVal = parseFloat(openingBalanceInput);
