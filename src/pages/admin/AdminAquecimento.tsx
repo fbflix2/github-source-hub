@@ -606,7 +606,10 @@ export default function AdminAquecimento() {
                       </div>
                       <div>
                         <p className="text-sm font-bold">Perfil {p.profile_code} — {p.status === "completed" ? "Maturidade concluída" : p.status === "active" ? `Dia ${p.current_day}/${p.track_days}` : "Restrição detectada"}</p>
-                        <p className="text-xs text-slate-500">Esteira {TRACKS[p.track_type]?.label} • {new Date(p.created_at).toLocaleDateString("pt-BR")}</p>
+                        <p className="text-xs text-slate-500">
+                          Esteira {TRACKS[p.track_type]?.label} • {new Date(p.created_at).toLocaleDateString("pt-BR")}
+                          {p.created_by && creatorNames[p.created_by] && <span className="ml-1 text-[#1876f2] font-semibold">• {creatorNames[p.created_by]}</span>}
+                        </p>
                       </div>
                     </div>
                     <span className="text-xs font-bold text-slate-400">{agoLabel}</span>
