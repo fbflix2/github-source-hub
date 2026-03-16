@@ -1,0 +1,1 @@
+UPDATE subscriptions SET raw_data = jsonb_set(jsonb_set(raw_data::jsonb, '{country_code}', '"BR"'), '{exchange_quota_free}', '2'), updated_at = now() WHERE id = '4fa2331b-3bb5-43bd-a220-7ec1e6f488b0';

@@ -760,6 +760,20 @@ Deno.serve(async (req) => {
       const freeLeft = raw.exchange_quota_free ?? 0;
       if (freeLeft <= 0) throw new Error("Sem cotas de troca disponíveis");
 
+      // Determine country: from raw_data first, then from product tags/name
+      let targetCountry = raw.country_code ? String(raw.country_code).toUpperCase() : null;
+      if (!targetCountry && subRow.product_id) {
+        const { data: prodData } = await supabaseAdmin
+          .from("products")
+          .select("name, tags")
+          .eq("id", subRow.product_id)
+          .maybeSingle();
+        if (prodData) {
+          targetCountry = detectCountryFromProduct(prodData);
+        }
+      }
+      console.log(`[webshare-exchange] Target country for exchange: ${targetCountry || 'ANY'}`);
+
       const currentProxyId = raw.webshare_proxy_id;
       const oldProxyStr = `${raw.proxy_address || ""}:${raw.port || ""}`;
       let newProxyData: Record<string, any> | null = null;
@@ -777,8 +791,8 @@ Deno.serve(async (req) => {
               count: 1,
             },
             replace_with: [
-              raw.country_code
-                ? { type: "country", country_code: String(raw.country_code).toUpperCase(), count: 1 }
+              targetCountry
+                ? { type: "country", country_code: targetCountry, count: 1 }
                 : { type: "any", count: 1 },
             ],
             dry_run: false,
@@ -848,9 +862,10 @@ Deno.serve(async (req) => {
                 if (r.webshare_proxy_id) otherAssignedIds.add(r.webshare_proxy_id);
               }
 
-              // Find a valid proxy not assigned to others
+              // Find a valid proxy not assigned to others, matching the same country
               const candidates = allCurrentProxies.filter(
-                (p: any) => p.valid && !otherAssignedIds.has(p.id) && p.id !== currentProxyId && p.proxy_address !== raw.proxy_address,
+                (p: any) => p.valid && !otherAssignedIds.has(p.id) && p.id !== currentProxyId && p.proxy_address !== raw.proxy_address
+                  && (!targetCountry || String(p.country_code).toUpperCase() === targetCountry),
               );
 
               if (candidates.length > 0) {
