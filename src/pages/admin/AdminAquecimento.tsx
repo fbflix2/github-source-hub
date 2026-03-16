@@ -94,6 +94,7 @@ interface WarmingProfile {
   status: string;
   trust_tier: string | null;
   notes: string | null;
+  created_by: string | null;
   created_at: string;
 }
 
@@ -115,6 +116,7 @@ export default function AdminAquecimento() {
   const [profiles, setProfiles] = useState<WarmingProfile[]>([]);
   const [tasks, setTasks] = useState<Record<string, WarmingTask[]>>({});
   const [loading, setLoading] = useState(true);
+  const [creatorNames, setCreatorNames] = useState<Record<string, string>>({});
   const [profileCode, setProfileCode] = useState("");
   const [selectedTrack, setSelectedTrack] = useState("15_days");
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
@@ -216,6 +218,19 @@ export default function AdminAquecimento() {
       if (first) {
         setSelectedProfileId(first.id);
         fetchTasks(first.id);
+      }
+      // Fetch creator names
+      const creatorIds = [...new Set((data || []).map(p => p.created_by).filter(Boolean))] as string[];
+      if (creatorIds.length > 0) {
+        const { data: profilesData } = await supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .in("user_id", creatorIds);
+        if (profilesData) {
+          const map: Record<string, string> = {};
+          profilesData.forEach(p => { map[p.user_id] = p.full_name || "Sem nome"; });
+          setCreatorNames(map);
+        }
       }
     }
     setLoading(false);
@@ -591,7 +606,10 @@ export default function AdminAquecimento() {
                       </div>
                       <div>
                         <p className="text-sm font-bold">Perfil {p.profile_code} — {p.status === "completed" ? "Maturidade concluída" : p.status === "active" ? `Dia ${p.current_day}/${p.track_days}` : "Restrição detectada"}</p>
-                        <p className="text-xs text-slate-500">Esteira {TRACKS[p.track_type]?.label} • {new Date(p.created_at).toLocaleDateString("pt-BR")}</p>
+                        <p className="text-xs text-slate-500">
+                          Esteira {TRACKS[p.track_type]?.label} • {new Date(p.created_at).toLocaleDateString("pt-BR")}
+                          {p.created_by && creatorNames[p.created_by] && <span className="ml-1 text-[#1876f2] font-semibold">• {creatorNames[p.created_by]}</span>}
+                        </p>
                       </div>
                     </div>
                     <span className="text-xs font-bold text-slate-400">{agoLabel}</span>
@@ -679,7 +697,10 @@ export default function AdminAquecimento() {
                         />
                         <div className="flex-grow min-w-0">
                           <p className="text-xs font-bold text-slate-900 truncate">{p.profile_code}</p>
-                          <p className="text-[11px] text-slate-500">{TRACKS[p.track_type]?.label} • {prog}%</p>
+                          <p className="text-[11px] text-slate-500">
+                            {TRACKS[p.track_type]?.label} • {prog}%
+                            {p.created_by && creatorNames[p.created_by] && <span className="ml-1 text-[#1876f2]">• {creatorNames[p.created_by]}</span>}
+                          </p>
                         </div>
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
                           p.status === "active" ? "bg-blue-100 text-[#1876f2]" :
@@ -723,6 +744,9 @@ export default function AdminAquecimento() {
                     <p className="text-xs text-slate-500 font-medium">
                       Esteira: {selectedTrackDef?.label || selectedProfile.track_type}
                       {selectedProfile.trust_tier && <span className="ml-2 text-purple-600 font-bold">• {selectedProfile.trust_tier}</span>}
+                      {selectedProfile.created_by && creatorNames[selectedProfile.created_by] && (
+                        <span className="ml-2 text-[#1876f2] font-semibold">• por {creatorNames[selectedProfile.created_by]}</span>
+                      )}
                     </p>
                   </div>
                   <span className="bg-blue-100 text-[#1876f2] text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
