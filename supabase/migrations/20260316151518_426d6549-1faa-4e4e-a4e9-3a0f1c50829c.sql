@@ -1,0 +1,1 @@
+DELETE FROM cash_register WHERE id = '52f783cb-0c2a-4e98-be93-15480cfc4615';
