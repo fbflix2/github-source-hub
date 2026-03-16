@@ -390,9 +390,8 @@ export default function AdminAquecimento() {
                 <MIcon name="group" className="text-[#1876f2]" />
               </div>
               <p className="text-3xl font-black text-slate-900">{totalProfiles.toLocaleString()}</p>
-              <div className="flex items-center gap-1 text-emerald-500 font-bold text-sm">
-                <MIcon name="trending_up" className="text-sm" />
-                <span>+12% este mês</span>
+              <div className="flex items-center gap-1 text-slate-400 font-medium text-sm">
+                <span>Sem dados anteriores</span>
               </div>
             </div>
             <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-2">
@@ -422,9 +421,8 @@ export default function AdminAquecimento() {
                 <MIcon name="block" className="text-rose-500" />
               </div>
               <p className="text-3xl font-black text-slate-900">{restrictedProfiles}</p>
-              <div className="flex items-center gap-1 text-rose-500 font-bold text-sm">
-                <MIcon name="trending_down" className="text-sm" />
-                <span>-2% que ontem</span>
+              <div className="flex items-center gap-1 text-slate-400 font-medium text-sm">
+                <span>Sem dados anteriores</span>
               </div>
             </div>
           </div>
@@ -769,9 +767,7 @@ export default function AdminAquecimento() {
               <p className="text-slate-500 text-sm font-medium mb-1">Total Perfis Aquecidos</p>
               <div className="flex items-end justify-between">
                 <h3 className="text-3xl font-black text-slate-900">{totalProfiles.toLocaleString()}</h3>
-                <span className="text-emerald-500 text-sm font-bold flex items-center gap-1">
-                  <MIcon name="trending_up" className="text-sm" /> +12%
-                </span>
+                <span className="text-slate-400 text-sm font-medium">—</span>
               </div>
             </div>
             <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
@@ -780,9 +776,7 @@ export default function AdminAquecimento() {
                 <h3 className="text-3xl font-black text-slate-900">
                   {totalProfiles > 0 ? ((completedProfiles / totalProfiles) * 100).toFixed(1) : "0.0"}%
                 </h3>
-                <span className="text-emerald-500 text-sm font-bold flex items-center gap-1">
-                  <MIcon name="trending_up" className="text-sm" /> +2.5%
-                </span>
+                <span className="text-slate-400 text-sm font-medium">—</span>
               </div>
             </div>
             <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
@@ -791,9 +785,7 @@ export default function AdminAquecimento() {
                 <h3 className="text-3xl font-black text-slate-900">
                   {totalProfiles > 0 ? Math.round(profiles.reduce((acc, p) => acc + p.current_day, 0) / totalProfiles) : 0} dias
                 </h3>
-                <span className="text-orange-500 text-sm font-bold flex items-center gap-1">
-                  <MIcon name="trending_down" className="text-sm" /> -1 dia
-                </span>
+                <span className="text-slate-400 text-sm font-medium">—</span>
               </div>
             </div>
           </div>
