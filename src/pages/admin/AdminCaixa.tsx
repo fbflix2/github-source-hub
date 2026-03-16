@@ -196,10 +196,11 @@ export default function AdminCaixa() {
   };
 
   const sysBalance = systemRevenue - systemExpenses;
+  const openingBal = openCash?.opening_balance || 0;
   const bankVal = parseFloat(bankBalance) || 0;
   const wdVal = parseFloat(withdrawals) || 0;
   const dpVal = parseFloat(deposits) || 0;
-  const expectedBalance = sysBalance - wdVal + dpVal;
+  const expectedBalance = openingBal + sysBalance - wdVal + dpVal;
   const liveDiff = bankVal - expectedBalance;
 
   if (loading) {
