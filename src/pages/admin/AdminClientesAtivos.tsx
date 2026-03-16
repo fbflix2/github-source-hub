@@ -37,6 +37,13 @@ const rankRowColors: Record<number, string> = {
   3: "bg-gradient-to-r from-amber-700/10 to-transparent",
 };
 
+const PERIOD_OPTIONS = [
+  { label: "7 dias", value: 7 },
+  { label: "30 dias", value: 30 },
+  { label: "60 dias", value: 60 },
+  { label: "90 dias", value: 90 },
+];
+
 export default function AdminClientesAtivos() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -47,8 +54,9 @@ export default function AdminClientesAtivos() {
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
   const [userOrders, setUserOrders] = useState<OrderDetail[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
+  const [days, setDays] = useState(30);
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); }, [days]);
 
   const fetchData = async () => {
     setLoading(true);
