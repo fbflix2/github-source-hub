@@ -973,9 +973,13 @@ export default function AdminAquecimento() {
                     type="text"
                     value={task.title}
                     onChange={(e) => {
-                      const updated = { ...configTasks };
-                      updated[configTrack][i].title = e.target.value;
-                      setConfigTasks({ ...updated });
+                      const val = e.target.value;
+                      updateConfigTasks(prev => {
+                        const updated = { ...prev };
+                        updated[configTrack] = [...updated[configTrack]];
+                        updated[configTrack][i] = { ...updated[configTrack][i], title: val };
+                        return updated;
+                      });
                     }}
                   />
                   <MIcon name="drag_indicator" className="text-slate-400 text-sm cursor-move" />
