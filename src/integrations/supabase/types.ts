@@ -2017,6 +2017,7 @@ export type Database = {
           created_at: string
           day_number: number
           description: string | null
+          duration_seconds: number | null
           id: string
           profile_id: string
           title: string
@@ -2027,6 +2028,7 @@ export type Database = {
           created_at?: string
           day_number: number
           description?: string | null
+          duration_seconds?: number | null
           id?: string
           profile_id: string
           title: string
@@ -2037,6 +2039,7 @@ export type Database = {
           created_at?: string
           day_number?: number
           description?: string | null
+          duration_seconds?: number | null
           id?: string
           profile_id?: string
           title?: string
