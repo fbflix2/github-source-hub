@@ -106,6 +106,18 @@ interface WarmingTask {
   description: string | null;
   completed: boolean;
   completed_at: string | null;
+  duration_seconds: number | null;
+}
+
+function formatDuration(seconds: number | null): string {
+  if (seconds === null || seconds === undefined) return "";
+  if (seconds < 60) return `${seconds}s`;
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  if (mins < 60) return `${mins}min ${secs > 0 ? secs + "s" : ""}`.trim();
+  const hours = Math.floor(mins / 60);
+  const remMins = mins % 60;
+  return `${hours}h ${remMins > 0 ? remMins + "min" : ""}`.trim();
 }
 
 function MIcon({ name, className = "" }: { name: string; className?: string }) {
@@ -284,7 +296,37 @@ export default function AdminAquecimento() {
 
   const toggleTask = async (task: WarmingTask) => {
     const newCompleted = !task.completed;
-    await supabase.from("warming_tasks").update({ completed: newCompleted, completed_at: newCompleted ? new Date().toISOString() : null }).eq("id", task.id);
+    let durationSeconds: number | null = null;
+
+    if (newCompleted) {
+      // Calculate duration: time since profile creation (+3s) or since previous task completion
+      const profile = profiles.find((p) => p.id === task.profile_id);
+      const profileTasks = (tasks[task.profile_id] || []).sort((a, b) => a.day_number - b.day_number);
+      
+      // Find the previous completed task (by day_number, before this one)
+      const previousCompleted = profileTasks
+        .filter(t => t.completed && t.completed_at && t.day_number < task.day_number)
+        .sort((a, b) => b.day_number - a.day_number)[0];
+
+      let startTime: number;
+      if (previousCompleted?.completed_at) {
+        startTime = new Date(previousCompleted.completed_at).getTime();
+      } else if (profile) {
+        // First task: starts from profile creation + 3 seconds
+        startTime = new Date(profile.created_at).getTime() + 3000;
+      } else {
+        startTime = Date.now();
+      }
+
+      durationSeconds = Math.max(0, Math.round((Date.now() - startTime) / 1000));
+    }
+
+    await supabase.from("warming_tasks").update({ 
+      completed: newCompleted, 
+      completed_at: newCompleted ? new Date().toISOString() : null,
+      duration_seconds: newCompleted ? durationSeconds : null
+    }).eq("id", task.id);
+
     if (newCompleted) {
       const profileTasks = tasks[task.profile_id] || [];
       const completedCount = profileTasks.filter((t) => t.completed || t.id === task.id).length;
@@ -821,11 +863,19 @@ export default function AdminAquecimento() {
                               </p>
                               <p className="text-[11px] text-slate-500 truncate">{task.description}</p>
                             </div>
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded whitespace-nowrap ${
-                              task.completed ? "text-green-600 bg-green-50" : isCurrent ? "text-[#1876f2] animate-pulse" : "text-slate-400"
-                            }`}>
-                              {task.completed ? "Concluído" : isCurrent ? "Em andamento" : "Pendente"}
-                            </span>
+                            <div className="flex flex-col items-end gap-0.5">
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded whitespace-nowrap ${
+                                task.completed ? "text-green-600 bg-green-50" : isCurrent ? "text-[#1876f2] animate-pulse" : "text-slate-400"
+                              }`}>
+                                {task.completed ? "Concluído" : isCurrent ? "Em andamento" : "Pendente"}
+                              </span>
+                              {task.completed && task.duration_seconds != null && (
+                                <span className="text-[10px] font-medium text-slate-400 flex items-center gap-0.5">
+                                  <MIcon name="timer" className="text-[11px]" />
+                                  {formatDuration(task.duration_seconds)}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         );
                       })}
@@ -935,16 +985,30 @@ export default function AdminAquecimento() {
                     <th className="px-6 py-4">Código do Perfil</th>
                     <th className="px-6 py-4">Esteira Selecionada</th>
                     <th className="px-6 py-4">Data de Início</th>
+                    <th className="px-6 py-4">Tempo Operador</th>
                     <th className="px-6 py-4">Status Final</th>
                     <th className="px-6 py-4 text-right">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
-                  {filteredReportProfiles.map((p) => (
+                  {filteredReportProfiles.map((p) => {
+                    const profileTasks = tasks[p.id] || [];
+                    const totalSeconds = profileTasks.reduce((acc, t) => acc + (t.duration_seconds || 0), 0);
+                    return (
                     <tr key={p.id} className="hover:bg-slate-50 transition-colors">
                       <td className="px-6 py-4 font-medium text-slate-900">#{p.profile_code}</td>
                       <td className="px-6 py-4">Esteira {p.track_days} dias</td>
                       <td className="px-6 py-4">{new Date(p.start_date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })}</td>
+                      <td className="px-6 py-4">
+                        {totalSeconds > 0 ? (
+                          <span className="flex items-center gap-1 text-sm font-medium text-slate-700">
+                            <MIcon name="timer" className="text-sm text-slate-400" />
+                            {formatDuration(totalSeconds)}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 text-sm">—</span>
+                        )}
+                      </td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${
                           p.status === "completed" ? "bg-emerald-100 text-emerald-800" :
@@ -963,9 +1027,10 @@ export default function AdminAquecimento() {
                         </button>
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                   {filteredReportProfiles.length === 0 && (
-                    <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-400">Nenhum perfil encontrado</td></tr>
+                    <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-400">Nenhum perfil encontrado</td></tr>
                   )}
                 </tbody>
               </table>

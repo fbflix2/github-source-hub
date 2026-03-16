@@ -1,0 +1,1 @@
+ALTER TABLE public.warming_tasks ADD COLUMN IF NOT EXISTS duration_seconds integer DEFAULT NULL;
