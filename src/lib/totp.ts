@@ -6,13 +6,53 @@ export interface TOTPResult {
   period: number;
 }
 
-type TOTPAlgorithm = "SHA1" | "SHA256" | "SHA512";
-
-const SUPPORTED_ALGORITHMS = new Set<TOTPAlgorithm>(["SHA1", "SHA256", "SHA512"]);
+let serverTimeOffsetMs = 0;
+let serverTimeSyncPromise: Promise<number> | null = null;
 
 function normalizeBase32Secret(secret: string): string | null {
-  const normalized = secret.replace(/[\s-]+/g, "").toUpperCase();
+  const normalized = secret
+    .replace(/[\s-]+/g, "")
+    .toUpperCase()
+    .replace(/0/g, "O")
+    .replace(/1/g, "I");
+
   return /^[A-Z2-7]+=*$/.test(normalized) ? normalized : null;
+}
+
+export function sanitizeTOTPInput(input: string) {
+  const trimmedInput = input.trim();
+  if (trimmedInput.toLowerCase().startsWith("otpauth://")) return trimmedInput;
+  return normalizeBase32Secret(trimmedInput) || trimmedInput;
+}
+
+function getTrustedNow() {
+  return Date.now() + serverTimeOffsetMs;
+}
+
+export async function syncTOTPTimeOffset() {
+  if (typeof window === "undefined") return serverTimeOffsetMs;
+  if (serverTimeSyncPromise) return serverTimeSyncPromise;
+
+  serverTimeSyncPromise = fetch(window.location.origin, {
+    method: "HEAD",
+    cache: "no-store",
+  })
+    .then((response) => {
+      const serverDate = response.headers.get("date");
+      const serverTimestamp = serverDate ? new Date(serverDate).getTime() : Number.NaN;
+
+      if (!Number.isNaN(serverTimestamp)) {
+        serverTimeOffsetMs = serverTimestamp - Date.now();
+      }
+
+      return serverTimeOffsetMs;
+    })
+    .catch(() => serverTimeOffsetMs)
+    .finally(() => {
+      serverTimeSyncPromise = null;
+    });
+
+  return serverTimeSyncPromise;
 }
 
 function buildTOTP(input: string): OTPAuth.TOTP | null {
@@ -24,13 +64,13 @@ function buildTOTP(input: string): OTPAuth.TOTP | null {
       const url = new URL(trimmedInput);
       const secretParam = url.searchParams.get("secret");
       const normalizedSecret = secretParam ? normalizeBase32Secret(secretParam) : null;
-      const algorithm = (url.searchParams.get("algorithm") || "SHA1").toUpperCase() as TOTPAlgorithm;
+      const algorithm = (url.searchParams.get("algorithm") || "SHA1").toUpperCase();
       const digits = Number(url.searchParams.get("digits") || 6);
       const period = Number(url.searchParams.get("period") || 30);
       const label = decodeURIComponent(url.pathname.replace(/^\/+/, "")) || "2FA";
       const issuer = url.searchParams.get("issuer") || "FBFLIX";
 
-      if (!normalizedSecret || !SUPPORTED_ALGORITHMS.has(algorithm)) return null;
+      if (!normalizedSecret) return null;
       if (!Number.isInteger(digits) || digits < 4 || digits > 10) return null;
       if (!Number.isInteger(period) || period <= 0) return null;
 
@@ -65,10 +105,9 @@ export function generateTOTP(input: string): TOTPResult | null {
     const totp = buildTOTP(input);
     if (!totp) return null;
 
-    const code = totp.generate();
-    const now = Math.floor(Date.now() / 1000);
-    const elapsed = now % totp.period;
-    const remaining = elapsed === 0 ? totp.period : totp.period - elapsed;
+    const timestamp = getTrustedNow();
+    const code = totp.generate({ timestamp });
+    const remaining = totp.remaining({ timestamp });
 
     return { code, remaining, period: totp.period };
   } catch {
