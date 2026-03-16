@@ -404,31 +404,24 @@ export default function AdminAquecimento() {
               <div className="bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/20 min-w-[160px]">
                 <p className="text-xs font-medium text-white/70 uppercase tracking-wider">Tempo Médio / Perfil</p>
                 <p className="text-2xl font-bold">{(() => {
-                  // Try completed tasks first
-                  const durations: number[] = [];
-                  profiles.forEach(p => {
-                    const profileTasks = tasks[p.id];
-                    if (profileTasks && profileTasks.length > 0) {
-                      const completedTasks = profileTasks.filter(t => t.completed && t.completed_at);
-                      if (completedTasks.length > 0) {
-                        const lastCompleted = Math.max(...completedTasks.map(t => new Date(t.completed_at!).getTime()));
-                        const startTime = new Date(p.start_date || p.created_at).getTime();
-                        const diff = lastCompleted - startTime;
-                        if (diff > 0) durations.push(diff);
-                        return;
-                      }
-                    }
-                    // Fallback: use current_day and created_at for active profiles
-                    if (p.current_day > 1) {
-                      const startTime = new Date(p.start_date || p.created_at).getTime();
-                      const now = Date.now();
-                      const diff = now - startTime;
-                      if (diff > 0) durations.push(diff);
-                    }
-                  });
-                  if (durations.length === 0) return "—";
-                  const avgMs = durations.reduce((a, b) => a + b, 0) / durations.length;
+                  const startTimes = profiles
+                    .map((p) => new Date(p.start_date || p.created_at).getTime())
+                    .filter((time) => !Number.isNaN(time))
+                    .sort((a, b) => a - b);
+
+                  if (startTimes.length < 2) return "—";
+
+                  const intervals: number[] = [];
+                  for (let i = 1; i < startTimes.length; i += 1) {
+                    const diff = startTimes[i] - startTimes[i - 1];
+                    if (diff > 0) intervals.push(diff);
+                  }
+
+                  if (intervals.length === 0) return "—";
+
+                  const avgMs = intervals.reduce((sum, value) => sum + value, 0) / intervals.length;
                   const totalMins = Math.round(avgMs / 60000);
+
                   if (totalMins < 60) return `${totalMins}min`;
                   const hours = Math.floor(totalMins / 60);
                   const mins = totalMins % 60;
@@ -437,7 +430,7 @@ export default function AdminAquecimento() {
                   const remHours = hours % 24;
                   return `${days}d ${remHours}h`;
                 })()}</p>
-                <p className="text-[10px] text-white/50 mt-1">Início → última ação concluída</p>
+                <p className="text-[10px] text-white/50 mt-1">Entre início de perfis consecutivos</p>
               </div>
               <div className="bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/20 min-w-[140px]">
                 <p className="text-xs font-medium text-white/70 uppercase tracking-wider">Perfis Hoje</p>
