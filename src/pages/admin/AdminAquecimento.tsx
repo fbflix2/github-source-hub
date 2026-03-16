@@ -785,9 +785,7 @@ export default function AdminAquecimento() {
                 <h3 className="text-3xl font-black text-slate-900">
                   {totalProfiles > 0 ? Math.round(profiles.reduce((acc, p) => acc + p.current_day, 0) / totalProfiles) : 0} dias
                 </h3>
-                <span className="text-orange-500 text-sm font-bold flex items-center gap-1">
-                  <MIcon name="trending_down" className="text-sm" /> -1 dia
-                </span>
+                <span className="text-slate-400 text-sm font-medium">—</span>
               </div>
             </div>
           </div>
