@@ -36,6 +36,8 @@ export default function SubscriptionManage() {
   const autoRenewMutation = useToggleAutoRenew();
   const queryClient = useQueryClient();
   const [showExchangeHistory, setShowExchangeHistory] = useState(false);
+  const [extraQuotaQty, setExtraQuotaQty] = useState(1);
+  const [isBuyingQuota, setIsBuyingQuota] = useState(false);
 
   // Extract the real subscription name (strip __proxy_XXX suffix for multi-proxy codes)
   const realSubName = code?.includes("__proxy_") ? code.split("__proxy_")[0] : code;
@@ -443,8 +445,99 @@ export default function SubscriptionManage() {
                       {activeMutation.isPending ? "Trocando..." : "Trocar Proxy (Grátis)"}
                     </Button>
                   )}
-                  {freeExchanges === 0 && (
+                  {freeExchanges === 0 && paidExchanges === 0 && (
                     <p className="text-text-secondary text-[10px]">Nenhuma troca grátis disponível.</p>
+                  )}
+                  {freeExchanges === 0 && paidExchanges === 0 && customerPrice != null && customerPrice > 0 && (
+                    <div className="mt-3 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 p-3 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-primary text-lg">local_offer</span>
+                        <div>
+                          <p className="text-foreground font-bold text-xs">Cotas Extras com 50% OFF</p>
+                          <p className="text-text-secondary text-[10px]">Adicione até 10 trocas extras por metade do preço</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center bg-muted rounded-lg border border-border">
+                          <button
+                            onClick={() => setExtraQuotaQty(Math.max(1, extraQuotaQty - 1))}
+                            className="px-2 py-1 text-text-secondary hover:text-foreground transition-colors"
+                          >
+                            <span className="material-symbols-outlined text-sm">remove</span>
+                          </button>
+                          <span className="text-foreground font-bold text-sm w-6 text-center">{extraQuotaQty}</span>
+                          <button
+                            onClick={() => setExtraQuotaQty(Math.min(10, extraQuotaQty + 1))}
+                            className="px-2 py-1 text-text-secondary hover:text-foreground transition-colors"
+                          >
+                            <span className="material-symbols-outlined text-sm">add</span>
+                          </button>
+                        </div>
+                        <div className="flex-1 text-right">
+                          <p className="text-text-secondary text-[10px] line-through">
+                            R$ {(customerPrice * extraQuotaQty).toFixed(2).replace('.', ',')}
+                          </p>
+                          <p className="text-primary font-black text-sm">
+                            R$ {(customerPrice * 0.5 * extraQuotaQty).toFixed(2).replace('.', ',')}
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={async () => {
+                          setIsBuyingQuota(true);
+                          try {
+                            const { data: { user } } = await supabase.auth.getUser();
+                            if (!user) throw new Error("Não autenticado");
+                            const { data: profile } = await supabase
+                              .from("profiles")
+                              .select("balance")
+                              .eq("user_id", user.id)
+                              .single();
+                            const totalCost = customerPrice * 0.5 * extraQuotaQty;
+                            if (!profile || profile.balance < totalCost) {
+                              toast.error(`Saldo insuficiente. Necessário: R$ ${totalCost.toFixed(2).replace('.', ',')}`);
+                              return;
+                            }
+                            // Debit balance
+                            await supabase
+                              .from("profiles")
+                              .update({ balance: profile.balance - totalCost })
+                              .eq("user_id", user.id);
+                            // Add paid quotas to subscription
+                            const subType = isWebshare ? "webshare" : "proxybr";
+                            const { data: subRow } = await supabase
+                              .from("subscriptions")
+                              .select("id, raw_data")
+                              .eq("name", realSubName!)
+                              .eq("type", subType)
+                              .maybeSingle();
+                            if (subRow) {
+                              const currentRaw = (subRow.raw_data || {}) as Record<string, any>;
+                              const currentFree = currentRaw.exchange_quota_free ?? 0;
+                              const updatedRaw = {
+                                ...currentRaw,
+                                exchange_quota_free: currentFree + extraQuotaQty,
+                              };
+                              await supabase.from("subscriptions").update({ raw_data: updatedRaw as any }).eq("id", subRow.id);
+                            }
+                            queryClient.invalidateQueries({ queryKey: isWebshare ? ["webshare-subscriptions"] : ["proxybr-subscriptions"] });
+                            toast.success(`${extraQuotaQty} cota${extraQuotaQty > 1 ? 's' : ''} adicionada${extraQuotaQty > 1 ? 's' : ''}!`);
+                            setExtraQuotaQty(1);
+                          } catch (err: any) {
+                            toast.error(err.message || "Erro ao comprar cotas");
+                          } finally {
+                            setIsBuyingQuota(false);
+                          }
+                        }}
+                        disabled={isBuyingQuota}
+                        className="w-full bg-primary hover:bg-primary/80 text-primary-foreground font-bold text-xs h-8"
+                      >
+                        <span className="material-symbols-outlined text-sm mr-1">shopping_cart</span>
+                        {isBuyingQuota ? "Processando..." : `Comprar ${extraQuotaQty} cota${extraQuotaQty > 1 ? 's' : ''}`}
+                      </Button>
+                      <p className="text-text-secondary text-[9px] text-center">Será debitado do seu saldo</p>
+                    </div>
                   )}
                 </div>
               );
