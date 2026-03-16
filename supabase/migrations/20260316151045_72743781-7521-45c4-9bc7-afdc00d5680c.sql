@@ -1,0 +1,1 @@
+ALTER TABLE public.cash_register ADD COLUMN opening_balance numeric DEFAULT 0 NOT NULL;

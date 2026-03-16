@@ -320,6 +320,7 @@ export type Database = {
           notes: string | null
           opened_at: string
           opened_by: string
+          opening_balance: number
           status: string
           system_balance: number
           system_expenses: number
@@ -337,6 +338,7 @@ export type Database = {
           notes?: string | null
           opened_at?: string
           opened_by: string
+          opening_balance?: number
           status?: string
           system_balance?: number
           system_expenses?: number
@@ -354,6 +356,7 @@ export type Database = {
           notes?: string | null
           opened_at?: string
           opened_by?: string
+          opening_balance?: number
           status?: string
           system_balance?: number
           system_expenses?: number
