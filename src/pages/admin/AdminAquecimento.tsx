@@ -744,6 +744,9 @@ export default function AdminAquecimento() {
                     <p className="text-xs text-slate-500 font-medium">
                       Esteira: {selectedTrackDef?.label || selectedProfile.track_type}
                       {selectedProfile.trust_tier && <span className="ml-2 text-purple-600 font-bold">• {selectedProfile.trust_tier}</span>}
+                      {selectedProfile.created_by && creatorNames[selectedProfile.created_by] && (
+                        <span className="ml-2 text-[#1876f2] font-semibold">• por {creatorNames[selectedProfile.created_by]}</span>
+                      )}
                     </p>
                   </div>
                   <span className="bg-blue-100 text-[#1876f2] text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
