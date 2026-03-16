@@ -90,14 +90,23 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Normalize: /users/me returns balance inside mercadopago_account
-    const result = mpData.available_balance !== undefined
-      ? mpData
-      : mpData.balance !== undefined
-        ? { available_balance: mpData.balance, total_amount: mpData.total_amount ?? mpData.balance, unavailable_balance: mpData.unavailable_balance ?? 0 }
-        : mpData.mercadopago_account
-          ? { available_balance: mpData.mercadopago_account.balance ?? 0, total_amount: mpData.mercadopago_account.amount ?? 0, unavailable_balance: 0 }
-          : mpData;
+    // Normalize response
+    let result;
+    if (mpData.available_balance !== undefined) {
+      result = mpData;
+    } else if (mpData.mercadopago_account) {
+      const acc = mpData.mercadopago_account;
+      console.log("MP account data:", JSON.stringify(acc));
+      result = {
+        available_balance: acc.available_balance ?? acc.balance ?? 0,
+        total_amount: acc.total_amount ?? acc.amount ?? 0,
+        unavailable_balance: acc.unavailable_balance ?? 0,
+      };
+    } else if (mpData.balance !== undefined) {
+      result = { available_balance: mpData.balance, total_amount: mpData.total_amount ?? mpData.balance, unavailable_balance: 0 };
+    } else {
+      result = mpData;
+    }
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
