@@ -404,17 +404,27 @@ export default function AdminAquecimento() {
               <div className="bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/20 min-w-[160px]">
                 <p className="text-xs font-medium text-white/70 uppercase tracking-wider">Tempo Médio / Perfil</p>
                 <p className="text-2xl font-bold">{(() => {
-                  // Average duration from start_date to last completed task per profile
+                  // Try completed tasks first
                   const durations: number[] = [];
                   profiles.forEach(p => {
                     const profileTasks = tasks[p.id];
-                    if (!profileTasks || profileTasks.length === 0) return;
-                    const completedTasks = profileTasks.filter(t => t.completed && t.completed_at);
-                    if (completedTasks.length === 0) return;
-                    const lastCompleted = Math.max(...completedTasks.map(t => new Date(t.completed_at!).getTime()));
-                    const startTime = new Date(p.start_date || p.created_at).getTime();
-                    const diff = lastCompleted - startTime;
-                    if (diff > 0) durations.push(diff);
+                    if (profileTasks && profileTasks.length > 0) {
+                      const completedTasks = profileTasks.filter(t => t.completed && t.completed_at);
+                      if (completedTasks.length > 0) {
+                        const lastCompleted = Math.max(...completedTasks.map(t => new Date(t.completed_at!).getTime()));
+                        const startTime = new Date(p.start_date || p.created_at).getTime();
+                        const diff = lastCompleted - startTime;
+                        if (diff > 0) durations.push(diff);
+                        return;
+                      }
+                    }
+                    // Fallback: use current_day and created_at for active profiles
+                    if (p.current_day > 1) {
+                      const startTime = new Date(p.start_date || p.created_at).getTime();
+                      const now = Date.now();
+                      const diff = now - startTime;
+                      if (diff > 0) durations.push(diff);
+                    }
                   });
                   if (durations.length === 0) return "—";
                   const avgMs = durations.reduce((a, b) => a + b, 0) / durations.length;
