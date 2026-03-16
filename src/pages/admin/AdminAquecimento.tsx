@@ -404,37 +404,40 @@ export default function AdminAquecimento() {
               <div className="bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/20 min-w-[160px]">
                 <p className="text-xs font-medium text-white/70 uppercase tracking-wider">Tempo Médio / Perfil</p>
                 <p className="text-2xl font-bold">{(() => {
-                  // Tempo médio que o operador leva em cada perfil
-                  // (primeira tarefa concluída → última tarefa concluída)
-                  const durations: number[] = [];
-                  profiles.forEach(p => {
-                    const profileTasks = tasks[p.id];
-                    if (!profileTasks || profileTasks.length === 0) return;
-                    const completedTasks = profileTasks
-                      .filter(t => t.completed && t.completed_at)
-                      .map(t => new Date(t.completed_at!).getTime())
-                      .sort((a, b) => a - b);
-                    if (completedTasks.length >= 2) {
-                      durations.push(completedTasks[completedTasks.length - 1] - completedTasks[0]);
-                    } else if (completedTasks.length === 1) {
-                      const start = new Date(p.start_date || p.created_at).getTime();
-                      const diff = completedTasks[0] - start;
-                      if (diff > 0) durations.push(diff);
-                    }
-                  });
-                  if (durations.length === 0) return "Sem dados";
-                  const avgMs = durations.reduce((a, b) => a + b, 0) / durations.length;
-                  const totalMins = Math.round(avgMs / 60000);
-                  if (totalMins < 1) return "<1min";
-                  if (totalMins < 60) return `${totalMins}min`;
-                  const hours = Math.floor(totalMins / 60);
-                  const mins = totalMins % 60;
-                  if (hours < 24) return `${hours}h ${mins}min`;
-                  const days = Math.floor(hours / 24);
-                  const remHours = hours % 24;
-                  return `${days}d ${remHours}h`;
-                })()}</p>
-                <p className="text-[10px] text-white/50 mt-1">1ª → última ação concluída</p>
+                   // Tempo médio do início do perfil até a última ação (ou agora se ativo)
+                   const durations: number[] = [];
+                   profiles.forEach(p => {
+                     const start = new Date(p.start_date || p.created_at).getTime();
+                     if (isNaN(start)) return;
+                     const profileTasks = tasks[p.id];
+                     const completedTimes = (profileTasks || [])
+                       .filter(t => t.completed && t.completed_at)
+                       .map(t => new Date(t.completed_at!).getTime())
+                       .filter(t => !isNaN(t));
+                     let end: number;
+                     if (completedTimes.length > 0) {
+                       end = Math.max(...completedTimes);
+                     } else if (p.current_day > 1) {
+                       end = Date.now();
+                     } else {
+                       return; // perfil sem atividade
+                     }
+                     const diff = end - start;
+                     if (diff > 0) durations.push(diff);
+                   });
+                   if (durations.length === 0) return "Sem dados";
+                   const avgMs = durations.reduce((a, b) => a + b, 0) / durations.length;
+                   const totalMins = Math.round(avgMs / 60000);
+                   if (totalMins < 1) return "<1min";
+                   if (totalMins < 60) return `${totalMins}min`;
+                   const hours = Math.floor(totalMins / 60);
+                   const mins = totalMins % 60;
+                   if (hours < 24) return `${hours}h ${mins}min`;
+                   const days = Math.floor(hours / 24);
+                   const remHours = hours % 24;
+                   return `${days}d ${remHours}h`;
+                 })()}</p>
+                 <p className="text-[10px] text-white/50 mt-1">Início → última ação do perfil</p>
               </div>
               <div className="bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/20 min-w-[140px]">
                 <p className="text-xs font-medium text-white/70 uppercase tracking-wider">Perfis Hoje</p>
