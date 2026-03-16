@@ -270,7 +270,9 @@ export default function AdminCaixa() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-emerald-400">Caixa Aberto</p>
-                  <p className="text-xs text-muted-foreground">Desde {formatDate(openCash.opened_at)}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Desde {formatDate(openCash.opened_at)} • Saldo abertura: {formatCurrency(openCash.opening_balance || 0)}
+                  </p>
                 </div>
               </div>
             </div>
