@@ -219,6 +219,19 @@ export default function AdminAquecimento() {
         setSelectedProfileId(first.id);
         fetchTasks(first.id);
       }
+      // Fetch creator names
+      const creatorIds = [...new Set((data || []).map(p => p.created_by).filter(Boolean))] as string[];
+      if (creatorIds.length > 0) {
+        const { data: profilesData } = await supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .in("user_id", creatorIds);
+        if (profilesData) {
+          const map: Record<string, string> = {};
+          profilesData.forEach(p => { map[p.user_id] = p.full_name || "Sem nome"; });
+          setCreatorNames(map);
+        }
+      }
     }
     setLoading(false);
   };
