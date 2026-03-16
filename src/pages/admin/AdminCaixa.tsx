@@ -158,8 +158,9 @@ export default function AdminCaixa() {
       const wdVal = parseFloat(withdrawals) || 0;
       const dpVal = parseFloat(deposits) || 0;
       const sysBalance = systemRevenue - systemExpenses;
-      // Expected = system balance - withdrawals + deposits
-      const expectedBalance = sysBalance - wdVal + dpVal;
+      const openBal = openCash.opening_balance || 0;
+      // Expected = opening balance + system balance - withdrawals + deposits
+      const expectedBalance = openBal + sysBalance - wdVal + dpVal;
       const diff = bankVal - expectedBalance;
 
       const { error } = await supabase
