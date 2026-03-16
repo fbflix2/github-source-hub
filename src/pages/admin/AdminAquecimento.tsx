@@ -285,7 +285,37 @@ export default function AdminAquecimento() {
 
   const toggleTask = async (task: WarmingTask) => {
     const newCompleted = !task.completed;
-    await supabase.from("warming_tasks").update({ completed: newCompleted, completed_at: newCompleted ? new Date().toISOString() : null }).eq("id", task.id);
+    let durationSeconds: number | null = null;
+
+    if (newCompleted) {
+      // Calculate duration: time since profile creation (+3s) or since previous task completion
+      const profile = profiles.find((p) => p.id === task.profile_id);
+      const profileTasks = (tasks[task.profile_id] || []).sort((a, b) => a.day_number - b.day_number);
+      
+      // Find the previous completed task (by day_number, before this one)
+      const previousCompleted = profileTasks
+        .filter(t => t.completed && t.completed_at && t.day_number < task.day_number)
+        .sort((a, b) => b.day_number - a.day_number)[0];
+
+      let startTime: number;
+      if (previousCompleted?.completed_at) {
+        startTime = new Date(previousCompleted.completed_at).getTime();
+      } else if (profile) {
+        // First task: starts from profile creation + 3 seconds
+        startTime = new Date(profile.created_at).getTime() + 3000;
+      } else {
+        startTime = Date.now();
+      }
+
+      durationSeconds = Math.max(0, Math.round((Date.now() - startTime) / 1000));
+    }
+
+    await supabase.from("warming_tasks").update({ 
+      completed: newCompleted, 
+      completed_at: newCompleted ? new Date().toISOString() : null,
+      duration_seconds: newCompleted ? durationSeconds : null
+    }).eq("id", task.id);
+
     if (newCompleted) {
       const profileTasks = tasks[task.profile_id] || [];
       const completedCount = profileTasks.filter((t) => t.completed || t.id === task.id).length;
