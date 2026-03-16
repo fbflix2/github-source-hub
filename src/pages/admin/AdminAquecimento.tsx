@@ -390,9 +390,8 @@ export default function AdminAquecimento() {
                 <MIcon name="group" className="text-[#1876f2]" />
               </div>
               <p className="text-3xl font-black text-slate-900">{totalProfiles.toLocaleString()}</p>
-              <div className="flex items-center gap-1 text-emerald-500 font-bold text-sm">
-                <MIcon name="trending_up" className="text-sm" />
-                <span>+12% este mês</span>
+              <div className="flex items-center gap-1 text-slate-400 font-medium text-sm">
+                <span>Sem dados anteriores</span>
               </div>
             </div>
             <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-2">
