@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
-import { generateTOTP, syncTOTPTimeOffset } from "@/lib/totp";
+import { generateTOTP, sanitizeTOTPInput, syncTOTPTimeOffset } from "@/lib/totp";
 
 interface SavedSecret {
   id: string;

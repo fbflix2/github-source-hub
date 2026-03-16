@@ -6,10 +6,6 @@ export interface TOTPResult {
   period: number;
 }
 
-type TOTPAlgorithm = "SHA1" | "SHA256" | "SHA512";
-
-const SUPPORTED_ALGORITHMS = new Set<TOTPAlgorithm>(["SHA1", "SHA256", "SHA512"]);
-
 let serverTimeOffsetMs = 0;
 let serverTimeSyncPromise: Promise<number> | null = null;
 
@@ -21,6 +17,12 @@ function normalizeBase32Secret(secret: string): string | null {
     .replace(/1/g, "I");
 
   return /^[A-Z2-7]+=*$/.test(normalized) ? normalized : null;
+}
+
+export function sanitizeTOTPInput(input: string) {
+  const trimmedInput = input.trim();
+  if (trimmedInput.toLowerCase().startsWith("otpauth://")) return trimmedInput;
+  return normalizeBase32Secret(trimmedInput) || trimmedInput;
 }
 
 function getTrustedNow() {
