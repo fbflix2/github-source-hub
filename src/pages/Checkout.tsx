@@ -1135,24 +1135,18 @@ export default function Checkout() {
               </div>
 
               {/* Coupon */}
-              {isFirstPurchase && (
-                <p className="text-[10px] text-muted-foreground/70 flex items-center gap-1">
-                  <Lock className="h-3 w-3" />
-                  Desbloqueie cupons de desconto após sua primeira compra
-                </p>
-              )}
               <div className="flex gap-2">
                 <input
                   type="text"
                   value={coupon}
                   onChange={(e) => { setCoupon(e.target.value); if (couponApplied) { setCouponApplied(false); setDiscount(0); } }}
                   placeholder="Cupom de desconto"
-                  disabled={couponApplied || isFirstPurchase}
-                  className={`glass-input flex-1 rounded-lg py-2 px-3 text-xs text-foreground placeholder-muted-foreground outline-none focus:ring-1 focus:ring-primary bg-black/30 border ${couponApplied ? "border-emerald-500/50 bg-emerald-500/5" : "border-border"} ${isFirstPurchase ? "opacity-50" : ""}`}
+                  disabled={couponApplied}
+                  className={`glass-input flex-1 rounded-lg py-2 px-3 text-xs text-foreground placeholder-muted-foreground outline-none focus:ring-1 focus:ring-primary bg-black/30 border ${couponApplied ? "border-emerald-500/50 bg-emerald-500/5" : "border-border"}`}
                 />
                 <button
                   onClick={applyCoupon}
-                  disabled={applyingCoupon || couponApplied || isFirstPurchase}
+                  disabled={applyingCoupon || couponApplied}
                   className="bg-muted hover:bg-muted/80 text-foreground text-xs font-bold rounded-lg px-3 transition-colors disabled:opacity-50"
                 >
                   {applyingCoupon ? "..." : couponApplied ? "✓" : "APLICAR"}
