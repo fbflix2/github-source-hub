@@ -760,6 +760,20 @@ Deno.serve(async (req) => {
       const freeLeft = raw.exchange_quota_free ?? 0;
       if (freeLeft <= 0) throw new Error("Sem cotas de troca disponíveis");
 
+      // Determine country: from raw_data first, then from product tags/name
+      let targetCountry = raw.country_code ? String(raw.country_code).toUpperCase() : null;
+      if (!targetCountry && subRow.product_id) {
+        const { data: prodData } = await supabaseAdmin
+          .from("products")
+          .select("name, tags")
+          .eq("id", subRow.product_id)
+          .maybeSingle();
+        if (prodData) {
+          targetCountry = detectCountryFromProduct(prodData);
+        }
+      }
+      console.log(`[webshare-exchange] Target country for exchange: ${targetCountry || 'ANY'}`);
+
       const currentProxyId = raw.webshare_proxy_id;
       const oldProxyStr = `${raw.proxy_address || ""}:${raw.port || ""}`;
       let newProxyData: Record<string, any> | null = null;
