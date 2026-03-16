@@ -862,9 +862,10 @@ Deno.serve(async (req) => {
                 if (r.webshare_proxy_id) otherAssignedIds.add(r.webshare_proxy_id);
               }
 
-              // Find a valid proxy not assigned to others
+              // Find a valid proxy not assigned to others, matching the same country
               const candidates = allCurrentProxies.filter(
-                (p: any) => p.valid && !otherAssignedIds.has(p.id) && p.id !== currentProxyId && p.proxy_address !== raw.proxy_address,
+                (p: any) => p.valid && !otherAssignedIds.has(p.id) && p.id !== currentProxyId && p.proxy_address !== raw.proxy_address
+                  && (!targetCountry || String(p.country_code).toUpperCase() === targetCountry),
               );
 
               if (candidates.length > 0) {
