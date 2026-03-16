@@ -127,7 +127,7 @@ export default function AdminClientesAtivos() {
       .select("id, code, total, status, created_at")
       .eq("user_id", userId)
       .in("status", ["completed", "delivered"])
-      .gte("created_at", thirtyDaysAgo.toISOString())
+      .gte("created_at", cutoff.toISOString())
       .order("created_at", { ascending: false });
 
     const orderList: OrderDetail[] = [];
