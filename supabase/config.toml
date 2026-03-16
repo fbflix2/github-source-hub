@@ -59,3 +59,6 @@ verify_jwt = false
 
 [functions.generate-product-image]
 verify_jwt = false
+
+[functions.auto-close-cash]
+verify_jwt = false
