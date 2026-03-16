@@ -106,6 +106,7 @@ interface WarmingTask {
   description: string | null;
   completed: boolean;
   completed_at: string | null;
+  duration_seconds: number | null;
 }
 
 function MIcon({ name, className = "" }: { name: string; className?: string }) {
