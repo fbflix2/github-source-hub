@@ -37,6 +37,13 @@ const rankRowColors: Record<number, string> = {
   3: "bg-gradient-to-r from-amber-700/10 to-transparent",
 };
 
+const PERIOD_OPTIONS = [
+  { label: "7 dias", value: 7 },
+  { label: "30 dias", value: 30 },
+  { label: "60 dias", value: 60 },
+  { label: "90 dias", value: 90 },
+];
+
 export default function AdminClientesAtivos() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -47,19 +54,20 @@ export default function AdminClientesAtivos() {
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
   const [userOrders, setUserOrders] = useState<OrderDetail[]>([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
+  const [days, setDays] = useState(30);
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { fetchData(); }, [days]);
 
   const fetchData = async () => {
     setLoading(true);
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days);
 
     const { data: orders } = await supabase
       .from("orders")
       .select("user_id, total, status")
       .in("status", ["completed", "delivered"])
-      .gte("created_at", thirtyDaysAgo.toISOString());
+      .gte("created_at", cutoff.toISOString());
 
     const allOrders = orders || [];
     const userMap: Record<string, { total: number; count: number }> = {};
@@ -111,15 +119,15 @@ export default function AdminClientesAtivos() {
     setExpandedUser(userId);
     setLoadingOrders(true);
 
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days);
 
     const { data: orders } = await supabase
       .from("orders")
       .select("id, code, total, status, created_at")
       .eq("user_id", userId)
       .in("status", ["completed", "delivered"])
-      .gte("created_at", thirtyDaysAgo.toISOString())
+      .gte("created_at", cutoff.toISOString())
       .order("created_at", { ascending: false });
 
     const orderList: OrderDetail[] = [];
@@ -155,7 +163,22 @@ export default function AdminClientesAtivos() {
             <Crown className="w-6 h-6 text-yellow-500" />
             Clientes Ativos
           </h1>
-          <p className="text-white/40 text-xs">Top consumidores nos últimos 30 dias</p>
+          <p className="text-white/40 text-xs">Top consumidores nos últimos {days} dias</p>
+        </div>
+        <div className="flex items-center gap-1.5 ml-auto">
+          {PERIOD_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setDays(opt.value)}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                days === opt.value
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/60"
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
         </div>
       </div>
 
