@@ -60,8 +60,8 @@ export default function AdminClientesAtivos() {
 
   const fetchData = async () => {
     setLoading(true);
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days);
 
     const { data: orders } = await supabase
       .from("orders")
