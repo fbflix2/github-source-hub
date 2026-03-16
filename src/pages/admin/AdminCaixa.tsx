@@ -51,6 +51,9 @@ export default function AdminCaixa() {
   const [openCash, setOpenCash] = useState<CashRecord | null>(null);
   const [history, setHistory] = useState<CashRecord[]>([]);
 
+  // Open form state
+  const [openingBalanceInput, setOpeningBalanceInput] = useState("");
+
   // Close form state
   const [bankBalance, setBankBalance] = useState("");
   const [withdrawals, setWithdrawals] = useState("");
