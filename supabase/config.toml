@@ -62,6 +62,3 @@ verify_jwt = false
 
 [functions.auto-close-cash]
 verify_jwt = false
-
-[functions.mercadopago-balance]
-verify_jwt = false
