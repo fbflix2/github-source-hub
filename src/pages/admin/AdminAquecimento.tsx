@@ -116,6 +116,7 @@ export default function AdminAquecimento() {
   const [profiles, setProfiles] = useState<WarmingProfile[]>([]);
   const [tasks, setTasks] = useState<Record<string, WarmingTask[]>>({});
   const [loading, setLoading] = useState(true);
+  const [creatorNames, setCreatorNames] = useState<Record<string, string>>({});
   const [profileCode, setProfileCode] = useState("");
   const [selectedTrack, setSelectedTrack] = useState("15_days");
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
