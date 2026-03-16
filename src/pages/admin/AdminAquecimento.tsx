@@ -94,6 +94,7 @@ interface WarmingProfile {
   status: string;
   trust_tier: string | null;
   notes: string | null;
+  created_by: string | null;
   created_at: string;
 }
 
