@@ -312,12 +312,12 @@ function TwoFATool({ onBack }: { onBack: () => void }) {
   };
 
   const addSecret = () => {
-    const trimSecret = newSecret.trim();
+    const sanitizedInput = sanitizeTOTPInput(newSecret);
     const trimLabel = newLabel.trim() || `Secret ${secrets.length + 1}`;
-    if (!trimSecret) { toast.error("Cole o secret TOTP"); return; }
-    const test = generateTOTP(trimSecret);
-    if (!test) { toast.error("Secret Base32 inválido"); return; }
-    save([...secrets, { id: crypto.randomUUID(), label: trimLabel, secret: trimSecret }]);
+    if (!sanitizedInput) { toast.error("Cole o secret TOTP"); return; }
+    const test = generateTOTP(sanitizedInput);
+    if (!test) { toast.error("Secret Base32 ou URI otpauth inválido"); return; }
+    save([...secrets, { id: crypto.randomUUID(), label: trimLabel, secret: sanitizedInput }]);
     setNewLabel("");
     setNewSecret("");
     toast.success("Secret adicionado!");

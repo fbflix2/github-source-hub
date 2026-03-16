@@ -123,12 +123,12 @@ function TOTP2FATab() {
   }, [savedSecrets]);
 
   const handleSave = () => {
-    const clean = secretInput.replace(/\s+/g, "").toUpperCase();
-    if (!clean) { toast.error("Insira um secret válido"); return; }
-    const test = generateTOTP(clean);
-    if (!test) { toast.error("Secret inválido — verifique o formato Base32"); return; }
+    const sanitizedInput = sanitizeTOTPInput(secretInput);
+    if (!sanitizedInput) { toast.error("Insira um secret válido"); return; }
+    const test = generateTOTP(sanitizedInput);
+    if (!test) { toast.error("Secret inválido — verifique o formato Base32 ou URI otpauth"); return; }
     const label = labelInput.trim() || `Secret ${savedSecrets.length + 1}`;
-    setSavedSecrets((prev) => [...prev, { id: crypto.randomUUID(), label, secret: clean }]);
+    setSavedSecrets((prev) => [...prev, { id: crypto.randomUUID(), label, secret: sanitizedInput }]);
     setSecretInput("");
     setLabelInput("");
     toast.success(`"${label}" salvo com sucesso!`);

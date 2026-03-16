@@ -64,13 +64,13 @@ function buildTOTP(input: string): OTPAuth.TOTP | null {
       const url = new URL(trimmedInput);
       const secretParam = url.searchParams.get("secret");
       const normalizedSecret = secretParam ? normalizeBase32Secret(secretParam) : null;
-      const algorithm = (url.searchParams.get("algorithm") || "SHA1").toUpperCase() as TOTPAlgorithm;
+      const algorithm = (url.searchParams.get("algorithm") || "SHA1").toUpperCase();
       const digits = Number(url.searchParams.get("digits") || 6);
       const period = Number(url.searchParams.get("period") || 30);
       const label = decodeURIComponent(url.pathname.replace(/^\/+/, "")) || "2FA";
       const issuer = url.searchParams.get("issuer") || "FBFLIX";
 
-      if (!normalizedSecret || !SUPPORTED_ALGORITHMS.has(algorithm)) return null;
+      if (!normalizedSecret) return null;
       if (!Number.isInteger(digits) || digits < 4 || digits > 10) return null;
       if (!Number.isInteger(period) || period <= 0) return null;
 
