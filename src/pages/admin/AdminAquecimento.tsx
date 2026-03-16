@@ -767,9 +767,7 @@ export default function AdminAquecimento() {
               <p className="text-slate-500 text-sm font-medium mb-1">Total Perfis Aquecidos</p>
               <div className="flex items-end justify-between">
                 <h3 className="text-3xl font-black text-slate-900">{totalProfiles.toLocaleString()}</h3>
-                <span className="text-emerald-500 text-sm font-bold flex items-center gap-1">
-                  <MIcon name="trending_up" className="text-sm" /> +12%
-                </span>
+                <span className="text-slate-400 text-sm font-medium">—</span>
               </div>
             </div>
             <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
