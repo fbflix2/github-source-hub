@@ -445,10 +445,10 @@ export default function SubscriptionManage() {
                       {activeMutation.isPending ? "Trocando..." : "Trocar Proxy (Grátis)"}
                     </Button>
                   )}
-                  {freeExchanges === 0 && paidExchanges === 0 && (
+                  {freeExchanges === 0 && (
                     <p className="text-text-secondary text-[10px]">Nenhuma troca grátis disponível.</p>
                   )}
-                  {freeExchanges === 0 && paidExchanges === 0 && customerPrice != null && customerPrice > 0 && (
+                  {freeExchanges === 0 && customerPrice != null && customerPrice > 0 && (
                     <div className="mt-3 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 p-3 space-y-3">
                       <div className="flex items-center gap-2">
                         <span className="material-symbols-outlined text-primary text-lg">local_offer</span>
