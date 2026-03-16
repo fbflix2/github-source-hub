@@ -180,6 +180,7 @@ export default function AdminClientesAtivos() {
             </button>
           ))}
         </div>
+      </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-3 gap-3">
