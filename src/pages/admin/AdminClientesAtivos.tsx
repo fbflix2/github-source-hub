@@ -119,8 +119,8 @@ export default function AdminClientesAtivos() {
     setExpandedUser(userId);
     setLoadingOrders(true);
 
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days);
 
     const { data: orders } = await supabase
       .from("orders")
