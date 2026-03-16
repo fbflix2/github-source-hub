@@ -214,10 +214,23 @@ export default function AdminAquecimento() {
       toast.error("Erro ao carregar perfis");
     } else {
       setProfiles(data || []);
-      const first = data?.find((p: any) => p.status === "active");
-      if (first) {
-        setSelectedProfileId(first.id);
-        fetchTasks(first.id);
+      // Fetch tasks for ALL profiles (needed for avg time calculation)
+      if (data && data.length > 0) {
+        const { data: allTasks } = await supabase
+          .from("warming_tasks")
+          .select("*")
+          .in("profile_id", data.map((p: any) => p.id))
+          .order("day_number", { ascending: true });
+        if (allTasks) {
+          const grouped: Record<string, WarmingTask[]> = {};
+          allTasks.forEach((t: any) => {
+            if (!grouped[t.profile_id]) grouped[t.profile_id] = [];
+            grouped[t.profile_id].push(t);
+          });
+          setTasks(grouped);
+        }
+        const first = data.find((p: any) => p.status === "active");
+        if (first) setSelectedProfileId(first.id);
       }
       // Fetch creator names
       const creatorIds = [...new Set((data || []).map(p => p.created_by).filter(Boolean))] as string[];
