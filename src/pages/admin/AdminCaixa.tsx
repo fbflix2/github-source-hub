@@ -33,6 +33,7 @@ interface CashRecord {
   opened_at: string;
   closed_at: string | null;
   status: string;
+  opening_balance: number;
   system_revenue: number;
   system_expenses: number;
   system_balance: number;
@@ -49,6 +50,9 @@ export default function AdminCaixa() {
   const [saving, setSaving] = useState(false);
   const [openCash, setOpenCash] = useState<CashRecord | null>(null);
   const [history, setHistory] = useState<CashRecord[]>([]);
+
+  // Open form state
+  const [openingBalanceInput, setOpeningBalanceInput] = useState("");
 
   // Close form state
   const [bankBalance, setBankBalance] = useState("");
@@ -114,6 +118,11 @@ export default function AdminCaixa() {
   useEffect(() => { fetchData(); }, []);
 
   const handleOpen = async () => {
+    const obVal = parseFloat(openingBalanceInput);
+    if (isNaN(obVal)) {
+      toast.error("Informe o saldo atual do banco para abrir o caixa");
+      return;
+    }
     setSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -122,10 +131,12 @@ export default function AdminCaixa() {
       const { error } = await supabase.from("cash_register").insert({
         opened_by: user.id,
         status: "open",
+        opening_balance: obVal,
       });
       if (error) throw error;
 
       toast.success("Caixa aberto com sucesso!");
+      setOpeningBalanceInput("");
       fetchData();
     } catch (err: any) {
       toast.error(err.message || "Erro ao abrir caixa");
@@ -147,8 +158,9 @@ export default function AdminCaixa() {
       const wdVal = parseFloat(withdrawals) || 0;
       const dpVal = parseFloat(deposits) || 0;
       const sysBalance = systemRevenue - systemExpenses;
-      // Expected = system balance - withdrawals + deposits
-      const expectedBalance = sysBalance - wdVal + dpVal;
+      const openBal = openCash.opening_balance || 0;
+      // Expected = opening balance + system balance - withdrawals + deposits
+      const expectedBalance = openBal + sysBalance - wdVal + dpVal;
       const diff = bankVal - expectedBalance;
 
       const { error } = await supabase
@@ -184,10 +196,11 @@ export default function AdminCaixa() {
   };
 
   const sysBalance = systemRevenue - systemExpenses;
+  const openingBal = openCash?.opening_balance || 0;
   const bankVal = parseFloat(bankBalance) || 0;
   const wdVal = parseFloat(withdrawals) || 0;
   const dpVal = parseFloat(deposits) || 0;
-  const expectedBalance = sysBalance - wdVal + dpVal;
+  const expectedBalance = openingBal + sysBalance - wdVal + dpVal;
   const liveDiff = bankVal - expectedBalance;
 
   if (loading) {
@@ -226,9 +239,22 @@ export default function AdminCaixa() {
             </div>
             <div>
               <h2 className="text-lg font-bold text-white">Nenhum caixa aberto</h2>
-              <p className="text-sm text-muted-foreground mt-1">Abra o caixa para iniciar o controle do dia</p>
+              <p className="text-sm text-muted-foreground mt-1">Informe o saldo atual do banco e abra o caixa</p>
             </div>
-            <Button onClick={handleOpen} disabled={saving} className="gap-2">
+            <div className="max-w-xs mx-auto space-y-1.5">
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                <Banknote className="size-3 inline mr-1" />
+                Saldo Atual do Banco (R$)
+              </Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={openingBalanceInput}
+                onChange={(e) => setOpeningBalanceInput(e.target.value)}
+                placeholder="Quanto tem na conta agora"
+              />
+            </div>
+            <Button onClick={handleOpen} disabled={saving || !openingBalanceInput} className="gap-2">
               {saving ? <Loader2 className="size-4 animate-spin" /> : <DoorOpen className="size-4" />}
               Abrir Caixa
             </Button>
@@ -244,7 +270,9 @@ export default function AdminCaixa() {
                 </div>
                 <div>
                   <p className="text-sm font-medium text-emerald-400">Caixa Aberto</p>
-                  <p className="text-xs text-muted-foreground">Desde {formatDate(openCash.opened_at)}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Desde {formatDate(openCash.opened_at)} • Saldo abertura: {formatCurrency(openCash.opening_balance || 0)}
+                  </p>
                 </div>
               </div>
             </div>
