@@ -421,9 +421,8 @@ export default function AdminAquecimento() {
                 <MIcon name="block" className="text-rose-500" />
               </div>
               <p className="text-3xl font-black text-slate-900">{restrictedProfiles}</p>
-              <div className="flex items-center gap-1 text-rose-500 font-bold text-sm">
-                <MIcon name="trending_down" className="text-sm" />
-                <span>-2% que ontem</span>
+              <div className="flex items-center gap-1 text-slate-400 font-medium text-sm">
+                <span>Sem dados anteriores</span>
               </div>
             </div>
           </div>
