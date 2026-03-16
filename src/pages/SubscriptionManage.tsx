@@ -36,6 +36,8 @@ export default function SubscriptionManage() {
   const autoRenewMutation = useToggleAutoRenew();
   const queryClient = useQueryClient();
   const [showExchangeHistory, setShowExchangeHistory] = useState(false);
+  const [extraQuotaQty, setExtraQuotaQty] = useState(1);
+  const [isBuyingQuota, setIsBuyingQuota] = useState(false);
 
   // Extract the real subscription name (strip __proxy_XXX suffix for multi-proxy codes)
   const realSubName = code?.includes("__proxy_") ? code.split("__proxy_")[0] : code;
