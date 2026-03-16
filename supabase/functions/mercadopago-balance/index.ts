@@ -58,21 +58,46 @@ Deno.serve(async (req) => {
       );
     }
 
-    const mpRes = await fetch(
+    // Try multiple endpoints
+    const endpoints = [
+      "https://api.mercadopago.com/v1/account/balance",
       "https://api.mercadopago.com/users/me/mercadopago_account/balance",
-      { headers: { Authorization: `Bearer ${mpToken}` } }
-    );
+      "https://api.mercadopago.com/users/me",
+    ];
 
-    if (!mpRes.ok) {
-      const errText = await mpRes.text();
-      console.error("MP balance error:", mpRes.status, errText);
+    let mpData: any = null;
+    let lastError = "";
+
+    for (const url of endpoints) {
+      const mpRes = await fetch(url, {
+        headers: { Authorization: `Bearer ${mpToken}` },
+      });
+
+      if (mpRes.ok) {
+        mpData = await mpRes.json();
+        console.log(`Success from ${url}:`, JSON.stringify(mpData).substring(0, 500));
+        break;
+      } else {
+        lastError = await mpRes.text();
+        console.log(`Failed ${url}: ${mpRes.status} ${lastError}`);
+      }
+    }
+
+    if (!mpData) {
       return new Response(
-        JSON.stringify({ error: `Mercado Pago API error: ${mpRes.status}` }),
+        JSON.stringify({ error: `All MP endpoints failed. Last: ${lastError}` }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const mpData = await mpRes.json();
+    // Normalize: /users/me returns balance inside mercadopago_account
+    const result = mpData.available_balance !== undefined
+      ? mpData
+      : mpData.balance !== undefined
+        ? { available_balance: mpData.balance, total_amount: mpData.total_amount ?? mpData.balance, unavailable_balance: mpData.unavailable_balance ?? 0 }
+        : mpData.mercadopago_account
+          ? { available_balance: mpData.mercadopago_account.balance ?? 0, total_amount: mpData.mercadopago_account.amount ?? 0, unavailable_balance: 0 }
+          : mpData;
 
     return new Response(JSON.stringify(mpData), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
