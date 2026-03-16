@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -126,11 +126,14 @@ export default function AdminAquecimento() {
   const [resetting, setResetting] = useState(false);
   const [reportFilter, setReportFilter] = useState("");
   const [configTrack, setConfigTrack] = useState<"7_days" | "15_days" | "30_days">("7_days");
-  const [configTasks, setConfigTasks] = useState<Record<string, { title: string; description: string }[]>>({
+  const defaultConfigTasks: Record<string, { title: string; description: string }[]> = {
     "7_days": TRACKS["7_days"].tasks.map(t => ({ title: t.title, description: t.description })),
     "15_days": TRACKS["15_days"].tasks.map(t => ({ title: t.title, description: t.description })),
     "30_days": TRACKS["30_days"].tasks.map(t => ({ title: t.title, description: t.description })),
-  });
+  };
+  const [configTasks, setConfigTasks] = useState<Record<string, { title: string; description: string }[]>>(defaultConfigTasks);
+  const [configLoaded, setConfigLoaded] = useState(false);
+  const configSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [trustTiers, setTrustTiers] = useState([
     { label: "Nível 1 (Confiança Baixa)", color: "bg-red-100 text-red-700", range: "0 - 30", criteria: "Contas novas, sem histórico de interação ou fotos reais." },
     { label: "Nível 2 (Confiança Média)", color: "bg-amber-100 text-amber-700", range: "31 - 75", criteria: "Histórico de 7+ dias, interações diárias, autenticação 2FA ativa." },
@@ -145,7 +148,59 @@ export default function AdminAquecimento() {
       document.head.appendChild(link);
     }
     fetchProfiles();
+    loadConfigFromDB();
   }, []);
+
+  // Load track config from DB (site_settings)
+  const loadConfigFromDB = async () => {
+    try {
+      const { data } = await supabase
+        .from("site_settings")
+        .select("value")
+        .eq("key", "warming_track_config")
+        .maybeSingle();
+      if (data?.value) {
+        try {
+          const parsed = JSON.parse(data.value);
+          if (parsed && typeof parsed === "object") {
+            setConfigTasks(prev => ({ ...prev, ...parsed }));
+          }
+        } catch {}
+      }
+    } catch {}
+    setConfigLoaded(true);
+  };
+
+  // Save track config to DB with debounce
+  const saveConfigToDB = (updatedConfig: Record<string, { title: string; description: string }[]>) => {
+    if (configSaveTimer.current) clearTimeout(configSaveTimer.current);
+    configSaveTimer.current = setTimeout(async () => {
+      try {
+        const jsonValue = JSON.stringify(updatedConfig);
+        const { data: existing } = await supabase
+          .from("site_settings")
+          .select("id")
+          .eq("key", "warming_track_config")
+          .maybeSingle();
+        if (existing) {
+          await supabase.from("site_settings").update({ value: jsonValue }).eq("key", "warming_track_config");
+        } else {
+          await supabase.from("site_settings").insert({ key: "warming_track_config", value: jsonValue });
+        }
+      } catch (err) {
+        console.error("Erro ao salvar config da esteira:", err);
+      }
+    }, 800);
+  };
+
+  // Wrapper to update configTasks and auto-save
+  const updateConfigTasks = (updater: (prev: Record<string, { title: string; description: string }[]>) => Record<string, { title: string; description: string }[]>) => {
+    setConfigTasks(prev => {
+      const next = updater(prev);
+      saveConfigToDB(next);
+      return next;
+    });
+  };
 
   const fetchProfiles = async () => {
     setLoading(true);
@@ -918,9 +973,13 @@ export default function AdminAquecimento() {
                     type="text"
                     value={task.title}
                     onChange={(e) => {
-                      const updated = { ...configTasks };
-                      updated[configTrack][i].title = e.target.value;
-                      setConfigTasks({ ...updated });
+                      const val = e.target.value;
+                      updateConfigTasks(prev => {
+                        const updated = { ...prev };
+                        updated[configTrack] = [...updated[configTrack]];
+                        updated[configTrack][i] = { ...updated[configTrack][i], title: val };
+                        return updated;
+                      });
                     }}
                   />
                   <MIcon name="drag_indicator" className="text-slate-400 text-sm cursor-move" />
@@ -936,9 +995,12 @@ export default function AdminAquecimento() {
                   placeholder={`Adicionar nova ação para o Dia ${configTasks[configTrack].length + 1}...`}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && (e.target as HTMLInputElement).value.trim()) {
-                      const updated = { ...configTasks };
-                      updated[configTrack] = [...updated[configTrack], { title: (e.target as HTMLInputElement).value.trim(), description: "" }];
-                      setConfigTasks({ ...updated });
+                      const newTitle = (e.target as HTMLInputElement).value.trim();
+                      updateConfigTasks(prev => {
+                        const updated = { ...prev };
+                        updated[configTrack] = [...updated[configTrack], { title: newTitle, description: "" }];
+                        return updated;
+                      });
                       (e.target as HTMLInputElement).value = "";
                     }
                   }}
