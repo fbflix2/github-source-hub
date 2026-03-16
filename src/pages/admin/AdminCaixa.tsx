@@ -33,6 +33,7 @@ interface CashRecord {
   opened_at: string;
   closed_at: string | null;
   status: string;
+  opening_balance: number;
   system_revenue: number;
   system_expenses: number;
   system_balance: number;
