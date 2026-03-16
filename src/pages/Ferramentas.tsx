@@ -7,7 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
-import { generateTOTP } from "@/lib/totp";
+import { generateTOTP, syncTOTPTimeOffset } from "@/lib/totp";
 
 // ============= Material Icon helper =============
 function MaterialIcon({ name, className = "" }: { name: string; className?: string }) {
