@@ -239,9 +239,22 @@ export default function AdminCaixa() {
             </div>
             <div>
               <h2 className="text-lg font-bold text-white">Nenhum caixa aberto</h2>
-              <p className="text-sm text-muted-foreground mt-1">Abra o caixa para iniciar o controle do dia</p>
+              <p className="text-sm text-muted-foreground mt-1">Informe o saldo atual do banco e abra o caixa</p>
             </div>
-            <Button onClick={handleOpen} disabled={saving} className="gap-2">
+            <div className="max-w-xs mx-auto space-y-1.5">
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">
+                <Banknote className="size-3 inline mr-1" />
+                Saldo Atual do Banco (R$)
+              </Label>
+              <Input
+                type="number"
+                step="0.01"
+                value={openingBalanceInput}
+                onChange={(e) => setOpeningBalanceInput(e.target.value)}
+                placeholder="Quanto tem na conta agora"
+              />
+            </div>
+            <Button onClick={handleOpen} disabled={saving || !openingBalanceInput} className="gap-2">
               {saving ? <Loader2 className="size-4 animate-spin" /> : <DoorOpen className="size-4" />}
               Abrir Caixa
             </Button>
