@@ -148,7 +148,59 @@ export default function AdminAquecimento() {
       document.head.appendChild(link);
     }
     fetchProfiles();
+    loadConfigFromDB();
   }, []);
+
+  // Load track config from DB (site_settings)
+  const loadConfigFromDB = async () => {
+    try {
+      const { data } = await supabase
+        .from("site_settings")
+        .select("value")
+        .eq("key", "warming_track_config")
+        .maybeSingle();
+      if (data?.value) {
+        try {
+          const parsed = JSON.parse(data.value);
+          if (parsed && typeof parsed === "object") {
+            setConfigTasks(prev => ({ ...prev, ...parsed }));
+          }
+        } catch {}
+      }
+    } catch {}
+    setConfigLoaded(true);
+  };
+
+  // Save track config to DB with debounce
+  const saveConfigToDB = (updatedConfig: Record<string, { title: string; description: string }[]>) => {
+    if (configSaveTimer.current) clearTimeout(configSaveTimer.current);
+    configSaveTimer.current = setTimeout(async () => {
+      try {
+        const jsonValue = JSON.stringify(updatedConfig);
+        const { data: existing } = await supabase
+          .from("site_settings")
+          .select("id")
+          .eq("key", "warming_track_config")
+          .maybeSingle();
+        if (existing) {
+          await supabase.from("site_settings").update({ value: jsonValue }).eq("key", "warming_track_config");
+        } else {
+          await supabase.from("site_settings").insert({ key: "warming_track_config", value: jsonValue });
+        }
+      } catch (err) {
+        console.error("Erro ao salvar config da esteira:", err);
+      }
+    }, 800);
+  };
+
+  // Wrapper to update configTasks and auto-save
+  const updateConfigTasks = (updater: (prev: Record<string, { title: string; description: string }[]>) => Record<string, { title: string; description: string }[]>) => {
+    setConfigTasks(prev => {
+      const next = updater(prev);
+      saveConfigToDB(next);
+      return next;
+    });
+  };
 
   const fetchProfiles = async () => {
     setLoading(true);
