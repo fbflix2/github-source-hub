@@ -1,0 +1,1 @@
+DELETE FROM subscriptions WHERE id = 'aaf74300-5b20-4f46-bf99-4d688a15c671';
