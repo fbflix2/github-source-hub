@@ -67,7 +67,7 @@ export default function AdminClientesAtivos() {
       .from("orders")
       .select("user_id, total, status")
       .in("status", ["completed", "delivered"])
-      .gte("created_at", thirtyDaysAgo.toISOString());
+      .gte("created_at", cutoff.toISOString());
 
     const allOrders = orders || [];
     const userMap: Record<string, { total: number; count: number }> = {};
