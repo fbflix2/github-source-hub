@@ -995,9 +995,12 @@ export default function AdminAquecimento() {
                   placeholder={`Adicionar nova ação para o Dia ${configTasks[configTrack].length + 1}...`}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && (e.target as HTMLInputElement).value.trim()) {
-                      const updated = { ...configTasks };
-                      updated[configTrack] = [...updated[configTrack], { title: (e.target as HTMLInputElement).value.trim(), description: "" }];
-                      setConfigTasks({ ...updated });
+                      const newTitle = (e.target as HTMLInputElement).value.trim();
+                      updateConfigTasks(prev => {
+                        const updated = { ...prev };
+                        updated[configTrack] = [...updated[configTrack], { title: newTitle, description: "" }];
+                        return updated;
+                      });
                       (e.target as HTMLInputElement).value = "";
                     }
                   }}
