@@ -10,9 +10,47 @@ type TOTPAlgorithm = "SHA1" | "SHA256" | "SHA512";
 
 const SUPPORTED_ALGORITHMS = new Set<TOTPAlgorithm>(["SHA1", "SHA256", "SHA512"]);
 
+let serverTimeOffsetMs = 0;
+let serverTimeSyncPromise: Promise<number> | null = null;
+
 function normalizeBase32Secret(secret: string): string | null {
-  const normalized = secret.replace(/[\s-]+/g, "").toUpperCase();
+  const normalized = secret
+    .replace(/[\s-]+/g, "")
+    .toUpperCase()
+    .replace(/0/g, "O")
+    .replace(/1/g, "I");
+
   return /^[A-Z2-7]+=*$/.test(normalized) ? normalized : null;
+}
+
+function getTrustedNow() {
+  return Date.now() + serverTimeOffsetMs;
+}
+
+export async function syncTOTPTimeOffset() {
+  if (typeof window === "undefined") return serverTimeOffsetMs;
+  if (serverTimeSyncPromise) return serverTimeSyncPromise;
+
+  serverTimeSyncPromise = fetch(window.location.origin, {
+    method: "HEAD",
+    cache: "no-store",
+  })
+    .then((response) => {
+      const serverDate = response.headers.get("date");
+      const serverTimestamp = serverDate ? new Date(serverDate).getTime() : Number.NaN;
+
+      if (!Number.isNaN(serverTimestamp)) {
+        serverTimeOffsetMs = serverTimestamp - Date.now();
+      }
+
+      return serverTimeOffsetMs;
+    })
+    .catch(() => serverTimeOffsetMs)
+    .finally(() => {
+      serverTimeSyncPromise = null;
+    });
+
+  return serverTimeSyncPromise;
 }
 
 function buildTOTP(input: string): OTPAuth.TOTP | null {
@@ -65,10 +103,9 @@ export function generateTOTP(input: string): TOTPResult | null {
     const totp = buildTOTP(input);
     if (!totp) return null;
 
-    const code = totp.generate();
-    const now = Math.floor(Date.now() / 1000);
-    const elapsed = now % totp.period;
-    const remaining = elapsed === 0 ? totp.period : totp.period - elapsed;
+    const timestamp = getTrustedNow();
+    const code = totp.generate({ timestamp });
+    const remaining = totp.remaining({ timestamp });
 
     return { code, remaining, period: totp.period };
   } catch {

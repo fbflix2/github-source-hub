@@ -104,6 +104,10 @@ function TOTP2FATab() {
   });
 
   useEffect(() => {
+    void syncTOTPTimeOffset();
+  }, []);
+
+  useEffect(() => {
     if (!secretInput.trim()) {
       setQuickResult(null);
       return;

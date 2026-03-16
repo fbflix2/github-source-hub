@@ -302,6 +302,10 @@ function TwoFATool({ onBack }: { onBack: () => void }) {
     } catch { setSecrets([]); }
   }, []);
 
+  useEffect(() => {
+    void syncTOTPTimeOffset();
+  }, []);
+
   const save = (list: SavedSecret[]) => {
     setSecrets(list);
     localStorage.setItem("fbflix-2fa-secrets", JSON.stringify(list));
