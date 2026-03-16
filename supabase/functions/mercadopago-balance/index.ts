@@ -99,7 +99,7 @@ Deno.serve(async (req) => {
           ? { available_balance: mpData.mercadopago_account.balance ?? 0, total_amount: mpData.mercadopago_account.amount ?? 0, unavailable_balance: 0 }
           : mpData;
 
-    return new Response(JSON.stringify(mpData), {
+    return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
