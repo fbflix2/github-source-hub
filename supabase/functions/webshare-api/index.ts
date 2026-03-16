@@ -791,8 +791,8 @@ Deno.serve(async (req) => {
               count: 1,
             },
             replace_with: [
-              raw.country_code
-                ? { type: "country", country_code: String(raw.country_code).toUpperCase(), count: 1 }
+              targetCountry
+                ? { type: "country", country_code: targetCountry, count: 1 }
                 : { type: "any", count: 1 },
             ],
             dry_run: false,
