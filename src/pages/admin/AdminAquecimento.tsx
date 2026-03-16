@@ -990,7 +990,8 @@ export default function AdminAquecimento() {
                   {String(configTasks[configTrack].length + 1).padStart(2, "0")}
                 </span>
                 <input
-                  className="flex-1 bg-transparent border-none p-0 text-sm text-slate-400 italic focus:ring-0 outline-none"
+                  id="new-track-action-input"
+                  className="flex-1 bg-transparent border-none p-0 text-sm text-slate-900 focus:ring-0 outline-none placeholder:text-slate-400 placeholder:italic"
                   type="text"
                   placeholder={`Adicionar nova ação para o Dia ${configTasks[configTrack].length + 1}...`}
                   onKeyDown={(e) => {
@@ -1005,7 +1006,24 @@ export default function AdminAquecimento() {
                     }
                   }}
                 />
-                <MIcon name="add_circle" className="text-[#1876f2] text-sm cursor-pointer" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const input = document.getElementById("new-track-action-input") as HTMLInputElement;
+                    if (input && input.value.trim()) {
+                      const newTitle = input.value.trim();
+                      updateConfigTasks(prev => {
+                        const updated = { ...prev };
+                        updated[configTrack] = [...updated[configTrack], { title: newTitle, description: "" }];
+                        return updated;
+                      });
+                      input.value = "";
+                    }
+                  }}
+                  className="text-[#1876f2] hover:text-blue-700 transition-colors"
+                >
+                  <MIcon name="add_circle" className="text-xl" />
+                </button>
               </div>
             </div>
           </section>
