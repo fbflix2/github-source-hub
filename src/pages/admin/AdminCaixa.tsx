@@ -250,6 +250,46 @@ export default function AdminCaixa() {
           </div>
         </header>
 
+        {/* Mercado Pago Balance Card */}
+        <div className="bg-[#009ee3]/5 border border-[#009ee3]/20 rounded-xl p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-[#009ee3]/10">
+              <Wallet className="size-5 text-[#009ee3]" />
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-wider text-muted-foreground font-medium">Saldo Mercado Pago</p>
+              {mpLoading ? (
+                <div className="flex items-center gap-2 mt-1">
+                  <Loader2 className="size-4 animate-spin text-[#009ee3]" />
+                  <span className="text-sm text-muted-foreground">Consultando...</span>
+                </div>
+              ) : mpBalance ? (
+                <div className="flex items-center gap-4 mt-0.5">
+                  <p className="text-xl font-bold text-[#009ee3]">
+                    {formatCurrency(mpBalance.available_balance ?? 0)}
+                  </p>
+                  {(mpBalance.unavailable_balance ?? 0) > 0 && (
+                    <span className="text-xs text-muted-foreground">
+                      Bloqueado: {formatCurrency(mpBalance.unavailable_balance ?? 0)}
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground mt-0.5">Não foi possível consultar</p>
+              )}
+            </div>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={fetchMpBalance}
+            disabled={mpLoading}
+            className="text-muted-foreground hover:text-[#009ee3]"
+          >
+            <RefreshCw className={`size-4 ${mpLoading ? "animate-spin" : ""}`} />
+          </Button>
+        </div>
+
         {/* Current Status */}
         {!openCash ? (
           // No open cash - show open button
