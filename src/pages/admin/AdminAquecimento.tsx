@@ -126,11 +126,14 @@ export default function AdminAquecimento() {
   const [resetting, setResetting] = useState(false);
   const [reportFilter, setReportFilter] = useState("");
   const [configTrack, setConfigTrack] = useState<"7_days" | "15_days" | "30_days">("7_days");
-  const [configTasks, setConfigTasks] = useState<Record<string, { title: string; description: string }[]>>({
+  const defaultConfigTasks: Record<string, { title: string; description: string }[]> = {
     "7_days": TRACKS["7_days"].tasks.map(t => ({ title: t.title, description: t.description })),
     "15_days": TRACKS["15_days"].tasks.map(t => ({ title: t.title, description: t.description })),
     "30_days": TRACKS["30_days"].tasks.map(t => ({ title: t.title, description: t.description })),
-  });
+  };
+  const [configTasks, setConfigTasks] = useState<Record<string, { title: string; description: string }[]>>(defaultConfigTasks);
+  const [configLoaded, setConfigLoaded] = useState(false);
+  const configSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [trustTiers, setTrustTiers] = useState([
     { label: "Nível 1 (Confiança Baixa)", color: "bg-red-100 text-red-700", range: "0 - 30", criteria: "Contas novas, sem histórico de interação ou fotos reais." },
     { label: "Nível 2 (Confiança Média)", color: "bg-amber-100 text-amber-700", range: "31 - 75", criteria: "Histórico de 7+ dias, interações diárias, autenticação 2FA ativa." },
