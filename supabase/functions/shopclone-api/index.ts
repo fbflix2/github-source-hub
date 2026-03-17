@@ -74,23 +74,34 @@ function extractRawAccounts(parsed: any): string[] {
 function buildStockItems(rawAccounts: string[], productId: string, productName: string | undefined, folder: string, itemType?: string) {
   const resolvedType = itemType || "perfil";
   return rawAccounts.map((acc) => {
-    const parts = acc.split("|");
+    const parts = acc.split("|").map((p) => p.trim());
+    // Format: ID|senha_perfil|token2fa|email|senha_email|...
+    const fbId = parts[0] || acc.substring(0, 100);
+    const profileLink = /^\d+$/.test(fbId) ? `https://facebook.com/profile.php?id=${fbId}` : undefined;
 
     return {
       name: productName || `AccFace #${productId}`,
       type: resolvedType,
       status: "aguardando",
       folder,
-      identification: parts[0] || acc.substring(0, 100),
+      identification: fbId,
+      identification_link: profileLink || null,
       data: {
         raw: acc,
         source: "accface",
-        productId: String(productId),
+        accfaceProductId: String(productId),
         purchasedAt: new Date().toISOString(),
-        ...(parts.length >= 2 && { uid: parts[0], pass: parts[1] }),
-        ...(parts.length >= 3 && { token2fa: parts[2] }),
-        ...(parts.length >= 4 && { mail: parts[3] }),
-        ...(parts.length >= 5 && { mailPass: parts[4] }),
+        // Map to Blocagem-compatible field names
+        ...(parts[0] && { idPerfil: parts[0] }),
+        ...(parts[1] && { senha: parts[1] }),
+        ...(parts[2] && { token2fa: parts[2] }),
+        ...(parts[3] && { emailAcesso: parts[3] }),
+        ...(parts[4] && { senhaEmail: parts[4] }),
+        // Also keep legacy keys for backwards compat
+        ...(parts[0] && { uid: parts[0] }),
+        ...(parts[1] && { pass: parts[1] }),
+        ...(parts[3] && { mail: parts[3] }),
+        ...(parts[4] && { mailPass: parts[4] }),
       },
     };
   });
