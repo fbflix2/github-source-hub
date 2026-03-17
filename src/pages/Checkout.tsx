@@ -44,7 +44,8 @@ export default function Checkout() {
   const queryClient = useQueryClient();
   const productId = searchParams.get("product") || "";
   const existingOrderId = searchParams.get("order") || "";
-  const quantity = parseInt(searchParams.get("qty") || "1");
+  const initialQty = parseInt(searchParams.get("qty") || "1");
+  const [quantity, setQuantity] = useState(initialQty);
 
   const [product, setProduct] = useState<DbProduct | null>(null);
   const [loading, setLoading] = useState(true);
@@ -952,6 +953,31 @@ export default function Checkout() {
                 {product.tags.map((tag, i) => (
                   <span key={i} className="text-[10px] px-2 py-0.5 rounded-full bg-foreground text-background font-medium">{tag}</span>
                 ))}
+              </div>
+            )}
+
+            {/* GB Quantity selector for rotating proxy */}
+            {product.tags?.some((t: string) => t.toLowerCase() === 'rotativo') && (
+              <div className="flex items-center justify-between pt-2 border-t border-border">
+                <div>
+                  <span className="text-sm font-semibold text-foreground">Quantidade de GB</span>
+                  <p className="text-[10px] text-muted-foreground">Selecione quantos GB deseja contratar</p>
+                </div>
+                <div className="flex items-center bg-secondary rounded-lg border border-border h-10 px-1">
+                  <button
+                    onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                    className="w-9 h-full flex items-center justify-center text-muted-foreground hover:text-foreground rounded transition"
+                  >
+                    <span className="text-lg font-bold">−</span>
+                  </button>
+                  <span className="w-12 text-center text-sm font-bold text-foreground">{quantity} GB</span>
+                  <button
+                    onClick={() => setQuantity((q) => q + 1)}
+                    className="w-9 h-full flex items-center justify-center text-muted-foreground hover:text-foreground rounded transition"
+                  >
+                    <span className="text-lg font-bold">+</span>
+                  </button>
+                </div>
               </div>
             )}
           </section>
