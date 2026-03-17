@@ -22,6 +22,7 @@ const DEFAULT_TEXT = {
   filiacao: { xPct: 30, yPct: 47 },
   assinatura: { xPct: 15, yPct: 56 },
 };
+const FIXED_DOC_IDENTIDADE_FONT_SIZE = 8.5;
 
 const SIGNATURE_FONTS = ["Dancing Script", "Caveat", "Satisfy"];
 
@@ -61,14 +62,14 @@ export default function AdminImageViewer() {
   const [dragStartPct, setDragStartPct] = useState({ x: 0, y: 0 });
 
   const [textPos, setTextPos] = useState(DEFAULT_TEXT);
-  const [fontSizes, setFontSizes] = useState({ nome: 11, docIdentidade: 9, nascimento: 10, filiacao: 9, assinatura: 14 });
+  const [fontSizes, setFontSizes] = useState({ nome: 11, docIdentidade: FIXED_DOC_IDENTIDADE_FONT_SIZE, nascimento: 10, filiacao: 9, assinatura: 14 });
   const [docIdentidade, setDocIdentidade] = useState(DEFAULT_DOC_IDENTIDADE);
   const [signatureFont, setSignatureFont] = useState(SIGNATURE_FONTS[0]);
   const [contrast, setContrast] = useState(100);
 
   const safeTextPos = {
     nome: sanitizeTextPoint(textPos.nome, DEFAULT_TEXT.nome),
-    docIdentidade: sanitizeTextPoint(textPos.docIdentidade, DEFAULT_TEXT.docIdentidade),
+    docIdentidade: DEFAULT_TEXT.docIdentidade,
     nascimento: sanitizeTextPoint(textPos.nascimento, DEFAULT_TEXT.nascimento),
     filiacao: sanitizeTextPoint(textPos.filiacao, DEFAULT_TEXT.filiacao),
     assinatura: sanitizeTextPoint(textPos.assinatura, DEFAULT_TEXT.assinatura),
@@ -76,11 +77,12 @@ export default function AdminImageViewer() {
 
   const safeFontSizes = {
     nome: 11,
-    docIdentidade: 9,
+    docIdentidade: FIXED_DOC_IDENTIDADE_FONT_SIZE,
     nascimento: 10,
     filiacao: 9,
     assinatura: 14,
     ...(fontSizes ?? {}),
+    docIdentidade: FIXED_DOC_IDENTIDADE_FONT_SIZE,
   };
 
   const [formData, setFormData] = useState({
