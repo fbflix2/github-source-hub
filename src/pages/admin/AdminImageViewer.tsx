@@ -82,8 +82,8 @@ export default function AdminImageViewer() {
             if (row.key === POSITIONS_KEY && row.value) {
               try {
                 const saved = JSON.parse(row.value);
-                if (saved.textPos) setTextPos(saved.textPos);
-                if (saved.fontSizes) setFontSizes(saved.fontSizes);
+                if (saved.textPos) setTextPos(prev => ({ ...prev, ...saved.textPos }));
+                if (saved.fontSizes) setFontSizes(prev => ({ ...prev, ...saved.fontSizes }));
                 if (saved.photoPos) setPhotoPos(saved.photoPos);
                 if (saved.signatureFont) setSignatureFont(saved.signatureFont);
                 if (saved.contrast != null) setContrast(saved.contrast);
