@@ -222,6 +222,7 @@ export default function WarmingSessionTimer({ profile, tasks, onTaskCompleted, o
       toast.success(`Tarefa "${task.title}" concluída em ${formatDuration(finalDuration)}`);
       onTaskCompleted();
     }
+  };
 
   const uncompleteTask = async (task: WarmingTask) => {
     await supabase.from("warming_tasks").update({
