@@ -289,11 +289,11 @@ export default function AdminCaixa() {
                 Saldo Atual do Banco (R$)
               </Label>
               <Input
-                type="number"
-                step="0.01"
+                type="text"
+                inputMode="decimal"
                 value={openingBalanceInput}
                 onChange={(e) => setOpeningBalanceInput(e.target.value)}
-                placeholder="Quanto tem na conta agora"
+                placeholder="Ex: 11.522,06"
               />
             </div>
             <Button onClick={handleOpen} disabled={saving || !openingBalanceInput} className="gap-2">
