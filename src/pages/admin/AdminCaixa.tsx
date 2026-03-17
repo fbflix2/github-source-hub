@@ -358,11 +358,11 @@ export default function AdminCaixa() {
                     Saldo Real do Banco (R$)
                   </Label>
                   <Input
-                    type="number"
-                    step="0.01"
+                    type="text"
+                    inputMode="decimal"
                     value={bankBalance}
                     onChange={(e) => setBankBalance(e.target.value)}
-                    placeholder="Quanto tem na conta"
+                    placeholder="Ex: 11.522,06"
                   />
                 </div>
                 <div className="space-y-1.5">
