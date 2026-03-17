@@ -278,6 +278,16 @@ export default function AdminImageViewer() {
       ctx.fillText(formData.nomeCompleto.toUpperCase(), x, y);
     }
 
+    // Draw doc identidade
+    if (docIdentidade) {
+      const fs = scaledFont(fontSizes.docIdentidade);
+      ctx.font = `600 ${fs}px "Arial Narrow", Arial, sans-serif`;
+      ctx.fillStyle = "rgba(0,0,0,0.9)";
+      const x = (textPos.docIdentidade.xPct / 100) * W;
+      const y = (textPos.docIdentidade.yPct / 100) * H;
+      ctx.fillText(docIdentidade.toUpperCase(), x, y);
+    }
+
     // Draw nascimento + naturalidade
     if (formData.dataNascimento || formData.naturalidade) {
       const fs = scaledFont(fontSizes.nascimento);
