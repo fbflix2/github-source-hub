@@ -122,8 +122,9 @@ export default function AdminImageViewer() {
               try {
                 const saved = JSON.parse(row.value);
                 if (saved.textPos) {
-                  const { docIdentidade: _ignoredDocIdentidadePos, ...savedTextPos } = saved.textPos;
+                  const { docIdentidade: savedDocIdPos, ...savedTextPos } = saved.textPos;
                   setTextPos((prev) => ({ ...prev, ...savedTextPos }));
+                  if (savedDocIdPos) setDocIdentidadePos(sanitizeTextPoint(savedDocIdPos, FIXED_DOC_IDENTIDADE_POSITION));
                 }
                 if (saved.fontSizes) {
                   const { docIdentidade: _ignoredDocIdentidadeFont, ...savedFontSizes } = saved.fontSizes;
