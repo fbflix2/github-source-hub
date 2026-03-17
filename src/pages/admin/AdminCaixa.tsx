@@ -29,16 +29,23 @@ const formatCurrency = (v: number) =>
 const formatDate = (d: string) =>
   new Date(d).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
-const parseBRL = (v: string): number => {
-  if (!v) return 0;
-  // Remove R$, spaces, dots (thousand sep), replace comma with dot
-  const cleaned = v.replace(/[R$\s]/g, "").replace(/\./g, "").replace(",", ".");
-  const num = parseFloat(cleaned);
-  return isNaN(num) ? 0 : num;
-};
-
-const formatBRLInput = (v: number): string => {
-  return v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const parseBRL = (value: string): number => {
+  if (!value || value === "") return 0;
+  let str = String(value).trim();
+  // Remove R$, spaces
+  str = str.replace(/[R$\s]/g, "");
+  // Auto-detect: if comma comes after last dot → comma is decimal (pt-BR)
+  const lastComma = str.lastIndexOf(",");
+  const lastDot = str.lastIndexOf(".");
+  const isCommaDecimal = lastComma > lastDot;
+  if (isCommaDecimal) {
+    str = str.replace(/\./g, ""); // remove thousand dots
+    str = str.replace(",", "."); // comma → decimal dot
+  } else if (lastDot > lastComma) {
+    str = str.replace(/,/g, ""); // remove thousand commas
+  }
+  const parsed = parseFloat(str);
+  return isNaN(parsed) ? 0 : parsed;
 };
 
 interface CashRecord {
@@ -96,7 +103,7 @@ export default function AdminCaixa() {
       setOpenCash(openData as CashRecord);
       // Pre-fill bank balance with opening balance
       if (!bankBalance) {
-        setBankBalance(formatBRLInput(openData.opening_balance || 0));
+        setBankBalance((openData.opening_balance || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
       }
       // Fetch system values for the open period
       await fetchSystemValues(openData.opened_at);
