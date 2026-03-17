@@ -454,71 +454,112 @@ export default function AdminAquecimento() {
   return (
     <div className="flex flex-col min-h-full bg-[#f5f7f8] text-slate-900" style={{ fontFamily: "'Inter', sans-serif" }}>
       {/* ── Hero Section ── */}
-      <section className="relative overflow-hidden text-white pt-12 pb-20 px-6 md:px-12 lg:px-40" style={{ background: "linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 40%, #3a3a3a 70%, #1a1a1a 100%)" }}>
+      <section className="relative overflow-hidden text-white pt-10 pb-16 px-6 md:px-12 lg:px-40" style={{ background: "linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 40%, #3a3a3a 70%, #1a1a1a 100%)" }}>
         <div className="absolute top-0 right-0 w-1/3 h-full opacity-10 pointer-events-none">
           <svg className="w-full h-full" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
             <path d="M44.7,-76.4C58.1,-69.2,69.5,-57.4,77.4,-43.8C85.3,-30.2,89.7,-15.1,89.1,-0.3C88.5,14.4,82.9,28.8,74.1,41.2C65.3,53.6,53.2,64.1,39.6,71.7C26,79.2,13,83.9,-0.8,85.2C-14.5,86.5,-29,84.5,-42.1,77.5C-55.2,70.5,-66.8,58.6,-74.6,44.9C-82.4,31.2,-86.3,15.6,-86.1,0.1C-85.9,-15.4,-81.5,-30.8,-73.2,-44C-64.9,-57.2,-52.7,-68.1,-38.8,-75C-24.9,-81.8,-9.2,-84.6,3.4,-90.4C16,-96.2,27.1,-83.5,44.7,-76.4Z" fill="currentColor" transform="translate(100 100)" />
           </svg>
         </div>
         <div className="max-w-[1200px] mx-auto relative z-10">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
-              <MIcon name="fluid" className="text-white text-3xl" />
-            </div>
-            <h2 className="text-2xl font-bold tracking-tight">FBFlix</h2>
-          </div>
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-            <div className="space-y-2">
-              <h1 className="text-4xl md:text-5xl font-black tracking-tight">Painel Operacional</h1>
-              <p className="text-white/80 text-lg max-w-2xl">
-                Acompanhe em tempo real o desempenho das esteiras de aquecimento e a distribuição dos perfis por maturidade.
-              </p>
-            </div>
-            <div className="flex gap-4">
-              <div className="bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/20 min-w-[160px]">
-                <p className="text-xs font-medium text-white/70 uppercase tracking-wider">Tempo Médio / Perfil</p>
-                <p className="text-2xl font-bold">{(() => {
-                   // Tempo médio do início do perfil até a última ação (ou agora se ativo)
-                   const durations: number[] = [];
-                   profiles.forEach(p => {
-                     const start = new Date(p.start_date || p.created_at).getTime();
-                     if (isNaN(start)) return;
-                     const profileTasks = tasks[p.id];
-                     const completedTimes = (profileTasks || [])
-                       .filter(t => t.completed && t.completed_at)
-                       .map(t => new Date(t.completed_at!).getTime())
-                       .filter(t => !isNaN(t));
-                     let end: number;
-                     if (completedTimes.length > 0) {
-                       end = Math.max(...completedTimes);
-                     } else if (p.current_day > 1) {
-                       end = Date.now();
-                     } else {
-                       return; // perfil sem atividade
-                     }
-                     const diff = end - start;
-                     if (diff > 0) durations.push(diff);
-                   });
-                   if (durations.length === 0) return "Sem dados";
-                   const avgMs = durations.reduce((a, b) => a + b, 0) / durations.length;
-                   const totalMins = Math.round(avgMs / 60000);
-                   if (totalMins < 1) return "<1min";
-                   if (totalMins < 60) return `${totalMins}min`;
-                   const hours = Math.floor(totalMins / 60);
-                   const mins = totalMins % 60;
-                   if (hours < 24) return `${hours}h ${mins}min`;
-                   const days = Math.floor(hours / 24);
-                   const remHours = hours % 24;
-                   return `${days}d ${remHours}h`;
-                 })()}</p>
-                 <p className="text-[10px] text-white/50 mt-1">Início → última ação do perfil</p>
-              </div>
-              <div className="bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/20 min-w-[140px]">
-                <p className="text-xs font-medium text-white/70 uppercase tracking-wider">Perfis Hoje</p>
-                <p className="text-2xl font-bold">{profiles.filter(p => new Date(p.created_at).toDateString() === new Date().toDateString()).length}</p>
+          {/* Personalized greeting */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-6">
+            <div className="flex items-center gap-4">
+              {currentUserAvatar ? (
+                <img src={currentUserAvatar} alt="" className="w-14 h-14 rounded-full border-2 border-white/30 object-cover" />
+              ) : (
+                <div className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border-2 border-white/30">
+                  <MIcon name="person" className="text-white text-2xl" />
+                </div>
+              )}
+              <div>
+                <p className="text-white/60 text-sm font-medium">
+                  {(() => {
+                    const h = new Date().getHours();
+                    return h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite";
+                  })()},
+                </p>
+                <h1 className="text-2xl md:text-3xl font-black tracking-tight">
+                  {currentUserName ? currentUserName.split(" ")[0] : "Operador"} 👋
+                </h1>
               </div>
             </div>
+            <div className="flex items-center gap-3">
+              <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
+                <MIcon name="fluid" className="text-white text-2xl" />
+              </div>
+              <span className="text-xl font-bold tracking-tight">FBFlix</span>
+            </div>
           </div>
+
+          {/* Personal stats row */}
+          {(() => {
+            const myProfiles = currentUserId ? profiles.filter(p => p.created_by === currentUserId) : profiles;
+            const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+            const myToday = myProfiles.filter(p => new Date(p.created_at) >= todayStart).length;
+            const weekStart = new Date(todayStart); weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+            const myWeek = myProfiles.filter(p => new Date(p.created_at) >= weekStart).length;
+            const myActive = myProfiles.filter(p => p.status === "active").length;
+            const myCompleted = myProfiles.filter(p => p.status === "completed").length;
+            let myTotalTime = 0;
+            let myTaskCount = 0;
+            myProfiles.forEach(p => {
+              (tasks[p.id] || []).forEach(t => {
+                if (t.duration_seconds) { myTotalTime += t.duration_seconds; myTaskCount++; }
+              });
+            });
+            const avgPerProfile = myProfiles.length > 0 ? Math.round(myTotalTime / myProfiles.length) : 0;
+
+            return (
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                <div className="bg-white/10 backdrop-blur-md p-3.5 rounded-xl border border-white/15">
+                  <p className="text-[10px] font-medium text-white/50 uppercase tracking-wider">Perfis Hoje</p>
+                  <div className="flex items-end gap-2 mt-1">
+                    <p className="text-2xl font-black">{myToday}</p>
+                    {operatorGoals.daily && (
+                      <p className="text-xs text-white/40 mb-0.5">/ {operatorGoals.daily}</p>
+                    )}
+                  </div>
+                  {operatorGoals.daily && (
+                    <div className="mt-2 h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+                      <div className={`h-full rounded-full ${myToday >= operatorGoals.daily ? "bg-emerald-400" : "bg-[#1876f2]"}`} style={{ width: `${Math.min(100, (myToday / operatorGoals.daily) * 100)}%` }} />
+                    </div>
+                  )}
+                </div>
+                <div className="bg-white/10 backdrop-blur-md p-3.5 rounded-xl border border-white/15">
+                  <p className="text-[10px] font-medium text-white/50 uppercase tracking-wider">Perfis Semana</p>
+                  <div className="flex items-end gap-2 mt-1">
+                    <p className="text-2xl font-black">{myWeek}</p>
+                    {operatorGoals.weekly && (
+                      <p className="text-xs text-white/40 mb-0.5">/ {operatorGoals.weekly}</p>
+                    )}
+                  </div>
+                  {operatorGoals.weekly && (
+                    <div className="mt-2 h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+                      <div className={`h-full rounded-full ${myWeek >= operatorGoals.weekly ? "bg-emerald-400" : "bg-[#1876f2]"}`} style={{ width: `${Math.min(100, (myWeek / operatorGoals.weekly) * 100)}%` }} />
+                    </div>
+                  )}
+                </div>
+                <div className="bg-white/10 backdrop-blur-md p-3.5 rounded-xl border border-white/15">
+                  <p className="text-[10px] font-medium text-white/50 uppercase tracking-wider">Em Aquecimento</p>
+                  <p className="text-2xl font-black mt-1">{myActive}</p>
+                </div>
+                <div className="bg-white/10 backdrop-blur-md p-3.5 rounded-xl border border-white/15">
+                  <p className="text-[10px] font-medium text-white/50 uppercase tracking-wider">Concluídos</p>
+                  <p className="text-2xl font-black mt-1">{myCompleted}</p>
+                </div>
+                <div className="bg-white/10 backdrop-blur-md p-3.5 rounded-xl border border-white/15">
+                  <p className="text-[10px] font-medium text-white/50 uppercase tracking-wider">Tempo Médio / Perfil</p>
+                  <p className="text-2xl font-black mt-1">{formatDuration(avgPerProfile) || "—"}</p>
+                </div>
+                <div className="bg-white/10 backdrop-blur-md p-3.5 rounded-xl border border-white/15">
+                  <p className="text-[10px] font-medium text-white/50 uppercase tracking-wider">Total Meus Perfis</p>
+                  <p className="text-2xl font-black mt-1">{myProfiles.length}</p>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      </section>
         </div>
       </section>
 
