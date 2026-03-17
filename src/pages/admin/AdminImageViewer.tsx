@@ -462,8 +462,30 @@ export default function AdminImageViewer() {
               </div>
             )}
             {templatePreview && (
-              <div className="pt-2 border-t border-border">
-                <p className="text-xs text-muted-foreground mb-2">
+              <div className="pt-2 border-t border-border space-y-3">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Doc. de Identidade (padrão)</Label>
+                  <Input
+                    value={docIdentidade}
+                    onChange={(e) => setDocIdentidade(e.target.value)}
+                    onBlur={async () => {
+                      try {
+                        const { data: existing } = await supabase.from("site_settings").select("id").eq("key", DOC_IDENTIDADE_KEY).maybeSingle();
+                        if (existing) {
+                          await supabase.from("site_settings").update({ value: docIdentidade }).eq("key", DOC_IDENTIDADE_KEY);
+                        } else {
+                          await supabase.from("site_settings").insert({ key: DOC_IDENTIDADE_KEY, value: docIdentidade });
+                        }
+                        toast.success("Doc. identidade salvo!");
+                      } catch { toast.error("Erro ao salvar"); }
+                    }}
+                    placeholder="503234175 SSPSP"
+                    className="mt-1"
+                    maxLength={50}
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">Este valor será preenchido automaticamente em novos documentos.</p>
+                </div>
+                <p className="text-xs text-muted-foreground">
                   Posicione os textos e a foto no preview arrastando-os, ajuste fontes e contraste, depois clique abaixo para salvar as posições permanentemente.
                 </p>
                 <Button onClick={() => savePositions(false)} variant="outline" className="w-full gap-2">
