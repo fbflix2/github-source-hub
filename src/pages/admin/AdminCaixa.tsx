@@ -224,8 +224,8 @@ export default function AdminCaixa() {
   const bankVal = parseFloat(bankBalance) || 0;
   const wdVal = parseFloat(withdrawals) || 0;
   const dpVal = parseFloat(deposits) || 0;
-  const expectedBalance = openingBal + sysBalance - wdVal + dpVal;
-  const liveDiff = bankVal - expectedBalance;
+  // Variação real = banco agora - saldo abertura
+  const liveDiff = bankVal - openingBal;
 
   if (loading) {
     return (
