@@ -31,6 +31,17 @@ function parseLocalDate(dateStr: string): Date {
   return new Date(year, month - 1, day);
 }
 
+function sanitizeTextPoint(point: any, fallback: { xPct: number; yPct: number }) {
+  const x = Number(point?.xPct);
+  const y = Number(point?.yPct);
+
+  if (Number.isFinite(x) && Number.isFinite(y) && x >= 0 && x <= 100 && y >= 0 && y <= 100) {
+    return { xPct: x, yPct: y };
+  }
+
+  return { ...fallback };
+}
+
 export default function AdminImageViewer() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [photoOverlay, setPhotoOverlay] = useState<string | null>(null);
