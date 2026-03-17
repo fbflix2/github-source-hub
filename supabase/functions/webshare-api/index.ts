@@ -1064,13 +1064,24 @@ Deno.serve(async (req) => {
       if (profileErr || !profile) throw new Error("Perfil não encontrado");
       if (profile.balance < total) throw new Error("Saldo insuficiente");
 
-      // 2. Fetch rotating proxy credentials from Webshare config
-      const configResp = await webFetch("/proxy/config/", WEBSHARE_API_KEY);
-      const configData = await configResp.json();
-      if (!configResp.ok) throw new Error(`Webshare config error [${configResp.status}]`);
-
-      const rotatingUsername = (configData.username || configData.proxy_username || "") + "-country-BR-rotate";
-      const rotatingPassword = configData.password || configData.proxy_password || "";
+      // 2. Fetch rotating proxy credentials from backbone proxy list
+      const bbResp = await webFetch("/proxy/list/?mode=backbone&page=1&page_size=1", WEBSHARE_API_KEY);
+      const bbData = await bbResp.json();
+      
+      let rotatingUsername = "";
+      let rotatingPassword = "";
+      
+      if (bbResp.ok && bbData.results?.length > 0) {
+        const bbProxy = bbData.results[0];
+        rotatingUsername = (bbProxy.username || "").replace(/-\d+$/, "") + "-country-BR-rotate";
+        rotatingPassword = bbProxy.password || "";
+      } else {
+        const configResp = await webFetch("/proxy/config/", WEBSHARE_API_KEY);
+        const configData = await configResp.json();
+        if (!configResp.ok) throw new Error(`Webshare config error [${configResp.status}]`);
+        rotatingUsername = (configData.username || configData.proxy_username || "") + "-country-BR-rotate";
+        rotatingPassword = configData.password || configData.proxy_password || "";
+      }
 
       // 3. Create subscription
       const startDate = new Date();
