@@ -360,9 +360,9 @@ export default function AdminImageViewer() {
     };
 
     // CSS line-height offset: CSS positions the div top, but text inside has
-    // implicit line-height (~1.15 for sans-serif) that pushes glyphs down.
-    // Canvas textBaseline="top" draws at exact Y, so we add this offset.
-    const cssLineHeightOffset = (fs: number) => fs * 0.1;
+    // implicit line-height that pushes glyphs down. Canvas textBaseline="top"
+    // draws at exact Y, so we compensate with a larger offset.
+    const cssLineHeightOffset = (fs: number) => fs * 0.35;
 
     ctx.textBaseline = "top";
 
