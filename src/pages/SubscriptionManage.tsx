@@ -47,6 +47,7 @@ export default function SubscriptionManage() {
   const webshareSub = (Array.isArray(webshareRaw) ? webshareRaw : [])?.find((s: any) => s.code === code);
   const sub = (proxyBRSub || webshareSub) as ProxySubscription | undefined;
   const isWebshare = !!webshareSub && !proxyBRSub;
+  const isRotating = !!(sub as any)?.is_rotating;
   const combinedLoading = isLoading || wsLoading;
 
   // Fetch the price: first try order_items, then fallback to product catalog price
@@ -274,22 +275,34 @@ export default function SubscriptionManage() {
             <div className="glass-card rounded-xl p-4 space-y-3">
               <h2 className="text-foreground font-bold text-sm flex items-center gap-1.5">
                 <span className="material-symbols-outlined text-primary text-base">vpn_key</span>
-                Dados do Proxy
+                {isRotating ? "Credenciais do Proxy Rotativo" : "Dados do Proxy"}
               </h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {[
-                  { label: "Endereço IP", value: sub.proxy.ip, key: "ip" },
-                  { label: "Porta", value: String(sub.proxy.port), key: "port" },
-                  { label: "Usuário", value: sub.proxy.username || "—", key: "user" },
-                  { label: "Senha", value: sub.proxy.password || "—", key: "pass" },
-                  { label: "Protocolo", value: sub.proxy.protocol || "SOCKS5", key: "proto" },
+                  ...(isRotating
+                    ? [
+                        { label: "Endpoint HTTP", value: `${sub.proxy.ip}:${sub.proxy.port}`, key: "http" },
+                        { label: "Endpoint SOCKS5", value: `${sub.proxy.ip}:${(sub.proxy as any).socks5_port || 1080}`, key: "socks5" },
+                        { label: "Usuário", value: sub.proxy.username || "—", key: "user" },
+                        { label: "Senha", value: sub.proxy.password || "—", key: "pass" },
+                        { label: "País", value: "🇧🇷 Brasil", key: "country" },
+                        { label: "Tipo", value: "Rotativo Residencial", key: "type" },
+                      ]
+                    : [
+                        { label: "Endereço IP", value: sub.proxy.ip, key: "ip" },
+                        { label: "Porta", value: String(sub.proxy.port), key: "port" },
+                        { label: "Usuário", value: sub.proxy.username || "—", key: "user" },
+                        { label: "Senha", value: sub.proxy.password || "—", key: "pass" },
+                        { label: "Protocolo", value: sub.proxy.protocol || "SOCKS5", key: "proto" },
+                      ]
+                  ),
                 ].map((item) => (
                   <div key={item.key} className="flex items-center justify-between p-2 rounded-lg bg-muted/50 border border-border group">
                     <div className="min-w-0">
                       <p className="text-text-secondary text-[9px] uppercase tracking-wider font-semibold">{item.label}</p>
                       <p className="text-foreground font-mono font-medium text-xs mt-0.5 truncate">{item.value}</p>
                     </div>
-                    {item.value !== "—" && (
+                    {item.value !== "—" && item.key !== "country" && item.key !== "type" && (
                       <button onClick={() => copyToClipboard(item.value, item.key)} className="opacity-0 group-hover:opacity-100 transition-opacity text-text-secondary hover:text-foreground ml-1 shrink-0">
                         <span className="material-symbols-outlined text-sm">{copiedField === item.key ? "check" : "content_copy"}</span>
                       </button>
@@ -297,10 +310,55 @@ export default function SubscriptionManage() {
                   </div>
                 ))}
               </div>
+
+              {/* Copy all button */}
+              {isRotating && sub.proxy.username && sub.proxy.password && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    const httpProxy = `${sub.proxy!.ip}:${sub.proxy!.port}:${sub.proxy!.username}:${sub.proxy!.password}`;
+                    copyToClipboard(httpProxy, "all");
+                  }}
+                  className="w-full text-xs h-8"
+                >
+                  <span className="material-symbols-outlined text-sm mr-1">{copiedField === "all" ? "check" : "content_copy"}</span>
+                  {copiedField === "all" ? "Copiado!" : "Copiar Proxy (HTTP)"}
+                </Button>
+              )}
             </div>
           )}
 
-          {/* Perfil Vinculado */}
+          {/* Bandwidth Info for Rotating Proxies */}
+          {isRotating && (
+            <div className="glass-card rounded-xl p-4 space-y-3">
+              <h2 className="text-foreground font-bold text-sm flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-primary text-base">data_usage</span>
+                Consumo de Banda
+              </h2>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-muted/50 rounded-lg p-2.5 border border-border">
+                  <p className="text-text-secondary text-[10px] uppercase tracking-wider font-semibold">Plano</p>
+                  <p className="text-foreground font-bold text-lg mt-0.5">{sub.gb_purchased || 0} GB</p>
+                </div>
+                <div className="bg-muted/50 rounded-lg p-2.5 border border-border">
+                  <p className="text-text-secondary text-[10px] uppercase tracking-wider font-semibold">Valor Pago</p>
+                  <p className="text-foreground font-bold text-lg mt-0.5">
+                    {customerPrice != null ? `R$ ${Number(customerPrice).toFixed(2).replace('.', ',')}` : `R$ ${((sub.gb_purchased || 0) * 50).toFixed(2).replace('.', ',')}`}
+                  </p>
+                </div>
+              </div>
+              <div className="p-3 rounded-lg bg-accent/10 border border-accent/20">
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="material-symbols-outlined text-accent-foreground text-sm">info</span>
+                  <span className="text-accent-foreground">O consumo de banda é compartilhado no pool do plano. Gerencie seu uso para máxima eficiência.</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Hide exchange for rotating proxies */}
+          {!isRotating && (
           <div className="glass-card rounded-xl p-4 space-y-3">
             <h2 className="text-foreground font-bold text-sm flex items-center gap-1.5">
               <span className="material-symbols-outlined text-primary text-base">person_pin</span>
@@ -345,6 +403,7 @@ export default function SubscriptionManage() {
               <p className="text-text-secondary text-[10px]">Opcional — informe em qual perfil este proxy está sendo usado.</p>
             )}
           </div>
+          )}
         </div>
 
         {/* Right Column */}
@@ -385,7 +444,8 @@ export default function SubscriptionManage() {
             )}
           </div>
 
-          {/* Exchange */}
+          {/* Exchange - hidden for rotating proxies */}
+          {!isRotating && (
           <div className="glass-card rounded-xl p-4 space-y-2">
             <div className="flex items-center justify-between">
               <h2 className="text-foreground font-bold text-sm flex items-center gap-1.5">
@@ -411,7 +471,6 @@ export default function SubscriptionManage() {
             </div>
             {(() => {
               const raw = (sub.raw_data || {}) as Record<string, any>;
-              // Support both flat and nested (subscription.) structures
               const freeExchanges = raw.exchange_quota_free ?? raw.subscription?.exchange_quota_free ?? 0;
               const paidExchanges = raw.exchange_quota_pay ?? raw.subscription?.exchange_quota_pay ?? 0;
               const activeMutation = isWebshare ? wsExchangeMutation : exchangeMutation;
@@ -427,7 +486,6 @@ export default function SubscriptionManage() {
                       onClick={() => {
                         const oldProxyString = sub.proxy ? `${sub.proxy.ip}:${sub.proxy.port}:${sub.proxy.username || ""}:${sub.proxy.password || ""}` : undefined;
                         if (isWebshare) {
-                          // Get the subscription DB id from raw_data or find by name
                           const subId = (sub as any).id || sub.code;
                           wsExchangeMutation.mutate({ subscriptionId: subId, oldProxyString });
                         } else {
@@ -459,27 +517,17 @@ export default function SubscriptionManage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="flex items-center bg-muted rounded-lg border border-border">
-                          <button
-                            onClick={() => setExtraQuotaQty(Math.max(1, extraQuotaQty - 1))}
-                            className="px-2 py-1 text-text-secondary hover:text-foreground transition-colors"
-                          >
+                          <button onClick={() => setExtraQuotaQty(Math.max(1, extraQuotaQty - 1))} className="px-2 py-1 text-text-secondary hover:text-foreground transition-colors">
                             <span className="material-symbols-outlined text-sm">remove</span>
                           </button>
                           <span className="text-foreground font-bold text-sm w-6 text-center">{extraQuotaQty}</span>
-                          <button
-                            onClick={() => setExtraQuotaQty(Math.min(10, extraQuotaQty + 1))}
-                            className="px-2 py-1 text-text-secondary hover:text-foreground transition-colors"
-                          >
+                          <button onClick={() => setExtraQuotaQty(Math.min(10, extraQuotaQty + 1))} className="px-2 py-1 text-text-secondary hover:text-foreground transition-colors">
                             <span className="material-symbols-outlined text-sm">add</span>
                           </button>
                         </div>
                         <div className="flex-1 text-right">
-                          <p className="text-text-secondary text-[10px] line-through">
-                            R$ {(customerPrice * extraQuotaQty).toFixed(2).replace('.', ',')}
-                          </p>
-                          <p className="text-primary font-black text-sm">
-                            R$ {(customerPrice * 0.5 * extraQuotaQty).toFixed(2).replace('.', ',')}
-                          </p>
+                          <p className="text-text-secondary text-[10px] line-through">R$ {(customerPrice * extraQuotaQty).toFixed(2).replace('.', ',')}</p>
+                          <p className="text-primary font-black text-sm">R$ {(customerPrice * 0.5 * extraQuotaQty).toFixed(2).replace('.', ',')}</p>
                         </div>
                       </div>
                       <Button
@@ -489,46 +537,21 @@ export default function SubscriptionManage() {
                           try {
                             const { data: { user } } = await supabase.auth.getUser();
                             if (!user) throw new Error("Não autenticado");
-                            const { data: profile } = await supabase
-                              .from("profiles")
-                              .select("balance")
-                              .eq("user_id", user.id)
-                              .single();
+                            const { data: profile } = await supabase.from("profiles").select("balance").eq("user_id", user.id).single();
                             const totalCost = customerPrice * 0.5 * extraQuotaQty;
-                            if (!profile || profile.balance < totalCost) {
-                              toast.error(`Saldo insuficiente. Necessário: R$ ${totalCost.toFixed(2).replace('.', ',')}`);
-                              return;
-                            }
-                            // Debit balance
-                            await supabase
-                              .from("profiles")
-                              .update({ balance: profile.balance - totalCost })
-                              .eq("user_id", user.id);
-                            // Add paid quotas to subscription
+                            if (!profile || profile.balance < totalCost) { toast.error(`Saldo insuficiente.`); return; }
+                            await supabase.from("profiles").update({ balance: profile.balance - totalCost }).eq("user_id", user.id);
                             const subType = isWebshare ? "webshare" : "proxybr";
-                            const { data: subRow } = await supabase
-                              .from("subscriptions")
-                              .select("id, raw_data")
-                              .eq("name", realSubName!)
-                              .eq("type", subType)
-                              .maybeSingle();
+                            const { data: subRow } = await supabase.from("subscriptions").select("id, raw_data").eq("name", realSubName!).eq("type", subType).maybeSingle();
                             if (subRow) {
                               const currentRaw = (subRow.raw_data || {}) as Record<string, any>;
-                              const currentFree = currentRaw.exchange_quota_free ?? 0;
-                              const updatedRaw = {
-                                ...currentRaw,
-                                exchange_quota_free: currentFree + extraQuotaQty,
-                              };
+                              const updatedRaw = { ...currentRaw, exchange_quota_free: (currentRaw.exchange_quota_free ?? 0) + extraQuotaQty };
                               await supabase.from("subscriptions").update({ raw_data: updatedRaw as any }).eq("id", subRow.id);
                             }
                             queryClient.invalidateQueries({ queryKey: isWebshare ? ["webshare-subscriptions"] : ["proxybr-subscriptions"] });
                             toast.success(`${extraQuotaQty} cota${extraQuotaQty > 1 ? 's' : ''} adicionada${extraQuotaQty > 1 ? 's' : ''}!`);
                             setExtraQuotaQty(1);
-                          } catch (err: any) {
-                            toast.error(err.message || "Erro ao comprar cotas");
-                          } finally {
-                            setIsBuyingQuota(false);
-                          }
+                          } catch (err: any) { toast.error(err.message || "Erro ao comprar cotas"); } finally { setIsBuyingQuota(false); }
                         }}
                         disabled={isBuyingQuota}
                         className="w-full bg-primary hover:bg-primary/80 text-primary-foreground font-bold text-xs h-8"
@@ -543,6 +566,7 @@ export default function SubscriptionManage() {
               );
             })()}
           </div>
+          )}
 
           {/* Quick Actions */}
           <div className="glass-card rounded-xl p-4 space-y-1.5">

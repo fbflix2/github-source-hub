@@ -630,14 +630,16 @@ export default function Checkout() {
 
         // Detect proxy provider: Webshare = icon_type proxy + no external_id; ProxyBR = icon_type proxy + external_id
         const isWebshareProduct = product?.icon_type === 'proxy' && !product?.external_id;
+        const isRotatingProxy = product?.tags?.some((t: string) => t.toLowerCase() === 'rotativo');
         if (isWebshareProduct) {
           updateData.status = "processing";
           await supabase.from("orders").update(updateData).eq("id", orderId);
 
-          toast.info("Ativando seu proxy...");
+          const wsAction = isRotatingProxy ? "purchase-rotating-proxy" : "purchase-proxy-with-balance";
+          toast.info(isRotatingProxy ? "Ativando proxy rotativo..." : "Ativando seu proxy...");
           const { data: wsResult, error: wsError } = await supabase.functions.invoke("webshare-api", {
             body: {
-              action: "purchase-proxy-with-balance",
+              action: wsAction,
               order_id: orderId,
               total,
               product_id: product.id,
@@ -657,7 +659,7 @@ export default function Checkout() {
             if (cpn) await supabase.from("coupons").update({ used_count: cpn.used_count + 1 }).eq("code", coupon.trim().toUpperCase());
           }
 
-          toast.success("Proxy ativado com sucesso!");
+          toast.success(isRotatingProxy ? "Proxy rotativo ativado!" : "Proxy ativado com sucesso!");
           queryClient.invalidateQueries({ queryKey: ["webshare-subscriptions"] });
           queryClient.invalidateQueries({ queryKey: ["proxybr-subscriptions"] });
           queryClient.invalidateQueries({ queryKey: ["subscriptions"] });

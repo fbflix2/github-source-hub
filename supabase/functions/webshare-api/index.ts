@@ -1002,6 +1002,124 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ========== GET ROTATING PROXY CREDENTIALS ==========
+    if (action === "get-rotating-credentials") {
+      const configResp = await webFetch("/proxy/config/", WEBSHARE_API_KEY);
+      const configData = await configResp.json();
+      if (!configResp.ok) throw new Error(`Webshare config error [${configResp.status}]`);
+
+      // Get subscription info for bandwidth
+      const subResp = await webFetch("/subscription/", WEBSHARE_API_KEY);
+      const subData = await subResp.json();
+
+      return new Response(JSON.stringify({
+        proxy_host: "p.webshare.io",
+        http_port: 80,
+        socks5_port: 1080,
+        username: configData.username || configData.proxy_username,
+        password: configData.password || configData.proxy_password,
+        country_suffix: "-country-BR-rotate",
+        bandwidth_limit_gb: subData.bandwidth_limit ? subData.bandwidth_limit / (1024 * 1024 * 1024) : null,
+        bandwidth_used_bytes: subData.bandwidth_used || 0,
+        bandwidth_limit_bytes: subData.bandwidth_limit || 0,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ========== PURCHASE ROTATING PROXY (balance) ==========
+    if (action === "purchase-rotating-proxy") {
+      const { order_id, total, product_id, quantity: gbQty } = params as {
+        order_id: string; total: number; product_id?: string; quantity?: number;
+      };
+      const gb = gbQty || 1;
+      if (!order_id || total === undefined) throw new Error("order_id e total são obrigatórios");
+
+      // 1. Check balance
+      const { data: profile, error: profileErr } = await supabaseAdmin
+        .from("profiles").select("balance").eq("user_id", user.id).single();
+      if (profileErr || !profile) throw new Error("Perfil não encontrado");
+      if (profile.balance < total) throw new Error("Saldo insuficiente");
+
+      // 2. Fetch rotating proxy credentials from Webshare config
+      const configResp = await webFetch("/proxy/config/", WEBSHARE_API_KEY);
+      const configData = await configResp.json();
+      if (!configResp.ok) throw new Error(`Webshare config error [${configResp.status}]`);
+
+      const rotatingUsername = (configData.username || configData.proxy_username || "") + "-country-BR-rotate";
+      const rotatingPassword = configData.password || configData.proxy_password || "";
+
+      // 3. Create subscription
+      const startDate = new Date();
+      const endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + 30);
+      const subName = `WSR-${Date.now().toString(36).toUpperCase()}`;
+
+      const { error: subErr } = await supabaseAdmin.from("subscriptions").insert({
+        user_id: user.id,
+        name: subName,
+        type: "webshare_rotating",
+        status: "active",
+        start_date: startDate.toISOString(),
+        end_date: endDate.toISOString(),
+        product_id: product_id || null,
+        auto_renew: false,
+        raw_data: {
+          provider: "webshare",
+          proxy_type: "rotating_residential",
+          proxy_host: "p.webshare.io",
+          http_port: 80,
+          socks5_port: 1080,
+          username: rotatingUsername,
+          password: rotatingPassword,
+          country_code: "BR",
+          gb_purchased: gb,
+          gb_used: 0,
+        },
+      });
+      if (subErr) throw new Error(`Erro ao criar assinatura: ${subErr.message}`);
+
+      // 4. Debit balance
+      const newBalance = profile.balance - total;
+      await supabaseAdmin.from("profiles").update({ balance: newBalance }).eq("user_id", user.id);
+
+      // 5. Wallet transaction
+      const { data: orderData } = await supabaseAdmin.from("orders").select("code").eq("id", order_id).single();
+      await supabaseAdmin.from("wallet_transactions").insert({
+        user_id: user.id, type: "purchase",
+        title: `Compra #${orderData?.code || order_id}`,
+        amount: -total, balance_after: newBalance, reference_id: order_id,
+      });
+
+      // 6. Update order
+      await supabaseAdmin.from("orders").update({
+        status: "completed", payment_method: "saldo", total,
+      }).eq("id", order_id);
+
+      // 7. Update order items delivery_data
+      const { data: ois } = await supabaseAdmin.from("order_items").select("id").eq("order_id", order_id);
+      if (ois) {
+        for (const oi of ois) {
+          await supabaseAdmin.from("order_items").update({
+            delivery_data: { type: "webshare_rotating", fulfilled: true, gb_purchased: gb, subscription_code: subName },
+          }).eq("id", oi.id);
+        }
+      }
+
+      // 8. Notify admin
+      const clientName = (await supabaseAdmin.from("profiles").select("full_name").eq("user_id", user.id).single())?.data?.full_name || "Cliente";
+      await supabaseAdmin.from("notifications").insert({
+        title: `Proxy Rotativo BR (${gb}GB)`,
+        message: `${clientName} • R$ ${Number(total).toFixed(2)} • ${gb}GB • Pedido #${orderData?.code || ""}`,
+        type: "order", global: true,
+      });
+
+      console.log(`[webshare-api] Rotating proxy ${gb}GB provisioned for ${user.id}`);
+      return new Response(JSON.stringify({ success: true, subscription: subName, gb_purchased: gb }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     throw new Error(`Ação desconhecida: ${action}`);
   } catch (err: any) {
     console.error("[webshare-api] Error:", err.message);
