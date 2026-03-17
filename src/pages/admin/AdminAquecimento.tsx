@@ -560,8 +560,6 @@ export default function AdminAquecimento() {
           })()}
         </div>
       </section>
-        </div>
-      </section>
 
       {/* ── Tab Navigation ── */}
       <nav className="sticky top-0 z-50 bg-white border-b border-slate-200 px-6 md:px-12 lg:px-40">
