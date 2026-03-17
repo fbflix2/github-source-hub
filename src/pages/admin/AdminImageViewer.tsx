@@ -67,11 +67,11 @@ export default function AdminImageViewer() {
   const [contrast, setContrast] = useState(100);
 
   const safeTextPos = {
-    nome: { ...DEFAULT_TEXT.nome, ...(textPos.nome ?? {}) },
-    docIdentidade: { ...DEFAULT_TEXT.docIdentidade, ...(textPos.docIdentidade ?? {}) },
-    nascimento: { ...DEFAULT_TEXT.nascimento, ...(textPos.nascimento ?? {}) },
-    filiacao: { ...DEFAULT_TEXT.filiacao, ...(textPos.filiacao ?? {}) },
-    assinatura: { ...DEFAULT_TEXT.assinatura, ...(textPos.assinatura ?? {}) },
+    nome: sanitizeTextPoint(textPos.nome, DEFAULT_TEXT.nome),
+    docIdentidade: sanitizeTextPoint(textPos.docIdentidade, DEFAULT_TEXT.docIdentidade),
+    nascimento: sanitizeTextPoint(textPos.nascimento, DEFAULT_TEXT.nascimento),
+    filiacao: sanitizeTextPoint(textPos.filiacao, DEFAULT_TEXT.filiacao),
+    assinatura: sanitizeTextPoint(textPos.assinatura, DEFAULT_TEXT.assinatura),
   };
 
   const safeFontSizes = {
