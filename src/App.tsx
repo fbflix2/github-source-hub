@@ -65,6 +65,7 @@ import AdminPedidos from "./pages/admin/AdminPedidos";
 import AdminCarrinhosAbandonados from "./pages/admin/AdminCarrinhosAbandonados";
 import AdminAnuncios from "./pages/admin/AdminAnuncios";
 import AdminCentralProxy from "./pages/admin/AdminCentralProxy";
+import AdminProxyInterno from "./pages/admin/AdminProxyInterno";
 import AdminTeamChat from "./pages/admin/AdminTeamChat";
 import AdminBlocoPadrao from "./pages/admin/AdminBlocoPadrao";
 import AdminReciclagem from "./pages/admin/AdminReciclagem";
@@ -307,6 +308,7 @@ const App = () => {
                   <Route path="assinaturas" element={<AdminAssinaturas />} />
                   <Route path="central-proxy" element={<AdminCentralProxy />} />
                   <Route path="central-proxy/proxybr" element={<AdminProxyBR />} />
+                  <Route path="central-proxy/interno" element={<AdminProxyInterno />} />
                   <Route path="clientes" element={<AdminClientes />} />
                   <Route path="clientes/ativos" element={<AdminClientesAtivos />} />
                   <Route path="afiliados" element={<AdminAfiliados />} />
