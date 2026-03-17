@@ -490,7 +490,38 @@ export default function AdminCaixa() {
                   </p>
                 </div>
               </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 text-xs border-white/10 hover:bg-white/5"
+                onClick={() => setShowFeeConfig(!showFeeConfig)}
+              >
+                <Percent className="size-3" />
+                Taxa MP: {mpFeeRate.toFixed(2).replace(".", ",")}%
+              </Button>
             </div>
+
+            {/* Fee config */}
+            {showFeeConfig && (
+              <div className="bg-white/[0.03] border border-white/10 rounded-lg p-4 flex items-center gap-4">
+                <Settings2 className="size-4 text-muted-foreground shrink-0" />
+                <div className="flex items-center gap-2 flex-1">
+                  <Label className="text-xs text-muted-foreground whitespace-nowrap">Taxa Mercado Pago (%)</Label>
+                  <Input
+                    type="text"
+                    inputMode="decimal"
+                    value={mpFeeRate.toFixed(2).replace(".", ",")}
+                    onChange={(e) => {
+                      const val = parseBRL(e.target.value);
+                      if (val >= 0 && val <= 10) setMpFeeRate(val);
+                    }}
+                    className="w-24"
+                    placeholder="0,99"
+                  />
+                  <span className="text-xs text-muted-foreground">Aplicada automaticamente a cada venda</span>
+                </div>
+              </div>
+            )}
 
             {/* Summary cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
