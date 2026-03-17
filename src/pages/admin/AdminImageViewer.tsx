@@ -58,18 +58,32 @@ export default function AdminImageViewer() {
 
   const [templateLoading, setTemplateLoading] = useState(true);
 
-  // Load template from Supabase site_settings on mount
+  // Load template + positions from Supabase on mount
   useEffect(() => {
-    const loadTemplate = async () => {
+    const loadSettings = async () => {
       try {
         const { data } = await supabase
           .from("site_settings")
-          .select("value")
-          .eq("key", SETTINGS_KEY)
-          .maybeSingle();
-        if (data?.value) {
-          setSelectedImage(data.value);
-          setTemplatePreview(data.value);
+          .select("key, value")
+          .in("key", [SETTINGS_KEY, POSITIONS_KEY]);
+
+        if (data) {
+          for (const row of data) {
+            if (row.key === SETTINGS_KEY && row.value) {
+              setSelectedImage(row.value);
+              setTemplatePreview(row.value);
+            }
+            if (row.key === POSITIONS_KEY && row.value) {
+              try {
+                const saved = JSON.parse(row.value);
+                if (saved.textPos) setTextPos(saved.textPos);
+                if (saved.fontSizes) setFontSizes(saved.fontSizes);
+                if (saved.photoPos) setPhotoPos(saved.photoPos);
+                if (saved.signatureFont) setSignatureFont(saved.signatureFont);
+                if (saved.contrast != null) setContrast(saved.contrast);
+              } catch { /* ignore parse errors */ }
+            }
+          }
         }
       } catch {
         // ignore
@@ -77,7 +91,7 @@ export default function AdminImageViewer() {
         setTemplateLoading(false);
       }
     };
-    loadTemplate();
+    loadSettings();
   }, []);
 
   const getImgRect = () => {
