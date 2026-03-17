@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -10,44 +10,48 @@ import {
   Banknote,
   TrendingUp,
   TrendingDown,
-  AlertTriangle,
-  CheckCircle2,
   Clock,
   Plus,
   Minus,
   FileText,
   RotateCcw,
+  CheckCircle2,
+  AlertTriangle,
+  ArrowUpCircle,
+  ArrowDownCircle,
+  Zap,
+  PenLine,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 
+// ── Helpers ──
 const formatCurrency = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 const formatDate = (d: string) =>
   new Date(d).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
+const formatTime = (d: string) =>
+  new Date(d).toLocaleString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+
 const parseBRL = (value: string): number => {
   if (!value || value === "") return 0;
-  let str = String(value).trim();
-  // Remove R$, spaces
-  str = str.replace(/[R$\s]/g, "");
-  // Auto-detect: if comma comes after last dot → comma is decimal (pt-BR)
+  let str = String(value).trim().replace(/[R$\s]/g, "");
   const lastComma = str.lastIndexOf(",");
   const lastDot = str.lastIndexOf(".");
-  const isCommaDecimal = lastComma > lastDot;
-  if (isCommaDecimal) {
-    str = str.replace(/\./g, ""); // remove thousand dots
-    str = str.replace(",", "."); // comma → decimal dot
+  if (lastComma > lastDot) {
+    str = str.replace(/\./g, "").replace(",", ".");
   } else if (lastDot > lastComma) {
-    str = str.replace(/,/g, ""); // remove thousand commas
+    str = str.replace(/,/g, "");
   }
   const parsed = parseFloat(str);
   return isNaN(parsed) ? 0 : parsed;
 };
 
+// ── Types ──
 interface CashRecord {
   id: string;
   opened_at: string;
@@ -64,33 +68,46 @@ interface CashRecord {
   notes: string | null;
 }
 
+interface CashMovement {
+  id: string;
+  cash_register_id: string;
+  type: string; // 'entry' | 'exit'
+  source: string; // 'manual' | 'automatic'
+  amount: number;
+  description: string | null;
+  reference_id: string | null;
+  created_at: string;
+}
+
 export default function AdminCaixa() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [openCash, setOpenCash] = useState<CashRecord | null>(null);
   const [history, setHistory] = useState<CashRecord[]>([]);
-
-  // Open form state
-  const [openingBalanceInput, setOpeningBalanceInput] = useState("");
-
-  // Close form state
-  const [bankBalance, setBankBalance] = useState("");
-  const [withdrawals, setWithdrawals] = useState("");
-  const [deposits, setDeposits] = useState("");
-  const [notes, setNotes] = useState("");
   const [reopening, setReopening] = useState(false);
 
-  // System values for the open period
+  // Open form
+  const [openingBalanceInput, setOpeningBalanceInput] = useState("");
+
+  // Close form
+  const [closeNotes, setCloseNotes] = useState("");
+
+  // Movements
+  const [movements, setMovements] = useState<CashMovement[]>([]);
+  const [newMovementType, setNewMovementType] = useState<"entry" | "exit">("entry");
+  const [newMovementAmount, setNewMovementAmount] = useState("");
+  const [newMovementDesc, setNewMovementDesc] = useState("");
+  const [addingMovement, setAddingMovement] = useState(false);
+
+  // System values
   const [systemRevenue, setSystemRevenue] = useState(0);
   const [systemExpenses, setSystemExpenses] = useState(0);
 
-
-
-  const fetchData = async () => {
+  // ── Fetch ──
+  const fetchData = useCallback(async () => {
     setLoading(true);
 
-    // Check for open cash register
     const { data: openData } = await supabase
       .from("cash_register")
       .select("*")
@@ -101,17 +118,15 @@ export default function AdminCaixa() {
 
     if (openData) {
       setOpenCash(openData as CashRecord);
-      // Pre-fill bank balance with opening balance
-      if (!bankBalance) {
-        setBankBalance((openData.opening_balance || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
-      }
-      // Fetch system values for the open period
-      await fetchSystemValues(openData.opened_at);
+      await Promise.all([
+        fetchSystemValues(openData.opened_at),
+        fetchMovements(openData.id),
+      ]);
     } else {
       setOpenCash(null);
+      setMovements([]);
     }
 
-    // Fetch history (last 30 closed)
     const { data: histData } = await supabase
       .from("cash_register")
       .select("*")
@@ -121,7 +136,7 @@ export default function AdminCaixa() {
 
     setHistory((histData || []) as CashRecord[]);
     setLoading(false);
-  };
+  }, []);
 
   const fetchSystemValues = async (since: string) => {
     const [ordersRes, purchasesRes] = await Promise.all([
@@ -135,18 +150,127 @@ export default function AdminCaixa() {
         .select("total_value")
         .gte("created_at", since),
     ]);
-
-    const rev = (ordersRes.data ?? []).reduce((s, o) => s + Number(o.total || 0), 0);
-    const exp = (purchasesRes.data ?? []).reduce((s, p) => s + Number(p.total_value || 0), 0);
-    setSystemRevenue(rev);
-    setSystemExpenses(exp);
+    setSystemRevenue((ordersRes.data ?? []).reduce((s, o) => s + Number(o.total || 0), 0));
+    setSystemExpenses((purchasesRes.data ?? []).reduce((s, p) => s + Number(p.total_value || 0), 0));
   };
 
-  useEffect(() => { fetchData(); }, []);
+  const fetchMovements = async (cashId: string) => {
+    const { data } = await supabase
+      .from("cash_movements")
+      .select("*")
+      .eq("cash_register_id", cashId)
+      .order("created_at", { ascending: false });
+    setMovements((data || []) as CashMovement[]);
+  };
 
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  // ── Realtime: listen for new orders → auto-create entry movements ──
+  useEffect(() => {
+    if (!openCash) return;
+    const cashId = openCash.id;
+    const openedAt = openCash.opened_at;
+
+    // Subscribe to new orders
+    const orderChannel = supabase
+      .channel("cash-orders-realtime")
+      .on("postgres_changes", {
+        event: "UPDATE",
+        schema: "public",
+        table: "orders",
+      }, async (payload) => {
+        const order = payload.new as any;
+        if (
+          (order.status === "completed" || order.status === "delivered") &&
+          new Date(order.created_at) >= new Date(openedAt)
+        ) {
+          // Check if we already have this order as a movement
+          const { data: existing } = await supabase
+            .from("cash_movements")
+            .select("id")
+            .eq("cash_register_id", cashId)
+            .eq("reference_id", order.code)
+            .maybeSingle();
+
+          if (!existing) {
+            await supabase.from("cash_movements").insert({
+              cash_register_id: cashId,
+              type: "entry",
+              source: "automatic",
+              amount: Number(order.total || 0),
+              description: `Venda #${order.code}`,
+              reference_id: order.code,
+            });
+          }
+          // Refresh
+          fetchMovements(cashId);
+          fetchSystemValues(openedAt);
+        }
+      })
+      .subscribe();
+
+    // Subscribe to movements changes
+    const movChannel = supabase
+      .channel("cash-movements-realtime")
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "cash_movements",
+        filter: `cash_register_id=eq.${cashId}`,
+      }, () => {
+        fetchMovements(cashId);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(orderChannel);
+      supabase.removeChannel(movChannel);
+    };
+  }, [openCash?.id]);
+
+  // ── Sync existing completed orders as automatic movements on open ──
+  useEffect(() => {
+    if (!openCash) return;
+    const syncAutoMovements = async () => {
+      const { data: completedOrders } = await supabase
+        .from("orders")
+        .select("code, total")
+        .in("status", ["completed", "delivered"])
+        .gte("created_at", openCash.opened_at);
+
+      if (!completedOrders?.length) return;
+
+      const { data: existingMovs } = await supabase
+        .from("cash_movements")
+        .select("reference_id")
+        .eq("cash_register_id", openCash.id)
+        .eq("source", "automatic");
+
+      const existingRefs = new Set((existingMovs || []).map(m => m.reference_id));
+
+      const toInsert = completedOrders
+        .filter(o => !existingRefs.has(o.code))
+        .map(o => ({
+          cash_register_id: openCash.id,
+          type: "entry" as const,
+          source: "automatic" as const,
+          amount: Number(o.total || 0),
+          description: `Venda #${o.code}`,
+          reference_id: o.code,
+        }));
+
+      if (toInsert.length > 0) {
+        await supabase.from("cash_movements").insert(toInsert);
+        fetchMovements(openCash.id);
+      }
+    };
+    syncAutoMovements();
+  }, [openCash?.id]);
+
+  // ── Actions ──
   const handleOpen = async () => {
     const obVal = parseBRL(openingBalanceInput);
-    if (!obVal) {
+    if (!obVal && obVal !== 0) {
       toast.error("Informe o saldo atual do banco para abrir o caixa");
       return;
     }
@@ -154,14 +278,12 @@ export default function AdminCaixa() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
-
       const { error } = await supabase.from("cash_register").insert({
         opened_by: user.id,
         status: "open",
         opening_balance: obVal,
       });
       if (error) throw error;
-
       toast.success("Caixa aberto com sucesso!");
       setOpeningBalanceInput("");
       fetchData();
@@ -172,22 +294,45 @@ export default function AdminCaixa() {
     }
   };
 
-  const handleClose = async () => {
+  const handleAddMovement = async () => {
     if (!openCash) return;
-    const bankVal = parseBRL(bankBalance);
-    if (!bankVal) {
-      toast.error("Informe o saldo real do banco");
+    const amount = parseBRL(newMovementAmount);
+    if (!amount || amount <= 0) {
+      toast.error("Informe um valor válido");
       return;
     }
+    if (!newMovementDesc.trim()) {
+      toast.error("Informe uma descrição");
+      return;
+    }
+    setAddingMovement(true);
+    try {
+      const { error } = await supabase.from("cash_movements").insert({
+        cash_register_id: openCash.id,
+        type: newMovementType,
+        source: "manual",
+        amount,
+        description: newMovementDesc.trim(),
+      });
+      if (error) throw error;
+      toast.success(newMovementType === "entry" ? "Entrada registrada!" : "Saída registrada!");
+      setNewMovementAmount("");
+      setNewMovementDesc("");
+      fetchMovements(openCash.id);
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao registrar movimento");
+    } finally {
+      setAddingMovement(false);
+    }
+  };
 
+  const handleClose = async () => {
+    if (!openCash) return;
     setSaving(true);
     try {
-      const wdVal = parseBRL(withdrawals);
-      const dpVal = parseBRL(deposits);
-      const sysBalance = systemRevenue - systemExpenses;
-      const openBal = openCash.opening_balance || 0;
-      // Diferença = variação real do banco no período
-      const diff = bankVal - openBal;
+      const totalEntries = movements.filter(m => m.type === "entry").reduce((s, m) => s + m.amount, 0);
+      const totalExits = movements.filter(m => m.type === "exit").reduce((s, m) => s + m.amount, 0);
+      const closingBalance = openCash.opening_balance + totalEntries - totalExits;
 
       const { error } = await supabase
         .from("cash_register")
@@ -196,23 +341,18 @@ export default function AdminCaixa() {
           status: "closed",
           system_revenue: systemRevenue,
           system_expenses: systemExpenses,
-          system_balance: sysBalance,
-          bank_balance: bankVal,
-          withdrawals: wdVal,
-          deposits: dpVal,
-          difference: diff,
-          notes: notes.trim() || null,
+          system_balance: systemRevenue - systemExpenses,
+          bank_balance: closingBalance,
+          withdrawals: totalExits,
+          deposits: totalEntries,
+          difference: totalEntries - totalExits,
+          notes: closeNotes.trim() || null,
           updated_at: new Date().toISOString(),
         })
         .eq("id", openCash.id);
-
       if (error) throw error;
-
       toast.success("Caixa fechado com sucesso!");
-      setBankBalance("");
-      setWithdrawals("");
-      setDeposits("");
-      setNotes("");
+      setCloseNotes("");
       fetchData();
     } catch (err: any) {
       toast.error(err.message || "Erro ao fechar caixa");
@@ -226,11 +366,7 @@ export default function AdminCaixa() {
     try {
       const { error } = await supabase
         .from("cash_register")
-        .update({
-          status: "open",
-          closed_at: null,
-          updated_at: new Date().toISOString(),
-        })
+        .update({ status: "open", closed_at: null, updated_at: new Date().toISOString() })
         .eq("id", record.id);
       if (error) throw error;
       toast.success("Caixa reaberto para ajustes!");
@@ -242,13 +378,11 @@ export default function AdminCaixa() {
     }
   };
 
-  const sysBalance = systemRevenue - systemExpenses;
-  const openingBal = openCash?.opening_balance || 0;
-  const bankVal = parseBRL(bankBalance);
-  const wdVal = parseBRL(withdrawals);
-  const dpVal = parseBRL(deposits);
-  // Variação real = banco agora - saldo abertura
-  const liveDiff = bankVal - openingBal;
+  // ── Computed ──
+  const totalEntries = movements.filter(m => m.type === "entry").reduce((s, m) => s + m.amount, 0);
+  const totalExits = movements.filter(m => m.type === "exit").reduce((s, m) => s + m.amount, 0);
+  const currentBalance = (openCash?.opening_balance || 0) + totalEntries - totalExits;
+  const netChange = totalEntries - totalExits;
 
   if (loading) {
     return (
@@ -260,12 +394,11 @@ export default function AdminCaixa() {
 
   return (
     <div className="flex flex-col min-h-[calc(100vh-80px)] -mx-6 -mt-6 p-6 lg:p-10 gap-8 relative">
-      {/* Background */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
         <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-primary/15 rounded-full blur-[120px] mix-blend-screen opacity-30" />
       </div>
 
-      <div className="relative z-10 w-full max-w-5xl mx-auto flex flex-col gap-8">
+      <div className="relative z-10 w-full max-w-5xl mx-auto flex flex-col gap-6">
         {/* Header */}
         <header className="flex items-center gap-4">
           <button onClick={() => navigate("/admin/auditoria")} className="p-2 rounded-lg border border-white/10 hover:bg-white/5 transition-colors">
@@ -273,15 +406,12 @@ export default function AdminCaixa() {
           </button>
           <div>
             <h1 className="text-2xl font-bold text-white">Controle de Caixa</h1>
-            <p className="text-sm text-muted-foreground">Abertura e fechamento diário para conciliação bancária</p>
+            <p className="text-sm text-muted-foreground">Abertura, movimentações e fechamento diário</p>
           </div>
         </header>
 
-
-
-        {/* Current Status */}
         {!openCash ? (
-          // No open cash - show open button
+          /* ── Open Cash ── */
           <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-xl p-8 text-center space-y-4">
             <div className="mx-auto w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
               <DoorOpen className="size-8 text-emerald-400" />
@@ -309,9 +439,9 @@ export default function AdminCaixa() {
             </Button>
           </div>
         ) : (
-          // Cash is open - show dashboard + close form
-          <div className="space-y-6">
-            {/* Open info */}
+          /* ── Cash Open Dashboard ── */
+          <div className="space-y-5">
+            {/* Status bar */}
             <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-emerald-500/10">
@@ -320,138 +450,213 @@ export default function AdminCaixa() {
                 <div>
                   <p className="text-sm font-medium text-emerald-400">Caixa Aberto</p>
                   <p className="text-xs text-muted-foreground">
-                    Desde {formatDate(openCash.opened_at)} • Saldo abertura: {formatCurrency(openCash.opening_balance || 0)}
+                    Desde {formatDate(openCash.opened_at)} • Abertura: {formatCurrency(openCash.opening_balance || 0)}
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* System metrics */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Summary cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <TrendingUp className="size-4 text-emerald-400" />
-                  <span className="text-xs uppercase tracking-wider text-muted-foreground">Receita no Período</span>
-                </div>
-                <p className="text-xl font-bold text-white">{formatCurrency(systemRevenue)}</p>
-              </div>
-              <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <TrendingDown className="size-4 text-red-400" />
-                  <span className="text-xs uppercase tracking-wider text-muted-foreground">Despesas no Período</span>
-                </div>
-                <p className="text-xl font-bold text-white">{formatCurrency(systemExpenses)}</p>
-              </div>
-              <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4">
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex items-center gap-2 mb-1">
                   <Banknote className="size-4 text-blue-400" />
-                  <span className="text-xs uppercase tracking-wider text-muted-foreground">Saldo Sistema</span>
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Saldo Abertura</span>
                 </div>
-                <p className="text-xl font-bold text-white">{formatCurrency(sysBalance)}</p>
+                <p className="text-lg font-bold text-white">{formatCurrency(openCash.opening_balance || 0)}</p>
+              </div>
+              <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <ArrowUpCircle className="size-4 text-emerald-400" />
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Total Entradas</span>
+                </div>
+                <p className="text-lg font-bold text-emerald-400">+{formatCurrency(totalEntries)}</p>
+              </div>
+              <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <ArrowDownCircle className="size-4 text-red-400" />
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Total Saídas</span>
+                </div>
+                <p className="text-lg font-bold text-red-400">-{formatCurrency(totalExits)}</p>
+              </div>
+              <div className="bg-white/[0.03] border border-white/10 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <TrendingUp className="size-4 text-primary" />
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Saldo Atual</span>
+                </div>
+                <p className={`text-lg font-bold ${currentBalance >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                  {formatCurrency(currentBalance)}
+                </p>
               </div>
             </div>
 
-            {/* Close form */}
-            <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-xl p-6 space-y-5">
-              <div className="flex items-center gap-3">
-                <DoorClosed className="size-5 text-primary" />
-                <h3 className="text-lg font-bold text-white">Fechar Caixa</h3>
+            {/* Add movement */}
+            <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-xl p-5 space-y-4">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <PenLine className="size-4" />
+                Registrar Movimento Manual
+              </h3>
+
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant={newMovementType === "entry" ? "default" : "outline"}
+                  onClick={() => setNewMovementType("entry")}
+                  className={`gap-1.5 text-xs ${newMovementType === "entry" ? "bg-emerald-600 hover:bg-emerald-700" : "border-white/10 hover:bg-white/5"}`}
+                >
+                  <Plus className="size-3" /> Entrada
+                </Button>
+                <Button
+                  size="sm"
+                  variant={newMovementType === "exit" ? "default" : "outline"}
+                  onClick={() => setNewMovementType("exit")}
+                  className={`gap-1.5 text-xs ${newMovementType === "exit" ? "bg-red-600 hover:bg-red-700" : "border-white/10 hover:bg-white/5"}`}
+                >
+                  <Minus className="size-3" /> Saída
+                </Button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-1.5">
-                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                    <Banknote className="size-3 inline mr-1" />
-                    Saldo Real do Banco (R$)
-                  </Label>
+              <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr_auto] gap-3 items-end">
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Valor (R$)</Label>
                   <Input
                     type="text"
                     inputMode="decimal"
-                    value={bankBalance}
-                    onChange={(e) => setBankBalance(e.target.value)}
-                    placeholder="Ex: 11.522,06"
+                    value={newMovementAmount}
+                    onChange={(e) => setNewMovementAmount(e.target.value)}
+                    placeholder="Ex: 150,00"
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                    <Minus className="size-3 inline mr-1" />
-                    Sangrias / Retiradas (R$)
-                  </Label>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Descrição</Label>
                   <Input
                     type="text"
-                    inputMode="decimal"
-                    value={withdrawals}
-                    onChange={(e) => setWithdrawals(e.target.value)}
-                    placeholder="0,00"
+                    value={newMovementDesc}
+                    onChange={(e) => setNewMovementDesc(e.target.value)}
+                    placeholder="Ex: Compra de BM verificada, Retirada pessoal..."
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                    <Plus className="size-3 inline mr-1" />
-                    Reforços / Entradas (R$)
-                  </Label>
-                  <Input
-                    type="text"
-                    inputMode="decimal"
-                    value={deposits}
-                    onChange={(e) => setDeposits(e.target.value)}
-                    placeholder="0,00"
-                  />
-                </div>
+                <Button
+                  onClick={handleAddMovement}
+                  disabled={addingMovement || !newMovementAmount || !newMovementDesc.trim()}
+                  className={`gap-1.5 ${newMovementType === "entry" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-red-600 hover:bg-red-700"}`}
+                >
+                  {addingMovement ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
+                  Registrar
+                </Button>
               </div>
+            </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                  <FileText className="size-3 inline mr-1" />
-                  Observações
-                </Label>
-                <Textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Justificativas para divergências, anotações do dia..."
-                  className="min-h-[60px] resize-none text-sm"
-                />
-              </div>
+            {/* Movements list */}
+            <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-xl p-5 space-y-3">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <FileText className="size-4" />
+                Movimentações do Período
+                <span className="text-xs font-normal text-muted-foreground ml-auto">
+                  {movements.length} registro{movements.length !== 1 ? "s" : ""}
+                </span>
+              </h3>
 
-              {/* Live difference preview */}
-              {bankBalance && (
-                <div className={`rounded-lg p-4 border ${
-                  Math.abs(liveDiff) < 0.01
-                    ? "bg-emerald-500/5 border-emerald-500/20"
-                    : liveDiff > 0
-                      ? "bg-emerald-500/5 border-emerald-500/20"
-                      : "bg-red-500/5 border-red-500/20"
-                }`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      {liveDiff >= 0 ? (
-                        <TrendingUp className="size-5 text-emerald-400" />
-                      ) : (
-                        <TrendingDown className="size-5 text-red-400" />
-                      )}
-                      <span className="text-sm font-medium text-white">
-                        {Math.abs(liveDiff) < 0.01
-                          ? "Sem variação no período"
-                          : liveDiff > 0
-                            ? "Entrou a mais no banco"
-                            : "Saiu do banco"}
-                      </span>
-                    </div>
-                    <div className="text-right">
-                      <p className={`text-lg font-bold ${liveDiff >= 0 ? "text-emerald-400" : "text-red-400"}`}>
-                        {liveDiff > 0 ? "+" : ""}{formatCurrency(liveDiff)}
+              {movements.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-6">
+                  Nenhuma movimentação registrada ainda
+                </p>
+              ) : (
+                <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
+                  {movements.map((mov) => (
+                    <div
+                      key={mov.id}
+                      className={`flex items-center gap-3 p-3 rounded-lg border ${
+                        mov.type === "entry"
+                          ? "bg-emerald-500/5 border-emerald-500/15"
+                          : "bg-red-500/5 border-red-500/15"
+                      }`}
+                    >
+                      <div className={`p-1.5 rounded-md ${mov.type === "entry" ? "bg-emerald-500/10" : "bg-red-500/10"}`}>
+                        {mov.type === "entry" ? (
+                          <ArrowUpCircle className="size-4 text-emerald-400" />
+                        ) : (
+                          <ArrowDownCircle className="size-4 text-red-400" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-white truncate">{mov.description || "—"}</p>
+                        <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                          <span>{formatTime(mov.created_at)}</span>
+                          {mov.source === "automatic" && (
+                            <span className="flex items-center gap-0.5 text-blue-400">
+                              <Zap className="size-3" /> Auto
+                            </span>
+                          )}
+                          {mov.source === "manual" && (
+                            <span className="flex items-center gap-0.5 text-amber-400">
+                              <PenLine className="size-3" /> Manual
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <p className={`text-sm font-bold whitespace-nowrap ${
+                        mov.type === "entry" ? "text-emerald-400" : "text-red-400"
+                      }`}>
+                        {mov.type === "entry" ? "+" : "-"}{formatCurrency(mov.amount)}
                       </p>
-                      <p className="text-xs text-muted-foreground">
-                        Abertura: {formatCurrency(openingBal)} → Banco: {formatCurrency(bankVal)}
-                      </p>
                     </div>
-                  </div>
+                  ))}
                 </div>
               )}
+            </div>
 
-              <Button onClick={handleClose} disabled={saving || !bankBalance} className="w-full gap-2">
-                {saving ? <Loader2 className="size-4 animate-spin" /> : <DoorClosed className="size-4" />}
+            {/* Net result preview */}
+            <div className={`rounded-xl p-4 border ${
+              netChange >= 0 ? "bg-emerald-500/5 border-emerald-500/20" : "bg-red-500/5 border-red-500/20"
+            }`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  {netChange >= 0 ? (
+                    <TrendingUp className="size-5 text-emerald-400" />
+                  ) : (
+                    <TrendingDown className="size-5 text-red-400" />
+                  )}
+                  <span className="text-sm font-medium text-white">
+                    {Math.abs(netChange) < 0.01
+                      ? "Sem variação no período"
+                      : netChange > 0
+                        ? "Resultado positivo no período"
+                        : "Resultado negativo no período"}
+                  </span>
+                </div>
+                <div className="text-right">
+                  <p className={`text-lg font-bold ${netChange >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                    {netChange > 0 ? "+" : ""}{formatCurrency(netChange)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatCurrency(openCash.opening_balance || 0)} → {formatCurrency(currentBalance)}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Close section */}
+            <div className="bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-xl p-5 space-y-4">
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <DoorClosed className="size-4" />
                 Fechar Caixa
+              </h3>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">
+                  <FileText className="size-3 inline mr-1" />
+                  Observações de fechamento (opcional)
+                </Label>
+                <Textarea
+                  value={closeNotes}
+                  onChange={(e) => setCloseNotes(e.target.value)}
+                  placeholder="Anotações do dia, justificativas..."
+                  className="min-h-[50px] resize-none text-sm"
+                />
+              </div>
+              <Button onClick={handleClose} disabled={saving} className="w-full gap-2 bg-red-600 hover:bg-red-700">
+                {saving ? <Loader2 className="size-4 animate-spin" /> : <DoorClosed className="size-4" />}
+                Fechar Caixa • Saldo Final: {formatCurrency(currentBalance)}
               </Button>
             </div>
           </div>
@@ -467,14 +672,12 @@ export default function AdminCaixa() {
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
                       <div className={`p-2 rounded-lg ${
-                        Math.abs(record.difference) < 0.01
-                          ? "bg-emerald-500/10"
-                          : "bg-amber-500/10"
+                        Math.abs(record.difference) < 0.01 ? "bg-emerald-500/10" : record.difference > 0 ? "bg-emerald-500/10" : "bg-red-500/10"
                       }`}>
-                        {Math.abs(record.difference) < 0.01 ? (
+                        {record.difference >= 0 ? (
                           <CheckCircle2 className="size-4 text-emerald-400" />
                         ) : (
-                          <AlertTriangle className="size-4 text-amber-400" />
+                          <AlertTriangle className="size-4 text-red-400" />
                         )}
                       </div>
                       <div>
@@ -482,23 +685,19 @@ export default function AdminCaixa() {
                           {formatDate(record.opened_at)} → {record.closed_at ? formatDate(record.closed_at) : "—"}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          Sistema: {formatCurrency(record.system_balance)} • Banco: {formatCurrency(record.bank_balance || 0)}
-                          {record.withdrawals > 0 && ` • Sangria: ${formatCurrency(record.withdrawals)}`}
-                          {record.deposits > 0 && ` • Reforço: ${formatCurrency(record.deposits)}`}
+                          Abertura: {formatCurrency(record.opening_balance)} • Entradas: {formatCurrency(record.deposits)} • Saídas: {formatCurrency(record.withdrawals)}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="text-right">
                         <p className={`text-sm font-bold ${
-                          Math.abs(record.difference) < 0.01
-                            ? "text-emerald-400"
-                            : record.difference > 0 ? "text-emerald-400" : "text-red-400"
+                          record.difference >= 0 ? "text-emerald-400" : "text-red-400"
                         }`}>
                           {record.difference > 0 ? "+" : ""}{formatCurrency(record.difference)}
                         </p>
                         {record.notes && (
-                          <p className="text-xs text-muted-foreground mt-1 max-w-xs truncate">{record.notes}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5 max-w-xs truncate">{record.notes}</p>
                         )}
                       </div>
                       <Button
