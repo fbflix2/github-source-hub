@@ -429,7 +429,7 @@ export default function AdminImageViewer() {
                 <p className="text-xs text-muted-foreground mb-2">
                   Posicione os textos e a foto no preview arrastando-os, ajuste fontes e contraste, depois clique abaixo para salvar as posições permanentemente.
                 </p>
-                <Button onClick={savePositions} variant="outline" className="w-full gap-2">
+                <Button onClick={() => savePositions(false)} variant="outline" className="w-full gap-2">
                   <Download className="size-4" />
                   Salvar Posições Atuais
                 </Button>
