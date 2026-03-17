@@ -392,6 +392,7 @@ export default function AdminAquecimento() {
   const tabs = [
     { key: "dashboard", label: "Painel", icon: "dashboard" },
     { key: "esteiras", label: "Esteiras", icon: "layers" },
+    { key: "gestao", label: "Gestão", icon: "supervisor_account" },
     { key: "relatorios", label: "Relatórios", icon: "analytics" },
     { key: "configuracoes", label: "Configurações", icon: "settings" },
   ] as const;
