@@ -309,6 +309,50 @@ export type Database = {
           },
         ]
       }
+      cash_movements: {
+        Row: {
+          amount: number
+          cash_register_id: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          reference_id: string | null
+          source: string
+          type: string
+        }
+        Insert: {
+          amount?: number
+          cash_register_id: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          reference_id?: string | null
+          source?: string
+          type?: string
+        }
+        Update: {
+          amount?: number
+          cash_register_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          reference_id?: string | null
+          source?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_movements_cash_register_id_fkey"
+            columns: ["cash_register_id"]
+            isOneToOne: false
+            referencedRelation: "cash_register"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cash_register: {
         Row: {
           bank_balance: number | null
