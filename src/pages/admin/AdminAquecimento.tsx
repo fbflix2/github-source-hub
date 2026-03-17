@@ -864,36 +864,40 @@ export default function AdminAquecimento() {
                 profile={selectedProfile}
                 tasks={selectedTasks}
                 trackLabel={selectedTrackDef?.label || selectedProfile.track_type}
+                finishSignal={finishSignal}
+                onTimerStateChange={(isRunning, taskTitle, elapsedVal) => {
+                  setIsTimerActive(isRunning);
+                  setActiveTaskTitle(taskTitle);
+                  setCurrentElapsed(elapsedVal);
+                }}
                 onTaskCompleted={() => { fetchTasks(selectedProfile.id); fetchProfiles(); }}
-                onTrackCompleted={async (profile) => {
+                onTrackCompleted={async (prof) => {
                   const NEXT_TRACK: Record<string, string> = { "7_days": "15_days", "15_days": "30_days" };
-                  const nextTrackKey = NEXT_TRACK[profile.track_type];
-                  if (!nextTrackKey) return; // 30_days → truly completed
+                  const nextTrackKey = NEXT_TRACK[prof.track_type];
+                  if (!nextTrackKey) return;
 
                   const nextCustomTasks = configTasks[nextTrackKey] || [];
                   const nextTrackDef = TRACKS[nextTrackKey];
                   const tasksToUse = nextCustomTasks.length > 0 ? nextCustomTasks : nextTrackDef.tasks;
 
-                  // Update profile to next track
                   await supabase.from("warming_profiles").update({
                     track_type: nextTrackKey,
                     track_days: tasksToUse.length,
                     current_day: 1,
                     status: "active",
                     updated_at: new Date().toISOString(),
-                  }).eq("id", profile.id);
+                  }).eq("id", prof.id);
 
-                  // Create new tasks for next track
                   const taskRows = tasksToUse.map((t, i) => ({
-                    profile_id: profile.id,
+                    profile_id: prof.id,
                     day_number: i + 1,
                     title: t.title,
                     description: t.description,
                   }));
                   await supabase.from("warming_tasks").insert(taskRows);
 
-                  toast.success(`🎉 Perfil ${profile.profile_code} avançou para a esteira ${nextTrackDef.label}!`);
-                  fetchTasks(profile.id);
+                  toast.success(`🎉 Perfil ${prof.profile_code} avançou para a esteira ${nextTrackDef.label}!`);
+                  fetchTasks(prof.id);
                   fetchProfiles();
                 }}
               />
