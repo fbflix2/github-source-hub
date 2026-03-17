@@ -11,10 +11,13 @@ import { toast } from "sonner";
 
 const SETTINGS_KEY = "imageviewer_base_template_url";
 const POSITIONS_KEY = "imageviewer_positions";
+const DOC_IDENTIDADE_KEY = "imageviewer_doc_identidade";
+const DEFAULT_DOC_IDENTIDADE = "503234175 SSPSP";
 
 const DEFAULT_PHOTO = { xPct: 2.8, yPct: 25, wPct: 17.5, hPct: 24 };
 const DEFAULT_TEXT = {
   nome: { xPct: 30, yPct: 14.5 },
+  docIdentidade: { xPct: 30, yPct: 18 },
   nascimento: { xPct: 30, yPct: 22 },
   filiacao: { xPct: 30, yPct: 47 },
   assinatura: { xPct: 15, yPct: 56 },
@@ -41,7 +44,8 @@ export default function AdminImageViewer() {
   const [dragStartPct, setDragStartPct] = useState({ x: 0, y: 0 });
 
   const [textPos, setTextPos] = useState(DEFAULT_TEXT);
-  const [fontSizes, setFontSizes] = useState({ nome: 11, nascimento: 10, filiacao: 9, assinatura: 14 });
+  const [fontSizes, setFontSizes] = useState({ nome: 11, docIdentidade: 9, nascimento: 10, filiacao: 9, assinatura: 14 });
+  const [docIdentidade, setDocIdentidade] = useState(DEFAULT_DOC_IDENTIDADE);
   const [signatureFont, setSignatureFont] = useState(SIGNATURE_FONTS[0]);
   const [contrast, setContrast] = useState(100);
 
@@ -67,7 +71,7 @@ export default function AdminImageViewer() {
         const { data } = await supabase
           .from("site_settings")
           .select("key, value")
-          .in("key", [SETTINGS_KEY, POSITIONS_KEY]);
+          .in("key", [SETTINGS_KEY, POSITIONS_KEY, DOC_IDENTIDADE_KEY]);
 
         if (data) {
           for (const row of data) {
@@ -84,6 +88,9 @@ export default function AdminImageViewer() {
                 if (saved.signatureFont) setSignatureFont(saved.signatureFont);
                 if (saved.contrast != null) setContrast(saved.contrast);
               } catch { /* ignore parse errors */ }
+            }
+            if (row.key === DOC_IDENTIDADE_KEY && row.value) {
+              setDocIdentidade(row.value);
             }
           }
         }
@@ -145,13 +152,15 @@ export default function AdminImageViewer() {
     try {
       await supabase.from("site_settings").delete().eq("key", SETTINGS_KEY);
       await supabase.from("site_settings").delete().eq("key", POSITIONS_KEY);
+      await supabase.from("site_settings").delete().eq("key", DOC_IDENTIDADE_KEY);
       setSelectedImage(null);
       setTemplatePreview(null);
       setTextPos(DEFAULT_TEXT);
-      setFontSizes({ nome: 11, nascimento: 10, filiacao: 9, assinatura: 14 });
+      setFontSizes({ nome: 11, docIdentidade: 9, nascimento: 10, filiacao: 9, assinatura: 14 });
       setPhotoPos(DEFAULT_PHOTO);
       setContrast(100);
       setSignatureFont(SIGNATURE_FONTS[0]);
+      setDocIdentidade(DEFAULT_DOC_IDENTIDADE);
       toast.success("Template removido");
     } catch {
       toast.error("Erro ao remover template");
@@ -267,6 +276,16 @@ export default function AdminImageViewer() {
       const x = (textPos.nome.xPct / 100) * W;
       const y = (textPos.nome.yPct / 100) * H;
       ctx.fillText(formData.nomeCompleto.toUpperCase(), x, y);
+    }
+
+    // Draw doc identidade
+    if (docIdentidade) {
+      const fs = scaledFont(fontSizes.docIdentidade);
+      ctx.font = `600 ${fs}px "Arial Narrow", Arial, sans-serif`;
+      ctx.fillStyle = "rgba(0,0,0,0.9)";
+      const x = (textPos.docIdentidade.xPct / 100) * W;
+      const y = (textPos.docIdentidade.yPct / 100) * H;
+      ctx.fillText(docIdentidade.toUpperCase(), x, y);
     }
 
     // Draw nascimento + naturalidade
@@ -443,8 +462,30 @@ export default function AdminImageViewer() {
               </div>
             )}
             {templatePreview && (
-              <div className="pt-2 border-t border-border">
-                <p className="text-xs text-muted-foreground mb-2">
+              <div className="pt-2 border-t border-border space-y-3">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Doc. de Identidade (padrão)</Label>
+                  <Input
+                    value={docIdentidade}
+                    onChange={(e) => setDocIdentidade(e.target.value)}
+                    onBlur={async () => {
+                      try {
+                        const { data: existing } = await supabase.from("site_settings").select("id").eq("key", DOC_IDENTIDADE_KEY).maybeSingle();
+                        if (existing) {
+                          await supabase.from("site_settings").update({ value: docIdentidade }).eq("key", DOC_IDENTIDADE_KEY);
+                        } else {
+                          await supabase.from("site_settings").insert({ key: DOC_IDENTIDADE_KEY, value: docIdentidade });
+                        }
+                        toast.success("Doc. identidade salvo!");
+                      } catch { toast.error("Erro ao salvar"); }
+                    }}
+                    placeholder="503234175 SSPSP"
+                    className="mt-1"
+                    maxLength={50}
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">Este valor será preenchido automaticamente em novos documentos.</p>
+                </div>
+                <p className="text-xs text-muted-foreground">
                   Posicione os textos e a foto no preview arrastando-os, ajuste fontes e contraste, depois clique abaixo para salvar as posições permanentemente.
                 </p>
                 <Button onClick={() => savePositions(false)} variant="outline" className="w-full gap-2">
@@ -512,6 +553,21 @@ export default function AdminImageViewer() {
                   <span className="text-[10px] text-white/40">Fonte:</span>
                   <Slider value={[fontSizes.nome]} onValueChange={([v]) => setFontSizes((f) => ({ ...f, nome: v }))} min={5} max={18} step={0.5} className="flex-1" />
                   <span className="text-[10px] text-white/50 w-8">{fontSizes.nome}px</span>
+                </div>
+              </div>
+              <div>
+                <Label className="text-white/60 text-xs">Doc. de Identidade</Label>
+                <Input
+                  value={docIdentidade}
+                  onChange={(e) => setDocIdentidade(e.target.value)}
+                  placeholder="503234175 SSPSP"
+                  className="mt-1 bg-white/5 border-white/10 text-white uppercase text-xs"
+                  maxLength={50}
+                />
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-[10px] text-white/40">Fonte:</span>
+                  <Slider value={[fontSizes.docIdentidade]} onValueChange={([v]) => setFontSizes((f) => ({ ...f, docIdentidade: v }))} min={5} max={18} step={0.5} className="flex-1" />
+                  <span className="text-[10px] text-white/50 w-8">{fontSizes.docIdentidade}px</span>
                 </div>
               </div>
               <div className="grid grid-cols-[1fr_auto] gap-2">
@@ -707,6 +763,17 @@ export default function AdminImageViewer() {
                     >
                       <span className="font-bold tracking-wide text-black/90 uppercase" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${fontSizes.nome}px` }}>
                         {formData.nomeCompleto}
+                      </span>
+                    </div>
+                  )}
+                  {docIdentidade && (
+                    <div
+                      className="absolute select-none whitespace-nowrap"
+                      style={{ left: `${textPos.docIdentidade.xPct}%`, top: `${textPos.docIdentidade.yPct}%`, cursor: panMode ? "inherit" : "move" }}
+                      onMouseDown={(e) => onElementMouseDown("docIdentidade", e)}
+                    >
+                      <span className="font-semibold text-black/90 uppercase" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${fontSizes.docIdentidade}px` }}>
+                        {docIdentidade}
                       </span>
                     </div>
                   )}
