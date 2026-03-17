@@ -537,6 +537,86 @@ export default function WarmingOperatorDashboard({ profiles, tasks, creatorNames
           )}
         </div>
       </div>
+
+      {/* Per-Profile Time Breakdown */}
+      {(() => {
+        const targetProfiles = (selectedOperator === "all"
+          ? filteredProfiles
+          : filteredProfiles.filter(p => p.created_by === selectedOperator)
+        )
+          .map(p => {
+            const profileTasks = tasks[p.id] || [];
+            const completedTasks = profileTasks.filter(t => t.completed && t.duration_seconds);
+            const totalTime = completedTasks.reduce((a, t) => a + (t.duration_seconds || 0), 0);
+            const tasksDone = completedTasks.length;
+            const totalTasks = profileTasks.length;
+            return { ...p, totalTime, tasksDone, totalTasks };
+          })
+          .filter(p => p.totalTime > 0)
+          .sort((a, b) => b.totalTime - a.totalTime);
+
+        const maxTime = Math.max(...targetProfiles.map(p => p.totalTime), 1);
+
+        return (
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="p-5 border-b border-slate-100">
+              <h3 className="text-lg font-bold flex items-center gap-2">
+                <MIcon name="person" className="text-purple-500" />
+                Tempo por Perfil
+              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">Tempo total que o operador gastou executando tarefas em cada perfil</p>
+            </div>
+            <div className="p-5">
+              {targetProfiles.length > 0 ? (
+                <div className="space-y-2.5 max-h-[400px] overflow-y-auto">
+                  {targetProfiles.map(p => {
+                    const pct = Math.min(100, (p.totalTime / maxTime) * 100);
+                    const operatorName = p.created_by ? (creatorNames[p.created_by] || "—") : "—";
+                    return (
+                      <div key={p.id} className="flex items-center gap-3">
+                        <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                          p.status === "completed" ? "bg-emerald-50 text-emerald-600" :
+                          p.status === "restricted" ? "bg-rose-50 text-rose-600" :
+                          "bg-blue-50 text-[#1876f2]"
+                        }`}>
+                          <MIcon name={p.status === "completed" ? "check" : p.status === "restricted" ? "warning" : "play_arrow"} className="text-base" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <p className="text-xs font-bold text-slate-900 truncate">{p.profile_code}</p>
+                              {selectedOperator === "all" && (
+                                <span className="text-[10px] text-slate-400 truncate">• {operatorName}</span>
+                              )}
+                              <span className="text-[10px] text-slate-400">{p.tasksDone}/{p.totalTasks} tarefas</span>
+                            </div>
+                            <span className="text-xs font-bold text-slate-900 w-20 text-right flex-shrink-0">{formatDuration(p.totalTime)}</span>
+                          </div>
+                          <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all ${
+                                p.status === "completed" ? "bg-emerald-400" :
+                                p.status === "restricted" ? "bg-rose-400" :
+                                "bg-gradient-to-r from-purple-500 to-purple-300"
+                              }`}
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-slate-400 text-sm">
+                  <MIcon name="hourglass_empty" className="text-3xl mb-2" />
+                  <p>Nenhum perfil com dados de tempo registrados</p>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
     </main>
   );
 }
