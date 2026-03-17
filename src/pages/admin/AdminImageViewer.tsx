@@ -44,7 +44,8 @@ export default function AdminImageViewer() {
   const [dragStartPct, setDragStartPct] = useState({ x: 0, y: 0 });
 
   const [textPos, setTextPos] = useState(DEFAULT_TEXT);
-  const [fontSizes, setFontSizes] = useState({ nome: 11, nascimento: 10, filiacao: 9, assinatura: 14 });
+  const [fontSizes, setFontSizes] = useState({ nome: 11, docIdentidade: 9, nascimento: 10, filiacao: 9, assinatura: 14 });
+  const [docIdentidade, setDocIdentidade] = useState(DEFAULT_DOC_IDENTIDADE);
   const [signatureFont, setSignatureFont] = useState(SIGNATURE_FONTS[0]);
   const [contrast, setContrast] = useState(100);
 
