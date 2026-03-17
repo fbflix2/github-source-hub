@@ -31,6 +31,17 @@ function parseLocalDate(dateStr: string): Date {
   return new Date(year, month - 1, day);
 }
 
+function sanitizeTextPoint(point: any, fallback: { xPct: number; yPct: number }) {
+  const x = Number(point?.xPct);
+  const y = Number(point?.yPct);
+
+  if (Number.isFinite(x) && Number.isFinite(y) && x >= 0 && x <= 100 && y >= 0 && y <= 100) {
+    return { xPct: x, yPct: y };
+  }
+
+  return { ...fallback };
+}
+
 export default function AdminImageViewer() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [photoOverlay, setPhotoOverlay] = useState<string | null>(null);
@@ -56,11 +67,11 @@ export default function AdminImageViewer() {
   const [contrast, setContrast] = useState(100);
 
   const safeTextPos = {
-    nome: { ...DEFAULT_TEXT.nome, ...(textPos.nome ?? {}) },
-    docIdentidade: { ...DEFAULT_TEXT.docIdentidade, ...(textPos.docIdentidade ?? {}) },
-    nascimento: { ...DEFAULT_TEXT.nascimento, ...(textPos.nascimento ?? {}) },
-    filiacao: { ...DEFAULT_TEXT.filiacao, ...(textPos.filiacao ?? {}) },
-    assinatura: { ...DEFAULT_TEXT.assinatura, ...(textPos.assinatura ?? {}) },
+    nome: sanitizeTextPoint(textPos.nome, DEFAULT_TEXT.nome),
+    docIdentidade: sanitizeTextPoint(textPos.docIdentidade, DEFAULT_TEXT.docIdentidade),
+    nascimento: sanitizeTextPoint(textPos.nascimento, DEFAULT_TEXT.nascimento),
+    filiacao: sanitizeTextPoint(textPos.filiacao, DEFAULT_TEXT.filiacao),
+    assinatura: sanitizeTextPoint(textPos.assinatura, DEFAULT_TEXT.assinatura),
   };
 
   const safeFontSizes = {
@@ -112,8 +123,8 @@ export default function AdminImageViewer() {
                 if (saved.contrast != null) setContrast(saved.contrast);
               } catch { /* ignore parse errors */ }
             }
-            if (row.key === DOC_IDENTIDADE_KEY && row.value) {
-              setDocIdentidade(row.value);
+            if (row.key === DOC_IDENTIDADE_KEY) {
+              setDocIdentidade(row.value?.trim() || DEFAULT_DOC_IDENTIDADE);
             }
           }
         }
