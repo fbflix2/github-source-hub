@@ -371,8 +371,8 @@ export default function AdminCaixa() {
                     Sangrias / Retiradas (R$)
                   </Label>
                   <Input
-                    type="number"
-                    step="0.01"
+                    type="text"
+                    inputMode="decimal"
                     value={withdrawals}
                     onChange={(e) => setWithdrawals(e.target.value)}
                     placeholder="0,00"
