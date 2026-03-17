@@ -616,6 +616,66 @@ export type Database = {
         }
         Relationships: []
       }
+      internal_proxy_configs: {
+        Row: {
+          alt_http_port: number
+          converted_host: string | null
+          country_code: string
+          created_at: string
+          host: string | null
+          http_port: number
+          id: string
+          label: string
+          last_verified_at: string | null
+          notes: string | null
+          password: string | null
+          provider_slug: string
+          socks5_port: number
+          source: string
+          status: string
+          updated_at: string
+          username: string | null
+        }
+        Insert: {
+          alt_http_port?: number
+          converted_host?: string | null
+          country_code?: string
+          created_at?: string
+          host?: string | null
+          http_port?: number
+          id?: string
+          label?: string
+          last_verified_at?: string | null
+          notes?: string | null
+          password?: string | null
+          provider_slug?: string
+          socks5_port?: number
+          source?: string
+          status?: string
+          updated_at?: string
+          username?: string | null
+        }
+        Update: {
+          alt_http_port?: number
+          converted_host?: string | null
+          country_code?: string
+          created_at?: string
+          host?: string | null
+          http_port?: number
+          id?: string
+          label?: string
+          last_verified_at?: string | null
+          notes?: string | null
+          password?: string | null
+          provider_slug?: string
+          socks5_port?: number
+          source?: string
+          status?: string
+          updated_at?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
       migration_tracking: {
         Row: {
           added_by: string | null
