@@ -231,7 +231,7 @@ export default function AdminProxyInterno() {
                       </div>
                     </div>
 
-                    {strIP && (
+                    {hasConvertedHost && (
                       <div className="pt-2 border-t border-border/50 space-y-2">
                         <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1">
                           <Zap className="size-3 text-green-500" />
