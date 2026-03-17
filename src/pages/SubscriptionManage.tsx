@@ -47,6 +47,7 @@ export default function SubscriptionManage() {
   const webshareSub = (Array.isArray(webshareRaw) ? webshareRaw : [])?.find((s: any) => s.code === code);
   const sub = (proxyBRSub || webshareSub) as ProxySubscription | undefined;
   const isWebshare = !!webshareSub && !proxyBRSub;
+  const isRotating = !!(sub as any)?.is_rotating;
   const combinedLoading = isLoading || wsLoading;
 
   // Fetch the price: first try order_items, then fallback to product catalog price
