@@ -299,11 +299,14 @@ export default function WarmingSessionTimer({ profile, tasks, onTaskCompleted, t
                 {/* Day indicator */}
                 <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-black shrink-0 ${
                   task.completed ? "bg-green-100 text-green-600" :
+                  isDelaying ? "bg-amber-400 text-white animate-pulse" :
                   isRunning ? "bg-[#1876f2] text-white animate-pulse" :
                   isNextPending ? "bg-slate-200 text-slate-700" :
                   "bg-slate-100 text-slate-400"
                 }`}>
-                  {task.completed ? <MIcon name="check" className="text-base" /> : `D${task.day_number}`}
+                  {task.completed ? <MIcon name="check" className="text-base" /> : 
+                   isDelaying ? <MIcon name="hourglass_top" className="text-base animate-spin" /> :
+                   `D${task.day_number}`}
                 </div>
 
                 {/* Task info */}
