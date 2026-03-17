@@ -152,13 +152,18 @@ export default function WarmingSessionTimer({ profile, tasks, onTaskCompleted, t
   }, []);
 
   const pauseTimer = () => {
-    if (!activeTaskId || !timerStart) return;
-    const runSeconds = Math.floor((Date.now() - timerStart) / 1000);
-    const prev = accumulated[activeTaskId] || 0;
-    const total = prev + runSeconds;
-    setAccumulated(a => ({ ...a, [activeTaskId]: total }));
-    // Save partial to DB
-    supabase.from("warming_tasks").update({ duration_seconds: total }).eq("id", activeTaskId);
+    // Cancel delay if still waiting
+    if (delayTimerRef.current) { clearTimeout(delayTimerRef.current); delayTimerRef.current = null; }
+    setDelayTaskId(null);
+
+    if (!activeTaskId) return;
+    if (timerStart) {
+      const runSeconds = Math.floor((Date.now() - timerStart) / 1000);
+      const prev = accumulated[activeTaskId] || 0;
+      const total = prev + runSeconds;
+      setAccumulated(a => ({ ...a, [activeTaskId]: total }));
+      supabase.from("warming_tasks").update({ duration_seconds: total }).eq("id", activeTaskId);
+    }
     setActiveTaskId(null);
     setTimerStart(null);
     setElapsed(0);
