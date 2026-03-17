@@ -297,6 +297,8 @@ export default function AdminProxyInterno() {
                     <div className="text-xs text-muted-foreground space-y-1">
                       <p className="font-medium text-foreground">Dicas de compatibilidade</p>
                       <ul className="list-disc pl-3 space-y-0.5">
+                        <li>Em ferramentas com seletor, use <strong>Ponto final de proxy rotativo</strong>, não <strong>Conexão de Backbone</strong>.</li>
+                        <li>Use autenticação por <strong>Nome de usuário/Senha</strong>.</li>
                         <li>Se a ferramenta falhar com <code className="text-amber-400">p.webshare.io</code>, salve o IP convertido no override manual.</li>
                         <li>Para SOCKS5, use porta <strong>1080</strong>.</li>
                         <li>Para HTTP, tente porta <strong>80</strong> e depois <strong>3128</strong>.</li>

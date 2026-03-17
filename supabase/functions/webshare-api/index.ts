@@ -44,8 +44,7 @@ function normalizeRotatingBaseUsername(rawUsername: string): string {
     .replace(/-[a-z]{2}$/i, "")
     .replace(/-\d+$/i, "");
 
-  if (!normalized) return "";
-  return /residential/i.test(normalized) ? normalized : `${normalized}residential`;
+  return normalized.trim();
 }
 
 function buildRotatingCountrySuffix(countryCode = "BR"): string {
