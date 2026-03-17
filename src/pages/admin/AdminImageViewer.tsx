@@ -82,7 +82,6 @@ export default function AdminImageViewer() {
     filiacao: 9,
     assinatura: 14,
     ...(fontSizes ?? {}),
-    docIdentidade: FIXED_DOC_IDENTIDADE_FONT_SIZE,
   };
 
   const [formData, setFormData] = useState({
