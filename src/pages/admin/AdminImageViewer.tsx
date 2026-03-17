@@ -588,8 +588,8 @@ export default function AdminImageViewer() {
                 />
                 <div className="flex items-center gap-2 mt-1">
                   <span className="text-[10px] text-white/40">Fonte:</span>
-                  <Slider value={[fontSizes.docIdentidade]} onValueChange={([v]) => setFontSizes((f) => ({ ...f, docIdentidade: v }))} min={5} max={18} step={0.5} className="flex-1" />
-                  <span className="text-[10px] text-white/50 w-8">{fontSizes.docIdentidade}px</span>
+                  <Slider value={[safeFontSizes.docIdentidade]} onValueChange={([v]) => setFontSizes((f) => ({ ...f, docIdentidade: v }))} min={5} max={18} step={0.5} className="flex-1" />
+                  <span className="text-[10px] text-white/50 w-8">{safeFontSizes.docIdentidade}px</span>
                 </div>
               </div>
               <div className="grid grid-cols-[1fr_auto] gap-2">
