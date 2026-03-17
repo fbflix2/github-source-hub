@@ -17,6 +17,7 @@ const DEFAULT_DOC_IDENTIDADE = "503234175 SSPSP";
 const DEFAULT_PHOTO = { xPct: 2.8, yPct: 25, wPct: 17.5, hPct: 24 };
 const DEFAULT_TEXT = {
   nome: { xPct: 30, yPct: 14.5 },
+  docIdentidade: { xPct: 30, yPct: 18 },
   nascimento: { xPct: 30, yPct: 22 },
   filiacao: { xPct: 30, yPct: 47 },
   assinatura: { xPct: 15, yPct: 56 },
