@@ -192,7 +192,7 @@ export default function AdminImageViewer() {
 
   const savePositions = useCallback(async (silent = false) => {
     try {
-      const payload = JSON.stringify({ textPos, fontSizes, photoPos, signatureFont, contrast });
+      const payload = JSON.stringify({ textPos: safeTextPos, fontSizes: safeFontSizes, photoPos, signatureFont, contrast });
       const { data: existing } = await supabase
         .from("site_settings")
         .select("id")
