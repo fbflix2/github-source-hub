@@ -103,7 +103,7 @@ export default function AdminCaixa() {
       setOpenCash(openData as CashRecord);
       // Pre-fill bank balance with opening balance
       if (!bankBalance) {
-        setBankBalance(formatBRLInput(openData.opening_balance || 0));
+        setBankBalance((openData.opening_balance || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
       }
       // Fetch system values for the open period
       await fetchSystemValues(openData.opened_at);
