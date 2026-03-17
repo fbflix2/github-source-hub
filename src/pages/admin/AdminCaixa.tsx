@@ -29,6 +29,18 @@ const formatCurrency = (v: number) =>
 const formatDate = (d: string) =>
   new Date(d).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
+const parseBRL = (v: string): number => {
+  if (!v) return 0;
+  // Remove R$, spaces, dots (thousand sep), replace comma with dot
+  const cleaned = v.replace(/[R$\s]/g, "").replace(/\./g, "").replace(",", ".");
+  const num = parseFloat(cleaned);
+  return isNaN(num) ? 0 : num;
+};
+
+const formatBRLInput = (v: number): string => {
+  return v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
 interface CashRecord {
   id: string;
   opened_at: string;
