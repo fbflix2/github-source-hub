@@ -163,9 +163,8 @@ export default function AdminCaixa() {
       const dpVal = parseFloat(deposits) || 0;
       const sysBalance = systemRevenue - systemExpenses;
       const openBal = openCash.opening_balance || 0;
-      // Expected = opening balance + system balance - withdrawals + deposits
-      const expectedBalance = openBal + sysBalance - wdVal + dpVal;
-      const diff = bankVal - expectedBalance;
+      // Diferença = variação real do banco no período
+      const diff = bankVal - openBal;
 
       const { error } = await supabase
         .from("cash_register")
