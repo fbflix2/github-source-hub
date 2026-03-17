@@ -55,6 +55,23 @@ export default function AdminImageViewer() {
   const [signatureFont, setSignatureFont] = useState(SIGNATURE_FONTS[0]);
   const [contrast, setContrast] = useState(100);
 
+  const safeTextPos = {
+    nome: { ...DEFAULT_TEXT.nome, ...(textPos.nome ?? {}) },
+    docIdentidade: { ...DEFAULT_TEXT.docIdentidade, ...(textPos.docIdentidade ?? {}) },
+    nascimento: { ...DEFAULT_TEXT.nascimento, ...(textPos.nascimento ?? {}) },
+    filiacao: { ...DEFAULT_TEXT.filiacao, ...(textPos.filiacao ?? {}) },
+    assinatura: { ...DEFAULT_TEXT.assinatura, ...(textPos.assinatura ?? {}) },
+  };
+
+  const safeFontSizes = {
+    nome: 11,
+    docIdentidade: 9,
+    nascimento: 10,
+    filiacao: 9,
+    assinatura: 14,
+    ...(fontSizes ?? {}),
+  };
+
   const [formData, setFormData] = useState({
     nomeCompleto: "",
     dataNascimento: "",
@@ -175,7 +192,7 @@ export default function AdminImageViewer() {
 
   const savePositions = useCallback(async (silent = false) => {
     try {
-      const payload = JSON.stringify({ textPos, fontSizes, photoPos, signatureFont, contrast });
+      const payload = JSON.stringify({ textPos: safeTextPos, fontSizes: safeFontSizes, photoPos, signatureFont, contrast });
       const { data: existing } = await supabase
         .from("site_settings")
         .select("id")
@@ -285,11 +302,11 @@ export default function AdminImageViewer() {
 
     // Draw doc identidade
     if (docIdentidade) {
-      const fs = scaledFont(fontSizes.docIdentidade);
+      const fs = scaledFont(safeFontSizes.docIdentidade);
       ctx.font = `600 ${fs}px "Arial Narrow", Arial, sans-serif`;
       ctx.fillStyle = "rgba(0,0,0,0.9)";
-      const x = (textPos.docIdentidade.xPct / 100) * W;
-      const y = (textPos.docIdentidade.yPct / 100) * H;
+      const x = (safeTextPos.docIdentidade.xPct / 100) * W;
+      const y = (safeTextPos.docIdentidade.yPct / 100) * H;
       ctx.fillText(docIdentidade.toUpperCase(), x, y);
     }
 
@@ -359,7 +376,7 @@ export default function AdminImageViewer() {
     if (target === "photo") {
       setDragStartPct({ x: photoPos.xPct, y: photoPos.yPct });
     } else {
-      const pos = textPos[target as keyof typeof textPos];
+      const pos = safeTextPos[target as keyof typeof safeTextPos];
       setDragStartPct({ x: pos.xPct, y: pos.yPct });
     }
   };
@@ -571,8 +588,8 @@ export default function AdminImageViewer() {
                 />
                 <div className="flex items-center gap-2 mt-1">
                   <span className="text-[10px] text-white/40">Fonte:</span>
-                  <Slider value={[fontSizes.docIdentidade]} onValueChange={([v]) => setFontSizes((f) => ({ ...f, docIdentidade: v }))} min={5} max={18} step={0.5} className="flex-1" />
-                  <span className="text-[10px] text-white/50 w-8">{fontSizes.docIdentidade}px</span>
+                  <Slider value={[safeFontSizes.docIdentidade]} onValueChange={([v]) => setFontSizes((f) => ({ ...f, docIdentidade: v }))} min={5} max={18} step={0.5} className="flex-1" />
+                  <span className="text-[10px] text-white/50 w-8">{safeFontSizes.docIdentidade}px</span>
                 </div>
               </div>
               <div className="grid grid-cols-[1fr_auto] gap-2">
@@ -774,10 +791,10 @@ export default function AdminImageViewer() {
                   {docIdentidade && (
                     <div
                       className="absolute select-none whitespace-nowrap"
-                      style={{ left: `${textPos.docIdentidade.xPct}%`, top: `${textPos.docIdentidade.yPct}%`, cursor: panMode ? "inherit" : "move" }}
+                      style={{ left: `${safeTextPos.docIdentidade.xPct}%`, top: `${safeTextPos.docIdentidade.yPct}%`, cursor: panMode ? "inherit" : "move" }}
                       onMouseDown={(e) => onElementMouseDown("docIdentidade", e)}
                     >
-                      <span className="font-semibold text-black/90 uppercase" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${fontSizes.docIdentidade}px` }}>
+                      <span className="font-semibold text-black/90 uppercase" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${safeFontSizes.docIdentidade}px` }}>
                         {docIdentidade}
                       </span>
                     </div>
