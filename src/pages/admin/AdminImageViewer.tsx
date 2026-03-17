@@ -204,7 +204,6 @@ export default function AdminImageViewer() {
     if (!file || !file.type.startsWith("image/")) return;
     if (photoOverlay) URL.revokeObjectURL(photoOverlay);
     setPhotoOverlay(URL.createObjectURL(file));
-    setPhotoPos(DEFAULT_PHOTO);
     if (photoInputRef.current) photoInputRef.current.value = "";
   };
 
