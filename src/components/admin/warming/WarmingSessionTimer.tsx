@@ -55,6 +55,7 @@ interface Props {
   profile: WarmingProfile;
   tasks: WarmingTask[];
   onTaskCompleted: () => void;
+  onTrackCompleted?: (profile: WarmingProfile) => void;
   trackLabel: string;
 }
 
