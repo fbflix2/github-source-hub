@@ -15,6 +15,40 @@ const DOC_IDENTIDADE_KEY = "imageviewer_doc_identidade";
 const DEFAULT_DOC_IDENTIDADE = "503234175 SSPSP";
 
 const DEFAULT_PHOTO = { xPct: 4.8, yPct: 16.2, wPct: 16.2, hPct: 26.2 };
+
+const NOMES_MASCULINOS = [
+  "José", "Carlos", "Antonio", "Francisco", "João", "Pedro", "Paulo", "Luiz",
+  "Roberto", "Marcos", "Sebastião", "Manoel", "Geraldo", "Jorge", "Fernando",
+  "Edson", "Márcio", "Ricardo", "Cláudio", "Valdir", "Nelson", "Ademir",
+  "Arnaldo", "Benedito", "Nilton", "Reginaldo", "Sergio", "Wagner", "Adilson",
+  "Osvaldo", "Reinaldo", "Alcides", "Djalma", "Humberto", "Laércio",
+];
+
+const NOMES_FEMININOS = [
+  "Maria", "Ana", "Francisca", "Antonia", "Adriana", "Aparecida", "Sandra",
+  "Lúcia", "Marta", "Neusa", "Rosângela", "Cleusa", "Vera", "Sueli", "Marisa",
+  "Terezinha", "Iolanda", "Sônia", "Elza", "Dalva", "Ivone", "Iracema",
+  "Neuza", "Marlene", "Conceição", "Josefa", "Raimunda", "Helena", "Célia",
+  "Nilza", "Fátima", "Luzia", "Valdete", "Solange", "Edna",
+];
+
+function pickRandom<T>(arr: T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function extractSobrenome(nomeCompleto: string): string {
+  const parts = nomeCompleto.trim().split(/\s+/);
+  if (parts.length <= 1) return "";
+  return parts.slice(1).join(" ");
+}
+
+function gerarNomePai(sobrenome: string): string {
+  return `${pickRandom(NOMES_MASCULINOS)} ${sobrenome}`.toUpperCase();
+}
+
+function gerarNomeMae(sobrenome: string): string {
+  return `${pickRandom(NOMES_FEMININOS)} ${sobrenome}`.toUpperCase();
+}
 const FIXED_DOC_IDENTIDADE_POSITION = { xPct: 23.65, yPct: 45.63 };
 const DEFAULT_TEXT = {
   nome: { xPct: 30, yPct: 14.5 },
