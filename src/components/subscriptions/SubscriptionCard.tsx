@@ -148,15 +148,36 @@ export default function SubscriptionCard({
       {/* Proxy info */}
       {sub.proxy && status !== "expired" && (
         <div className="flex flex-col gap-1 p-3 rounded-lg bg-muted/50 border border-border">
-          <div className="flex justify-between text-xs">
-            <span className="text-text-secondary">IP</span>
-            <span className="text-foreground font-mono font-medium">{sub.proxy.ip}:{sub.proxy.port}</span>
-          </div>
-          {sub.proxy.username && (
-            <div className="flex justify-between text-xs">
-              <span className="text-text-secondary">User</span>
-              <span className="text-foreground font-mono font-medium">{sub.proxy.username}</span>
-            </div>
+          {sub.is_rotating ? (
+            <>
+              <div className="flex justify-between text-xs">
+                <span className="text-text-secondary">Endpoint</span>
+                <span className="text-foreground font-mono font-medium text-[11px]">{sub.proxy.ip}:{sub.proxy.port}</span>
+              </div>
+              {sub.proxy.socks5_port && (
+                <div className="flex justify-between text-xs">
+                  <span className="text-text-secondary">SOCKS5</span>
+                  <span className="text-foreground font-mono font-medium text-[11px]">{sub.proxy.ip}:{sub.proxy.socks5_port}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-xs">
+                <span className="text-text-secondary">User</span>
+                <span className="text-foreground font-mono font-medium text-[11px] truncate max-w-[140px]">{sub.proxy.username}</span>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex justify-between text-xs">
+                <span className="text-text-secondary">IP</span>
+                <span className="text-foreground font-mono font-medium">{sub.proxy.ip}:{sub.proxy.port}</span>
+              </div>
+              {sub.proxy.username && (
+                <div className="flex justify-between text-xs">
+                  <span className="text-text-secondary">User</span>
+                  <span className="text-foreground font-mono font-medium">{sub.proxy.username}</span>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
