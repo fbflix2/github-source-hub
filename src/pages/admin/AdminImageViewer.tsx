@@ -11,6 +11,8 @@ import { toast } from "sonner";
 
 const SETTINGS_KEY = "imageviewer_base_template_url";
 const POSITIONS_KEY = "imageviewer_positions";
+const DOC_IDENTIDADE_KEY = "imageviewer_doc_identidade";
+const DEFAULT_DOC_IDENTIDADE = "503234175 SSPSP";
 
 const DEFAULT_PHOTO = { xPct: 2.8, yPct: 25, wPct: 17.5, hPct: 24 };
 const DEFAULT_TEXT = {
