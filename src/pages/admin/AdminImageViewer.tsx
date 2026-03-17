@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { X, ZoomIn, ZoomOut, RotateCw, Download, UserCircle, Hand, MousePointer, Settings } from "lucide-react";
+import { X, ZoomIn, ZoomOut, RotateCw, Download, UserCircle, Hand, MousePointer, Settings, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
