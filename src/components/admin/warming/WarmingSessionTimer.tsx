@@ -119,6 +119,9 @@ export default function WarmingSessionTimer({ profile, tasks, onTaskCompleted, t
     setAccumulated(acc);
   }, [tasks]);
 
+  const [delayTaskId, setDelayTaskId] = useState<string | null>(null);
+  const delayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const startTimer = (taskId: string) => {
     // If another timer is running, pause it first
     if (activeTaskId && activeTaskId !== taskId && timerStart) {
@@ -126,14 +129,27 @@ export default function WarmingSessionTimer({ profile, tasks, onTaskCompleted, t
       const prev = accumulated[activeTaskId] || 0;
       const total = prev + runSeconds;
       setAccumulated(a => ({ ...a, [activeTaskId]: total }));
-      // Save partial to DB
       supabase.from("warming_tasks").update({ duration_seconds: total }).eq("id", activeTaskId);
     }
+    // Cancel any existing delay
+    if (delayTimerRef.current) clearTimeout(delayTimerRef.current);
+    
+    setDelayTaskId(taskId);
     setActiveTaskId(taskId);
-    setTimerStart(Date.now());
     const base = accumulated[taskId] || 0;
     setElapsed(base);
+
+    // 2s delay for Multilogin to open the profile
+    delayTimerRef.current = setTimeout(() => {
+      setTimerStart(Date.now());
+      setDelayTaskId(null);
+    }, 2000);
   };
+
+  // Cleanup delay timer on unmount
+  useEffect(() => {
+    return () => { if (delayTimerRef.current) clearTimeout(delayTimerRef.current); };
+  }, []);
 
   const pauseTimer = () => {
     if (!activeTaskId || !timerStart) return;
