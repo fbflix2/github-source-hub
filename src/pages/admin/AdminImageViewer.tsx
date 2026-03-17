@@ -662,20 +662,15 @@ export default function AdminImageViewer() {
 
                   {photoOverlay && (
                     <div
-                      className="absolute border border-black/30"
+                      className="absolute border border-black/30 pointer-events-none"
                       style={{
                         left: `${photoPos.xPct}%`,
                         top: `${photoPos.yPct}%`,
                         width: `${photoPos.wPct}%`,
                         height: `${photoPos.hPct}%`,
-                        cursor: panMode ? "inherit" : "move",
                       }}
-                      onMouseDown={(e) => onElementMouseDown("photo", e)}
                     >
                       <img src={photoOverlay} alt="Foto" className="w-full h-full object-cover pointer-events-none" draggable={false} />
-                      {!panMode && (
-                        <div className="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-primary rounded-full cursor-se-resize" onMouseDown={onResizeMouseDown} />
-                      )}
                     </div>
                   )}
 
