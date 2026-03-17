@@ -780,19 +780,13 @@ export default function AdminAquecimento() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1.5">Escolha a Esteira</label>
-                  <div className="relative">
+                  <label className="block text-xs font-semibold text-slate-600 mb-1.5">Esteira</label>
+                  <div className="relative flex items-center gap-2 pl-10 pr-3 py-2.5 text-sm bg-slate-100 border border-slate-200 rounded-lg text-slate-600">
                     <MIcon name="layers" className="absolute left-3 top-2.5 text-slate-400 text-lg" />
-                    <select
-                      className="w-full pl-10 pr-3 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-slate-400 focus:border-slate-400 text-slate-900 appearance-none transition-all"
-                      value={selectedTrack}
-                      onChange={(e) => setSelectedTrack(e.target.value)}
-                    >
-                      <option value="7_days">7 Dias - Básica</option>
-                      <option value="15_days">15 Dias - Média</option>
-                      <option value="30_days">30 Dias - Premium</option>
-                    </select>
+                    7 Dias - Básica
+                    <span className="ml-auto text-[10px] font-bold text-slate-400 uppercase">Automático</span>
                   </div>
+                  <p className="text-[10px] text-slate-400 mt-1">Após concluir 7 dias, avança automaticamente para 15 e depois 30 dias.</p>
                 </div>
                 <button
                   onClick={handleCreate}
