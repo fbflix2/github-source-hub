@@ -270,11 +270,12 @@ export default function AdminCaixa() {
       const existingRefs = new Set((existingMovs || []).map(m => m.reference_id));
 
       const toInsert: any[] = [];
-      completedOrders
-        .filter(o => !existingRefs.has(o.code))
-        .forEach(o => {
-          const total = Number(o.total || 0);
-          const fee = Math.round(total * mpFeeRate) / 100;
+      completedOrders.forEach(o => {
+        const total = Number(o.total || 0);
+        const fee = Math.round(total * mpFeeRate) / 100;
+
+        // Insert entry if missing
+        if (!existingRefs.has(o.code)) {
           toInsert.push({
             cash_register_id: openCash.id,
             type: "entry",
@@ -283,16 +284,19 @@ export default function AdminCaixa() {
             description: `Venda #${o.code}`,
             reference_id: o.code,
           });
-          if (fee > 0) {
-            toInsert.push({
-              cash_register_id: openCash.id,
-              type: "exit",
-              source: "automatic",
-              amount: fee,
-              description: `Taxa MP ${mpFeeRate.toFixed(2).replace(".", ",")}% - Venda #${o.code}`,
-              reference_id: `fee-${o.code}`,
-            });
-          }
+        }
+        // Insert fee if missing
+        if (fee > 0 && !existingRefs.has(`fee-${o.code}`)) {
+          toInsert.push({
+            cash_register_id: openCash.id,
+            type: "exit",
+            source: "automatic",
+            amount: fee,
+            description: `Taxa MP ${mpFeeRate.toFixed(2).replace(".", ",")}% - Venda #${o.code}`,
+            reference_id: `fee-${o.code}`,
+          });
+        }
+      });
         });
 
       if (toInsert.length > 0) {
