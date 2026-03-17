@@ -199,14 +199,29 @@ export default function AdminCaixa() {
             .maybeSingle();
 
           if (!existing) {
-            await supabase.from("cash_movements").insert({
-              cash_register_id: cashId,
-              type: "entry",
-              source: "automatic",
-              amount: Number(order.total || 0),
-              description: `Venda #${order.code}`,
-              reference_id: order.code,
-            });
+            const total = Number(order.total || 0);
+            const fee = Math.round(total * mpFeeRate) / 100;
+            const movs: any[] = [
+              {
+                cash_register_id: cashId,
+                type: "entry",
+                source: "automatic",
+                amount: total,
+                description: `Venda #${order.code}`,
+                reference_id: order.code,
+              },
+            ];
+            if (fee > 0) {
+              movs.push({
+                cash_register_id: cashId,
+                type: "exit",
+                source: "automatic",
+                amount: fee,
+                description: `Taxa MP ${mpFeeRate.toFixed(2).replace(".", ",")}% - Venda #${order.code}`,
+                reference_id: `fee-${order.code}`,
+              });
+            }
+            await supabase.from("cash_movements").insert(movs);
           }
           // Refresh
           fetchMovements(cashId);
