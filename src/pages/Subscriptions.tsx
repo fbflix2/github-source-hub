@@ -17,17 +17,20 @@ export interface ProxySubscription {
   start_date: string;
   end_date: string;
   proxy?: {
-    id: number;
+    id?: number;
     ip: string;
     port: number;
     username?: string;
     password?: string;
     protocol?: string;
+    socks5_port?: number;
   };
   profile_tag?: string | null;
   proxyIndex?: number;
   totalProxies?: number;
   proxyLabel?: string;
+  is_rotating?: boolean;
+  gb_purchased?: number;
   [key: string]: unknown;
 }
 
