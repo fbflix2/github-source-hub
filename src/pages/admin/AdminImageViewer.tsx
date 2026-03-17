@@ -89,6 +89,9 @@ export default function AdminImageViewer() {
                 if (saved.contrast != null) setContrast(saved.contrast);
               } catch { /* ignore parse errors */ }
             }
+            if (row.key === DOC_IDENTIDADE_KEY && row.value) {
+              setDocIdentidade(row.value);
+            }
           }
         }
       } catch {
