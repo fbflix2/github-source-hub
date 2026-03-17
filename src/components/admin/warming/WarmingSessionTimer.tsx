@@ -335,8 +335,15 @@ export default function WarmingSessionTimer({ profile, tasks, onTaskCompleted, t
                     </div>
                   ) : (
                     <>
+                      {/* Delay indicator */}
+                      {isDelaying && (
+                        <span className="text-xs font-bold text-amber-600 bg-amber-100 px-2.5 py-1 rounded-lg animate-pulse">
+                          Abrindo perfil...
+                        </span>
+                      )}
+
                       {/* Timer value */}
-                      {(isRunning || taskAccum > 0) && (
+                      {!isDelaying && (isRunning || taskAccum > 0) && (
                         <span className={`font-mono text-sm font-bold px-2.5 py-1 rounded-lg ${
                           isRunning ? "bg-[#1876f2] text-white" : "bg-slate-100 text-slate-600"
                         }`}>
