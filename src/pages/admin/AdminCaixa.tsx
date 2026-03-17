@@ -59,6 +59,7 @@ export default function AdminCaixa() {
   const [withdrawals, setWithdrawals] = useState("");
   const [deposits, setDeposits] = useState("");
   const [notes, setNotes] = useState("");
+  const [reopening, setReopening] = useState(false);
 
   // System values for the open period
   const [systemRevenue, setSystemRevenue] = useState(0);
