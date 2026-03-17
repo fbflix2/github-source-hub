@@ -25,6 +25,12 @@ const DEFAULT_TEXT = {
 
 const SIGNATURE_FONTS = ["Dancing Script", "Caveat", "Satisfy"];
 
+// Parse date string without timezone shift
+function parseLocalDate(dateStr: string): Date {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
 export default function AdminImageViewer() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [photoOverlay, setPhotoOverlay] = useState<string | null>(null);
