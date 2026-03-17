@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import WarmingOperatorDashboard from "@/components/admin/warming/WarmingOperatorDashboard";
+import WarmingSessionTimer from "@/components/admin/warming/WarmingSessionTimer";
 import { toast } from "sonner";
 
 // ── Track definitions ──────────────────────────────────────────
@@ -849,7 +850,6 @@ export default function AdminAquecimento() {
             )}
           </section>
 
-          {/* ── Progress Dashboard Section ── */}
           <section className="lg:col-span-7">
             {loading ? (
               <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8 text-center">
@@ -862,115 +862,12 @@ export default function AdminAquecimento() {
                 <p className="text-slate-500 text-xs mt-2">Nenhum perfil em aquecimento. Atribua um perfil para começar.</p>
               </div>
             ) : (
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                <div className="px-5 py-3.5 border-b border-slate-100 flex justify-between items-center">
-                  <div>
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <MIcon name="check_circle" className="text-green-500 text-base" />
-                      <h2 className="text-base font-bold text-slate-900">
-                        {selectedProfile.profile_code}
-                        {selectedProfile.profile_name && ` (${selectedProfile.profile_name})`}
-                      </h2>
-                    </div>
-                    <p className="text-xs text-slate-500 font-medium">
-                      Esteira: {selectedTrackDef?.label || selectedProfile.track_type}
-                      {selectedProfile.trust_tier && <span className="ml-2 text-purple-600 font-bold">• {selectedProfile.trust_tier}</span>}
-                      {selectedProfile.created_by && creatorNames[selectedProfile.created_by] && (
-                        <span className="ml-2 text-[#1876f2] font-semibold">• por {creatorNames[selectedProfile.created_by]}</span>
-                      )}
-                    </p>
-                  </div>
-                  <span className="bg-blue-100 text-[#1876f2] text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
-                    {selectedProfile.status === "active" ? "Ativo" : selectedProfile.status === "completed" ? "Concluído" : selectedProfile.status}
-                  </span>
-                </div>
-
-                <div className="p-5 space-y-5">
-                  <div>
-                    <div className="flex justify-between items-end mb-2">
-                      <span className="text-xs font-bold text-slate-700 flex items-center gap-1">
-                        <MIcon name="thermostat" className="text-orange-500 text-base" />
-                        Status de Aquecimento
-                      </span>
-                      <span className="text-lg font-black text-slate-800">{selectedProgress}%</span>
-                    </div>
-                    <div className="relative h-4 w-full bg-slate-100 rounded-full overflow-hidden border border-slate-200 shadow-inner">
-                      <div className="absolute top-0 left-0 h-full bg-green-500" style={{ width: `${selectedProgress}%`, boxShadow: "0 0 8px rgba(34,197,94,0.3)" }} />
-                      <div className="absolute top-0 h-full bg-yellow-400 opacity-30" style={{ left: "45%", width: "35%" }} />
-                      <div className="absolute top-0 h-full bg-red-500 opacity-20" style={{ left: "80%", width: "20%" }} />
-                    </div>
-                    <div className="flex justify-between mt-1 px-1">
-                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Início</span>
-                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Ideal</span>
-                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Pronto</span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <h3 className="text-[11px] font-bold text-slate-900 uppercase tracking-wider">Cronograma de Atividades</h3>
-                    <div className="max-h-[280px] overflow-y-auto space-y-2 pr-1">
-                      {selectedTasks.map((task) => {
-                        const isCurrent = !task.completed && selectedTasks.filter((t) => !t.completed)[0]?.id === task.id;
-                        return (
-                          <div
-                            key={task.id}
-                            onClick={() => toggleTask(task)}
-                            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border cursor-pointer transition-all ${
-                              task.completed
-                                ? "bg-slate-50 border-slate-100"
-                                : isCurrent
-                                ? "bg-blue-50 border-[#1876f2]/30 ring-1 ring-[#1876f2]/30"
-                                : "bg-slate-50 border-slate-100 opacity-60"
-                            }`}
-                          >
-                            <div className={`p-1.5 rounded-full ${
-                              task.completed ? "bg-green-100 text-green-600" : isCurrent ? "bg-blue-100 text-[#1876f2]" : "bg-slate-200 text-slate-400"
-                            }`}>
-                              <MIcon name={task.completed ? "check" : isCurrent ? "sync" : "radio_button_unchecked"} className="text-base" />
-                            </div>
-                            <div className="flex-grow min-w-0">
-                              <p className={`text-xs font-bold ${task.completed ? "text-slate-400 line-through" : "text-slate-900"}`}>
-                                Dia {task.day_number}: {task.title}
-                              </p>
-                              <p className="text-[11px] text-slate-500 truncate">{task.description}</p>
-                            </div>
-                            <div className="flex flex-col items-end gap-0.5">
-                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded whitespace-nowrap ${
-                                task.completed ? "text-green-600 bg-green-50" : isCurrent ? "text-[#1876f2] animate-pulse" : "text-slate-400"
-                              }`}>
-                                {task.completed ? "Concluído" : isCurrent ? "Em andamento" : "Pendente"}
-                              </span>
-                              {task.completed && task.duration_seconds != null && (
-                                <span className="text-[10px] font-medium text-slate-400 flex items-center gap-0.5">
-                                  <MIcon name="timer" className="text-[11px]" />
-                                  {formatDuration(task.duration_seconds)}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3 pt-2">
-                    <button
-                      onClick={() => { fetchTasks(selectedProfile.id); fetchProfiles(); toast.success("Progresso atualizado"); }}
-                      className="flex items-center justify-center gap-1.5 bg-slate-100 text-slate-700 font-bold py-2.5 rounded-lg hover:bg-slate-200 transition-colors text-xs"
-                    >
-                      <MIcon name="refresh" className="text-base" />
-                      Atualizar Progresso
-                    </button>
-                    <button
-                      onClick={() => updateTrustTier(selectedProfile.id)}
-                      className="flex items-center justify-center gap-1.5 bg-slate-100 text-slate-700 font-bold py-2.5 rounded-lg hover:bg-slate-200 transition-colors text-xs"
-                    >
-                      <MIcon name="verified_user" className="text-base" />
-                      Checar Trust Tier
-                    </button>
-                  </div>
-                </div>
-              </div>
+              <WarmingSessionTimer
+                profile={selectedProfile}
+                tasks={selectedTasks}
+                trackLabel={selectedTrackDef?.label || selectedProfile.track_type}
+                onTaskCompleted={() => { fetchTasks(selectedProfile.id); fetchProfiles(); }}
+              />
             )}
           </section>
         </div>
