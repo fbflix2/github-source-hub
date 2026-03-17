@@ -355,9 +355,10 @@ export default function SubscriptionManage() {
                 </div>
               </div>
             </div>
-          )
+          )}
 
-          {/* Perfil Vinculado */}
+          {/* Hide exchange for rotating proxies */}
+          {!isRotating && (
           <div className="glass-card rounded-xl p-4 space-y-3">
             <h2 className="text-foreground font-bold text-sm flex items-center gap-1.5">
               <span className="material-symbols-outlined text-primary text-base">person_pin</span>
