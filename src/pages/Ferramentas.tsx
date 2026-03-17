@@ -102,6 +102,110 @@ const BG_IMAGES = {
   verificador: "https://lh3.googleusercontent.com/aida-public/AB6AXuALX2sCdvZRoXjIpVH3eyovVJUXYK-Q2CxW0VNq5Zgbm3GqLRPnT3DVmfTJGKswZbfoJvNsHkx9mRmS-TWMqpi_OVeaWGsSseYC8TnOnnw8ffMOb87pL-2Y5Y7OckO-IVmCrlEO97HkyrkDsV8DCUCSCXnJtxaCdZbSz4pxpO_KQc36d6RoGzSl2oC7Eijk7suxTtCgL1DFrwiBWQnac25DCdEHaI8Q3qx2eUos4Xb4ki65FEIpWl9Fqjy_3K7qSOHFk30P4QR6T4E",
 };
 
+// ============= RECENT ACTIVITIES =============
+function RecentActivities() {
+  const [activities, setActivities] = useState<{ icon: string; iconColor: string; iconBg: string; title: string; subtitle: string; time: string }[]>([]);
+
+  useEffect(() => {
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const items: typeof activities = [];
+
+      // Recent orders
+      const { data: orders } = await supabase
+        .from("orders")
+        .select("code, status, total, created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(3);
+
+      orders?.forEach((o) => {
+        const statusMap: Record<string, { icon: string; color: string; bg: string; label: string }> = {
+          completed: { icon: "check_circle", color: "text-emerald-400", bg: "bg-emerald-500/20", label: "Pedido Concluído" },
+          pending: { icon: "hourglass_top", color: "text-yellow-400", bg: "bg-yellow-500/20", label: "Pedido Pendente" },
+          processing: { icon: "sync", color: "text-blue-400", bg: "bg-blue-500/20", label: "Pedido em Processamento" },
+        };
+        const s = statusMap[o.status] || { icon: "receipt_long", color: "text-primary", bg: "bg-primary/20", label: `Pedido ${o.status}` };
+        items.push({
+          icon: s.icon,
+          iconColor: s.color,
+          iconBg: s.bg,
+          title: s.label,
+          subtitle: `#${o.code} • R$ ${Number(o.total).toFixed(2)}`,
+          time: o.created_at,
+        });
+      });
+
+      // Recent wallet transactions
+      const { data: txns } = await supabase
+        .from("wallet_transactions")
+        .select("title, type, amount, created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(3);
+
+      txns?.forEach((t) => {
+        const isCredit = t.type === "credit";
+        items.push({
+          icon: isCredit ? "account_balance_wallet" : "payments",
+          iconColor: isCredit ? "text-emerald-400" : "text-primary",
+          iconBg: isCredit ? "bg-emerald-500/20" : "bg-primary/20",
+          title: t.title,
+          subtitle: `${isCredit ? "+" : "-"} R$ ${Math.abs(Number(t.amount)).toFixed(2)}`,
+          time: t.created_at,
+        });
+      });
+
+      // Sort by time descending, take top 5
+      items.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
+      setActivities(items.slice(0, 5));
+    }
+    load();
+  }, []);
+
+  const formatTime = (iso: string) => {
+    const diff = Date.now() - new Date(iso).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "Agora";
+    if (mins < 60) return `Há ${mins} min`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `Há ${hours}h`;
+    const days = Math.floor(hours / 24);
+    return `Há ${days}d`;
+  };
+
+  return (
+    <section className="max-w-4xl mx-auto">
+      <div className="flex items-center justify-between mb-3 px-2">
+        <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
+          <MaterialIcon name="history" className="text-primary text-xl" />
+          Atividades Recentes
+        </h2>
+      </div>
+      <div className="rounded-xl overflow-hidden divide-y divide-white/5" style={glassCardStyle}>
+        {activities.length === 0 ? (
+          <div className="p-6 text-center text-sm text-muted-foreground">Nenhuma atividade recente</div>
+        ) : (
+          activities.map((a, i) => (
+            <div key={i} className="flex items-center gap-3 p-3 hover:bg-white/5 transition-colors relative z-10">
+              <div className={`w-9 h-9 rounded-lg ${a.iconBg} ${a.iconColor} flex items-center justify-center shrink-0`}>
+                <MaterialIcon name={a.icon} className="text-lg" />
+              </div>
+              <div className="flex-grow min-w-0">
+                <p className="font-bold text-foreground text-sm">{a.title}</p>
+                <p className="text-xs text-muted-foreground">{a.subtitle}</p>
+              </div>
+              <p className="text-[10px] font-semibold text-muted-foreground shrink-0">{formatTime(a.time)}</p>
+            </div>
+          ))
+        )}
+      </div>
+    </section>
+  );
+}
+
 type ToolId = "2fa" | "verificador";
 
 // ============= GLASS CARD COMPONENT =============
