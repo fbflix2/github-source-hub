@@ -143,7 +143,7 @@ export default function AdminLogin() {
         </div>
 
         <p className="text-center text-white/30 text-xs mt-6">
-          © 2024 FBFLIX. Todos os direitos reservados.
+          © 2026 FBFLIX. Todos os direitos reservados.
         </p>
       </div>
     </div>
