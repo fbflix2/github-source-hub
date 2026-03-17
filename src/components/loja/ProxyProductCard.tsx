@@ -40,7 +40,7 @@ export function ProxyProductCard({ product, proxyImage, quantity, onQuantityChan
   const typeLabel = product.type || "Proxy";
   const displayName = localData?.name || product.name;
   const description = localData?.description || product.description;
-  const tags = localData?.tags || [];
+  const tags = (localData?.tags || []).filter((t) => t.toLowerCase() !== "webshare");
   const imageUrl = localData?.image_url || proxyImage;
   // Use real stock from API variants instead of local DB
   const totalApiStock = variants.reduce((sum: number, v: any) => sum + (v.stocks ?? 0), 0);
