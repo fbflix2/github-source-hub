@@ -167,8 +167,8 @@ export default function AdminCaixa() {
 
   const handleClose = async () => {
     if (!openCash) return;
-    const bankVal = parseFloat(bankBalance);
-    if (isNaN(bankVal)) {
+    const bankVal = parseBRL(bankBalance);
+    if (!bankVal) {
       toast.error("Informe o saldo real do banco");
       return;
     }
