@@ -199,6 +199,31 @@ export default function AdminCaixa() {
     }
   };
 
+  const handleReopen = async (record: CashRecord) => {
+    if (openCash) {
+      toast.error("Feche o caixa atual antes de reabrir outro");
+      return;
+    }
+    setReopening(true);
+    try {
+      const { error } = await supabase
+        .from("cash_register")
+        .update({
+          status: "open",
+          closed_at: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", record.id);
+      if (error) throw error;
+      toast.success("Caixa reaberto para ajustes!");
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao reabrir caixa");
+    } finally {
+      setReopening(false);
+    }
+  };
+
   const sysBalance = systemRevenue - systemExpenses;
   const openingBal = openCash?.opening_balance || 0;
   const bankVal = parseFloat(bankBalance) || 0;
