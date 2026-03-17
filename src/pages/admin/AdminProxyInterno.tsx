@@ -40,7 +40,9 @@ function CopyField({ label, value }: { label: string; value: string }) {
 export default function AdminProxyInterno() {
   const { data, isLoading, refetch, isFetching } = useWebshareRotatingBandwidth();
 
-  const username = data ? `${data.username}${data.country_suffix || "-country-BR-rotate"}` : "";
+  const username = data
+    ? (data.username.includes("-rotate") ? data.username : `${data.username}${data.country_suffix || "-BR-rotate"}`)
+    : "";
   const password = data?.password || "";
   const host = data?.proxy_host || "p.webshare.io";
   const httpPort = data?.http_port || 80;
