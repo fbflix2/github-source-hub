@@ -158,7 +158,7 @@ export default function AdminImageViewer() {
     }
   };
 
-  const savePositions = async () => {
+  const savePositions = useCallback(async (silent = false) => {
     try {
       const payload = JSON.stringify({ textPos, fontSizes, photoPos, signatureFont, contrast });
       const { data: existing } = await supabase
@@ -172,10 +172,23 @@ export default function AdminImageViewer() {
       } else {
         await supabase.from("site_settings").insert({ key: POSITIONS_KEY, value: payload });
       }
-      toast.success("Posições salvas permanentemente!");
+      if (!silent) toast.success("Posições salvas permanentemente!");
     } catch {
-      toast.error("Erro ao salvar posições");
+      if (!silent) toast.error("Erro ao salvar posições");
     }
+  }, [textPos, fontSizes, photoPos, signatureFont, contrast]);
+
+  // Auto-save positions after changes (debounced)
+  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (templateLoading) return; // Don't save during initial load
+    if (!selectedImage) return;
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    autoSaveTimer.current = setTimeout(() => {
+      savePositions(true);
+    }, 1500);
+    return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current); };
+  }, [textPos, fontSizes, photoPos, signatureFont, contrast, selectedImage, templateLoading, savePositions]);
   };
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
