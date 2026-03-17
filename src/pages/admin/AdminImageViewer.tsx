@@ -142,11 +142,37 @@ export default function AdminImageViewer() {
   const removeTemplate = async () => {
     try {
       await supabase.from("site_settings").delete().eq("key", SETTINGS_KEY);
+      await supabase.from("site_settings").delete().eq("key", POSITIONS_KEY);
       setSelectedImage(null);
       setTemplatePreview(null);
+      setTextPos(DEFAULT_TEXT);
+      setFontSizes({ nome: 11, nascimento: 10, filiacao: 9, assinatura: 14 });
+      setPhotoPos(DEFAULT_PHOTO);
+      setContrast(100);
+      setSignatureFont(SIGNATURE_FONTS[0]);
       toast.success("Template removido");
     } catch {
       toast.error("Erro ao remover template");
+    }
+  };
+
+  const savePositions = async () => {
+    try {
+      const payload = JSON.stringify({ textPos, fontSizes, photoPos, signatureFont, contrast });
+      const { data: existing } = await supabase
+        .from("site_settings")
+        .select("id")
+        .eq("key", POSITIONS_KEY)
+        .maybeSingle();
+
+      if (existing) {
+        await supabase.from("site_settings").update({ value: payload }).eq("key", POSITIONS_KEY);
+      } else {
+        await supabase.from("site_settings").insert({ key: POSITIONS_KEY, value: payload });
+      }
+      toast.success("Posições salvas permanentemente!");
+    } catch {
+      toast.error("Erro ao salvar posições");
     }
   };
 
