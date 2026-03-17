@@ -384,8 +384,8 @@ export default function AdminCaixa() {
                     Reforços / Entradas (R$)
                   </Label>
                   <Input
-                    type="number"
-                    step="0.01"
+                    type="text"
+                    inputMode="decimal"
                     value={deposits}
                     onChange={(e) => setDeposits(e.target.value)}
                     placeholder="0,00"
