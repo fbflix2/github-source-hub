@@ -29,6 +29,18 @@ const formatCurrency = (v: number) =>
 const formatDate = (d: string) =>
   new Date(d).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
+const parseBRL = (v: string): number => {
+  if (!v) return 0;
+  // Remove R$, spaces, dots (thousand sep), replace comma with dot
+  const cleaned = v.replace(/[R$\s]/g, "").replace(/\./g, "").replace(",", ".");
+  const num = parseFloat(cleaned);
+  return isNaN(num) ? 0 : num;
+};
+
+const formatBRLInput = (v: number): string => {
+  return v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
 interface CashRecord {
   id: string;
   opened_at: string;
@@ -82,6 +94,10 @@ export default function AdminCaixa() {
 
     if (openData) {
       setOpenCash(openData as CashRecord);
+      // Pre-fill bank balance with opening balance
+      if (!bankBalance) {
+        setBankBalance(formatBRLInput(openData.opening_balance || 0));
+      }
       // Fetch system values for the open period
       await fetchSystemValues(openData.opened_at);
     } else {
@@ -122,8 +138,8 @@ export default function AdminCaixa() {
   useEffect(() => { fetchData(); }, []);
 
   const handleOpen = async () => {
-    const obVal = parseFloat(openingBalanceInput);
-    if (isNaN(obVal)) {
+    const obVal = parseBRL(openingBalanceInput);
+    if (!obVal) {
       toast.error("Informe o saldo atual do banco para abrir o caixa");
       return;
     }
@@ -151,16 +167,16 @@ export default function AdminCaixa() {
 
   const handleClose = async () => {
     if (!openCash) return;
-    const bankVal = parseFloat(bankBalance);
-    if (isNaN(bankVal)) {
+    const bankVal = parseBRL(bankBalance);
+    if (!bankVal) {
       toast.error("Informe o saldo real do banco");
       return;
     }
 
     setSaving(true);
     try {
-      const wdVal = parseFloat(withdrawals) || 0;
-      const dpVal = parseFloat(deposits) || 0;
+      const wdVal = parseBRL(withdrawals);
+      const dpVal = parseBRL(deposits);
       const sysBalance = systemRevenue - systemExpenses;
       const openBal = openCash.opening_balance || 0;
       // Diferença = variação real do banco no período
@@ -221,9 +237,9 @@ export default function AdminCaixa() {
 
   const sysBalance = systemRevenue - systemExpenses;
   const openingBal = openCash?.opening_balance || 0;
-  const bankVal = parseFloat(bankBalance) || 0;
-  const wdVal = parseFloat(withdrawals) || 0;
-  const dpVal = parseFloat(deposits) || 0;
+  const bankVal = parseBRL(bankBalance);
+  const wdVal = parseBRL(withdrawals);
+  const dpVal = parseBRL(deposits);
   // Variação real = banco agora - saldo abertura
   const liveDiff = bankVal - openingBal;
 
@@ -273,11 +289,11 @@ export default function AdminCaixa() {
                 Saldo Atual do Banco (R$)
               </Label>
               <Input
-                type="number"
-                step="0.01"
+                type="text"
+                inputMode="decimal"
                 value={openingBalanceInput}
                 onChange={(e) => setOpeningBalanceInput(e.target.value)}
-                placeholder="Quanto tem na conta agora"
+                placeholder="Ex: 11.522,06"
               />
             </div>
             <Button onClick={handleOpen} disabled={saving || !openingBalanceInput} className="gap-2">
@@ -342,11 +358,11 @@ export default function AdminCaixa() {
                     Saldo Real do Banco (R$)
                   </Label>
                   <Input
-                    type="number"
-                    step="0.01"
+                    type="text"
+                    inputMode="decimal"
                     value={bankBalance}
                     onChange={(e) => setBankBalance(e.target.value)}
-                    placeholder="Quanto tem na conta"
+                    placeholder="Ex: 11.522,06"
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -355,8 +371,8 @@ export default function AdminCaixa() {
                     Sangrias / Retiradas (R$)
                   </Label>
                   <Input
-                    type="number"
-                    step="0.01"
+                    type="text"
+                    inputMode="decimal"
                     value={withdrawals}
                     onChange={(e) => setWithdrawals(e.target.value)}
                     placeholder="0,00"
@@ -368,8 +384,8 @@ export default function AdminCaixa() {
                     Reforços / Entradas (R$)
                   </Label>
                   <Input
-                    type="number"
-                    step="0.01"
+                    type="text"
+                    inputMode="decimal"
                     value={deposits}
                     onChange={(e) => setDeposits(e.target.value)}
                     placeholder="0,00"
