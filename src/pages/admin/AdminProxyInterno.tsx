@@ -213,37 +213,36 @@ export default function AdminProxyInterno() {
               <CardContent className="space-y-2.5">
                 {active ? (
                   <>
-                    <CopyField label="Host (Domínio)" value={active.host || "p.webshare.io"} />
-                    {active.converted_host && (
-                      <CopyField label="Host (IP Convertido)" value={active.converted_host} />
-                    )}
-                    <CopyField label="Usuário" value={active.username || ""} />
-                    <CopyField label="Senha" value={active.password || ""} />
+                    <div className="grid gap-2 sm:grid-cols-3">
+                      <CopyField label="Host" value={active.host || "p.webshare.io"} />
+                      <CopyField label="Usuário" value={active.username || ""} />
+                      <CopyField label="Senha" value={active.password || ""} />
+                    </div>
 
-                    <div className="pt-2 border-t border-border/50 space-y-2">
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Formato que costuma funcionar — endpoint + autenticação separada</p>
-                      <div className="grid gap-2 sm:grid-cols-2">
-                        <CopyField label="Endpoint HTTP :80" value={`${active.host || "p.webshare.io"}:${active.http_port || 80}`} />
-                        <CopyField label="Endpoint HTTP :3128" value={`${active.host || "p.webshare.io"}:${active.alt_http_port || 3128}`} />
-                        <CopyField label="Endpoint SOCKS5 :1080" value={`${active.host || "p.webshare.io"}:${active.socks5_port || 1080}`} />
+                    {active.converted_host && (
+                      <div className="grid gap-2 sm:grid-cols-3">
+                        <CopyField label="Host (IP Convertido)" value={active.converted_host} />
                         <CopyField label="Usuário" value={active.username || ""} />
                         <CopyField label="Senha" value={active.password || ""} />
                       </div>
+                    )}
+
+                    <div className="pt-2 border-t border-border/50 space-y-2">
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Strings prontas — host:porta:usuario:senha</p>
+                      <CopyField label="HTTP :80" value={`${active.host || "p.webshare.io"}:${active.http_port || 80}:${active.username || ""}:${active.password || ""}`} />
+                      <CopyField label="HTTP :3128" value={`${active.host || "p.webshare.io"}:${active.alt_http_port || 3128}:${active.username || ""}:${active.password || ""}`} />
+                      <CopyField label="SOCKS5 :1080" value={`${active.host || "p.webshare.io"}:${active.socks5_port || 1080}:${active.username || ""}:${active.password || ""}`} />
                     </div>
 
                     {hasConvertedHost && (
                       <div className="pt-2 border-t border-border/50 space-y-2">
                         <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1">
                           <Zap className="size-3 text-green-500" />
-                          IP convertido — endpoint + autenticação separada
+                          Strings prontas (IP) — host:porta:usuario:senha
                         </p>
-                        <div className="grid gap-2 sm:grid-cols-2">
-                          <CopyField label="Endpoint HTTP :80" value={`${active.converted_host}:${active.http_port || 80}`} />
-                          <CopyField label="Endpoint HTTP :3128" value={`${active.converted_host}:${active.alt_http_port || 3128}`} />
-                          <CopyField label="Endpoint SOCKS5 :1080" value={`${active.converted_host}:${active.socks5_port || 1080}`} />
-                          <CopyField label="Usuário" value={active.username || ""} />
-                          <CopyField label="Senha" value={active.password || ""} />
-                        </div>
+                        <CopyField label="HTTP :80" value={`${active.converted_host}:${active.http_port || 80}:${active.username || ""}:${active.password || ""}`} />
+                        <CopyField label="HTTP :3128" value={`${active.converted_host}:${active.alt_http_port || 3128}:${active.username || ""}:${active.password || ""}`} />
+                        <CopyField label="SOCKS5 :1080" value={`${active.converted_host}:${active.socks5_port || 1080}:${active.username || ""}:${active.password || ""}`} />
                       </div>
                     )}
                   </>
