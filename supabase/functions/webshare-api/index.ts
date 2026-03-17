@@ -1223,8 +1223,19 @@ Deno.serve(async (req) => {
         }
 
         if (baseUsername) {
+          // Resolve p.webshare.io to IP so tools like Multilogin don't strip the subdomain
+          let resolvedIP: string | null = null;
+          try {
+            const dnsResp = await fetch("https://dns.google/resolve?name=p.webshare.io&type=A");
+            const dnsData = await dnsResp.json();
+            if (dnsData.Answer?.length > 0) {
+              resolvedIP = dnsData.Answer[0].data;
+            }
+          } catch {}
+
           autoConfig = {
             host: "p.webshare.io",
+            converted_host: resolvedIP || null,
             http_port: 80,
             socks5_port: 1080,
             alt_http_port: 3128,
