@@ -434,6 +434,8 @@ export default function AdminImageViewer() {
     const dyPct = (dy / rect.h) * 100;
     if (dragTarget === "photo") {
       setPhotoPos((p) => ({ ...p, xPct: dragStartPct.x + dxPct, yPct: dragStartPct.y + dyPct }));
+    } else if (dragTarget === "docIdentidade") {
+      setDocIdentidadePos({ xPct: dragStartPct.x + dxPct, yPct: dragStartPct.y + dyPct });
     } else {
       setTextPos((prev) => ({
         ...prev,
@@ -442,10 +444,49 @@ export default function AdminImageViewer() {
     }
   }, [isPanning, panStart, dragTarget, dragStartPx, dragStartPct, zoom]);
 
+  const saveDocIdentidadePosition = useCallback(async (pos: { xPct: number; yPct: number }) => {
+    try {
+      const { data: existing } = await supabase
+        .from("site_settings")
+        .select("id, value")
+        .eq("key", POSITIONS_KEY)
+        .maybeSingle();
+
+      let current: any = {};
+      if (existing?.value) {
+        try { current = JSON.parse(existing.value); } catch {}
+      }
+      current.textPos = { ...(current.textPos || {}), docIdentidade: pos };
+      const payload = JSON.stringify(current);
+
+      if (existing) {
+        await supabase.from("site_settings").update({ value: payload }).eq("key", POSITIONS_KEY);
+      } else {
+        await supabase.from("site_settings").insert({ key: POSITIONS_KEY, value: payload });
+      }
+      toast.success("Posição do RG fixada!");
+    } catch {
+      toast.error("Erro ao salvar posição do RG");
+    }
+  }, []);
+
   const onGlobalMouseUp = useCallback(() => {
+    const wasDraggingDocId = dragTarget === "docIdentidade";
     setIsPanning(false);
     setDragTarget(null);
-  }, []);
+
+    if (wasDraggingDocId) {
+      if (docIdLockTimer.current) clearTimeout(docIdLockTimer.current);
+      toast.info("Posição será salva em 3 segundos...");
+      docIdLockTimer.current = setTimeout(() => {
+        setDocIdentidadePos((current) => {
+          const sanitized = sanitizeTextPoint(current, FIXED_DOC_IDENTIDADE_POSITION);
+          saveDocIdentidadePosition(sanitized);
+          return sanitized;
+        });
+      }, 3000);
+    }
+  }, [dragTarget, saveDocIdentidadePosition]);
 
   useEffect(() => {
     if (isPanning || dragTarget) {
