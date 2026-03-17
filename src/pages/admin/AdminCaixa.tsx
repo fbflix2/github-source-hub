@@ -175,8 +175,8 @@ export default function AdminCaixa() {
 
     setSaving(true);
     try {
-      const wdVal = parseFloat(withdrawals) || 0;
-      const dpVal = parseFloat(deposits) || 0;
+      const wdVal = parseBRL(withdrawals);
+      const dpVal = parseBRL(deposits);
       const sysBalance = systemRevenue - systemExpenses;
       const openBal = openCash.opening_balance || 0;
       // Diferença = variação real do banco no período
