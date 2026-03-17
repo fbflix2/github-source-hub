@@ -736,28 +736,50 @@ export default function AdminImageViewer() {
                 <Slider value={[fontSizes.nascimento]} onValueChange={([v]) => setFontSizes((f) => ({ ...f, nascimento: v }))} min={5} max={18} step={0.5} className="flex-1" />
                 <span className="text-[10px] text-white/50 w-8">{fontSizes.nascimento}px</span>
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <Label className="text-white/60 text-xs">Nome do Pai</Label>
-                  <Input
-                    value={formData.nomePai}
-                    onChange={(e) => setFormData((f) => ({ ...f, nomePai: e.target.value }))}
-                    placeholder="Nome do Pai"
-                    className="mt-1 bg-white/5 border-white/10 text-white uppercase text-xs"
-                    maxLength={100}
-                  />
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-white/60 text-xs">Filiação (gerada automaticamente)</Label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const sobrenome = extractSobrenome(formData.nomeCompleto);
+                      if (sobrenome) {
+                        setFormData((f) => ({
+                          ...f,
+                          nomePai: gerarNomePai(sobrenome),
+                          nomeMae: gerarNomeMae(sobrenome),
+                        }));
+                      }
+                    }}
+                    className="text-[10px] text-primary hover:text-primary/80 flex items-center gap-1"
+                    title="Gerar novos nomes"
+                  >
+                    <RotateCw className="size-3" /> Sortear
+                  </button>
                 </div>
-                <div>
-                  <Label className="text-white/60 text-xs">Nome da Mãe</Label>
-                  <Input
-                    value={formData.nomeMae}
-                    onChange={(e) => setFormData((f) => ({ ...f, nomeMae: e.target.value }))}
-                    placeholder="Nome da Mãe"
-                    className="mt-1 bg-white/5 border-white/10 text-white uppercase text-xs"
-                    maxLength={100}
-                  />
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-white/40 text-[10px]">Pai</Label>
+                    <Input
+                      value={formData.nomePai}
+                      onChange={(e) => setFormData((f) => ({ ...f, nomePai: e.target.value }))}
+                      placeholder="Gerado ao digitar nome"
+                      className="mt-0.5 bg-white/5 border-white/10 text-white uppercase text-xs"
+                      maxLength={100}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-white/40 text-[10px]">Mãe</Label>
+                    <Input
+                      value={formData.nomeMae}
+                      onChange={(e) => setFormData((f) => ({ ...f, nomeMae: e.target.value }))}
+                      placeholder="Gerado ao digitar nome"
+                      className="mt-0.5 bg-white/5 border-white/10 text-white uppercase text-xs"
+                      maxLength={100}
+                    />
+                  </div>
                 </div>
-                <div className="col-span-2 flex items-center gap-2">
+                <div className="flex items-center gap-2">
                   <span className="text-[10px] text-white/40">Fonte filiação:</span>
                   <Slider value={[fontSizes.filiacao]} onValueChange={([v]) => setFontSizes((f) => ({ ...f, filiacao: v }))} min={5} max={18} step={0.5} className="flex-1" />
                   <span className="text-[10px] text-white/50 w-8">{fontSizes.filiacao}px</span>
