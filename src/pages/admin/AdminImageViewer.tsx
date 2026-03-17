@@ -678,14 +678,18 @@ export default function AdminImageViewer() {
                       </span>
                     </div>
                   )}
-                  {formData.dataNascimento && (
+                  {(formData.dataNascimento || formData.naturalidade) && (
                     <div
                       className="absolute select-none whitespace-nowrap"
                       style={{ left: `${textPos.nascimento.xPct}%`, top: `${textPos.nascimento.yPct}%`, cursor: panMode ? "inherit" : "move" }}
                       onMouseDown={(e) => onElementMouseDown("nascimento", e)}
                     >
                       <span className="font-semibold text-black/90" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${fontSizes.nascimento}px` }}>
-                        {new Date(formData.dataNascimento).toLocaleDateString("pt-BR")}
+                        {[
+                          formData.dataNascimento ? new Date(formData.dataNascimento).toLocaleDateString("pt-BR") : "",
+                          formData.naturalidade,
+                          formData.uf
+                        ].filter(Boolean).join(" - ")}
                       </span>
                     </div>
                   )}
