@@ -142,7 +142,7 @@ export function useWebshareSubscriptions() {
         .from("subscriptions")
         .select("*, products:product_id(name, price)")
         .eq("user_id", user.id)
-        .eq("type", "webshare")
+        .in("type", ["webshare", "webshare_rotating"])
         .order("created_at", { ascending: false });
 
       if (error) throw new Error(error.message);
@@ -150,7 +150,8 @@ export function useWebshareSubscriptions() {
       return (data || []).map((sub) => {
         const raw = (sub.raw_data || {}) as Record<string, any>;
         const productInfo = sub.products as any;
-        const productName = productInfo?.name || raw.product_name || "Proxy Residencial";
+        const isRotating = sub.type === "webshare_rotating";
+        const productName = productInfo?.name || raw.product_name || (isRotating ? "Proxy Rotativo BR" : "Proxy Residencial");
         const customerPrice = productInfo?.price || null;
         return {
           id: sub.id,
@@ -165,18 +166,40 @@ export function useWebshareSubscriptions() {
           raw_data: raw,
           profile_tag: raw.profile_tag || null,
           provider: "webshare",
-          proxy: raw.proxy_address ? {
-            id: raw.webshare_proxy_id,
-            ip: raw.proxy_address,
-            port: raw.port,
-            username: raw.username,
-            password: raw.password,
-            protocol: "HTTP/SOCKS5",
-          } : undefined,
+          is_rotating: isRotating,
+          gb_purchased: isRotating ? (raw.gb_purchased || 0) : undefined,
+          proxy: isRotating
+            ? {
+                ip: raw.proxy_host || "p.webshare.io",
+                port: raw.http_port || 80,
+                username: raw.username,
+                password: raw.password,
+                protocol: "HTTP/SOCKS5",
+                socks5_port: raw.socks5_port || 1080,
+              }
+            : raw.proxy_address ? {
+                id: raw.webshare_proxy_id,
+                ip: raw.proxy_address,
+                port: raw.port,
+                username: raw.username,
+                password: raw.password,
+                protocol: "HTTP/SOCKS5",
+              } : undefined,
         };
       });
     },
     staleTime: 30_000,
+  });
+}
+
+/** Get Webshare rotating proxy bandwidth stats */
+export function useWebshareRotatingBandwidth() {
+  return useQuery({
+    queryKey: ["webshare-rotating-bandwidth"],
+    queryFn: () => callWebshare("get-rotating-credentials"),
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    retry: false,
   });
 }
 
