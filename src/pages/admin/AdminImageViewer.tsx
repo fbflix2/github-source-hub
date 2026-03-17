@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { toast } from "sonner";
 
 const SETTINGS_KEY = "imageviewer_base_template_url";
+const POSITIONS_KEY = "imageviewer_positions";
 
 const DEFAULT_PHOTO = { xPct: 2.8, yPct: 25, wPct: 17.5, hPct: 24 };
 const DEFAULT_TEXT = {
@@ -57,18 +58,32 @@ export default function AdminImageViewer() {
 
   const [templateLoading, setTemplateLoading] = useState(true);
 
-  // Load template from Supabase site_settings on mount
+  // Load template + positions from Supabase on mount
   useEffect(() => {
-    const loadTemplate = async () => {
+    const loadSettings = async () => {
       try {
         const { data } = await supabase
           .from("site_settings")
-          .select("value")
-          .eq("key", SETTINGS_KEY)
-          .maybeSingle();
-        if (data?.value) {
-          setSelectedImage(data.value);
-          setTemplatePreview(data.value);
+          .select("key, value")
+          .in("key", [SETTINGS_KEY, POSITIONS_KEY]);
+
+        if (data) {
+          for (const row of data) {
+            if (row.key === SETTINGS_KEY && row.value) {
+              setSelectedImage(row.value);
+              setTemplatePreview(row.value);
+            }
+            if (row.key === POSITIONS_KEY && row.value) {
+              try {
+                const saved = JSON.parse(row.value);
+                if (saved.textPos) setTextPos(saved.textPos);
+                if (saved.fontSizes) setFontSizes(saved.fontSizes);
+                if (saved.photoPos) setPhotoPos(saved.photoPos);
+                if (saved.signatureFont) setSignatureFont(saved.signatureFont);
+                if (saved.contrast != null) setContrast(saved.contrast);
+              } catch { /* ignore parse errors */ }
+            }
+          }
         }
       } catch {
         // ignore
@@ -76,7 +91,7 @@ export default function AdminImageViewer() {
         setTemplateLoading(false);
       }
     };
-    loadTemplate();
+    loadSettings();
   }, []);
 
   const getImgRect = () => {
@@ -127,11 +142,37 @@ export default function AdminImageViewer() {
   const removeTemplate = async () => {
     try {
       await supabase.from("site_settings").delete().eq("key", SETTINGS_KEY);
+      await supabase.from("site_settings").delete().eq("key", POSITIONS_KEY);
       setSelectedImage(null);
       setTemplatePreview(null);
+      setTextPos(DEFAULT_TEXT);
+      setFontSizes({ nome: 11, nascimento: 10, filiacao: 9, assinatura: 14 });
+      setPhotoPos(DEFAULT_PHOTO);
+      setContrast(100);
+      setSignatureFont(SIGNATURE_FONTS[0]);
       toast.success("Template removido");
     } catch {
       toast.error("Erro ao remover template");
+    }
+  };
+
+  const savePositions = async () => {
+    try {
+      const payload = JSON.stringify({ textPos, fontSizes, photoPos, signatureFont, contrast });
+      const { data: existing } = await supabase
+        .from("site_settings")
+        .select("id")
+        .eq("key", POSITIONS_KEY)
+        .maybeSingle();
+
+      if (existing) {
+        await supabase.from("site_settings").update({ value: payload }).eq("key", POSITIONS_KEY);
+      } else {
+        await supabase.from("site_settings").insert({ key: POSITIONS_KEY, value: payload });
+      }
+      toast.success("Posições salvas permanentemente!");
+    } catch {
+      toast.error("Erro ao salvar posições");
     }
   };
 
@@ -363,6 +404,17 @@ export default function AdminImageViewer() {
                   </button>
                 </div>
                 <p className="text-[10px] text-muted-foreground">Este template será carregado automaticamente ao abrir esta página.</p>
+              </div>
+            )}
+            {templatePreview && (
+              <div className="pt-2 border-t border-border">
+                <p className="text-xs text-muted-foreground mb-2">
+                  Posicione os textos e a foto no preview arrastando-os, ajuste fontes e contraste, depois clique abaixo para salvar as posições permanentemente.
+                </p>
+                <Button onClick={savePositions} variant="outline" className="w-full gap-2">
+                  <Download className="size-4" />
+                  Salvar Posições Atuais
+                </Button>
               </div>
             )}
             {!templatePreview && (
