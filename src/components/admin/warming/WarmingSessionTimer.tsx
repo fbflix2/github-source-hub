@@ -395,15 +395,19 @@ export default function WarmingSessionTimer({ profile, tasks, onTaskCompleted, t
       </div>
 
       {/* Active timer banner */}
-      {activeTaskId && timerStart && (
-        <div className="px-5 py-3 bg-[#1876f2] text-white flex items-center justify-between">
+      {activeTaskId && (timerStart || delayTaskId) && (
+        <div className={`px-5 py-3 text-white flex items-center justify-between ${
+          delayTaskId ? "bg-amber-500" : "bg-[#1876f2]"
+        }`}>
           <div className="flex items-center gap-3">
             <div className="w-3 h-3 bg-white rounded-full animate-pulse" />
             <span className="text-sm font-bold">
-              Cronômetro ativo: {sortedTasks.find(t => t.id === activeTaskId)?.title}
+              {delayTaskId ? "Abrindo perfil..." : `Cronômetro ativo: ${sortedTasks.find(t => t.id === activeTaskId)?.title}`}
             </span>
           </div>
-          <span className="font-mono text-lg font-black">{formatTimer(elapsed)}</span>
+          <span className="font-mono text-lg font-black">
+            {delayTaskId ? "⏳" : formatTimer(elapsed)}
+          </span>
         </div>
       )}
     </div>
