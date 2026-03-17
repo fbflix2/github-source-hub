@@ -34,6 +34,29 @@ function detectCountryFromProduct(product: { name: string; tags: string[] | null
   return null;
 }
 
+function normalizeRotatingBaseUsername(rawUsername: string): string {
+  const cleaned = (rawUsername || "").trim();
+  if (!cleaned) return "";
+
+  const normalized = cleaned
+    .replace(/-country-[a-z]{2}-rotate$/i, "")
+    .replace(/-[a-z]{2}-rotate$/i, "")
+    .replace(/-[a-z]{2}$/i, "")
+    .replace(/-\d+$/i, "");
+
+  if (!normalized) return "";
+  return /residential/i.test(normalized) ? normalized : `${normalized}residential`;
+}
+
+function buildRotatingCountrySuffix(countryCode = "BR"): string {
+  return `-${countryCode.toUpperCase()}-rotate`;
+}
+
+function buildRotatingUsername(rawUsername: string, countryCode = "BR"): string {
+  const baseUsername = normalizeRotatingBaseUsername(rawUsername);
+  return baseUsername ? `${baseUsername}${buildRotatingCountrySuffix(countryCode)}` : "";
+}
+
 async function webFetch(path: string, apiKey: string, method = "GET", body?: string) {
   const url = path.startsWith("http") ? path : `${WEBSHARE_BASE}${path}`;
   const headers: Record<string, string> = {
