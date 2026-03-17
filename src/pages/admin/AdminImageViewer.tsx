@@ -239,14 +239,18 @@ export default function AdminImageViewer() {
       ctx.fillText(formData.nomeCompleto.toUpperCase(), x, y);
     }
 
-    // Draw nascimento
-    if (formData.dataNascimento) {
+    // Draw nascimento + naturalidade
+    if (formData.dataNascimento || formData.naturalidade) {
       const fs = scaledFont(fontSizes.nascimento);
       ctx.font = `600 ${fs}px "Arial Narrow", Arial, sans-serif`;
       ctx.fillStyle = "rgba(0,0,0,0.9)";
       const x = (textPos.nascimento.xPct / 100) * W;
       const y = (textPos.nascimento.yPct / 100) * H + fs;
-      ctx.fillText(new Date(formData.dataNascimento).toLocaleDateString("pt-BR"), x, y);
+      const parts: string[] = [];
+      if (formData.dataNascimento) parts.push(new Date(formData.dataNascimento).toLocaleDateString("pt-BR"));
+      if (formData.naturalidade) parts.push(formData.naturalidade);
+      if (formData.uf) parts.push(formData.uf);
+      ctx.fillText(parts.join(" - "), x, y);
     }
 
     // Draw filiação
