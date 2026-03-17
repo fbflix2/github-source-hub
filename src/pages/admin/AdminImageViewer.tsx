@@ -790,7 +790,7 @@ export default function AdminImageViewer() {
                     >
                       <span className="font-semibold text-black/90" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${fontSizes.nascimento}px` }}>
                         {[
-                          formData.dataNascimento ? new Date(formData.dataNascimento).toLocaleDateString("pt-BR") : "",
+                          formData.dataNascimento ? parseLocalDate(formData.dataNascimento).toLocaleDateString("pt-BR") : "",
                           formData.naturalidade,
                           formData.uf
                         ].filter(Boolean).join(" - ")}
