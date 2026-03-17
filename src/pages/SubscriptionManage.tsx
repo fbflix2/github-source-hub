@@ -403,6 +403,7 @@ export default function SubscriptionManage() {
               <p className="text-text-secondary text-[10px]">Opcional — informe em qual perfil este proxy está sendo usado.</p>
             )}
           </div>
+          )}
         </div>
 
         {/* Right Column */}
