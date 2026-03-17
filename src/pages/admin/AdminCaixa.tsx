@@ -21,6 +21,8 @@ import {
   ArrowDownCircle,
   Zap,
   PenLine,
+  Settings2,
+  Percent,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -99,6 +101,10 @@ export default function AdminCaixa() {
   const [newMovementAmount, setNewMovementAmount] = useState("");
   const [newMovementDesc, setNewMovementDesc] = useState("");
   const [addingMovement, setAddingMovement] = useState(false);
+
+  // Fee config
+  const [mpFeeRate, setMpFeeRate] = useState(0.99); // 0.99% default
+  const [showFeeConfig, setShowFeeConfig] = useState(false);
 
   // System values
   const [systemRevenue, setSystemRevenue] = useState(0);
@@ -193,14 +199,29 @@ export default function AdminCaixa() {
             .maybeSingle();
 
           if (!existing) {
-            await supabase.from("cash_movements").insert({
-              cash_register_id: cashId,
-              type: "entry",
-              source: "automatic",
-              amount: Number(order.total || 0),
-              description: `Venda #${order.code}`,
-              reference_id: order.code,
-            });
+            const total = Number(order.total || 0);
+            const fee = Math.round(total * mpFeeRate) / 100;
+            const movs: any[] = [
+              {
+                cash_register_id: cashId,
+                type: "entry",
+                source: "automatic",
+                amount: total,
+                description: `Venda #${order.code}`,
+                reference_id: order.code,
+              },
+            ];
+            if (fee > 0) {
+              movs.push({
+                cash_register_id: cashId,
+                type: "exit",
+                source: "automatic",
+                amount: fee,
+                description: `Taxa MP ${mpFeeRate.toFixed(2).replace(".", ",")}% - Venda #${order.code}`,
+                reference_id: `fee-${order.code}`,
+              });
+            }
+            await supabase.from("cash_movements").insert(movs);
           }
           // Refresh
           fetchMovements(cashId);
@@ -248,16 +269,31 @@ export default function AdminCaixa() {
 
       const existingRefs = new Set((existingMovs || []).map(m => m.reference_id));
 
-      const toInsert = completedOrders
+      const toInsert: any[] = [];
+      completedOrders
         .filter(o => !existingRefs.has(o.code))
-        .map(o => ({
-          cash_register_id: openCash.id,
-          type: "entry" as const,
-          source: "automatic" as const,
-          amount: Number(o.total || 0),
-          description: `Venda #${o.code}`,
-          reference_id: o.code,
-        }));
+        .forEach(o => {
+          const total = Number(o.total || 0);
+          const fee = Math.round(total * mpFeeRate) / 100;
+          toInsert.push({
+            cash_register_id: openCash.id,
+            type: "entry",
+            source: "automatic",
+            amount: total,
+            description: `Venda #${o.code}`,
+            reference_id: o.code,
+          });
+          if (fee > 0) {
+            toInsert.push({
+              cash_register_id: openCash.id,
+              type: "exit",
+              source: "automatic",
+              amount: fee,
+              description: `Taxa MP ${mpFeeRate.toFixed(2).replace(".", ",")}% - Venda #${o.code}`,
+              reference_id: `fee-${o.code}`,
+            });
+          }
+        });
 
       if (toInsert.length > 0) {
         await supabase.from("cash_movements").insert(toInsert);
@@ -454,7 +490,38 @@ export default function AdminCaixa() {
                   </p>
                 </div>
               </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 text-xs border-white/10 hover:bg-white/5"
+                onClick={() => setShowFeeConfig(!showFeeConfig)}
+              >
+                <Percent className="size-3" />
+                Taxa MP: {mpFeeRate.toFixed(2).replace(".", ",")}%
+              </Button>
             </div>
+
+            {/* Fee config */}
+            {showFeeConfig && (
+              <div className="bg-white/[0.03] border border-white/10 rounded-lg p-4 flex items-center gap-4">
+                <Settings2 className="size-4 text-muted-foreground shrink-0" />
+                <div className="flex items-center gap-2 flex-1">
+                  <Label className="text-xs text-muted-foreground whitespace-nowrap">Taxa Mercado Pago (%)</Label>
+                  <Input
+                    type="text"
+                    inputMode="decimal"
+                    value={mpFeeRate.toFixed(2).replace(".", ",")}
+                    onChange={(e) => {
+                      const val = parseBRL(e.target.value);
+                      if (val >= 0 && val <= 10) setMpFeeRate(val);
+                    }}
+                    className="w-24"
+                    placeholder="0,99"
+                  />
+                  <span className="text-xs text-muted-foreground">Aplicada automaticamente a cada venda</span>
+                </div>
+              </div>
+            )}
 
             {/* Summary cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
