@@ -118,9 +118,9 @@ export function ProductListItem({ product, quantity, onQuantityChange, onReadMor
         </div>
 
         {/* Tags */}
-        {product.tags && product.tags.length > 0 && (
+        {product.tags && product.tags.filter((t) => t.toLowerCase() !== "webshare").length > 0 && (
           <div className="flex items-center gap-1.5 flex-wrap">
-            {product.tags.map((tag) => (
+            {product.tags.filter((t) => t.toLowerCase() !== "webshare").map((tag) => (
               <span
                 key={tag}
                 className="text-[10px] px-2 py-0.5 rounded-full bg-foreground text-background font-medium"
