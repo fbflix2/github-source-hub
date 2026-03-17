@@ -220,17 +220,32 @@ export default function AdminImageViewer() {
     ctx.drawImage(baseImg, 0, 0, W, H);
     ctx.filter = "none";
 
-    // Draw photo overlay
+    // Draw photo overlay with object-fit: cover behavior
     if (photoOverlay) {
       const pImg = new Image();
       pImg.crossOrigin = "anonymous";
       pImg.src = photoOverlay;
       await new Promise<void>((res) => { pImg.onload = () => res(); pImg.onerror = () => res(); });
-      const px = (photoPos.xPct / 100) * W;
-      const py = (photoPos.yPct / 100) * H;
-      const pw = (photoPos.wPct / 100) * W;
-      const ph = (photoPos.hPct / 100) * H;
-      ctx.drawImage(pImg, px, py, pw, ph);
+      const dx = (photoPos.xPct / 100) * W;
+      const dy = (photoPos.yPct / 100) * H;
+      const dw = (photoPos.wPct / 100) * W;
+      const dh = (photoPos.hPct / 100) * H;
+      // Replicate CSS object-fit: cover
+      const imgAspect = pImg.naturalWidth / pImg.naturalHeight;
+      const destAspect = dw / dh;
+      let sx: number, sy: number, sw: number, sh: number;
+      if (imgAspect > destAspect) {
+        sh = pImg.naturalHeight;
+        sw = sh * destAspect;
+        sx = (pImg.naturalWidth - sw) / 2;
+        sy = 0;
+      } else {
+        sw = pImg.naturalWidth;
+        sh = sw / destAspect;
+        sx = 0;
+        sy = (pImg.naturalHeight - sh) / 2;
+      }
+      ctx.drawImage(pImg, sx, sy, sw, sh, dx, dy, dw, dh);
     }
 
     // Helper to compute font size scaled to natural resolution
