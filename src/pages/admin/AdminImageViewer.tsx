@@ -302,11 +302,11 @@ export default function AdminImageViewer() {
 
     // Draw doc identidade
     if (docIdentidade) {
-      const fs = scaledFont(fontSizes.docIdentidade);
+      const fs = scaledFont(safeFontSizes.docIdentidade);
       ctx.font = `600 ${fs}px "Arial Narrow", Arial, sans-serif`;
       ctx.fillStyle = "rgba(0,0,0,0.9)";
-      const x = (textPos.docIdentidade.xPct / 100) * W;
-      const y = (textPos.docIdentidade.yPct / 100) * H;
+      const x = (safeTextPos.docIdentidade.xPct / 100) * W;
+      const y = (safeTextPos.docIdentidade.yPct / 100) * H;
       ctx.fillText(docIdentidade.toUpperCase(), x, y);
     }
 
