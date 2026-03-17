@@ -119,6 +119,9 @@ export default function WarmingSessionTimer({ profile, tasks, onTaskCompleted, t
     setAccumulated(acc);
   }, [tasks]);
 
+  const [delayTaskId, setDelayTaskId] = useState<string | null>(null);
+  const delayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const startTimer = (taskId: string) => {
     // If another timer is running, pause it first
     if (activeTaskId && activeTaskId !== taskId && timerStart) {
@@ -126,23 +129,41 @@ export default function WarmingSessionTimer({ profile, tasks, onTaskCompleted, t
       const prev = accumulated[activeTaskId] || 0;
       const total = prev + runSeconds;
       setAccumulated(a => ({ ...a, [activeTaskId]: total }));
-      // Save partial to DB
       supabase.from("warming_tasks").update({ duration_seconds: total }).eq("id", activeTaskId);
     }
+    // Cancel any existing delay
+    if (delayTimerRef.current) clearTimeout(delayTimerRef.current);
+    
+    setDelayTaskId(taskId);
     setActiveTaskId(taskId);
-    setTimerStart(Date.now());
     const base = accumulated[taskId] || 0;
     setElapsed(base);
+
+    // 2s delay for Multilogin to open the profile
+    delayTimerRef.current = setTimeout(() => {
+      setTimerStart(Date.now());
+      setDelayTaskId(null);
+    }, 2000);
   };
 
+  // Cleanup delay timer on unmount
+  useEffect(() => {
+    return () => { if (delayTimerRef.current) clearTimeout(delayTimerRef.current); };
+  }, []);
+
   const pauseTimer = () => {
-    if (!activeTaskId || !timerStart) return;
-    const runSeconds = Math.floor((Date.now() - timerStart) / 1000);
-    const prev = accumulated[activeTaskId] || 0;
-    const total = prev + runSeconds;
-    setAccumulated(a => ({ ...a, [activeTaskId]: total }));
-    // Save partial to DB
-    supabase.from("warming_tasks").update({ duration_seconds: total }).eq("id", activeTaskId);
+    // Cancel delay if still waiting
+    if (delayTimerRef.current) { clearTimeout(delayTimerRef.current); delayTimerRef.current = null; }
+    setDelayTaskId(null);
+
+    if (!activeTaskId) return;
+    if (timerStart) {
+      const runSeconds = Math.floor((Date.now() - timerStart) / 1000);
+      const prev = accumulated[activeTaskId] || 0;
+      const total = prev + runSeconds;
+      setAccumulated(a => ({ ...a, [activeTaskId]: total }));
+      supabase.from("warming_tasks").update({ duration_seconds: total }).eq("id", activeTaskId);
+    }
     setActiveTaskId(null);
     setTimerStart(null);
     setElapsed(0);
@@ -258,6 +279,7 @@ export default function WarmingSessionTimer({ profile, tasks, onTaskCompleted, t
       <div className="p-4 space-y-2 max-h-[420px] overflow-y-auto">
         {sortedTasks.map((task) => {
           const isActive = activeTaskId === task.id;
+          const isDelaying = delayTaskId === task.id && timerStart == null;
           const isRunning = isActive && timerStart != null;
           const taskAccum = accumulated[task.id] || 0;
           const displayTime = isRunning ? elapsed : taskAccum;
@@ -269,6 +291,8 @@ export default function WarmingSessionTimer({ profile, tasks, onTaskCompleted, t
               className={`rounded-xl border transition-all ${
                 task.completed
                   ? "bg-slate-50/80 border-slate-100"
+                  : isDelaying
+                  ? "bg-amber-50 border-amber-300 ring-2 ring-amber-200/40 shadow-sm"
                   : isRunning
                   ? "bg-blue-50 border-[#1876f2]/40 ring-2 ring-[#1876f2]/20 shadow-sm"
                   : isNextPending
@@ -280,11 +304,14 @@ export default function WarmingSessionTimer({ profile, tasks, onTaskCompleted, t
                 {/* Day indicator */}
                 <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-black shrink-0 ${
                   task.completed ? "bg-green-100 text-green-600" :
+                  isDelaying ? "bg-amber-400 text-white animate-pulse" :
                   isRunning ? "bg-[#1876f2] text-white animate-pulse" :
                   isNextPending ? "bg-slate-200 text-slate-700" :
                   "bg-slate-100 text-slate-400"
                 }`}>
-                  {task.completed ? <MIcon name="check" className="text-base" /> : `D${task.day_number}`}
+                  {task.completed ? <MIcon name="check" className="text-base" /> : 
+                   isDelaying ? <MIcon name="hourglass_top" className="text-base animate-spin" /> :
+                   `D${task.day_number}`}
                 </div>
 
                 {/* Task info */}
@@ -313,8 +340,15 @@ export default function WarmingSessionTimer({ profile, tasks, onTaskCompleted, t
                     </div>
                   ) : (
                     <>
+                      {/* Delay indicator */}
+                      {isDelaying && (
+                        <span className="text-xs font-bold text-amber-600 bg-amber-100 px-2.5 py-1 rounded-lg animate-pulse">
+                          Abrindo perfil...
+                        </span>
+                      )}
+
                       {/* Timer value */}
-                      {(isRunning || taskAccum > 0) && (
+                      {!isDelaying && (isRunning || taskAccum > 0) && (
                         <span className={`font-mono text-sm font-bold px-2.5 py-1 rounded-lg ${
                           isRunning ? "bg-[#1876f2] text-white" : "bg-slate-100 text-slate-600"
                         }`}>
@@ -366,15 +400,19 @@ export default function WarmingSessionTimer({ profile, tasks, onTaskCompleted, t
       </div>
 
       {/* Active timer banner */}
-      {activeTaskId && timerStart && (
-        <div className="px-5 py-3 bg-[#1876f2] text-white flex items-center justify-between">
+      {activeTaskId && (timerStart || delayTaskId) && (
+        <div className={`px-5 py-3 text-white flex items-center justify-between ${
+          delayTaskId ? "bg-amber-500" : "bg-[#1876f2]"
+        }`}>
           <div className="flex items-center gap-3">
             <div className="w-3 h-3 bg-white rounded-full animate-pulse" />
             <span className="text-sm font-bold">
-              Cronômetro ativo: {sortedTasks.find(t => t.id === activeTaskId)?.title}
+              {delayTaskId ? "Abrindo perfil..." : `Cronômetro ativo: ${sortedTasks.find(t => t.id === activeTaskId)?.title}`}
             </span>
           </div>
-          <span className="font-mono text-lg font-black">{formatTimer(elapsed)}</span>
+          <span className="font-mono text-lg font-black">
+            {delayTaskId ? "⏳" : formatTimer(elapsed)}
+          </span>
         </div>
       )}
     </div>
