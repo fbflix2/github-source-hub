@@ -297,7 +297,6 @@ export default function AdminCaixa() {
           });
         }
       });
-        });
 
       if (toInsert.length > 0) {
         await supabase.from("cash_movements").insert(toInsert);
