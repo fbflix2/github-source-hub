@@ -25,6 +25,12 @@ const DEFAULT_TEXT = {
 
 const SIGNATURE_FONTS = ["Dancing Script", "Caveat", "Satisfy"];
 
+// Parse date string without timezone shift
+function parseLocalDate(dateStr: string): Date {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
 export default function AdminImageViewer() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [photoOverlay, setPhotoOverlay] = useState<string | null>(null);
@@ -295,7 +301,7 @@ export default function AdminImageViewer() {
       const x = (textPos.nascimento.xPct / 100) * W;
       const y = (textPos.nascimento.yPct / 100) * H;
       const parts: string[] = [];
-      if (formData.dataNascimento) parts.push(new Date(formData.dataNascimento).toLocaleDateString("pt-BR"));
+      if (formData.dataNascimento) parts.push(parseLocalDate(formData.dataNascimento).toLocaleDateString("pt-BR"));
       if (formData.naturalidade) parts.push(formData.naturalidade);
       if (formData.uf) parts.push(formData.uf);
       ctx.fillText(parts.join(" - "), x, y);
@@ -784,7 +790,7 @@ export default function AdminImageViewer() {
                     >
                       <span className="font-semibold text-black/90" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${fontSizes.nascimento}px` }}>
                         {[
-                          formData.dataNascimento ? new Date(formData.dataNascimento).toLocaleDateString("pt-BR") : "",
+                          formData.dataNascimento ? parseLocalDate(formData.dataNascimento).toLocaleDateString("pt-BR") : "",
                           formData.naturalidade,
                           formData.uf
                         ].filter(Boolean).join(" - ")}
