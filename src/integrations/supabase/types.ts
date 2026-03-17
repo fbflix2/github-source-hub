@@ -2066,6 +2066,36 @@ export type Database = {
         }
         Relationships: []
       }
+      warming_operator_goals: {
+        Row: {
+          active: boolean
+          created_at: string
+          goal_type: string
+          id: string
+          operator_id: string
+          target_profiles: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          goal_type?: string
+          id?: string
+          operator_id: string
+          target_profiles?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          goal_type?: string
+          id?: string
+          operator_id?: string
+          target_profiles?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       warming_profiles: {
         Row: {
           created_at: string

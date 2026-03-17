@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import WarmingOperatorDashboard from "@/components/admin/warming/WarmingOperatorDashboard";
 import { toast } from "sonner";
 
 // ── Track definitions ──────────────────────────────────────────
@@ -133,7 +134,7 @@ export default function AdminAquecimento() {
   const [selectedTrack, setSelectedTrack] = useState("15_days");
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
-  const [activeTab, setActiveTab] = useState<"dashboard" | "esteiras" | "relatorios" | "configuracoes">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "esteiras" | "gestao" | "relatorios" | "configuracoes">("dashboard");
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [resetPassword, setResetPassword] = useState("");
   const [resetError, setResetError] = useState("");
@@ -391,6 +392,7 @@ export default function AdminAquecimento() {
   const tabs = [
     { key: "dashboard", label: "Painel", icon: "dashboard" },
     { key: "esteiras", label: "Esteiras", icon: "layers" },
+    { key: "gestao", label: "Gestão", icon: "supervisor_account" },
     { key: "relatorios", label: "Relatórios", icon: "analytics" },
     { key: "configuracoes", label: "Configurações", icon: "settings" },
   ] as const;
@@ -903,6 +905,16 @@ export default function AdminAquecimento() {
             )}
           </section>
         </div>
+      )}
+
+      {/* ── Gestão Tab (Operator Dashboard) ── */}
+      {activeTab === "gestao" && (
+        <WarmingOperatorDashboard
+          profiles={profiles}
+          tasks={tasks}
+          creatorNames={creatorNames}
+          onRefresh={fetchProfiles}
+        />
       )}
 
       {/* ── Relatórios Tab ── */}
