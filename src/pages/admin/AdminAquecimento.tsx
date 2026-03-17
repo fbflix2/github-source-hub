@@ -907,6 +907,16 @@ export default function AdminAquecimento() {
         </div>
       )}
 
+      {/* ── Gestão Tab (Operator Dashboard) ── */}
+      {activeTab === "gestao" && (
+        <WarmingOperatorDashboard
+          profiles={profiles}
+          tasks={tasks}
+          creatorNames={creatorNames}
+          onRefresh={fetchProfiles}
+        />
+      )}
+
       {/* ── Relatórios Tab ── */}
       {activeTab === "relatorios" && (
         <main className="flex-1 px-6 md:px-8 lg:px-12 py-8 max-w-6xl mx-auto w-full space-y-8">
