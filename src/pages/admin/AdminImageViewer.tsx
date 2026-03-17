@@ -63,14 +63,17 @@ export default function AdminImageViewer() {
   const [dragStartPct, setDragStartPct] = useState({ x: 0, y: 0 });
 
   const [textPos, setTextPos] = useState(DEFAULT_TEXT);
+  const [docIdentidadePos, setDocIdentidadePos] = useState(FIXED_DOC_IDENTIDADE_POSITION);
   const [fontSizes, setFontSizes] = useState({ nome: 11, docIdentidade: FIXED_DOC_IDENTIDADE_FONT_SIZE, nascimento: 10, filiacao: 9, assinatura: 14 });
   const [docIdentidade, setDocIdentidade] = useState(DEFAULT_DOC_IDENTIDADE);
   const [signatureFont, setSignatureFont] = useState(SIGNATURE_FONTS[0]);
   const [contrast, setContrast] = useState(100);
 
+  const docIdLockTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const safeTextPos = {
     nome: sanitizeTextPoint(textPos.nome, DEFAULT_TEXT.nome),
-    docIdentidade: FIXED_DOC_IDENTIDADE_POSITION,
+    docIdentidade: sanitizeTextPoint(docIdentidadePos, FIXED_DOC_IDENTIDADE_POSITION),
     nascimento: sanitizeTextPoint(textPos.nascimento, DEFAULT_TEXT.nascimento),
     filiacao: sanitizeTextPoint(textPos.filiacao, DEFAULT_TEXT.filiacao),
     assinatura: sanitizeTextPoint(textPos.assinatura, DEFAULT_TEXT.assinatura),
