@@ -55,10 +55,11 @@ interface Props {
   profile: WarmingProfile;
   tasks: WarmingTask[];
   onTaskCompleted: () => void;
+  onTrackCompleted?: (profile: WarmingProfile) => void;
   trackLabel: string;
 }
 
-export default function WarmingSessionTimer({ profile, tasks, onTaskCompleted, trackLabel }: Props) {
+export default function WarmingSessionTimer({ profile, tasks, onTaskCompleted, onTrackCompleted, trackLabel }: Props) {
   // Which task's timer is running (task id)
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   // Accumulated seconds per task (before current run)
@@ -192,16 +193,35 @@ export default function WarmingSessionTimer({ profile, tasks, onTaskCompleted, t
 
     // Update profile progress
     const completedCount = tasks.filter(t => t.completed || t.id === task.id).length;
-    const newDay = Math.min(completedCount + 1, profile.track_days);
-    const newStatus = completedCount >= profile.track_days ? "completed" : "active";
-    await supabase.from("warming_profiles").update({
-      current_day: newDay,
-      status: newStatus,
-      updated_at: new Date().toISOString(),
-    }).eq("id", profile.id);
+    const allDone = completedCount >= profile.track_days;
 
-    toast.success(`Tarefa "${task.title}" concluída em ${formatDuration(finalDuration)}`);
-    onTaskCompleted();
+    if (allDone) {
+      const NEXT_TRACK: Record<string, string> = { "7_days": "15_days", "15_days": "30_days" };
+      const hasNextTrack = !!NEXT_TRACK[profile.track_type];
+
+      if (hasNextTrack && onTrackCompleted) {
+        // Don't set completed — let parent promote to next track
+        onTrackCompleted(profile);
+      } else {
+        // Final track (30_days) — truly completed
+        await supabase.from("warming_profiles").update({
+          current_day: profile.track_days,
+          status: "completed",
+          updated_at: new Date().toISOString(),
+        }).eq("id", profile.id);
+        toast.success(`🏆 Perfil "${profile.profile_code}" concluiu todas as esteiras!`);
+        onTaskCompleted();
+      }
+    } else {
+      const newDay = Math.min(completedCount + 1, profile.track_days);
+      await supabase.from("warming_profiles").update({
+        current_day: newDay,
+        status: "active",
+        updated_at: new Date().toISOString(),
+      }).eq("id", profile.id);
+      toast.success(`Tarefa "${task.title}" concluída em ${formatDuration(finalDuration)}`);
+      onTaskCompleted();
+    }
   };
 
   const uncompleteTask = async (task: WarmingTask) => {

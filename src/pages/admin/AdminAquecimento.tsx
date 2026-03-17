@@ -137,7 +137,7 @@ export default function AdminAquecimento() {
   const [currentUserAvatar, setCurrentUserAvatar] = useState<string | null>(null);
   const [operatorGoals, setOperatorGoals] = useState<{ daily: number | null; weekly: number | null }>({ daily: null, weekly: null });
   const [profileCode, setProfileCode] = useState("");
-  const [selectedTrack, setSelectedTrack] = useState("15_days");
+  const [selectedTrack, setSelectedTrack] = useState("7_days");
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [activeTab, setActiveTab] = useState<"dashboard" | "esteiras" | "gestao" | "relatorios" | "configuracoes">("dashboard");
@@ -780,19 +780,13 @@ export default function AdminAquecimento() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1.5">Escolha a Esteira</label>
-                  <div className="relative">
+                  <label className="block text-xs font-semibold text-slate-600 mb-1.5">Esteira</label>
+                  <div className="relative flex items-center gap-2 pl-10 pr-3 py-2.5 text-sm bg-slate-100 border border-slate-200 rounded-lg text-slate-600">
                     <MIcon name="layers" className="absolute left-3 top-2.5 text-slate-400 text-lg" />
-                    <select
-                      className="w-full pl-10 pr-3 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-slate-400 focus:border-slate-400 text-slate-900 appearance-none transition-all"
-                      value={selectedTrack}
-                      onChange={(e) => setSelectedTrack(e.target.value)}
-                    >
-                      <option value="7_days">7 Dias - Básica</option>
-                      <option value="15_days">15 Dias - Média</option>
-                      <option value="30_days">30 Dias - Premium</option>
-                    </select>
+                    7 Dias - Básica
+                    <span className="ml-auto text-[10px] font-bold text-slate-400 uppercase">Automático</span>
                   </div>
+                  <p className="text-[10px] text-slate-400 mt-1">Após concluir 7 dias, avança automaticamente para 15 e depois 30 dias.</p>
                 </div>
                 <button
                   onClick={handleCreate}
@@ -867,6 +861,37 @@ export default function AdminAquecimento() {
                 tasks={selectedTasks}
                 trackLabel={selectedTrackDef?.label || selectedProfile.track_type}
                 onTaskCompleted={() => { fetchTasks(selectedProfile.id); fetchProfiles(); }}
+                onTrackCompleted={async (profile) => {
+                  const NEXT_TRACK: Record<string, string> = { "7_days": "15_days", "15_days": "30_days" };
+                  const nextTrackKey = NEXT_TRACK[profile.track_type];
+                  if (!nextTrackKey) return; // 30_days → truly completed
+
+                  const nextCustomTasks = configTasks[nextTrackKey] || [];
+                  const nextTrackDef = TRACKS[nextTrackKey];
+                  const tasksToUse = nextCustomTasks.length > 0 ? nextCustomTasks : nextTrackDef.tasks;
+
+                  // Update profile to next track
+                  await supabase.from("warming_profiles").update({
+                    track_type: nextTrackKey,
+                    track_days: tasksToUse.length,
+                    current_day: 1,
+                    status: "active",
+                    updated_at: new Date().toISOString(),
+                  }).eq("id", profile.id);
+
+                  // Create new tasks for next track
+                  const taskRows = tasksToUse.map((t, i) => ({
+                    profile_id: profile.id,
+                    day_number: i + 1,
+                    title: t.title,
+                    description: t.description,
+                  }));
+                  await supabase.from("warming_tasks").insert(taskRows);
+
+                  toast.success(`🎉 Perfil ${profile.profile_code} avançou para a esteira ${nextTrackDef.label}!`);
+                  fetchTasks(profile.id);
+                  fetchProfiles();
+                }}
               />
             )}
           </section>
