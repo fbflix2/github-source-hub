@@ -71,7 +71,7 @@ export default function AdminImageViewer() {
         const { data } = await supabase
           .from("site_settings")
           .select("key, value")
-          .in("key", [SETTINGS_KEY, POSITIONS_KEY]);
+          .in("key", [SETTINGS_KEY, POSITIONS_KEY, DOC_IDENTIDADE_KEY]);
 
         if (data) {
           for (const row of data) {
