@@ -466,17 +466,29 @@ export default function AdminCaixa() {
                         </p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className={`text-sm font-bold ${
-                        Math.abs(record.difference) < 0.01
-                          ? "text-emerald-400"
-                          : record.difference > 0 ? "text-emerald-400" : "text-red-400"
-                      }`}>
-                        {record.difference > 0 ? "+" : ""}{formatCurrency(record.difference)}
-                      </p>
-                      {record.notes && (
-                        <p className="text-xs text-muted-foreground mt-1 max-w-xs truncate">{record.notes}</p>
-                      )}
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <p className={`text-sm font-bold ${
+                          Math.abs(record.difference) < 0.01
+                            ? "text-emerald-400"
+                            : record.difference > 0 ? "text-emerald-400" : "text-red-400"
+                        }`}>
+                          {record.difference > 0 ? "+" : ""}{formatCurrency(record.difference)}
+                        </p>
+                        {record.notes && (
+                          <p className="text-xs text-muted-foreground mt-1 max-w-xs truncate">{record.notes}</p>
+                        )}
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5 text-xs border-white/10 hover:bg-white/5"
+                        disabled={reopening || !!openCash}
+                        onClick={() => handleReopen(record)}
+                      >
+                        {reopening ? <Loader2 className="size-3 animate-spin" /> : <RotateCcw className="size-3" />}
+                        Reabrir
+                      </Button>
                     </div>
                   </div>
                 </div>
