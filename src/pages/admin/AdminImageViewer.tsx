@@ -376,7 +376,7 @@ export default function AdminImageViewer() {
     if (target === "photo") {
       setDragStartPct({ x: photoPos.xPct, y: photoPos.yPct });
     } else {
-      const pos = textPos[target as keyof typeof textPos];
+      const pos = safeTextPos[target as keyof typeof safeTextPos];
       setDragStartPct({ x: pos.xPct, y: pos.yPct });
     }
   };
