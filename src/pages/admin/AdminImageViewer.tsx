@@ -720,9 +720,8 @@ export default function AdminImageViewer() {
                   )}
                   {formData.nomeCompleto && (
                     <div
-                      className="absolute select-none whitespace-nowrap"
-                      style={{ left: `${textPos.assinatura.xPct}%`, top: `${textPos.assinatura.yPct}%`, cursor: panMode ? "inherit" : "move" }}
-                      onMouseDown={(e) => onElementMouseDown("assinatura", e)}
+                      className="absolute select-none whitespace-nowrap pointer-events-none"
+                      style={{ left: `${textPos.assinatura.xPct}%`, top: `${textPos.assinatura.yPct}%` }}
                     >
                       <span style={{ fontFamily: `'${signatureFont}', cursive`, fontSize: `${fontSizes.assinatura}px`, color: "#1a1a8a" }}>
                         {formData.nomeCompleto}
