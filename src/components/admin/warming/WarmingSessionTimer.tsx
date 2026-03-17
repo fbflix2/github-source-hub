@@ -286,6 +286,8 @@ export default function WarmingSessionTimer({ profile, tasks, onTaskCompleted, t
               className={`rounded-xl border transition-all ${
                 task.completed
                   ? "bg-slate-50/80 border-slate-100"
+                  : isDelaying
+                  ? "bg-amber-50 border-amber-300 ring-2 ring-amber-200/40 shadow-sm"
                   : isRunning
                   ? "bg-blue-50 border-[#1876f2]/40 ring-2 ring-[#1876f2]/20 shadow-sm"
                   : isNextPending
