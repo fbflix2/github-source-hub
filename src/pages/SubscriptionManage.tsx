@@ -275,22 +275,34 @@ export default function SubscriptionManage() {
             <div className="glass-card rounded-xl p-4 space-y-3">
               <h2 className="text-foreground font-bold text-sm flex items-center gap-1.5">
                 <span className="material-symbols-outlined text-primary text-base">vpn_key</span>
-                Dados do Proxy
+                {isRotating ? "Credenciais do Proxy Rotativo" : "Dados do Proxy"}
               </h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {[
-                  { label: "Endereço IP", value: sub.proxy.ip, key: "ip" },
-                  { label: "Porta", value: String(sub.proxy.port), key: "port" },
-                  { label: "Usuário", value: sub.proxy.username || "—", key: "user" },
-                  { label: "Senha", value: sub.proxy.password || "—", key: "pass" },
-                  { label: "Protocolo", value: sub.proxy.protocol || "SOCKS5", key: "proto" },
+                  ...(isRotating
+                    ? [
+                        { label: "Endpoint HTTP", value: `${sub.proxy.ip}:${sub.proxy.port}`, key: "http" },
+                        { label: "Endpoint SOCKS5", value: `${sub.proxy.ip}:${(sub.proxy as any).socks5_port || 1080}`, key: "socks5" },
+                        { label: "Usuário", value: sub.proxy.username || "—", key: "user" },
+                        { label: "Senha", value: sub.proxy.password || "—", key: "pass" },
+                        { label: "País", value: "🇧🇷 Brasil", key: "country" },
+                        { label: "Tipo", value: "Rotativo Residencial", key: "type" },
+                      ]
+                    : [
+                        { label: "Endereço IP", value: sub.proxy.ip, key: "ip" },
+                        { label: "Porta", value: String(sub.proxy.port), key: "port" },
+                        { label: "Usuário", value: sub.proxy.username || "—", key: "user" },
+                        { label: "Senha", value: sub.proxy.password || "—", key: "pass" },
+                        { label: "Protocolo", value: sub.proxy.protocol || "SOCKS5", key: "proto" },
+                      ]
+                  ),
                 ].map((item) => (
                   <div key={item.key} className="flex items-center justify-between p-2 rounded-lg bg-muted/50 border border-border group">
                     <div className="min-w-0">
                       <p className="text-text-secondary text-[9px] uppercase tracking-wider font-semibold">{item.label}</p>
                       <p className="text-foreground font-mono font-medium text-xs mt-0.5 truncate">{item.value}</p>
                     </div>
-                    {item.value !== "—" && (
+                    {item.value !== "—" && item.key !== "country" && item.key !== "type" && (
                       <button onClick={() => copyToClipboard(item.value, item.key)} className="opacity-0 group-hover:opacity-100 transition-opacity text-text-secondary hover:text-foreground ml-1 shrink-0">
                         <span className="material-symbols-outlined text-sm">{copiedField === item.key ? "check" : "content_copy"}</span>
                       </button>
@@ -298,8 +310,52 @@ export default function SubscriptionManage() {
                   </div>
                 ))}
               </div>
+
+              {/* Copy all button */}
+              {isRotating && sub.proxy.username && sub.proxy.password && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    const httpProxy = `${sub.proxy!.ip}:${sub.proxy!.port}:${sub.proxy!.username}:${sub.proxy!.password}`;
+                    copyToClipboard(httpProxy, "all");
+                  }}
+                  className="w-full text-xs h-8"
+                >
+                  <span className="material-symbols-outlined text-sm mr-1">{copiedField === "all" ? "check" : "content_copy"}</span>
+                  {copiedField === "all" ? "Copiado!" : "Copiar Proxy (HTTP)"}
+                </Button>
+              )}
             </div>
           )}
+
+          {/* Bandwidth Info for Rotating Proxies */}
+          {isRotating && (
+            <div className="glass-card rounded-xl p-4 space-y-3">
+              <h2 className="text-foreground font-bold text-sm flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-primary text-base">data_usage</span>
+                Consumo de Banda
+              </h2>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-muted/50 rounded-lg p-2.5 border border-border">
+                  <p className="text-text-secondary text-[10px] uppercase tracking-wider font-semibold">Plano</p>
+                  <p className="text-foreground font-bold text-lg mt-0.5">{sub.gb_purchased || 0} GB</p>
+                </div>
+                <div className="bg-muted/50 rounded-lg p-2.5 border border-border">
+                  <p className="text-text-secondary text-[10px] uppercase tracking-wider font-semibold">Valor Pago</p>
+                  <p className="text-foreground font-bold text-lg mt-0.5">
+                    {customerPrice != null ? `R$ ${Number(customerPrice).toFixed(2).replace('.', ',')}` : `R$ ${((sub.gb_purchased || 0) * 50).toFixed(2).replace('.', ',')}`}
+                  </p>
+                </div>
+              </div>
+              <div className="p-3 rounded-lg bg-accent/10 border border-accent/20">
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="material-symbols-outlined text-accent-foreground text-sm">info</span>
+                  <span className="text-accent-foreground">O consumo de banda é compartilhado no pool do plano. Gerencie seu uso para máxima eficiência.</span>
+                </div>
+              </div>
+            </div>
+          )
 
           {/* Perfil Vinculado */}
           <div className="glass-card rounded-xl p-4 space-y-3">
