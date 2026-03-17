@@ -77,7 +77,7 @@ export default function SubscriptionCard({
                 status === "expired" ? "text-text-secondary" : "text-foreground"
               }`}
             >
-              <span className="material-symbols-outlined">dns</span>
+              <span className="material-symbols-outlined">{sub.is_rotating ? "autorenew" : "dns"}</span>
             </div>
             <div className="min-w-0">
               <h3 className="text-foreground font-bold text-sm leading-tight truncate">{sub.name || sub.code}</h3>
