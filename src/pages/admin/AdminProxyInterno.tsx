@@ -239,21 +239,28 @@ export default function AdminProxyInterno() {
                     <CopyField label="Senha" value={active.password || ""} />
 
                     <div className="pt-2 border-t border-border/50 space-y-2">
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Strings prontas (domínio)</p>
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Formato URL — user:pass@host:port</p>
                       <CopyField label="HTTP :80" value={strDomain.http80} />
                       <CopyField label="HTTP :3128" value={strDomain.http3128} />
                       <CopyField label="SOCKS5 :1080" value={strDomain.socks5} />
+                    </div>
+
+                    <div className="pt-2 border-t border-border/50 space-y-2">
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Formato Ferramentas — host:port:user:pass</p>
+                      <CopyField label="HTTP :80" value={strDomain.http80_alt} />
+                      <CopyField label="HTTP :3128" value={strDomain.http3128_alt} />
+                      <CopyField label="SOCKS5 :1080" value={strDomain.socks5_alt} />
                     </div>
 
                     {strIP && (
                       <div className="pt-2 border-t border-border/50 space-y-2">
                         <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium flex items-center gap-1">
                           <Zap className="size-3 text-green-500" />
-                          Strings prontas (IP convertido)
+                          IP convertido — host:port:user:pass
                         </p>
-                        <CopyField label="HTTP :80" value={strIP.http80} />
-                        <CopyField label="HTTP :3128" value={strIP.http3128} />
-                        <CopyField label="SOCKS5 :1080" value={strIP.socks5} />
+                        <CopyField label="HTTP :80" value={strIP.http80_alt} />
+                        <CopyField label="HTTP :3128" value={strIP.http3128_alt} />
+                        <CopyField label="SOCKS5 :1080" value={strIP.socks5_alt} />
                       </div>
                     )}
                   </>
