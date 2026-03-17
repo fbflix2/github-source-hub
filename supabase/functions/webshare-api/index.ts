@@ -1027,32 +1027,32 @@ Deno.serve(async (req) => {
 
     // ========== GET ROTATING PROXY CREDENTIALS ==========
     if (action === "get-rotating-credentials") {
-      // Fetch one backbone proxy to get the correct base username
-      // The /proxy/config/ returns a short username (e.g. "fhvaccdh") but backbone
-      // proxies use a different base (e.g. "fhvaccdhresidential-1").
-      // For rotating, we need the backbone base WITHOUT the number suffix.
+      const countryCode = "BR";
       const backboneResp = await webFetch("/proxy/list/?mode=backbone&page=1&page_size=1", WEBSHARE_API_KEY);
       const backboneData = await backboneResp.json();
-      
-      let rotatingUsername = "";
+
+      let rotatingUsernameBase = "";
       let rotatingPassword = "";
-      
+
       if (backboneResp.ok && backboneData.results?.length > 0) {
         const bbProxy = backboneData.results[0];
-        // Username is like "fhvaccdhresidential-1", strip the trailing "-N"
-        const bbUsername = bbProxy.username || "";
-        rotatingUsername = bbUsername.replace(/-\d+$/, "");
+        rotatingUsernameBase = normalizeRotatingBaseUsername(bbProxy.username || bbProxy.proxy_username || "");
         rotatingPassword = bbProxy.password || "";
-        console.log(`[get-rotating-credentials] Backbone base username: ${rotatingUsername}`);
-      } else {
-        // Fallback to /proxy/config/ if no backbone proxies
+      }
+
+      if (!rotatingUsernameBase) {
         const configResp = await webFetch("/proxy/config/", WEBSHARE_API_KEY);
         const configData = await configResp.json();
         if (!configResp.ok) throw new Error(`Webshare config error [${configResp.status}]`);
-        rotatingUsername = configData.username || configData.proxy_username || "";
-        rotatingPassword = configData.password || configData.proxy_password || "";
-        console.log(`[get-rotating-credentials] Fallback config username: ${rotatingUsername}`);
+        rotatingUsernameBase = normalizeRotatingBaseUsername(configData.username || configData.proxy_username || "");
+        rotatingPassword = rotatingPassword || configData.password || configData.proxy_password || "";
       }
+
+      if (!rotatingUsernameBase) {
+        throw new Error("Não foi possível determinar o usuário rotativo do Webshare");
+      }
+
+      console.log(`[get-rotating-credentials] Rotating username resolved for country ${countryCode}`);
 
       // Get subscription info for bandwidth
       const subResp = await webFetch("/subscription/", WEBSHARE_API_KEY);
@@ -1062,9 +1062,9 @@ Deno.serve(async (req) => {
         proxy_host: "p.webshare.io",
         http_port: 80,
         socks5_port: 1080,
-        username: rotatingUsername,
+        username: rotatingUsernameBase,
         password: rotatingPassword,
-        country_suffix: "-country-BR-rotate",
+        country_suffix: buildRotatingCountrySuffix(countryCode),
         bandwidth_limit_gb: subData.bandwidth_limit ? subData.bandwidth_limit / (1024 * 1024 * 1024) : null,
         bandwidth_used_bytes: subData.bandwidth_used || 0,
         bandwidth_limit_bytes: subData.bandwidth_limit || 0,
