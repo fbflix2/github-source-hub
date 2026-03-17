@@ -54,54 +54,81 @@ function formatDuration(seconds: number | null): string {
 interface Props {
   profile: WarmingProfile;
   tasks: WarmingTask[];
+  trackLabel: string;
+  finishSignal: number;
   onTaskCompleted: () => void;
   onTrackCompleted?: (profile: WarmingProfile) => void;
-  trackLabel: string;
+  onTimerStateChange?: (isRunning: boolean, taskTitle: string | null, elapsed: number) => void;
 }
 
-export default function WarmingSessionTimer({ profile, tasks, onTaskCompleted, onTrackCompleted, trackLabel }: Props) {
-  // Which task's timer is running (task id)
+export default function WarmingSessionTimer({
+  profile, tasks, trackLabel, finishSignal,
+  onTaskCompleted, onTrackCompleted, onTimerStateChange
+}: Props) {
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
-  // Accumulated seconds per task (before current run)
-  const [accumulated, setAccumulated] = useState<Record<string, number>>({});
-  // When the current timer started
   const [timerStart, setTimerStart] = useState<number | null>(null);
-  // Live elapsed for display
   const [elapsed, setElapsed] = useState(0);
+  const [isDelaying, setIsDelaying] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const activeTaskIdRef = useRef(activeTaskId);
-  const accumulatedRef = useRef(accumulated);
+  const delayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const timerStartRef = useRef(timerStart);
+  const activeTaskIdRef = useRef(activeTaskId);
+  const completingRef = useRef(false);
 
-  // Keep refs in sync
-  useEffect(() => { activeTaskIdRef.current = activeTaskId; }, [activeTaskId]);
-  useEffect(() => { accumulatedRef.current = accumulated; }, [accumulated]);
   useEffect(() => { timerStartRef.current = timerStart; }, [timerStart]);
+  useEffect(() => { activeTaskIdRef.current = activeTaskId; }, [activeTaskId]);
+
+  const sortedTasks = [...tasks].sort((a, b) => a.day_number - b.day_number);
+  const firstPendingTask = sortedTasks.find(t => !t.completed);
+
+  // Auto-start first pending task when there's no active task
+  useEffect(() => {
+    if (firstPendingTask && !activeTaskId && !isDelaying && !completingRef.current) {
+      startTask(firstPendingTask.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [firstPendingTask?.id, activeTaskId, isDelaying]);
+
+  const startTask = (taskId: string) => {
+    if (delayTimerRef.current) clearTimeout(delayTimerRef.current);
+    setActiveTaskId(taskId);
+    setIsDelaying(true);
+    setElapsed(0);
+    delayTimerRef.current = setTimeout(() => {
+      setTimerStart(Date.now());
+      setIsDelaying(false);
+    }, 2000);
+  };
 
   // Tick the timer
   useEffect(() => {
     if (activeTaskId && timerStart) {
       intervalRef.current = setInterval(() => {
-        const now = Math.floor(Date.now() / 1000);
-        const base = accumulatedRef.current[activeTaskIdRef.current!] || 0;
-        setElapsed(base + (now - Math.floor(timerStartRef.current! / 1000)));
+        const e = Math.floor((Date.now() - timerStartRef.current!) / 1000);
+        setElapsed(e);
       }, 1000);
     } else {
       if (intervalRef.current) clearInterval(intervalRef.current);
-      setElapsed(0);
+      if (!isDelaying) setElapsed(0);
     }
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [activeTaskId, timerStart]);
+  }, [activeTaskId, timerStart, isDelaying]);
 
-  // Save partial time on beforeunload
+  // Notify parent of timer state
+  useEffect(() => {
+    const task = sortedTasks.find(t => t.id === activeTaskId);
+    onTimerStateChange?.(!!activeTaskId || isDelaying, task?.title || null, elapsed);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTaskId, isDelaying, elapsed]);
+
+  // Save partial on beforeunload
   const savePartial = useCallback(async () => {
     const taskId = activeTaskIdRef.current;
     const start = timerStartRef.current;
     if (!taskId || !start) return;
-    const runSeconds = Math.floor((Date.now() - start) / 1000);
-    const total = (accumulatedRef.current[taskId] || 0) + runSeconds;
+    const total = Math.floor((Date.now() - start) / 1000);
     try {
-      await supabase.from("warming_tasks").update({ duration_seconds: total }).eq("id", taskId);
+      await supabase.from("warming_tasks").update({ duration_seconds: Math.max(1, total) }).eq("id", taskId);
     } catch { }
   }, []);
 
@@ -111,79 +138,60 @@ export default function WarmingSessionTimer({ profile, tasks, onTaskCompleted, o
     return () => window.removeEventListener("beforeunload", handler);
   }, [savePartial]);
 
-  // Initialize accumulated from DB
+  // Save partial when profile changes (switching profiles)
+  const prevProfileId = useRef(profile.id);
   useEffect(() => {
-    const acc: Record<string, number> = {};
-    tasks.forEach(t => {
-      if (t.duration_seconds && !t.completed) acc[t.id] = t.duration_seconds;
-    });
-    setAccumulated(acc);
-  }, [tasks]);
-
-  const [delayTaskId, setDelayTaskId] = useState<string | null>(null);
-  const delayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const startTimer = (taskId: string) => {
-    // If another timer is running, pause it first
-    if (activeTaskId && activeTaskId !== taskId && timerStart) {
-      const runSeconds = Math.floor((Date.now() - timerStart) / 1000);
-      const prev = accumulated[activeTaskId] || 0;
-      const total = prev + runSeconds;
-      setAccumulated(a => ({ ...a, [activeTaskId]: total }));
-      supabase.from("warming_tasks").update({ duration_seconds: total }).eq("id", activeTaskId);
-    }
-    // Cancel any existing delay
-    if (delayTimerRef.current) clearTimeout(delayTimerRef.current);
-    
-    setDelayTaskId(taskId);
-    setActiveTaskId(taskId);
-    const base = accumulated[taskId] || 0;
-    setElapsed(base);
-
-    // 2s delay for Multilogin to open the profile
-    delayTimerRef.current = setTimeout(() => {
-      setTimerStart(Date.now());
-      setDelayTaskId(null);
-    }, 2000);
-  };
-
-  // Cleanup delay timer on unmount
-  useEffect(() => {
-    return () => { if (delayTimerRef.current) clearTimeout(delayTimerRef.current); };
-  }, []);
-
-  const pauseTimer = () => {
-    // Cancel delay if still waiting
-    if (delayTimerRef.current) { clearTimeout(delayTimerRef.current); delayTimerRef.current = null; }
-    setDelayTaskId(null);
-
-    if (!activeTaskId) return;
-    if (timerStart) {
-      const runSeconds = Math.floor((Date.now() - timerStart) / 1000);
-      const prev = accumulated[activeTaskId] || 0;
-      const total = prev + runSeconds;
-      setAccumulated(a => ({ ...a, [activeTaskId]: total }));
-      supabase.from("warming_tasks").update({ duration_seconds: total }).eq("id", activeTaskId);
-    }
-    setActiveTaskId(null);
-    setTimerStart(null);
-    setElapsed(0);
-  };
-
-  const completeTask = async (task: WarmingTask) => {
-    let finalDuration: number;
-    if (activeTaskId === task.id && timerStart) {
-      const runSeconds = Math.floor((Date.now() - timerStart) / 1000);
-      finalDuration = (accumulated[task.id] || 0) + runSeconds;
+    if (profile.id !== prevProfileId.current) {
+      savePartial();
       setActiveTaskId(null);
       setTimerStart(null);
       setElapsed(0);
-    } else {
-      finalDuration = accumulated[task.id] || 0;
+      setIsDelaying(false);
+      if (delayTimerRef.current) clearTimeout(delayTimerRef.current);
+      prevProfileId.current = profile.id;
     }
+  }, [profile.id, savePartial]);
 
-    // Minimum 1 second
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (delayTimerRef.current) clearTimeout(delayTimerRef.current);
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, []);
+
+  // Handle finishSignal from parent
+  const prevFinishSignal = useRef(finishSignal);
+  useEffect(() => {
+    if (finishSignal > prevFinishSignal.current && activeTaskId) {
+      completeCurrentTask();
+    }
+    prevFinishSignal.current = finishSignal;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [finishSignal]);
+
+  const completeCurrentTask = async () => {
+    if (!activeTaskId || completingRef.current) return;
+    completingRef.current = true;
+    const task = sortedTasks.find(t => t.id === activeTaskId);
+    if (!task) { completingRef.current = false; return; }
+
+    // Cancel delay if still waiting
+    if (delayTimerRef.current) { clearTimeout(delayTimerRef.current); delayTimerRef.current = null; }
+
+    let finalDuration: number;
+    if (timerStart) {
+      finalDuration = Math.floor((Date.now() - timerStart) / 1000);
+    } else {
+      finalDuration = 1; // was in delay phase
+    }
     if (finalDuration < 1) finalDuration = 1;
+
+    // Clear timer state
+    setActiveTaskId(null);
+    setTimerStart(null);
+    setElapsed(0);
+    setIsDelaying(false);
 
     await supabase.from("warming_tasks").update({
       completed: true,
@@ -191,25 +199,24 @@ export default function WarmingSessionTimer({ profile, tasks, onTaskCompleted, o
       duration_seconds: finalDuration,
     }).eq("id", task.id);
 
-    // Update profile progress
+    // Check progress
     const completedCount = tasks.filter(t => t.completed || t.id === task.id).length;
     const allDone = completedCount >= profile.track_days;
 
     if (allDone) {
       const NEXT_TRACK: Record<string, string> = { "7_days": "15_days", "15_days": "30_days" };
       const hasNextTrack = !!NEXT_TRACK[profile.track_type];
-
       if (hasNextTrack && onTrackCompleted) {
-        // Don't set completed — let parent promote to next track
+        completingRef.current = false;
         onTrackCompleted(profile);
       } else {
-        // Final track (30_days) — truly completed
         await supabase.from("warming_profiles").update({
           current_day: profile.track_days,
           status: "completed",
           updated_at: new Date().toISOString(),
         }).eq("id", profile.id);
         toast.success(`🏆 Perfil "${profile.profile_code}" concluiu todas as esteiras!`);
+        completingRef.current = false;
         onTaskCompleted();
       }
     } else {
@@ -220,7 +227,9 @@ export default function WarmingSessionTimer({ profile, tasks, onTaskCompleted, o
         updated_at: new Date().toISOString(),
       }).eq("id", profile.id);
       toast.success(`Tarefa "${task.title}" concluída em ${formatDuration(finalDuration)}`);
+      completingRef.current = false;
       onTaskCompleted();
+      // Next task auto-starts via useEffect
     }
   };
 
@@ -230,15 +239,12 @@ export default function WarmingSessionTimer({ profile, tasks, onTaskCompleted, o
       completed_at: null,
       duration_seconds: null,
     }).eq("id", task.id);
-    setAccumulated(a => { const n = { ...a }; delete n[task.id]; return n; });
     onTaskCompleted();
   };
 
   const completedCount = tasks.filter(t => t.completed).length;
   const progress = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0;
   const totalTime = tasks.reduce((acc, t) => acc + (t.completed ? (t.duration_seconds || 0) : 0), 0);
-
-  const sortedTasks = [...tasks].sort((a, b) => a.day_number - b.day_number);
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
@@ -299,11 +305,9 @@ export default function WarmingSessionTimer({ profile, tasks, onTaskCompleted, o
       <div className="p-4 space-y-2 max-h-[420px] overflow-y-auto">
         {sortedTasks.map((task) => {
           const isActive = activeTaskId === task.id;
-          const isDelaying = delayTaskId === task.id && timerStart == null;
+          const isDelayingTask = isActive && isDelaying;
           const isRunning = isActive && timerStart != null;
-          const taskAccum = accumulated[task.id] || 0;
-          const displayTime = isRunning ? elapsed : taskAccum;
-          const isNextPending = !task.completed && sortedTasks.filter(t => !t.completed)[0]?.id === task.id;
+          const isNextPending = !task.completed && firstPendingTask?.id === task.id;
 
           return (
             <div
@@ -311,7 +315,7 @@ export default function WarmingSessionTimer({ profile, tasks, onTaskCompleted, o
               className={`rounded-xl border transition-all ${
                 task.completed
                   ? "bg-slate-50/80 border-slate-100"
-                  : isDelaying
+                  : isDelayingTask
                   ? "bg-amber-50 border-amber-300 ring-2 ring-amber-200/40 shadow-sm"
                   : isRunning
                   ? "bg-blue-50 border-[#1876f2]/40 ring-2 ring-[#1876f2]/20 shadow-sm"
@@ -324,13 +328,13 @@ export default function WarmingSessionTimer({ profile, tasks, onTaskCompleted, o
                 {/* Day indicator */}
                 <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-black shrink-0 ${
                   task.completed ? "bg-green-100 text-green-600" :
-                  isDelaying ? "bg-amber-400 text-white animate-pulse" :
+                  isDelayingTask ? "bg-amber-400 text-white animate-pulse" :
                   isRunning ? "bg-[#1876f2] text-white animate-pulse" :
                   isNextPending ? "bg-slate-200 text-slate-700" :
                   "bg-slate-100 text-slate-400"
                 }`}>
-                  {task.completed ? <MIcon name="check" className="text-base" /> : 
-                   isDelaying ? <MIcon name="hourglass_top" className="text-base animate-spin" /> :
+                  {task.completed ? <MIcon name="check" className="text-base" /> :
+                   isDelayingTask ? <MIcon name="hourglass_top" className="text-base animate-spin" /> :
                    `D${task.day_number}`}
                 </div>
 
@@ -342,7 +346,7 @@ export default function WarmingSessionTimer({ profile, tasks, onTaskCompleted, o
                   <p className="text-[11px] text-slate-500 truncate">{task.description}</p>
                 </div>
 
-                {/* Timer display */}
+                {/* Status display */}
                 <div className="flex items-center gap-2 shrink-0">
                   {task.completed ? (
                     <div className="flex items-center gap-2">
@@ -360,46 +364,15 @@ export default function WarmingSessionTimer({ profile, tasks, onTaskCompleted, o
                     </div>
                   ) : (
                     <>
-                      {/* Delay indicator */}
-                      {isDelaying && (
+                      {isDelayingTask && (
                         <span className="text-xs font-bold text-amber-600 bg-amber-100 px-2.5 py-1 rounded-lg animate-pulse">
                           Abrindo perfil...
                         </span>
                       )}
-
-                      {/* Timer value */}
-                      {!isDelaying && (isRunning || taskAccum > 0) && (
-                        <span className={`font-mono text-sm font-bold px-2.5 py-1 rounded-lg ${
-                          isRunning ? "bg-[#1876f2] text-white" : "bg-slate-100 text-slate-600"
-                        }`}>
-                          {formatTimer(displayTime)}
+                      {isRunning && (
+                        <span className="font-mono text-sm font-bold px-2.5 py-1 rounded-lg bg-[#1876f2] text-white">
+                          {formatTimer(elapsed)}
                         </span>
-                      )}
-
-                      {/* Play/Pause button */}
-                      {!task.completed && (isNextPending || isRunning || taskAccum > 0) && (
-                        <button
-                          onClick={() => isRunning ? pauseTimer() : startTimer(task.id)}
-                          className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
-                            isRunning
-                              ? "bg-amber-500 hover:bg-amber-600 text-white shadow-md"
-                              : "bg-[#1876f2] hover:bg-[#1565c0] text-white shadow-md"
-                          }`}
-                          title={isRunning ? "Pausar" : "Iniciar cronômetro"}
-                        >
-                          <MIcon name={isRunning ? "pause" : "play_arrow"} className="text-lg" />
-                        </button>
-                      )}
-
-                      {/* Complete button */}
-                      {!task.completed && (taskAccum > 0 || isRunning) && (
-                        <button
-                          onClick={() => completeTask(task)}
-                          className="w-9 h-9 rounded-full bg-green-500 hover:bg-green-600 text-white flex items-center justify-center transition-all shadow-md"
-                          title="Concluir tarefa"
-                        >
-                          <MIcon name="check" className="text-lg" />
-                        </button>
                       )}
                     </>
                   )}
@@ -420,18 +393,18 @@ export default function WarmingSessionTimer({ profile, tasks, onTaskCompleted, o
       </div>
 
       {/* Active timer banner */}
-      {activeTaskId && (timerStart || delayTaskId) && (
+      {(activeTaskId || isDelaying) && (
         <div className={`px-5 py-3 text-white flex items-center justify-between ${
-          delayTaskId ? "bg-amber-500" : "bg-[#1876f2]"
+          isDelaying ? "bg-amber-500" : "bg-[#1876f2]"
         }`}>
           <div className="flex items-center gap-3">
             <div className="w-3 h-3 bg-white rounded-full animate-pulse" />
             <span className="text-sm font-bold">
-              {delayTaskId ? "Abrindo perfil..." : `Cronômetro ativo: ${sortedTasks.find(t => t.id === activeTaskId)?.title}`}
+              {isDelaying ? "Abrindo perfil..." : `Cronômetro ativo: ${sortedTasks.find(t => t.id === activeTaskId)?.title}`}
             </span>
           </div>
           <span className="font-mono text-lg font-black">
-            {delayTaskId ? "⏳" : formatTimer(elapsed)}
+            {isDelaying ? "⏳" : formatTimer(elapsed)}
           </span>
         </div>
       )}
