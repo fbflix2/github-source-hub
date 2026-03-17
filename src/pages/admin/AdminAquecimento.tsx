@@ -130,6 +130,11 @@ export default function AdminAquecimento() {
   const [tasks, setTasks] = useState<Record<string, WarmingTask[]>>({});
   const [loading, setLoading] = useState(true);
   const [creatorNames, setCreatorNames] = useState<Record<string, string>>({});
+  const [creatorAvatars, setCreatorAvatars] = useState<Record<string, string | null>>({});
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentUserName, setCurrentUserName] = useState<string | null>(null);
+  const [currentUserAvatar, setCurrentUserAvatar] = useState<string | null>(null);
+  const [operatorGoals, setOperatorGoals] = useState<{ daily: number | null; weekly: number | null }>({ daily: null, weekly: null });
   const [profileCode, setProfileCode] = useState("");
   const [selectedTrack, setSelectedTrack] = useState("15_days");
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
