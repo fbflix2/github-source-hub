@@ -480,19 +480,41 @@ export default function AdminImageViewer() {
                   <span className="text-[10px] text-white/50 w-8">{fontSizes.nome}px</span>
                 </div>
               </div>
-              <div>
-                <Label className="text-white/60 text-xs">Data de Nascimento</Label>
-                <Input
-                  type="date"
-                  value={formData.dataNascimento}
-                  onChange={(e) => setFormData((f) => ({ ...f, dataNascimento: e.target.value }))}
-                  className="mt-1 bg-white/5 border-white/10 text-white"
-                />
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-[10px] text-white/40">Fonte:</span>
-                  <Slider value={[fontSizes.nascimento]} onValueChange={([v]) => setFontSizes((f) => ({ ...f, nascimento: v }))} min={5} max={18} step={0.5} className="flex-1" />
-                  <span className="text-[10px] text-white/50 w-8">{fontSizes.nascimento}px</span>
+              <div className="grid grid-cols-[1fr_auto] gap-2">
+                <div>
+                  <Label className="text-white/60 text-xs">Data de Nascimento</Label>
+                  <Input
+                    type="date"
+                    value={formData.dataNascimento}
+                    onChange={(e) => setFormData((f) => ({ ...f, dataNascimento: e.target.value }))}
+                    className="mt-1 bg-white/5 border-white/10 text-white"
+                  />
                 </div>
+                <div className="w-16">
+                  <Label className="text-white/60 text-xs">UF</Label>
+                  <Input
+                    value={formData.uf}
+                    onChange={(e) => setFormData((f) => ({ ...f, uf: e.target.value.toUpperCase().slice(0, 2) }))}
+                    placeholder="SP"
+                    className="mt-1 bg-white/5 border-white/10 text-white uppercase text-xs text-center"
+                    maxLength={2}
+                  />
+                </div>
+              </div>
+              <div>
+                <Label className="text-white/60 text-xs">Local de Nascimento</Label>
+                <Input
+                  value={formData.naturalidade}
+                  onChange={(e) => setFormData((f) => ({ ...f, naturalidade: e.target.value }))}
+                  placeholder="São Paulo"
+                  className="mt-1 bg-white/5 border-white/10 text-white text-xs"
+                  maxLength={100}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-white/40">Fonte nasc.:</span>
+                <Slider value={[fontSizes.nascimento]} onValueChange={([v]) => setFontSizes((f) => ({ ...f, nascimento: v }))} min={5} max={18} step={0.5} className="flex-1" />
+                <span className="text-[10px] text-white/50 w-8">{fontSizes.nascimento}px</span>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
