@@ -189,7 +189,6 @@ export default function AdminImageViewer() {
     }, 1500);
     return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current); };
   }, [textPos, fontSizes, photoPos, signatureFont, contrast, selectedImage, templateLoading, savePositions]);
-  };
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
