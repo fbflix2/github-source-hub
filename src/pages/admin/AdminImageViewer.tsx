@@ -855,8 +855,9 @@ export default function AdminImageViewer() {
                   )}
                   {docIdentidade && (
                     <div
-                      className="absolute select-none whitespace-nowrap pointer-events-none"
-                      style={{ left: `${safeTextPos.docIdentidade.xPct}%`, top: `${safeTextPos.docIdentidade.yPct}%` }}
+                      className="absolute select-none whitespace-nowrap"
+                      style={{ left: `${safeTextPos.docIdentidade.xPct}%`, top: `${safeTextPos.docIdentidade.yPct}%`, cursor: panMode ? "inherit" : "move" }}
+                      onMouseDown={(e) => onElementMouseDown("docIdentidade", e)}
                     >
                       <span className="font-semibold text-black/90 uppercase" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${safeFontSizes.docIdentidade}px` }}>
                         {docIdentidade}
