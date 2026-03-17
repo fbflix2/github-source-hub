@@ -766,6 +766,17 @@ export default function AdminImageViewer() {
                       </span>
                     </div>
                   )}
+                  {docIdentidade && (
+                    <div
+                      className="absolute select-none whitespace-nowrap"
+                      style={{ left: `${textPos.docIdentidade.xPct}%`, top: `${textPos.docIdentidade.yPct}%`, cursor: panMode ? "inherit" : "move" }}
+                      onMouseDown={(e) => onElementMouseDown("docIdentidade", e)}
+                    >
+                      <span className="font-semibold text-black/90 uppercase" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${fontSizes.docIdentidade}px` }}>
+                        {docIdentidade}
+                      </span>
+                    </div>
+                  )}
                   {(formData.dataNascimento || formData.naturalidade) && (
                     <div
                       className="absolute select-none whitespace-nowrap"
