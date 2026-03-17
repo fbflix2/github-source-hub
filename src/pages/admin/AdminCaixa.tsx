@@ -102,6 +102,10 @@ export default function AdminCaixa() {
   const [newMovementDesc, setNewMovementDesc] = useState("");
   const [addingMovement, setAddingMovement] = useState(false);
 
+  // Fee config
+  const [mpFeeRate, setMpFeeRate] = useState(0.99); // 0.99% default
+  const [showFeeConfig, setShowFeeConfig] = useState(false);
+
   // System values
   const [systemRevenue, setSystemRevenue] = useState(0);
   const [systemExpenses, setSystemExpenses] = useState(0);
