@@ -301,7 +301,7 @@ export default function AdminImageViewer() {
       const x = (textPos.nascimento.xPct / 100) * W;
       const y = (textPos.nascimento.yPct / 100) * H;
       const parts: string[] = [];
-      if (formData.dataNascimento) parts.push(new Date(formData.dataNascimento).toLocaleDateString("pt-BR"));
+      if (formData.dataNascimento) parts.push(parseLocalDate(formData.dataNascimento).toLocaleDateString("pt-BR"));
       if (formData.naturalidade) parts.push(formData.naturalidade);
       if (formData.uf) parts.push(formData.uf);
       ctx.fillText(parts.join(" - "), x, y);
