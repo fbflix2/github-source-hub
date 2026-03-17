@@ -16,6 +16,7 @@ import {
   Plus,
   Minus,
   FileText,
+  RotateCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,6 +60,7 @@ export default function AdminCaixa() {
   const [withdrawals, setWithdrawals] = useState("");
   const [deposits, setDeposits] = useState("");
   const [notes, setNotes] = useState("");
+  const [reopening, setReopening] = useState(false);
 
   // System values for the open period
   const [systemRevenue, setSystemRevenue] = useState(0);
@@ -194,6 +196,31 @@ export default function AdminCaixa() {
       toast.error(err.message || "Erro ao fechar caixa");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleReopen = async (record: CashRecord) => {
+    if (openCash) {
+      toast.error("Feche o caixa atual antes de reabrir outro");
+      return;
+    }
+    setReopening(true);
+    try {
+      const { error } = await supabase
+        .from("cash_register")
+        .update({
+          status: "open",
+          closed_at: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", record.id);
+      if (error) throw error;
+      toast.success("Caixa reaberto para ajustes!");
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao reabrir caixa");
+    } finally {
+      setReopening(false);
     }
   };
 
@@ -439,17 +466,29 @@ export default function AdminCaixa() {
                         </p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className={`text-sm font-bold ${
-                        Math.abs(record.difference) < 0.01
-                          ? "text-emerald-400"
-                          : record.difference > 0 ? "text-emerald-400" : "text-red-400"
-                      }`}>
-                        {record.difference > 0 ? "+" : ""}{formatCurrency(record.difference)}
-                      </p>
-                      {record.notes && (
-                        <p className="text-xs text-muted-foreground mt-1 max-w-xs truncate">{record.notes}</p>
-                      )}
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <p className={`text-sm font-bold ${
+                          Math.abs(record.difference) < 0.01
+                            ? "text-emerald-400"
+                            : record.difference > 0 ? "text-emerald-400" : "text-red-400"
+                        }`}>
+                          {record.difference > 0 ? "+" : ""}{formatCurrency(record.difference)}
+                        </p>
+                        {record.notes && (
+                          <p className="text-xs text-muted-foreground mt-1 max-w-xs truncate">{record.notes}</p>
+                        )}
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5 text-xs border-white/10 hover:bg-white/5"
+                        disabled={reopening || !!openCash}
+                        onClick={() => handleReopen(record)}
+                      >
+                        {reopening ? <Loader2 className="size-3 animate-spin" /> : <RotateCcw className="size-3" />}
+                        Reabrir
+                      </Button>
                     </div>
                   </div>
                 </div>
