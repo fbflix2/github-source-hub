@@ -274,6 +274,7 @@ export default function WarmingSessionTimer({ profile, tasks, onTaskCompleted, t
       <div className="p-4 space-y-2 max-h-[420px] overflow-y-auto">
         {sortedTasks.map((task) => {
           const isActive = activeTaskId === task.id;
+          const isDelaying = delayTaskId === task.id && timerStart == null;
           const isRunning = isActive && timerStart != null;
           const taskAccum = accumulated[task.id] || 0;
           const displayTime = isRunning ? elapsed : taskAccum;
