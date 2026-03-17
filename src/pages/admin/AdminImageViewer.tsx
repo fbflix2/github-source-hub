@@ -55,12 +55,28 @@ export default function AdminImageViewer() {
   const templateInputRef = useRef<HTMLInputElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
 
+  const [templateLoading, setTemplateLoading] = useState(true);
+
+  // Load template from Supabase site_settings on mount
   useEffect(() => {
-    const saved = localStorage.getItem(TEMPLATE_STORAGE_KEY);
-    if (saved) {
-      setSelectedImage(saved);
-      setTemplatePreview(saved);
-    }
+    const loadTemplate = async () => {
+      try {
+        const { data } = await supabase
+          .from("site_settings")
+          .select("value")
+          .eq("key", SETTINGS_KEY)
+          .maybeSingle();
+        if (data?.value) {
+          setSelectedImage(data.value);
+          setTemplatePreview(data.value);
+        }
+      } catch {
+        // ignore
+      } finally {
+        setTemplateLoading(false);
+      }
+    };
+    loadTemplate();
   }, []);
 
   const getImgRect = () => {
@@ -68,29 +84,55 @@ export default function AdminImageViewer() {
     return { w: imgRef.current.clientWidth, h: imgRef.current.clientHeight };
   };
 
-  const handleTemplateUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleTemplateUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !file.type.startsWith("image/")) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result as string;
-      localStorage.setItem(TEMPLATE_STORAGE_KEY, dataUrl);
-      setSelectedImage(dataUrl);
-      setTemplatePreview(dataUrl);
+    setTemplateLoading(true);
+    try {
+      // Upload to Supabase storage
+      const ext = file.name.split(".").pop() || "png";
+      const path = `templates/base_template_${Date.now()}.${ext}`;
+      const { error: uploadErr } = await supabase.storage.from("product-images").upload(path, file, { upsert: true });
+      if (uploadErr) throw uploadErr;
+      const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
+      const publicUrl = urlData.publicUrl;
+
+      // Save URL in site_settings
+      const { data: existing } = await supabase
+        .from("site_settings")
+        .select("id")
+        .eq("key", SETTINGS_KEY)
+        .maybeSingle();
+
+      if (existing) {
+        await supabase.from("site_settings").update({ value: publicUrl }).eq("key", SETTINGS_KEY);
+      } else {
+        await supabase.from("site_settings").insert({ key: SETTINGS_KEY, value: publicUrl });
+      }
+
+      setSelectedImage(publicUrl);
+      setTemplatePreview(publicUrl);
       setZoom(1);
       setRotation(0);
       setMainOffset({ x: 0, y: 0 });
-      toast.success("Template base salvo com sucesso!");
-    };
-    reader.readAsDataURL(file);
-    if (templateInputRef.current) templateInputRef.current.value = "";
+      toast.success("Template base salvo permanentemente!");
+    } catch (err: any) {
+      toast.error("Erro ao salvar template: " + err.message);
+    } finally {
+      setTemplateLoading(false);
+      if (templateInputRef.current) templateInputRef.current.value = "";
+    }
   };
 
-  const removeTemplate = () => {
-    localStorage.removeItem(TEMPLATE_STORAGE_KEY);
-    setSelectedImage(null);
-    setTemplatePreview(null);
-    toast.success("Template removido");
+  const removeTemplate = async () => {
+    try {
+      await supabase.from("site_settings").delete().eq("key", SETTINGS_KEY);
+      setSelectedImage(null);
+      setTemplatePreview(null);
+      toast.success("Template removido");
+    } catch {
+      toast.error("Erro ao remover template");
+    }
   };
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
