@@ -15,9 +15,10 @@ const DOC_IDENTIDADE_KEY = "imageviewer_doc_identidade";
 const DEFAULT_DOC_IDENTIDADE = "503234175 SSPSP";
 
 const DEFAULT_PHOTO = { xPct: 4.8, yPct: 16.2, wPct: 16.2, hPct: 26.2 };
+const FIXED_DOC_IDENTIDADE_POSITION = { xPct: 23.65, yPct: 45.63 };
 const DEFAULT_TEXT = {
   nome: { xPct: 30, yPct: 14.5 },
-  docIdentidade: { xPct: 30, yPct: 18 },
+  docIdentidade: FIXED_DOC_IDENTIDADE_POSITION,
   nascimento: { xPct: 30, yPct: 22 },
   filiacao: { xPct: 30, yPct: 47 },
   assinatura: { xPct: 15, yPct: 56 },
@@ -69,7 +70,7 @@ export default function AdminImageViewer() {
 
   const safeTextPos = {
     nome: sanitizeTextPoint(textPos.nome, DEFAULT_TEXT.nome),
-    docIdentidade: DEFAULT_TEXT.docIdentidade,
+    docIdentidade: FIXED_DOC_IDENTIDADE_POSITION,
     nascimento: sanitizeTextPoint(textPos.nascimento, DEFAULT_TEXT.nascimento),
     filiacao: sanitizeTextPoint(textPos.filiacao, DEFAULT_TEXT.filiacao),
     assinatura: sanitizeTextPoint(textPos.assinatura, DEFAULT_TEXT.assinatura),
@@ -77,11 +78,11 @@ export default function AdminImageViewer() {
 
   const safeFontSizes = {
     nome: 11,
-    docIdentidade: FIXED_DOC_IDENTIDADE_FONT_SIZE,
     nascimento: 10,
     filiacao: 9,
     assinatura: 14,
     ...(fontSizes ?? {}),
+    docIdentidade: FIXED_DOC_IDENTIDADE_FONT_SIZE,
   };
 
   const [formData, setFormData] = useState({
@@ -117,8 +118,14 @@ export default function AdminImageViewer() {
             if (row.key === POSITIONS_KEY && row.value) {
               try {
                 const saved = JSON.parse(row.value);
-                if (saved.textPos) setTextPos(prev => ({ ...prev, ...saved.textPos }));
-                if (saved.fontSizes) setFontSizes(prev => ({ ...prev, ...saved.fontSizes }));
+                if (saved.textPos) {
+                  const { docIdentidade: _ignoredDocIdentidadePos, ...savedTextPos } = saved.textPos;
+                  setTextPos((prev) => ({ ...prev, ...savedTextPos }));
+                }
+                if (saved.fontSizes) {
+                  const { docIdentidade: _ignoredDocIdentidadeFont, ...savedFontSizes } = saved.fontSizes;
+                  setFontSizes((prev) => ({ ...prev, ...savedFontSizes, docIdentidade: FIXED_DOC_IDENTIDADE_FONT_SIZE }));
+                }
                 if (saved.photoPos) setPhotoPos(saved.photoPos);
                 if (saved.signatureFont) setSignatureFont(saved.signatureFont);
                 if (saved.contrast != null) setContrast(saved.contrast);
@@ -191,7 +198,7 @@ export default function AdminImageViewer() {
       setSelectedImage(null);
       setTemplatePreview(null);
       setTextPos(DEFAULT_TEXT);
-      setFontSizes({ nome: 11, docIdentidade: 9, nascimento: 10, filiacao: 9, assinatura: 14 });
+      setFontSizes({ nome: 11, docIdentidade: FIXED_DOC_IDENTIDADE_FONT_SIZE, nascimento: 10, filiacao: 9, assinatura: 14 });
       setPhotoPos(DEFAULT_PHOTO);
       setContrast(100);
       setSignatureFont(SIGNATURE_FONTS[0]);
@@ -204,7 +211,23 @@ export default function AdminImageViewer() {
 
   const savePositions = useCallback(async (silent = false) => {
     try {
-      const payload = JSON.stringify({ textPos: safeTextPos, fontSizes: safeFontSizes, photoPos, signatureFont, contrast });
+      const payload = JSON.stringify({
+        textPos: {
+          nome: safeTextPos.nome,
+          nascimento: safeTextPos.nascimento,
+          filiacao: safeTextPos.filiacao,
+          assinatura: safeTextPos.assinatura,
+        },
+        fontSizes: {
+          nome: safeFontSizes.nome,
+          nascimento: safeFontSizes.nascimento,
+          filiacao: safeFontSizes.filiacao,
+          assinatura: safeFontSizes.assinatura,
+        },
+        photoPos,
+        signatureFont,
+        contrast,
+      });
       const { data: existing } = await supabase
         .from("site_settings")
         .select("id")
