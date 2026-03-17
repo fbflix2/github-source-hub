@@ -136,26 +136,8 @@ export default function AdminProxyInterno() {
   const usedPct = limitBytes > 0 ? (usedBytes / limitBytes) * 100 : 0;
 
   // Build connection strings from active config
-  const buildStrings = (cfg: any, useConverted = false) => {
-    if (!cfg) return { http80: "", http3128: "", socks5: "", http80_alt: "", http3128_alt: "", socks5_alt: "" };
-    const h = useConverted && cfg.converted_host ? cfg.converted_host : cfg.host || "p.webshare.io";
-    const u = cfg.username || "";
-    const p = cfg.password || "";
-    return {
-      // Formato URL: user:pass@host:port
-      http80: `${u}:${p}@${h}:${cfg.http_port || 80}`,
-      http3128: `${u}:${p}@${h}:${cfg.alt_http_port || 3128}`,
-      socks5: `${u}:${p}@${h}:${cfg.socks5_port || 1080}`,
-      // Formato ferramentas: host:port:user:pass
-      http80_alt: `${h}:${cfg.http_port || 80}:${u}:${p}`,
-      http3128_alt: `${h}:${cfg.alt_http_port || 3128}:${u}:${p}`,
-      socks5_alt: `${h}:${cfg.socks5_port || 1080}:${u}:${p}`,
-    };
-  };
+  const hasConvertedHost = Boolean(active?.converted_host);
 
-  const strDomain = buildStrings(active, false);
-  const hasConvertedHost = active?.converted_host;
-  const strIP = hasConvertedHost ? buildStrings(active, true) : null;
 
   return (
     <div className="space-y-6">
