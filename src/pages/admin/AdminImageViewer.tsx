@@ -55,6 +55,23 @@ export default function AdminImageViewer() {
   const [signatureFont, setSignatureFont] = useState(SIGNATURE_FONTS[0]);
   const [contrast, setContrast] = useState(100);
 
+  const safeTextPos = {
+    nome: { ...DEFAULT_TEXT.nome, ...(textPos.nome ?? {}) },
+    docIdentidade: { ...DEFAULT_TEXT.docIdentidade, ...(textPos.docIdentidade ?? {}) },
+    nascimento: { ...DEFAULT_TEXT.nascimento, ...(textPos.nascimento ?? {}) },
+    filiacao: { ...DEFAULT_TEXT.filiacao, ...(textPos.filiacao ?? {}) },
+    assinatura: { ...DEFAULT_TEXT.assinatura, ...(textPos.assinatura ?? {}) },
+  };
+
+  const safeFontSizes = {
+    nome: 11,
+    docIdentidade: 9,
+    nascimento: 10,
+    filiacao: 9,
+    assinatura: 14,
+    ...(fontSizes ?? {}),
+  };
+
   const [formData, setFormData] = useState({
     nomeCompleto: "",
     dataNascimento: "",
