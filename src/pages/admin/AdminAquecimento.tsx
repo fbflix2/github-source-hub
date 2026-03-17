@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import WarmingOperatorDashboard from "@/components/admin/warming/WarmingOperatorDashboard";
+import WarmingSessionTimer from "@/components/admin/warming/WarmingSessionTimer";
 import { toast } from "sonner";
 
 // ── Track definitions ──────────────────────────────────────────
