@@ -200,10 +200,6 @@ export default function AdminCaixa() {
   };
 
   const handleReopen = async (record: CashRecord) => {
-    if (openCash) {
-      toast.error("Feche o caixa atual antes de reabrir outro");
-      return;
-    }
     setReopening(true);
     try {
       const { error } = await supabase
