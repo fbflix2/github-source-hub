@@ -1088,22 +1088,29 @@ Deno.serve(async (req) => {
       if (profile.balance < total) throw new Error("Saldo insuficiente");
 
       // 2. Fetch rotating proxy credentials from backbone proxy list
+      const countryCode = "BR";
       const bbResp = await webFetch("/proxy/list/?mode=backbone&page=1&page_size=1", WEBSHARE_API_KEY);
       const bbData = await bbResp.json();
-      
+
       let rotatingUsername = "";
       let rotatingPassword = "";
-      
+
       if (bbResp.ok && bbData.results?.length > 0) {
         const bbProxy = bbData.results[0];
-        rotatingUsername = (bbProxy.username || "").replace(/-\d+$/, "") + "-country-BR-rotate";
+        rotatingUsername = buildRotatingUsername(bbProxy.username || bbProxy.proxy_username || "", countryCode);
         rotatingPassword = bbProxy.password || "";
-      } else {
+      }
+
+      if (!rotatingUsername) {
         const configResp = await webFetch("/proxy/config/", WEBSHARE_API_KEY);
         const configData = await configResp.json();
         if (!configResp.ok) throw new Error(`Webshare config error [${configResp.status}]`);
-        rotatingUsername = (configData.username || configData.proxy_username || "") + "-country-BR-rotate";
-        rotatingPassword = configData.password || configData.proxy_password || "";
+        rotatingUsername = buildRotatingUsername(configData.username || configData.proxy_username || "", countryCode);
+        rotatingPassword = rotatingPassword || configData.password || configData.proxy_password || "";
+      }
+
+      if (!rotatingUsername) {
+        throw new Error("Não foi possível gerar o usuário rotativo do Webshare");
       }
 
       // 3. Create subscription
