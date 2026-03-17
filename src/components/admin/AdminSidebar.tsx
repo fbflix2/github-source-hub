@@ -76,6 +76,7 @@ const allMenuItems: MenuItem[] = [
   { title: "Central Proxy", icon: Globe, path: "/admin/central-proxy", subItems: [
     { title: "Webshare", icon: Globe, path: "/admin/central-proxy" },
     { title: "ProxyBR", icon: Globe, path: "/admin/central-proxy/proxybr" },
+    { title: "Proxy Interno", icon: Shield, path: "/admin/central-proxy/interno" },
     { title: "Assinaturas", icon: Monitor, path: "/admin/assinaturas" },
   ]},
   { title: "Fornecedor AccFace", icon: Store, path: "/admin/fornecedor" },

@@ -308,6 +308,7 @@ const App = () => {
                   <Route path="assinaturas" element={<AdminAssinaturas />} />
                   <Route path="central-proxy" element={<AdminCentralProxy />} />
                   <Route path="central-proxy/proxybr" element={<AdminProxyBR />} />
+                  <Route path="central-proxy/interno" element={<AdminProxyInterno />} />
                   <Route path="clientes" element={<AdminClientes />} />
                   <Route path="clientes/ativos" element={<AdminClientesAtivos />} />
                   <Route path="afiliados" element={<AdminAfiliados />} />
