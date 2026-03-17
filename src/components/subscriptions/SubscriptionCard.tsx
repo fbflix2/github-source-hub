@@ -87,7 +87,19 @@ export default function SubscriptionCard({
           {getStatusBadge(status)}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          {sub.proxyLabel && (
+          {sub.is_rotating && (
+            <span className="inline-flex items-center gap-1 self-start px-2 py-0.5 rounded-md bg-accent/20 border border-accent/30 text-accent-foreground text-[10px] font-bold uppercase tracking-wide">
+              <span className="material-symbols-outlined text-xs">autorenew</span>
+              Rotativo
+            </span>
+          )}
+          {sub.gb_purchased && (
+            <span className="inline-flex items-center gap-1 self-start px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20 text-primary text-[10px] font-bold uppercase tracking-wide">
+              <span className="material-symbols-outlined text-xs">data_usage</span>
+              {sub.gb_purchased}GB
+            </span>
+          )}
+          {sub.proxyLabel && !sub.is_rotating && (
             <span className="inline-flex items-center gap-1 self-start px-2 py-0.5 rounded-md bg-primary/10 border border-primary/20 text-primary text-[10px] font-bold uppercase tracking-wide">
               <span className="material-symbols-outlined text-xs">lan</span>
               {sub.proxyLabel}
