@@ -444,7 +444,8 @@ export default function SubscriptionManage() {
             )}
           </div>
 
-          {/* Exchange */}
+          {/* Exchange - hidden for rotating proxies */}
+          {!isRotating && (
           <div className="glass-card rounded-xl p-4 space-y-2">
             <div className="flex items-center justify-between">
               <h2 className="text-foreground font-bold text-sm flex items-center gap-1.5">
@@ -470,7 +471,6 @@ export default function SubscriptionManage() {
             </div>
             {(() => {
               const raw = (sub.raw_data || {}) as Record<string, any>;
-              // Support both flat and nested (subscription.) structures
               const freeExchanges = raw.exchange_quota_free ?? raw.subscription?.exchange_quota_free ?? 0;
               const paidExchanges = raw.exchange_quota_pay ?? raw.subscription?.exchange_quota_pay ?? 0;
               const activeMutation = isWebshare ? wsExchangeMutation : exchangeMutation;
@@ -486,7 +486,6 @@ export default function SubscriptionManage() {
                       onClick={() => {
                         const oldProxyString = sub.proxy ? `${sub.proxy.ip}:${sub.proxy.port}:${sub.proxy.username || ""}:${sub.proxy.password || ""}` : undefined;
                         if (isWebshare) {
-                          // Get the subscription DB id from raw_data or find by name
                           const subId = (sub as any).id || sub.code;
                           wsExchangeMutation.mutate({ subscriptionId: subId, oldProxyString });
                         } else {
@@ -518,27 +517,17 @@ export default function SubscriptionManage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="flex items-center bg-muted rounded-lg border border-border">
-                          <button
-                            onClick={() => setExtraQuotaQty(Math.max(1, extraQuotaQty - 1))}
-                            className="px-2 py-1 text-text-secondary hover:text-foreground transition-colors"
-                          >
+                          <button onClick={() => setExtraQuotaQty(Math.max(1, extraQuotaQty - 1))} className="px-2 py-1 text-text-secondary hover:text-foreground transition-colors">
                             <span className="material-symbols-outlined text-sm">remove</span>
                           </button>
                           <span className="text-foreground font-bold text-sm w-6 text-center">{extraQuotaQty}</span>
-                          <button
-                            onClick={() => setExtraQuotaQty(Math.min(10, extraQuotaQty + 1))}
-                            className="px-2 py-1 text-text-secondary hover:text-foreground transition-colors"
-                          >
+                          <button onClick={() => setExtraQuotaQty(Math.min(10, extraQuotaQty + 1))} className="px-2 py-1 text-text-secondary hover:text-foreground transition-colors">
                             <span className="material-symbols-outlined text-sm">add</span>
                           </button>
                         </div>
                         <div className="flex-1 text-right">
-                          <p className="text-text-secondary text-[10px] line-through">
-                            R$ {(customerPrice * extraQuotaQty).toFixed(2).replace('.', ',')}
-                          </p>
-                          <p className="text-primary font-black text-sm">
-                            R$ {(customerPrice * 0.5 * extraQuotaQty).toFixed(2).replace('.', ',')}
-                          </p>
+                          <p className="text-text-secondary text-[10px] line-through">R$ {(customerPrice * extraQuotaQty).toFixed(2).replace('.', ',')}</p>
+                          <p className="text-primary font-black text-sm">R$ {(customerPrice * 0.5 * extraQuotaQty).toFixed(2).replace('.', ',')}</p>
                         </div>
                       </div>
                       <Button
@@ -548,46 +537,21 @@ export default function SubscriptionManage() {
                           try {
                             const { data: { user } } = await supabase.auth.getUser();
                             if (!user) throw new Error("Não autenticado");
-                            const { data: profile } = await supabase
-                              .from("profiles")
-                              .select("balance")
-                              .eq("user_id", user.id)
-                              .single();
+                            const { data: profile } = await supabase.from("profiles").select("balance").eq("user_id", user.id).single();
                             const totalCost = customerPrice * 0.5 * extraQuotaQty;
-                            if (!profile || profile.balance < totalCost) {
-                              toast.error(`Saldo insuficiente. Necessário: R$ ${totalCost.toFixed(2).replace('.', ',')}`);
-                              return;
-                            }
-                            // Debit balance
-                            await supabase
-                              .from("profiles")
-                              .update({ balance: profile.balance - totalCost })
-                              .eq("user_id", user.id);
-                            // Add paid quotas to subscription
+                            if (!profile || profile.balance < totalCost) { toast.error(`Saldo insuficiente.`); return; }
+                            await supabase.from("profiles").update({ balance: profile.balance - totalCost }).eq("user_id", user.id);
                             const subType = isWebshare ? "webshare" : "proxybr";
-                            const { data: subRow } = await supabase
-                              .from("subscriptions")
-                              .select("id, raw_data")
-                              .eq("name", realSubName!)
-                              .eq("type", subType)
-                              .maybeSingle();
+                            const { data: subRow } = await supabase.from("subscriptions").select("id, raw_data").eq("name", realSubName!).eq("type", subType).maybeSingle();
                             if (subRow) {
                               const currentRaw = (subRow.raw_data || {}) as Record<string, any>;
-                              const currentFree = currentRaw.exchange_quota_free ?? 0;
-                              const updatedRaw = {
-                                ...currentRaw,
-                                exchange_quota_free: currentFree + extraQuotaQty,
-                              };
+                              const updatedRaw = { ...currentRaw, exchange_quota_free: (currentRaw.exchange_quota_free ?? 0) + extraQuotaQty };
                               await supabase.from("subscriptions").update({ raw_data: updatedRaw as any }).eq("id", subRow.id);
                             }
                             queryClient.invalidateQueries({ queryKey: isWebshare ? ["webshare-subscriptions"] : ["proxybr-subscriptions"] });
                             toast.success(`${extraQuotaQty} cota${extraQuotaQty > 1 ? 's' : ''} adicionada${extraQuotaQty > 1 ? 's' : ''}!`);
                             setExtraQuotaQty(1);
-                          } catch (err: any) {
-                            toast.error(err.message || "Erro ao comprar cotas");
-                          } finally {
-                            setIsBuyingQuota(false);
-                          }
+                          } catch (err: any) { toast.error(err.message || "Erro ao comprar cotas"); } finally { setIsBuyingQuota(false); }
                         }}
                         disabled={isBuyingQuota}
                         className="w-full bg-primary hover:bg-primary/80 text-primary-foreground font-bold text-xs h-8"
@@ -602,6 +566,7 @@ export default function SubscriptionManage() {
               );
             })()}
           </div>
+          )}
 
           {/* Quick Actions */}
           <div className="glass-card rounded-xl p-4 space-y-1.5">
