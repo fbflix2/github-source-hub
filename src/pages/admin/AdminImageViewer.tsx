@@ -14,7 +14,7 @@ const POSITIONS_KEY = "imageviewer_positions";
 const DOC_IDENTIDADE_KEY = "imageviewer_doc_identidade";
 const DEFAULT_DOC_IDENTIDADE = "503234175 SSPSP";
 
-const DEFAULT_PHOTO = { xPct: 2.8, yPct: 25, wPct: 17.5, hPct: 24 };
+const DEFAULT_PHOTO = { xPct: 4.8, yPct: 16.2, wPct: 16.2, hPct: 26.2 };
 const DEFAULT_TEXT = {
   nome: { xPct: 30, yPct: 14.5 },
   docIdentidade: { xPct: 30, yPct: 18 },
@@ -204,7 +204,6 @@ export default function AdminImageViewer() {
     if (!file || !file.type.startsWith("image/")) return;
     if (photoOverlay) URL.revokeObjectURL(photoOverlay);
     setPhotoOverlay(URL.createObjectURL(file));
-    setPhotoPos(DEFAULT_PHOTO);
     if (photoInputRef.current) photoInputRef.current.value = "";
   };
 
