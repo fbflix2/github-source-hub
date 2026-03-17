@@ -44,7 +44,8 @@ export default function Checkout() {
   const queryClient = useQueryClient();
   const productId = searchParams.get("product") || "";
   const existingOrderId = searchParams.get("order") || "";
-  const quantity = parseInt(searchParams.get("qty") || "1");
+  const initialQty = parseInt(searchParams.get("qty") || "1");
+  const [quantity, setQuantity] = useState(initialQty);
 
   const [product, setProduct] = useState<DbProduct | null>(null);
   const [loading, setLoading] = useState(true);
