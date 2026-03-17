@@ -138,8 +138,8 @@ export default function AdminCaixa() {
   useEffect(() => { fetchData(); }, []);
 
   const handleOpen = async () => {
-    const obVal = parseFloat(openingBalanceInput);
-    if (isNaN(obVal)) {
+    const obVal = parseBRL(openingBalanceInput);
+    if (!obVal) {
       toast.error("Informe o saldo atual do banco para abrir o caixa");
       return;
     }
