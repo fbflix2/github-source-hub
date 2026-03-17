@@ -1184,6 +1184,138 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ========== GET INTERNAL PROXY CONFIG ==========
+    if (action === "get-internal-proxy-config") {
+      const { data: isStaff } = await supabaseAdmin.rpc("is_staff", { _user_id: user.id });
+      if (!isStaff) throw new Error("Acesso negado");
+
+      // 1. Check for saved override in DB
+      const { data: savedConfig } = await supabaseAdmin
+        .from("internal_proxy_configs")
+        .select("*")
+        .eq("status", "active")
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      // 2. Always fetch auto-suggested from Webshare
+      let autoConfig: Record<string, any> | null = null;
+      try {
+        const countryCode = "BR";
+        const bbResp = await webFetch("/proxy/list/?mode=backbone&page=1&page_size=1", WEBSHARE_API_KEY);
+        const bbData = await bbResp.json();
+
+        let baseUsername = "";
+        let pwd = "";
+
+        if (bbResp.ok && bbData.results?.length > 0) {
+          const bb = bbData.results[0];
+          baseUsername = normalizeRotatingBaseUsername(bb.username || bb.proxy_username || "");
+          pwd = bb.password || "";
+        }
+
+        if (!baseUsername) {
+          const cfgResp = await webFetch("/proxy/config/", WEBSHARE_API_KEY);
+          const cfgData = await cfgResp.json();
+          if (cfgResp.ok) {
+            baseUsername = normalizeRotatingBaseUsername(cfgData.username || cfgData.proxy_username || "");
+            pwd = pwd || cfgData.password || cfgData.proxy_password || "";
+          }
+        }
+
+        if (baseUsername) {
+          autoConfig = {
+            host: "p.webshare.io",
+            http_port: 80,
+            socks5_port: 1080,
+            alt_http_port: 3128,
+            username: `${baseUsername}${buildRotatingCountrySuffix(countryCode)}`,
+            password: pwd,
+          };
+        }
+      } catch (e: any) {
+        console.warn("[get-internal-proxy-config] Auto-fetch error:", e.message);
+      }
+
+      // 3. Fetch bandwidth
+      let bandwidth: Record<string, any> = {};
+      try {
+        const subResp = await webFetch("/subscription/", WEBSHARE_API_KEY);
+        const subData = await subResp.json();
+        bandwidth = {
+          used_bytes: subData.bandwidth_used || 0,
+          limit_bytes: subData.bandwidth_limit || 0,
+        };
+      } catch {}
+
+      // 4. Determine active config
+      const useManual = savedConfig?.source === "manual_override" && savedConfig?.username && savedConfig?.password;
+      const activeSource = useManual ? "manual_override" : "webshare_auto";
+
+      const activeConfig = useManual
+        ? {
+            host: savedConfig.host || autoConfig?.host || "p.webshare.io",
+            converted_host: savedConfig.converted_host || null,
+            http_port: savedConfig.http_port || 80,
+            socks5_port: savedConfig.socks5_port || 1080,
+            alt_http_port: savedConfig.alt_http_port || 3128,
+            username: savedConfig.username,
+            password: savedConfig.password,
+          }
+        : autoConfig;
+
+      console.log(`[get-internal-proxy-config] source=${activeSource}`);
+
+      return new Response(JSON.stringify({
+        active_source: activeSource,
+        active: activeConfig,
+        auto_suggested: autoConfig,
+        saved_override: savedConfig || null,
+        bandwidth,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ========== SAVE INTERNAL PROXY CONFIG ==========
+    if (action === "save-internal-proxy-config") {
+      const { data: isStaff } = await supabaseAdmin.rpc("is_staff", { _user_id: user.id });
+      if (!isStaff) throw new Error("Acesso negado");
+
+      const { config } = params as { config: Record<string, any> };
+      if (!config) throw new Error("config é obrigatório");
+
+      // Upsert: delete old active, insert new
+      await supabaseAdmin
+        .from("internal_proxy_configs")
+        .delete()
+        .eq("status", "active");
+
+      const { error: insertErr } = await supabaseAdmin
+        .from("internal_proxy_configs")
+        .insert({
+          label: config.label || "Proxy Interno BR",
+          provider_slug: "webshare",
+          country_code: config.country_code || "BR",
+          host: config.host || "p.webshare.io",
+          converted_host: config.converted_host || null,
+          http_port: config.http_port || 80,
+          socks5_port: config.socks5_port || 1080,
+          alt_http_port: config.alt_http_port || 3128,
+          username: config.username || "",
+          password: config.password || "",
+          source: config.source || "manual_override",
+          status: "active",
+          notes: config.notes || null,
+        });
+
+      if (insertErr) throw new Error(`Erro ao salvar: ${insertErr.message}`);
+      console.log(`[save-internal-proxy-config] Saved by ${user.id}`);
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     throw new Error(`Ação desconhecida: ${action}`);
   } catch (err: any) {
     console.error("[webshare-api] Error:", err.message);
