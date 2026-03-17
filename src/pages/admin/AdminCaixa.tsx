@@ -163,9 +163,8 @@ export default function AdminCaixa() {
       const dpVal = parseFloat(deposits) || 0;
       const sysBalance = systemRevenue - systemExpenses;
       const openBal = openCash.opening_balance || 0;
-      // Expected = opening balance + system balance - withdrawals + deposits
-      const expectedBalance = openBal + sysBalance - wdVal + dpVal;
-      const diff = bankVal - expectedBalance;
+      // Diferença = variação real do banco no período
+      const diff = bankVal - openBal;
 
       const { error } = await supabase
         .from("cash_register")
@@ -225,8 +224,8 @@ export default function AdminCaixa() {
   const bankVal = parseFloat(bankBalance) || 0;
   const wdVal = parseFloat(withdrawals) || 0;
   const dpVal = parseFloat(deposits) || 0;
-  const expectedBalance = openingBal + sysBalance - wdVal + dpVal;
-  const liveDiff = bankVal - expectedBalance;
+  // Variação real = banco agora - saldo abertura
+  const liveDiff = bankVal - openingBal;
 
   if (loading) {
     return (
@@ -396,27 +395,31 @@ export default function AdminCaixa() {
                 <div className={`rounded-lg p-4 border ${
                   Math.abs(liveDiff) < 0.01
                     ? "bg-emerald-500/5 border-emerald-500/20"
-                    : "bg-amber-500/5 border-amber-500/20"
+                    : liveDiff > 0
+                      ? "bg-emerald-500/5 border-emerald-500/20"
+                      : "bg-red-500/5 border-red-500/20"
                 }`}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      {Math.abs(liveDiff) < 0.01 ? (
-                        <CheckCircle2 className="size-5 text-emerald-400" />
+                      {liveDiff >= 0 ? (
+                        <TrendingUp className="size-5 text-emerald-400" />
                       ) : (
-                        <AlertTriangle className="size-5 text-amber-400" />
+                        <TrendingDown className="size-5 text-red-400" />
                       )}
                       <span className="text-sm font-medium text-white">
-                        {Math.abs(liveDiff) < 0.01 ? "Caixa batendo!" : "Diferença encontrada"}
+                        {Math.abs(liveDiff) < 0.01
+                          ? "Sem variação no período"
+                          : liveDiff > 0
+                            ? "Entrou a mais no banco"
+                            : "Saiu do banco"}
                       </span>
                     </div>
                     <div className="text-right">
-                      <p className={`text-lg font-bold ${
-                        Math.abs(liveDiff) < 0.01 ? "text-emerald-400" : liveDiff > 0 ? "text-emerald-400" : "text-red-400"
-                      }`}>
+                      <p className={`text-lg font-bold ${liveDiff >= 0 ? "text-emerald-400" : "text-red-400"}`}>
                         {liveDiff > 0 ? "+" : ""}{formatCurrency(liveDiff)}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Esperado: {formatCurrency(expectedBalance)}
+                        Abertura: {formatCurrency(openingBal)} → Banco: {formatCurrency(bankVal)}
                       </p>
                     </div>
                   </div>
