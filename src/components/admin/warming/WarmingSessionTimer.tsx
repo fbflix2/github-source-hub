@@ -59,7 +59,7 @@ interface Props {
   trackLabel: string;
 }
 
-export default function WarmingSessionTimer({ profile, tasks, onTaskCompleted, trackLabel }: Props) {
+export default function WarmingSessionTimer({ profile, tasks, onTaskCompleted, onTrackCompleted, trackLabel }: Props) {
   // Which task's timer is running (task id)
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   // Accumulated seconds per task (before current run)
