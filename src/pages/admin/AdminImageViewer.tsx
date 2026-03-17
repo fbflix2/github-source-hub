@@ -152,13 +152,15 @@ export default function AdminImageViewer() {
     try {
       await supabase.from("site_settings").delete().eq("key", SETTINGS_KEY);
       await supabase.from("site_settings").delete().eq("key", POSITIONS_KEY);
+      await supabase.from("site_settings").delete().eq("key", DOC_IDENTIDADE_KEY);
       setSelectedImage(null);
       setTemplatePreview(null);
       setTextPos(DEFAULT_TEXT);
-      setFontSizes({ nome: 11, nascimento: 10, filiacao: 9, assinatura: 14 });
+      setFontSizes({ nome: 11, docIdentidade: 9, nascimento: 10, filiacao: 9, assinatura: 14 });
       setPhotoPos(DEFAULT_PHOTO);
       setContrast(100);
       setSignatureFont(SIGNATURE_FONTS[0]);
+      setDocIdentidade(DEFAULT_DOC_IDENTIDADE);
       toast.success("Template removido");
     } catch {
       toast.error("Erro ao remover template");
