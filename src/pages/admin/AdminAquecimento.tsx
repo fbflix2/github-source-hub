@@ -169,6 +169,26 @@ export default function AdminAquecimento() {
     }
     fetchProfiles();
     loadConfigFromDB();
+    // Fetch current user
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        setCurrentUserId(user.id);
+        supabase.from("profiles").select("full_name, avatar_url").eq("user_id", user.id).maybeSingle().then(({ data }) => {
+          if (data) {
+            setCurrentUserName(data.full_name);
+            setCurrentUserAvatar(data.avatar_url);
+          }
+        });
+        // Fetch goals for this user
+        supabase.from("warming_operator_goals").select("*").eq("operator_id", user.id).eq("active", true).then(({ data }) => {
+          if (data) {
+            const daily = data.find((g: any) => g.goal_type === "daily");
+            const weekly = data.find((g: any) => g.goal_type === "weekly");
+            setOperatorGoals({ daily: daily?.target_profiles ?? null, weekly: weekly?.target_profiles ?? null });
+          }
+        });
+      }
+    });
   }, []);
 
   // Load track config from DB (site_settings)
