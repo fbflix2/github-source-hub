@@ -140,6 +140,10 @@ export default function AdminAquecimento() {
   const [selectedTrack, setSelectedTrack] = useState("7_days");
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [isTimerActive, setIsTimerActive] = useState(false);
+  const [activeTaskTitle, setActiveTaskTitle] = useState<string | null>(null);
+  const [currentElapsed, setCurrentElapsed] = useState(0);
+  const [finishSignal, setFinishSignal] = useState(0);
   const [activeTab, setActiveTab] = useState<"dashboard" | "esteiras" | "gestao" | "relatorios" | "configuracoes">("dashboard");
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [resetPassword, setResetPassword] = useState("");
