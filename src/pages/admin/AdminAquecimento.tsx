@@ -137,7 +137,7 @@ export default function AdminAquecimento() {
   const [currentUserAvatar, setCurrentUserAvatar] = useState<string | null>(null);
   const [operatorGoals, setOperatorGoals] = useState<{ daily: number | null; weekly: number | null }>({ daily: null, weekly: null });
   const [profileCode, setProfileCode] = useState("");
-  const [selectedTrack, setSelectedTrack] = useState("15_days");
+  const [selectedTrack, setSelectedTrack] = useState("7_days");
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [activeTab, setActiveTab] = useState<"dashboard" | "esteiras" | "gestao" | "relatorios" | "configuracoes">("dashboard");
