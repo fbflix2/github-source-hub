@@ -588,21 +588,6 @@ export default function AdminImageViewer() {
                   <span className="text-[10px] text-white/50 w-8">{fontSizes.nome}px</span>
                 </div>
               </div>
-              <div>
-                <Label className="text-white/60 text-xs">Doc. de Identidade</Label>
-                <Input
-                  value={docIdentidade}
-                  onChange={(e) => setDocIdentidade(e.target.value)}
-                  placeholder="503234175 SSPSP"
-                  className="mt-1 bg-white/5 border-white/10 text-white uppercase text-xs"
-                  maxLength={50}
-                />
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-[10px] text-white/40">Fonte:</span>
-                  <Slider value={[safeFontSizes.docIdentidade]} onValueChange={([v]) => setFontSizes((f) => ({ ...f, docIdentidade: v }))} min={5} max={18} step={0.5} className="flex-1" />
-                  <span className="text-[10px] text-white/50 w-8">{safeFontSizes.docIdentidade}px</span>
-                </div>
-              </div>
               <div className="grid grid-cols-[1fr_auto] gap-2">
                 <div>
                   <Label className="text-white/60 text-xs">Data de Nascimento</Label>
