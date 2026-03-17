@@ -680,7 +680,16 @@ export default function AdminImageViewer() {
                 <Label className="text-white/60 text-xs">Nome Completo</Label>
                 <Input
                   value={formData.nomeCompleto}
-                  onChange={(e) => setFormData((f) => ({ ...f, nomeCompleto: e.target.value }))}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const sobrenome = extractSobrenome(val);
+                    setFormData((f) => ({
+                      ...f,
+                      nomeCompleto: val,
+                      nomePai: sobrenome ? gerarNomePai(sobrenome) : "",
+                      nomeMae: sobrenome ? gerarNomeMae(sobrenome) : "",
+                    }));
+                  }}
                   placeholder="NOME COMPLETO"
                   className="mt-1 bg-white/5 border-white/10 text-white uppercase"
                   maxLength={100}
