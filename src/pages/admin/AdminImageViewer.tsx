@@ -9,7 +9,7 @@ import { Slider } from "@/components/ui/slider";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 
-const TEMPLATE_STORAGE_KEY = "imageviewer_base_template";
+const SETTINGS_KEY = "imageviewer_base_template_url";
 
 const DEFAULT_PHOTO = { xPct: 2.8, yPct: 25, wPct: 17.5, hPct: 24 };
 const DEFAULT_TEXT = {
