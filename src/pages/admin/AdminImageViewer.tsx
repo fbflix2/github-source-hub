@@ -406,6 +406,17 @@ export default function AdminImageViewer() {
                 <p className="text-[10px] text-muted-foreground">Este template será carregado automaticamente ao abrir esta página.</p>
               </div>
             )}
+            {templatePreview && (
+              <div className="pt-2 border-t border-border">
+                <p className="text-xs text-muted-foreground mb-2">
+                  Posicione os textos e a foto no preview arrastando-os, ajuste fontes e contraste, depois clique abaixo para salvar as posições permanentemente.
+                </p>
+                <Button onClick={savePositions} variant="outline" className="w-full gap-2">
+                  <Download className="size-4" />
+                  Salvar Posições Atuais
+                </Button>
+              </div>
+            )}
             {!templatePreview && (
               <div className="text-center py-8 text-muted-foreground text-sm border border-dashed border-border rounded-lg">
                 Nenhum template configurado
