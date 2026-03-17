@@ -275,12 +275,17 @@ export default function AdminAquecimento() {
       if (creatorIds.length > 0) {
         const { data: profilesData } = await supabase
           .from("profiles")
-          .select("user_id, full_name")
+          .select("user_id, full_name, avatar_url")
           .in("user_id", creatorIds);
         if (profilesData) {
-          const map: Record<string, string> = {};
-          profilesData.forEach(p => { map[p.user_id] = p.full_name || "Sem nome"; });
-          setCreatorNames(map);
+          const nameMap: Record<string, string> = {};
+          const avatarMap: Record<string, string | null> = {};
+          profilesData.forEach(p => {
+            nameMap[p.user_id] = p.full_name || "Sem nome";
+            avatarMap[p.user_id] = p.avatar_url || null;
+          });
+          setCreatorNames(nameMap);
+          setCreatorAvatars(avatarMap);
         }
       }
     }
