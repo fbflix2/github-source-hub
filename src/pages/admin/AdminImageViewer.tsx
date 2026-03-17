@@ -22,6 +22,7 @@ const DEFAULT_TEXT = {
   filiacao: { xPct: 30, yPct: 47 },
   assinatura: { xPct: 15, yPct: 56 },
 };
+const FIXED_DOC_IDENTIDADE_FONT_SIZE = 8.5;
 
 const SIGNATURE_FONTS = ["Dancing Script", "Caveat", "Satisfy"];
 
@@ -61,14 +62,14 @@ export default function AdminImageViewer() {
   const [dragStartPct, setDragStartPct] = useState({ x: 0, y: 0 });
 
   const [textPos, setTextPos] = useState(DEFAULT_TEXT);
-  const [fontSizes, setFontSizes] = useState({ nome: 11, docIdentidade: 9, nascimento: 10, filiacao: 9, assinatura: 14 });
+  const [fontSizes, setFontSizes] = useState({ nome: 11, docIdentidade: FIXED_DOC_IDENTIDADE_FONT_SIZE, nascimento: 10, filiacao: 9, assinatura: 14 });
   const [docIdentidade, setDocIdentidade] = useState(DEFAULT_DOC_IDENTIDADE);
   const [signatureFont, setSignatureFont] = useState(SIGNATURE_FONTS[0]);
   const [contrast, setContrast] = useState(100);
 
   const safeTextPos = {
     nome: sanitizeTextPoint(textPos.nome, DEFAULT_TEXT.nome),
-    docIdentidade: sanitizeTextPoint(textPos.docIdentidade, DEFAULT_TEXT.docIdentidade),
+    docIdentidade: DEFAULT_TEXT.docIdentidade,
     nascimento: sanitizeTextPoint(textPos.nascimento, DEFAULT_TEXT.nascimento),
     filiacao: sanitizeTextPoint(textPos.filiacao, DEFAULT_TEXT.filiacao),
     assinatura: sanitizeTextPoint(textPos.assinatura, DEFAULT_TEXT.assinatura),
@@ -76,7 +77,7 @@ export default function AdminImageViewer() {
 
   const safeFontSizes = {
     nome: 11,
-    docIdentidade: 9,
+    docIdentidade: FIXED_DOC_IDENTIDADE_FONT_SIZE,
     nascimento: 10,
     filiacao: 9,
     assinatura: 14,
@@ -588,21 +589,6 @@ export default function AdminImageViewer() {
                   <span className="text-[10px] text-white/50 w-8">{fontSizes.nome}px</span>
                 </div>
               </div>
-              <div>
-                <Label className="text-white/60 text-xs">Doc. de Identidade</Label>
-                <Input
-                  value={docIdentidade}
-                  onChange={(e) => setDocIdentidade(e.target.value)}
-                  placeholder="503234175 SSPSP"
-                  className="mt-1 bg-white/5 border-white/10 text-white uppercase text-xs"
-                  maxLength={50}
-                />
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-[10px] text-white/40">Fonte:</span>
-                  <Slider value={[safeFontSizes.docIdentidade]} onValueChange={([v]) => setFontSizes((f) => ({ ...f, docIdentidade: v }))} min={5} max={18} step={0.5} className="flex-1" />
-                  <span className="text-[10px] text-white/50 w-8">{safeFontSizes.docIdentidade}px</span>
-                </div>
-              </div>
               <div className="grid grid-cols-[1fr_auto] gap-2">
                 <div>
                   <Label className="text-white/60 text-xs">Data de Nascimento</Label>
@@ -801,9 +787,8 @@ export default function AdminImageViewer() {
                   )}
                   {docIdentidade && (
                     <div
-                      className="absolute select-none whitespace-nowrap"
-                      style={{ left: `${safeTextPos.docIdentidade.xPct}%`, top: `${safeTextPos.docIdentidade.yPct}%`, cursor: panMode ? "inherit" : "move" }}
-                      onMouseDown={(e) => onElementMouseDown("docIdentidade", e)}
+                      className="absolute select-none whitespace-nowrap pointer-events-none"
+                      style={{ left: `${safeTextPos.docIdentidade.xPct}%`, top: `${safeTextPos.docIdentidade.yPct}%` }}
                     >
                       <span className="font-semibold text-black/90 uppercase" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${safeFontSizes.docIdentidade}px` }}>
                         {docIdentidade}
