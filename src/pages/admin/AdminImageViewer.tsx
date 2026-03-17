@@ -48,6 +48,8 @@ export default function AdminImageViewer() {
   const [formData, setFormData] = useState({
     nomeCompleto: "",
     dataNascimento: "",
+    naturalidade: "",
+    uf: "",
     nomePai: "",
     nomeMae: "",
   });
