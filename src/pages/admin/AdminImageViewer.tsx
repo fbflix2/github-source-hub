@@ -662,20 +662,15 @@ export default function AdminImageViewer() {
 
                   {photoOverlay && (
                     <div
-                      className="absolute border border-black/30"
+                      className="absolute border border-black/30 pointer-events-none"
                       style={{
                         left: `${photoPos.xPct}%`,
                         top: `${photoPos.yPct}%`,
                         width: `${photoPos.wPct}%`,
                         height: `${photoPos.hPct}%`,
-                        cursor: panMode ? "inherit" : "move",
                       }}
-                      onMouseDown={(e) => onElementMouseDown("photo", e)}
                     >
                       <img src={photoOverlay} alt="Foto" className="w-full h-full object-cover pointer-events-none" draggable={false} />
-                      {!panMode && (
-                        <div className="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-primary rounded-full cursor-se-resize" onMouseDown={onResizeMouseDown} />
-                      )}
                     </div>
                   )}
 
@@ -725,9 +720,8 @@ export default function AdminImageViewer() {
                   )}
                   {formData.nomeCompleto && (
                     <div
-                      className="absolute select-none whitespace-nowrap"
-                      style={{ left: `${textPos.assinatura.xPct}%`, top: `${textPos.assinatura.yPct}%`, cursor: panMode ? "inherit" : "move" }}
-                      onMouseDown={(e) => onElementMouseDown("assinatura", e)}
+                      className="absolute select-none whitespace-nowrap pointer-events-none"
+                      style={{ left: `${textPos.assinatura.xPct}%`, top: `${textPos.assinatura.yPct}%` }}
                     >
                       <span style={{ fontFamily: `'${signatureFont}', cursive`, fontSize: `${fontSizes.assinatura}px`, color: "#1a1a8a" }}>
                         {formData.nomeCompleto}
