@@ -63,14 +63,17 @@ export default function AdminImageViewer() {
   const [dragStartPct, setDragStartPct] = useState({ x: 0, y: 0 });
 
   const [textPos, setTextPos] = useState(DEFAULT_TEXT);
+  const [docIdentidadePos, setDocIdentidadePos] = useState(FIXED_DOC_IDENTIDADE_POSITION);
   const [fontSizes, setFontSizes] = useState({ nome: 11, docIdentidade: FIXED_DOC_IDENTIDADE_FONT_SIZE, nascimento: 10, filiacao: 9, assinatura: 14 });
   const [docIdentidade, setDocIdentidade] = useState(DEFAULT_DOC_IDENTIDADE);
   const [signatureFont, setSignatureFont] = useState(SIGNATURE_FONTS[0]);
   const [contrast, setContrast] = useState(100);
 
+  const docIdLockTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const safeTextPos = {
     nome: sanitizeTextPoint(textPos.nome, DEFAULT_TEXT.nome),
-    docIdentidade: FIXED_DOC_IDENTIDADE_POSITION,
+    docIdentidade: sanitizeTextPoint(docIdentidadePos, FIXED_DOC_IDENTIDADE_POSITION),
     nascimento: sanitizeTextPoint(textPos.nascimento, DEFAULT_TEXT.nascimento),
     filiacao: sanitizeTextPoint(textPos.filiacao, DEFAULT_TEXT.filiacao),
     assinatura: sanitizeTextPoint(textPos.assinatura, DEFAULT_TEXT.assinatura),
@@ -119,8 +122,9 @@ export default function AdminImageViewer() {
               try {
                 const saved = JSON.parse(row.value);
                 if (saved.textPos) {
-                  const { docIdentidade: _ignoredDocIdentidadePos, ...savedTextPos } = saved.textPos;
+                  const { docIdentidade: savedDocIdPos, ...savedTextPos } = saved.textPos;
                   setTextPos((prev) => ({ ...prev, ...savedTextPos }));
+                  if (savedDocIdPos) setDocIdentidadePos(sanitizeTextPoint(savedDocIdPos, FIXED_DOC_IDENTIDADE_POSITION));
                 }
                 if (saved.fontSizes) {
                   const { docIdentidade: _ignoredDocIdentidadeFont, ...savedFontSizes } = saved.fontSizes;
@@ -430,6 +434,8 @@ export default function AdminImageViewer() {
     const dyPct = (dy / rect.h) * 100;
     if (dragTarget === "photo") {
       setPhotoPos((p) => ({ ...p, xPct: dragStartPct.x + dxPct, yPct: dragStartPct.y + dyPct }));
+    } else if (dragTarget === "docIdentidade") {
+      setDocIdentidadePos({ xPct: dragStartPct.x + dxPct, yPct: dragStartPct.y + dyPct });
     } else {
       setTextPos((prev) => ({
         ...prev,
@@ -438,10 +444,49 @@ export default function AdminImageViewer() {
     }
   }, [isPanning, panStart, dragTarget, dragStartPx, dragStartPct, zoom]);
 
+  const saveDocIdentidadePosition = useCallback(async (pos: { xPct: number; yPct: number }) => {
+    try {
+      const { data: existing } = await supabase
+        .from("site_settings")
+        .select("id, value")
+        .eq("key", POSITIONS_KEY)
+        .maybeSingle();
+
+      let current: any = {};
+      if (existing?.value) {
+        try { current = JSON.parse(existing.value); } catch {}
+      }
+      current.textPos = { ...(current.textPos || {}), docIdentidade: pos };
+      const payload = JSON.stringify(current);
+
+      if (existing) {
+        await supabase.from("site_settings").update({ value: payload }).eq("key", POSITIONS_KEY);
+      } else {
+        await supabase.from("site_settings").insert({ key: POSITIONS_KEY, value: payload });
+      }
+      toast.success("Posição do RG fixada!");
+    } catch {
+      toast.error("Erro ao salvar posição do RG");
+    }
+  }, []);
+
   const onGlobalMouseUp = useCallback(() => {
+    const wasDraggingDocId = dragTarget === "docIdentidade";
     setIsPanning(false);
     setDragTarget(null);
-  }, []);
+
+    if (wasDraggingDocId) {
+      if (docIdLockTimer.current) clearTimeout(docIdLockTimer.current);
+      toast.info("Posição será salva em 3 segundos...");
+      docIdLockTimer.current = setTimeout(() => {
+        setDocIdentidadePos((current) => {
+          const sanitized = sanitizeTextPoint(current, FIXED_DOC_IDENTIDADE_POSITION);
+          saveDocIdentidadePosition(sanitized);
+          return sanitized;
+        });
+      }, 3000);
+    }
+  }, [dragTarget, saveDocIdentidadePosition]);
 
   useEffect(() => {
     if (isPanning || dragTarget) {
@@ -810,8 +855,9 @@ export default function AdminImageViewer() {
                   )}
                   {docIdentidade && (
                     <div
-                      className="absolute select-none whitespace-nowrap pointer-events-none"
-                      style={{ left: `${safeTextPos.docIdentidade.xPct}%`, top: `${safeTextPos.docIdentidade.yPct}%` }}
+                      className="absolute select-none whitespace-nowrap"
+                      style={{ left: `${safeTextPos.docIdentidade.xPct}%`, top: `${safeTextPos.docIdentidade.yPct}%`, cursor: panMode ? "inherit" : "move" }}
+                      onMouseDown={(e) => onElementMouseDown("docIdentidade", e)}
                     >
                       <span className="font-semibold text-black/90 uppercase" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${safeFontSizes.docIdentidade}px` }}>
                         {docIdentidade}
