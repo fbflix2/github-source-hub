@@ -132,8 +132,14 @@ export default function AdminAuditoria() {
       return (unitCost + laborCost + otherCosts) * (1 + taxPercent / 100);
     };
 
-    const completedOrderIds = new Set(orders.map(o => o.id));
-    const revenue = orders.reduce((sum, o) => sum + Number(o.total || 0), 0);
+    // Separate courtesy orders
+    const courtesyOrders = orders.filter(o => o.payment_method === 'courtesy');
+    const paidOrders = orders.filter(o => o.payment_method !== 'courtesy');
+    setCourtesyCount(courtesyOrders.length);
+    setCourtesyValue(courtesyOrders.reduce((s, o) => s + Number(o.subtotal || 0), 0));
+
+    const completedOrderIds = new Set(paidOrders.map(o => o.id));
+    const revenue = paidOrders.reduce((sum, o) => sum + Number(o.total || 0), 0);
 
     // COGS based on sold items (same as Balanço)
     const productByName: Record<string, any> = {};
