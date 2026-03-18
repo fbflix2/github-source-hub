@@ -62,7 +62,7 @@ export default function AdminAuditoria() {
     const [ordersRes, orderItemsRes, productsRes, productCostsRes, purchasesRes, costCenterRes, webShareRes, stockItemsRes] = await Promise.all([
       supabase
         .from("orders")
-        .select("id, total, updated_at")
+        .select("id, total, subtotal, payment_method, updated_at")
         .in("status", ["completed", "delivered"])
         .gte("created_at", since),
       supabase
