@@ -316,10 +316,22 @@ export default function AdminAquecimento() {
       .eq("profile_code", profileCode.trim())
       .maybeSingle();
     if (existing) {
-      // If profile exists and is active, select it instead
+      // If profile exists and is active, check if it has pending tasks
       if (existing.status === "active") {
+        // Fetch tasks to check if there's a pending one
+        const { data: existingTasks } = await supabase
+          .from("warming_tasks")
+          .select("*")
+          .eq("profile_id", existing.id)
+          .order("day_number", { ascending: true });
+        const hasPending = existingTasks?.some(t => !t.completed);
+        if (!hasPending) {
+          toast.info(`Perfil "${profileCode.trim()}" já concluiu a tarefa de hoje. Informe outro perfil.`);
+          setProfileCode("");
+          return;
+        }
         setSelectedProfileId(existing.id);
-        if (!tasks[existing.id]) fetchTasks(existing.id);
+        if (existingTasks) setTasks(prev => ({ ...prev, [existing.id]: existingTasks }));
         setProfileCode("");
         toast.info(`Perfil "${profileCode.trim()}" já existe. Selecionado automaticamente.`);
         return;
