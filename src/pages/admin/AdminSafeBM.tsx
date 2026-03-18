@@ -299,10 +299,12 @@ export default function AdminSafeBM() {
             <p className="text-2xl font-bold text-foreground">
               R$ {ltvPerClient.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
-            <div className="flex items-center gap-1.5 mt-1">
-              <span className="inline-block w-2 h-2 rounded-full bg-primary" />
-              <span className="text-xs text-muted-foreground">Projeção Alta</span>
-            </div>
+            {uniqueClients > 0 && (
+              <div className="flex items-center gap-1.5 mt-1">
+                <span className="inline-block w-2 h-2 rounded-full bg-primary" />
+                <span className="text-xs text-muted-foreground">{uniqueClients} cliente{uniqueClients > 1 ? 's' : ''} ativo{uniqueClients > 1 ? 's' : ''}</span>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
