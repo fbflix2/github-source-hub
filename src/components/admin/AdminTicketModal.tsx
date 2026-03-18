@@ -248,7 +248,7 @@ export default function AdminTicketModal({ ticket, profileName, mode, onClose, o
                     onClick={async () => {
                       const { data: order } = await supabase
                         .from("orders")
-                        .select("id")
+                        .select("id, code")
                         .eq("code", orderMatch[0])
                         .single();
                       if (order) {
@@ -260,7 +260,7 @@ export default function AdminTicketModal({ ticket, profileName, mode, onClose, o
                         const firstItemId = items?.[0]?.id;
                         if (firstItemId) {
                           onClose();
-                          navigate(`/item-details/${order.id}/${firstItemId}`);
+                          navigate(`/item-details/${order.code}/${firstItemId}`);
                           return;
                         }
                       }
