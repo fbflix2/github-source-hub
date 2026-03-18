@@ -94,6 +94,16 @@ export function useProxyBRSubscriptions() {
 
       if (error) throw new Error(error.message);
 
+      // Fetch all products to match price by name (since product_id is often null)
+      const { data: allProducts } = await supabase
+        .from("products")
+        .select("name, price")
+        .ilike("name", "%proxy%");
+      const priceByName: Record<string, number> = {};
+      (allProducts || []).forEach((p: any) => {
+        priceByName[p.name.toLowerCase().trim()] = p.price;
+      });
+
       // Map local DB records to the format the UI expects
       // "Explode" multi-proxy subscriptions into individual entries
       const results: any[] = [];
@@ -120,11 +130,15 @@ export function useProxyBRSubscriptions() {
           };
         };
 
+        // Resolve price: from product join, raw_data, or name match
+        const rawProductName = raw.product?.name || raw.product_name || raw.subscription?.product?.name || productInfo?.name || "";
+        const resolvedPrice = productInfo?.price || raw.product?.price || priceByName[rawProductName.toLowerCase().trim()] || null;
+
         const baseEntry = {
           code: sub.name,
           name: sub.name,
-          product_name: raw.product?.name || raw.product_name || raw.subscription?.product?.name || productInfo?.name || undefined,
-          customer_price: productInfo?.price || raw.product?.price || null,
+          product_name: rawProductName || undefined,
+          customer_price: resolvedPrice,
           status: sub.status,
           start_date: sub.start_date,
           end_date: sub.end_date || sub.start_date,
