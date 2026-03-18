@@ -89,6 +89,7 @@ import AdminFerramentas2FA from "./pages/admin/AdminFerramentas2FA";
 import AdminImageViewer from "./pages/admin/AdminImageViewer";
 import AdminProxyBR from "./pages/admin/AdminProxyBR";
 import AdminCaixa from "./pages/admin/AdminCaixa";
+import AdminSafeBM from "./pages/admin/AdminSafeBM";
 import { AdminLayout } from "./components/admin/AdminLayout";
 
 // Layout
@@ -337,6 +338,7 @@ const App = () => {
                   <Route path="fornecedor" element={<AdminShopClone />} />
                   <Route path="ferramentas-2fa" element={<AdminFerramentas2FA />} />
                   <Route path="imagens" element={<AdminImageViewer />} />
+                  <Route path="safe-bm" element={<AdminSafeBM />} />
                 </Route>
 
                 {/* Protected routes */}

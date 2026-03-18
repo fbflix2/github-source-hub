@@ -1652,6 +1652,57 @@ export type Database = {
           },
         ]
       }
+      safe_bm_vaults: {
+        Row: {
+          bm_link: string
+          bm_name: string
+          client_name: string | null
+          created_at: string
+          id: string
+          link_regenerations: number
+          notes: string | null
+          perfil_backup: string | null
+          protection_start: string
+          purchase_date: string | null
+          status: string
+          subscription_price: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bm_link: string
+          bm_name: string
+          client_name?: string | null
+          created_at?: string
+          id?: string
+          link_regenerations?: number
+          notes?: string | null
+          perfil_backup?: string | null
+          protection_start?: string
+          purchase_date?: string | null
+          status?: string
+          subscription_price?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bm_link?: string
+          bm_name?: string
+          client_name?: string | null
+          created_at?: string
+          id?: string
+          link_regenerations?: number
+          notes?: string | null
+          perfil_backup?: string | null
+          protection_start?: string
+          purchase_date?: string | null
+          status?: string
+          subscription_price?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       site_settings: {
         Row: {
           id: string
