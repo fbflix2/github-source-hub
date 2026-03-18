@@ -245,3 +245,23 @@ export function useExchangeWebshareProxy() {
     },
   });
 }
+
+/** Migrate a ProxyBR expired/cancelled subscription to Webshare on renewal */
+export function useMigrateProxyBRToWebshare() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (subscriptionName: string) => {
+      const result = await callWebshare("migrate-proxybr-renewal", { subscription_name: subscriptionName });
+      return result;
+    },
+    onSuccess: (result: any) => {
+      const price = result?.price ? `R$ ${Number(result.price).toFixed(2).replace('.', ',')}` : '';
+      toast.success(`Proxy renovado com sucesso!${price ? ` • ${price}` : ''}`);
+      queryClient.invalidateQueries({ queryKey: ["proxybr-subscriptions"] });
+      queryClient.invalidateQueries({ queryKey: ["webshare-subscriptions"] });
+    },
+    onError: (err: Error) => {
+      toast.error(`Erro ao renovar: ${err.message}`);
+    },
+  });
+}

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useProxyBRSubscriptions, useRenewSubscription } from "@/hooks/useProxyBR";
-import { useWebshareSubscriptions } from "@/hooks/useWebshare";
+import { useWebshareSubscriptions, useMigrateProxyBRToWebshare } from "@/hooks/useWebshare";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { differenceInDays, parseISO, format } from "date-fns";
@@ -32,6 +32,7 @@ export interface ProxySubscription {
   proxyLabel?: string;
   is_rotating?: boolean;
   gb_purchased?: number;
+  provider?: string;
   [key: string]: unknown;
 }
 
@@ -72,6 +73,7 @@ export default function Subscriptions() {
   const { data: subscriptionsRaw, isLoading: proxyLoading, error: proxyError } = useProxyBRSubscriptions();
   const { data: webshareRaw, isLoading: wsLoading, error: wsError } = useWebshareSubscriptions();
   const renewMutation = useRenewSubscription();
+  const migrateMutation = useMigrateProxyBRToWebshare();
 
   const isLoading = proxyLoading || wsLoading;
   const error = proxyError || wsError;
@@ -107,9 +109,16 @@ export default function Subscriptions() {
     return s.mappedStatus === activeFilter;
   });
 
-  const handleRenew = (sub: ProxySubscription) => {
-    // Use the real subscription name (not the exploded code) for renewal
-    renewMutation.mutate(sub.name);
+  const handleRenew = (sub: ProxySubscription & { mappedStatus: SubscriptionStatus }) => {
+    // For expired/cancelled ProxyBR subs → migrate to Webshare silently
+    const isProxyBR = !sub.provider || sub.provider === "proxybr";
+    const isExpiredOrCancelled = sub.mappedStatus === "expired" || sub.mappedStatus === "cancelled";
+    
+    if (isProxyBR && isExpiredOrCancelled) {
+      migrateMutation.mutate(sub.name);
+    } else {
+      renewMutation.mutate(sub.name);
+    }
   };
 
   // Show CTA when user has no subscriptions
@@ -252,7 +261,7 @@ export default function Subscriptions() {
               formattedStart={sub.formattedStart}
               formattedEnd={sub.formattedEnd}
               onRenew={() => handleRenew(sub)}
-              isRenewing={renewMutation.isPending}
+              isRenewing={renewMutation.isPending || migrateMutation.isPending}
               profileTag={sub.profile_tag}
             />
           ))}
