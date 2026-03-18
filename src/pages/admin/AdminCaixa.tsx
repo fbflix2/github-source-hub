@@ -23,6 +23,9 @@ import {
   PenLine,
   Settings2,
   Percent,
+  ChevronDown,
+  ChevronUp,
+  Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -89,6 +92,14 @@ export default function AdminCaixa() {
   const [history, setHistory] = useState<CashRecord[]>([]);
   const [reopening, setReopening] = useState(false);
 
+  // Expanded history detail
+  const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null);
+  const [historyMovements, setHistoryMovements] = useState<CashMovement[]>([]);
+  const [histRetroType, setHistRetroType] = useState<"entry" | "exit">("entry");
+  const [histRetroAmount, setHistRetroAmount] = useState("");
+  const [histRetroDesc, setHistRetroDesc] = useState("");
+  const [addingHistRetro, setAddingHistRetro] = useState(false);
+
   // Open form
   const [openingBalanceInput, setOpeningBalanceInput] = useState("");
 
@@ -136,11 +147,12 @@ export default function AdminCaixa() {
     const { data: histData } = await supabase
       .from("cash_register")
       .select("*")
-      .eq("status", "closed")
-      .order("closed_at", { ascending: false })
+      .order("opened_at", { ascending: false })
       .limit(30);
 
-    setHistory((histData || []) as CashRecord[]);
+    // Exclude the currently active (today's) cash from history
+    const activeId = openData?.id;
+    setHistory((histData || []).filter((r: any) => r.id !== activeId) as CashRecord[]);
     setLoading(false);
   }, []);
 
@@ -414,6 +426,102 @@ export default function AdminCaixa() {
       toast.error(err.message || "Erro ao reabrir caixa");
     } finally {
       setReopening(false);
+    }
+  };
+
+  const handleCloseHistoryRecord = async (record: CashRecord) => {
+    setSaving(true);
+    try {
+      const { data: movs } = await supabase
+        .from("cash_movements")
+        .select("*")
+        .eq("cash_register_id", record.id);
+      const allMovs = (movs || []) as CashMovement[];
+      const tEntries = allMovs.filter(m => m.type === "entry").reduce((s, m) => s + m.amount, 0);
+      const tExits = allMovs.filter(m => m.type === "exit").reduce((s, m) => s + m.amount, 0);
+      const closingBalance = record.opening_balance + tEntries - tExits;
+
+      const { error } = await supabase
+        .from("cash_register")
+        .update({
+          closed_at: new Date().toISOString(),
+          status: "closed",
+          bank_balance: closingBalance,
+          withdrawals: tExits,
+          deposits: tEntries,
+          difference: tEntries - tExits,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", record.id);
+      if (error) throw error;
+      toast.success("Caixa fechado novamente!");
+      setExpandedHistoryId(null);
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao fechar caixa");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleHistoryExpand = async (recordId: string) => {
+    if (expandedHistoryId === recordId) {
+      setExpandedHistoryId(null);
+      setHistoryMovements([]);
+      return;
+    }
+    setExpandedHistoryId(recordId);
+    const { data } = await supabase
+      .from("cash_movements")
+      .select("*")
+      .eq("cash_register_id", recordId)
+      .order("created_at", { ascending: false });
+    setHistoryMovements((data || []) as CashMovement[]);
+    setHistRetroAmount("");
+    setHistRetroDesc("");
+  };
+
+  const handleAddHistRetro = async () => {
+    if (!expandedHistoryId) return;
+    const amount = parseBRL(histRetroAmount);
+    if (!amount || amount <= 0) { toast.error("Informe um valor válido"); return; }
+    if (!histRetroDesc.trim()) { toast.error("Informe uma descrição"); return; }
+    setAddingHistRetro(true);
+    try {
+      const { error } = await supabase.from("cash_movements").insert({
+        cash_register_id: expandedHistoryId,
+        type: histRetroType,
+        source: "manual",
+        amount,
+        description: `[Retroativo] ${histRetroDesc.trim()}`,
+      });
+      if (error) throw error;
+      toast.success("Lançamento retroativo registrado!");
+      setHistRetroAmount("");
+      setHistRetroDesc("");
+      // Refresh movements for this record
+      const { data } = await supabase.from("cash_movements").select("*")
+        .eq("cash_register_id", expandedHistoryId).order("created_at", { ascending: false });
+      setHistoryMovements((data || []) as CashMovement[]);
+      // Update record totals
+      const record = history.find(h => h.id === expandedHistoryId);
+      if (record && record.status === "closed") {
+        const allMovs = (data || []) as CashMovement[];
+        const tEntries = allMovs.filter(m => m.type === "entry").reduce((s, m) => s + m.amount, 0);
+        const tExits = allMovs.filter(m => m.type === "exit").reduce((s, m) => s + m.amount, 0);
+        await supabase.from("cash_register").update({
+          deposits: tEntries,
+          withdrawals: tExits,
+          difference: tEntries - tExits,
+          bank_balance: record.opening_balance + tEntries - tExits,
+          updated_at: new Date().toISOString(),
+        }).eq("id", expandedHistoryId);
+        fetchData();
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao registrar");
+    } finally {
+      setAddingHistRetro(false);
     }
   };
 
@@ -735,55 +843,192 @@ export default function AdminCaixa() {
         {/* History */}
         {history.length > 0 && (
           <div className="space-y-4">
-            <h3 className="text-lg font-bold text-white">Histórico de Fechamentos</h3>
+            <h3 className="text-lg font-bold text-white">Histórico de Caixas</h3>
             <div className="space-y-3">
-              {history.map((record) => (
-                <div key={record.id} className="bg-white/[0.03] border border-white/10 rounded-xl p-4">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg ${
-                        Math.abs(record.difference) < 0.01 ? "bg-emerald-500/10" : record.difference > 0 ? "bg-emerald-500/10" : "bg-red-500/10"
-                      }`}>
-                        {record.difference >= 0 ? (
-                          <CheckCircle2 className="size-4 text-emerald-400" />
-                        ) : (
-                          <AlertTriangle className="size-4 text-red-400" />
-                        )}
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-white">
-                          {formatDate(record.opened_at)} → {record.closed_at ? formatDate(record.closed_at) : "—"}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Abertura: {formatCurrency(record.opening_balance)} • Entradas: {formatCurrency(record.deposits)} • Saídas: {formatCurrency(record.withdrawals)}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="text-right">
-                        <p className={`text-sm font-bold ${
-                          record.difference >= 0 ? "text-emerald-400" : "text-red-400"
+              {history.map((record) => {
+                const isExpanded = expandedHistoryId === record.id;
+                const isOpen = record.status === "open";
+                return (
+                  <div key={record.id} className={`border rounded-xl overflow-hidden ${
+                    isOpen ? "bg-amber-500/5 border-amber-500/20" : "bg-white/[0.03] border-white/10"
+                  }`}>
+                    <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer" onClick={() => toggleHistoryExpand(record.id)}>
+                        <div className={`p-2 rounded-lg shrink-0 ${
+                          isOpen ? "bg-amber-500/10" : record.difference >= 0 ? "bg-emerald-500/10" : "bg-red-500/10"
                         }`}>
-                          {record.difference > 0 ? "+" : ""}{formatCurrency(record.difference)}
-                        </p>
-                        {record.notes && (
-                          <p className="text-xs text-muted-foreground mt-0.5 max-w-xs truncate">{record.notes}</p>
+                          {isOpen ? (
+                            <DoorOpen className="size-4 text-amber-400" />
+                          ) : record.difference >= 0 ? (
+                            <CheckCircle2 className="size-4 text-emerald-400" />
+                          ) : (
+                            <AlertTriangle className="size-4 text-red-400" />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-medium text-white">
+                              {formatDate(record.opened_at)} → {record.closed_at ? formatDate(record.closed_at) : "—"}
+                            </p>
+                            {isOpen && (
+                              <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                                Reaberto
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Abertura: {formatCurrency(record.opening_balance)} • Entradas: {formatCurrency(record.deposits)} • Saídas: {formatCurrency(record.withdrawals)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 shrink-0">
+                        <div className="text-right">
+                          <p className={`text-sm font-bold ${
+                            record.difference >= 0 ? "text-emerald-400" : "text-red-400"
+                          }`}>
+                            {record.difference > 0 ? "+" : ""}{formatCurrency(record.difference)}
+                          </p>
+                          {record.notes && (
+                            <p className="text-xs text-muted-foreground mt-0.5 max-w-xs truncate">{record.notes}</p>
+                          )}
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1.5 text-xs border-white/10 hover:bg-white/5"
+                          onClick={() => toggleHistoryExpand(record.id)}
+                        >
+                          {isExpanded ? <ChevronUp className="size-3" /> : <Eye className="size-3" />}
+                          {isExpanded ? "Fechar" : "Detalhes"}
+                        </Button>
+                        {!isOpen && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1.5 text-xs border-white/10 hover:bg-white/5"
+                            disabled={reopening}
+                            onClick={() => handleReopen(record)}
+                          >
+                            {reopening ? <Loader2 className="size-3 animate-spin" /> : <RotateCcw className="size-3" />}
+                            Reabrir
+                          </Button>
+                        )}
+                        {isOpen && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1.5 text-xs border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
+                            disabled={saving}
+                            onClick={() => handleCloseHistoryRecord(record)}
+                          >
+                            {saving ? <Loader2 className="size-3 animate-spin" /> : <DoorClosed className="size-3" />}
+                            Fechar
+                          </Button>
                         )}
                       </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="gap-1.5 text-xs border-white/10 hover:bg-white/5"
-                        disabled={reopening}
-                        onClick={() => handleReopen(record)}
-                      >
-                        {reopening ? <Loader2 className="size-3 animate-spin" /> : <RotateCcw className="size-3" />}
-                        Reabrir
-                      </Button>
                     </div>
+
+                    {/* Expanded detail */}
+                    {isExpanded && (
+                      <div className="border-t border-white/10 p-4 space-y-4">
+                        {/* Add retroactive movement */}
+                        <div className="bg-white/[0.03] border border-white/10 rounded-lg p-4 space-y-3">
+                          <h4 className="text-xs font-bold text-white flex items-center gap-2">
+                            <PenLine className="size-3" />
+                            Lançamento Retroativo
+                          </h4>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant={histRetroType === "entry" ? "default" : "outline"}
+                              onClick={() => setHistRetroType("entry")}
+                              className={`gap-1 text-xs ${histRetroType === "entry" ? "bg-emerald-600 hover:bg-emerald-700" : "border-white/10 hover:bg-white/5"}`}
+                            >
+                              <Plus className="size-3" /> Entrada
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant={histRetroType === "exit" ? "default" : "outline"}
+                              onClick={() => setHistRetroType("exit")}
+                              className={`gap-1 text-xs ${histRetroType === "exit" ? "bg-red-600 hover:bg-red-700" : "border-white/10 hover:bg-white/5"}`}
+                            >
+                              <Minus className="size-3" /> Saída
+                            </Button>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr_auto] gap-2 items-end">
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">Valor (R$)</Label>
+                              <Input type="text" inputMode="decimal" value={histRetroAmount}
+                                onChange={(e) => setHistRetroAmount(e.target.value)} placeholder="Ex: 150,00" />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs text-muted-foreground">Descrição</Label>
+                              <Input type="text" value={histRetroDesc}
+                                onChange={(e) => setHistRetroDesc(e.target.value)} placeholder="Ex: Ajuste de valor..." />
+                            </div>
+                            <Button onClick={handleAddHistRetro}
+                              disabled={addingHistRetro || !histRetroAmount || !histRetroDesc.trim()}
+                              className={`gap-1 ${histRetroType === "entry" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-red-600 hover:bg-red-700"}`}
+                            >
+                              {addingHistRetro ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
+                              Registrar
+                            </Button>
+                          </div>
+                        </div>
+
+                        {/* Movements list */}
+                        <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+                          {historyMovements.length === 0 ? (
+                            <p className="text-sm text-muted-foreground text-center py-4">
+                              Nenhuma movimentação registrada
+                            </p>
+                          ) : (
+                            historyMovements.map((mov) => (
+                              <div
+                                key={mov.id}
+                                className={`flex items-center gap-3 p-3 rounded-lg border ${
+                                  mov.type === "entry"
+                                    ? "bg-emerald-500/5 border-emerald-500/15"
+                                    : "bg-red-500/5 border-red-500/15"
+                                }`}
+                              >
+                                <div className={`p-1.5 rounded-md ${mov.type === "entry" ? "bg-emerald-500/10" : "bg-red-500/10"}`}>
+                                  {mov.type === "entry" ? (
+                                    <ArrowUpCircle className="size-4 text-emerald-400" />
+                                  ) : (
+                                    <ArrowDownCircle className="size-4 text-red-400" />
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm text-white truncate">{mov.description || "—"}</p>
+                                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                                    <span>{formatTime(mov.created_at)}</span>
+                                    {mov.source === "automatic" && (
+                                      <span className="flex items-center gap-0.5 text-blue-400">
+                                        <Zap className="size-3" /> Auto
+                                      </span>
+                                    )}
+                                    {mov.source === "manual" && (
+                                      <span className="flex items-center gap-0.5 text-amber-400">
+                                        <PenLine className="size-3" /> Manual
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <p className={`text-sm font-bold whitespace-nowrap ${
+                                  mov.type === "entry" ? "text-emerald-400" : "text-red-400"
+                                }`}>
+                                  {mov.type === "entry" ? "+" : "-"}{formatCurrency(mov.amount)}
+                                </p>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
