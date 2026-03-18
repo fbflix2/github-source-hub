@@ -89,6 +89,7 @@ import AdminFerramentas2FA from "./pages/admin/AdminFerramentas2FA";
 import AdminImageViewer from "./pages/admin/AdminImageViewer";
 import AdminProxyBR from "./pages/admin/AdminProxyBR";
 import AdminCaixa from "./pages/admin/AdminCaixa";
+import AdminSafeBM from "./pages/admin/AdminSafeBM";
 import { AdminLayout } from "./components/admin/AdminLayout";
 
 // Layout
