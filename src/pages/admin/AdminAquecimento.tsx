@@ -465,13 +465,14 @@ function MIcon({ name, className = "" }: { name: string; className?: string }) {
   const selectedTrackDef = selectedProfile ? TRACKS[selectedProfile.track_type] : null;
   const selectedProgress = selectedProfile ? getProgress(selectedProfile) : 0;
 
-  const tabs = [
-    { key: "dashboard", label: "Painel", icon: "dashboard" },
-    { key: "esteiras", label: "Esteiras", icon: "layers" },
-    { key: "gestao", label: "Gestão", icon: "supervisor_account" },
-    { key: "relatorios", label: "Relatórios", icon: "analytics" },
-    { key: "configuracoes", label: "Configurações", icon: "settings" },
+  const allTabs = [
+    { key: "dashboard", label: "Painel", icon: "dashboard", adminOnly: false },
+    { key: "esteiras", label: "Esteiras", icon: "layers", adminOnly: false },
+    { key: "gestao", label: "Gestão", icon: "supervisor_account", adminOnly: true },
+    { key: "relatorios", label: "Relatórios", icon: "analytics", adminOnly: true },
+    { key: "configuracoes", label: "Configurações", icon: "settings", adminOnly: true },
   ] as const;
+  const tabs = allTabs.filter(t => !t.adminOnly || isAdmin);
 
   // Dashboard stats from DB
   const totalProfiles = profiles.length;
