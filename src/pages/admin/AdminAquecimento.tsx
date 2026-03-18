@@ -352,12 +352,14 @@ export default function AdminAquecimento() {
     if (error || !profile) { toast.error("Erro ao criar perfil"); setCreating(false); return; }
     const taskRows = tasksToUse.map((t, i) => ({ profile_id: profile.id, day_number: i + 1, title: t.title, description: t.description }));
     await supabase.from("warming_tasks").insert(taskRows);
-    toast.success(`Perfil ${profileCode} atribuído à esteira ${track.label}`);
+    toast.success(`Perfil ${profileCode} criado e selecionado automaticamente`);
     setProfileCode("");
     setSelectedProfileId(profile.id);
-    fetchProfiles();
-    fetchTasks(profile.id);
+    await fetchProfiles();
+    await fetchTasks(profile.id);
     setCreating(false);
+    // Auto-start timer for the first task of the new profile
+    setTimeout(() => setStartSignal(s => s + 1), 400);
   };
 
   const toggleTask = async (task: WarmingTask) => {
