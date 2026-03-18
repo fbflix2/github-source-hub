@@ -144,6 +144,7 @@ export default function AdminAquecimento() {
   const [activeTaskTitle, setActiveTaskTitle] = useState<string | null>(null);
   const [currentElapsed, setCurrentElapsed] = useState(0);
   const [finishSignal, setFinishSignal] = useState(0);
+  const [startSignal, setStartSignal] = useState(0);
   const [activeTab, setActiveTab] = useState<"dashboard" | "esteiras" | "gestao" | "relatorios" | "configuracoes">("dashboard");
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [resetPassword, setResetPassword] = useState("");
@@ -800,6 +801,14 @@ export default function AdminAquecimento() {
                     <MIcon name="check_circle" className="text-lg" />
                     Finalizar Tarefa
                   </button>
+                ) : selectedProfileId && selectedTasks.some(t => !t.completed) ? (
+                  <button
+                    onClick={() => setStartSignal(prev => prev + 1)}
+                    className="w-full bg-[#1876f2] hover:bg-[#1565c0] text-white font-bold py-3 rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 text-sm"
+                  >
+                    <MIcon name="play_arrow" className="text-lg" />
+                    Iniciar Tarefa
+                  </button>
                 ) : (
                   <button
                     onClick={handleCreate}
@@ -875,12 +884,29 @@ export default function AdminAquecimento() {
                 tasks={selectedTasks}
                 trackLabel={selectedTrackDef?.label || selectedProfile.track_type}
                 finishSignal={finishSignal}
+                startSignal={startSignal}
                 onTimerStateChange={(isRunning, taskTitle, elapsedVal) => {
                   setIsTimerActive(isRunning);
                   setActiveTaskTitle(taskTitle);
                   setCurrentElapsed(elapsedVal);
                 }}
-                onTaskCompleted={() => { fetchTasks(selectedProfile.id); fetchProfiles(); }}
+                onTaskCompleted={async () => {
+                  fetchTasks(selectedProfile.id);
+                  // Fetch fresh profiles to find next active one
+                  const { data: freshProfiles } = await supabase
+                    .from("warming_profiles")
+                    .select("*")
+                    .eq("status", "active")
+                    .order("created_at", { ascending: false });
+                  fetchProfiles();
+                  if (freshProfiles && freshProfiles.length > 0) {
+                    const otherActive = freshProfiles.filter(p => p.id !== selectedProfile.id);
+                    if (otherActive.length > 0) {
+                      setSelectedProfileId(otherActive[0].id);
+                      if (!tasks[otherActive[0].id]) fetchTasks(otherActive[0].id);
+                    }
+                  }
+                }}
                 onTrackCompleted={async (prof) => {
                   const NEXT_TRACK: Record<string, string> = { "7_days": "15_days", "15_days": "30_days" };
                   const nextTrackKey = NEXT_TRACK[prof.track_type];
