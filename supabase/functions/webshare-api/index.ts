@@ -930,14 +930,13 @@ Deno.serve(async (req) => {
 
         if (stockItem) {
           const itemData = (stockItem.data || {}) as Record<string, any>;
-          // Mark stock item as consumed
           await supabaseAdmin
             .from("stock_items")
             .update({ status: "vendido", updated_at: new Date().toISOString() })
             .eq("id", stockItem.id);
 
           newProxyData = {
-            webshare_proxy_id: raw.webshare_proxy_id, // keep same webshare ID
+            webshare_proxy_id: raw.webshare_proxy_id,
             proxy_address: itemData.proxy_address || itemData.ip || raw.proxy_address,
             port: itemData.port || raw.port,
             username: itemData.username || raw.username,
@@ -948,6 +947,62 @@ Deno.serve(async (req) => {
           };
           method = "stock";
           console.log(`[webshare-exchange] Stock fallback succeeded: item ${stockItem.id}`);
+        }
+      }
+
+      // Try 3: Pool fallback - find an unassigned proxy directly from the Webshare pool
+      if (!newProxyData) {
+        console.log(`[webshare-exchange] Trying pool fallback - scanning Webshare proxy list`);
+        try {
+          const allCurrentProxies: any[] = [];
+          let page = 1;
+          while (true) {
+            const listResp = await webFetch(`/proxy/list/?mode=direct&page=${page}&page_size=250`, WEBSHARE_API_KEY);
+            const listData = await listResp.json().catch(() => ({}));
+            if (!listResp.ok) break;
+            if (listData.results?.length) allCurrentProxies.push(...listData.results);
+            if (!listData.next) break;
+            page++;
+          }
+
+          // Get all assigned proxy IDs from active subscriptions
+          const { data: allActiveSubs } = await supabaseAdmin
+            .from("subscriptions")
+            .select("raw_data")
+            .eq("type", "webshare")
+            .in("status", ["active", "expiring"])
+            .neq("id", subscription_id);
+
+          const assignedIds = new Set<string>();
+          for (const s of (allActiveSubs || [])) {
+            const r = (s.raw_data || {}) as Record<string, any>;
+            if (r.webshare_proxy_id) assignedIds.add(r.webshare_proxy_id);
+          }
+
+          // Find an unassigned proxy matching the country
+          const poolCandidates = allCurrentProxies.filter(
+            (p: any) => p.valid && !assignedIds.has(p.id) && p.id !== currentProxyId
+              && (!targetCountry || String(p.country_code).toUpperCase() === targetCountry),
+          );
+
+          if (poolCandidates.length > 0) {
+            const np = poolCandidates[0];
+            newProxyData = {
+              webshare_proxy_id: np.id,
+              proxy_address: np.proxy_address,
+              port: np.port,
+              username: np.username,
+              password: np.password,
+              country_code: np.country_code,
+              city_name: np.city_name,
+            };
+            method = "pool";
+            console.log(`[webshare-exchange] Pool fallback succeeded: ${np.proxy_address}:${np.port} (${np.id})`);
+          } else {
+            console.warn(`[webshare-exchange] Pool fallback: no unassigned ${targetCountry || 'ANY'} proxies found`);
+          }
+        } catch (e: any) {
+          console.warn(`[webshare-exchange] Pool fallback error: ${e.message}`);
         }
       }
 
