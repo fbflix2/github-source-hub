@@ -198,18 +198,6 @@ export default function SubscriptionCard({
         </div>
       </div>
 
-      {/* Renewal price for expired/cancelled */}
-      {(status === "expired" || status === "cancelled") && sub.customer_price && (
-        <div className="flex items-center justify-between p-3 rounded-lg bg-primary/5 border border-primary/10">
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-primary text-sm">payments</span>
-            <span className="text-xs text-text-secondary">Valor da renovação</span>
-          </div>
-          <span className="text-sm font-bold text-foreground">
-            R$ {Number(sub.customer_price).toFixed(2).replace('.', ',')}
-          </span>
-        </div>
-      )}
 
       {/* Actions */}
       <div className="flex gap-2 mt-auto">
