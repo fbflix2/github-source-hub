@@ -801,6 +801,14 @@ export default function AdminAquecimento() {
                     <MIcon name="check_circle" className="text-lg" />
                     Finalizar Tarefa
                   </button>
+                ) : selectedProfileId && selectedTasks.some(t => !t.completed) ? (
+                  <button
+                    onClick={() => setStartSignal(prev => prev + 1)}
+                    className="w-full bg-[#1876f2] hover:bg-[#1565c0] text-white font-bold py-3 rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 text-sm"
+                  >
+                    <MIcon name="play_arrow" className="text-lg" />
+                    Iniciar Tarefa
+                  </button>
                 ) : (
                   <button
                     onClick={handleCreate}
