@@ -269,9 +269,11 @@ export default function AdminSafeBM() {
               <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
                 <Activity className="size-5 text-emerald-500" />
               </div>
-              <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-[10px]">
-                +12% vs. ant.
-              </Badge>
+              {activationGrowth !== null && (
+                <Badge className={`text-[10px] ${Number(activationGrowth) >= 0 ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30'}`}>
+                  {Number(activationGrowth) >= 0 ? '+' : ''}{activationGrowth}% vs. ant.
+                </Badge>
+              )}
             </div>
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-1">
               Novas Ativações (7D)
