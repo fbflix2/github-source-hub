@@ -870,7 +870,16 @@ export default function AdminAquecimento() {
                   </div>
                   <p className="text-[10px] text-slate-400 mt-1">Após concluir 7 dias, avança automaticamente para 15 e depois 30 dias.</p>
                 </div>
-                {profileCode.trim() ? (
+                {operationMode === "register" ? (
+                  <button
+                    onClick={handleCreate}
+                    disabled={creating || !profileCode.trim()}
+                    className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50"
+                  >
+                    <MIcon name="person_add" className="text-lg" />
+                    {creating ? "Cadastrando..." : "Cadastrar Perfil"}
+                  </button>
+                ) : profileCode.trim() ? (
                   <button
                     onClick={handleCreate}
                     disabled={creating}
@@ -906,7 +915,9 @@ export default function AdminAquecimento() {
                   </button>
                 )}
                 <p className="text-[11px] text-slate-400 text-center leading-tight">
-                  Certifique-se de que o perfil está logado no navegador multilogin antes de iniciar.
+                  {operationMode === "register"
+                    ? "Modo cadastro: os perfis serão apenas registrados na esteira, sem iniciar tarefas."
+                    : "Certifique-se de que o perfil está logado no navegador multilogin antes de iniciar."}
                 </p>
               </div>
             </div>
