@@ -814,16 +814,26 @@ export default function AdminAquecimento() {
                       </div>
                       <p className="text-[10px] text-slate-400 mt-1">Após concluir 7 dias, avança automaticamente para 15 e depois 30 dias.</p>
                     </div>
-                    <button
-                      onClick={handleCreate}
-                      disabled={creating || !profileCode.trim()}
-                      className="w-full bg-[#1876f2] hover:bg-[#1565c0] text-white font-bold py-3 rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50"
-                    >
-                      <MIcon name="play_arrow" className="text-lg" />
-                      {creating ? "Cadastrando..." : "Iniciar Tarefas"}
-                    </button>
+                    {isTimerActive && selectedProfileId ? (
+                      <button
+                        onClick={() => setFinishSignal(prev => prev + 1)}
+                        className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 text-sm"
+                      >
+                        <MIcon name="check_circle" className="text-lg" />
+                        Finalizar Tarefa
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handleCreate}
+                        disabled={creating || !profileCode.trim()}
+                        className="w-full bg-[#1876f2] hover:bg-[#1565c0] text-white font-bold py-3 rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50"
+                      >
+                        <MIcon name="play_arrow" className="text-lg" />
+                        {creating ? "Cadastrando..." : "Iniciar Tarefas"}
+                      </button>
+                    )}
                     <p className="text-[11px] text-slate-400 text-center leading-tight">
-                      Novo perfil: o cadastro é automático ao iniciar as tarefas.
+                      {isTimerActive ? "Clique para concluir a tarefa atual." : "Novo perfil: o cadastro é automático ao iniciar as tarefas."}
                     </p>
                   </>
                 )}
