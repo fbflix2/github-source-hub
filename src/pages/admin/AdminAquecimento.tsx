@@ -835,7 +835,7 @@ export default function AdminAquecimento() {
                     }`}
                   >
                     <MIcon name="person_add" className="text-sm" />
-                    Cadastrar Perfis
+                    Novo Perfil
                   </button>
                   <button
                     onClick={() => setOperationMode("execute")}
@@ -874,10 +874,10 @@ export default function AdminAquecimento() {
                   <button
                     onClick={handleCreate}
                     disabled={creating || !profileCode.trim()}
-                    className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50"
+                    className="w-full bg-[#1876f2] hover:bg-[#1565c0] text-white font-bold py-3 rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50"
                   >
-                    <MIcon name="person_add" className="text-lg" />
-                    {creating ? "Cadastrando..." : "Cadastrar Perfil"}
+                    <MIcon name="play_arrow" className="text-lg" />
+                    {creating ? "Cadastrando..." : "Iniciar Tarefas"}
                   </button>
                 ) : profileCode.trim() ? (
                   <button
@@ -916,7 +916,7 @@ export default function AdminAquecimento() {
                 )}
                 <p className="text-[11px] text-slate-400 text-center leading-tight">
                   {operationMode === "register"
-                    ? "Modo cadastro: os perfis serão apenas registrados na esteira, sem iniciar tarefas."
+                    ? "Novo perfil: o cadastro é automático ao iniciar as tarefas."
                     : "Certifique-se de que o perfil está logado no navegador multilogin antes de iniciar."}
                 </p>
               </div>
