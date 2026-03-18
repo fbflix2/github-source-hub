@@ -268,7 +268,7 @@ export default function AdminCaixa() {
     const syncAutoMovements = async () => {
       const { data: completedOrders } = await supabase
         .from("orders")
-        .select("code, total")
+        .select("code, total, payment_method")
         .in("status", ["completed", "delivered"])
         .gte("created_at", openCash.opened_at);
 
