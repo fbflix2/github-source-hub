@@ -759,7 +759,7 @@ export default function AdminNovaVenda() {
                     className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-primary text-white text-sm font-bold shadow-lg shadow-primary/20 hover:bg-primary/90 disabled:opacity-50 transition-all"
                   >
                     <Save className="size-4" />
-                    {submitting ? "Salvando..." : "Registrar Venda"}
+                    {submitting ? "Salvando..." : paymentMethod === "cortesia" ? "🎁 Registrar Cortesia" : "Registrar Venda"}
                   </button>
                 )}
               </div>
