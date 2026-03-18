@@ -127,6 +127,7 @@ function MIcon({ name, className = "" }: { name: string; className?: string }) {
   return <span className={`material-symbols-outlined ${className}`}>{name}</span>;
 }
 
+export default function AdminAquecimento() {
   const { role } = useAdminAuth();
   const isAdmin = role === "admin";
   const [profiles, setProfiles] = useState<WarmingProfile[]>([]);
