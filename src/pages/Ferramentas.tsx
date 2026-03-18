@@ -260,6 +260,7 @@ function GlassCard({
 
 // ============= MAIN PAGE =============
 export default function Ferramentas() {
+  const navigate = useNavigate();
   const [activeTool, setActiveTool] = useState<ToolId | null>(null);
 
   if (activeTool === "2fa") return <TwoFATool onBack={() => setActiveTool(null)} />;
