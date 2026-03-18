@@ -309,6 +309,10 @@ export default function AdminAquecimento() {
 
   const handleCreate = async () => {
     if (!profileCode.trim()) { toast.error("Digite o código do perfil"); return; }
+    // Reset timer state so the right panel switches cleanly
+    setIsTimerActive(false);
+    setActiveTaskTitle(null);
+    setCurrentElapsed(0);
     // Check for duplicate profile code
     const { data: existing } = await supabase
       .from("warming_profiles")
@@ -824,7 +828,16 @@ export default function AdminAquecimento() {
                   </div>
                   <p className="text-[10px] text-slate-400 mt-1">Após concluir 7 dias, avança automaticamente para 15 e depois 30 dias.</p>
                 </div>
-                {isTimerActive && selectedProfileId ? (
+                {profileCode.trim() ? (
+                  <button
+                    onClick={handleCreate}
+                    disabled={creating}
+                    className="w-full bg-[#1876f2] hover:bg-[#1565c0] text-white font-bold py-3 rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50"
+                  >
+                    <MIcon name="play_arrow" className="text-lg" />
+                    {creating ? "Atribuindo..." : "Iniciar Tarefa"}
+                  </button>
+                ) : isTimerActive && selectedProfileId ? (
                   <button
                     onClick={() => setFinishSignal(prev => prev + 1)}
                     className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 text-sm"
@@ -843,7 +856,7 @@ export default function AdminAquecimento() {
                 ) : (
                   <button
                     onClick={handleCreate}
-                    disabled={creating}
+                    disabled={creating || !profileCode.trim()}
                     className="w-full bg-[#1876f2] hover:bg-[#1565c0] text-white font-bold py-3 rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50"
                   >
                     <MIcon name="assignment_ind" className="text-lg" />
