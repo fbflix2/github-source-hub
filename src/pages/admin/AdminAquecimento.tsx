@@ -824,7 +824,31 @@ export default function AdminAquecimento() {
                 <h2 className="text-base font-bold text-slate-900">Iniciar Novo Aquecimento</h2>
               </div>
               <div className="p-5 space-y-4">
-                <div>
+                {/* Mode toggle */}
+                <div className="flex items-center bg-slate-100 rounded-lg p-1 gap-1">
+                  <button
+                    onClick={() => setOperationMode("register")}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-bold transition-all ${
+                      operationMode === "register"
+                        ? "bg-white text-slate-900 shadow-sm"
+                        : "text-slate-500 hover:text-slate-700"
+                    }`}
+                  >
+                    <MIcon name="person_add" className="text-sm" />
+                    Cadastrar Perfis
+                  </button>
+                  <button
+                    onClick={() => setOperationMode("execute")}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-bold transition-all ${
+                      operationMode === "execute"
+                        ? "bg-white text-slate-900 shadow-sm"
+                        : "text-slate-500 hover:text-slate-700"
+                    }`}
+                  >
+                    <MIcon name="play_circle" className="text-sm" />
+                    Executar Tarefas
+                  </button>
+                </div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1.5">Código do Perfil</label>
                   <div className="relative">
                     <MIcon name="fingerprint" className="absolute left-3 top-2.5 text-slate-400 text-lg" />
