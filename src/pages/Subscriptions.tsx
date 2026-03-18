@@ -8,7 +8,7 @@ import { ptBR } from "date-fns/locale";
 import SubscriptionCard from "@/components/subscriptions/SubscriptionCard";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
-import { Shield, ShieldCheck, ShieldOff } from "lucide-react";
+import { Shield } from "lucide-react";
 
 export type SubscriptionStatus = "active" | "expiring" | "cancelled" | "expired";
 
