@@ -37,6 +37,7 @@ import ProductPage from "./pages/ProductPage";
 import SaibaMaisFBX from "./pages/SaibaMaisFBX";
 import MigrationLogin from "./pages/MigrationLogin";
 import Ferramentas from "./pages/Ferramentas";
+import SafeBMClient from "./pages/SafeBMClient";
 
 // Admin Pages
 import AdminLogin from "./pages/admin/AdminLogin";
