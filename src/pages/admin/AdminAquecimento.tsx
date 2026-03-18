@@ -900,21 +900,12 @@ export default function AdminAquecimento() {
                   setCurrentElapsed(elapsedVal);
                 }}
                 onTaskCompleted={async () => {
-                  fetchTasks(selectedProfile.id);
-                  // Fetch fresh profiles to find next active one
-                  const { data: freshProfiles } = await supabase
-                    .from("warming_profiles")
-                    .select("*")
-                    .eq("status", "active")
-                    .order("created_at", { ascending: false });
                   fetchProfiles();
-                  if (freshProfiles && freshProfiles.length > 0) {
-                    const otherActive = freshProfiles.filter(p => p.id !== selectedProfile.id);
-                    if (otherActive.length > 0) {
-                      setSelectedProfileId(otherActive[0].id);
-                      if (!tasks[otherActive[0].id]) fetchTasks(otherActive[0].id);
-                    }
-                  }
+                  // After finishing a task, clear selection so operator enters next profile code
+                  toast.success("✅ Tarefa concluída! Informe o próximo código de perfil.");
+                  setSelectedProfileId(null);
+                  setProfileCode("");
+                  setIsTimerActive(false);
                 }}
                 onTrackCompleted={async (prof) => {
                   const NEXT_TRACK: Record<string, string> = { "7_days": "15_days", "15_days": "30_days" };
