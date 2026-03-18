@@ -435,20 +435,27 @@ export default function AdminAquecimento() {
     { key: "esteiras" as const, label: "Esteiras", icon: "layers" },
   ];
 
-  // Dashboard stats from DB
-  const totalProfiles = profiles.length;
-  const activeProfiles = profiles.filter(p => p.status === "active").length;
-  const completedProfiles = profiles.filter(p => p.status === "completed").length;
-  const restrictedProfiles = profiles.filter(p => p.status === "restricted").length;
+  // Filter profiles: non-admins only see their own profiles
+  const visibleProfiles = useMemo(() => {
+    if (isUserAdmin) return profiles;
+    if (!currentUserId) return [];
+    return profiles.filter(p => p.created_by === currentUserId);
+  }, [profiles, isUserAdmin, currentUserId]);
+
+  // Dashboard stats from visible profiles
+  const totalProfiles = visibleProfiles.length;
+  const activeProfiles = visibleProfiles.filter(p => p.status === "active").length;
+  const completedProfiles = visibleProfiles.filter(p => p.status === "completed").length;
+  const restrictedProfiles = visibleProfiles.filter(p => p.status === "restricted").length;
   const totalPct = totalProfiles > 0 ? Math.round((activeProfiles / totalProfiles) * 100) : 0;
 
-  const newProfiles = profiles.filter(p => p.current_day <= 7).length;
-  const midProfiles = profiles.filter(p => p.current_day > 7 && p.current_day <= 15).length;
-  const matureProfiles = profiles.filter(p => p.current_day > 15).length;
+  const newProfiles = visibleProfiles.filter(p => p.current_day <= 7).length;
+  const midProfiles = visibleProfiles.filter(p => p.current_day > 7 && p.current_day <= 15).length;
+  const matureProfiles = visibleProfiles.filter(p => p.current_day > 15).length;
 
-  const t3 = profiles.filter(p => p.trust_tier?.includes("3")).length;
-  const t2 = profiles.filter(p => p.trust_tier?.includes("2")).length;
-  const t1 = profiles.filter(p => p.trust_tier && !p.trust_tier.includes("2") && !p.trust_tier.includes("3")).length;
+  const t3 = visibleProfiles.filter(p => p.trust_tier?.includes("3")).length;
+  const t2 = visibleProfiles.filter(p => p.trust_tier?.includes("2")).length;
+  const t1 = visibleProfiles.filter(p => p.trust_tier && !p.trust_tier.includes("2") && !p.trust_tier.includes("3")).length;
   const tierTotal = t3 + t2 + t1 || 1;
   const t3Pct = Math.round((t3 / tierTotal) * 100);
   const t2Pct = Math.round((t2 / tierTotal) * 100);
