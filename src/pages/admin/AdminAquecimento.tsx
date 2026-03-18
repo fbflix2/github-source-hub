@@ -890,22 +890,22 @@ export default function AdminAquecimento() {
                   setActiveTaskTitle(taskTitle);
                   setCurrentElapsed(elapsedVal);
                 }}
-                onTaskCompleted={() => {
+                onTaskCompleted={async () => {
                   fetchTasks(selectedProfile.id);
-                  fetchProfiles().then(() => {
-                    // Auto-advance to next active profile
-                    const currentIdx = profiles.findIndex(p => p.id === selectedProfile.id);
-                    const activeProfs = profiles.filter(p => p.status === "active" && p.id !== selectedProfile.id);
-                    if (activeProfs.length > 0) {
-                      // Pick next profile in list order
-                      const nextProf = activeProfs.find((_, i) => {
-                        const origIdx = profiles.indexOf(activeProfs[i]);
-                        return origIdx > currentIdx;
-                      }) || activeProfs[0];
-                      setSelectedProfileId(nextProf.id);
-                      if (!tasks[nextProf.id]) fetchTasks(nextProf.id);
+                  // Fetch fresh profiles to find next active one
+                  const { data: freshProfiles } = await supabase
+                    .from("warming_profiles")
+                    .select("*")
+                    .eq("status", "active")
+                    .order("created_at", { ascending: false });
+                  fetchProfiles();
+                  if (freshProfiles && freshProfiles.length > 0) {
+                    const otherActive = freshProfiles.filter(p => p.id !== selectedProfile.id);
+                    if (otherActive.length > 0) {
+                      setSelectedProfileId(otherActive[0].id);
+                      if (!tasks[otherActive[0].id]) fetchTasks(otherActive[0].id);
                     }
-                  });
+                  }
                 }}
                 onTrackCompleted={async (prof) => {
                   const NEXT_TRACK: Record<string, string> = { "7_days": "15_days", "15_days": "30_days" };
