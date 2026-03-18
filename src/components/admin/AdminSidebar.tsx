@@ -83,6 +83,7 @@ const allMenuItems: MenuItem[] = [
   { title: "Ferramentas", icon: KeyRound, path: "/admin/ferramentas-2fa", subItems: [
     { title: "Ferramentas", icon: KeyRound, path: "/admin/ferramentas-2fa" },
     { title: "Aquecimento", icon: Flame, path: "/admin/aquecimento" },
+    { title: "Esteira Admin", icon: Settings, path: "/admin/esteira-admin" },
     { title: "Imagens", icon: ImageIcon, path: "/admin/imagens" },
   ]},
   { title: "Clientes", icon: Users, path: "/admin/clientes" },

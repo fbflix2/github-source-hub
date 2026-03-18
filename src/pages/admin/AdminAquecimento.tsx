@@ -466,14 +466,10 @@ export default function AdminAquecimento() {
   const selectedTrackDef = selectedProfile ? TRACKS[selectedProfile.track_type] : null;
   const selectedProgress = selectedProfile ? getProgress(selectedProfile) : 0;
 
-  const allTabs = [
-    { key: "dashboard", label: "Painel", icon: "dashboard", adminOnly: false },
-    { key: "esteiras", label: "Esteiras", icon: "layers", adminOnly: false },
-    { key: "gestao", label: "Gestão", icon: "supervisor_account", adminOnly: true },
-    { key: "relatorios", label: "Relatórios", icon: "analytics", adminOnly: true },
-    { key: "configuracoes", label: "Configurações", icon: "settings", adminOnly: true },
-  ] as const;
-  const tabs = allTabs.filter(t => !t.adminOnly || isAdmin);
+  const tabs = [
+    { key: "dashboard" as const, label: "Painel", icon: "dashboard" },
+    { key: "esteiras" as const, label: "Esteiras", icon: "layers" },
+  ];
 
   // Dashboard stats from DB
   const totalProfiles = profiles.length;

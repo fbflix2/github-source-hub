@@ -333,6 +333,7 @@ const App = () => {
                   <Route path="chat" element={<AdminTeamChat />} />
                   <Route path="fbx" element={<AdminFBX />} />
                   <Route path="aquecimento" element={<AdminAquecimento />} />
+                  <Route path="esteira-admin" element={<AdminEsteiraAdmin />} />
                   <Route path="fornecedor" element={<AdminShopClone />} />
                   <Route path="ferramentas-2fa" element={<AdminFerramentas2FA />} />
                   <Route path="imagens" element={<AdminImageViewer />} />
