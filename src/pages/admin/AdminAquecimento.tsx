@@ -361,6 +361,7 @@ export default function AdminAquecimento() {
     // Both modes: register + auto-start (new profile has priority)
     toast.success(`✅ Perfil "${profileCode.trim()}" cadastrado e iniciando tarefas!`);
     setProfileCode("");
+    setOperationMode("execute"); // Switch to execute mode so right panel shows tasks
     setSelectedProfileId(profile.id);
     await fetchProfiles();
     await fetchTasks(profile.id);
