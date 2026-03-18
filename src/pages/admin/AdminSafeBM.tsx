@@ -321,9 +321,9 @@ export default function AdminSafeBM() {
               </div>
               <div className="text-right">
                 <p className="text-2xl font-bold text-primary">
-                  R$ {projectedRevenue30d.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  R$ {mrr.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </p>
-                <p className="text-xs text-emerald-400">+5.2% projetado</p>
+                {mrr > 0 && <p className="text-xs text-emerald-400">baseado em {activeCount} assinantes</p>}
               </div>
             </div>
             {/* Simple bar chart visualization */}
