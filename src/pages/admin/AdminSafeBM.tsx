@@ -248,7 +248,9 @@ export default function AdminSafeBM() {
               <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
                 <ShieldCheck className="size-5 text-emerald-500" />
               </div>
-              <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-[10px]">LIVE</Badge>
+              {activeCount > 0 && (
+                <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-[10px]">LIVE</Badge>
+              )}
             </div>
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-1">
               Ativos sob Proteção
