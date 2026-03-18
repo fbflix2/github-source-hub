@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useProxyBRSubscriptions, useRenewSubscription } from "@/hooks/useProxyBR";
-import { useWebshareSubscriptions } from "@/hooks/useWebshare";
+import { useWebshareSubscriptions, useMigrateProxyBRToWebshare } from "@/hooks/useWebshare";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { differenceInDays, parseISO, format } from "date-fns";
