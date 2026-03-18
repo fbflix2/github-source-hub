@@ -278,6 +278,9 @@ export default function Subscriptions() {
         </div>
       )}
 
+      {/* Safe BM Section */}
+      <SafeBmClientSection />
+
       {/* CTA Banner */}
       <div className="w-full mt-8 rounded-2xl glass-card border border-primary/20 p-8 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
@@ -295,6 +298,61 @@ export default function Subscriptions() {
         </a>
       </div>
 
+    </div>
+  );
+}
+
+function SafeBmClientSection() {
+  const [vaults, setVaults] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setLoading(false); return; }
+      const { data } = await supabase
+        .from("safe_bm_vaults" as any)
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+      setVaults((data as any[]) || []);
+      setLoading(false);
+    })();
+  }, []);
+
+  if (loading) return <Skeleton className="h-32 rounded-xl" />;
+  if (vaults.length === 0) return null;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <Shield className="size-5 text-primary" />
+        <h2 className="text-xl font-bold text-foreground">Safe BM — Cofre de Backup</h2>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {vaults.map((v: any) => (
+          <div key={v.id} className="glass-panel rounded-xl p-5 space-y-3 border border-border">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-bold text-foreground truncate">{v.bm_name}</span>
+              <Badge className={v.status === "active"
+                ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                : "bg-red-500/20 text-red-400 border-red-500/30"
+              }>
+                {v.status === "active" ? <><ShieldCheck className="size-3 mr-1" />Protegida</> : <><ShieldOff className="size-3 mr-1" />Inativa</>}
+              </Badge>
+            </div>
+            <div className="text-xs text-muted-foreground space-y-1">
+              {v.perfil_backup && <p>Perfil: <span className="text-foreground">{v.perfil_backup}</span></p>}
+              <p>Proteção desde: <span className="text-foreground">{format(new Date(v.protection_start), "dd/MM/yyyy", { locale: ptBR })}</span></p>
+              <p>Regenerações: <span className="text-foreground">{v.link_regenerations}x</span></p>
+            </div>
+            <div className="pt-2 border-t border-border flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">Mensalidade</span>
+              <span className="text-sm font-bold text-primary">R$ {Number(v.subscription_price).toFixed(2)}</span>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
