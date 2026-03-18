@@ -26,6 +26,7 @@ import {
   ChevronDown,
   ChevronUp,
   Eye,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -778,6 +779,21 @@ export default function AdminCaixa() {
                       }`}>
                         {mov.type === "entry" ? "+" : "-"}{formatCurrency(mov.amount)}
                       </p>
+                      {mov.source === "manual" && (
+                        <button
+                          onClick={async () => {
+                            if (!confirm("Excluir esta movimentação?")) return;
+                            const { error } = await supabase.from("cash_movements").delete().eq("id", mov.id);
+                            if (error) { toast.error("Erro ao excluir"); return; }
+                            toast.success("Movimentação excluída!");
+                            if (openCash) fetchMovements(openCash.id);
+                          }}
+                          className="p-1 hover:text-red-400 text-muted-foreground transition-colors"
+                          title="Excluir movimentação"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
