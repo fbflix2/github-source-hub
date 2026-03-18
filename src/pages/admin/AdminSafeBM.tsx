@@ -102,12 +102,19 @@ export default function AdminSafeBM() {
     ? ((inactiveCount / vaults.length) * 100).toFixed(1)
     : "0.0";
 
-  // Recovery efficiency
+  // Recovery efficiency — real data
   const totalRegenerations = vaults.reduce((s, v) => s + v.link_regenerations, 0);
-  const recoveryRate = totalRegenerations > 0 ? 98.2 : 100;
+  // We don't track failures, so recovery = 100% if any regenerations happened, 0 if none
+  const recoveryRate = totalRegenerations > 0 ? 100 : 0;
 
-  // Revenue projection
-  const projectedRevenue30d = mrr;
+  // Previous 7d activations for comparison
+  const prevActivations7d = vaults.filter(v => {
+    const created = new Date(v.created_at);
+    return isAfter(created, subDays(new Date(), 14)) && !isAfter(created, subDays(new Date(), 7));
+  }).length;
+  const activationGrowth = prevActivations7d > 0
+    ? (((newActivations7d - prevActivations7d) / prevActivations7d) * 100).toFixed(0)
+    : null;
 
   const lookupClient = async () => {
     if (!formClientEmail.trim()) return;
