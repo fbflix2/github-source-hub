@@ -357,12 +357,18 @@ export default function AdminSafeBM() {
                 Taxa de Churn (Mensal)
               </p>
               <p className="text-3xl font-bold text-foreground">{churnRate}%</p>
-              <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-[10px] mt-2">
-                Abaixo da Meta (3.5%)
-              </Badge>
-              <p className="text-xs text-muted-foreground mt-3">
-                Excelente retenção de usuários premium detectada nos últimos 30 dias.
-              </p>
+              {vaults.length > 0 ? (
+                <>
+                  <Badge className={`text-[10px] mt-2 ${Number(churnRate) <= 3.5 ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'}`}>
+                    {Number(churnRate) <= 3.5 ? 'Abaixo da Meta (3.5%)' : 'Acima da Meta (3.5%)'}
+                  </Badge>
+                  <p className="text-xs text-muted-foreground mt-3">
+                    {Number(churnRate) <= 3.5 ? 'Excelente retenção de usuários premium detectada nos últimos 30 dias.' : 'Atenção: taxa de cancelamento acima do ideal.'}
+                  </p>
+                </>
+              ) : (
+                <p className="text-xs text-muted-foreground mt-3">Sem dados suficientes para calcular churn.</p>
+              )}
             </CardContent>
           </Card>
 
