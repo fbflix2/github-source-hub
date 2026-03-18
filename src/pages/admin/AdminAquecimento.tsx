@@ -884,12 +884,29 @@ export default function AdminAquecimento() {
                 tasks={selectedTasks}
                 trackLabel={selectedTrackDef?.label || selectedProfile.track_type}
                 finishSignal={finishSignal}
+                startSignal={startSignal}
                 onTimerStateChange={(isRunning, taskTitle, elapsedVal) => {
                   setIsTimerActive(isRunning);
                   setActiveTaskTitle(taskTitle);
                   setCurrentElapsed(elapsedVal);
                 }}
-                onTaskCompleted={() => { fetchTasks(selectedProfile.id); fetchProfiles(); }}
+                onTaskCompleted={() => {
+                  fetchTasks(selectedProfile.id);
+                  fetchProfiles().then(() => {
+                    // Auto-advance to next active profile
+                    const currentIdx = profiles.findIndex(p => p.id === selectedProfile.id);
+                    const activeProfs = profiles.filter(p => p.status === "active" && p.id !== selectedProfile.id);
+                    if (activeProfs.length > 0) {
+                      // Pick next profile in list order
+                      const nextProf = activeProfs.find((_, i) => {
+                        const origIdx = profiles.indexOf(activeProfs[i]);
+                        return origIdx > currentIdx;
+                      }) || activeProfs[0];
+                      setSelectedProfileId(nextProf.id);
+                      if (!tasks[nextProf.id]) fetchTasks(nextProf.id);
+                    }
+                  });
+                }}
                 onTrackCompleted={async (prof) => {
                   const NEXT_TRACK: Record<string, string> = { "7_days": "15_days", "15_days": "30_days" };
                   const nextTrackKey = NEXT_TRACK[prof.track_type];
