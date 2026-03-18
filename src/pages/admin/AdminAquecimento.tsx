@@ -309,9 +309,26 @@ export default function AdminAquecimento() {
 
   const handleCreate = async () => {
     if (!profileCode.trim()) { toast.error("Digite o código do perfil"); return; }
+    // Check for duplicate profile code
+    const { data: existing } = await supabase
+      .from("warming_profiles")
+      .select("id, status")
+      .eq("profile_code", profileCode.trim())
+      .maybeSingle();
+    if (existing) {
+      // If profile exists and is active, select it instead
+      if (existing.status === "active") {
+        setSelectedProfileId(existing.id);
+        if (!tasks[existing.id]) fetchTasks(existing.id);
+        setProfileCode("");
+        toast.info(`Perfil "${profileCode.trim()}" já existe. Selecionado automaticamente.`);
+        return;
+      }
+      toast.error(`O perfil "${profileCode.trim()}" já está cadastrado.`);
+      return;
+    }
     setCreating(true);
     const track = TRACKS[selectedTrack];
-    // Use tasks from Configurações (configTasks) instead of hardcoded TRACKS
     const customTasks = configTasks[selectedTrack] || [];
     const tasksToUse = customTasks.length > 0 ? customTasks : track.tasks;
     const { data: { user } } = await supabase.auth.getUser();
@@ -891,21 +908,12 @@ export default function AdminAquecimento() {
                   setCurrentElapsed(elapsedVal);
                 }}
                 onTaskCompleted={async () => {
-                  fetchTasks(selectedProfile.id);
-                  // Fetch fresh profiles to find next active one
-                  const { data: freshProfiles } = await supabase
-                    .from("warming_profiles")
-                    .select("*")
-                    .eq("status", "active")
-                    .order("created_at", { ascending: false });
                   fetchProfiles();
-                  if (freshProfiles && freshProfiles.length > 0) {
-                    const otherActive = freshProfiles.filter(p => p.id !== selectedProfile.id);
-                    if (otherActive.length > 0) {
-                      setSelectedProfileId(otherActive[0].id);
-                      if (!tasks[otherActive[0].id]) fetchTasks(otherActive[0].id);
-                    }
-                  }
+                  // After finishing a task, clear selection so operator enters next profile code
+                  toast.success("✅ Tarefa concluída! Informe o próximo código de perfil.");
+                  setSelectedProfileId(null);
+                  setProfileCode("");
+                  setIsTimerActive(false);
                 }}
                 onTrackCompleted={async (prof) => {
                   const NEXT_TRACK: Record<string, string> = { "7_days": "15_days", "15_days": "30_days" };

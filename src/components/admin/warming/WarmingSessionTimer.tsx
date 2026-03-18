@@ -304,85 +304,77 @@ export default function WarmingSessionTimer({
         </div>
       </div>
 
-      {/* Task list */}
-      <div className="p-4 space-y-2 max-h-[420px] overflow-y-auto">
-        {sortedTasks.map((task) => {
+      {/* Current day task (show only one at a time) */}
+      <div className="p-4 space-y-2">
+        {/* Completed tasks summary */}
+        {sortedTasks.filter(t => t.completed).length > 0 && (
+          <div className="mb-3">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Tarefas concluídas</p>
+            {sortedTasks.filter(t => t.completed).map(task => (
+              <div key={task.id} className="flex items-center gap-2 py-1.5 px-3 rounded-lg bg-slate-50/80 border border-slate-100 mb-1">
+                <div className="w-7 h-7 rounded-full bg-green-100 text-green-600 flex items-center justify-center shrink-0">
+                  <MIcon name="check" className="text-sm" />
+                </div>
+                <p className="text-xs text-slate-400 line-through flex-1 truncate">{task.title}</p>
+                <span className="text-[10px] font-mono font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded flex items-center gap-1">
+                  <MIcon name="timer" className="text-xs" />
+                  {formatDuration(task.duration_seconds)}
+                </span>
+                <button
+                  onClick={() => uncompleteTask(task)}
+                  className="text-slate-300 hover:text-slate-500 transition-colors p-0.5"
+                  title="Desfazer conclusão"
+                >
+                  <MIcon name="undo" className="text-sm" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Current pending task (only one) */}
+        {firstPendingTask && (() => {
+          const task = firstPendingTask;
           const isActive = activeTaskId === task.id;
           const isDelayingTask = isActive && isDelaying;
           const isRunning = isActive && timerStart != null;
-          const isNextPending = !task.completed && firstPendingTask?.id === task.id;
 
           return (
             <div
-              key={task.id}
               className={`rounded-xl border transition-all ${
-                task.completed
-                  ? "bg-slate-50/80 border-slate-100"
-                  : isDelayingTask
+                isDelayingTask
                   ? "bg-amber-50 border-amber-300 ring-2 ring-amber-200/40 shadow-sm"
                   : isRunning
                   ? "bg-blue-50 border-[#1876f2]/40 ring-2 ring-[#1876f2]/20 shadow-sm"
-                  : isNextPending
-                  ? "bg-white border-slate-200 shadow-sm"
-                  : "bg-slate-50/50 border-slate-100 opacity-60"
+                  : "bg-white border-slate-200 shadow-sm"
               }`}
             >
               <div className="flex items-center gap-3 px-4 py-3">
-                {/* Day indicator */}
                 <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-black shrink-0 ${
-                  task.completed ? "bg-green-100 text-green-600" :
                   isDelayingTask ? "bg-amber-400 text-white animate-pulse" :
                   isRunning ? "bg-[#1876f2] text-white animate-pulse" :
-                  isNextPending ? "bg-slate-200 text-slate-700" :
-                  "bg-slate-100 text-slate-400"
+                  "bg-slate-200 text-slate-700"
                 }`}>
-                  {task.completed ? <MIcon name="check" className="text-base" /> :
-                   isDelayingTask ? <MIcon name="hourglass_top" className="text-base animate-spin" /> :
+                  {isDelayingTask ? <MIcon name="hourglass_top" className="text-base animate-spin" /> :
                    `D${task.day_number}`}
                 </div>
-
-                {/* Task info */}
                 <div className="flex-1 min-w-0">
-                  <p className={`text-sm font-bold ${task.completed ? "text-slate-400 line-through" : "text-slate-900"}`}>
-                    {task.title}
-                  </p>
-                  <p className="text-[11px] text-slate-500 truncate">{task.description}</p>
+                  <p className="text-sm font-bold text-slate-900">{task.title}</p>
+                  <p className="text-[11px] text-slate-500">{task.description}</p>
                 </div>
-
-                {/* Status display */}
                 <div className="flex items-center gap-2 shrink-0">
-                  {task.completed ? (
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono font-bold text-green-600 bg-green-50 px-2.5 py-1 rounded-lg flex items-center gap-1">
-                        <MIcon name="timer" className="text-sm" />
-                        {formatDuration(task.duration_seconds)}
-                      </span>
-                      <button
-                        onClick={() => uncompleteTask(task)}
-                        className="text-slate-400 hover:text-slate-600 transition-colors p-1"
-                        title="Desfazer conclusão"
-                      >
-                        <MIcon name="undo" className="text-base" />
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      {isDelayingTask && (
-                        <span className="text-xs font-bold text-amber-600 bg-amber-100 px-2.5 py-1 rounded-lg animate-pulse">
-                          Abrindo perfil...
-                        </span>
-                      )}
-                      {isRunning && (
-                        <span className="font-mono text-sm font-bold px-2.5 py-1 rounded-lg bg-[#1876f2] text-white">
-                          {formatTimer(elapsed)}
-                        </span>
-                      )}
-                    </>
+                  {isDelayingTask && (
+                    <span className="text-xs font-bold text-amber-600 bg-amber-100 px-2.5 py-1 rounded-lg animate-pulse">
+                      Abrindo perfil...
+                    </span>
+                  )}
+                  {isRunning && (
+                    <span className="font-mono text-sm font-bold px-2.5 py-1 rounded-lg bg-[#1876f2] text-white">
+                      {formatTimer(elapsed)}
+                    </span>
                   )}
                 </div>
               </div>
-
-              {/* Running indicator */}
               {isRunning && (
                 <div className="px-4 pb-3">
                   <div className="h-1 w-full bg-blue-100 rounded-full overflow-hidden">
@@ -392,7 +384,15 @@ export default function WarmingSessionTimer({
               )}
             </div>
           );
-        })}
+        })()}
+
+        {/* All tasks done for this track */}
+        {!firstPendingTask && sortedTasks.length > 0 && (
+          <div className="text-center py-4">
+            <MIcon name="check_circle" className="text-green-500 text-3xl" />
+            <p className="text-sm font-bold text-green-600 mt-1">Todas as tarefas desta esteira foram concluídas!</p>
+          </div>
+        )}
       </div>
 
       {/* Active timer banner */}
