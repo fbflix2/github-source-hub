@@ -82,13 +82,15 @@ export default function WarmingSessionTimer({
   const sortedTasks = [...tasks].sort((a, b) => a.day_number - b.day_number);
   const firstPendingTask = sortedTasks.find(t => !t.completed);
 
-  // Auto-start first pending task when there's no active task
+  // Handle startSignal from parent (manual start)
+  const prevStartSignal = useRef(startSignal);
   useEffect(() => {
-    if (firstPendingTask && !activeTaskId && !isDelaying && !completingRef.current) {
+    if (startSignal > prevStartSignal.current && firstPendingTask && !activeTaskId && !isDelaying) {
       startTask(firstPendingTask.id);
     }
+    prevStartSignal.current = startSignal;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [firstPendingTask?.id, activeTaskId, isDelaying]);
+  }, [startSignal]);
 
   const startTask = (taskId: string) => {
     if (delayTimerRef.current) clearTimeout(delayTimerRef.current);
