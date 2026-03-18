@@ -97,10 +97,13 @@ const cardBgImageStyle: React.CSSProperties = {
 };
 
 // Background images from the reference
+import safeBmVaultImg from "@/assets/safe-bm-vault.png";
+
 const BG_IMAGES = {
   "2fa": "https://lh3.googleusercontent.com/aida-public/AB6AXuD3zhUhWINVhFwGZm73Govuh_Mi66RHOPwByHTVCEnRiHKlVQtudOW4Co7xQblP0yPqr02nVU8Db-YOKscKekN27WgCOsn0R3dBCrZAQS-1n4qvyfnp1gVBZRbWys11W3e_1KX020BIaigWliTKGNqACWddmpcIElnjOZPFLRrEGP9ELlvn0jDGUBmJO0ne9x117bycNBi-7QYJRwke6fBndvXMmJJB0roM7rzLBdi3ZB1eM-5Fp6VR5I4OlpMXkIvxEb1mgWQItmg",
   emissor: "https://lh3.googleusercontent.com/aida-public/AB6AXuDCWyvZL0dbnMNbC9Lm8fzg5sGni28VSu_I5jjSSdgyY_muGVIigRe4ztfuLVi0hWoLGmeCc8dBvoFR0OfkIWZLPnQL2nJtGaAcUxOHXVITE9qtQa95xyD9P0_TW9sj3TzDBU8AzrD-6Xv27tniLdHsvFDHMspIKN41VZb0biZR6EuGVT5G6IaWbZmCA9KViOqrPV-cc6YyxbMOxPLldGio5aWHEiTHpTVxYt5zAYqV_gMcLzVqo5oekZGPFD33SnTK-OpOca3HvNg",
   verificador: "https://lh3.googleusercontent.com/aida-public/AB6AXuALX2sCdvZRoXjIpVH3eyovVJUXYK-Q2CxW0VNq5Zgbm3GqLRPnT3DVmfTJGKswZbfoJvNsHkx9mRmS-TWMqpi_OVeaWGsSseYC8TnOnnw8ffMOb87pL-2Y5Y7OckO-IVmCrlEO97HkyrkDsV8DCUCSCXnJtxaCdZbSz4pxpO_KQc36d6RoGzSl2oC7Eijk7suxTtCgL1DFrwiBWQnac25DCdEHaI8Q3qx2eUos4Xb4ki65FEIpWl9Fqjy_3K7qSOHFk30P4QR6T4E",
+  safebm: safeBmVaultImg,
 };
 
 // ============= RECENT ACTIVITIES =============
