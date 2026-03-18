@@ -81,8 +81,8 @@ export default function SalesBalanceTab() {
     const since = getSince();
     const until = getUntil();
 
-    let ordersQuery = supabase.from("orders").select("id, total, subtotal, discount, status, created_at")
-      .in("status", ["completed", "delivered"]).gte("created_at", since);
+    let ordersQuery = supabase.from("orders").select("id, total, subtotal, discount, status, payment_method, created_at")
+      .in("status", ["completed", "delivered"]).neq("payment_method", "courtesy").gte("created_at", since);
     let itemsQuery = supabase.from("order_items").select("order_id, product_id, name, price, quantity, created_at")
       .gte("created_at", since);
     

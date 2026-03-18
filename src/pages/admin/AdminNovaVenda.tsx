@@ -32,6 +32,7 @@ const paymentMethods = [
   { value: "saldo", label: "Saldo em Carteira" },
   { value: "dinheiro", label: "Dinheiro" },
   { value: "transferencia", label: "Transferência" },
+  { value: "cortesia", label: "🎁 Cortesia (Grátis)" },
   { value: "outro", label: "Outro" },
 ];
 
@@ -266,21 +267,23 @@ export default function AdminNovaVenda() {
 
     setSubmitting(true);
 
+    const isCourtesy = paymentMethod === "cortesia";
+
     try {
       const code = generateCode();
       const subtotal = totalValue;
 
-      // Create order
+      // Create order — courtesy: total=0, discount=subtotal (tracks market value)
       const { data: order, error: orderError } = await supabase
         .from("orders")
         .insert({
           code,
           user_id: selectedClient.user_id,
           subtotal,
-          total: subtotal,
-          discount: 0,
+          total: isCourtesy ? 0 : subtotal,
+          discount: isCourtesy ? subtotal : 0,
           status: "completed",
-          payment_method: paymentMethod,
+          payment_method: isCourtesy ? "courtesy" : paymentMethod,
         })
         .select("id")
         .single();
@@ -294,7 +297,7 @@ export default function AdminNovaVenda() {
         price: item.price,
         quantity: item.quantity,
         product_id: item.productId || null,
-        description: `${notes ? notes + " | " : ""}Entrega: ${deliveryMethods.find(d => d.value === deliveryMethod)?.label || deliveryMethod}`,
+        description: `${isCourtesy ? "[Cortesia] " : ""}${notes ? notes + " | " : ""}Entrega: ${deliveryMethods.find(d => d.value === deliveryMethod)?.label || deliveryMethod}`,
       }));
 
       const { error: itemsError } = await supabase
@@ -303,7 +306,7 @@ export default function AdminNovaVenda() {
 
       if (itemsError) throw itemsError;
 
-      // Register wallet transaction for client history
+      // Register wallet transaction for client history (no balance impact for courtesy)
       const { data: profile } = await supabase
         .from("profiles")
         .select("balance")
@@ -314,14 +317,19 @@ export default function AdminNovaVenda() {
 
       await supabase.from("wallet_transactions").insert({
         user_id: selectedClient.user_id,
-        type: "debit",
-        amount: -subtotal,
-        title: `Compra via ${paymentMethods.find(m => m.value === paymentMethod)?.label || paymentMethod} — ${code}`,
+        type: isCourtesy ? "info" : "debit",
+        amount: isCourtesy ? 0 : -subtotal,
+        title: isCourtesy
+          ? `🎁 Cortesia — ${code} (valor: R$ ${subtotal.toFixed(2)})`
+          : `Compra via ${paymentMethods.find(m => m.value === paymentMethod)?.label || paymentMethod} — ${code}`,
         reference_id: order.id,
         balance_after: currentBalance,
       });
 
-      toast.success(`Venda ${code} registrada com sucesso!`);
+      toast.success(isCourtesy
+        ? `🎁 Cortesia ${code} registrada! Valor estimado: R$ ${subtotal.toFixed(2)}`
+        : `Venda ${code} registrada com sucesso!`
+      );
       navigate("/admin/auditoria");
     } catch (err: any) {
       console.error(err);
@@ -627,10 +635,17 @@ export default function AdminNovaVenda() {
 
               {/* Total */}
               <div className="flex justify-end items-center gap-4 pt-2">
-                <span className="text-sm text-gray-400 font-medium">Total da Venda:</span>
-                <span className="text-2xl font-black text-white">
-                  {totalValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                <span className="text-sm text-gray-400 font-medium">
+                  {paymentMethod === "cortesia" ? "Valor de Mercado:" : "Total da Venda:"}
                 </span>
+                <div className="text-right">
+                  {paymentMethod === "cortesia" && (
+                    <span className="text-xs text-amber-400 block mb-1">🎁 Cortesia — R$ 0,00 cobrado</span>
+                  )}
+                  <span className={`text-2xl font-black ${paymentMethod === "cortesia" ? "text-gray-500 line-through" : "text-white"}`}>
+                    {totalValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -744,7 +759,7 @@ export default function AdminNovaVenda() {
                     className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-primary text-white text-sm font-bold shadow-lg shadow-primary/20 hover:bg-primary/90 disabled:opacity-50 transition-all"
                   >
                     <Save className="size-4" />
-                    {submitting ? "Salvando..." : "Registrar Venda"}
+                    {submitting ? "Salvando..." : paymentMethod === "cortesia" ? "🎁 Registrar Cortesia" : "Registrar Venda"}
                   </button>
                 )}
               </div>

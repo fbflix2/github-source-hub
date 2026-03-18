@@ -12,7 +12,8 @@ import {
   Loader2,
   Building2,
   Package,
-  Landmark
+  Landmark,
+  Gift
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import PurchasesListModal from "@/components/admin/PurchasesListModal";
@@ -48,6 +49,8 @@ export default function AdminAuditoria() {
   const [totalMonthlyCosts, setTotalMonthlyCosts] = useState(0);
   const [stockValue, setStockValue] = useState(0);
   const [stockItemCount, setStockItemCount] = useState(0);
+  const [courtesyCount, setCourtesyCount] = useState(0);
+  const [courtesyValue, setCourtesyValue] = useState(0);
   const { totalRevenue: proxyRevenue, count: proxyCount } = useProxyRevenue();
 
   const fetchData = async () => {
@@ -60,7 +63,7 @@ export default function AdminAuditoria() {
     const [ordersRes, orderItemsRes, productsRes, productCostsRes, purchasesRes, costCenterRes, webShareRes, stockItemsRes] = await Promise.all([
       supabase
         .from("orders")
-        .select("id, total, updated_at")
+        .select("id, total, subtotal, payment_method, updated_at")
         .in("status", ["completed", "delivered"])
         .gte("created_at", since),
       supabase
@@ -130,8 +133,14 @@ export default function AdminAuditoria() {
       return (unitCost + laborCost + otherCosts) * (1 + taxPercent / 100);
     };
 
-    const completedOrderIds = new Set(orders.map(o => o.id));
-    const revenue = orders.reduce((sum, o) => sum + Number(o.total || 0), 0);
+    // Separate courtesy orders
+    const courtesyOrders = orders.filter(o => o.payment_method === 'courtesy');
+    const paidOrders = orders.filter(o => o.payment_method !== 'courtesy');
+    setCourtesyCount(courtesyOrders.length);
+    setCourtesyValue(courtesyOrders.reduce((s, o) => s + Number(o.subtotal || 0), 0));
+
+    const completedOrderIds = new Set(paidOrders.map(o => o.id));
+    const revenue = paidOrders.reduce((sum, o) => sum + Number(o.total || 0), 0);
 
     // COGS based on sold items (same as Balanço)
     const productByName: Record<string, any> = {};
@@ -379,6 +388,16 @@ export default function AdminAuditoria() {
             </div>
           ))}
         </section>
+
+        {/* Courtesy banner */}
+        {courtesyCount > 0 && (
+          <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-500/5 border border-amber-500/15">
+            <Gift className="size-4 text-amber-400 shrink-0" />
+            <p className="text-xs text-amber-300/80">
+              <span className="font-bold text-amber-300">{courtesyCount} cortesia{courtesyCount > 1 ? 's' : ''}</span> nos últimos 30 dias — valor estimado de <span className="font-bold text-amber-300">{formatCurrency(courtesyValue)}</span> em produtos doados (não impacta o faturamento).
+            </p>
+          </div>
+        )}
 
         {/* Monthly Goal + Last Update */}
         <div 

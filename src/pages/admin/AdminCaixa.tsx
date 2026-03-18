@@ -201,6 +201,7 @@ export default function AdminCaixa() {
         const order = payload.new as any;
         if (
           (order.status === "completed" || order.status === "delivered") &&
+          order.payment_method !== "courtesy" &&
           new Date(order.created_at) >= new Date(openedAt)
         ) {
           // Check if we already have this order as a movement
@@ -268,7 +269,7 @@ export default function AdminCaixa() {
     const syncAutoMovements = async () => {
       const { data: completedOrders } = await supabase
         .from("orders")
-        .select("code, total")
+        .select("code, total, payment_method")
         .in("status", ["completed", "delivered"])
         .gte("created_at", openCash.opened_at);
 
@@ -283,7 +284,7 @@ export default function AdminCaixa() {
       const existingRefs = new Set((existingMovs || []).map(m => m.reference_id));
 
       const toInsert: any[] = [];
-      completedOrders.forEach(o => {
+      completedOrders.filter(o => o.payment_method !== 'courtesy').forEach(o => {
         const total = Number(o.total || 0);
         const fee = Math.round(total * mpFeeRate) / 100;
 
