@@ -134,6 +134,7 @@ export default function AdminAquecimento() {
   const [creatorNames, setCreatorNames] = useState<Record<string, string>>({});
   const [creatorAvatars, setCreatorAvatars] = useState<Record<string, string | null>>({});
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [isUserAdmin, setIsUserAdmin] = useState(false);
   const [currentUserName, setCurrentUserName] = useState<string | null>(null);
   const [currentUserAvatar, setCurrentUserAvatar] = useState<string | null>(null);
   const [operatorGoals, setOperatorGoals] = useState<{ daily: number | null; weekly: number | null }>({ daily: null, weekly: null });
