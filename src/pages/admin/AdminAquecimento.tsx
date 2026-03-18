@@ -138,6 +138,7 @@ export default function AdminAquecimento() {
   const [operatorGoals, setOperatorGoals] = useState<{ daily: number | null; weekly: number | null }>({ daily: null, weekly: null });
   const [profileCode, setProfileCode] = useState("");
   const [selectedTrack, setSelectedTrack] = useState("7_days");
+  const [operationMode, setOperationMode] = useState<"register" | "execute">("execute");
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [isTimerActive, setIsTimerActive] = useState(false);
@@ -309,10 +310,13 @@ export default function AdminAquecimento() {
 
   const handleCreate = async () => {
     if (!profileCode.trim()) { toast.error("Digite o código do perfil"); return; }
-    // Reset timer state so the right panel switches cleanly
-    setIsTimerActive(false);
-    setActiveTaskTitle(null);
-    setCurrentElapsed(0);
+    const isRegisterMode = operationMode === "register";
+    // Only reset timer if in execute mode
+    if (!isRegisterMode) {
+      setIsTimerActive(false);
+      setActiveTaskTitle(null);
+      setCurrentElapsed(0);
+    }
     // Check for duplicate profile code
     const { data: existing } = await supabase
       .from("warming_profiles")
@@ -320,9 +324,13 @@ export default function AdminAquecimento() {
       .eq("profile_code", profileCode.trim())
       .maybeSingle();
     if (existing) {
-      // If profile exists and is active, check if it has pending tasks
+      if (isRegisterMode) {
+        toast.info(`Perfil "${profileCode.trim()}" já está cadastrado.`);
+        setProfileCode("");
+        return;
+      }
+      // Execute mode: if profile exists and is active, check if it has pending tasks
       if (existing.status === "active") {
-        // Fetch tasks to check if there's a pending one
         const { data: existingTasks } = await supabase
           .from("warming_tasks")
           .select("*")
@@ -356,14 +364,23 @@ export default function AdminAquecimento() {
     if (error || !profile) { toast.error("Erro ao criar perfil"); setCreating(false); return; }
     const taskRows = tasksToUse.map((t, i) => ({ profile_id: profile.id, day_number: i + 1, title: t.title, description: t.description }));
     await supabase.from("warming_tasks").insert(taskRows);
-    toast.success(`Perfil ${profileCode} criado e selecionado automaticamente`);
-    setProfileCode("");
-    setSelectedProfileId(profile.id);
-    await fetchProfiles();
-    await fetchTasks(profile.id);
-    setCreating(false);
-    // Auto-start timer for the first task of the new profile
-    setTimeout(() => setStartSignal(s => s + 1), 400);
+
+    if (isRegisterMode) {
+      // Register mode: just create, don't show on right or auto-start
+      toast.success(`✅ Perfil "${profileCode.trim()}" cadastrado com sucesso!`);
+      setProfileCode("");
+      await fetchProfiles();
+      setCreating(false);
+    } else {
+      // Execute mode: select and auto-start
+      toast.success(`Perfil ${profileCode} criado e selecionado automaticamente`);
+      setProfileCode("");
+      setSelectedProfileId(profile.id);
+      await fetchProfiles();
+      await fetchTasks(profile.id);
+      setCreating(false);
+      setTimeout(() => setStartSignal(s => s + 1), 400);
+    }
   };
 
   const toggleTask = async (task: WarmingTask) => {
@@ -807,6 +824,31 @@ export default function AdminAquecimento() {
                 <h2 className="text-base font-bold text-slate-900">Iniciar Novo Aquecimento</h2>
               </div>
               <div className="p-5 space-y-4">
+                {/* Mode toggle */}
+                <div className="flex items-center bg-slate-100 rounded-lg p-1 gap-1">
+                  <button
+                    onClick={() => setOperationMode("register")}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-bold transition-all ${
+                      operationMode === "register"
+                        ? "bg-white text-slate-900 shadow-sm"
+                        : "text-slate-500 hover:text-slate-700"
+                    }`}
+                  >
+                    <MIcon name="person_add" className="text-sm" />
+                    Cadastrar Perfis
+                  </button>
+                  <button
+                    onClick={() => setOperationMode("execute")}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-bold transition-all ${
+                      operationMode === "execute"
+                        ? "bg-white text-slate-900 shadow-sm"
+                        : "text-slate-500 hover:text-slate-700"
+                    }`}
+                  >
+                    <MIcon name="play_circle" className="text-sm" />
+                    Executar Tarefas
+                  </button>
+                </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1.5">Código do Perfil</label>
                   <div className="relative">
@@ -828,7 +870,16 @@ export default function AdminAquecimento() {
                   </div>
                   <p className="text-[10px] text-slate-400 mt-1">Após concluir 7 dias, avança automaticamente para 15 e depois 30 dias.</p>
                 </div>
-                {profileCode.trim() ? (
+                {operationMode === "register" ? (
+                  <button
+                    onClick={handleCreate}
+                    disabled={creating || !profileCode.trim()}
+                    className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50"
+                  >
+                    <MIcon name="person_add" className="text-lg" />
+                    {creating ? "Cadastrando..." : "Cadastrar Perfil"}
+                  </button>
+                ) : profileCode.trim() ? (
                   <button
                     onClick={handleCreate}
                     disabled={creating}
@@ -864,7 +915,9 @@ export default function AdminAquecimento() {
                   </button>
                 )}
                 <p className="text-[11px] text-slate-400 text-center leading-tight">
-                  Certifique-se de que o perfil está logado no navegador multilogin antes de iniciar.
+                  {operationMode === "register"
+                    ? "Modo cadastro: os perfis serão apenas registrados na esteira, sem iniciar tarefas."
+                    : "Certifique-se de que o perfil está logado no navegador multilogin antes de iniciar."}
                 </p>
               </div>
             </div>
@@ -912,7 +965,29 @@ export default function AdminAquecimento() {
           </section>
 
           <section className="lg:col-span-7">
-            {loading ? (
+            {operationMode === "register" ? (
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8 text-center">
+                <MIcon name="person_add" className="text-amber-400 text-4xl" />
+                <p className="text-sm font-bold text-slate-700 mt-3">Modo Cadastro Ativo</p>
+                <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
+                  Os perfis informados serão apenas cadastrados na esteira. Para executar tarefas, alterne para <strong>"Executar Tarefas"</strong>.
+                </p>
+                {profiles.filter(p => p.status === "active").length > 0 && (
+                  <div className="mt-4 text-left max-w-sm mx-auto">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Últimos cadastrados</p>
+                    <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                      {profiles.filter(p => p.status === "active").slice(0, 8).map(p => (
+                        <div key={p.id} className="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-1.5">
+                          <MIcon name="check_circle" className="text-emerald-500 text-sm" />
+                          <span className="text-xs font-bold text-slate-700">{p.profile_code}</span>
+                          <span className="text-[10px] text-slate-400 ml-auto">{TRACKS[p.track_type]?.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : loading ? (
               <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8 text-center">
                 <MIcon name="hourglass_empty" className="text-slate-300 text-3xl" />
                 <p className="text-slate-500 text-xs mt-2">Carregando...</p>
