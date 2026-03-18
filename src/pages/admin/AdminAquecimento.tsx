@@ -835,7 +835,7 @@ export default function AdminAquecimento() {
                     }`}
                   >
                     <MIcon name="person_add" className="text-sm" />
-                    Cadastrar Perfis
+                    Novo Perfil
                   </button>
                   <button
                     onClick={() => setOperationMode("execute")}
