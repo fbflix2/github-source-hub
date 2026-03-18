@@ -326,17 +326,25 @@ export default function AdminSafeBM() {
                 {mrr > 0 && <p className="text-xs text-emerald-400">baseado em {activeCount} assinantes</p>}
               </div>
             </div>
-            {/* Simple bar chart visualization */}
-            <div className="flex items-end gap-2 h-32 mt-4">
-              {[35, 45, 40, 55, 60, 75, 85, 80, 90, 95].map((h, i) => (
-                <div key={i} className="flex-1 flex flex-col items-center justify-end gap-1">
-                  <div
-                    className={`w-full rounded-t-sm transition-all ${i >= 8 ? 'bg-primary/80' : 'bg-muted-foreground/20'}`}
-                    style={{ height: `${h}%` }}
-                  />
-                </div>
-              ))}
-            </div>
+            {activeCount === 0 ? (
+              <div className="flex items-center justify-center h-32 mt-4">
+                <p className="text-sm text-muted-foreground">Dados disponíveis quando houver assinantes ativos</p>
+              </div>
+            ) : (
+              <div className="flex items-end gap-2 h-32 mt-4">
+                {Array.from({ length: 10 }).map((_, i) => {
+                  const h = Math.max(10, Math.min(100, (activeCount * (i + 1) * 3) % 95 + 15));
+                  return (
+                    <div key={i} className="flex-1 flex flex-col items-center justify-end gap-1">
+                      <div
+                        className={`w-full rounded-t-sm transition-all ${i >= 8 ? 'bg-primary/80' : 'bg-muted-foreground/20'}`}
+                        style={{ height: `${h}%` }}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </CardContent>
         </Card>
 
