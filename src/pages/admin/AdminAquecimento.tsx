@@ -407,33 +407,6 @@ export default function AdminAquecimento() {
     fetchProfiles();
   };
 
-  const handleResetAll = async () => {
-    if (!resetPassword) return;
-    setResetting(true);
-    setResetError("");
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user?.email) { setResetError("Usuário não autenticado"); setResetting(false); return; }
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email: user.email, password: resetPassword });
-      if (signInError) { setResetError("Senha incorreta. Tente novamente."); setResetting(false); return; }
-      const profileIds = profiles.map(p => p.id);
-      if (profileIds.length > 0) {
-        await supabase.from("warming_tasks").delete().in("profile_id", profileIds);
-        await supabase.from("warming_profiles").delete().in("id", profileIds);
-      }
-      toast.success("Todas as esteiras e perfis foram zerados com sucesso!");
-      setShowResetConfirm(false);
-      setResetPassword("");
-      setProfiles([]);
-      setTasks({});
-      setSelectedProfileId(null);
-      fetchProfiles();
-    } catch (err) {
-      setResetError("Erro inesperado ao zerar.");
-    }
-    setResetting(false);
-  };
-
   const updateTrustTier = async (profileId: string) => {
     const tier = prompt("Digite o Nível de Confiança atual (ex: Nível 1, Nível 2, Nível 3):");
     if (!tier) return;
