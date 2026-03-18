@@ -56,6 +56,7 @@ interface Props {
   tasks: WarmingTask[];
   trackLabel: string;
   finishSignal: number;
+  startSignal: number;
   onTaskCompleted: () => void;
   onTrackCompleted?: (profile: WarmingProfile) => void;
   onTimerStateChange?: (isRunning: boolean, taskTitle: string | null, elapsed: number) => void;
