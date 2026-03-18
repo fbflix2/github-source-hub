@@ -63,7 +63,7 @@ interface Props {
 }
 
 export default function WarmingSessionTimer({
-  profile, tasks, trackLabel, finishSignal,
+  profile, tasks, trackLabel, finishSignal, startSignal,
   onTaskCompleted, onTrackCompleted, onTimerStateChange
 }: Props) {
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
