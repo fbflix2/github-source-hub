@@ -19,7 +19,7 @@ export function AdminLayout() {
   const isMobile = useIsMobile();
   const [permChecked, setPermChecked] = useState(false);
   const hideHeader = location.pathname === "/admin/blocagem" || location.pathname === "/admin/clientes";
-  const isAquecimento = location.pathname === "/admin/aquecimento";
+  const isAquecimento = location.pathname === "/admin/aquecimento" || location.pathname === "/admin/esteira-admin";
 
   // For moderators: check if current path is allowed, redirect to first allowed if not
   useEffect(() => {
