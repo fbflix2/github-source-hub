@@ -355,7 +355,6 @@ export default function Ferramentas() {
               <MaterialIcon name="arrow_forward" className="text-lg group-hover/btn:translate-x-1 transition-transform" />
             </button>
           </GlassCard>
-          </GlassCard>
         </div>
 
         {/* Recent Activity Section */}
