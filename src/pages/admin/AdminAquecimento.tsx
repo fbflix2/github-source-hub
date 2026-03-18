@@ -138,6 +138,7 @@ export default function AdminAquecimento() {
   const [operatorGoals, setOperatorGoals] = useState<{ daily: number | null; weekly: number | null }>({ daily: null, weekly: null });
   const [profileCode, setProfileCode] = useState("");
   const [selectedTrack, setSelectedTrack] = useState("7_days");
+  const [operationMode, setOperationMode] = useState<"register" | "execute">("execute");
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [isTimerActive, setIsTimerActive] = useState(false);
