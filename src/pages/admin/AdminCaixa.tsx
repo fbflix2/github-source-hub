@@ -283,7 +283,7 @@ export default function AdminCaixa() {
       const existingRefs = new Set((existingMovs || []).map(m => m.reference_id));
 
       const toInsert: any[] = [];
-      completedOrders.forEach(o => {
+      completedOrders.filter(o => o.payment_method !== 'courtesy').forEach(o => {
         const total = Number(o.total || 0);
         const fee = Math.round(total * mpFeeRate) / 100;
 
