@@ -312,11 +312,19 @@ export default function AdminAquecimento() {
     // Check for duplicate profile code
     const { data: existing } = await supabase
       .from("warming_profiles")
-      .select("id")
+      .select("id, status")
       .eq("profile_code", profileCode.trim())
       .maybeSingle();
     if (existing) {
-      toast.error(`O perfil "${profileCode.trim()}" já está cadastrado. Use outro código.`);
+      // If profile exists and is active, select it instead
+      if (existing.status === "active") {
+        setSelectedProfileId(existing.id);
+        if (!tasks[existing.id]) fetchTasks(existing.id);
+        setProfileCode("");
+        toast.info(`Perfil "${profileCode.trim()}" já existe. Selecionado automaticamente.`);
+        return;
+      }
+      toast.error(`O perfil "${profileCode.trim()}" já está cadastrado.`);
       return;
     }
     setCreating(true);
