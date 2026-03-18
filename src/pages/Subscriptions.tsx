@@ -108,9 +108,16 @@ export default function Subscriptions() {
     return s.mappedStatus === activeFilter;
   });
 
-  const handleRenew = (sub: ProxySubscription) => {
-    // Use the real subscription name (not the exploded code) for renewal
-    renewMutation.mutate(sub.name);
+  const handleRenew = (sub: ProxySubscription & { mappedStatus: SubscriptionStatus }) => {
+    // For expired/cancelled ProxyBR subs → migrate to Webshare silently
+    const isProxyBR = !sub.provider || sub.provider === "proxybr";
+    const isExpiredOrCancelled = sub.mappedStatus === "expired" || sub.mappedStatus === "cancelled";
+    
+    if (isProxyBR && isExpiredOrCancelled) {
+      migrateMutation.mutate(sub.name);
+    } else {
+      renewMutation.mutate(sub.name);
+    }
   };
 
   // Show CTA when user has no subscriptions
