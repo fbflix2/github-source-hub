@@ -201,6 +201,7 @@ export default function AdminCaixa() {
         const order = payload.new as any;
         if (
           (order.status === "completed" || order.status === "delivered") &&
+          order.payment_method !== "courtesy" &&
           new Date(order.created_at) >= new Date(openedAt)
         ) {
           // Check if we already have this order as a movement
