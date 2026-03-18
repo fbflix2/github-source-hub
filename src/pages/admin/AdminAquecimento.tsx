@@ -880,7 +880,7 @@ export default function AdminAquecimento() {
               </div>
             </div>
 
-            {profiles.filter(p => p.status === "active").length > 0 && (
+            {visibleProfiles.filter(p => p.status === "active").length > 0 && (
               <div className="mt-3 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="px-4 py-2.5 border-b border-slate-100">
                   <h3 className="text-xs font-bold text-slate-600">
