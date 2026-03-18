@@ -32,6 +32,7 @@ export interface ProxySubscription {
   proxyLabel?: string;
   is_rotating?: boolean;
   gb_purchased?: number;
+  provider?: string;
   [key: string]: unknown;
 }
 
