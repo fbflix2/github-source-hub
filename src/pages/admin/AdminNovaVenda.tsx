@@ -635,10 +635,17 @@ export default function AdminNovaVenda() {
 
               {/* Total */}
               <div className="flex justify-end items-center gap-4 pt-2">
-                <span className="text-sm text-gray-400 font-medium">Total da Venda:</span>
-                <span className="text-2xl font-black text-white">
-                  {totalValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                <span className="text-sm text-gray-400 font-medium">
+                  {paymentMethod === "cortesia" ? "Valor de Mercado:" : "Total da Venda:"}
                 </span>
+                <div className="text-right">
+                  {paymentMethod === "cortesia" && (
+                    <span className="text-xs text-amber-400 block mb-1">🎁 Cortesia — R$ 0,00 cobrado</span>
+                  )}
+                  <span className={`text-2xl font-black ${paymentMethod === "cortesia" ? "text-gray-500 line-through" : "text-white"}`}>
+                    {totalValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                  </span>
+                </div>
               </div>
             </div>
 
