@@ -170,6 +170,10 @@ export default function AdminAquecimento() {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) {
         setCurrentUserId(user.id);
+        // Check if user is admin
+        supabase.rpc('has_role', { _user_id: user.id, _role: 'admin' as const }).then(({ data }) => {
+          setIsUserAdmin(!!data);
+        });
         supabase.from("profiles").select("full_name, avatar_url").eq("user_id", user.id).maybeSingle().then(({ data }) => {
           if (data) {
             setCurrentUserName(data.full_name);
