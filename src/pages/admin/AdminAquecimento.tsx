@@ -309,6 +309,10 @@ export default function AdminAquecimento() {
 
   const handleCreate = async () => {
     if (!profileCode.trim()) { toast.error("Digite o código do perfil"); return; }
+    // Reset timer state so the right panel switches cleanly
+    setIsTimerActive(false);
+    setActiveTaskTitle(null);
+    setCurrentElapsed(0);
     // Check for duplicate profile code
     const { data: existing } = await supabase
       .from("warming_profiles")
