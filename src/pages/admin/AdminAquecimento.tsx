@@ -888,7 +888,7 @@ export default function AdminAquecimento() {
                   </h3>
                 </div>
                 <div className="max-h-52 overflow-y-auto">
-                  {[...profiles].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()).filter(p => p.status === "active").map((p) => {
+                  {[...visibleProfiles].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()).filter(p => p.status === "active").map((p) => {
                     const prog = getProgress(p);
                     const isSelected = selectedProfileId === p.id;
                     return (
