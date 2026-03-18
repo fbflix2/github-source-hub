@@ -37,6 +37,7 @@ import ProductPage from "./pages/ProductPage";
 import SaibaMaisFBX from "./pages/SaibaMaisFBX";
 import MigrationLogin from "./pages/MigrationLogin";
 import Ferramentas from "./pages/Ferramentas";
+import SafeBMClient from "./pages/SafeBMClient";
 
 // Admin Pages
 import AdminLogin from "./pages/admin/AdminLogin";
@@ -136,6 +137,7 @@ function AuthenticatedApp({ user, onLogout }: { user: User; onLogout: () => void
         <Route path="/mercado/token-fbx" element={<TokenFBX />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/ferramentas" element={<Ferramentas />} />
+        <Route path="/safe-bm" element={<SafeBMClient />} />
         <Route path="/" element={<Navigate to="/loja" replace />} />
       </Route>
       <Route path="*" element={<NotFound />} />

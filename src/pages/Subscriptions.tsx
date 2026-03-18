@@ -8,7 +8,7 @@ import { ptBR } from "date-fns/locale";
 import SubscriptionCard from "@/components/subscriptions/SubscriptionCard";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
-import { Shield, ShieldCheck, ShieldOff } from "lucide-react";
+import { Shield } from "lucide-react";
 
 export type SubscriptionStatus = "active" | "expiring" | "cancelled" | "expired";
 
@@ -303,56 +303,42 @@ export default function Subscriptions() {
 }
 
 function SafeBmClientSection() {
-  const [vaults, setVaults] = useState<any[]>([]);
+  const [hasVaults, setHasVaults] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setLoading(false); return; }
-      const { data } = await supabase
+      const { count } = await supabase
         .from("safe_bm_vaults" as any)
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
-      setVaults((data as any[]) || []);
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id);
+      setHasVaults((count || 0) > 0);
       setLoading(false);
     })();
   }, []);
 
-  if (loading) return <Skeleton className="h-32 rounded-xl" />;
-  if (vaults.length === 0) return null;
+  if (loading) return <Skeleton className="h-20 rounded-xl" />;
+  if (!hasVaults) return null;
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <Shield className="size-5 text-primary" />
-        <h2 className="text-xl font-bold text-foreground">Safe BM — Cofre de Backup</h2>
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {vaults.map((v: any) => (
-          <div key={v.id} className="glass-panel rounded-xl p-5 space-y-3 border border-border">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-bold text-foreground truncate">{v.bm_name}</span>
-              <Badge className={v.status === "active"
-                ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-                : "bg-red-500/20 text-red-400 border-red-500/30"
-              }>
-                {v.status === "active" ? <><ShieldCheck className="size-3 mr-1" />Protegida</> : <><ShieldOff className="size-3 mr-1" />Inativa</>}
-              </Badge>
-            </div>
-            <div className="text-xs text-muted-foreground space-y-1">
-              {v.perfil_backup && <p>Perfil: <span className="text-foreground">{v.perfil_backup}</span></p>}
-              <p>Proteção desde: <span className="text-foreground">{format(new Date(v.protection_start), "dd/MM/yyyy", { locale: ptBR })}</span></p>
-              <p>Regenerações: <span className="text-foreground">{v.link_regenerations}x</span></p>
-            </div>
-            <div className="pt-2 border-t border-border flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">Mensalidade</span>
-              <span className="text-sm font-bold text-primary">R$ {Number(v.subscription_price).toFixed(2)}</span>
-            </div>
+    <a
+      href="/safe-bm"
+      className="block w-full rounded-xl glass-panel border border-primary/20 p-5 hover:border-primary/40 transition-all group"
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Shield className="size-5 text-primary" />
           </div>
-        ))}
+          <div>
+            <h3 className="text-base font-bold text-foreground">Safe BM — Cofre de Backup</h3>
+            <p className="text-xs text-muted-foreground">Acesse o painel completo das suas BMs protegidas</p>
+          </div>
+        </div>
+        <span className="text-primary group-hover:translate-x-1 transition-transform">→</span>
       </div>
-    </div>
+    </a>
   );
 }
