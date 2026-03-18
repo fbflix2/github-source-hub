@@ -128,8 +128,6 @@ function MIcon({ name, className = "" }: { name: string; className?: string }) {
 }
 
 export default function AdminAquecimento() {
-  const { role } = useAdminAuth();
-  const isAdmin = role === "admin";
   const [profiles, setProfiles] = useState<WarmingProfile[]>([]);
   const [tasks, setTasks] = useState<Record<string, WarmingTask[]>>({});
   const [loading, setLoading] = useState(true);
