@@ -48,6 +48,8 @@ export default function AdminAuditoria() {
   const [totalMonthlyCosts, setTotalMonthlyCosts] = useState(0);
   const [stockValue, setStockValue] = useState(0);
   const [stockItemCount, setStockItemCount] = useState(0);
+  const [courtesyCount, setCourtesyCount] = useState(0);
+  const [courtesyValue, setCourtesyValue] = useState(0);
   const { totalRevenue: proxyRevenue, count: proxyCount } = useProxyRevenue();
 
   const fetchData = async () => {
