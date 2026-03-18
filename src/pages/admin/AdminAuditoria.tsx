@@ -389,6 +389,16 @@ export default function AdminAuditoria() {
           ))}
         </section>
 
+        {/* Courtesy banner */}
+        {courtesyCount > 0 && (
+          <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-500/5 border border-amber-500/15">
+            <Gift className="size-4 text-amber-400 shrink-0" />
+            <p className="text-xs text-amber-300/80">
+              <span className="font-bold text-amber-300">{courtesyCount} cortesia{courtesyCount > 1 ? 's' : ''}</span> nos últimos 30 dias — valor estimado de <span className="font-bold text-amber-300">{formatCurrency(courtesyValue)}</span> em produtos doados (não impacta o faturamento).
+            </p>
+          </div>
+        )}
+
         {/* Monthly Goal + Last Update */}
         <div 
           onClick={() => setShowGoalModal(true)}
