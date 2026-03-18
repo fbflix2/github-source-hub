@@ -283,3 +283,9 @@
   stroke: #22c55e;
   stroke-width: 2;
 }
+
+/* Safe BM Landing glow animation */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(0, 240, 255, 0.3); }
+  50% { box-shadow: 0 0 40px rgba(0, 240, 255, 0.6); }
+}

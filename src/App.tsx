@@ -38,6 +38,7 @@ import SaibaMaisFBX from "./pages/SaibaMaisFBX";
 import MigrationLogin from "./pages/MigrationLogin";
 import Ferramentas from "./pages/Ferramentas";
 import SafeBMClient from "./pages/SafeBMClient";
+import SafeBMLanding from "./pages/SafeBMLanding";
 
 // Admin Pages
 import AdminLogin from "./pages/admin/AdminLogin";
@@ -285,6 +286,7 @@ const App = () => {
                 <Route path="/sobre" element={<Sobre />} />
                 <Route path="/produto/:slug" element={<ProductPage />} />
                 <Route path="/saiba-mais-fbx" element={<SaibaMaisFBX />} />
+                <Route path="/saiba-mais-safebm" element={<SafeBMLanding />} />
                 <Route path="/parceiro/:slug" element={<PartnerRedirect />} />
                 <Route path="/migrar" element={user ? <Navigate to="/welcome" replace /> : <MigrationLogin />} />
 
