@@ -733,7 +733,7 @@ export default function AdminAquecimento() {
               <button className="text-[#1876f2] text-sm font-bold hover:underline">Ver tudo</button>
             </div>
             <div className="divide-y divide-slate-100">
-              {profiles.slice(0, 4).map((p, i) => {
+              {visibleProfiles.slice(0, 4).map((p, i) => {
                 const icons = ["trending_up", "person_add", "settings_backup_restore", "error"];
                 const colors = ["emerald", "blue", "amber", "rose"];
                 const color = colors[i % 4];
