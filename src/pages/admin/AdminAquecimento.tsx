@@ -310,13 +310,10 @@ export default function AdminAquecimento() {
 
   const handleCreate = async () => {
     if (!profileCode.trim()) { toast.error("Digite o código do perfil"); return; }
-    const isRegisterMode = operationMode === "register";
-    // Only reset timer if in execute mode
-    if (!isRegisterMode) {
-      setIsTimerActive(false);
-      setActiveTaskTitle(null);
-      setCurrentElapsed(0);
-    }
+    // Always reset timer state when starting a new profile
+    setIsTimerActive(false);
+    setActiveTaskTitle(null);
+    setCurrentElapsed(0);
     // Check for duplicate profile code
     const { data: existing } = await supabase
       .from("warming_profiles")
@@ -324,12 +321,7 @@ export default function AdminAquecimento() {
       .eq("profile_code", profileCode.trim())
       .maybeSingle();
     if (existing) {
-      if (isRegisterMode) {
-        toast.info(`Perfil "${profileCode.trim()}" já está cadastrado.`);
-        setProfileCode("");
-        return;
-      }
-      // Execute mode: if profile exists and is active, check if it has pending tasks
+      // Profile exists: select it and start if it has pending tasks
       if (existing.status === "active") {
         const { data: existingTasks } = await supabase
           .from("warming_tasks")
@@ -346,6 +338,7 @@ export default function AdminAquecimento() {
         if (existingTasks) setTasks(prev => ({ ...prev, [existing.id]: existingTasks }));
         setProfileCode("");
         toast.info(`Perfil "${profileCode.trim()}" já existe. Selecionado automaticamente.`);
+        setTimeout(() => setStartSignal(s => s + 1), 400);
         return;
       }
       toast.error(`O perfil "${profileCode.trim()}" já está cadastrado.`);
@@ -365,22 +358,14 @@ export default function AdminAquecimento() {
     const taskRows = tasksToUse.map((t, i) => ({ profile_id: profile.id, day_number: i + 1, title: t.title, description: t.description }));
     await supabase.from("warming_tasks").insert(taskRows);
 
-    if (isRegisterMode) {
-      // Register mode: just create, don't show on right or auto-start
-      toast.success(`✅ Perfil "${profileCode.trim()}" cadastrado com sucesso!`);
-      setProfileCode("");
-      await fetchProfiles();
-      setCreating(false);
-    } else {
-      // Execute mode: select and auto-start
-      toast.success(`Perfil ${profileCode} criado e selecionado automaticamente`);
-      setProfileCode("");
-      setSelectedProfileId(profile.id);
-      await fetchProfiles();
-      await fetchTasks(profile.id);
-      setCreating(false);
-      setTimeout(() => setStartSignal(s => s + 1), 400);
-    }
+    // Both modes: register + auto-start (new profile has priority)
+    toast.success(`✅ Perfil "${profileCode.trim()}" cadastrado e iniciando tarefas!`);
+    setProfileCode("");
+    setSelectedProfileId(profile.id);
+    await fetchProfiles();
+    await fetchTasks(profile.id);
+    setCreating(false);
+    setTimeout(() => setStartSignal(s => s + 1), 400);
   };
 
   const toggleTask = async (task: WarmingTask) => {
