@@ -286,6 +286,7 @@ const App = () => {
                 <Route path="/sobre" element={<Sobre />} />
                 <Route path="/produto/:slug" element={<ProductPage />} />
                 <Route path="/saiba-mais-fbx" element={<SaibaMaisFBX />} />
+                <Route path="/saiba-mais-safebm" element={<SafeBMLanding />} />
                 <Route path="/parceiro/:slug" element={<PartnerRedirect />} />
                 <Route path="/migrar" element={user ? <Navigate to="/welcome" replace /> : <MigrationLogin />} />
 
