@@ -916,7 +916,7 @@ export default function AdminAquecimento() {
                 )}
                 <p className="text-[11px] text-slate-400 text-center leading-tight">
                   {operationMode === "register"
-                    ? "Modo cadastro: os perfis serão apenas registrados na esteira, sem iniciar tarefas."
+                    ? "Novo perfil: o cadastro é automático ao iniciar as tarefas."
                     : "Certifique-se de que o perfil está logado no navegador multilogin antes de iniciar."}
                 </p>
               </div>
