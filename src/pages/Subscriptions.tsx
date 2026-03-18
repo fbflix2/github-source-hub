@@ -72,6 +72,7 @@ export default function Subscriptions() {
   const { data: subscriptionsRaw, isLoading: proxyLoading, error: proxyError } = useProxyBRSubscriptions();
   const { data: webshareRaw, isLoading: wsLoading, error: wsError } = useWebshareSubscriptions();
   const renewMutation = useRenewSubscription();
+  const migrateMutation = useMigrateProxyBRToWebshare();
 
   const isLoading = proxyLoading || wsLoading;
   const error = proxyError || wsError;
