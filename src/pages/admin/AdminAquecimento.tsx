@@ -316,10 +316,22 @@ export default function AdminAquecimento() {
       .eq("profile_code", profileCode.trim())
       .maybeSingle();
     if (existing) {
-      // If profile exists and is active, select it instead
+      // If profile exists and is active, check if it has pending tasks
       if (existing.status === "active") {
+        // Fetch tasks to check if there's a pending one
+        const { data: existingTasks } = await supabase
+          .from("warming_tasks")
+          .select("*")
+          .eq("profile_id", existing.id)
+          .order("day_number", { ascending: true });
+        const hasPending = existingTasks?.some(t => !t.completed);
+        if (!hasPending) {
+          toast.info(`Perfil "${profileCode.trim()}" já concluiu a tarefa de hoje. Informe outro perfil.`);
+          setProfileCode("");
+          return;
+        }
         setSelectedProfileId(existing.id);
-        if (!tasks[existing.id]) fetchTasks(existing.id);
+        if (existingTasks) setTasks(prev => ({ ...prev, [existing.id]: existingTasks }));
         setProfileCode("");
         toast.info(`Perfil "${profileCode.trim()}" já existe. Selecionado automaticamente.`);
         return;
@@ -893,7 +905,13 @@ export default function AdminAquecimento() {
             ) : !selectedProfile ? (
               <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8 text-center">
                 <MIcon name="thermostat" className="text-slate-300 text-3xl" />
-                <p className="text-slate-500 text-xs mt-2">Nenhum perfil em aquecimento. Atribua um perfil para começar.</p>
+                <p className="text-slate-500 text-xs mt-2">Informe o código do perfil para iniciar o aquecimento.</p>
+              </div>
+            ) : !selectedTasks.some(t => !t.completed) ? (
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8 text-center">
+                <MIcon name="check_circle" className="text-green-500 text-3xl" />
+                <p className="text-sm font-bold text-green-600 mt-2">Tarefa do dia concluída para "{selectedProfile.profile_code}"!</p>
+                <p className="text-xs text-slate-500 mt-1">Informe o próximo código de perfil no painel ao lado.</p>
               </div>
             ) : (
               <WarmingSessionTimer

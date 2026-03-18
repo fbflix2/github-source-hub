@@ -304,35 +304,9 @@ export default function WarmingSessionTimer({
         </div>
       </div>
 
-      {/* Current day task (show only one at a time) */}
+      {/* Current day task (show only the single pending task) */}
       <div className="p-4 space-y-2">
-        {/* Completed tasks summary */}
-        {sortedTasks.filter(t => t.completed).length > 0 && (
-          <div className="mb-3">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Tarefas concluídas</p>
-            {sortedTasks.filter(t => t.completed).map(task => (
-              <div key={task.id} className="flex items-center gap-2 py-1.5 px-3 rounded-lg bg-slate-50/80 border border-slate-100 mb-1">
-                <div className="w-7 h-7 rounded-full bg-green-100 text-green-600 flex items-center justify-center shrink-0">
-                  <MIcon name="check" className="text-sm" />
-                </div>
-                <p className="text-xs text-slate-400 line-through flex-1 truncate">{task.title}</p>
-                <span className="text-[10px] font-mono font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded flex items-center gap-1">
-                  <MIcon name="timer" className="text-xs" />
-                  {formatDuration(task.duration_seconds)}
-                </span>
-                <button
-                  onClick={() => uncompleteTask(task)}
-                  className="text-slate-300 hover:text-slate-500 transition-colors p-0.5"
-                  title="Desfazer conclusão"
-                >
-                  <MIcon name="undo" className="text-sm" />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Current pending task (only one) */}
+        {/* Current pending task (only one — the task of the day) */}
         {firstPendingTask && (() => {
           const task = firstPendingTask;
           const isActive = activeTaskId === task.id;
