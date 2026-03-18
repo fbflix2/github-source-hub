@@ -379,11 +379,11 @@ export default function AdminSafeBM() {
                 Eficiência de Recuperação
               </p>
               <div className="flex items-center gap-2">
-                <p className="text-3xl font-bold text-foreground">{recoveryRate}%</p>
-                <CheckCircle className="size-5 text-blue-400" />
+                <p className="text-3xl font-bold text-foreground">{totalRegenerations > 0 ? `${recoveryRate}%` : '—'}</p>
+                {totalRegenerations > 0 && <CheckCircle className="size-5 text-blue-400" />}
               </div>
               <p className="text-xs text-blue-400 mt-1">
-                {totalRegenerations > 0 ? totalRegenerations : 0} links restaurados com sucesso
+                {totalRegenerations} link{totalRegenerations !== 1 ? 's' : ''} restaurado{totalRegenerations !== 1 ? 's' : ''} com sucesso
               </p>
               <div className="mt-3 space-y-1">
                 <div className="flex justify-between text-[10px] text-muted-foreground uppercase tracking-wider">
