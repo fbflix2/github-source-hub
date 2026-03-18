@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useProxyBRSubscriptions, useRenewSubscription } from "@/hooks/useProxyBR";
 import { useWebshareSubscriptions, useMigrateProxyBRToWebshare } from "@/hooks/useWebshare";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -6,6 +6,9 @@ import { toast } from "sonner";
 import { differenceInDays, parseISO, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import SubscriptionCard from "@/components/subscriptions/SubscriptionCard";
+import { supabase } from "@/integrations/supabase/client";
+import { Badge } from "@/components/ui/badge";
+import { Shield, ShieldCheck, ShieldOff } from "lucide-react";
 
 export type SubscriptionStatus = "active" | "expiring" | "cancelled" | "expired";
 
