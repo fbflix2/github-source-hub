@@ -87,7 +87,7 @@ export function useProxyBRSubscriptions() {
 
       const { data, error } = await supabase
         .from("subscriptions")
-        .select("*")
+        .select("*, products:product_id(name, price)")
         .eq("user_id", user.id)
         .eq("type", "proxybr")
         .order("created_at", { ascending: false });
