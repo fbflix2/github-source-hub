@@ -144,11 +144,12 @@ export default function AdminCaixa() {
     const { data: histData } = await supabase
       .from("cash_register")
       .select("*")
-      .eq("status", "closed")
-      .order("closed_at", { ascending: false })
+      .order("opened_at", { ascending: false })
       .limit(30);
 
-    setHistory((histData || []) as CashRecord[]);
+    // Exclude the currently active (today's) cash from history
+    const activeId = openData?.id;
+    setHistory((histData || []).filter((r: any) => r.id !== activeId) as CashRecord[]);
     setLoading(false);
   }, []);
 
