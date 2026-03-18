@@ -32,6 +32,7 @@ const paymentMethods = [
   { value: "saldo", label: "Saldo em Carteira" },
   { value: "dinheiro", label: "Dinheiro" },
   { value: "transferencia", label: "Transferência" },
+  { value: "cortesia", label: "🎁 Cortesia (Grátis)" },
   { value: "outro", label: "Outro" },
 ];
 
