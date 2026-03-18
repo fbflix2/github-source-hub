@@ -426,6 +426,102 @@ export default function AdminCaixa() {
     }
   };
 
+  const handleCloseHistoryRecord = async (record: CashRecord) => {
+    setSaving(true);
+    try {
+      const { data: movs } = await supabase
+        .from("cash_movements")
+        .select("*")
+        .eq("cash_register_id", record.id);
+      const allMovs = (movs || []) as CashMovement[];
+      const tEntries = allMovs.filter(m => m.type === "entry").reduce((s, m) => s + m.amount, 0);
+      const tExits = allMovs.filter(m => m.type === "exit").reduce((s, m) => s + m.amount, 0);
+      const closingBalance = record.opening_balance + tEntries - tExits;
+
+      const { error } = await supabase
+        .from("cash_register")
+        .update({
+          closed_at: new Date().toISOString(),
+          status: "closed",
+          bank_balance: closingBalance,
+          withdrawals: tExits,
+          deposits: tEntries,
+          difference: tEntries - tExits,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", record.id);
+      if (error) throw error;
+      toast.success("Caixa fechado novamente!");
+      setExpandedHistoryId(null);
+      fetchData();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao fechar caixa");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleHistoryExpand = async (recordId: string) => {
+    if (expandedHistoryId === recordId) {
+      setExpandedHistoryId(null);
+      setHistoryMovements([]);
+      return;
+    }
+    setExpandedHistoryId(recordId);
+    const { data } = await supabase
+      .from("cash_movements")
+      .select("*")
+      .eq("cash_register_id", recordId)
+      .order("created_at", { ascending: false });
+    setHistoryMovements((data || []) as CashMovement[]);
+    setHistRetroAmount("");
+    setHistRetroDesc("");
+  };
+
+  const handleAddHistRetro = async () => {
+    if (!expandedHistoryId) return;
+    const amount = parseBRL(histRetroAmount);
+    if (!amount || amount <= 0) { toast.error("Informe um valor válido"); return; }
+    if (!histRetroDesc.trim()) { toast.error("Informe uma descrição"); return; }
+    setAddingHistRetro(true);
+    try {
+      const { error } = await supabase.from("cash_movements").insert({
+        cash_register_id: expandedHistoryId,
+        type: histRetroType,
+        source: "manual",
+        amount,
+        description: `[Retroativo] ${histRetroDesc.trim()}`,
+      });
+      if (error) throw error;
+      toast.success("Lançamento retroativo registrado!");
+      setHistRetroAmount("");
+      setHistRetroDesc("");
+      // Refresh movements for this record
+      const { data } = await supabase.from("cash_movements").select("*")
+        .eq("cash_register_id", expandedHistoryId).order("created_at", { ascending: false });
+      setHistoryMovements((data || []) as CashMovement[]);
+      // Update record totals
+      const record = history.find(h => h.id === expandedHistoryId);
+      if (record && record.status === "closed") {
+        const allMovs = (data || []) as CashMovement[];
+        const tEntries = allMovs.filter(m => m.type === "entry").reduce((s, m) => s + m.amount, 0);
+        const tExits = allMovs.filter(m => m.type === "exit").reduce((s, m) => s + m.amount, 0);
+        await supabase.from("cash_register").update({
+          deposits: tEntries,
+          withdrawals: tExits,
+          difference: tEntries - tExits,
+          bank_balance: record.opening_balance + tEntries - tExits,
+          updated_at: new Date().toISOString(),
+        }).eq("id", expandedHistoryId);
+        fetchData();
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao registrar");
+    } finally {
+      setAddingHistRetro(false);
+    }
+  };
+
   // ── Computed ──
   const totalEntries = movements.filter(m => m.type === "entry").reduce((s, m) => s + m.amount, 0);
   const totalExits = movements.filter(m => m.type === "exit").reduce((s, m) => s + m.amount, 0);
