@@ -835,97 +835,93 @@ export default function AdminAquecimento() {
                     Executar Tarefas
                   </button>
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1.5">Código do Perfil</label>
-                  <div className="relative">
-                    <MIcon name="fingerprint" className="absolute left-3 top-2.5 text-slate-400 text-lg" />
-                    <input
-                      className="w-full pl-10 pr-3 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-slate-400 focus:border-slate-400 text-slate-900 transition-all"
-                      placeholder="ex: FB-123"
-                      value={profileCode}
-                      onChange={(e) => setProfileCode(e.target.value)}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1.5">Esteira</label>
-                  <div className="relative flex items-center gap-2 pl-10 pr-3 py-2.5 text-sm bg-slate-100 border border-slate-200 rounded-lg text-slate-600">
-                    <MIcon name="layers" className="absolute left-3 top-2.5 text-slate-400 text-lg" />
-                    7 Dias - Básica
-                    <span className="ml-auto text-[10px] font-bold text-slate-400 uppercase">Automático</span>
-                  </div>
-                  <p className="text-[10px] text-slate-400 mt-1">Após concluir 7 dias, avança automaticamente para 15 e depois 30 dias.</p>
-                </div>
-                {operationMode === "register" ? (
-                  <button
-                    onClick={handleCreate}
-                    disabled={creating || !profileCode.trim()}
-                    className="w-full bg-[#1876f2] hover:bg-[#1565c0] text-white font-bold py-3 rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50"
-                  >
-                    <MIcon name="play_arrow" className="text-lg" />
-                    {creating ? "Cadastrando..." : "Iniciar Tarefas"}
-                  </button>
-                ) : profileCode.trim() ? (
-                  <button
-                    onClick={handleCreate}
-                    disabled={creating}
-                    className="w-full bg-[#1876f2] hover:bg-[#1565c0] text-white font-bold py-3 rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50"
-                  >
-                    <MIcon name="play_arrow" className="text-lg" />
-                    {creating ? "Atribuindo..." : "Iniciar Tarefa"}
-                  </button>
-                ) : isTimerActive && selectedProfileId ? (
-                  <button
-                    onClick={() => setFinishSignal(prev => prev + 1)}
-                    className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 text-sm"
-                  >
-                    <MIcon name="check_circle" className="text-lg" />
-                    Finalizar Tarefa
-                  </button>
-                ) : selectedProfileId && selectedTasks.some(t => !t.completed) ? (
-                  <button
-                    onClick={() => setStartSignal(prev => prev + 1)}
-                    className="w-full bg-[#1876f2] hover:bg-[#1565c0] text-white font-bold py-3 rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 text-sm"
-                  >
-                    <MIcon name="play_arrow" className="text-lg" />
-                    Iniciar Tarefa
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleCreate}
-                    disabled={creating || !profileCode.trim()}
-                    className="w-full bg-[#1876f2] hover:bg-[#1565c0] text-white font-bold py-3 rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50"
-                  >
-                    <MIcon name="assignment_ind" className="text-lg" />
-                    {creating ? "Atribuindo..." : "Atribuir Perfil"}
-                  </button>
+                {operationMode === "register" && (
+                  <>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1.5">Código do Perfil</label>
+                      <div className="relative">
+                        <MIcon name="fingerprint" className="absolute left-3 top-2.5 text-slate-400 text-lg" />
+                        <input
+                          className="w-full pl-10 pr-3 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-slate-400 focus:border-slate-400 text-slate-900 transition-all"
+                          placeholder="ex: FB-123"
+                          value={profileCode}
+                          onChange={(e) => setProfileCode(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-600 mb-1.5">Esteira</label>
+                      <div className="relative flex items-center gap-2 pl-10 pr-3 py-2.5 text-sm bg-slate-100 border border-slate-200 rounded-lg text-slate-600">
+                        <MIcon name="layers" className="absolute left-3 top-2.5 text-slate-400 text-lg" />
+                        7 Dias - Básica
+                        <span className="ml-auto text-[10px] font-bold text-slate-400 uppercase">Automático</span>
+                      </div>
+                      <p className="text-[10px] text-slate-400 mt-1">Após concluir 7 dias, avança automaticamente para 15 e depois 30 dias.</p>
+                    </div>
+                    <button
+                      onClick={handleCreate}
+                      disabled={creating || !profileCode.trim()}
+                      className="w-full bg-[#1876f2] hover:bg-[#1565c0] text-white font-bold py-3 rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50"
+                    >
+                      <MIcon name="play_arrow" className="text-lg" />
+                      {creating ? "Cadastrando..." : "Iniciar Tarefas"}
+                    </button>
+                    <p className="text-[11px] text-slate-400 text-center leading-tight">
+                      Novo perfil: o cadastro é automático ao iniciar as tarefas.
+                    </p>
+                  </>
                 )}
-                <p className="text-[11px] text-slate-400 text-center leading-tight">
-                  {operationMode === "register"
-                    ? "Novo perfil: o cadastro é automático ao iniciar as tarefas."
-                    : "Certifique-se de que o perfil está logado no navegador multilogin antes de iniciar."}
-                </p>
+                {operationMode === "execute" && (
+                  <>
+                    {isTimerActive && selectedProfileId ? (
+                      <button
+                        onClick={() => setFinishSignal(prev => prev + 1)}
+                        className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 text-sm"
+                      >
+                        <MIcon name="check_circle" className="text-lg" />
+                        Finalizar Tarefa
+                      </button>
+                    ) : selectedProfileId && selectedTasks.some(t => !t.completed) ? (
+                      <button
+                        onClick={() => setStartSignal(prev => prev + 1)}
+                        className="w-full bg-[#1876f2] hover:bg-[#1565c0] text-white font-bold py-3 rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 text-sm"
+                      >
+                        <MIcon name="play_arrow" className="text-lg" />
+                        Iniciar Tarefa
+                      </button>
+                    ) : (
+                      <div className="text-center py-2">
+                        <p className="text-xs text-slate-500">Selecione um perfil na fila abaixo para iniciar.</p>
+                      </div>
+                    )}
+                    <p className="text-[11px] text-slate-400 text-center leading-tight">
+                      Certifique-se de que o perfil está logado no navegador multilogin antes de iniciar.
+                    </p>
+                  </>
+                )}
               </div>
             </div>
 
-            {profiles.length > 1 && (
+            {profiles.filter(p => p.status === "active").length > 0 && (
               <div className="mt-3 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="px-4 py-2.5 border-b border-slate-100">
-                  <h3 className="text-xs font-bold text-slate-600">Perfis em Aquecimento</h3>
+                  <h3 className="text-xs font-bold text-slate-600">
+                    {operationMode === "execute" ? "Fila de Aquecimento" : "Perfis em Aquecimento"}
+                  </h3>
                 </div>
-                <div className="max-h-40 overflow-y-auto">
-                  {profiles.map((p) => {
+                <div className="max-h-52 overflow-y-auto">
+                  {[...profiles].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()).filter(p => p.status === "active").map((p) => {
                     const prog = getProgress(p);
                     const isSelected = selectedProfileId === p.id;
                     return (
                       <div
                         key={p.id}
                         onClick={() => { setSelectedProfileId(p.id); if (!tasks[p.id]) fetchTasks(p.id); }}
-                        className={`flex items-center gap-2.5 px-4 py-2 cursor-pointer border-b border-slate-50 transition-colors ${isSelected ? "bg-slate-100" : "hover:bg-slate-50"}`}
+                        className={`flex items-center gap-2.5 px-4 py-2 cursor-pointer border-b border-slate-50 transition-colors ${isSelected ? "bg-blue-50 border-l-2 border-l-[#1876f2]" : "hover:bg-slate-50"}`}
                       >
                         <MIcon
-                          name={p.status === "completed" ? "check_circle" : p.status === "restricted" ? "warning" : "play_circle"}
-                          className={`text-base ${p.status === "completed" ? "text-green-500" : p.status === "restricted" ? "text-red-500" : "text-[#1876f2]"}`}
+                          name={isSelected && isTimerActive ? "timer" : "play_circle"}
+                          className={`text-base ${isSelected ? "text-[#1876f2]" : "text-slate-400"}`}
                         />
                         <div className="flex-grow min-w-0">
                           <p className="text-xs font-bold text-slate-900 truncate">{p.profile_code}</p>
@@ -935,12 +931,11 @@ export default function AdminAquecimento() {
                           </p>
                         </div>
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                          p.status === "active" ? "bg-blue-100 text-[#1876f2]" :
-                          p.status === "completed" ? "bg-green-50 text-green-600" :
-                          p.status === "restricted" ? "bg-red-50 text-red-600" :
-                          "bg-yellow-50 text-yellow-600"
+                          isSelected && isTimerActive ? "bg-amber-100 text-amber-700" :
+                          isSelected ? "bg-blue-100 text-[#1876f2]" :
+                          "bg-slate-100 text-slate-500"
                         }`}>
-                          {p.status === "active" ? "Ativo" : p.status === "completed" ? "Concluído" : p.status === "restricted" ? "Restrição" : "Pausado"}
+                          {isSelected && isTimerActive ? "Em execução" : isSelected ? "Selecionado" : "Na fila"}
                         </span>
                       </div>
                     );
