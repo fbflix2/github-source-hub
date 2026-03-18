@@ -285,8 +285,8 @@ export default function Ferramentas() {
           </p>
         </header>
 
-        {/* Tools Grid - 3 columns */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        {/* Tools Grid - 4 columns */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {/* Tool 1: Gerador de 2FA */}
           <GlassCard bgImage={BG_IMAGES["2fa"]} onClick={() => setActiveTool("2fa")}>
             <div className="w-11 h-11 bg-primary/10 text-primary rounded-lg flex items-center justify-center mb-3 group-hover:bg-primary group-hover:text-white transition-colors duration-300">
@@ -339,6 +339,22 @@ export default function Ferramentas() {
               <span>Acessar Ferramenta</span>
               <MaterialIcon name="arrow_forward" className="text-lg group-hover/btn:translate-x-1 transition-transform" />
             </button>
+          </GlassCard>
+
+          {/* Tool 4: BM Safe */}
+          <GlassCard bgImage={BG_IMAGES.safebm} onClick={() => navigate("/safe-bm")}>
+            <div className="w-11 h-11 bg-primary/10 text-primary rounded-lg flex items-center justify-center mb-3 group-hover:bg-primary group-hover:text-white transition-colors duration-300">
+              <MaterialIcon name="shield_lock" className="text-2xl" />
+            </div>
+            <h3 className="text-base font-bold mb-1.5 text-white">BM Safe</h3>
+            <p className="text-slate-400 mb-4 flex-grow leading-relaxed text-xs">
+              Cofre digital para suas Business Managers. Proteja seus ativos com backup seguro e monitoramento 24/7.
+            </p>
+            <button className="w-full py-2.5 px-4 bg-primary hover:bg-red-700 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2 text-sm group/btn">
+              <span>Ativar Agora</span>
+              <MaterialIcon name="arrow_forward" className="text-lg group-hover/btn:translate-x-1 transition-transform" />
+            </button>
+          </GlassCard>
           </GlassCard>
         </div>
 
