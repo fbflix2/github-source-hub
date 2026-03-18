@@ -87,7 +87,7 @@ export function useProxyBRSubscriptions() {
 
       const { data, error } = await supabase
         .from("subscriptions")
-        .select("*")
+        .select("*, products:product_id(name, price)")
         .eq("user_id", user.id)
         .eq("type", "proxybr")
         .order("created_at", { ascending: false });
@@ -99,6 +99,7 @@ export function useProxyBRSubscriptions() {
       const results: any[] = [];
       for (const sub of (data || [])) {
         const raw = (sub.raw_data || {}) as Record<string, any>;
+        const productInfo = (sub as any).products as any;
         const proxies = raw.proxies?.data || raw.subscription?.proxies?.data || [];
         const isMulti = proxies.length > 1;
 
@@ -122,7 +123,8 @@ export function useProxyBRSubscriptions() {
         const baseEntry = {
           code: sub.name,
           name: sub.name,
-          product_name: raw.product?.name || raw.product_name || raw.subscription?.product?.name || undefined,
+          product_name: raw.product?.name || raw.product_name || raw.subscription?.product?.name || productInfo?.name || undefined,
+          customer_price: productInfo?.price || raw.product?.price || null,
           status: sub.status,
           start_date: sub.start_date,
           end_date: sub.end_date || sub.start_date,

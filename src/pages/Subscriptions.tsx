@@ -13,6 +13,7 @@ export interface ProxySubscription {
   code: string;
   name: string;
   product_name?: string;
+  customer_price?: number | null;
   status: string;
   start_date: string;
   end_date: string;

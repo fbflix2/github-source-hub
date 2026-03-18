@@ -198,6 +198,19 @@ export default function SubscriptionCard({
         </div>
       </div>
 
+      {/* Renewal price for expired/cancelled */}
+      {(status === "expired" || status === "cancelled") && sub.customer_price && (
+        <div className="flex items-center justify-between p-3 rounded-lg bg-primary/5 border border-primary/10">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-primary text-sm">payments</span>
+            <span className="text-xs text-text-secondary">Valor da renovação</span>
+          </div>
+          <span className="text-sm font-bold text-foreground">
+            R$ {Number(sub.customer_price).toFixed(2).replace('.', ',')}
+          </span>
+        </div>
+      )}
+
       {/* Actions */}
       <div className="flex gap-2 mt-auto">
         {status === "expiring" && (
@@ -224,7 +237,7 @@ export default function SubscriptionCard({
             className="flex-1 border border-glass-border hover:border-primary hover:text-primary text-text-secondary bg-transparent h-10 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-50"
           >
             <span className="material-symbols-outlined text-lg">autorenew</span>
-            {isRenewing ? "Renovando..." : "Renovar"}
+            {isRenewing ? "Renovando..." : `Renovar${sub.customer_price ? ` • R$ ${Number(sub.customer_price).toFixed(2).replace('.', ',')}` : ''}`}
           </button>
         )}
         {status === "cancelled" && (
@@ -234,7 +247,7 @@ export default function SubscriptionCard({
             className="flex-1 border border-glass-border hover:border-primary hover:text-primary text-text-secondary bg-transparent h-10 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-50"
           >
             <span className="material-symbols-outlined text-lg">replay</span>
-            {isRenewing ? "Reativando..." : "Reativar"}
+            {isRenewing ? "Reativando..." : `Reativar${sub.customer_price ? ` • R$ ${Number(sub.customer_price).toFixed(2).replace('.', ',')}` : ''}`}
           </button>
         )}
       </div>
