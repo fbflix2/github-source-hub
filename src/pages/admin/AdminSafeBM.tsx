@@ -223,9 +223,11 @@ export default function AdminSafeBM() {
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                 <DollarSign className="size-5 text-primary" />
               </div>
-              <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-[10px]">
-                +R$ {(mrr * 0.068).toFixed(2)}
-              </Badge>
+              {mrr > 0 && (
+                <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-[10px]">
+                  {activeCount} assinantes
+                </Badge>
+              )}
             </div>
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-1">
               MRR (Assinaturas R$ 9,99)
