@@ -951,12 +951,12 @@ export default function AdminAquecimento() {
           </section>
 
           <section className="lg:col-span-7">
-            {operationMode === "register" ? (
+            {operationMode === "register" && !selectedProfile ? (
               <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8 text-center">
-                <MIcon name="person_add" className="text-amber-400 text-4xl" />
-                <p className="text-sm font-bold text-slate-700 mt-3">Modo Cadastro Ativo</p>
+                <MIcon name="person_add" className="text-[#1876f2] text-4xl" />
+                <p className="text-sm font-bold text-slate-700 mt-3">Modo Novo Perfil</p>
                 <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
-                  Os perfis informados serão apenas cadastrados na esteira. Para executar tarefas, alterne para <strong>"Executar Tarefas"</strong>.
+                  Digite o código do perfil e clique em <strong>"Iniciar Tarefas"</strong> para cadastrar e começar automaticamente.
                 </p>
                 {profiles.filter(p => p.status === "active").length > 0 && (
                   <div className="mt-4 text-left max-w-sm mx-auto">
