@@ -792,14 +792,24 @@ export default function AdminAquecimento() {
                   </div>
                   <p className="text-[10px] text-slate-400 mt-1">Após concluir 7 dias, avança automaticamente para 15 e depois 30 dias.</p>
                 </div>
-                <button
-                  onClick={handleCreate}
-                  disabled={creating}
-                  className="w-full bg-[#1876f2] hover:bg-[#1565c0] text-white font-bold py-3 rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50"
-                >
-                  <MIcon name="assignment_ind" className="text-lg" />
-                  {creating ? "Atribuindo..." : "Atribuir Perfil"}
-                </button>
+                {isTimerActive && selectedProfileId ? (
+                  <button
+                    onClick={() => setFinishSignal(prev => prev + 1)}
+                    className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3 rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 text-sm"
+                  >
+                    <MIcon name="check_circle" className="text-lg" />
+                    Finalizar Tarefa
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleCreate}
+                    disabled={creating}
+                    className="w-full bg-[#1876f2] hover:bg-[#1565c0] text-white font-bold py-3 rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50"
+                  >
+                    <MIcon name="assignment_ind" className="text-lg" />
+                    {creating ? "Atribuindo..." : "Atribuir Perfil"}
+                  </button>
+                )}
                 <p className="text-[11px] text-slate-400 text-center leading-tight">
                   Certifique-se de que o perfil está logado no navegador multilogin antes de iniciar.
                 </p>
