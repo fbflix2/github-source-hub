@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 import WarmingOperatorDashboard from "@/components/admin/warming/WarmingOperatorDashboard";
@@ -134,6 +134,7 @@ export default function AdminAquecimento() {
   const [creatorNames, setCreatorNames] = useState<Record<string, string>>({});
   const [creatorAvatars, setCreatorAvatars] = useState<Record<string, string | null>>({});
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [isUserAdmin, setIsUserAdmin] = useState(false);
   const [currentUserName, setCurrentUserName] = useState<string | null>(null);
   const [currentUserAvatar, setCurrentUserAvatar] = useState<string | null>(null);
   const [operatorGoals, setOperatorGoals] = useState<{ daily: number | null; weekly: number | null }>({ daily: null, weekly: null });
@@ -169,6 +170,10 @@ export default function AdminAquecimento() {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) {
         setCurrentUserId(user.id);
+        // Check if user is admin
+        supabase.rpc('has_role', { _user_id: user.id, _role: 'admin' as const }).then(({ data }) => {
+          setIsUserAdmin(!!data);
+        });
         supabase.from("profiles").select("full_name, avatar_url").eq("user_id", user.id).maybeSingle().then(({ data }) => {
           if (data) {
             setCurrentUserName(data.full_name);
@@ -430,20 +435,27 @@ export default function AdminAquecimento() {
     { key: "esteiras" as const, label: "Esteiras", icon: "layers" },
   ];
 
-  // Dashboard stats from DB
-  const totalProfiles = profiles.length;
-  const activeProfiles = profiles.filter(p => p.status === "active").length;
-  const completedProfiles = profiles.filter(p => p.status === "completed").length;
-  const restrictedProfiles = profiles.filter(p => p.status === "restricted").length;
+  // Filter profiles: non-admins only see their own profiles
+  const visibleProfiles = useMemo(() => {
+    if (isUserAdmin) return profiles;
+    if (!currentUserId) return [];
+    return profiles.filter(p => p.created_by === currentUserId);
+  }, [profiles, isUserAdmin, currentUserId]);
+
+  // Dashboard stats from visible profiles
+  const totalProfiles = visibleProfiles.length;
+  const activeProfiles = visibleProfiles.filter(p => p.status === "active").length;
+  const completedProfiles = visibleProfiles.filter(p => p.status === "completed").length;
+  const restrictedProfiles = visibleProfiles.filter(p => p.status === "restricted").length;
   const totalPct = totalProfiles > 0 ? Math.round((activeProfiles / totalProfiles) * 100) : 0;
 
-  const newProfiles = profiles.filter(p => p.current_day <= 7).length;
-  const midProfiles = profiles.filter(p => p.current_day > 7 && p.current_day <= 15).length;
-  const matureProfiles = profiles.filter(p => p.current_day > 15).length;
+  const newProfiles = visibleProfiles.filter(p => p.current_day <= 7).length;
+  const midProfiles = visibleProfiles.filter(p => p.current_day > 7 && p.current_day <= 15).length;
+  const matureProfiles = visibleProfiles.filter(p => p.current_day > 15).length;
 
-  const t3 = profiles.filter(p => p.trust_tier?.includes("3")).length;
-  const t2 = profiles.filter(p => p.trust_tier?.includes("2")).length;
-  const t1 = profiles.filter(p => p.trust_tier && !p.trust_tier.includes("2") && !p.trust_tier.includes("3")).length;
+  const t3 = visibleProfiles.filter(p => p.trust_tier?.includes("3")).length;
+  const t2 = visibleProfiles.filter(p => p.trust_tier?.includes("2")).length;
+  const t1 = visibleProfiles.filter(p => p.trust_tier && !p.trust_tier.includes("2") && !p.trust_tier.includes("3")).length;
   const tierTotal = t3 + t2 + t1 || 1;
   const t3Pct = Math.round((t3 / tierTotal) * 100);
   const t2Pct = Math.round((t2 / tierTotal) * 100);
@@ -721,7 +733,7 @@ export default function AdminAquecimento() {
               <button className="text-[#1876f2] text-sm font-bold hover:underline">Ver tudo</button>
             </div>
             <div className="divide-y divide-slate-100">
-              {profiles.slice(0, 4).map((p, i) => {
+              {visibleProfiles.slice(0, 4).map((p, i) => {
                 const icons = ["trending_up", "person_add", "settings_backup_restore", "error"];
                 const colors = ["emerald", "blue", "amber", "rose"];
                 const color = colors[i % 4];
@@ -747,7 +759,7 @@ export default function AdminAquecimento() {
                   </div>
                 );
               })}
-              {profiles.length === 0 && (
+              {visibleProfiles.length === 0 && (
                 <div className="p-8 text-center text-slate-400 text-sm">Nenhuma atividade recente</div>
               )}
             </div>
@@ -868,7 +880,7 @@ export default function AdminAquecimento() {
               </div>
             </div>
 
-            {profiles.filter(p => p.status === "active").length > 0 && (
+            {visibleProfiles.filter(p => p.status === "active").length > 0 && (
               <div className="mt-3 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="px-4 py-2.5 border-b border-slate-100">
                   <h3 className="text-xs font-bold text-slate-600">
@@ -876,7 +888,7 @@ export default function AdminAquecimento() {
                   </h3>
                 </div>
                 <div className="max-h-52 overflow-y-auto">
-                  {[...profiles].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()).filter(p => p.status === "active").map((p) => {
+                  {[...visibleProfiles].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()).filter(p => p.status === "active").map((p) => {
                     const prog = getProgress(p);
                     const isSelected = selectedProfileId === p.id;
                     return (
