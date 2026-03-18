@@ -83,6 +83,7 @@ import AdminCentralInvestimentos from "./pages/admin/AdminCentralInvestimentos";
 import AdminProjecaoLucro from "./pages/admin/AdminProjecaoLucro";
 import AdminMetodologia from "./pages/admin/AdminMetodologia";
 import AdminAquecimento from "./pages/admin/AdminAquecimento";
+import AdminEsteiraAdmin from "./pages/admin/AdminEsteiraAdmin";
 import AdminShopClone from "./pages/admin/AdminShopClone";
 import AdminFerramentas2FA from "./pages/admin/AdminFerramentas2FA";
 import AdminImageViewer from "./pages/admin/AdminImageViewer";
@@ -332,6 +333,7 @@ const App = () => {
                   <Route path="chat" element={<AdminTeamChat />} />
                   <Route path="fbx" element={<AdminFBX />} />
                   <Route path="aquecimento" element={<AdminAquecimento />} />
+                  <Route path="esteira-admin" element={<AdminEsteiraAdmin />} />
                   <Route path="fornecedor" element={<AdminShopClone />} />
                   <Route path="ferramentas-2fa" element={<AdminFerramentas2FA />} />
                   <Route path="imagens" element={<AdminImageViewer />} />

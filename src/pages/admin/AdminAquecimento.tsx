@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAdminAuth } from "@/hooks/useAdminAuth";
+
 import WarmingOperatorDashboard from "@/components/admin/warming/WarmingOperatorDashboard";
 import WarmingSessionTimer from "@/components/admin/warming/WarmingSessionTimer";
 import { toast } from "sonner";
@@ -128,8 +128,6 @@ function MIcon({ name, className = "" }: { name: string; className?: string }) {
 }
 
 export default function AdminAquecimento() {
-  const { role } = useAdminAuth();
-  const isAdmin = role === "admin";
   const [profiles, setProfiles] = useState<WarmingProfile[]>([]);
   const [tasks, setTasks] = useState<Record<string, WarmingTask[]>>({});
   const [loading, setLoading] = useState(true);
@@ -149,26 +147,14 @@ export default function AdminAquecimento() {
   const [currentElapsed, setCurrentElapsed] = useState(0);
   const [finishSignal, setFinishSignal] = useState(0);
   const [startSignal, setStartSignal] = useState(0);
-  const [activeTab, setActiveTab] = useState<"dashboard" | "esteiras" | "gestao" | "relatorios" | "configuracoes">("dashboard");
-  const [showResetConfirm, setShowResetConfirm] = useState(false);
-  const [resetPassword, setResetPassword] = useState("");
-  const [resetError, setResetError] = useState("");
-  const [resetting, setResetting] = useState(false);
-  const [reportFilter, setReportFilter] = useState("");
-  const [configTrack, setConfigTrack] = useState<"7_days" | "15_days" | "30_days">("7_days");
-  const defaultConfigTasks: Record<string, { title: string; description: string }[]> = {
+  const [activeTab, setActiveTab] = useState<"dashboard" | "esteiras">("dashboard");
+  const [configTasks, setConfigTasks] = useState<Record<string, { title: string; description: string }[]>>({
     "7_days": TRACKS["7_days"].tasks.map(t => ({ title: t.title, description: t.description })),
     "15_days": TRACKS["15_days"].tasks.map(t => ({ title: t.title, description: t.description })),
     "30_days": TRACKS["30_days"].tasks.map(t => ({ title: t.title, description: t.description })),
-  };
-  const [configTasks, setConfigTasks] = useState<Record<string, { title: string; description: string }[]>>(defaultConfigTasks);
+  });
   const [configLoaded, setConfigLoaded] = useState(false);
   const configSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [trustTiers, setTrustTiers] = useState([
-    { label: "Nível 1 (Confiança Baixa)", color: "bg-red-100 text-red-700", range: "0 - 30", criteria: "Contas novas, sem histórico de interação ou fotos reais." },
-    { label: "Nível 2 (Confiança Média)", color: "bg-amber-100 text-amber-700", range: "31 - 75", criteria: "Histórico de 7+ dias, interações diárias, autenticação 2FA ativa." },
-    { label: "Nível 3 (Confiança Alta)", color: "bg-green-100 text-green-700", range: "76 - 100", criteria: "Esteira completa, verificação de identidade, 30+ dias de atividade." },
-  ]);
 
   useEffect(() => {
     if (!document.querySelector('link[href*="Material+Symbols+Outlined"]')) {
@@ -419,33 +405,6 @@ export default function AdminAquecimento() {
     fetchProfiles();
   };
 
-  const handleResetAll = async () => {
-    if (!resetPassword) return;
-    setResetting(true);
-    setResetError("");
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user?.email) { setResetError("Usuário não autenticado"); setResetting(false); return; }
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email: user.email, password: resetPassword });
-      if (signInError) { setResetError("Senha incorreta. Tente novamente."); setResetting(false); return; }
-      const profileIds = profiles.map(p => p.id);
-      if (profileIds.length > 0) {
-        await supabase.from("warming_tasks").delete().in("profile_id", profileIds);
-        await supabase.from("warming_profiles").delete().in("id", profileIds);
-      }
-      toast.success("Todas as esteiras e perfis foram zerados com sucesso!");
-      setShowResetConfirm(false);
-      setResetPassword("");
-      setProfiles([]);
-      setTasks({});
-      setSelectedProfileId(null);
-      fetchProfiles();
-    } catch (err) {
-      setResetError("Erro inesperado ao zerar.");
-    }
-    setResetting(false);
-  };
-
   const updateTrustTier = async (profileId: string) => {
     const tier = prompt("Digite o Nível de Confiança atual (ex: Nível 1, Nível 2, Nível 3):");
     if (!tier) return;
@@ -466,14 +425,10 @@ export default function AdminAquecimento() {
   const selectedTrackDef = selectedProfile ? TRACKS[selectedProfile.track_type] : null;
   const selectedProgress = selectedProfile ? getProgress(selectedProfile) : 0;
 
-  const allTabs = [
-    { key: "dashboard", label: "Painel", icon: "dashboard", adminOnly: false },
-    { key: "esteiras", label: "Esteiras", icon: "layers", adminOnly: false },
-    { key: "gestao", label: "Gestão", icon: "supervisor_account", adminOnly: true },
-    { key: "relatorios", label: "Relatórios", icon: "analytics", adminOnly: true },
-    { key: "configuracoes", label: "Configurações", icon: "settings", adminOnly: true },
-  ] as const;
-  const tabs = allTabs.filter(t => !t.adminOnly || isAdmin);
+  const tabs = [
+    { key: "dashboard" as const, label: "Painel", icon: "dashboard" },
+    { key: "esteiras" as const, label: "Esteiras", icon: "layers" },
+  ];
 
   // Dashboard stats from DB
   const totalProfiles = profiles.length;
@@ -495,9 +450,6 @@ export default function AdminAquecimento() {
   const t1Pct = 100 - t3Pct - t2Pct;
   const predominantTier = t3 >= t2 && t3 >= t1 ? "Tier 3" : t2 >= t1 ? "Tier 2" : "Tier 1";
 
-  const filteredReportProfiles = profiles.filter(p =>
-    !reportFilter || p.profile_code.toLowerCase().includes(reportFilter.toLowerCase())
-  );
 
   return (
     <div className="flex flex-col min-h-full bg-[#f5f7f8] text-slate-900" style={{ fontFamily: "'Inter', sans-serif" }}>
@@ -1043,402 +995,6 @@ export default function AdminAquecimento() {
         </div>
       )}
 
-      {/* ── Gestão Tab (Operator Dashboard) ── */}
-      {activeTab === "gestao" && (
-        <WarmingOperatorDashboard
-          profiles={profiles}
-          tasks={tasks}
-          creatorNames={creatorNames}
-          onRefresh={fetchProfiles}
-        />
-      )}
-
-      {/* ── Relatórios Tab ── */}
-      {activeTab === "relatorios" && (
-        <main className="flex-1 px-6 md:px-8 lg:px-12 py-8 max-w-6xl mx-auto w-full space-y-8">
-          {/* Summary Metrics */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-              <p className="text-slate-500 text-sm font-medium mb-1">Total Perfis Aquecidos</p>
-              <div className="flex items-end justify-between">
-                <h3 className="text-3xl font-black text-slate-900">{totalProfiles.toLocaleString()}</h3>
-                <span className="text-slate-400 text-sm font-medium">—</span>
-              </div>
-            </div>
-            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-              <p className="text-slate-500 text-sm font-medium mb-1">Taxa de Sucesso (%)</p>
-              <div className="flex items-end justify-between">
-                <h3 className="text-3xl font-black text-slate-900">
-                  {totalProfiles > 0 ? ((completedProfiles / totalProfiles) * 100).toFixed(1) : "0.0"}%
-                </h3>
-                <span className="text-slate-400 text-sm font-medium">—</span>
-              </div>
-            </div>
-            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-              <p className="text-slate-500 text-sm font-medium mb-1">Tempo Médio Aquecimento</p>
-              <div className="flex items-end justify-between">
-                <h3 className="text-3xl font-black text-slate-900">
-                  {totalProfiles > 0 ? Math.round(profiles.reduce((acc, p) => acc + p.current_day, 0) / totalProfiles) : 0} dias
-                </h3>
-                <span className="text-slate-400 text-sm font-medium">—</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Performance Chart */}
-          <section className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-            <div className="flex justify-between items-center mb-6">
-              <h4 className="font-bold text-lg">Desempenho de Aquecimento (30 dias)</h4>
-              <div className="flex gap-4">
-                <span className="flex items-center gap-2 text-xs font-medium text-slate-500">
-                  <span className="w-3 h-2 rounded-full bg-gradient-to-r from-[#3b82f6] to-[#ef4444]" /> Frio → Quente
-                </span>
-              </div>
-            </div>
-            <div className="h-64 w-full bg-slate-50 rounded-lg flex items-center justify-center relative overflow-hidden">
-              <div className="absolute inset-0 flex items-end px-4 gap-2">
-                {[24, 40, 50, 33, 60, 66, 75, 100, 80, 86, 50, 75].map((h, i, arr) => {
-                  const t = i / (arr.length - 1);
-                  const r = Math.round(59 + t * (239 - 59));
-                  const g = Math.round(130 + t * (68 - 130));
-                  const b = Math.round(246 + t * (68 - 246));
-                  return (
-                    <div key={i} className="flex-1 rounded-t-sm" style={{ height: `${h}%`, backgroundColor: `rgb(${r},${g},${b})` }} />
-                  );
-                })}
-              </div>
-              <p className="relative z-10 text-slate-400 text-sm font-medium">Gráfico de Performance Temporal</p>
-            </div>
-          </section>
-
-          {/* Recent Reports Table */}
-          <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-slate-200 flex justify-between items-center">
-              <h4 className="font-bold text-lg">Relatórios Recentes</h4>
-              <div className="relative">
-                <input
-                  className="pl-9 pr-4 py-2 text-sm bg-slate-100 border-none rounded-lg focus:ring-2 focus:ring-slate-400 w-64"
-                  placeholder="Filtrar perfis..."
-                  type="text"
-                  value={reportFilter}
-                  onChange={(e) => setReportFilter(e.target.value)}
-                />
-                <MIcon name="search" className="absolute left-3 top-2 text-slate-400 text-sm" />
-              </div>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead className="bg-slate-50 text-slate-500 text-xs font-bold uppercase tracking-wider">
-                  <tr>
-                    <th className="px-6 py-4">Código do Perfil</th>
-                    <th className="px-6 py-4">Esteira Selecionada</th>
-                    <th className="px-6 py-4">Data de Início</th>
-                    <th className="px-6 py-4">Tempo Operador</th>
-                    <th className="px-6 py-4">Status Final</th>
-                    <th className="px-6 py-4 text-right">Ações</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-200">
-                  {filteredReportProfiles.map((p) => {
-                    const profileTasks = tasks[p.id] || [];
-                    const totalSeconds = profileTasks.reduce((acc, t) => acc + (t.duration_seconds || 0), 0);
-                    return (
-                    <tr key={p.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-6 py-4 font-medium text-slate-900">#{p.profile_code}</td>
-                      <td className="px-6 py-4">Esteira {p.track_days} dias</td>
-                      <td className="px-6 py-4">{new Date(p.start_date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })}</td>
-                      <td className="px-6 py-4">
-                        {totalSeconds > 0 ? (
-                          <span className="flex items-center gap-1 text-sm font-medium text-slate-700">
-                            <MIcon name="timer" className="text-sm text-slate-400" />
-                            {formatDuration(totalSeconds)}
-                          </span>
-                        ) : (
-                          <span className="text-slate-400 text-sm">—</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                          p.status === "completed" ? "bg-emerald-100 text-emerald-800" :
-                          p.status === "restricted" ? "bg-rose-100 text-rose-800" :
-                          "bg-blue-100 text-[#1876f2]"
-                        }`}>
-                          {p.status === "completed" ? "Sucesso" : p.status === "restricted" ? "Falha" : "Em andamento"}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <button
-                          onClick={() => { setSelectedProfileId(p.id); if (!tasks[p.id]) fetchTasks(p.id); setActiveTab("esteiras"); }}
-                          className="text-[#1876f2] font-bold text-sm hover:underline"
-                        >
-                          Ver Detalhes
-                        </button>
-                      </td>
-                    </tr>
-                    );
-                  })}
-                  {filteredReportProfiles.length === 0 && (
-                    <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-400">Nenhum perfil encontrado</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-            <div className="p-6 border-t border-slate-200 flex items-center justify-between">
-              <p className="text-sm text-slate-500">Mostrando {filteredReportProfiles.length} de {totalProfiles} resultados</p>
-              <div className="flex gap-2">
-                <button className="px-4 py-2 text-sm font-medium border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">Anterior</button>
-                <button className="px-4 py-2 text-sm font-medium border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">Próximo</button>
-              </div>
-            </div>
-          </section>
-        </main>
-      )}
-
-      {/* ── Configurações Tab ── */}
-      {activeTab === "configuracoes" && (
-        <main className="flex-1 p-6 md:p-10 max-w-5xl mx-auto w-full space-y-6">
-          <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <MIcon name="settings_accessibility" className="text-[#1876f2]" />
-                <h2 className="text-lg font-bold text-slate-900">Configuração de Ações da Esteira</h2>
-              </div>
-              <div className="flex bg-slate-100 p-1 rounded-lg">
-                {(["7_days", "15_days", "30_days"] as const).map((tk) => (
-                  <button
-                    key={tk}
-                    onClick={() => setConfigTrack(tk)}
-                    className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${
-                      configTrack === tk ? "bg-white shadow-sm text-slate-900" : "text-slate-500 hover:text-slate-800"
-                    }`}
-                  >
-                    {tk === "7_days" ? "7 Dias" : tk === "15_days" ? "15 Dias" : "30 Dias"}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="p-6 space-y-3 max-h-[400px] overflow-y-auto">
-              {configTasks[configTrack].map((task, i) => (
-                <div key={i} className="flex items-center gap-4 p-3 bg-slate-50 rounded-lg border border-slate-100">
-                  <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-blue-100 text-[#1876f2] font-bold text-xs rounded-full">
-                    {String(i + 1).padStart(2, "0")}
-                  </span>
-                  <input
-                    className="flex-1 bg-transparent border-none p-0 text-sm text-slate-900 focus:ring-0 outline-none"
-                    type="text"
-                    value={task.title}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      updateConfigTasks(prev => {
-                        const updated = { ...prev };
-                        updated[configTrack] = [...updated[configTrack]];
-                        updated[configTrack][i] = { ...updated[configTrack][i], title: val };
-                        return updated;
-                      });
-                    }}
-                  />
-                  <MIcon name="drag_indicator" className="text-slate-400 text-sm cursor-move" />
-                </div>
-              ))}
-              <div className="flex items-center gap-4 p-3 bg-slate-50 rounded-lg border border-slate-100">
-                <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-blue-100 text-[#1876f2] font-bold text-xs rounded-full">
-                  {String(configTasks[configTrack].length + 1).padStart(2, "0")}
-                </span>
-                <input
-                  id="new-track-action-input"
-                  className="flex-1 bg-transparent border-none p-0 text-sm text-slate-900 focus:ring-0 outline-none placeholder:text-slate-400 placeholder:italic"
-                  type="text"
-                  placeholder={`Adicionar nova ação para o Dia ${configTasks[configTrack].length + 1}...`}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && (e.target as HTMLInputElement).value.trim()) {
-                      const newTitle = (e.target as HTMLInputElement).value.trim();
-                      updateConfigTasks(prev => {
-                        const updated = { ...prev };
-                        updated[configTrack] = [...updated[configTrack], { title: newTitle, description: "" }];
-                        return updated;
-                      });
-                      (e.target as HTMLInputElement).value = "";
-                    }
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    const input = document.getElementById("new-track-action-input") as HTMLInputElement;
-                    if (input && input.value.trim()) {
-                      const newTitle = input.value.trim();
-                      updateConfigTasks(prev => {
-                        const updated = { ...prev };
-                        updated[configTrack] = [...updated[configTrack], { title: newTitle, description: "" }];
-                        return updated;
-                      });
-                      input.value = "";
-                    }
-                  }}
-                  className="text-[#1876f2] hover:text-blue-700 transition-colors"
-                >
-                  <MIcon name="add_circle" className="text-xl" />
-                </button>
-              </div>
-            </div>
-          </section>
-
-          {/* Definição de Trust Tiers */}
-           <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <MIcon name="verified_user" className="text-[#1876f2]" />
-                <h2 className="text-lg font-bold text-slate-900">Definição de Níveis de Confiança</h2>
-              </div>
-              <button
-                onClick={() => setTrustTiers([...trustTiers, { label: `Nível ${trustTiers.length + 1}`, color: "bg-slate-100 text-slate-700", range: "0 - 0", criteria: "" }])}
-                className="flex items-center gap-1 text-[#1876f2] text-sm font-bold hover:underline"
-              >
-                <MIcon name="add_circle" className="text-sm" /> Adicionar
-              </button>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="bg-slate-50">
-                    <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Nível</th>
-                    <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Faixa de Score</th>
-                    <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Critérios de Validação</th>
-                    <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px] w-16"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {trustTiers.map((tier, i) => (
-                    <tr key={i} className="group">
-                      <td className="px-6 py-4">
-                        <input
-                          className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${tier.color} border-none outline-none bg-transparent w-full max-w-[220px]`}
-                          value={tier.label}
-                          onChange={(e) => { const t = [...trustTiers]; t[i] = { ...t[i], label: e.target.value }; setTrustTiers(t); }}
-                        />
-                      </td>
-                      <td className="px-6 py-4">
-                        <input
-                          className="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-xs w-20 text-slate-900"
-                          value={tier.range}
-                          onChange={(e) => { const t = [...trustTiers]; t[i] = { ...t[i], range: e.target.value }; setTrustTiers(t); }}
-                        />
-                      </td>
-                      <td className="px-6 py-4">
-                        <input
-                          className="w-full bg-transparent border-none p-0 text-xs text-slate-700 focus:ring-0 outline-none"
-                          value={tier.criteria}
-                          onChange={(e) => { const t = [...trustTiers]; t[i] = { ...t[i], criteria: e.target.value }; setTrustTiers(t); }}
-                        />
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        {trustTiers.length > 1 && (
-                          <button
-                            onClick={() => setTrustTiers(trustTiers.filter((_, idx) => idx !== i))}
-                            className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 transition-all"
-                          >
-                            <MIcon name="delete" className="text-base" />
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-
-          {/* Zerar Esteiras e Perfis */}
-          <section className="bg-white rounded-xl shadow-sm border border-red-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-red-100 flex items-center gap-3">
-              <MIcon name="warning" className="text-red-500" />
-              <h2 className="text-lg font-bold text-red-700">Zona de Perigo</h2>
-            </div>
-            <div className="p-6 space-y-4">
-              <div className="bg-red-50 border border-red-100 rounded-lg p-4">
-                <h3 className="font-bold text-sm text-red-800 mb-1">Zerar todas as Esteiras e Perfis</h3>
-                <p className="text-xs text-red-600 mb-4">
-                  Esta ação irá <strong>excluir permanentemente</strong> todos os perfis de aquecimento e suas tarefas associadas. Não é possível desfazer.
-                </p>
-                {!showResetConfirm ? (
-                  <button
-                    onClick={() => setShowResetConfirm(true)}
-                    className="flex items-center gap-2 bg-red-600 text-white font-bold text-sm px-5 py-2.5 rounded-lg hover:bg-red-700 transition-colors"
-                  >
-                    <MIcon name="delete_forever" className="text-base" />
-                    Zerar Tudo
-                  </button>
-                ) : (
-                  <div className="space-y-3 bg-white p-4 rounded-lg border border-red-200">
-                    <p className="text-xs font-bold text-red-800">Para confirmar, digite sua senha de administrador:</p>
-                    <input
-                      type="password"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-red-400/30 outline-none"
-                      placeholder="Senha do admin"
-                      value={resetPassword}
-                      onChange={(e) => setResetPassword(e.target.value)}
-                    />
-                    {resetError && <p className="text-xs text-red-600 font-medium">{resetError}</p>}
-                    <div className="flex gap-3">
-                      <button
-                        onClick={handleResetAll}
-                        disabled={resetting || !resetPassword}
-                        className="flex items-center gap-2 bg-red-600 text-white font-bold text-sm px-5 py-2 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
-                      >
-                        {resetting ? (
-                          <><MIcon name="hourglass_empty" className="text-base animate-spin" /> Zerando...</>
-                        ) : (
-                          <><MIcon name="delete_forever" className="text-base" /> Confirmar Reset</>
-                        )}
-                      </button>
-                      <button
-                        onClick={() => { setShowResetConfirm(false); setResetPassword(""); setResetError(""); }}
-                        className="px-5 py-2 text-sm font-bold text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
-                      >
-                        Cancelar
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </section>
-
-          {/* Integrações de API */}
-          <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-3">
-              <MIcon name="api" className="text-[#1876f2]" />
-              <h2 className="text-lg font-bold text-slate-900">Integrações de API</h2>
-            </div>
-            <div className="p-6 space-y-5">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Facebook App ID</label>
-                  <input className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-slate-400/20 outline-none" placeholder="Ex: 827419230192" type="text" />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Facebook App Secret</label>
-                  <input className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-sm text-slate-900 focus:ring-2 focus:ring-slate-400/20 outline-none" type="password" defaultValue="••••••••••••••••" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Token da API de Conversão do Pixel</label>
-                <div className="relative">
-                  <input className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-sm pr-12 text-slate-900 focus:ring-2 focus:ring-slate-400/20 outline-none" type="text" defaultValue="EAAGm0PX4ZCpsBAK7ZA9Bf7ZB8qZC4ZB9ZA..." />
-                  <button
-                    onClick={() => { navigator.clipboard.writeText("EAAGm0PX4ZCpsBAK7ZA9Bf7ZB8qZC4ZB9ZA..."); toast.success("Token copiado"); }}
-                    className="absolute right-2 top-1.5 p-1 text-slate-400 hover:text-slate-700 transition-colors"
-                  >
-                    <MIcon name="content_copy" className="text-base" />
-                  </button>
-                </div>
-                <p className="text-[10px] text-slate-400 mt-2 italic">Mantenha seus tokens seguros. Nunca compartilhe estas chaves com terceiros.</p>
-              </div>
-            </div>
-          </section>
-
-        </main>
-      )}
 
     </div>
   );
