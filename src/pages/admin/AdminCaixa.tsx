@@ -89,6 +89,14 @@ export default function AdminCaixa() {
   const [history, setHistory] = useState<CashRecord[]>([]);
   const [reopening, setReopening] = useState(false);
 
+  // Expanded history detail
+  const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null);
+  const [historyMovements, setHistoryMovements] = useState<CashMovement[]>([]);
+  const [histRetroType, setHistRetroType] = useState<"entry" | "exit">("entry");
+  const [histRetroAmount, setHistRetroAmount] = useState("");
+  const [histRetroDesc, setHistRetroDesc] = useState("");
+  const [addingHistRetro, setAddingHistRetro] = useState(false);
+
   // Open form
   const [openingBalanceInput, setOpeningBalanceInput] = useState("");
 
