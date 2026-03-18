@@ -965,7 +965,29 @@ export default function AdminAquecimento() {
           </section>
 
           <section className="lg:col-span-7">
-            {loading ? (
+            {operationMode === "register" ? (
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8 text-center">
+                <MIcon name="person_add" className="text-amber-400 text-4xl" />
+                <p className="text-sm font-bold text-slate-700 mt-3">Modo Cadastro Ativo</p>
+                <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
+                  Os perfis informados serão apenas cadastrados na esteira. Para executar tarefas, alterne para <strong>"Executar Tarefas"</strong>.
+                </p>
+                {profiles.filter(p => p.status === "active").length > 0 && (
+                  <div className="mt-4 text-left max-w-sm mx-auto">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Últimos cadastrados</p>
+                    <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                      {profiles.filter(p => p.status === "active").slice(0, 8).map(p => (
+                        <div key={p.id} className="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-1.5">
+                          <MIcon name="check_circle" className="text-emerald-500 text-sm" />
+                          <span className="text-xs font-bold text-slate-700">{p.profile_code}</span>
+                          <span className="text-[10px] text-slate-400 ml-auto">{TRACKS[p.track_type]?.label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : loading ? (
               <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8 text-center">
                 <MIcon name="hourglass_empty" className="text-slate-300 text-3xl" />
                 <p className="text-slate-500 text-xs mt-2">Carregando...</p>
