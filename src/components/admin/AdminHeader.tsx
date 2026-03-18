@@ -37,6 +37,30 @@ export function AdminHeader() {
   const initialLoadDoneRef = useRef(false);
   const audioUnlockedRef = useRef(false);
 
+  // Fetch user profile on mount
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name, avatar_url")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (profile) {
+          setUserName(profile.full_name || user.email || "Admin");
+          setAvatarUrl(profile.avatar_url);
+        } else {
+          setUserName(user.email || "Admin");
+        }
+      } catch {
+        setUserName("Admin");
+      }
+    };
+    loadProfile();
+  }, []);
+
   // Notification sounds from DB
   const soundCacheRef = useRef<Record<string, string>>({});
 
