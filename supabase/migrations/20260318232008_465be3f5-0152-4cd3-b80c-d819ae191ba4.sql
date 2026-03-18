@@ -1,0 +1,4 @@
+INSERT INTO public.safe_bm_vaults (user_id, bm_name, bm_link, perfil_backup, purchase_date, protection_start, link_regenerations, status, subscription_price, notes, client_name)
+VALUES 
+('51d84540-066d-4f6d-b06b-a4c6156474c3', 'BM Principal - Fabricio', 'https://business.facebook.com/settings/ad-accounts/1234567890', 'perfil_backup_01', now(), now(), 0, 'active', 9.99, 'Assinatura teste Safe BM', 'Fabricio Nedino'),
+('51d84540-066d-4f6d-b06b-a4c6156474c3', 'BM Secundária - Campanhas', 'https://business.facebook.com/settings/ad-accounts/9876543210', 'perfil_backup_02', now(), now() - interval '20 days', 2, 'active', 9.99, 'BM de campanhas ativas', 'Fabricio Nedino');
