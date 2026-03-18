@@ -279,7 +279,9 @@ export default function AdminSafeBM() {
               Novas Ativações (7D)
             </p>
             <p className="text-2xl font-bold text-foreground">{newActivations7d}</p>
-            <p className="text-xs text-muted-foreground mt-1">Crescimento acelerado nesta semana</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {newActivations7d > 0 ? "Crescimento nesta semana" : "Sem ativações nos últimos 7 dias"}
+            </p>
           </CardContent>
         </Card>
 
