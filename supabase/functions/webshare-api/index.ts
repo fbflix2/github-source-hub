@@ -1325,6 +1325,182 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ========== MIGRATE PROXYBR RENEWAL → WEBSHARE ==========
+    if (action === "migrate-proxybr-renewal") {
+      const { subscription_name } = params as { subscription_name: string };
+      if (!subscription_name) throw new Error("subscription_name é obrigatório");
+
+      // 1. Find the ProxyBR subscription in DB
+      const { data: existingSub, error: subFetchErr } = await supabaseAdmin
+        .from("subscriptions")
+        .select("*, products:product_id(name, price, tags)")
+        .eq("user_id", user.id)
+        .eq("name", subscription_name)
+        .eq("type", "proxybr")
+        .single();
+
+      if (subFetchErr || !existingSub) throw new Error("Assinatura ProxyBR não encontrada");
+      if (!["expired", "cancelled"].includes(existingSub.status) && existingSub.end_date) {
+        const endDate = new Date(existingSub.end_date);
+        if (endDate > new Date()) throw new Error("Esta assinatura ainda está ativa");
+      }
+
+      // 2. Detect country from raw_data or product
+      const raw = (existingSub.raw_data || {}) as Record<string, any>;
+      const productInfo = existingSub.products as any;
+      let targetCountry = "BR"; // default
+      const productName = (productInfo?.name || raw.product?.name || raw.product_name || existingSub.name || "").toLowerCase();
+      if (productName.includes("us") || productName.includes("estados unidos") || productName.includes("usa")) {
+        targetCountry = "US";
+      }
+      // Also check raw_data proxy country
+      const rawCountry = raw.proxies?.data?.[0]?.country_code || raw.country_code;
+      if (rawCountry) targetCountry = rawCountry.toUpperCase();
+
+      console.log(`[migrate-proxybr] Sub=${subscription_name} country=${targetCountry}`);
+
+      // 3. Find Webshare product price for equivalent product
+      const { data: wsProducts } = await supabaseAdmin
+        .from("products")
+        .select("id, name, price, tags")
+        .eq("available", true)
+        .ilike("name", "%proxy%");
+
+      // Match by country
+      let matchedProduct: any = null;
+      for (const p of (wsProducts || [])) {
+        const pName = p.name.toLowerCase();
+        const pTags = (p.tags || []) as string[];
+        const isWebshare = pName.includes("residencial") || pName.includes("webshare") || pTags.some((t: string) => t.toLowerCase() === "webshare");
+        if (!isWebshare) continue;
+        
+        const pCountry = detectCountryFromProduct(p);
+        if (pCountry === targetCountry) {
+          matchedProduct = p;
+          break;
+        }
+      }
+
+      // Fallback: any webshare proxy product
+      if (!matchedProduct) {
+        matchedProduct = (wsProducts || []).find((p: any) => {
+          const pName = p.name.toLowerCase();
+          return pName.includes("residencial") || pName.includes("webshare");
+        });
+      }
+
+      const renewalPrice = matchedProduct?.price || productInfo?.price || 25;
+      console.log(`[migrate-proxybr] Renewal price: R$${renewalPrice} product=${matchedProduct?.name || "fallback"}`);
+
+      // 4. Check wallet balance
+      const { data: profile } = await supabaseAdmin
+        .from("profiles")
+        .select("balance, full_name")
+        .eq("user_id", user.id)
+        .single();
+
+      if (!profile) throw new Error("Perfil não encontrado");
+      if (profile.balance < renewalPrice) throw new Error(`Saldo insuficiente. Necessário: R$ ${renewalPrice.toFixed(2)}, disponível: R$ ${profile.balance.toFixed(2)}`);
+
+      // 5. Fetch available Webshare proxies
+      const allProxies: any[] = [];
+      let pg = 1;
+      while (true) {
+        const resp = await webFetch(`/proxy/list/?mode=direct&page=${pg}&page_size=250`, WEBSHARE_API_KEY);
+        const data = await resp.json();
+        if (!resp.ok) throw new Error(`Webshare API error [${resp.status}]`);
+        if (data.results?.length) allProxies.push(...data.results);
+        if (!data.next) break;
+        pg++;
+      }
+
+      // Get assigned proxy IDs
+      const { data: existSubs } = await supabaseAdmin
+        .from("subscriptions").select("raw_data")
+        .eq("type", "webshare").in("status", ["active", "expiring"]);
+      const assignedIds = new Set<string>();
+      for (const s of (existSubs || [])) {
+        const r = (s.raw_data || {}) as Record<string, any>;
+        if (r.webshare_proxy_id) assignedIds.add(r.webshare_proxy_id);
+      }
+
+      let available = allProxies.filter(p => p.valid && !assignedIds.has(p.id));
+      const countryFiltered = available.filter(p => p.country_code?.toUpperCase() === targetCountry);
+      if (countryFiltered.length === 0) throw new Error(`Nenhum proxy ${targetCountry} disponível no momento`);
+      const assignedProxy = countryFiltered[0];
+
+      // 6. Update the subscription: change type to webshare, new dates, new proxy
+      const startDate = new Date();
+      const endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + 30);
+
+      const { error: updateErr } = await supabaseAdmin
+        .from("subscriptions")
+        .update({
+          type: "webshare",
+          status: "active",
+          start_date: startDate.toISOString(),
+          end_date: endDate.toISOString(),
+          product_id: matchedProduct?.id || existingSub.product_id,
+          cancelled_at: null,
+          updated_at: new Date().toISOString(),
+          raw_data: {
+            webshare_proxy_id: assignedProxy.id,
+            proxy_address: assignedProxy.proxy_address,
+            port: assignedProxy.port,
+            username: assignedProxy.username,
+            password: assignedProxy.password,
+            country_code: assignedProxy.country_code,
+            city_name: assignedProxy.city_name,
+            provider: "webshare",
+            exchange_quota_free: 2,
+            exchange_quota_pay: 0,
+            migrated_from: "proxybr",
+            original_name: existingSub.name,
+            original_raw_data: raw,
+            profile_tag: raw.profile_tag || null,
+          },
+        })
+        .eq("id", existingSub.id);
+
+      if (updateErr) throw new Error(`Erro ao atualizar assinatura: ${updateErr.message}`);
+
+      // 7. Debit wallet
+      const newBalance = profile.balance - renewalPrice;
+      await supabaseAdmin.from("profiles").update({ balance: newBalance }).eq("user_id", user.id);
+
+      // 8. Record wallet transaction
+      await supabaseAdmin.from("wallet_transactions").insert({
+        user_id: user.id,
+        type: "purchase",
+        title: `Renovação Proxy ${subscription_name}`,
+        amount: -renewalPrice,
+        balance_after: newBalance,
+        reference_id: existingSub.id,
+      });
+
+      // 9. Admin notification
+      const clientName = profile.full_name || "Cliente";
+      await supabaseAdmin.from("notifications").insert({
+        title: "Migração ProxyBR → Webshare",
+        message: `${clientName} renovou ${subscription_name} • R$ ${renewalPrice.toFixed(2)} • ${assignedProxy.proxy_address}:${assignedProxy.port} (${targetCountry})`,
+        type: "order",
+        global: true,
+      });
+
+      console.log(`[migrate-proxybr] Success: ${subscription_name} → Webshare proxy ${assignedProxy.id}`);
+
+      return new Response(JSON.stringify({
+        success: true,
+        subscription_name,
+        new_proxy: `${assignedProxy.proxy_address}:${assignedProxy.port}:${assignedProxy.username}:${assignedProxy.password}`,
+        price: renewalPrice,
+        migrated: true,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     throw new Error(`Ação desconhecida: ${action}`);
   } catch (err: any) {
     console.error("[webshare-api] Error:", err.message);
