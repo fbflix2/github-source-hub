@@ -260,7 +260,7 @@ export default function Subscriptions() {
               formattedStart={sub.formattedStart}
               formattedEnd={sub.formattedEnd}
               onRenew={() => handleRenew(sub)}
-              isRenewing={renewMutation.isPending}
+              isRenewing={renewMutation.isPending || migrateMutation.isPending}
               profileTag={sub.profile_tag}
             />
           ))}
