@@ -902,24 +902,26 @@ export default function AdminAquecimento() {
               </div>
             </div>
 
-            {profiles.length > 1 && (
+            {profiles.filter(p => p.status === "active").length > 0 && (
               <div className="mt-3 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                 <div className="px-4 py-2.5 border-b border-slate-100">
-                  <h3 className="text-xs font-bold text-slate-600">Perfis em Aquecimento</h3>
+                  <h3 className="text-xs font-bold text-slate-600">
+                    {operationMode === "execute" ? "Fila de Aquecimento" : "Perfis em Aquecimento"}
+                  </h3>
                 </div>
-                <div className="max-h-40 overflow-y-auto">
-                  {profiles.map((p) => {
+                <div className="max-h-52 overflow-y-auto">
+                  {[...profiles].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()).filter(p => p.status === "active").map((p) => {
                     const prog = getProgress(p);
                     const isSelected = selectedProfileId === p.id;
                     return (
                       <div
                         key={p.id}
                         onClick={() => { setSelectedProfileId(p.id); if (!tasks[p.id]) fetchTasks(p.id); }}
-                        className={`flex items-center gap-2.5 px-4 py-2 cursor-pointer border-b border-slate-50 transition-colors ${isSelected ? "bg-slate-100" : "hover:bg-slate-50"}`}
+                        className={`flex items-center gap-2.5 px-4 py-2 cursor-pointer border-b border-slate-50 transition-colors ${isSelected ? "bg-blue-50 border-l-2 border-l-[#1876f2]" : "hover:bg-slate-50"}`}
                       >
                         <MIcon
-                          name={p.status === "completed" ? "check_circle" : p.status === "restricted" ? "warning" : "play_circle"}
-                          className={`text-base ${p.status === "completed" ? "text-green-500" : p.status === "restricted" ? "text-red-500" : "text-[#1876f2]"}`}
+                          name={isSelected && isTimerActive ? "timer" : "play_circle"}
+                          className={`text-base ${isSelected ? "text-[#1876f2]" : "text-slate-400"}`}
                         />
                         <div className="flex-grow min-w-0">
                           <p className="text-xs font-bold text-slate-900 truncate">{p.profile_code}</p>
@@ -929,12 +931,11 @@ export default function AdminAquecimento() {
                           </p>
                         </div>
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                          p.status === "active" ? "bg-blue-100 text-[#1876f2]" :
-                          p.status === "completed" ? "bg-green-50 text-green-600" :
-                          p.status === "restricted" ? "bg-red-50 text-red-600" :
-                          "bg-yellow-50 text-yellow-600"
+                          isSelected && isTimerActive ? "bg-amber-100 text-amber-700" :
+                          isSelected ? "bg-blue-100 text-[#1876f2]" :
+                          "bg-slate-100 text-slate-500"
                         }`}>
-                          {p.status === "active" ? "Ativo" : p.status === "completed" ? "Concluído" : p.status === "restricted" ? "Restrição" : "Pausado"}
+                          {isSelected && isTimerActive ? "Em execução" : isSelected ? "Selecionado" : "Na fila"}
                         </span>
                       </div>
                     );
