@@ -309,9 +309,18 @@ export default function AdminAquecimento() {
 
   const handleCreate = async () => {
     if (!profileCode.trim()) { toast.error("Digite o código do perfil"); return; }
+    // Check for duplicate profile code
+    const { data: existing } = await supabase
+      .from("warming_profiles")
+      .select("id")
+      .eq("profile_code", profileCode.trim())
+      .maybeSingle();
+    if (existing) {
+      toast.error(`O perfil "${profileCode.trim()}" já está cadastrado. Use outro código.`);
+      return;
+    }
     setCreating(true);
     const track = TRACKS[selectedTrack];
-    // Use tasks from Configurações (configTasks) instead of hardcoded TRACKS
     const customTasks = configTasks[selectedTrack] || [];
     const tasksToUse = customTasks.length > 0 ? customTasks : track.tasks;
     const { data: { user } } = await supabase.auth.getUser();
