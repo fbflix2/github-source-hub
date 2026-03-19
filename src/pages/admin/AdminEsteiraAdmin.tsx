@@ -293,7 +293,7 @@ export default function AdminEsteiraAdmin() {
       </section>
 
       {/* Tabs */}
-      <nav className="sticky top-0 z-50 bg-white border-b border-slate-200 px-6 md:px-12 lg:px-40">
+      <nav className="sticky top-0 z-50 bg-white dark:bg-[#111] border-b border-slate-200 dark:border-white/10 px-6 md:px-12 lg:px-40">
         <div className="max-w-[1200px] mx-auto flex gap-8">
           {tabs.map((tab) => (
             <button
@@ -301,8 +301,8 @@ export default function AdminEsteiraAdmin() {
               onClick={() => setActiveTab(tab.key)}
               className={`flex items-center gap-2 border-b-[3px] pb-4 pt-5 font-bold text-sm tracking-wide transition-colors ${
                 activeTab === tab.key
-                  ? "border-[#1876f2] text-slate-900"
-                  : "border-transparent text-slate-500 hover:text-slate-800"
+                  ? "border-[#1876f2] text-slate-900 dark:text-white"
+                  : "border-transparent text-slate-500 dark:text-white/50 hover:text-slate-800 dark:hover:text-white/80"
               }`}
             >
               {tab.label}
