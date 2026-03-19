@@ -842,7 +842,7 @@ export default function AdminAquecimento() {
                         disabled={creating || !profileCode.trim()}
                         className="w-full bg-[#1876f2] hover:bg-[#1565c0] text-white font-bold py-3 rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50"
                       >
-                        <MIcon name="play_arrow" className="text-lg" />
+                        <MIcon name="local_fire_department" className="text-lg" />
                         {creating ? "Cadastrando..." : "Iniciar Tarefas"}
                       </button>
                     )}
