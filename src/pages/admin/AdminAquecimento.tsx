@@ -781,7 +781,7 @@ export default function AdminAquecimento() {
               </div>
               <div className="p-5 space-y-4">
                 {/* Mode toggle */}
-                <div className="flex items-center bg-slate-100 rounded-lg p-1 gap-1">
+                <div className="flex items-center bg-slate-100 dark:bg-white/10 rounded-lg p-1 gap-1">
                   <button
                     onClick={() => setOperationMode("register")}
                     className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-bold transition-all ${
