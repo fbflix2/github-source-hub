@@ -252,19 +252,19 @@ export default function WarmingSessionTimer({
   const totalTime = tasks.reduce((acc, t) => acc + (t.completed ? (t.duration_seconds || 0) : 0), 0);
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+    <div className="bg-white dark:bg-black rounded-xl shadow-sm border border-slate-200 dark:border-white/10 overflow-hidden">
       {/* Header */}
-      <div className="px-5 py-3.5 border-b border-slate-100">
+      <div className="px-5 py-3.5 border-b border-slate-100 dark:border-white/10">
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2 mb-0.5">
               <MIcon name="local_fire_department" className="text-orange-500 text-lg" />
-              <h2 className="text-base font-bold text-slate-900">
+              <h2 className="text-base font-bold text-slate-900 dark:text-white">
                 {profile.profile_code}
                 {profile.profile_name && ` — ${profile.profile_name}`}
               </h2>
             </div>
-            <p className="text-xs text-slate-500 font-medium">
+            <p className="text-xs text-slate-500 dark:text-white/50 font-medium">
               {trackLabel} • {completedCount}/{tasks.length} tarefas
               {profile.trust_tier && <span className="ml-2 text-purple-600 font-bold">• {profile.trust_tier}</span>}
             </p>
@@ -332,10 +332,10 @@ export default function WarmingSessionTimer({
         {/* Progress bar */}
         <div className="mt-3">
           <div className="flex justify-between items-center mb-1.5">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Progresso</span>
-            <span className="text-sm font-black text-slate-800">{progress}%</span>
+            <span className="text-[10px] font-bold text-slate-500 dark:text-white/50 uppercase tracking-wider">Progresso</span>
+            <span className="text-sm font-black text-slate-800 dark:text-white">{progress}%</span>
           </div>
-          <div className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden">
+          <div className="h-2.5 w-full bg-slate-100 dark:bg-white/10 rounded-full overflow-hidden">
             <div
               className="h-full rounded-full transition-all duration-500"
               style={{
@@ -362,24 +362,24 @@ export default function WarmingSessionTimer({
             <div
               className={`rounded-xl border transition-all ${
                 isDelayingTask
-                  ? "bg-amber-50 border-amber-300 ring-2 ring-amber-200/40 shadow-sm"
+                  ? "bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-500/30 ring-2 ring-amber-200/40 shadow-sm"
                   : isRunning
-                  ? "bg-blue-50 border-[#1876f2]/40 ring-2 ring-[#1876f2]/20 shadow-sm"
-                  : "bg-white border-slate-200 shadow-sm"
+                  ? "bg-blue-50 dark:bg-blue-900/20 border-[#1876f2]/40 ring-2 ring-[#1876f2]/20 shadow-sm"
+                  : "bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 shadow-sm"
               }`}
             >
               <div className="flex items-center gap-3 px-4 py-3">
                 <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-black shrink-0 ${
                   isDelayingTask ? "bg-amber-400 text-white animate-pulse" :
                   isRunning ? "bg-[#1876f2] text-white animate-pulse" :
-                  "bg-slate-200 text-slate-700"
+                  "bg-slate-200 dark:bg-white/10 text-slate-700 dark:text-white"
                 }`}>
                   {isDelayingTask ? <MIcon name="hourglass_top" className="text-base animate-spin" /> :
                    `D${task.day_number}`}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-slate-900">{task.title}</p>
-                  <p className="text-[11px] text-slate-500">{task.description}</p>
+                  <p className="text-sm font-bold text-slate-900 dark:text-white">{task.title}</p>
+                  <p className="text-[11px] text-slate-500 dark:text-white/50">{task.description}</p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   {isDelayingTask && (
@@ -396,7 +396,7 @@ export default function WarmingSessionTimer({
               </div>
               {isRunning && (
                 <div className="px-4 pb-3">
-                  <div className="h-1 w-full bg-blue-100 rounded-full overflow-hidden">
+                  <div className="h-1 w-full bg-blue-100 dark:bg-white/10 rounded-full overflow-hidden">
                     <div className="h-full bg-[#1876f2] rounded-full animate-pulse" style={{ width: "100%" }} />
                   </div>
                 </div>
