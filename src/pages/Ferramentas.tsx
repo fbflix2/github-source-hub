@@ -110,11 +110,6 @@ const BG_IMAGES = {
 function ToolsInfoBanner({ hasSafeBm }: { hasSafeBm: boolean }) {
   const navigate = useNavigate();
 
-  const tools = [
-    { icon: "security", name: "Gerador 2FA", desc: "Códigos TOTP instantâneos para proteger suas contas." },
-    { icon: "how_to_reg", name: "Verificador de Perfis", desc: "Cheque o status de múltiplas contas em segundos." },
-    { icon: "article", name: "Emissor de Documentos", desc: "Documentos personalizados para verificação de contas." },
-  ];
 
   return (
     <section className="max-w-4xl mx-auto space-y-4">
@@ -181,21 +176,6 @@ function ToolsInfoBanner({ hasSafeBm }: { hasSafeBm: boolean }) {
             </button>
           )}
         </div>
-      </div>
-
-      {/* Other Tools Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        {tools.map(t => (
-          <div key={t.name} className="rounded-xl p-4 flex items-start gap-3" style={glassCardStyle}>
-            <div className="relative z-10 w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-              <MaterialIcon name={t.icon} className="text-lg" />
-            </div>
-            <div className="relative z-10">
-              <h4 className="text-sm font-bold text-white mb-0.5">{t.name}</h4>
-              <p className="text-[11px] text-slate-400 leading-relaxed">{t.desc}</p>
-            </div>
-          </div>
-        ))}
       </div>
     </section>
   );
