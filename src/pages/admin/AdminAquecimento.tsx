@@ -905,7 +905,7 @@ export default function AdminAquecimento() {
                         />
                         <div className="flex-grow min-w-0">
                           <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{p.profile_code}</p>
-                          <p className="text-[11px] text-slate-500">
+                          <p className="text-[11px] text-slate-500 dark:text-white/50">
                             {TRACKS[p.track_type]?.label} • {prog}%
                             {p.created_by && creatorNames[p.created_by] && <span className="ml-1 text-[#1876f2]">• {creatorNames[p.created_by]}</span>}
                           </p>
