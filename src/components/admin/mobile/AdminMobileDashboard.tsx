@@ -110,6 +110,8 @@ export function AdminMobileDashboard() {
         .filter(o => new Date(o.created_at) >= todayStart)
         .reduce((sum, o) => sum + (o.total || 0), 0);
 
+      setAllCompletedOrders(completedOrds.map(o => ({ total: o.total || 0, created_at: o.created_at })));
+
       // Build chart from REAL payment data (last 7 days, grouped by day)
       const payments = paymentsRes.data ?? [];
       const dayMap: Record<string, number> = {};
