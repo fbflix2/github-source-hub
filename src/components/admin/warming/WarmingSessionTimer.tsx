@@ -252,7 +252,7 @@ export default function WarmingSessionTimer({
   const totalTime = tasks.reduce((acc, t) => acc + (t.completed ? (t.duration_seconds || 0) : 0), 0);
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+    <div className="bg-white dark:bg-black rounded-xl shadow-sm border border-slate-200 dark:border-white/10 overflow-hidden">
       {/* Header */}
       <div className="px-5 py-3.5 border-b border-slate-100">
         <div className="flex items-center justify-between">
