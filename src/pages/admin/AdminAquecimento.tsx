@@ -808,7 +808,7 @@ export default function AdminAquecimento() {
                 {operationMode === "register" && (
                   <>
                     <div>
-                      <label className="block text-xs font-semibold text-slate-600 mb-1.5">Código do Perfil</label>
+                      <label className="block text-xs font-semibold text-slate-600 dark:text-white/60 mb-1.5">Código do Perfil</label>
                       <div className="relative">
                         <MIcon name="fingerprint" className="absolute left-3 top-2.5 text-slate-400 text-lg" />
                         <input
