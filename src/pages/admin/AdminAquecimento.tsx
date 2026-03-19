@@ -883,9 +883,9 @@ export default function AdminAquecimento() {
             </div>
 
             {visibleProfiles.filter(p => p.status === "active").length > 0 && (
-              <div className="mt-3 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                <div className="px-4 py-2.5 border-b border-slate-100">
-                  <h3 className="text-xs font-bold text-slate-600">
+              <div className="mt-3 bg-white dark:bg-white/5 rounded-xl shadow-sm border border-slate-200 dark:border-white/10 overflow-hidden">
+                <div className="px-4 py-2.5 border-b border-slate-100 dark:border-white/10">
+                  <h3 className="text-xs font-bold text-slate-600 dark:text-white/60">
                     {operationMode === "execute" ? "Fila de Aquecimento" : "Perfis em Aquecimento"}
                   </h3>
                 </div>
