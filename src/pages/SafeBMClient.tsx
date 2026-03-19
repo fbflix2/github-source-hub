@@ -217,137 +217,92 @@ export default function SafeBMClient() {
             return (
               <div
                 key={v.id}
-                className={`group rounded-xl bg-[#1c2025] border border-[#5d3f3b]/5 ${borderHoverColor} transition-all duration-300 p-3 flex flex-col justify-between`}
+                className={`group relative rounded-2xl overflow-hidden border border-[#ffb4aa]/20 ${borderHoverColor} bg-gradient-to-b from-[#1c2025] to-[#14171b] p-0 flex flex-col transition-all duration-300`}
               >
-                <div>
-                  <div className="flex justify-between items-start mb-2">
-                    <div className={`w-8 h-8 rounded-lg bg-[#31353b] flex items-center justify-center ${iconColor} group-hover:scale-110 transition-transform`}>
-                      <MaterialIcon name={iconName} className="!text-xl" />
+                {/* Vault door silhouette */}
+                <div className="relative flex items-center justify-center pt-5 pb-3">
+                  <div className={`relative w-20 h-20 rounded-full border-[3px] ${isExpiringSoon ? 'border-[#ffb4ab]/40' : 'border-[#ffb4aa]/30'} flex items-center justify-center bg-[#0a0e13]/60 shadow-[0_0_30px_rgba(255,180,170,0.08)]`}>
+                    <div className="w-12 h-12 rounded-full border-2 border-[#ffb4aa]/20 flex items-center justify-center bg-[#1c2025]">
+                      <div className={`w-6 h-6 rounded-full bg-gradient-to-br ${isExpiringSoon ? 'from-[#ffb4ab] to-[#ff6b5a]' : 'from-[#ffb4aa] to-[#ff8a7a]'} flex items-center justify-center shadow-lg shadow-[#ffb4aa]/20`}>
+                        <MaterialIcon name={isExpiringSoon ? "warning" : isActive ? "lock" : "shield"} className="!text-[14px] text-[#410001]" />
+                      </div>
                     </div>
-                    {isExpiringSoon ? (
-                      <div className="px-2 py-0.5 rounded-full bg-[#93000a] text-[#ffdad6] text-[9px] font-bold uppercase tracking-wider">
-                        Expiração Crítica
-                      </div>
-                    ) : isActive ? (
-                      <div className="px-2 py-0.5 rounded-full bg-[#ffb4aa]/10 text-[#ffb4aa] text-[9px] font-bold uppercase tracking-wider">
-                        Protegido
-                      </div>
-                    ) : (
-                      <div className="px-2 py-0.5 rounded-full bg-[#c6c6c7]/10 text-[#c6c6c7] text-[9px] font-bold uppercase tracking-wider">
-                        Inativo
-                      </div>
-                    )}
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[2px] h-2 bg-[#ffb4aa]/40 rounded-full" />
+                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[2px] h-2 bg-[#ffb4aa]/40 rounded-full" />
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 h-[2px] w-2 bg-[#ffb4aa]/40 rounded-full" />
+                    <div className="absolute right-0 top-1/2 -translate-y-1/2 h-[2px] w-2 bg-[#ffb4aa]/40 rounded-full" />
                   </div>
-
-                  <h4 className="text-xs font-bold mb-0.5" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{v.bm_name}</h4>
-                  <p className="text-[9px] text-[#c6c6c7]/50 mb-2 font-mono">ID: {bmId}</p>
-
-                  <div className="space-y-1 mb-2">
-                    <div className="flex justify-between text-[10px]">
-                      {isExpiringSoon ? (
-                        <span className="text-[#ffb4ab] font-bold">Expira em {Math.max(0, 30 - daysSinceProtection)}d</span>
-                      ) : (
-                        <span className="text-[#c6c6c7]/60">Data de Expiração</span>
-                      )}
-                      <span className="text-[#e0e2ea] font-medium">
-                        {format(new Date(v.protection_start), "dd MMM yyyy", { locale: ptBR })}
-                      </span>
-                    </div>
-                    <div className="w-full bg-[#0a0e13] h-1 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full ${isExpiringSoon ? 'bg-[#ffb4ab]' : isActive ? 'bg-[#ffb4aa]' : 'bg-[#c6c6c7]/30'}`}
-                        style={{ width: `${progressPercent}%` }}
-                      />
-                    </div>
-                  </div>
+                  <div className="absolute left-2 top-4 w-1.5 h-5 rounded-full bg-[#ffb4aa]/15" />
+                  <div className="absolute left-2 bottom-4 w-1.5 h-5 rounded-full bg-[#ffb4aa]/15" />
                 </div>
 
-                {isExpiringSoon ? (
-                  <button className="w-full py-2 bg-[#93000a] text-[#ffdad6] hover:bg-[#ffb4ab] hover:text-[#690005] transition-all duration-300 rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-2">
-                    <MaterialIcon name="autorenew" className="!text-sm" />
-                    Renovar Agora
-                  </button>
-                ) : isActive ? (
-                  <button
-                    className="w-full py-2 bg-[#31353b] hover:bg-[#ffb4aa] hover:text-[#690003] transition-all duration-300 rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 text-[#e0e2ea]"
-                    onClick={() => { if (v.bm_link) window.open(v.bm_link, "_blank"); }}
-                  >
-                    <MaterialIcon name="download" className="!text-sm" />
-                    Generate Backup
-                  </button>
-                ) : (
-                  <button className="w-full py-2 bg-[#31353b] rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 text-[#c6c6c7]/50 cursor-not-allowed" disabled>
-                    <MaterialIcon name="shield" className="!text-sm" />
-                    Inativa
-                  </button>
-                )}
+                {/* Card content */}
+                <div className="px-3 pb-3 flex flex-col flex-1 justify-between">
+                  <div>
+                    <div className="flex justify-between items-start mb-1.5">
+                      <h4 className="text-xs font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{v.bm_name}</h4>
+                      {isExpiringSoon ? (
+                        <div className="px-2 py-0.5 rounded-full bg-[#93000a] text-[#ffdad6] text-[9px] font-bold uppercase tracking-wider">
+                          Crítico
+                        </div>
+                      ) : isActive ? (
+                        <div className="px-2 py-0.5 rounded-full bg-[#ffb4aa]/10 text-[#ffb4aa] text-[9px] font-bold uppercase tracking-wider">
+                          Protegido
+                        </div>
+                      ) : (
+                        <div className="px-2 py-0.5 rounded-full bg-[#c6c6c7]/10 text-[#c6c6c7] text-[9px] font-bold uppercase tracking-wider">
+                          Inativo
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-[9px] text-[#c6c6c7]/50 mb-2 font-mono">ID: {bmId}</p>
+
+                    <div className="space-y-1 mb-2">
+                      <div className="flex justify-between text-[10px]">
+                        {isExpiringSoon ? (
+                          <span className="text-[#ffb4ab] font-bold">Expira em {Math.max(0, 30 - daysSinceProtection)}d</span>
+                        ) : (
+                          <span className="text-[#c6c6c7]/60">Data de Expiração</span>
+                        )}
+                        <span className="text-[#e0e2ea] font-medium">
+                          {format(new Date(v.protection_start), "dd MMM yyyy", { locale: ptBR })}
+                        </span>
+                      </div>
+                      <div className="w-full bg-[#0a0e13] h-1 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full ${isExpiringSoon ? 'bg-[#ffb4ab]' : isActive ? 'bg-[#ffb4aa]' : 'bg-[#c6c6c7]/30'}`}
+                          style={{ width: `${progressPercent}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {isExpiringSoon ? (
+                    <button className="w-full py-2 bg-[#93000a] text-[#ffdad6] hover:bg-[#ffb4ab] hover:text-[#690005] transition-all duration-300 rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-2">
+                      <MaterialIcon name="autorenew" className="!text-sm" />
+                      Renovar Agora
+                    </button>
+                  ) : isActive ? (
+                    <button
+                      className="w-full py-2 bg-[#31353b] hover:bg-[#ffb4aa] hover:text-[#690003] transition-all duration-300 rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 text-[#e0e2ea]"
+                      onClick={() => { if (v.bm_link) window.open(v.bm_link, "_blank"); }}
+                    >
+                      <MaterialIcon name="download" className="!text-sm" />
+                      Generate Backup
+                    </button>
+                  ) : (
+                    <button className="w-full py-2 bg-[#31353b] rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 text-[#c6c6c7]/50 cursor-not-allowed" disabled>
+                      <MaterialIcon name="shield" className="!text-sm" />
+                      Inativa
+                    </button>
+                  )}
+                </div>
               </div>
             );
           })}
         </div>
       </section>
 
-      {/* ───── VAULT CONCEPT CARD ───── */}
-      <section className="space-y-2">
-        <div>
-          <h3 className="text-base font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Cofre Especial</h3>
-          <p className="text-[#c6c6c7]/60 text-[11px]">Visualização conceitual do cofre blindado</p>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2.5">
-          {/* Vault-shaped card */}
-          <div className="group relative rounded-2xl overflow-hidden border border-[#ffb4aa]/20 bg-gradient-to-b from-[#1c2025] to-[#14171b] p-0 flex flex-col">
-            {/* Vault door silhouette */}
-            <div className="relative flex items-center justify-center pt-5 pb-3">
-              {/* Outer vault circle */}
-              <div className="relative w-20 h-20 rounded-full border-[3px] border-[#ffb4aa]/30 flex items-center justify-center bg-[#0a0e13]/60 shadow-[0_0_30px_rgba(255,180,170,0.08)]">
-                {/* Inner vault dial */}
-                <div className="w-12 h-12 rounded-full border-2 border-[#ffb4aa]/20 flex items-center justify-center bg-[#1c2025]">
-                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-[#ffb4aa] to-[#ff8a7a] flex items-center justify-center shadow-lg shadow-[#ffb4aa]/20">
-                    <MaterialIcon name="lock" className="!text-[14px] text-[#410001]" />
-                  </div>
-                </div>
-                {/* Dial ticks */}
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[2px] h-2 bg-[#ffb4aa]/40 rounded-full" />
-                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[2px] h-2 bg-[#ffb4aa]/40 rounded-full" />
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 h-[2px] w-2 bg-[#ffb4aa]/40 rounded-full" />
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 h-[2px] w-2 bg-[#ffb4aa]/40 rounded-full" />
-              </div>
-              {/* Vault hinges */}
-              <div className="absolute left-2 top-4 w-1.5 h-5 rounded-full bg-[#ffb4aa]/15" />
-              <div className="absolute left-2 bottom-4 w-1.5 h-5 rounded-full bg-[#ffb4aa]/15" />
-            </div>
-
-            {/* Card content inside vault */}
-            <div className="px-3 pb-3 flex flex-col flex-1 justify-between">
-              <div>
-                <div className="flex justify-between items-start mb-1.5">
-                  <h4 className="text-xs font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>BM Vault Premium</h4>
-                  <div className="px-2 py-0.5 rounded-full bg-[#ffb4aa]/10 text-[#ffb4aa] text-[9px] font-bold uppercase tracking-wider">
-                    Protegido
-                  </div>
-                </div>
-                <p className="text-[9px] text-[#c6c6c7]/50 mb-2 font-mono">ID: 5551234567</p>
-
-                <div className="space-y-1 mb-2">
-                  <div className="flex justify-between text-[10px]">
-                    <span className="text-[#c6c6c7]/60">Data de Expiração</span>
-                    <span className="text-[#e0e2ea] font-medium">25 mar 2026</span>
-                  </div>
-                  <div className="w-full bg-[#0a0e13] h-1 rounded-full overflow-hidden">
-                    <div className="h-full bg-[#ffb4aa]" style={{ width: '35%' }} />
-                  </div>
-                </div>
-              </div>
-
-              <button className="w-full py-2 bg-[#31353b] hover:bg-[#ffb4aa] hover:text-[#690003] transition-all duration-300 rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 text-[#e0e2ea]">
-                <MaterialIcon name="download" className="!text-sm" />
-                Generate Backup
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
     </div>
   );
 }
