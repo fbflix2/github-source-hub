@@ -786,8 +786,8 @@ export default function AdminAquecimento() {
                     onClick={() => setOperationMode("register")}
                     className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-bold transition-all ${
                       operationMode === "register"
-                        ? "bg-white text-slate-900 shadow-sm"
-                        : "text-slate-500 hover:text-slate-700"
+                        ? "bg-white dark:bg-white/20 text-slate-900 dark:text-white shadow-sm"
+                        : "text-slate-500 dark:text-white/50 hover:text-slate-700 dark:hover:text-white/80"
                     }`}
                   >
                     <MIcon name="person_add" className="text-sm" />
