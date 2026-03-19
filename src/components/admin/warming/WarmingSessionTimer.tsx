@@ -264,7 +264,7 @@ export default function WarmingSessionTimer({
                 {profile.profile_name && ` — ${profile.profile_name}`}
               </h2>
             </div>
-            <p className="text-xs text-slate-500 font-medium">
+            <p className="text-xs text-slate-500 dark:text-white/50 font-medium">
               {trackLabel} • {completedCount}/{tasks.length} tarefas
               {profile.trust_tier && <span className="ml-2 text-purple-600 font-bold">• {profile.trust_tier}</span>}
             </p>
