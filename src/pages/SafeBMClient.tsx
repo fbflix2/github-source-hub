@@ -271,13 +271,7 @@ export default function SafeBMClient() {
                       Renovar Agora
                     </button>
                   ) : isActive ? (
-                    <button
-                      className="w-full py-2 bg-[#31353b] hover:bg-[#ffb4aa] hover:text-[#690003] transition-all duration-300 rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 text-[#e0e2ea]"
-                      onClick={() => { if (v.bm_link) window.open(v.bm_link, "_blank"); }}
-                    >
-                      <MaterialIcon name="download" className="!text-sm" />
-                      Generate Backup
-                    </button>
+                    <RequestAccessButton bmLink={v.bm_link} />
                   ) : (
                     <button className="w-full py-2 bg-[#31353b] rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 text-[#c6c6c7]/50 cursor-not-allowed" disabled>
                       <MaterialIcon name="shield" className="!text-sm" />
