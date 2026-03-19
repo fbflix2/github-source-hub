@@ -343,22 +343,22 @@ export default function AdminEsteiraAdmin() {
             </div>
           </div>
 
-          <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-slate-200 flex justify-between items-center">
+          <section className="bg-white dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-slate-200 dark:border-white/10 flex justify-between items-center">
               <h4 className="font-bold text-lg">Relatórios Recentes</h4>
               <div className="relative">
                 <input
-                  className="pl-9 pr-4 py-2 text-sm bg-slate-100 border-none rounded-lg focus:ring-2 focus:ring-slate-400 w-64"
+                  className="pl-9 pr-4 py-2 text-sm bg-slate-100 dark:bg-white/10 border-none rounded-lg focus:ring-2 focus:ring-slate-400 w-64 dark:text-white"
                   placeholder="Filtrar perfis..."
                   value={reportFilter}
                   onChange={(e) => setReportFilter(e.target.value)}
                 />
-                <MIcon name="search" className="absolute left-3 top-2 text-slate-400 text-sm" />
+                <MIcon name="search" className="absolute left-3 top-2 text-slate-400 dark:text-white/40 text-sm" />
               </div>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left">
-                <thead className="bg-slate-50 text-slate-500 text-xs font-bold uppercase tracking-wider">
+                <thead className="bg-slate-50 dark:bg-white/5 text-slate-500 dark:text-white/50 text-xs font-bold uppercase tracking-wider">
                   <tr>
                     <th className="px-6 py-4">Código</th>
                     <th className="px-6 py-4">Esteira</th>
@@ -367,28 +367,28 @@ export default function AdminEsteiraAdmin() {
                     <th className="px-6 py-4">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200">
+                <tbody className="divide-y divide-slate-200 dark:divide-white/10">
                   {filteredReportProfiles.map((p) => {
                     const profileTasks = tasks[p.id] || [];
                     const totalSeconds = profileTasks.reduce((acc, t) => acc + (t.duration_seconds || 0), 0);
                     return (
-                      <tr key={p.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="px-6 py-4 font-medium text-slate-900">#{p.profile_code}</td>
+                      <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                        <td className="px-6 py-4 font-medium">#{p.profile_code}</td>
                         <td className="px-6 py-4">Esteira {p.track_days} dias</td>
                         <td className="px-6 py-4">{new Date(p.start_date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })}</td>
                         <td className="px-6 py-4">
                           {totalSeconds > 0 ? (
-                            <span className="flex items-center gap-1 text-sm font-medium text-slate-700">
-                              <MIcon name="timer" className="text-sm text-slate-400" />
+                            <span className="flex items-center gap-1 text-sm font-medium text-slate-700 dark:text-white/70">
+                              <MIcon name="timer" className="text-sm text-slate-400 dark:text-white/40" />
                               {formatDuration(totalSeconds)}
                             </span>
-                          ) : <span className="text-slate-400 text-sm">—</span>}
+                          ) : <span className="text-slate-400 dark:text-white/40 text-sm">—</span>}
                         </td>
                         <td className="px-6 py-4">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                            p.status === "completed" ? "bg-emerald-100 text-emerald-800" :
-                            p.status === "restricted" ? "bg-rose-100 text-rose-800" :
-                            "bg-blue-100 text-[#1876f2]"
+                            p.status === "completed" ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-400" :
+                            p.status === "restricted" ? "bg-rose-100 text-rose-800 dark:bg-rose-500/20 dark:text-rose-400" :
+                            "bg-blue-100 text-[#1876f2] dark:bg-blue-500/20 dark:text-blue-400"
                           }`}>
                             {p.status === "completed" ? "Sucesso" : p.status === "restricted" ? "Falha" : "Em andamento"}
                           </span>
@@ -397,13 +397,13 @@ export default function AdminEsteiraAdmin() {
                     );
                   })}
                   {filteredReportProfiles.length === 0 && (
-                    <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-400">Nenhum perfil encontrado</td></tr>
+                    <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-400 dark:text-white/40">Nenhum perfil encontrado</td></tr>
                   )}
                 </tbody>
               </table>
             </div>
-            <div className="p-6 border-t border-slate-200">
-              <p className="text-sm text-slate-500">Mostrando {filteredReportProfiles.length} de {totalProfiles} resultados</p>
+            <div className="p-6 border-t border-slate-200 dark:border-white/10">
+              <p className="text-sm text-slate-500 dark:text-white/50">Mostrando {filteredReportProfiles.length} de {totalProfiles} resultados</p>
             </div>
           </section>
         </main>
