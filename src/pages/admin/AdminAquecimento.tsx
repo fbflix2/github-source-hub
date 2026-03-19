@@ -729,8 +729,8 @@ export default function AdminAquecimento() {
           </div>
 
           {/* Recent Activity */}
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-slate-200 flex items-center justify-between">
+          <div className="bg-white dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-slate-200 dark:border-white/10 flex items-center justify-between">
               <h3 className="text-lg font-bold">Atividade Recente</h3>
               <button className="text-[#1876f2] text-sm font-bold hover:underline">Ver tudo</button>
             </div>
