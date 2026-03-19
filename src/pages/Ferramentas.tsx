@@ -110,11 +110,6 @@ const BG_IMAGES = {
 function ToolsInfoBanner({ hasSafeBm }: { hasSafeBm: boolean }) {
   const navigate = useNavigate();
 
-  const tools = [
-    { icon: "security", name: "Gerador 2FA", desc: "Códigos TOTP instantâneos para proteger suas contas." },
-    { icon: "how_to_reg", name: "Verificador de Perfis", desc: "Cheque o status de múltiplas contas em segundos." },
-    { icon: "article", name: "Emissor de Documentos", desc: "Documentos personalizados para verificação de contas." },
-  ];
 
   return (
     <section className="max-w-4xl mx-auto space-y-4">
