@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Bell, ChevronDown, LogOut, UserCog, Store, Check, X } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -294,6 +295,8 @@ export function AdminHeader() {
               </div>
             </PopoverContent>
           </Popover>
+
+          <ThemeToggle />
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
