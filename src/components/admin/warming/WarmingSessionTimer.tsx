@@ -362,10 +362,10 @@ export default function WarmingSessionTimer({
             <div
               className={`rounded-xl border transition-all ${
                 isDelayingTask
-                  ? "bg-amber-50 border-amber-300 ring-2 ring-amber-200/40 shadow-sm"
+                  ? "bg-amber-50 dark:bg-amber-900/20 border-amber-300 dark:border-amber-500/30 ring-2 ring-amber-200/40 shadow-sm"
                   : isRunning
-                  ? "bg-blue-50 border-[#1876f2]/40 ring-2 ring-[#1876f2]/20 shadow-sm"
-                  : "bg-white border-slate-200 shadow-sm"
+                  ? "bg-blue-50 dark:bg-blue-900/20 border-[#1876f2]/40 ring-2 ring-[#1876f2]/20 shadow-sm"
+                  : "bg-white dark:bg-white/5 border-slate-200 dark:border-white/10 shadow-sm"
               }`}
             >
               <div className="flex items-center gap-3 px-4 py-3">
