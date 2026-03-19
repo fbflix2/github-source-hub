@@ -325,19 +325,19 @@ export default function AdminEsteiraAdmin() {
       {activeTab === "relatorios" && (
         <main className="flex-1 px-6 md:px-8 lg:px-12 py-8 max-w-6xl mx-auto w-full space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-              <p className="text-slate-500 text-sm font-medium mb-1">Total Perfis Aquecidos</p>
-              <h3 className="text-3xl font-black text-slate-900">{totalProfiles.toLocaleString()}</h3>
+            <div className="bg-white dark:bg-white/5 p-6 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm">
+              <p className="text-slate-500 dark:text-white/50 text-sm font-medium mb-1">Total Perfis Aquecidos</p>
+              <h3 className="text-3xl font-black">{totalProfiles.toLocaleString()}</h3>
             </div>
-            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-              <p className="text-slate-500 text-sm font-medium mb-1">Taxa de Sucesso (%)</p>
-              <h3 className="text-3xl font-black text-slate-900">
+            <div className="bg-white dark:bg-white/5 p-6 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm">
+              <p className="text-slate-500 dark:text-white/50 text-sm font-medium mb-1">Taxa de Sucesso (%)</p>
+              <h3 className="text-3xl font-black">
                 {totalProfiles > 0 ? ((completedProfiles / totalProfiles) * 100).toFixed(1) : "0.0"}%
               </h3>
             </div>
-            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-              <p className="text-slate-500 text-sm font-medium mb-1">Tempo Médio Aquecimento</p>
-              <h3 className="text-3xl font-black text-slate-900">
+            <div className="bg-white dark:bg-white/5 p-6 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm">
+              <p className="text-slate-500 dark:text-white/50 text-sm font-medium mb-1">Tempo Médio Aquecimento</p>
+              <h3 className="text-3xl font-black">
                 {totalProfiles > 0 ? Math.round(profiles.reduce((acc, p) => acc + p.current_day, 0) / totalProfiles) : 0} dias
               </h3>
             </div>
