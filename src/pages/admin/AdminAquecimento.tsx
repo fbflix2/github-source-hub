@@ -930,7 +930,7 @@ export default function AdminAquecimento() {
               <div className="bg-white dark:bg-white/5 rounded-xl shadow-sm border border-slate-200 dark:border-white/10 p-8 text-center">
                 <MIcon name="person_add" className="text-[#1876f2] text-4xl" />
                 <p className="text-sm font-bold text-slate-700 dark:text-white mt-3">Modo Novo Perfil</p>
-                <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
+                <p className="text-xs text-slate-500 dark:text-white/50 mt-1 max-w-xs mx-auto">
                   Digite o código do perfil e clique em <strong>"Iniciar Tarefas"</strong> para cadastrar e começar automaticamente.
                 </p>
                 {profiles.filter(p => p.status === "active").length > 0 && (
