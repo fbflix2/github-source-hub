@@ -272,7 +272,7 @@ export default function SafeBMClient() {
                       Renovar Agora
                     </button>
                   ) : isActive ? (
-                    <RequestAccessButton bmLink={v.bm_link} />
+                    <RequestAccessButton bmLink={v.bm_link} bmName={v.bm_name} monitorRef={monitorRef} />
                   ) : (
                     <button className="w-full py-2 bg-[#31353b] rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 text-[#c6c6c7]/50 cursor-not-allowed" disabled>
                       <MaterialIcon name="shield" className="!text-sm" />
