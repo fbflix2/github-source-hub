@@ -698,7 +698,7 @@ export default function AdminAquecimento() {
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
                     <span className="text-3xl font-black">{predominantTier}</span>
-                    <span className="text-xs text-slate-500 font-medium">Predominante</span>
+                    <span className="text-xs text-slate-500 dark:text-white/50 font-medium">Predominante</span>
                   </div>
                 </div>
                 <div className="mt-8 w-full space-y-3">
