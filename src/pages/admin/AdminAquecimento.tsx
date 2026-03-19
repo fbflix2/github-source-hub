@@ -911,9 +911,9 @@ export default function AdminAquecimento() {
                           </p>
                         </div>
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                          isSelected && isTimerActive ? "bg-amber-100 text-amber-700" :
-                          isSelected ? "bg-blue-100 text-[#1876f2]" :
-                          "bg-slate-100 text-slate-500"
+                          isSelected && isTimerActive ? "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400" :
+                          isSelected ? "bg-blue-100 dark:bg-blue-500/20 text-[#1876f2]" :
+                          "bg-slate-100 dark:bg-white/10 text-slate-500 dark:text-white/50"
                         }`}>
                           {isSelected && isTimerActive ? "Em execução" : isSelected ? "Selecionado" : "Na fila"}
                         </span>
