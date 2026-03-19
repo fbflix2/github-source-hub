@@ -106,110 +106,100 @@ const BG_IMAGES = {
   safebm: safeBmVaultImg,
 };
 
-// ============= RECENT ACTIVITIES =============
-function RecentActivities() {
-  const [activities, setActivities] = useState<{ icon: string; iconColor: string; iconBg: string; title: string; subtitle: string; time: string }[]>([]);
+// ============= TOOLS INFO BANNER =============
+function ToolsInfoBanner({ hasSafeBm }: { hasSafeBm: boolean }) {
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    async function load() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const items: typeof activities = [];
-
-      // Recent orders
-      const { data: orders } = await supabase
-        .from("orders")
-        .select("code, status, total, created_at")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(3);
-
-      orders?.forEach((o) => {
-        const statusMap: Record<string, { icon: string; color: string; bg: string; label: string }> = {
-          completed: { icon: "check_circle", color: "text-emerald-400", bg: "bg-emerald-500/20", label: "Pedido Concluído" },
-          pending: { icon: "hourglass_top", color: "text-yellow-400", bg: "bg-yellow-500/20", label: "Pedido Pendente" },
-          processing: { icon: "sync", color: "text-blue-400", bg: "bg-blue-500/20", label: "Pedido em Processamento" },
-        };
-        const s = statusMap[o.status] || { icon: "receipt_long", color: "text-primary", bg: "bg-primary/20", label: `Pedido ${o.status}` };
-        items.push({
-          icon: s.icon,
-          iconColor: s.color,
-          iconBg: s.bg,
-          title: s.label,
-          subtitle: `#${o.code} • R$ ${Number(o.total).toFixed(2)}`,
-          time: o.created_at,
-        });
-      });
-
-      // Recent wallet transactions
-      const { data: txns } = await supabase
-        .from("wallet_transactions")
-        .select("title, type, amount, created_at")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(3);
-
-      txns?.forEach((t) => {
-        const isCredit = t.type === "credit";
-        items.push({
-          icon: isCredit ? "account_balance_wallet" : "payments",
-          iconColor: isCredit ? "text-emerald-400" : "text-primary",
-          iconBg: isCredit ? "bg-emerald-500/20" : "bg-primary/20",
-          title: t.title,
-          subtitle: `${isCredit ? "+" : "-"} R$ ${Math.abs(Number(t.amount)).toFixed(2)}`,
-          time: t.created_at,
-        });
-      });
-
-      // Sort by time descending, take top 5
-      items.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
-      setActivities(items.slice(0, 5));
-    }
-    load();
-  }, []);
-
-  const formatTime = (iso: string) => {
-    const diff = Date.now() - new Date(iso).getTime();
-    const mins = Math.floor(diff / 60000);
-    if (mins < 1) return "Agora";
-    if (mins < 60) return `Há ${mins} min`;
-    const hours = Math.floor(mins / 60);
-    if (hours < 24) return `Há ${hours}h`;
-    const days = Math.floor(hours / 24);
-    return `Há ${days}d`;
-  };
+  const tools = [
+    { icon: "security", name: "Gerador 2FA", desc: "Códigos TOTP instantâneos para proteger suas contas." },
+    { icon: "how_to_reg", name: "Verificador de Perfis", desc: "Cheque o status de múltiplas contas em segundos." },
+    { icon: "article", name: "Emissor de Documentos", desc: "Documentos personalizados para verificação de contas." },
+  ];
 
   return (
-    <section className="max-w-4xl mx-auto">
-      <div className="flex items-center justify-between mb-3 px-2">
-        <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-          <MaterialIcon name="history" className="text-primary text-xl" />
-          Atividades Recentes
-        </h2>
-      </div>
-      <div className="rounded-xl overflow-hidden divide-y divide-white/5" style={glassCardStyle}>
-        {activities.length === 0 ? (
-          <div className="p-6 text-center text-sm text-muted-foreground">Nenhuma atividade recente</div>
-        ) : (
-          activities.map((a, i) => (
-            <div key={i} className="flex items-center gap-3 p-3 hover:bg-white/5 transition-colors relative z-10">
-              <div className={`w-9 h-9 rounded-lg ${a.iconBg} ${a.iconColor} flex items-center justify-center shrink-0`}>
-                <MaterialIcon name={a.icon} className="text-lg" />
-              </div>
-              <div className="flex-grow min-w-0">
-                <p className="font-bold text-foreground text-sm">{a.title}</p>
-                <p className="text-xs text-muted-foreground">{a.subtitle}</p>
-              </div>
-              <p className="text-[10px] font-semibold text-muted-foreground shrink-0">{formatTime(a.time)}</p>
+    <section className="max-w-4xl mx-auto space-y-4">
+      {/* BM Safe Hero Banner */}
+      <div className="relative overflow-hidden rounded-2xl border border-emerald-500/20 bg-gradient-to-r from-[#0a1a12] via-[#0f1f18] to-[#0a0e13] p-6">
+        <div className="absolute -right-20 -top-20 w-72 h-72 bg-emerald-500/8 blur-[100px] rounded-full" />
+        <div className="absolute -left-10 -bottom-10 w-40 h-40 bg-emerald-400/5 blur-[80px] rounded-full" />
+
+        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center gap-5">
+          <div className="w-16 h-16 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center shrink-0">
+            <MaterialIcon name="shield_lock" className="text-3xl text-emerald-400" />
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="text-lg font-black text-white" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+                BM Safe — Cofre Digital
+              </h3>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-[9px] font-bold uppercase tracking-wider">
+                Popular
+              </span>
             </div>
-          ))
-        )}
+            <p className="text-sm text-slate-400 leading-relaxed mb-3">
+              Proteja suas Business Managers com backup criptografado, monitoramento em tempo real e regeneração segura de links de acesso. Blindagem completa contra phishing e acessos não autorizados.
+            </p>
+            <div className="flex items-center gap-4 flex-wrap">
+              <div className="flex items-center gap-2">
+                <div className="flex -space-x-1">
+                  {[1,2,3,4].map(i => (
+                    <div key={i} className="w-5 h-5 rounded-full bg-emerald-500/30 border border-emerald-500/50 flex items-center justify-center">
+                      <MaterialIcon name="person" className="!text-[10px] text-emerald-300" />
+                    </div>
+                  ))}
+                </div>
+                <span className="text-xs text-emerald-400 font-bold">85% dos anunciantes usam</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <MaterialIcon name="verified" className="!text-sm text-emerald-400" />
+                <span className="text-[11px] text-slate-500">Monitoramento 24/7</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <MaterialIcon name="lock" className="!text-sm text-emerald-400" />
+                <span className="text-[11px] text-slate-500">Criptografia AES-256</span>
+              </div>
+            </div>
+          </div>
+
+          {!hasSafeBm && (
+            <button
+              onClick={() => navigate("/checkout?product=e5118c63-ed52-4f4e-8983-f44c1ba0d17b&qty=1")}
+              className="shrink-0 px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition-all flex items-center gap-2 text-sm shadow-lg shadow-emerald-600/20 hover:shadow-emerald-500/30"
+            >
+              <MaterialIcon name="shield_lock" className="!text-lg" />
+              Ativar BM Safe
+            </button>
+          )}
+          {hasSafeBm && (
+            <button
+              onClick={() => navigate("/safe-bm")}
+              className="shrink-0 px-6 py-3 bg-white/10 hover:bg-white/15 text-white font-bold rounded-xl transition-all flex items-center gap-2 text-sm border border-white/10"
+            >
+              <MaterialIcon name="open_in_new" className="!text-lg" />
+              Acessar Cofre
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Other Tools Summary */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        {tools.map(t => (
+          <div key={t.name} className="rounded-xl p-4 flex items-start gap-3" style={glassCardStyle}>
+            <div className="relative z-10 w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+              <MaterialIcon name={t.icon} className="text-lg" />
+            </div>
+            <div className="relative z-10">
+              <h4 className="text-sm font-bold text-white mb-0.5">{t.name}</h4>
+              <p className="text-[11px] text-slate-400 leading-relaxed">{t.desc}</p>
+            </div>
+          </div>
+        ))}
       </div>
     </section>
   );
 }
-
 type ToolId = "2fa" | "verificador";
 
 // ============= GLASS CARD COMPONENT =============
