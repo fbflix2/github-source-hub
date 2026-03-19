@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { useNavigate } from "react-router-dom";
 import WarmingOperatorDashboard from "@/components/admin/warming/WarmingOperatorDashboard";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { toast } from "sonner";
 
 // ── Track definitions (shared) ──
