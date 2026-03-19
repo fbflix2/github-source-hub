@@ -1011,6 +1011,21 @@ export default function AdminAquecimento() {
                   fetchTasks(prof.id);
                   fetchProfiles();
                 }}
+                onStatusChange={async (profileId, newStatus) => {
+                  await supabase.from("warming_profiles").update({
+                    status: newStatus,
+                    updated_at: new Date().toISOString(),
+                  }).eq("id", profileId);
+                  const labels: Record<string, string> = {
+                    blocked: "🚫 Perfil marcado como Bloqueado",
+                    checkpoint: "⚠️ Perfil marcado como Checkpoint",
+                    active: "✅ Perfil reativado",
+                  };
+                  toast.success(labels[newStatus] || `Status: ${newStatus}`);
+                  fetchProfiles();
+                  setSelectedProfileId(null);
+                  setProfileCode("");
+                }}
               />
             )}
           </section>

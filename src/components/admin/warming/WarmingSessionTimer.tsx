@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface WarmingTask {
   id: string;
@@ -60,11 +61,12 @@ interface Props {
   onTaskCompleted: () => void;
   onTrackCompleted?: (profile: WarmingProfile) => void;
   onTimerStateChange?: (isRunning: boolean, taskTitle: string | null, elapsed: number) => void;
+  onStatusChange?: (profileId: string, newStatus: string) => void;
 }
 
 export default function WarmingSessionTimer({
   profile, tasks, trackLabel, finishSignal, startSignal,
-  onTaskCompleted, onTrackCompleted, onTimerStateChange
+  onTaskCompleted, onTrackCompleted, onTimerStateChange, onStatusChange
 }: Props) {
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [timerStart, setTimerStart] = useState<number | null>(null);
@@ -267,19 +269,62 @@ export default function WarmingSessionTimer({
               {profile.trust_tier && <span className="ml-2 text-purple-600 font-bold">• {profile.trust_tier}</span>}
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {totalTime > 0 && (
               <span className="text-xs font-medium text-slate-500 flex items-center gap-1">
                 <MIcon name="schedule" className="text-sm" />
                 Total: {formatDuration(totalTime)}
               </span>
             )}
+            {/* Block / Checkpoint actions */}
+            {profile.status !== "completed" && onStatusChange && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors" title="Marcar status">
+                    <MIcon name="flag" className="text-lg text-slate-400 hover:text-red-500" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-48 p-2" align="end">
+                  <div className="space-y-1">
+                    <button
+                      onClick={() => onStatusChange(profile.id, "blocked")}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                    >
+                      <MIcon name="block" className="text-base" />
+                      Bloqueado
+                    </button>
+                    <button
+                      onClick={() => onStatusChange(profile.id, "checkpoint")}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-amber-600 hover:bg-amber-50 transition-colors"
+                    >
+                      <MIcon name="warning" className="text-base" />
+                      Checkpoint
+                    </button>
+                    {(profile.status === "blocked" || profile.status === "checkpoint") && (
+                      <button
+                        onClick={() => onStatusChange(profile.id, "active")}
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-blue-600 hover:bg-blue-50 transition-colors"
+                      >
+                        <MIcon name="play_circle" className="text-base" />
+                        Reativar
+                      </button>
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )}
             <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider ${
               profile.status === "completed" ? "bg-green-50 text-green-600" :
+              profile.status === "blocked" ? "bg-red-50 text-red-600" :
+              profile.status === "checkpoint" ? "bg-amber-50 text-amber-600" :
               profile.status === "restricted" ? "bg-red-50 text-red-600" :
               "bg-blue-100 text-[#1876f2]"
             }`}>
-              {profile.status === "active" ? "Ativo" : profile.status === "completed" ? "Concluído" : profile.status}
+              {profile.status === "active" ? "Ativo" :
+               profile.status === "completed" ? "Concluído" :
+               profile.status === "blocked" ? "Bloqueado" :
+               profile.status === "checkpoint" ? "Checkpoint" :
+               profile.status}
             </span>
           </div>
         </div>
