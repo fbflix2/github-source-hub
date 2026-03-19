@@ -295,12 +295,43 @@ export function AdminMobileDashboard() {
             <p className="text-zinc-500 text-[10px] font-semibold uppercase mb-1">Saldo em Carteiras</p>
             <p className="text-xl font-bold">{formatCurrency(data.totalBalance)}</p>
           </div>
-          <div className="admin-mobile-glass p-4">
-            <p className="text-zinc-500 text-[10px] font-semibold uppercase mb-1">Faturado Hoje</p>
-            <div className="flex items-baseline gap-2">
-              <p className="text-xl font-bold">{formatCurrency(data.todayRevenue)}</p>
-              {data.todayRevenue > 0 && <span className="text-[9px] font-bold" style={{ color: '#FF0000' }}>ALTO</span>}
+          <div className="admin-mobile-glass p-4 relative">
+            <div className="flex items-center justify-between mb-1">
+              <p
+                className="text-zinc-500 text-[10px] font-semibold uppercase cursor-pointer"
+                onClick={() => setShowPeriodPicker(!showPeriodPicker)}
+              >
+                Faturado {periodLabels[revenuePeriod]} ▾
+              </p>
+              <button
+                onClick={(e) => { e.stopPropagation(); setBalanceHidden(!balanceHidden); }}
+                className="text-zinc-500 hover:text-white transition-colors p-0.5"
+              >
+                {balanceHidden ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+              </button>
             </div>
+            <div className="flex items-baseline gap-2">
+              <p className="text-xl font-bold">
+                {balanceHidden ? "••••••" : formatCurrency(periodRevenue)}
+              </p>
+              {!balanceHidden && periodRevenue > 0 && <span className="text-[9px] font-bold" style={{ color: '#22c55e' }}>●</span>}
+            </div>
+            {showPeriodPicker && (
+              <div className="absolute top-full left-0 right-0 mt-1 z-50 rounded-lg overflow-hidden border border-zinc-800" style={{ backgroundColor: '#111' }}>
+                {(Object.keys(periodLabels) as RevenuePeriod[]).map(p => (
+                  <button
+                    key={p}
+                    onClick={() => { setRevenuePeriod(p); setShowPeriodPicker(false); }}
+                    className={`w-full text-left px-4 py-2.5 text-xs font-medium transition-colors ${
+                      revenuePeriod === p ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'
+                    }`}
+                    style={revenuePeriod === p ? { backgroundColor: 'rgba(229,9,20,0.15)', color: '#E50914' } : {}}
+                  >
+                    {periodLabels[p]}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </section>
