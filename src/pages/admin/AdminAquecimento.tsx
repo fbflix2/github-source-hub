@@ -897,7 +897,7 @@ export default function AdminAquecimento() {
                       <div
                         key={p.id}
                         onClick={() => { setSelectedProfileId(p.id); if (!tasks[p.id]) fetchTasks(p.id); }}
-                        className={`flex items-center gap-2.5 px-4 py-2 cursor-pointer border-b border-slate-50 transition-colors ${isSelected ? "bg-blue-50 border-l-2 border-l-[#1876f2]" : "hover:bg-slate-50"}`}
+                        className={`flex items-center gap-2.5 px-4 py-2 cursor-pointer border-b border-slate-50 dark:border-white/5 transition-colors ${isSelected ? "bg-blue-50 dark:bg-blue-500/10 border-l-2 border-l-[#1876f2]" : "hover:bg-slate-50 dark:hover:bg-white/5"}`}
                       >
                         <MIcon
                           name={isSelected && isTimerActive ? "timer" : "play_circle"}
