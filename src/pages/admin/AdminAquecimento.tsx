@@ -734,7 +734,7 @@ export default function AdminAquecimento() {
               <h3 className="text-lg font-bold">Atividade Recente</h3>
               <button className="text-[#1876f2] text-sm font-bold hover:underline">Ver tudo</button>
             </div>
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-slate-100 dark:divide-white/5">
               {visibleProfiles.slice(0, 4).map((p, i) => {
                 const icons = ["trending_up", "person_add", "settings_backup_restore", "error"];
                 const colors = ["emerald", "blue", "amber", "rose"];
