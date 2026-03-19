@@ -123,9 +123,18 @@ export default function SafeBMLanding() {
             </div>
             <div className="mt-8 flex items-center justify-center lg:justify-start gap-4 text-sm text-gray-500">
               <div className="flex -space-x-2">
-                <div className="w-8 h-8 rounded-full bg-gray-700 border-2 border-[#0A0A0A]" />
-                <div className="w-8 h-8 rounded-full bg-gray-600 border-2 border-[#0A0A0A]" />
-                <div className="w-8 h-8 rounded-full bg-gray-500 border-2 border-[#0A0A0A]" />
+                {avatars.length > 0
+                  ? avatars.map((url, i) => (
+                      <img
+                        key={i}
+                        src={url}
+                        alt="Cliente"
+                        className="w-8 h-8 rounded-full border-2 border-[#0A0A0A] object-cover"
+                      />
+                    ))
+                  : [700, 600, 500].map((c) => (
+                      <div key={c} className={`w-8 h-8 rounded-full bg-gray-${c} border-2 border-[#0A0A0A]`} />
+                    ))}
               </div>
               <span>+146 BMs protegidas esta semana</span>
             </div>
