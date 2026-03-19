@@ -378,8 +378,8 @@ export default function WarmingSessionTimer({
                    `D${task.day_number}`}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-slate-900">{task.title}</p>
-                  <p className="text-[11px] text-slate-500">{task.description}</p>
+                  <p className="text-sm font-bold text-slate-900 dark:text-white">{task.title}</p>
+                  <p className="text-[11px] text-slate-500 dark:text-white/50">{task.description}</p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   {isDelayingTask && (
