@@ -20,9 +20,29 @@ export default function WarmingOperatorDashboard({ profiles, tasks, creatorNames
   const [savingGoal, setSavingGoal] = useState(false);
   const [timePeriod, setTimePeriod] = useState<"7d" | "30d" | "all">("30d");
 
+  const [teamOperators, setTeamOperators] = useState<{ id: string; name: string }[]>([]);
+
   useEffect(() => {
     fetchGoals();
+    fetchTeamOperators();
   }, []);
+
+  const fetchTeamOperators = async () => {
+    // Fetch all moderators from user_roles so they appear even without warming profiles
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("user_id")
+      .eq("role", "moderator");
+    if (!roles || roles.length === 0) return;
+    const userIds = roles.map(r => r.user_id);
+    const { data: profs } = await supabase
+      .from("profiles")
+      .select("user_id, full_name")
+      .in("user_id", userIds);
+    if (profs) {
+      setTeamOperators(profs.map(p => ({ id: p.user_id, name: p.full_name || "Sem nome" })));
+    }
+  };
 
   const fetchGoals = async () => {
     const { data } = await supabase
@@ -50,11 +70,18 @@ export default function WarmingOperatorDashboard({ profiles, tasks, creatorNames
     setSavingGoal(false);
   };
 
-  // Get unique operators
+  // Get unique operators - merge team moderators with profile creators
   const operators = useMemo(() => {
-    const ids = [...new Set(profiles.map(p => p.created_by).filter(Boolean))] as string[];
-    return ids.map(id => ({ id, name: creatorNames[id] || "Sem nome" }));
-  }, [profiles, creatorNames]);
+    const profileCreatorIds = [...new Set(profiles.map(p => p.created_by).filter(Boolean))] as string[];
+    const profileCreators = profileCreatorIds.map(id => ({ id, name: creatorNames[id] || "Sem nome" }));
+    
+    // Merge: team operators + any profile creators not already in team
+    const mergedMap = new Map<string, { id: string; name: string }>();
+    teamOperators.forEach(op => mergedMap.set(op.id, op));
+    profileCreators.forEach(op => { if (!mergedMap.has(op.id)) mergedMap.set(op.id, op); });
+    
+    return Array.from(mergedMap.values());
+  }, [profiles, creatorNames, teamOperators]);
 
   // Filter profiles by time period
   const filteredProfiles = useMemo(() => {
