@@ -801,7 +801,7 @@ export default function AdminAquecimento() {
                         : "text-slate-500 dark:text-white/50 hover:text-slate-700 dark:hover:text-white/80"
                     }`}
                   >
-                    <MIcon name="play_circle" className="text-sm" />
+                    <MIcon name="local_fire_department" className="text-sm" />
                     Executar Tarefas
                   </button>
                 </div>
