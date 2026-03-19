@@ -233,7 +233,7 @@ export default function SafeBMClient() {
                           Crítico
                         </div>
                       ) : isActive ? (
-                        <div className="px-2 py-0.5 rounded-full bg-[#ffb4aa]/10 text-[#ffb4aa] text-[9px] font-bold uppercase tracking-wider">
+                        <div className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[9px] font-bold uppercase tracking-wider">
                           Protegido
                         </div>
                       ) : (
