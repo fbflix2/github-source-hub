@@ -499,11 +499,11 @@ export default function AdminEsteiraAdmin() {
           </section>
 
           {/* Trust Tiers */}
-          <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+          <section className="bg-white dark:bg-white/5 rounded-xl shadow-sm border border-slate-200 dark:border-white/10 overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-white/10 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <MIcon name="verified_user" className="text-[#1876f2]" />
-                <h2 className="text-lg font-bold text-slate-900">Definição de Níveis de Confiança</h2>
+                <h2 className="text-lg font-bold">Definição de Níveis de Confiança</h2>
               </div>
               <button
                 onClick={() => setTrustTiers([...trustTiers, { label: `Nível ${trustTiers.length + 1}`, color: "bg-slate-100 text-slate-700", range: "0 - 0", criteria: "" }])}
@@ -515,14 +515,14 @@ export default function AdminEsteiraAdmin() {
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead>
-                  <tr className="bg-slate-50">
-                    <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Nível</th>
-                    <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Faixa</th>
-                    <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Critérios</th>
+                  <tr className="bg-slate-50 dark:bg-white/5">
+                    <th className="px-6 py-3 font-bold text-slate-500 dark:text-white/50 uppercase tracking-wider text-[10px]">Nível</th>
+                    <th className="px-6 py-3 font-bold text-slate-500 dark:text-white/50 uppercase tracking-wider text-[10px]">Faixa</th>
+                    <th className="px-6 py-3 font-bold text-slate-500 dark:text-white/50 uppercase tracking-wider text-[10px]">Critérios</th>
                     <th className="px-6 py-3 w-16"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-100 dark:divide-white/10">
                   {trustTiers.map((tier, i) => (
                     <tr key={i} className="group">
                       <td className="px-6 py-4">
@@ -534,14 +534,14 @@ export default function AdminEsteiraAdmin() {
                       </td>
                       <td className="px-6 py-4">
                         <input
-                          className="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-xs w-20 text-slate-900"
+                          className="bg-slate-50 dark:bg-white/10 border border-slate-200 dark:border-white/10 rounded px-2 py-1 text-xs w-20 dark:text-white"
                           value={tier.range}
                           onChange={(e) => { const t = [...trustTiers]; t[i] = { ...t[i], range: e.target.value }; setTrustTiers(t); }}
                         />
                       </td>
                       <td className="px-6 py-4">
                         <input
-                          className="w-full bg-transparent border-none p-0 text-xs text-slate-700 focus:ring-0 outline-none"
+                          className="w-full bg-transparent border-none p-0 text-xs text-slate-700 dark:text-white/70 focus:ring-0 outline-none"
                           value={tier.criteria}
                           onChange={(e) => { const t = [...trustTiers]; t[i] = { ...t[i], criteria: e.target.value }; setTrustTiers(t); }}
                         />
@@ -564,15 +564,15 @@ export default function AdminEsteiraAdmin() {
           </section>
 
           {/* Danger Zone */}
-          <section className="bg-white rounded-xl shadow-sm border border-red-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-red-100 flex items-center gap-3">
+          <section className="bg-white dark:bg-white/5 rounded-xl shadow-sm border border-red-200 dark:border-red-500/20 overflow-hidden">
+            <div className="px-6 py-4 border-b border-red-100 dark:border-red-500/20 flex items-center gap-3">
               <MIcon name="warning" className="text-red-500" />
-              <h2 className="text-lg font-bold text-red-700">Zona de Perigo</h2>
+              <h2 className="text-lg font-bold text-red-700 dark:text-red-400">Zona de Perigo</h2>
             </div>
             <div className="p-6 space-y-4">
-              <div className="bg-red-50 border border-red-100 rounded-lg p-4">
-                <h3 className="font-bold text-sm text-red-800 mb-1">Zerar todas as Esteiras e Perfis</h3>
-                <p className="text-xs text-red-600 mb-4">
+              <div className="bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 rounded-lg p-4">
+                <h3 className="font-bold text-sm text-red-800 dark:text-red-400 mb-1">Zerar todas as Esteiras e Perfis</h3>
+                <p className="text-xs text-red-600 dark:text-red-400/70 mb-4">
                   Esta ação é irreversível. Todos os perfis e tarefas serão excluídos permanentemente.
                 </p>
                 {!showResetConfirm ? (
@@ -584,12 +584,12 @@ export default function AdminEsteiraAdmin() {
                   </button>
                 ) : (
                   <div className="space-y-3">
-                    <p className="text-xs text-red-700 font-bold">Digite sua senha para confirmar:</p>
+                    <p className="text-xs text-red-700 dark:text-red-400 font-bold">Digite sua senha para confirmar:</p>
                     <input
                       type="password"
                       value={resetPassword}
                       onChange={e => setResetPassword(e.target.value)}
-                      className="w-full max-w-xs bg-white border border-red-200 rounded-lg px-3 py-2 text-sm"
+                      className="w-full max-w-xs bg-white dark:bg-white/10 border border-red-200 dark:border-red-500/20 rounded-lg px-3 py-2 text-sm dark:text-white"
                       placeholder="Sua senha"
                     />
                     {resetError && <p className="text-xs text-red-600 font-bold">{resetError}</p>}
@@ -603,7 +603,7 @@ export default function AdminEsteiraAdmin() {
                       </button>
                       <button
                         onClick={() => { setShowResetConfirm(false); setResetPassword(""); setResetError(""); }}
-                        className="px-5 py-2 text-sm font-bold text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+                        className="px-5 py-2 text-sm font-bold text-slate-600 dark:text-white/60 bg-slate-100 dark:bg-white/10 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 transition-colors"
                       >
                         Cancelar
                       </button>
