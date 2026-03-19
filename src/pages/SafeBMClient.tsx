@@ -1,11 +1,11 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import RequestAccessButton from "@/components/safebm/RequestAccessButton";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Navigate } from "react-router-dom";
-import SecurityMonitor from "@/components/safebm/SecurityMonitor";
+import SecurityMonitor, { type SecurityMonitorHandle } from "@/components/safebm/SecurityMonitor";
 import PricingModal from "@/components/safebm/PricingModal";
 
 interface SafeBmVault {
@@ -34,6 +34,7 @@ export default function SafeBMClient() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [showPricing, setShowPricing] = useState(false);
+  const monitorRef = useRef<SecurityMonitorHandle>(null);
 
   useEffect(() => {
     (async () => {
@@ -177,7 +178,7 @@ export default function SafeBMClient() {
           </div>
         </div>
 
-        <SecurityMonitor bmNames={activeVaults.map(v => v.bm_name)} />
+        <SecurityMonitor ref={monitorRef} bmNames={activeVaults.map(v => v.bm_name)} />
       </section>
 
       <PricingModal open={showPricing} onClose={() => setShowPricing(false)} />
@@ -271,7 +272,7 @@ export default function SafeBMClient() {
                       Renovar Agora
                     </button>
                   ) : isActive ? (
-                    <RequestAccessButton bmLink={v.bm_link} />
+                    <RequestAccessButton bmLink={v.bm_link} bmName={v.bm_name} monitorRef={monitorRef} />
                   ) : (
                     <button className="w-full py-2 bg-[#31353b] rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 text-[#c6c6c7]/50 cursor-not-allowed" disabled>
                       <MaterialIcon name="shield" className="!text-sm" />
