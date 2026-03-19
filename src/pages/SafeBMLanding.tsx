@@ -254,12 +254,12 @@ export default function SafeBMLanding() {
                 Selo: Sem fidelidade, cancele quando quiser
               </div>
             </div>
-            <Link
-              to="/suporte"
+            <button
+              onClick={() => navigate(BM_SAFE_CHECKOUT)}
               className="block w-full bg-[#E11D48] hover:bg-rose-700 transition-colors py-6 rounded-2xl text-2xl font-bold mb-6 text-white"
             >
               ATIVAR BLINDAGEM AGORA
-            </Link>
+            </button>
             <p className="text-sm text-gray-500 italic">
               Pague com PIX ou Cartão. Ativação imediata após a confirmação.
             </p>
