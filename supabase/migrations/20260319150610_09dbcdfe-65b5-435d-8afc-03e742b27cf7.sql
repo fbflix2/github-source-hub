@@ -1,0 +1,1 @@
+UPDATE banners SET link_url = '/saiba-mais-safebm' WHERE id = 'e7a1eae4-acab-4127-9efa-7704c7f306de';
