@@ -73,7 +73,7 @@ export default function SecurityMonitor({ bmNames }: SecurityMonitorProps) {
       <div className="relative z-10">
         <div className="flex items-center gap-2 mb-3">
           <div className="relative">
-            <MaterialIcon name="radar" className="text-emerald-400 !text-xl animate-spin" style={{ animationDuration: "4s" }} />
+            <span className="material-symbols-outlined text-emerald-400 !text-xl animate-spin" style={{ animationDuration: "4s" }}>radar</span>
             <div className="absolute inset-0 bg-emerald-400/20 rounded-full animate-ping" style={{ animationDuration: "2s" }} />
           </div>
           <div>
