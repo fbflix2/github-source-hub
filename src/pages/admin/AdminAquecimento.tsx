@@ -604,7 +604,7 @@ export default function AdminAquecimento() {
                 <p className="text-slate-500 dark:text-white/50 font-medium text-sm">Total Perfis</p>
                 <MIcon name="group" className="text-[#1876f2]" />
               </div>
-              <p className="text-3xl font-black text-slate-900">{totalProfiles.toLocaleString()}</p>
+              <p className="text-3xl font-black text-slate-900 dark:text-white">{totalProfiles.toLocaleString()}</p>
               <div className="flex items-center gap-1 text-slate-400 font-medium text-sm">
                 <span>Sem dados anteriores</span>
               </div>
