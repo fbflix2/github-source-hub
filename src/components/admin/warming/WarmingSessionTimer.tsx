@@ -335,7 +335,7 @@ export default function WarmingSessionTimer({
             <span className="text-[10px] font-bold text-slate-500 dark:text-white/50 uppercase tracking-wider">Progresso</span>
             <span className="text-sm font-black text-slate-800 dark:text-white">{progress}%</span>
           </div>
-          <div className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden">
+          <div className="h-2.5 w-full bg-slate-100 dark:bg-white/10 rounded-full overflow-hidden">
             <div
               className="h-full rounded-full transition-all duration-500"
               style={{
