@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import RequestAccessButton from "@/components/safebm/RequestAccessButton";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
