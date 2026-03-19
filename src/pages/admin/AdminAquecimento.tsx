@@ -670,7 +670,7 @@ export default function AdminAquecimento() {
                     <span>Intermediários (15 dias)</span>
                     <span>{midProfiles} perfis</span>
                   </div>
-                  <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden">
+                  <div className="h-3 w-full bg-slate-100 dark:bg-white/10 rounded-full overflow-hidden">
                     <div className="h-full bg-[#1876f2]/70 rounded-full" style={{ width: `${totalProfiles ? Math.round((midProfiles / totalProfiles) * 100) : 55}%` }} />
                   </div>
                 </div>
