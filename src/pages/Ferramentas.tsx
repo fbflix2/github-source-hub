@@ -377,7 +377,7 @@ export default function Ferramentas() {
         </div>
 
         {/* Recent Activity Section */}
-        <RecentActivities />
+        <ToolsInfoBanner hasSafeBm={hasSafeBm} />
       </main>
 
       <footer className="mt-6 text-center border-t border-white/5 pt-4">
