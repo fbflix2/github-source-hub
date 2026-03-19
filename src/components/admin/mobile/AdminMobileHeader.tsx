@@ -49,9 +49,11 @@ export function AdminMobileHeader() {
           <span className="text-[8px] tracking-[0.2em] font-bold -mt-1 uppercase" style={{ color: '#E50914' }}>Admin</span>
         </div>
 
-        {/* Admin Avatar */}
-        <button
-          onClick={() => navigate("/admin/configuracoes")}
+        {/* Right actions */}
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <button
+            onClick={() => navigate("/admin/configuracoes")}
           className="w-9 h-9 rounded-full p-0.5 overflow-hidden"
           style={{ border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 0 0 1px rgba(255,255,255,0.05)' }}
         >
