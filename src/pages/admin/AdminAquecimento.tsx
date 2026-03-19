@@ -820,8 +820,8 @@ export default function AdminAquecimento() {
                       </div>
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-slate-600 mb-1.5">Esteira</label>
-                      <div className="relative flex items-center gap-2 pl-10 pr-3 py-2.5 text-sm bg-slate-100 border border-slate-200 rounded-lg text-slate-600">
+                      <label className="block text-xs font-semibold text-slate-600 dark:text-white/60 mb-1.5">Esteira</label>
+                      <div className="relative flex items-center gap-2 pl-10 pr-3 py-2.5 text-sm bg-slate-100 dark:bg-white/10 border border-slate-200 dark:border-white/10 rounded-lg text-slate-600 dark:text-white/60">
                         <MIcon name="layers" className="absolute left-3 top-2.5 text-slate-400 text-lg" />
                         7 Dias - Básica
                         <span className="ml-auto text-[10px] font-bold text-slate-400 uppercase">Automático</span>
