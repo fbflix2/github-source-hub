@@ -67,7 +67,8 @@ export function AdminMobileHeader() {
               A
             </div>
           )}
-        </button>
+          </button>
+        </div>
       </header>
 
       <AdminMobileSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />

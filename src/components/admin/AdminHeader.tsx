@@ -296,6 +296,8 @@ export function AdminHeader() {
             </PopoverContent>
           </Popover>
 
+          <ThemeToggle />
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <div className="flex items-center gap-2 glass-panel pl-1.5 pr-3 py-1 rounded-full cursor-pointer hover:bg-white/10 transition-colors">
