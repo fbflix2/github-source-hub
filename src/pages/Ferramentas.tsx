@@ -262,6 +262,22 @@ function GlassCard({
 export default function Ferramentas() {
   const navigate = useNavigate();
   const [activeTool, setActiveTool] = useState<ToolId | null>(null);
+  const [hasSafeBm, setHasSafeBm] = useState(false);
+
+  useEffect(() => {
+    async function checkSafeBm() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from("safe_bm_vaults")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("status", "active")
+        .limit(1);
+      if (data && data.length > 0) setHasSafeBm(true);
+    }
+    checkSafeBm();
+  }, []);
 
   if (activeTool === "2fa") return <TwoFATool onBack={() => setActiveTool(null)} />;
   if (activeTool === "verificador") return <VerificadorTool onBack={() => setActiveTool(null)} />;
@@ -342,7 +358,7 @@ export default function Ferramentas() {
           </GlassCard>
 
           {/* Tool 4: BM Safe */}
-          <GlassCard bgImage={BG_IMAGES.safebm} onClick={() => navigate("/safe-bm")}>
+          <GlassCard bgImage={BG_IMAGES.safebm} onClick={() => navigate(hasSafeBm ? "/safe-bm" : "/saiba-mais-safebm")}>
             <div className="w-11 h-11 bg-primary/10 text-primary rounded-lg flex items-center justify-center mb-3 group-hover:bg-primary group-hover:text-white transition-colors duration-300">
               <MaterialIcon name="shield_lock" className="text-2xl" />
             </div>
@@ -350,13 +366,23 @@ export default function Ferramentas() {
             <p className="text-slate-400 mb-4 flex-grow leading-relaxed text-xs">
               Cofre digital para suas Business Managers. Proteja seus ativos com backup seguro e monitoramento 24/7.
             </p>
-            <button
-              onClick={(e) => { e.stopPropagation(); navigate("/checkout?product=e5118c63-ed52-4f4e-8983-f44c1ba0d17b&qty=1"); }}
-              className="w-full py-2.5 px-4 bg-primary hover:bg-red-700 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2 text-sm group/btn"
-            >
-              <span>Ativar Agora</span>
-              <MaterialIcon name="arrow_forward" className="text-lg group-hover/btn:translate-x-1 transition-transform" />
-            </button>
+            {hasSafeBm ? (
+              <button
+                onClick={(e) => { e.stopPropagation(); navigate("/safe-bm"); }}
+                className="w-full py-2.5 px-4 bg-primary hover:bg-red-700 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2 text-sm group/btn"
+              >
+                <span>Acessar Ferramenta</span>
+                <MaterialIcon name="arrow_forward" className="text-lg group-hover/btn:translate-x-1 transition-transform" />
+              </button>
+            ) : (
+              <button
+                onClick={(e) => { e.stopPropagation(); navigate("/checkout?product=e5118c63-ed52-4f4e-8983-f44c1ba0d17b&qty=1"); }}
+                className="w-full py-2.5 px-4 bg-primary hover:bg-red-700 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2 text-sm group/btn"
+              >
+                <span>Ativar Agora</span>
+                <MaterialIcon name="arrow_forward" className="text-lg group-hover/btn:translate-x-1 transition-transform" />
+              </button>
+            )}
           </GlassCard>
         </div>
 
