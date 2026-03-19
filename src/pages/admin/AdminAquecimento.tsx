@@ -938,10 +938,10 @@ export default function AdminAquecimento() {
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Últimos cadastrados</p>
                     <div className="space-y-1.5 max-h-48 overflow-y-auto">
                       {profiles.filter(p => p.status === "active").slice(0, 8).map(p => (
-                        <div key={p.id} className="flex items-center gap-2 bg-slate-50 rounded-lg px-3 py-1.5">
+                        <div key={p.id} className="flex items-center gap-2 bg-slate-50 dark:bg-white/10 rounded-lg px-3 py-1.5">
                           <MIcon name="check_circle" className="text-emerald-500 text-sm" />
-                          <span className="text-xs font-bold text-slate-700">{p.profile_code}</span>
-                          <span className="text-[10px] text-slate-400 ml-auto">{TRACKS[p.track_type]?.label}</span>
+                          <span className="text-xs font-bold text-slate-700 dark:text-white">{p.profile_code}</span>
+                          <span className="text-[10px] text-slate-400 dark:text-white/40 ml-auto">{TRACKS[p.track_type]?.label}</span>
                         </div>
                       ))}
                     </div>
