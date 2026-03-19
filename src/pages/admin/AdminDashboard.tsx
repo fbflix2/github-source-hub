@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Users, Receipt, Wallet, TrendingUp, Database, CheckCircle, Clock, AlertTriangle, RefreshCw, User, Briefcase, Globe, MoreVertical, Loader2, X, ExternalLink } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Users, Receipt, Wallet, TrendingUp, Database, CheckCircle, Clock, AlertTriangle, RefreshCw, User, Briefcase, Globe, MoreVertical, Loader2, X, ExternalLink, Eye, EyeOff } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -41,6 +41,10 @@ export default function AdminDashboard() {
   const [pendingModal, setPendingModal] = useState(false);
   const [pendingItems, setPendingItems] = useState<PendingItem[]>([]);
   const [loadingPending, setLoadingPending] = useState(false);
+  const [revenueHidden, setRevenueHidden] = useState(false);
+  const [revenuePeriod, setRevenuePeriod] = useState<"hoje" | "7dias" | "30dias">("hoje");
+  const [showRevenuePeriodPicker, setShowRevenuePeriodPicker] = useState(false);
+  const [allCompletedOrders, setAllCompletedOrders] = useState<{ total: number; created_at: string }[]>([]);
 
   const openPendingModal = async () => {
     setPendingModal(true);
@@ -134,6 +138,7 @@ export default function AdminDashboard() {
         .filter(o => new Date(o.created_at) >= todayStart)
         .reduce((sum, o) => sum + (o.total || 0), 0);
       setTodayRevenue(todayRev);
+      setAllCompletedOrders(completedOrds.map(o => ({ total: o.total || 0, created_at: o.created_at })));
 
       const completedOrderIds = new Set(completedOrds.map(o => o.id));
 
@@ -334,6 +339,21 @@ export default function AdminDashboard() {
   const catColors = ["bg-blue-500", "bg-purple-500", "bg-primary", "bg-cyan-500"];
   const catIcons = [User, Briefcase, Database, Globe];
 
+  const periodLabels: Record<string, string> = { hoje: "Hoje", "7dias": "7 Dias", "30dias": "30 Dias" };
+
+  const periodRevenue = useMemo(() => {
+    const now = new Date();
+    let since: Date;
+    switch (revenuePeriod) {
+      case "hoje": since = new Date(now); since.setHours(0, 0, 0, 0); break;
+      case "7dias": since = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); break;
+      case "30dias": since = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); break;
+    }
+    return allCompletedOrders
+      .filter(o => new Date(o.created_at) >= since)
+      .reduce((s, o) => s + o.total, 0);
+  }, [allCompletedOrders, revenuePeriod]);
+
   // Mobile: render dedicated mobile dashboard
   if (isMobile) {
     return <AdminMobileDashboard />;
@@ -352,12 +372,16 @@ export default function AdminDashboard() {
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { title: "Total de Clientes", value: totalClients.toLocaleString("pt-BR"), icon: Users, iconBg: "bg-blue-500/20", iconColor: "text-blue-400", sub: `${totalInBase.toLocaleString("pt-BR")} na base` },
-          { title: "Total de Transações", value: totalTransactions.toLocaleString("pt-BR"), icon: Receipt, iconBg: "bg-purple-500/20", iconColor: "text-purple-400" },
-          { title: "Saldo em Carteiras", value: formatCurrency(totalBalance), icon: Wallet, iconBg: "bg-primary/20", iconColor: "text-primary" },
-          { title: "Faturado Hoje", value: formatCurrency(todayRevenue), icon: TrendingUp, iconBg: "bg-green-500/20", iconColor: "text-green-400" },
+          { key: "clientes", title: "Total de Clientes", value: totalClients.toLocaleString("pt-BR"), icon: Users, iconBg: "bg-blue-500/20", iconColor: "text-blue-400", sub: `${totalInBase.toLocaleString("pt-BR")} na base` },
+          { key: "transacoes", title: "Total de Transações", value: totalTransactions.toLocaleString("pt-BR"), icon: Receipt, iconBg: "bg-purple-500/20", iconColor: "text-purple-400" },
+          { key: "saldo", title: "Saldo em Carteiras", value: formatCurrency(totalBalance), icon: Wallet, iconBg: "bg-primary/20", iconColor: "text-primary" },
+          { key: "faturado", title: `Faturado ${periodLabels[revenuePeriod]}`, value: revenueHidden ? "••••••" : formatCurrency(periodRevenue), icon: TrendingUp, iconBg: "bg-green-500/20", iconColor: "text-green-400" },
         ].map((card) => (
-          <div key={card.title} className="glass-panel rounded-xl p-4 relative overflow-hidden group">
+          <div
+            key={card.key}
+            className={`glass-panel rounded-xl p-4 relative overflow-hidden group ${card.key === "faturado" ? "cursor-pointer" : ""}`}
+            onClick={card.key === "faturado" ? () => setShowRevenuePeriodPicker(!showRevenuePeriodPicker) : undefined}
+          >
             <div className="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
               <card.icon className="size-14 text-white" />
             </div>
@@ -367,10 +391,34 @@ export default function AdminDashboard() {
                   <card.icon className="size-4" />
                 </div>
                 <p className="text-white/60 text-xs font-medium">{card.title}</p>
+                {card.key === "faturado" && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setRevenueHidden(!revenueHidden); }}
+                    className="ml-auto text-white/40 hover:text-white/80 transition-colors p-0.5"
+                  >
+                    {revenueHidden ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+                  </button>
+                )}
               </div>
               <h3 className="text-2xl font-bold text-white tracking-tight">{card.value}</h3>
               {(card as any).sub && <p className="text-white/40 text-[10px]">{(card as any).sub}</p>}
             </div>
+            {/* Period picker dropdown */}
+            {card.key === "faturado" && showRevenuePeriodPicker && (
+              <div className="absolute top-full left-0 right-0 mt-1 z-50 rounded-lg overflow-hidden border border-white/10 bg-zinc-900 shadow-xl">
+                {(["hoje", "7dias", "30dias"] as const).map(p => (
+                  <button
+                    key={p}
+                    onClick={(e) => { e.stopPropagation(); setRevenuePeriod(p); setShowRevenuePeriodPicker(false); }}
+                    className={`w-full text-left px-4 py-2.5 text-xs font-medium transition-colors ${
+                      revenuePeriod === p ? "text-primary bg-primary/10" : "text-white/50 hover:text-white/80 hover:bg-white/5"
+                    }`}
+                  >
+                    {periodLabels[p]}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         ))}
       </div>
