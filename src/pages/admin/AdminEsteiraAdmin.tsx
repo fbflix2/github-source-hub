@@ -264,7 +264,7 @@ export default function AdminEsteiraAdmin() {
   if (role !== "admin") return null;
 
   return (
-    <div className="flex flex-col min-h-full bg-[#f5f7f8] text-slate-900" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="flex flex-col min-h-full bg-[#f5f7f8] dark:bg-[#0a0505] text-slate-900 dark:text-white" style={{ fontFamily: "'Inter', sans-serif" }}>
       {/* Header */}
       <section className="relative overflow-hidden text-white pt-8 pb-12 px-6 md:px-12 lg:px-40" style={{ background: "linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 40%, #3a3a3a 70%, #1a1a1a 100%)" }}>
         <div className="max-w-[1200px] mx-auto relative z-10">
@@ -293,7 +293,7 @@ export default function AdminEsteiraAdmin() {
       </section>
 
       {/* Tabs */}
-      <nav className="sticky top-0 z-50 bg-white border-b border-slate-200 px-6 md:px-12 lg:px-40">
+      <nav className="sticky top-0 z-50 bg-white dark:bg-[#111] border-b border-slate-200 dark:border-white/10 px-6 md:px-12 lg:px-40">
         <div className="max-w-[1200px] mx-auto flex gap-8">
           {tabs.map((tab) => (
             <button
@@ -301,8 +301,8 @@ export default function AdminEsteiraAdmin() {
               onClick={() => setActiveTab(tab.key)}
               className={`flex items-center gap-2 border-b-[3px] pb-4 pt-5 font-bold text-sm tracking-wide transition-colors ${
                 activeTab === tab.key
-                  ? "border-[#1876f2] text-slate-900"
-                  : "border-transparent text-slate-500 hover:text-slate-800"
+                  ? "border-[#1876f2] text-slate-900 dark:text-white"
+                  : "border-transparent text-slate-500 dark:text-white/50 hover:text-slate-800 dark:hover:text-white/80"
               }`}
             >
               {tab.label}
@@ -325,40 +325,40 @@ export default function AdminEsteiraAdmin() {
       {activeTab === "relatorios" && (
         <main className="flex-1 px-6 md:px-8 lg:px-12 py-8 max-w-6xl mx-auto w-full space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-              <p className="text-slate-500 text-sm font-medium mb-1">Total Perfis Aquecidos</p>
-              <h3 className="text-3xl font-black text-slate-900">{totalProfiles.toLocaleString()}</h3>
+            <div className="bg-white dark:bg-white/5 p-6 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm">
+              <p className="text-slate-500 dark:text-white/50 text-sm font-medium mb-1">Total Perfis Aquecidos</p>
+              <h3 className="text-3xl font-black">{totalProfiles.toLocaleString()}</h3>
             </div>
-            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-              <p className="text-slate-500 text-sm font-medium mb-1">Taxa de Sucesso (%)</p>
-              <h3 className="text-3xl font-black text-slate-900">
+            <div className="bg-white dark:bg-white/5 p-6 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm">
+              <p className="text-slate-500 dark:text-white/50 text-sm font-medium mb-1">Taxa de Sucesso (%)</p>
+              <h3 className="text-3xl font-black">
                 {totalProfiles > 0 ? ((completedProfiles / totalProfiles) * 100).toFixed(1) : "0.0"}%
               </h3>
             </div>
-            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
-              <p className="text-slate-500 text-sm font-medium mb-1">Tempo Médio Aquecimento</p>
-              <h3 className="text-3xl font-black text-slate-900">
+            <div className="bg-white dark:bg-white/5 p-6 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm">
+              <p className="text-slate-500 dark:text-white/50 text-sm font-medium mb-1">Tempo Médio Aquecimento</p>
+              <h3 className="text-3xl font-black">
                 {totalProfiles > 0 ? Math.round(profiles.reduce((acc, p) => acc + p.current_day, 0) / totalProfiles) : 0} dias
               </h3>
             </div>
           </div>
 
-          <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-slate-200 flex justify-between items-center">
+          <section className="bg-white dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-slate-200 dark:border-white/10 flex justify-between items-center">
               <h4 className="font-bold text-lg">Relatórios Recentes</h4>
               <div className="relative">
                 <input
-                  className="pl-9 pr-4 py-2 text-sm bg-slate-100 border-none rounded-lg focus:ring-2 focus:ring-slate-400 w-64"
+                  className="pl-9 pr-4 py-2 text-sm bg-slate-100 dark:bg-white/10 border-none rounded-lg focus:ring-2 focus:ring-slate-400 w-64 dark:text-white"
                   placeholder="Filtrar perfis..."
                   value={reportFilter}
                   onChange={(e) => setReportFilter(e.target.value)}
                 />
-                <MIcon name="search" className="absolute left-3 top-2 text-slate-400 text-sm" />
+                <MIcon name="search" className="absolute left-3 top-2 text-slate-400 dark:text-white/40 text-sm" />
               </div>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left">
-                <thead className="bg-slate-50 text-slate-500 text-xs font-bold uppercase tracking-wider">
+                <thead className="bg-slate-50 dark:bg-white/5 text-slate-500 dark:text-white/50 text-xs font-bold uppercase tracking-wider">
                   <tr>
                     <th className="px-6 py-4">Código</th>
                     <th className="px-6 py-4">Esteira</th>
@@ -367,28 +367,28 @@ export default function AdminEsteiraAdmin() {
                     <th className="px-6 py-4">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200">
+                <tbody className="divide-y divide-slate-200 dark:divide-white/10">
                   {filteredReportProfiles.map((p) => {
                     const profileTasks = tasks[p.id] || [];
                     const totalSeconds = profileTasks.reduce((acc, t) => acc + (t.duration_seconds || 0), 0);
                     return (
-                      <tr key={p.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="px-6 py-4 font-medium text-slate-900">#{p.profile_code}</td>
+                      <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                        <td className="px-6 py-4 font-medium">#{p.profile_code}</td>
                         <td className="px-6 py-4">Esteira {p.track_days} dias</td>
                         <td className="px-6 py-4">{new Date(p.start_date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })}</td>
                         <td className="px-6 py-4">
                           {totalSeconds > 0 ? (
-                            <span className="flex items-center gap-1 text-sm font-medium text-slate-700">
-                              <MIcon name="timer" className="text-sm text-slate-400" />
+                            <span className="flex items-center gap-1 text-sm font-medium text-slate-700 dark:text-white/70">
+                              <MIcon name="timer" className="text-sm text-slate-400 dark:text-white/40" />
                               {formatDuration(totalSeconds)}
                             </span>
-                          ) : <span className="text-slate-400 text-sm">—</span>}
+                          ) : <span className="text-slate-400 dark:text-white/40 text-sm">—</span>}
                         </td>
                         <td className="px-6 py-4">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                            p.status === "completed" ? "bg-emerald-100 text-emerald-800" :
-                            p.status === "restricted" ? "bg-rose-100 text-rose-800" :
-                            "bg-blue-100 text-[#1876f2]"
+                            p.status === "completed" ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-400" :
+                            p.status === "restricted" ? "bg-rose-100 text-rose-800 dark:bg-rose-500/20 dark:text-rose-400" :
+                            "bg-blue-100 text-[#1876f2] dark:bg-blue-500/20 dark:text-blue-400"
                           }`}>
                             {p.status === "completed" ? "Sucesso" : p.status === "restricted" ? "Falha" : "Em andamento"}
                           </span>
@@ -397,13 +397,13 @@ export default function AdminEsteiraAdmin() {
                     );
                   })}
                   {filteredReportProfiles.length === 0 && (
-                    <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-400">Nenhum perfil encontrado</td></tr>
+                    <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-400 dark:text-white/40">Nenhum perfil encontrado</td></tr>
                   )}
                 </tbody>
               </table>
             </div>
-            <div className="p-6 border-t border-slate-200">
-              <p className="text-sm text-slate-500">Mostrando {filteredReportProfiles.length} de {totalProfiles} resultados</p>
+            <div className="p-6 border-t border-slate-200 dark:border-white/10">
+              <p className="text-sm text-slate-500 dark:text-white/50">Mostrando {filteredReportProfiles.length} de {totalProfiles} resultados</p>
             </div>
           </section>
         </main>
@@ -412,19 +412,19 @@ export default function AdminEsteiraAdmin() {
       {/* Configurações Tab */}
       {activeTab === "configuracoes" && (
         <main className="flex-1 p-6 md:p-10 max-w-5xl mx-auto w-full space-y-6">
-          <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+          <section className="bg-white dark:bg-white/5 rounded-xl shadow-sm border border-slate-200 dark:border-white/10 overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-white/10 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <MIcon name="settings_accessibility" className="text-[#1876f2]" />
-                <h2 className="text-lg font-bold text-slate-900">Configuração de Ações da Esteira</h2>
+                <h2 className="text-lg font-bold">Configuração de Ações da Esteira</h2>
               </div>
-              <div className="flex bg-slate-100 p-1 rounded-lg">
+              <div className="flex bg-slate-100 dark:bg-white/10 p-1 rounded-lg">
                 {(["7_days", "15_days", "30_days"] as const).map((tk) => (
                   <button
                     key={tk}
                     onClick={() => setConfigTrack(tk)}
                     className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${
-                      configTrack === tk ? "bg-white shadow-sm text-slate-900" : "text-slate-500 hover:text-slate-800"
+                      configTrack === tk ? "bg-white dark:bg-white/20 shadow-sm" : "text-slate-500 dark:text-white/50 hover:text-slate-800 dark:hover:text-white/80"
                     }`}
                   >
                     {tk === "7_days" ? "7 Dias" : tk === "15_days" ? "15 Dias" : "30 Dias"}
@@ -434,12 +434,12 @@ export default function AdminEsteiraAdmin() {
             </div>
             <div className="p-6 space-y-3 max-h-[400px] overflow-y-auto">
               {configTasks[configTrack].map((task, i) => (
-                <div key={i} className="flex items-center gap-4 p-3 bg-slate-50 rounded-lg border border-slate-100">
-                  <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-blue-100 text-[#1876f2] font-bold text-xs rounded-full">
+                <div key={i} className="flex items-center gap-4 p-3 bg-slate-50 dark:bg-white/5 rounded-lg border border-slate-100 dark:border-white/10">
+                  <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-blue-100 dark:bg-blue-500/20 text-[#1876f2] font-bold text-xs rounded-full">
                     {String(i + 1).padStart(2, "0")}
                   </span>
                   <input
-                    className="flex-1 bg-transparent border-none p-0 text-sm text-slate-900 focus:ring-0 outline-none"
+                    className="flex-1 bg-transparent border-none p-0 text-sm focus:ring-0 outline-none dark:text-white"
                     type="text"
                     value={task.title}
                     onChange={(e) => {
@@ -452,16 +452,16 @@ export default function AdminEsteiraAdmin() {
                       });
                     }}
                   />
-                  <MIcon name="drag_indicator" className="text-slate-400 text-sm cursor-move" />
+                  <MIcon name="drag_indicator" className="text-slate-400 dark:text-white/40 text-sm cursor-move" />
                 </div>
               ))}
-              <div className="flex items-center gap-4 p-3 bg-slate-50 rounded-lg border border-slate-100">
-                <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-blue-100 text-[#1876f2] font-bold text-xs rounded-full">
+              <div className="flex items-center gap-4 p-3 bg-slate-50 dark:bg-white/5 rounded-lg border border-slate-100 dark:border-white/10">
+                <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-blue-100 dark:bg-blue-500/20 text-[#1876f2] font-bold text-xs rounded-full">
                   {String(configTasks[configTrack].length + 1).padStart(2, "0")}
                 </span>
                 <input
                   id="admin-new-track-action"
-                  className="flex-1 bg-transparent border-none p-0 text-sm text-slate-900 focus:ring-0 outline-none placeholder:text-slate-400 placeholder:italic"
+                  className="flex-1 bg-transparent border-none p-0 text-sm focus:ring-0 outline-none placeholder:text-slate-400 placeholder:italic dark:text-white"
                   type="text"
                   placeholder={`Adicionar nova ação para o Dia ${configTasks[configTrack].length + 1}...`}
                   onKeyDown={(e) => {
@@ -499,11 +499,11 @@ export default function AdminEsteiraAdmin() {
           </section>
 
           {/* Trust Tiers */}
-          <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+          <section className="bg-white dark:bg-white/5 rounded-xl shadow-sm border border-slate-200 dark:border-white/10 overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-white/10 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <MIcon name="verified_user" className="text-[#1876f2]" />
-                <h2 className="text-lg font-bold text-slate-900">Definição de Níveis de Confiança</h2>
+                <h2 className="text-lg font-bold">Definição de Níveis de Confiança</h2>
               </div>
               <button
                 onClick={() => setTrustTiers([...trustTiers, { label: `Nível ${trustTiers.length + 1}`, color: "bg-slate-100 text-slate-700", range: "0 - 0", criteria: "" }])}
@@ -515,14 +515,14 @@ export default function AdminEsteiraAdmin() {
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead>
-                  <tr className="bg-slate-50">
-                    <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Nível</th>
-                    <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Faixa</th>
-                    <th className="px-6 py-3 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Critérios</th>
+                  <tr className="bg-slate-50 dark:bg-white/5">
+                    <th className="px-6 py-3 font-bold text-slate-500 dark:text-white/50 uppercase tracking-wider text-[10px]">Nível</th>
+                    <th className="px-6 py-3 font-bold text-slate-500 dark:text-white/50 uppercase tracking-wider text-[10px]">Faixa</th>
+                    <th className="px-6 py-3 font-bold text-slate-500 dark:text-white/50 uppercase tracking-wider text-[10px]">Critérios</th>
                     <th className="px-6 py-3 w-16"></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-100 dark:divide-white/10">
                   {trustTiers.map((tier, i) => (
                     <tr key={i} className="group">
                       <td className="px-6 py-4">
@@ -534,14 +534,14 @@ export default function AdminEsteiraAdmin() {
                       </td>
                       <td className="px-6 py-4">
                         <input
-                          className="bg-slate-50 border border-slate-200 rounded px-2 py-1 text-xs w-20 text-slate-900"
+                          className="bg-slate-50 dark:bg-white/10 border border-slate-200 dark:border-white/10 rounded px-2 py-1 text-xs w-20 dark:text-white"
                           value={tier.range}
                           onChange={(e) => { const t = [...trustTiers]; t[i] = { ...t[i], range: e.target.value }; setTrustTiers(t); }}
                         />
                       </td>
                       <td className="px-6 py-4">
                         <input
-                          className="w-full bg-transparent border-none p-0 text-xs text-slate-700 focus:ring-0 outline-none"
+                          className="w-full bg-transparent border-none p-0 text-xs text-slate-700 dark:text-white/70 focus:ring-0 outline-none"
                           value={tier.criteria}
                           onChange={(e) => { const t = [...trustTiers]; t[i] = { ...t[i], criteria: e.target.value }; setTrustTiers(t); }}
                         />
@@ -564,15 +564,15 @@ export default function AdminEsteiraAdmin() {
           </section>
 
           {/* Danger Zone */}
-          <section className="bg-white rounded-xl shadow-sm border border-red-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-red-100 flex items-center gap-3">
+          <section className="bg-white dark:bg-white/5 rounded-xl shadow-sm border border-red-200 dark:border-red-500/20 overflow-hidden">
+            <div className="px-6 py-4 border-b border-red-100 dark:border-red-500/20 flex items-center gap-3">
               <MIcon name="warning" className="text-red-500" />
-              <h2 className="text-lg font-bold text-red-700">Zona de Perigo</h2>
+              <h2 className="text-lg font-bold text-red-700 dark:text-red-400">Zona de Perigo</h2>
             </div>
             <div className="p-6 space-y-4">
-              <div className="bg-red-50 border border-red-100 rounded-lg p-4">
-                <h3 className="font-bold text-sm text-red-800 mb-1">Zerar todas as Esteiras e Perfis</h3>
-                <p className="text-xs text-red-600 mb-4">
+              <div className="bg-red-50 dark:bg-red-500/10 border border-red-100 dark:border-red-500/20 rounded-lg p-4">
+                <h3 className="font-bold text-sm text-red-800 dark:text-red-400 mb-1">Zerar todas as Esteiras e Perfis</h3>
+                <p className="text-xs text-red-600 dark:text-red-400/70 mb-4">
                   Esta ação é irreversível. Todos os perfis e tarefas serão excluídos permanentemente.
                 </p>
                 {!showResetConfirm ? (
@@ -584,12 +584,12 @@ export default function AdminEsteiraAdmin() {
                   </button>
                 ) : (
                   <div className="space-y-3">
-                    <p className="text-xs text-red-700 font-bold">Digite sua senha para confirmar:</p>
+                    <p className="text-xs text-red-700 dark:text-red-400 font-bold">Digite sua senha para confirmar:</p>
                     <input
                       type="password"
                       value={resetPassword}
                       onChange={e => setResetPassword(e.target.value)}
-                      className="w-full max-w-xs bg-white border border-red-200 rounded-lg px-3 py-2 text-sm"
+                      className="w-full max-w-xs bg-white dark:bg-white/10 border border-red-200 dark:border-red-500/20 rounded-lg px-3 py-2 text-sm dark:text-white"
                       placeholder="Sua senha"
                     />
                     {resetError && <p className="text-xs text-red-600 font-bold">{resetError}</p>}
@@ -603,7 +603,7 @@ export default function AdminEsteiraAdmin() {
                       </button>
                       <button
                         onClick={() => { setShowResetConfirm(false); setResetPassword(""); setResetError(""); }}
-                        className="px-5 py-2 text-sm font-bold text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+                        className="px-5 py-2 text-sm font-bold text-slate-600 dark:text-white/60 bg-slate-100 dark:bg-white/10 rounded-lg hover:bg-slate-200 dark:hover:bg-white/20 transition-colors"
                       >
                         Cancelar
                       </button>
