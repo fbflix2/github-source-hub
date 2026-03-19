@@ -692,7 +692,7 @@ export default function AdminAquecimento() {
               <div className="flex flex-col items-center justify-center py-4">
                 <div className="relative w-48 h-48">
                   <svg className="w-full h-full" viewBox="0 0 36 36">
-                    <circle className="stroke-slate-100" cx="18" cy="18" fill="none" r="16" strokeWidth="4" />
+                    <circle className="stroke-slate-100 dark:stroke-white/10" cx="18" cy="18" fill="none" r="16" strokeWidth="4" />
                     <circle className="stroke-[#1876f2]" cx="18" cy="18" fill="none" r="16" strokeDasharray={`${t2Pct}, 100`} strokeDashoffset={`-${t3Pct}`} strokeLinecap="round" strokeWidth="4" />
                     <circle className="stroke-emerald-500" cx="18" cy="18" fill="none" r="16" strokeDasharray={`${t3Pct}, 100`} strokeLinecap="round" strokeWidth="4" />
                   </svg>
