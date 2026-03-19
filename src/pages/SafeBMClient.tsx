@@ -34,6 +34,7 @@ export default function SafeBMClient() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [showPricing, setShowPricing] = useState(false);
+  const monitorRef = useRef<SecurityMonitorHandle>(null);
 
   useEffect(() => {
     (async () => {
