@@ -138,6 +138,7 @@ export default function AdminDashboard() {
         .filter(o => new Date(o.created_at) >= todayStart)
         .reduce((sum, o) => sum + (o.total || 0), 0);
       setTodayRevenue(todayRev);
+      setAllCompletedOrders(completedOrds.map(o => ({ total: o.total || 0, created_at: o.created_at })));
 
       const completedOrderIds = new Set(completedOrds.map(o => o.id));
 
