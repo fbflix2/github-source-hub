@@ -160,7 +160,6 @@ export default function SafeBMClient() {
         </div>
       </section>
 
-      {/* ───── INFO CARDS (moved above BMs) ───── */}
       <section className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
         <div className="rounded-xl bg-[#1C2025] border border-[#5d3f3b]/15 p-4 flex items-center gap-4">
           <div className="flex-1 space-y-0.5">
@@ -168,34 +167,19 @@ export default function SafeBMClient() {
             <p className="text-[11px] text-[#c6c6c7]/60 leading-relaxed">
               Aumente seus limites de vault para proteger até 50 BMs simultaneamente.
             </p>
-            <a href="/suporte" className="inline-block pt-1 text-[#ffb4aa] font-bold text-xs hover:underline">
+            <button onClick={() => setShowPricing(true)} className="inline-block pt-1 text-[#ffb4aa] font-bold text-xs hover:underline bg-transparent border-none cursor-pointer">
               Ver planos e preços →
-            </a>
+            </button>
           </div>
           <div className="hidden sm:block opacity-20 rotate-12">
             <MaterialIcon name="add_moderator" className="!text-[60px] text-[#ffb4aa]" />
           </div>
         </div>
 
-        <div className="rounded-xl bg-gradient-to-br from-[#ff5545]/20 to-[#1c2025] border border-[#ffb4aa]/20 p-4 flex flex-col justify-center">
-          <div className="flex items-center gap-3 mb-2">
-            <MaterialIcon name="vpn_key" className="text-[#ffb4aa] !text-xl" />
-            <h4 className="font-bold text-sm" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Sincronização Ativa</h4>
-          </div>
-          <p className="text-[11px] text-[#e0e2ea]/80 mb-3">
-            Suas chaves de acesso estão seguras e criptografadas via hardware. Última sincronização: agora.
-          </p>
-          <div className="flex gap-3">
-            <button className="flex-1 py-1.5 bg-white/10 hover:bg-white/20 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all text-[#e0e2ea]">
-              Ver Logs
-            </button>
-            <button className="flex-1 py-1.5 bg-[#ffb4aa] text-[#410001] rounded-full text-[10px] font-bold uppercase tracking-wider transition-all active:scale-95 hover:bg-[#ffdad5]">
-              Sincronizar
-            </button>
-          </div>
-        </div>
+        <SecurityMonitor bmNames={activeVaults.map(v => v.bm_name)} />
       </section>
 
+      <PricingModal open={showPricing} onClose={() => setShowPricing(false)} />
       {/* ───── PROTECTED BMs GRID ───── */}
       <section className="space-y-2">
         <div>
