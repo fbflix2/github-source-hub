@@ -162,8 +162,8 @@ export default function SafeBMClient() {
         </div>
       </section>
 
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-        <div className="rounded-xl bg-[#1C2025] border border-[#5d3f3b]/15 p-4 flex items-center gap-4">
+      <section className="grid grid-cols-1 md:grid-cols-2 gap-2.5" style={{ minHeight: 180 }}>
+        <div className="rounded-xl bg-[#1C2025] border border-[#5d3f3b]/15 p-4 flex items-center gap-4" style={{ minHeight: 180 }}>
           <div className="flex-1 space-y-0.5">
             <h4 className="font-bold text-sm" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Precisa de mais proteção?</h4>
             <p className="text-[11px] text-[#c6c6c7]/60 leading-relaxed">
