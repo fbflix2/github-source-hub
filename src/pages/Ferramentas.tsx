@@ -262,6 +262,22 @@ function GlassCard({
 export default function Ferramentas() {
   const navigate = useNavigate();
   const [activeTool, setActiveTool] = useState<ToolId | null>(null);
+  const [hasSafeBm, setHasSafeBm] = useState(false);
+
+  useEffect(() => {
+    async function checkSafeBm() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from("safe_bm_vaults")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("status", "active")
+        .limit(1);
+      if (data && data.length > 0) setHasSafeBm(true);
+    }
+    checkSafeBm();
+  }, []);
 
   if (activeTool === "2fa") return <TwoFATool onBack={() => setActiveTool(null)} />;
   if (activeTool === "verificador") return <VerificadorTool onBack={() => setActiveTool(null)} />;
