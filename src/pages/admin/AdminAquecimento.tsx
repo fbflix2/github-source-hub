@@ -774,10 +774,10 @@ export default function AdminAquecimento() {
         <div id="form-section" className="max-w-5xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-12 gap-5 pb-8 pt-6 w-full">
           {/* ── Selection Form Section ── */}
           <section className="lg:col-span-5">
-            <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-              <div className="px-5 py-3.5 border-b border-slate-100 flex items-center gap-2.5">
+            <div className="bg-white dark:bg-white/5 rounded-xl shadow-sm border border-slate-200 dark:border-white/10 overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-slate-100 dark:border-white/10 flex items-center gap-2.5">
                 <MIcon name="add_circle" className="text-[#1876f2] text-xl" />
-                <h2 className="text-base font-bold text-slate-900">Iniciar Novo Aquecimento</h2>
+                <h2 className="text-base font-bold text-slate-900 dark:text-white">Iniciar Novo Aquecimento</h2>
               </div>
               <div className="p-5 space-y-4">
                 {/* Mode toggle */}
