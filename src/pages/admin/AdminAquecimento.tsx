@@ -744,7 +744,7 @@ export default function AdminAquecimento() {
                 const ago = Math.round((Date.now() - date.getTime()) / 60000);
                 const agoLabel = ago < 60 ? `${ago}m` : ago < 1440 ? `${Math.round(ago / 60)}h` : `${Math.round(ago / 1440)}d`;
                 return (
-                  <div key={p.id} className="p-4 hover:bg-slate-50 transition-colors flex items-center justify-between">
+                  <div key={p.id} className="p-4 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <div className={`w-10 h-10 rounded-full flex items-center justify-center ${bgMap[color]}`}>
                         <MIcon name={icons[i % 4]} />
