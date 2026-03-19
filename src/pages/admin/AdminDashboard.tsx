@@ -407,7 +407,28 @@ export default function AdminDashboard() {
         ))}
       </div>
 
-      {/* Product Metrics */}
+      {/* Revenue Period Picker Dialog */}
+      <Dialog open={showRevenuePeriodPicker} onOpenChange={setShowRevenuePeriodPicker}>
+        <DialogContent className="sm:max-w-xs bg-zinc-900 border-white/10">
+          <DialogHeader>
+            <DialogTitle className="text-white text-sm">Selecionar Período de Faturamento</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-1">
+            {(["hoje", "7dias", "30dias"] as const).map(p => (
+              <button
+                key={p}
+                onClick={() => { setRevenuePeriod(p); setShowRevenuePeriodPicker(false); }}
+                className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                  revenuePeriod === p ? "text-primary bg-primary/10" : "text-white/60 hover:text-white hover:bg-white/5"
+                }`}
+              >
+                {periodLabels[p]}
+              </button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <div className="glass-panel rounded-xl p-4">
         <div className="flex items-center gap-2 mb-3">
           <Database className="size-4 text-white/60" />
