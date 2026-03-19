@@ -1,6 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
+
+type RevenuePeriod = "hoje" | "7dias" | "30dias";
+const periodLabels: Record<RevenuePeriod, string> = {
+  hoje: "Hoje",
+  "7dias": "7 Dias",
+  "30dias": "30 Dias",
+};
 import { MetaNewsTicker } from "./MetaNewsTicker";
 
 interface MobileDashboardData {
