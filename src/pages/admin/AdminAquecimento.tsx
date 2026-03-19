@@ -644,7 +644,7 @@ export default function AdminAquecimento() {
 
           {/* Progress by Stage + Trust Tier */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
-            <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+            <div className="lg:col-span-2 bg-white dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6">
               <div className="flex items-center justify-between mb-8">
                 <div>
                   <h3 className="text-lg font-bold">Progresso por Estágio</h3>
