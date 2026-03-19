@@ -1,6 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye, EyeOff } from "lucide-react";
+
+type RevenuePeriod = "hoje" | "7dias" | "30dias";
+const periodLabels: Record<RevenuePeriod, string> = {
+  hoje: "Hoje",
+  "7dias": "7 Dias",
+  "30dias": "30 Dias",
+};
 import { MetaNewsTicker } from "./MetaNewsTicker";
 
 interface MobileDashboardData {
@@ -42,6 +49,10 @@ function getCatIcon(name: string): string {
 export function AdminMobileDashboard() {
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState("Admin");
+  const [balanceHidden, setBalanceHidden] = useState(false);
+  const [revenuePeriod, setRevenuePeriod] = useState<RevenuePeriod>("hoje");
+  const [showPeriodPicker, setShowPeriodPicker] = useState(false);
+  const [allCompletedOrders, setAllCompletedOrders] = useState<{ total: number; created_at: string }[]>([]);
   const [data, setData] = useState<MobileDashboardData>({
     totalClients: 0,
     totalTransactions: 0,
@@ -98,6 +109,8 @@ export function AdminMobileDashboard() {
       const todayRev = completedOrds
         .filter(o => new Date(o.created_at) >= todayStart)
         .reduce((sum, o) => sum + (o.total || 0), 0);
+
+      setAllCompletedOrders(completedOrds.map(o => ({ total: o.total || 0, created_at: o.created_at })));
 
       // Build chart from REAL payment data (last 7 days, grouped by day)
       const payments = paymentsRes.data ?? [];
@@ -195,6 +208,22 @@ export function AdminMobileDashboard() {
     return "Boa noite";
   };
 
+  const periodRevenue = useMemo(() => {
+    const now = new Date();
+    let since: Date;
+    switch (revenuePeriod) {
+      case "hoje":
+        since = new Date(now); since.setHours(0, 0, 0, 0); break;
+      case "7dias":
+        since = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); break;
+      case "30dias":
+        since = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); break;
+    }
+    return allCompletedOrders
+      .filter(o => new Date(o.created_at) >= since)
+      .reduce((s, o) => s + o.total, 0);
+  }, [allCompletedOrders, revenuePeriod]);
+
   const chartTotal = data.chartData.reduce((s, d) => s + d.value, 0);
 
   if (loading) {
@@ -266,12 +295,43 @@ export function AdminMobileDashboard() {
             <p className="text-zinc-500 text-[10px] font-semibold uppercase mb-1">Saldo em Carteiras</p>
             <p className="text-xl font-bold">{formatCurrency(data.totalBalance)}</p>
           </div>
-          <div className="admin-mobile-glass p-4">
-            <p className="text-zinc-500 text-[10px] font-semibold uppercase mb-1">Faturado Hoje</p>
-            <div className="flex items-baseline gap-2">
-              <p className="text-xl font-bold">{formatCurrency(data.todayRevenue)}</p>
-              {data.todayRevenue > 0 && <span className="text-[9px] font-bold" style={{ color: '#FF0000' }}>ALTO</span>}
+          <div className="admin-mobile-glass p-4 relative">
+            <div className="flex items-center justify-between mb-1">
+              <p
+                className="text-zinc-500 text-[10px] font-semibold uppercase cursor-pointer"
+                onClick={() => setShowPeriodPicker(!showPeriodPicker)}
+              >
+                Faturado {periodLabels[revenuePeriod]} ▾
+              </p>
+              <button
+                onClick={(e) => { e.stopPropagation(); setBalanceHidden(!balanceHidden); }}
+                className="text-zinc-500 hover:text-white transition-colors p-0.5"
+              >
+                {balanceHidden ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+              </button>
             </div>
+            <div className="flex items-baseline gap-2">
+              <p className="text-xl font-bold">
+                {balanceHidden ? "••••••" : formatCurrency(periodRevenue)}
+              </p>
+              {!balanceHidden && periodRevenue > 0 && <span className="text-[9px] font-bold" style={{ color: '#22c55e' }}>●</span>}
+            </div>
+            {showPeriodPicker && (
+              <div className="absolute top-full left-0 right-0 mt-1 z-50 rounded-lg overflow-hidden border border-zinc-800" style={{ backgroundColor: '#111' }}>
+                {(Object.keys(periodLabels) as RevenuePeriod[]).map(p => (
+                  <button
+                    key={p}
+                    onClick={() => { setRevenuePeriod(p); setShowPeriodPicker(false); }}
+                    className={`w-full text-left px-4 py-2.5 text-xs font-medium transition-colors ${
+                      revenuePeriod === p ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'
+                    }`}
+                    style={revenuePeriod === p ? { backgroundColor: 'rgba(229,9,20,0.15)', color: '#E50914' } : {}}
+                  >
+                    {periodLabels[p]}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </section>
