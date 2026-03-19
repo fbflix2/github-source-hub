@@ -99,7 +99,7 @@ export default function AdminEsteiraAdmin() {
     fetchProfiles();
     loadConfigFromDB();
 
-    // Realtime subscriptions for auto-refresh
+    // Realtime subscriptions for instant updates
     const profilesChannel = supabase
       .channel("warming-profiles-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "warming_profiles" }, () => {
@@ -114,9 +114,15 @@ export default function AdminEsteiraAdmin() {
       })
       .subscribe();
 
+    // Fallback polling every 10s to ensure data stays fresh
+    const pollInterval = setInterval(() => {
+      fetchProfiles();
+    }, 10000);
+
     return () => {
       supabase.removeChannel(profilesChannel);
       supabase.removeChannel(tasksChannel);
+      clearInterval(pollInterval);
     };
   }, []);
 
