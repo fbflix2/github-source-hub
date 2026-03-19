@@ -762,7 +762,7 @@ export default function AdminAquecimento() {
                 );
               })}
               {visibleProfiles.length === 0 && (
-                <div className="p-8 text-center text-slate-400 text-sm">Nenhuma atividade recente</div>
+                <div className="p-8 text-center text-slate-400 dark:text-white/40 text-sm">Nenhuma atividade recente</div>
               )}
             </div>
           </div>
