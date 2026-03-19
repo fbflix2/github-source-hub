@@ -72,6 +72,8 @@ function FAQItem({ q, a }: { q: string; a: string }) {
 }
 
 export default function SafeBMLanding() {
+  const navigate = useNavigate();
+  const BM_SAFE_CHECKOUT = "/checkout?product=e5118c63-ed52-4f4e-8983-f44c1ba0d17b&qty=1";
   return (
     <div className="bg-[#0A0A0A] text-white font-sans min-h-screen selection:bg-[#BC13FE] selection:text-white">
 
