@@ -48,6 +48,7 @@ function getCatIcon(name: string): string {
 
 export function AdminMobileDashboard() {
   const [loading, setLoading] = useState(true);
+  const [userName, setUserName] = useState("Admin");
   const [balanceHidden, setBalanceHidden] = useState(false);
   const [revenuePeriod, setRevenuePeriod] = useState<RevenuePeriod>("hoje");
   const [showPeriodPicker, setShowPeriodPicker] = useState(false);
