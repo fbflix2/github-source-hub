@@ -259,7 +259,7 @@ export default function WarmingSessionTimer({
           <div>
             <div className="flex items-center gap-2 mb-0.5">
               <MIcon name="local_fire_department" className="text-orange-500 text-lg" />
-              <h2 className="text-base font-bold text-slate-900">
+              <h2 className="text-base font-bold text-slate-900 dark:text-white">
                 {profile.profile_code}
                 {profile.profile_name && ` — ${profile.profile_name}`}
               </h2>
