@@ -311,12 +311,12 @@ export default function SafeBMLanding() {
             <p className="text-gray-400 mb-8">
               Não espere o bloqueio chegar para tomar uma atitude. O seguro é feito enquanto tudo está bem.
             </p>
-            <a
-              href="#oferta"
+            <button
+              onClick={() => navigate(BM_SAFE_CHECKOUT)}
               className="inline-block bg-white text-[#0A0A0A] px-12 py-4 rounded-full font-extrabold hover:bg-[#00F0FF] transition-colors uppercase tracking-widest text-sm"
             >
               Ativar BM Blindada Agora
-            </a>
+            </button>
           </div>
           <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-600">
             <p>© 2025 FBFlix Security Division. Todos os direitos reservados.</p>
