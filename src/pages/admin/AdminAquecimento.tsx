@@ -927,7 +927,7 @@ export default function AdminAquecimento() {
 
           <section className="lg:col-span-7">
             {operationMode === "register" && !selectedProfile ? (
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8 text-center">
+              <div className="bg-white dark:bg-white/5 rounded-xl shadow-sm border border-slate-200 dark:border-white/10 p-8 text-center">
                 <MIcon name="person_add" className="text-[#1876f2] text-4xl" />
                 <p className="text-sm font-bold text-slate-700 mt-3">Modo Novo Perfil</p>
                 <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
