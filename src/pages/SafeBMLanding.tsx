@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AlertTriangle, DollarSign, Zap, Check, ChevronDown } from "lucide-react";
 import heroVault from "@/assets/safebm-hero-vault.jpg";
 import specialistImg from "@/assets/safebm-specialist.jpg";
+import { supabase } from "@/integrations/supabase/client";
 
 const faqs = [
   {
@@ -74,6 +75,19 @@ function FAQItem({ q, a }: { q: string; a: string }) {
 export default function SafeBMLanding() {
   const navigate = useNavigate();
   const BM_SAFE_CHECKOUT = "/checkout?product=e5118c63-ed52-4f4e-8983-f44c1ba0d17b&qty=1";
+  const [avatars, setAvatars] = useState<string[]>([]);
+
+  useEffect(() => {
+    supabase
+      .from("profiles")
+      .select("avatar_url")
+      .not("avatar_url", "is", null)
+      .limit(5)
+      .then(({ data }) => {
+        if (data) setAvatars(data.map((p) => p.avatar_url!).filter(Boolean));
+      });
+  }, []);
+
   return (
     <div className="bg-[#0A0A0A] text-white font-sans min-h-screen selection:bg-[#BC13FE] selection:text-white">
 
@@ -109,9 +123,18 @@ export default function SafeBMLanding() {
             </div>
             <div className="mt-8 flex items-center justify-center lg:justify-start gap-4 text-sm text-gray-500">
               <div className="flex -space-x-2">
-                <div className="w-8 h-8 rounded-full bg-gray-700 border-2 border-[#0A0A0A]" />
-                <div className="w-8 h-8 rounded-full bg-gray-600 border-2 border-[#0A0A0A]" />
-                <div className="w-8 h-8 rounded-full bg-gray-500 border-2 border-[#0A0A0A]" />
+                {avatars.length > 0
+                  ? avatars.map((url, i) => (
+                      <img
+                        key={i}
+                        src={url}
+                        alt="Cliente"
+                        className="w-8 h-8 rounded-full border-2 border-[#0A0A0A] object-cover"
+                      />
+                    ))
+                  : [700, 600, 500].map((c) => (
+                      <div key={c} className={`w-8 h-8 rounded-full bg-gray-${c} border-2 border-[#0A0A0A]`} />
+                    ))}
               </div>
               <span>+146 BMs protegidas esta semana</span>
             </div>
