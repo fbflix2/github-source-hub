@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { AlertTriangle, DollarSign, Zap, Check, ChevronDown } from "lucide-react";
 import heroVault from "@/assets/safebm-hero-vault.jpg";
 import specialistImg from "@/assets/safebm-specialist.jpg";

@@ -350,7 +350,10 @@ export default function Ferramentas() {
             <p className="text-slate-400 mb-4 flex-grow leading-relaxed text-xs">
               Cofre digital para suas Business Managers. Proteja seus ativos com backup seguro e monitoramento 24/7.
             </p>
-            <button className="w-full py-2.5 px-4 bg-primary hover:bg-red-700 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2 text-sm group/btn">
+            <button
+              onClick={(e) => { e.stopPropagation(); navigate("/checkout?product=e5118c63-ed52-4f4e-8983-f44c1ba0d17b&qty=1"); }}
+              className="w-full py-2.5 px-4 bg-primary hover:bg-red-700 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2 text-sm group/btn"
+            >
               <span>Ativar Agora</span>
               <MaterialIcon name="arrow_forward" className="text-lg group-hover/btn:translate-x-1 transition-transform" />
             </button>
