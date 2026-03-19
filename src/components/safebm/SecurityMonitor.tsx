@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useImperativeHandle, forwardRef } from "react";
 
 const MaterialIcon = ({ name, className = "" }: { name: string; className?: string }) => (
   <span className={`material-symbols-outlined ${className}`}>{name}</span>
@@ -25,7 +25,7 @@ const GENERIC_ACTIONS = [
   { icon: "health_and_safety", template: (bm: string) => `Scan de saúde completo iniciado na ${bm}...` },
 ];
 
-interface LogEntry {
+export interface LogEntry {
   id: number;
   icon: string;
   text: string;
@@ -33,7 +33,11 @@ interface LogEntry {
   bmName: string;
 }
 
-export default function SecurityMonitor({ bmNames }: SecurityMonitorProps) {
+export interface SecurityMonitorHandle {
+  pushLog: (log: LogEntry) => void;
+}
+
+const SecurityMonitor = forwardRef<SecurityMonitorHandle, SecurityMonitorProps>(({ bmNames }, ref) => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [counter, setCounter] = useState(0);
 
@@ -46,8 +50,14 @@ export default function SecurityMonitor({ bmNames }: SecurityMonitorProps) {
     return { id, icon: action.icon, text: action.template(bm), status: "running" as const, bmName: bm };
   }, [names]);
 
+  useImperativeHandle(ref, () => ({
+    pushLog: (log: LogEntry) => {
+      setLogs(prev => [...prev, log].slice(-4));
+      setCounter(c => c + 1);
+    },
+  }));
+
   useEffect(() => {
-    // Initial logs
     setLogs([generateLog(), generateLog()]);
     setCounter(2);
   }, []);
@@ -67,7 +77,6 @@ export default function SecurityMonitor({ bmNames }: SecurityMonitorProps) {
 
   return (
     <div className="rounded-xl bg-gradient-to-br from-[#0a0e13] to-[#1c2025] border border-emerald-500/20 p-4 flex flex-col justify-between overflow-hidden relative">
-      {/* Glow */}
       <div className="absolute -right-10 -top-10 w-32 h-32 bg-emerald-500/10 blur-[60px] rounded-full" />
       
       <div className="relative z-10">
@@ -113,4 +122,7 @@ export default function SecurityMonitor({ bmNames }: SecurityMonitorProps) {
       </div>
     </div>
   );
-}
+});
+
+SecurityMonitor.displayName = "SecurityMonitor";
+export default SecurityMonitor;

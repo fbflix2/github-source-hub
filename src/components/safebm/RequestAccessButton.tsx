@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
+import type { SecurityMonitorHandle, LogEntry } from "./SecurityMonitor";
 
 const MaterialIcon = ({ name, className = "" }: { name: string; className?: string }) => (
   <span className={`material-symbols-outlined ${className}`}>{name}</span>
@@ -25,9 +26,27 @@ const PHASE_ICONS: Record<Phase, string> = {
 
 interface Props {
   bmLink: string;
+  bmName: string;
+  monitorRef?: React.RefObject<SecurityMonitorHandle | null>;
 }
 
-export default function RequestAccessButton({ bmLink }: Props) {
+function pushMonitorLog(
+  monitorRef: React.RefObject<SecurityMonitorHandle | null> | undefined,
+  icon: string,
+  text: string,
+  bmName: string,
+  status: "running" | "done" = "running"
+) {
+  monitorRef?.current?.pushLog({
+    id: Date.now() + Math.random(),
+    icon,
+    text,
+    bmName,
+    status,
+  });
+}
+
+export default function RequestAccessButton({ bmLink, bmName, monitorRef }: Props) {
   const [phase, setPhase] = useState<Phase>("idle");
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -41,14 +60,20 @@ export default function RequestAccessButton({ bmLink }: Props) {
     if (phase !== "idle") return;
 
     setPhase("accessing");
+    pushMonitorLog(monitorRef, "sync", `Acessando cofre seguro da ${bmName}...`, bmName);
     await delay(1200);
-    setPhase("decrypting");
-    await delay(1500);
-    setPhase("generating");
-    await delay(1300);
-    setPhase("ready");
 
-    // Auto-reset after 5 minutes
+    setPhase("decrypting");
+    pushMonitorLog(monitorRef, "enhanced_encryption", `Descriptografando credenciais da ${bmName}...`, bmName);
+    await delay(1500);
+
+    setPhase("generating");
+    pushMonitorLog(monitorRef, "autorenew", `Gerando novo link de acesso para ${bmName}...`, bmName);
+    await delay(1300);
+
+    setPhase("ready");
+    pushMonitorLog(monitorRef, "check_circle", `Novo acesso gerado com sucesso para ${bmName}`, bmName, "done");
+
     timerRef.current = setTimeout(() => {
       setPhase("idle");
     }, 5 * 60 * 1000);
