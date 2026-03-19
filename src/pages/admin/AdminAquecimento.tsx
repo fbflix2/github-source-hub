@@ -609,7 +609,7 @@ export default function AdminAquecimento() {
                 <span>Sem dados anteriores</span>
               </div>
             </div>
-            <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col gap-2">
+            <div className="bg-white dark:bg-white/5 p-6 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm flex flex-col gap-2">
               <div className="flex items-center justify-between">
                 <p className="text-slate-500 font-medium text-sm">Em Aquecimento</p>
                 <MIcon name="local_fire_department" className="text-amber-500" />
