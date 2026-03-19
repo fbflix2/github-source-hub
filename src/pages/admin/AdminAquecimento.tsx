@@ -757,7 +757,7 @@ export default function AdminAquecimento() {
                         </p>
                       </div>
                     </div>
-                    <span className="text-xs font-bold text-slate-400">{agoLabel}</span>
+                    <span className="text-xs font-bold text-slate-400 dark:text-white/40">{agoLabel}</span>
                   </div>
                 );
               })}
