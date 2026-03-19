@@ -76,7 +76,7 @@ const SecurityMonitor = forwardRef<SecurityMonitorHandle, SecurityMonitorProps>(
   }, [generateLog]);
 
   return (
-    <div className="rounded-xl bg-gradient-to-br from-[#0a0e13] to-[#1c2025] border border-emerald-500/20 p-4 flex flex-col justify-between overflow-hidden relative">
+    <div className="rounded-xl bg-gradient-to-br from-[#0a0e13] to-[#1c2025] border border-emerald-500/20 p-4 flex flex-col justify-between overflow-hidden relative" style={{ minHeight: 180 }}>
       <div className="absolute -right-10 -top-10 w-32 h-32 bg-emerald-500/10 blur-[60px] rounded-full" />
       
       <div className="relative z-10">
