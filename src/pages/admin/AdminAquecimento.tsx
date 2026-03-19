@@ -635,7 +635,7 @@ export default function AdminAquecimento() {
                 <p className="text-slate-500 dark:text-white/50 font-medium text-sm">Perdas (24h)</p>
                 <MIcon name="block" className="text-rose-500" />
               </div>
-              <p className="text-3xl font-black text-slate-900">{restrictedProfiles}</p>
+              <p className="text-3xl font-black text-slate-900 dark:text-white">{restrictedProfiles}</p>
               <div className="flex items-center gap-1 text-slate-400 font-medium text-sm">
                 <span>Sem dados anteriores</span>
               </div>
