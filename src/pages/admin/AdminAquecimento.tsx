@@ -650,7 +650,7 @@ export default function AdminAquecimento() {
                   <h3 className="text-lg font-bold">Progresso por Estágio</h3>
                   <p className="text-sm text-slate-500">Maturidade dos perfis na esteira</p>
                 </div>
-                <select className="bg-slate-50 border-none rounded-lg text-sm font-medium focus:ring-slate-400">
+                <select className="bg-slate-50 dark:bg-white/10 dark:text-white border-none rounded-lg text-sm font-medium focus:ring-slate-400">
                   <option>Últimos 30 dias</option>
                   <option>Últimos 7 dias</option>
                 </select>
