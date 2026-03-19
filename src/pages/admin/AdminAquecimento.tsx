@@ -632,7 +632,7 @@ export default function AdminAquecimento() {
             </div>
             <div className="bg-white dark:bg-white/5 p-6 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm flex flex-col gap-2">
               <div className="flex items-center justify-between">
-                <p className="text-slate-500 font-medium text-sm">Perdas (24h)</p>
+                <p className="text-slate-500 dark:text-white/50 font-medium text-sm">Perdas (24h)</p>
                 <MIcon name="block" className="text-rose-500" />
               </div>
               <p className="text-3xl font-black text-slate-900">{restrictedProfiles}</p>
