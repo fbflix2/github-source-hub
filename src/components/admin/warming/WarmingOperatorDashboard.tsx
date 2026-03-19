@@ -70,11 +70,18 @@ export default function WarmingOperatorDashboard({ profiles, tasks, creatorNames
     setSavingGoal(false);
   };
 
-  // Get unique operators
+  // Get unique operators - merge team moderators with profile creators
   const operators = useMemo(() => {
-    const ids = [...new Set(profiles.map(p => p.created_by).filter(Boolean))] as string[];
-    return ids.map(id => ({ id, name: creatorNames[id] || "Sem nome" }));
-  }, [profiles, creatorNames]);
+    const profileCreatorIds = [...new Set(profiles.map(p => p.created_by).filter(Boolean))] as string[];
+    const profileCreators = profileCreatorIds.map(id => ({ id, name: creatorNames[id] || "Sem nome" }));
+    
+    // Merge: team operators + any profile creators not already in team
+    const mergedMap = new Map<string, { id: string; name: string }>();
+    teamOperators.forEach(op => mergedMap.set(op.id, op));
+    profileCreators.forEach(op => { if (!mergedMap.has(op.id)) mergedMap.set(op.id, op); });
+    
+    return Array.from(mergedMap.values());
+  }, [profiles, creatorNames, teamOperators]);
 
   // Filter profiles by time period
   const filteredProfiles = useMemo(() => {
