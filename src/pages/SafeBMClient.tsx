@@ -178,7 +178,7 @@ export default function SafeBMClient() {
           </div>
         </div>
 
-        <SecurityMonitor bmNames={activeVaults.map(v => v.bm_name)} />
+        <SecurityMonitor ref={monitorRef} bmNames={activeVaults.map(v => v.bm_name)} />
       </section>
 
       <PricingModal open={showPricing} onClose={() => setShowPricing(false)} />
