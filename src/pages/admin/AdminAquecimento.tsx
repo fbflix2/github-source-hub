@@ -624,7 +624,7 @@ export default function AdminAquecimento() {
                 <p className="text-slate-500 dark:text-white/50 font-medium text-sm">Prontos p/ Uso</p>
                 <MIcon name="check_circle" className="text-emerald-500" />
               </div>
-              <p className="text-3xl font-black text-slate-900">{completedProfiles.toLocaleString()}</p>
+              <p className="text-3xl font-black text-slate-900 dark:text-white">{completedProfiles.toLocaleString()}</p>
               <div className="flex items-center gap-1 text-emerald-500 font-bold text-sm">
                 <MIcon name="verified" className="text-sm" />
                 <span>Alta maturidade</span>
