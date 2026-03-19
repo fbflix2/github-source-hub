@@ -403,22 +403,6 @@ export default function AdminDashboard() {
               <h3 className="text-2xl font-bold text-white tracking-tight">{card.value}</h3>
               {(card as any).sub && <p className="text-white/40 text-[10px]">{(card as any).sub}</p>}
             </div>
-            {/* Period picker dropdown */}
-            {card.key === "faturado" && showRevenuePeriodPicker && (
-              <div className="absolute top-full left-0 right-0 mt-1 z-50 rounded-lg overflow-hidden border border-white/10 bg-zinc-900 shadow-xl">
-                {(["hoje", "7dias", "30dias"] as const).map(p => (
-                  <button
-                    key={p}
-                    onClick={(e) => { e.stopPropagation(); setRevenuePeriod(p); setShowRevenuePeriodPicker(false); }}
-                    className={`w-full text-left px-4 py-2.5 text-xs font-medium transition-colors ${
-                      revenuePeriod === p ? "text-primary bg-primary/10" : "text-white/50 hover:text-white/80 hover:bg-white/5"
-                    }`}
-                  >
-                    {periodLabels[p]}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
         ))}
       </div>
