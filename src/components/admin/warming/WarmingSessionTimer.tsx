@@ -332,8 +332,8 @@ export default function WarmingSessionTimer({
         {/* Progress bar */}
         <div className="mt-3">
           <div className="flex justify-between items-center mb-1.5">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Progresso</span>
-            <span className="text-sm font-black text-slate-800">{progress}%</span>
+            <span className="text-[10px] font-bold text-slate-500 dark:text-white/50 uppercase tracking-wider">Progresso</span>
+            <span className="text-sm font-black text-slate-800 dark:text-white">{progress}%</span>
           </div>
           <div className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden">
             <div
