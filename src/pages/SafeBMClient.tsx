@@ -92,7 +92,7 @@ export default function SafeBMClient() {
           <div className="absolute -right-16 -top-16 w-64 h-64 bg-[#ffb4aa]/10 blur-[100px] rounded-full" />
           <div className="relative z-10 flex flex-col h-full justify-between">
             <div>
-              <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-[#ff5545] text-[#5c0002] text-[10px] font-bold tracking-widest uppercase mb-2">
+              <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-emerald-500 text-white text-[10px] font-bold tracking-widest uppercase mb-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
                 Cofre Ativo
               </div>
