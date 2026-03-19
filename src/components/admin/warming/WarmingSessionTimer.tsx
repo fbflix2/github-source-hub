@@ -254,7 +254,7 @@ export default function WarmingSessionTimer({
   return (
     <div className="bg-white dark:bg-black rounded-xl shadow-sm border border-slate-200 dark:border-white/10 overflow-hidden">
       {/* Header */}
-      <div className="px-5 py-3.5 border-b border-slate-100">
+      <div className="px-5 py-3.5 border-b border-slate-100 dark:border-white/10">
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2 mb-0.5">
