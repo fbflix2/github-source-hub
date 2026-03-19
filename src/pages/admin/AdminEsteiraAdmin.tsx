@@ -412,19 +412,19 @@ export default function AdminEsteiraAdmin() {
       {/* Configurações Tab */}
       {activeTab === "configuracoes" && (
         <main className="flex-1 p-6 md:p-10 max-w-5xl mx-auto w-full space-y-6">
-          <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+          <section className="bg-white dark:bg-white/5 rounded-xl shadow-sm border border-slate-200 dark:border-white/10 overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-white/10 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <MIcon name="settings_accessibility" className="text-[#1876f2]" />
-                <h2 className="text-lg font-bold text-slate-900">Configuração de Ações da Esteira</h2>
+                <h2 className="text-lg font-bold">Configuração de Ações da Esteira</h2>
               </div>
-              <div className="flex bg-slate-100 p-1 rounded-lg">
+              <div className="flex bg-slate-100 dark:bg-white/10 p-1 rounded-lg">
                 {(["7_days", "15_days", "30_days"] as const).map((tk) => (
                   <button
                     key={tk}
                     onClick={() => setConfigTrack(tk)}
                     className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${
-                      configTrack === tk ? "bg-white shadow-sm text-slate-900" : "text-slate-500 hover:text-slate-800"
+                      configTrack === tk ? "bg-white dark:bg-white/20 shadow-sm" : "text-slate-500 dark:text-white/50 hover:text-slate-800 dark:hover:text-white/80"
                     }`}
                   >
                     {tk === "7_days" ? "7 Dias" : tk === "15_days" ? "15 Dias" : "30 Dias"}
@@ -434,12 +434,12 @@ export default function AdminEsteiraAdmin() {
             </div>
             <div className="p-6 space-y-3 max-h-[400px] overflow-y-auto">
               {configTasks[configTrack].map((task, i) => (
-                <div key={i} className="flex items-center gap-4 p-3 bg-slate-50 rounded-lg border border-slate-100">
-                  <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-blue-100 text-[#1876f2] font-bold text-xs rounded-full">
+                <div key={i} className="flex items-center gap-4 p-3 bg-slate-50 dark:bg-white/5 rounded-lg border border-slate-100 dark:border-white/10">
+                  <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-blue-100 dark:bg-blue-500/20 text-[#1876f2] font-bold text-xs rounded-full">
                     {String(i + 1).padStart(2, "0")}
                   </span>
                   <input
-                    className="flex-1 bg-transparent border-none p-0 text-sm text-slate-900 focus:ring-0 outline-none"
+                    className="flex-1 bg-transparent border-none p-0 text-sm focus:ring-0 outline-none dark:text-white"
                     type="text"
                     value={task.title}
                     onChange={(e) => {
@@ -452,16 +452,16 @@ export default function AdminEsteiraAdmin() {
                       });
                     }}
                   />
-                  <MIcon name="drag_indicator" className="text-slate-400 text-sm cursor-move" />
+                  <MIcon name="drag_indicator" className="text-slate-400 dark:text-white/40 text-sm cursor-move" />
                 </div>
               ))}
-              <div className="flex items-center gap-4 p-3 bg-slate-50 rounded-lg border border-slate-100">
-                <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-blue-100 text-[#1876f2] font-bold text-xs rounded-full">
+              <div className="flex items-center gap-4 p-3 bg-slate-50 dark:bg-white/5 rounded-lg border border-slate-100 dark:border-white/10">
+                <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-blue-100 dark:bg-blue-500/20 text-[#1876f2] font-bold text-xs rounded-full">
                   {String(configTasks[configTrack].length + 1).padStart(2, "0")}
                 </span>
                 <input
                   id="admin-new-track-action"
-                  className="flex-1 bg-transparent border-none p-0 text-sm text-slate-900 focus:ring-0 outline-none placeholder:text-slate-400 placeholder:italic"
+                  className="flex-1 bg-transparent border-none p-0 text-sm focus:ring-0 outline-none placeholder:text-slate-400 placeholder:italic dark:text-white"
                   type="text"
                   placeholder={`Adicionar nova ação para o Dia ${configTasks[configTrack].length + 1}...`}
                   onKeyDown={(e) => {
