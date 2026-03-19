@@ -614,7 +614,7 @@ export default function AdminAquecimento() {
                 <p className="text-slate-500 dark:text-white/50 font-medium text-sm">Em Aquecimento</p>
                 <MIcon name="local_fire_department" className="text-amber-500" />
               </div>
-              <p className="text-3xl font-black text-slate-900">{activeProfiles.toLocaleString()}</p>
+              <p className="text-3xl font-black text-slate-900 dark:text-white">{activeProfiles.toLocaleString()}</p>
               <div className="flex items-center gap-1 text-slate-400 font-medium text-sm">
                 <span>{totalPct}% do total</span>
               </div>
