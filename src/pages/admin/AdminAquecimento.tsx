@@ -949,7 +949,7 @@ export default function AdminAquecimento() {
                 )}
               </div>
             ) : loading ? (
-              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8 text-center">
+              <div className="bg-white dark:bg-white/5 rounded-xl shadow-sm border border-slate-200 dark:border-white/10 p-8 text-center">
                 <MIcon name="hourglass_empty" className="text-slate-300 text-3xl" />
                 <p className="text-slate-500 text-xs mt-2">Carregando...</p>
               </div>
