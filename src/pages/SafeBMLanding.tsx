@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { AlertTriangle, DollarSign, Zap, Check, ChevronDown } from "lucide-react";
 import heroVault from "@/assets/safebm-hero-vault.jpg";
 import specialistImg from "@/assets/safebm-specialist.jpg";
@@ -72,6 +72,8 @@ function FAQItem({ q, a }: { q: string; a: string }) {
 }
 
 export default function SafeBMLanding() {
+  const navigate = useNavigate();
+  const BM_SAFE_CHECKOUT = "/checkout?product=e5118c63-ed52-4f4e-8983-f44c1ba0d17b&qty=1";
   return (
     <div className="bg-[#0A0A0A] text-white font-sans min-h-screen selection:bg-[#BC13FE] selection:text-white">
 
@@ -252,12 +254,12 @@ export default function SafeBMLanding() {
                 Selo: Sem fidelidade, cancele quando quiser
               </div>
             </div>
-            <Link
-              to="/suporte"
+            <button
+              onClick={() => navigate(BM_SAFE_CHECKOUT)}
               className="block w-full bg-[#E11D48] hover:bg-rose-700 transition-colors py-6 rounded-2xl text-2xl font-bold mb-6 text-white"
             >
               ATIVAR BLINDAGEM AGORA
-            </Link>
+            </button>
             <p className="text-sm text-gray-500 italic">
               Pague com PIX ou Cartão. Ativação imediata após a confirmação.
             </p>
@@ -309,12 +311,12 @@ export default function SafeBMLanding() {
             <p className="text-gray-400 mb-8">
               Não espere o bloqueio chegar para tomar uma atitude. O seguro é feito enquanto tudo está bem.
             </p>
-            <a
-              href="#oferta"
+            <button
+              onClick={() => navigate(BM_SAFE_CHECKOUT)}
               className="inline-block bg-white text-[#0A0A0A] px-12 py-4 rounded-full font-extrabold hover:bg-[#00F0FF] transition-colors uppercase tracking-widest text-sm"
             >
               Ativar BM Blindada Agora
-            </a>
+            </button>
           </div>
           <div className="pt-8 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-600">
             <p>© 2025 FBFlix Security Division. Todos os direitos reservados.</p>
