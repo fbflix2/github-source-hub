@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { format, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Navigate } from "react-router-dom";
-import SecurityMonitor from "@/components/safebm/SecurityMonitor";
+import SecurityMonitor, { type SecurityMonitorHandle } from "@/components/safebm/SecurityMonitor";
 import PricingModal from "@/components/safebm/PricingModal";
 
 interface SafeBmVault {
