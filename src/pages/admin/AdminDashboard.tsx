@@ -339,6 +339,21 @@ export default function AdminDashboard() {
   const catColors = ["bg-blue-500", "bg-purple-500", "bg-primary", "bg-cyan-500"];
   const catIcons = [User, Briefcase, Database, Globe];
 
+  const periodLabels: Record<string, string> = { hoje: "Hoje", "7dias": "7 Dias", "30dias": "30 Dias" };
+
+  const periodRevenue = useMemo(() => {
+    const now = new Date();
+    let since: Date;
+    switch (revenuePeriod) {
+      case "hoje": since = new Date(now); since.setHours(0, 0, 0, 0); break;
+      case "7dias": since = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); break;
+      case "30dias": since = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); break;
+    }
+    return allCompletedOrders
+      .filter(o => new Date(o.created_at) >= since)
+      .reduce((s, o) => s + o.total, 0);
+  }, [allCompletedOrders, revenuePeriod]);
+
   // Mobile: render dedicated mobile dashboard
   if (isMobile) {
     return <AdminMobileDashboard />;
