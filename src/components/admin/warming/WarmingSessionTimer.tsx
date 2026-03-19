@@ -396,7 +396,7 @@ export default function WarmingSessionTimer({
               </div>
               {isRunning && (
                 <div className="px-4 pb-3">
-                  <div className="h-1 w-full bg-blue-100 rounded-full overflow-hidden">
+                  <div className="h-1 w-full bg-blue-100 dark:bg-white/10 rounded-full overflow-hidden">
                     <div className="h-full bg-[#1876f2] rounded-full animate-pulse" style={{ width: "100%" }} />
                   </div>
                 </div>
