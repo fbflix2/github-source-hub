@@ -372,7 +372,7 @@ export default function WarmingSessionTimer({
                 <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-black shrink-0 ${
                   isDelayingTask ? "bg-amber-400 text-white animate-pulse" :
                   isRunning ? "bg-[#1876f2] text-white animate-pulse" :
-                  "bg-slate-200 text-slate-700"
+                  "bg-slate-200 dark:bg-white/10 text-slate-700 dark:text-white"
                 }`}>
                   {isDelayingTask ? <MIcon name="hourglass_top" className="text-base animate-spin" /> :
                    `D${task.day_number}`}
