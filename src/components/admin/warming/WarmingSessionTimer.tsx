@@ -305,7 +305,7 @@ export default function WarmingSessionTimer({
                         onClick={() => onStatusChange(profile.id, "active")}
                         className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-blue-600 hover:bg-blue-50 transition-colors"
                       >
-                        <MIcon name="play_circle" className="text-base" />
+                        <MIcon name="local_fire_department" className="text-base" />
                         Reativar
                       </button>
                     )}

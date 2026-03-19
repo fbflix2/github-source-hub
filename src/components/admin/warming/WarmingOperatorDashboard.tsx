@@ -606,7 +606,7 @@ export default function WarmingOperatorDashboard({ profiles, tasks, creatorNames
                           p.status === "restricted" ? "bg-rose-50 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400" :
                           "bg-blue-50 dark:bg-blue-500/20 text-[#1876f2]"
                         }`}>
-                          <MIcon name={p.status === "completed" ? "check" : p.status === "restricted" ? "warning" : "play_arrow"} className="text-base" />
+                          <MIcon name={p.status === "completed" ? "check" : p.status === "restricted" ? "warning" : "local_fire_department"} className="text-base" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between mb-1">

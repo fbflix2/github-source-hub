@@ -866,7 +866,7 @@ export default function AdminAquecimento() {
                         onClick={() => setStartSignal(prev => prev + 1)}
                         className="w-full bg-[#1876f2] hover:bg-[#1565c0] text-white font-bold py-3 rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 text-sm"
                       >
-                        <MIcon name="play_arrow" className="text-lg" />
+                        <MIcon name="local_fire_department" className="text-lg" />
                         Iniciar Tarefa
                       </button>
                     ) : (
