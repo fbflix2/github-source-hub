@@ -576,7 +576,7 @@ export default function AdminAquecimento() {
       </section>
 
       {/* ── Tab Navigation ── */}
-      <nav className="sticky top-0 z-50 bg-white border-b border-slate-200 px-6 md:px-12 lg:px-40">
+      <nav className="sticky top-0 z-50 bg-white dark:bg-[#111] border-b border-slate-200 dark:border-white/10 px-6 md:px-12 lg:px-40">
         <div className="max-w-[1200px] mx-auto flex gap-8">
           {tabs.map((tab) => (
             <button
