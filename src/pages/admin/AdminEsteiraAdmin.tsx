@@ -98,6 +98,26 @@ export default function AdminEsteiraAdmin() {
     }
     fetchProfiles();
     loadConfigFromDB();
+
+    // Realtime subscriptions for auto-refresh
+    const profilesChannel = supabase
+      .channel("warming-profiles-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "warming_profiles" }, () => {
+        fetchProfiles();
+      })
+      .subscribe();
+
+    const tasksChannel = supabase
+      .channel("warming-tasks-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "warming_tasks" }, () => {
+        fetchProfiles();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(profilesChannel);
+      supabase.removeChannel(tasksChannel);
+    };
   }, []);
 
   // Redirect non-admins
