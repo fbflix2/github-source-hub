@@ -32,6 +32,7 @@ export default function SafeBMClient() {
   const [vaults, setVaults] = useState<SafeBmVault[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [showPricing, setShowPricing] = useState(false);
 
   useEffect(() => {
     (async () => {
