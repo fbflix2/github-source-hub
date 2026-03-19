@@ -900,8 +900,8 @@ export default function AdminAquecimento() {
                         className={`flex items-center gap-2.5 px-4 py-2 cursor-pointer border-b border-slate-50 dark:border-white/5 transition-colors ${isSelected ? "bg-blue-50 dark:bg-blue-500/10 border-l-2 border-l-[#1876f2]" : "hover:bg-slate-50 dark:hover:bg-white/5"}`}
                       >
                         <MIcon
-                          name={isSelected && isTimerActive ? "timer" : "play_circle"}
-                          className={`text-base ${isSelected ? "text-[#1876f2]" : "text-slate-400"}`}
+                          name={isSelected && isTimerActive ? "local_fire_department" : "local_fire_department"}
+                          className={`text-base ${isSelected && isTimerActive ? "text-orange-500 animate-pulse" : isSelected ? "text-orange-500" : "text-orange-400/60"}`}
                         />
                         <div className="flex-grow min-w-0">
                           <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{p.profile_code}</p>
