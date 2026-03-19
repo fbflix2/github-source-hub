@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import WarmingOperatorDashboard from "@/components/admin/warming/WarmingOperatorDashboard";
 import WarmingSessionTimer from "@/components/admin/warming/WarmingSessionTimer";
 import { toast } from "sonner";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 // ── Track definitions ──────────────────────────────────────────
 interface TrackDay {
