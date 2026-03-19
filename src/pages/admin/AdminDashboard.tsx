@@ -379,7 +379,7 @@ export default function AdminDashboard() {
         ].map((card) => (
           <div
             key={card.key}
-            className={`glass-panel rounded-xl p-4 relative overflow-hidden group ${card.key === "faturado" ? "cursor-pointer" : ""}`}
+            className={`glass-panel rounded-xl p-4 relative group ${card.key === "faturado" ? "cursor-pointer" : "overflow-hidden"}`}
             onClick={card.key === "faturado" ? () => setShowRevenuePeriodPicker(!showRevenuePeriodPicker) : undefined}
           >
             <div className="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
@@ -394,7 +394,7 @@ export default function AdminDashboard() {
                 {card.key === "faturado" && (
                   <button
                     onClick={(e) => { e.stopPropagation(); setRevenueHidden(!revenueHidden); }}
-                    className="ml-auto text-white/40 hover:text-white/80 transition-colors p-0.5"
+                    className="ml-auto text-white/40 hover:text-white/80 transition-colors p-0.5 relative z-20"
                   >
                     {revenueHidden ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
                   </button>
