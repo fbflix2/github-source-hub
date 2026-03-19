@@ -60,11 +60,12 @@ interface Props {
   onTaskCompleted: () => void;
   onTrackCompleted?: (profile: WarmingProfile) => void;
   onTimerStateChange?: (isRunning: boolean, taskTitle: string | null, elapsed: number) => void;
+  onStatusChange?: (profileId: string, newStatus: string) => void;
 }
 
 export default function WarmingSessionTimer({
   profile, tasks, trackLabel, finishSignal, startSignal,
-  onTaskCompleted, onTrackCompleted, onTimerStateChange
+  onTaskCompleted, onTrackCompleted, onTimerStateChange, onStatusChange
 }: Props) {
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [timerStart, setTimerStart] = useState<number | null>(null);
