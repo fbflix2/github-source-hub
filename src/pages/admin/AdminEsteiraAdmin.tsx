@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { useNavigate } from "react-router-dom";
 import WarmingOperatorDashboard from "@/components/admin/warming/WarmingOperatorDashboard";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { toast } from "sonner";
 
 // ── Track definitions (shared) ──
@@ -277,13 +278,16 @@ export default function AdminEsteiraAdmin() {
                 <p className="text-white/50 text-sm">Gestão, relatórios e configurações de aquecimento</p>
               </div>
             </div>
-            <button
-              onClick={() => navigate("/admin/aquecimento")}
-              className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all"
-            >
-              <MIcon name="play_circle" className="text-lg" />
-              Ir para Operação
-            </button>
+            <div className="flex items-center gap-3">
+              <ThemeToggle />
+              <button
+                onClick={() => navigate("/admin/aquecimento")}
+                className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg text-sm font-bold transition-all"
+              >
+                <MIcon name="play_circle" className="text-lg" />
+                Ir para Operação
+              </button>
+            </div>
           </div>
         </div>
       </section>

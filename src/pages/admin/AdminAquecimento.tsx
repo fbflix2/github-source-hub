@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import WarmingOperatorDashboard from "@/components/admin/warming/WarmingOperatorDashboard";
 import WarmingSessionTimer from "@/components/admin/warming/WarmingSessionTimer";
 import { toast } from "sonner";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 // ── Track definitions ──────────────────────────────────────────
 interface TrackDay {
@@ -496,6 +497,7 @@ export default function AdminAquecimento() {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              <ThemeToggle />
               <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
                 <MIcon name="fluid" className="text-white text-2xl" />
               </div>
