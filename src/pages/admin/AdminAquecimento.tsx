@@ -661,7 +661,7 @@ export default function AdminAquecimento() {
                     <span>Novos (0-7 dias)</span>
                     <span>{newProfiles} perfis</span>
                   </div>
-                  <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden">
+                  <div className="h-3 w-full bg-slate-100 dark:bg-white/10 rounded-full overflow-hidden">
                     <div className="h-full bg-[#1876f2]/40 rounded-full" style={{ width: `${totalProfiles ? Math.round((newProfiles / totalProfiles) * 100) : 35}%` }} />
                   </div>
                 </div>
