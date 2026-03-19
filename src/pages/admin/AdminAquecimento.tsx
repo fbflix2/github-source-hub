@@ -679,7 +679,7 @@ export default function AdminAquecimento() {
                     <span>Maturidade Máxima (30+ dias)</span>
                     <span>{matureProfiles} perfis</span>
                   </div>
-                  <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden">
+                  <div className="h-3 w-full bg-slate-100 dark:bg-white/10 rounded-full overflow-hidden">
                     <div className="h-full bg-[#1876f2] rounded-full" style={{ width: `${totalProfiles ? Math.round((matureProfiles / totalProfiles) * 100) : 85}%` }} />
                   </div>
                 </div>
