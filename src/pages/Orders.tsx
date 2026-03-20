@@ -252,7 +252,8 @@ export default function Orders() {
           {/* Orders List - scrollable */}
           <div className="flex flex-col gap-2 overflow-y-auto pr-1 custom-scrollbar min-w-0">
             {filteredOrders.map((order) => {
-              const st = statusConfig[order.status] || statusConfig.processing;
+              const effectiveSt = getEffectiveStatus(order);
+              const st = statusConfig[effectiveSt] || statusConfig.processing;
               const isSelected = selectedOrder?.id === order.id;
               return (
                 <div
