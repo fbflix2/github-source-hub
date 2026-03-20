@@ -2,6 +2,10 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface WarmingTask {
   id: string;
@@ -72,6 +76,7 @@ export default function WarmingSessionTimer({
   const [timerStart, setTimerStart] = useState<number | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [isDelaying, setIsDelaying] = useState(false);
+  const [confirmStatus, setConfirmStatus] = useState<{ status: string; label: string } | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const delayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const timerStartRef = useRef(timerStart);
@@ -263,6 +268,16 @@ export default function WarmingSessionTimer({
                 {profile.profile_code}
                 {profile.profile_name && ` — ${profile.profile_name}`}
               </h2>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(profile.profile_code);
+                  toast.success("Código copiado!");
+                }}
+                className="p-1 rounded hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
+                title="Copiar código"
+              >
+                <MIcon name="content_copy" className="text-sm text-slate-400 hover:text-slate-600 dark:hover:text-white" />
+              </button>
             </div>
             <p className="text-xs text-slate-500 dark:text-white/50 font-medium">
               {trackLabel} • {completedCount}/{tasks.length} tarefas
@@ -287,23 +302,23 @@ export default function WarmingSessionTimer({
                 <PopoverContent className="w-48 p-2" align="end">
                   <div className="space-y-1">
                     <button
-                      onClick={() => onStatusChange(profile.id, "blocked")}
-                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                      onClick={() => setConfirmStatus({ status: "blocked", label: "Bloqueado" })}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                     >
                       <MIcon name="block" className="text-base" />
                       Bloqueado
                     </button>
                     <button
-                      onClick={() => onStatusChange(profile.id, "checkpoint")}
-                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-amber-600 hover:bg-amber-50 transition-colors"
+                      onClick={() => setConfirmStatus({ status: "checkpoint", label: "Checkpoint" })}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
                     >
                       <MIcon name="warning" className="text-base" />
                       Checkpoint
                     </button>
                     {(profile.status === "blocked" || profile.status === "checkpoint") && (
                       <button
-                        onClick={() => onStatusChange(profile.id, "active")}
-                        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-blue-600 hover:bg-blue-50 transition-colors"
+                        onClick={() => { onStatusChange(profile.id, "active"); }}
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                       >
                         <MIcon name="local_fire_department" className="text-base" />
                         Reativar
@@ -430,6 +445,31 @@ export default function WarmingSessionTimer({
           </span>
         </div>
       )}
+      {/* Confirmation dialog */}
+      <AlertDialog open={!!confirmStatus} onOpenChange={(open) => !open && setConfirmStatus(null)}>
+        <AlertDialogContent className="dark:bg-zinc-900 dark:border-white/10">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="dark:text-white">Confirmar alteração de status</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja marcar o perfil <strong>{profile.profile_code}</strong> como <strong>{confirmStatus?.label}</strong>?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="dark:bg-white/10 dark:text-white dark:border-white/10">Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className={confirmStatus?.status === "blocked" ? "bg-red-600 hover:bg-red-700" : "bg-amber-500 hover:bg-amber-600"}
+              onClick={() => {
+                if (confirmStatus && onStatusChange) {
+                  onStatusChange(profile.id, confirmStatus.status);
+                }
+                setConfirmStatus(null);
+              }}
+            >
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
