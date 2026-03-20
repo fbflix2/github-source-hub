@@ -62,3 +62,6 @@ verify_jwt = false
 
 [functions.auto-close-cash]
 verify_jwt = false
+
+[functions.test-proxy]
+verify_jwt = false
