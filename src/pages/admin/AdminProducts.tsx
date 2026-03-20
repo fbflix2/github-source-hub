@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { 
   Search, Plus, Upload, User, Briefcase, Globe, Server, Tag, Save, X,
   Filter, ChevronLeft, ChevronRight, Edit, Trash2, Image as ImageIcon, Loader2, ImagePlus,
-  BarChart3, Download, BellRing, Clock, CheckSquare, Square, CheckCheck, Store, Sparkles
+  BarChart3, Download, BellRing, Clock, CheckSquare, Square, CheckCheck, Store, Sparkles, Layers
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { useProxyBRProducts } from "@/hooks/useProxyBR";
 import { WaitlistTab } from "@/components/admin/WaitlistTab";
 import { StockItemsModal } from "@/components/admin/StockItemsModal";
+import { OrderBumpsManager } from "@/components/admin/OrderBumpsManager";
 
 interface Product {
   id: string;
