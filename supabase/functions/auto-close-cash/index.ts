@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
     const openingBalance = openCash.opening_balance || 0;
 
     // Calculate system revenue and expenses for the period
-    const [ordersRes, purchasesRes] = await Promise.all([
+    const [ordersRes, purchasesRes, rechargesRes] = await Promise.all([
       supabase
         .from("orders")
         .select("total")
@@ -50,12 +50,23 @@ Deno.serve(async (req) => {
         .from("purchases")
         .select("total_value")
         .gte("created_at", openedAt),
+      supabase
+        .from("payments")
+        .select("amount")
+        .eq("status", "completed")
+        .is("order_id", null)
+        .gte("created_at", openedAt),
     ]);
 
-    const systemRevenue = (ordersRes.data ?? []).reduce(
+    const pixOrderRevenue = (ordersRes.data ?? []).reduce(
       (s: number, o: any) => s + Number(o.total || 0),
       0
     );
+    const rechargeRevenue = (rechargesRes.data ?? []).reduce(
+      (s: number, r: any) => s + Number(r.amount || 0),
+      0
+    );
+    const systemRevenue = pixOrderRevenue + rechargeRevenue;
     const systemExpenses = (purchasesRes.data ?? []).reduce(
       (s: number, p: any) => s + Number(p.total_value || 0),
       0

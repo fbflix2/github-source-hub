@@ -161,7 +161,7 @@ export default function AdminCaixa() {
   }, []);
 
   const fetchSystemValues = async (since: string) => {
-    const [ordersRes, purchasesRes] = await Promise.all([
+    const [ordersRes, purchasesRes, rechargesRes] = await Promise.all([
       supabase
         .from("orders")
         .select("total, payment_method")
@@ -171,13 +171,21 @@ export default function AdminCaixa() {
         .from("purchases")
         .select("total_value")
         .gte("created_at", since),
+      supabase
+        .from("payments")
+        .select("amount")
+        .eq("status", "completed")
+        .is("order_id", null)
+        .gte("created_at", since),
     ]);
 
     const bankOrders = (ordersRes.data ?? []).filter((order) =>
       isBankPaymentMethod(order.payment_method)
     );
+    const pixOrderRevenue = bankOrders.reduce((s, o) => s + Number(o.total || 0), 0);
+    const rechargeRevenue = (rechargesRes.data ?? []).reduce((s, r) => s + Number(r.amount || 0), 0);
 
-    setSystemRevenue(bankOrders.reduce((s, o) => s + Number(o.total || 0), 0));
+    setSystemRevenue(pixOrderRevenue + rechargeRevenue);
     setSystemExpenses((purchasesRes.data ?? []).reduce((s, p) => s + Number(p.total_value || 0), 0));
   };
 
@@ -192,13 +200,13 @@ export default function AdminCaixa() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // ── Realtime: listen for new orders → auto-create entry movements ──
+  // ── Realtime: listen for new orders & recharges → auto-create entry movements ──
   useEffect(() => {
     if (!openCash) return;
     const cashId = openCash.id;
     const openedAt = openCash.opened_at;
 
-    // Subscribe to new orders
+    // Subscribe to new orders (PIX sales)
     const orderChannel = supabase
       .channel("cash-orders-realtime")
       .on("postgres_changes", {
@@ -212,15 +220,21 @@ export default function AdminCaixa() {
           isBankPaymentMethod(order.payment_method) &&
           new Date(order.created_at) >= new Date(openedAt)
         ) {
-          // Check if we already have this order as a movement
-          const { data: existing } = await supabase
+          // Check both new and legacy format to avoid duplicates
+          const { data: existingNew } = await supabase
+            .from("cash_movements")
+            .select("id")
+            .eq("cash_register_id", cashId)
+            .eq("reference_id", `venda-${order.code}`)
+            .maybeSingle();
+          const { data: existingLegacy } = await supabase
             .from("cash_movements")
             .select("id")
             .eq("cash_register_id", cashId)
             .eq("reference_id", order.code)
             .maybeSingle();
 
-          if (!existing) {
+          if (!existingNew && !existingLegacy) {
             const total = Number(order.total || 0);
             const fee = Math.round(total * mpFeeRate) / 100;
             const movs: any[] = [
@@ -229,8 +243,8 @@ export default function AdminCaixa() {
                 type: "entry",
                 source: "automatic",
                 amount: total,
-                description: `Venda #${order.code}`,
-                reference_id: order.code,
+                description: `🛒 Venda PIX #${order.code} (pedido pago via PIX)`,
+                reference_id: `venda-${order.code}`,
               },
             ];
             if (fee > 0) {
@@ -245,7 +259,59 @@ export default function AdminCaixa() {
             }
             await supabase.from("cash_movements").insert(movs);
           }
-          // Refresh
+          fetchMovements(cashId);
+          fetchSystemValues(openedAt);
+        }
+      })
+      .subscribe();
+
+    // Subscribe to wallet recharges (PIX payments without order)
+    const rechargeChannel = supabase
+      .channel("cash-recharges-realtime")
+      .on("postgres_changes", {
+        event: "UPDATE",
+        schema: "public",
+        table: "payments",
+      }, async (payload) => {
+        const payment = payload.new as any;
+        if (
+          payment.status === "completed" &&
+          !payment.order_id &&
+          new Date(payment.created_at) >= new Date(openedAt)
+        ) {
+          const refId = `recarga-${payment.code}`;
+          const { data: existing } = await supabase
+            .from("cash_movements")
+            .select("id")
+            .eq("cash_register_id", cashId)
+            .eq("reference_id", refId)
+            .maybeSingle();
+
+          if (!existing) {
+            const amount = Number(payment.amount || 0);
+            const fee = Math.round(amount * mpFeeRate) / 100;
+            const movs: any[] = [
+              {
+                cash_register_id: cashId,
+                type: "entry",
+                source: "automatic",
+                amount,
+                description: `💳 Recarga Saldo PIX - ${payment.code} (cliente recarregou carteira)`,
+                reference_id: refId,
+              },
+            ];
+            if (fee > 0) {
+              movs.push({
+                cash_register_id: cashId,
+                type: "exit",
+                source: "automatic",
+                amount: fee,
+                description: `Taxa MP ${mpFeeRate.toFixed(2).replace(".", ",")}% - Recarga ${payment.code}`,
+                reference_id: `fee-recarga-${payment.code}`,
+              });
+            }
+            await supabase.from("cash_movements").insert(movs);
+          }
           fetchMovements(cashId);
           fetchSystemValues(openedAt);
         }
@@ -267,22 +333,16 @@ export default function AdminCaixa() {
 
     return () => {
       supabase.removeChannel(orderChannel);
+      supabase.removeChannel(rechargeChannel);
       supabase.removeChannel(movChannel);
     };
   }, [openCash?.id, openCash?.opened_at, mpFeeRate]);
 
-  // ── Sync existing completed orders as automatic movements on open ──
+  // ── Sync existing completed orders & recharges as automatic movements on open ──
   useEffect(() => {
     if (!openCash) return;
     const syncAutoMovements = async () => {
-      const { data: completedOrders } = await supabase
-        .from("orders")
-        .select("code, total, payment_method")
-        .in("status", ["completed", "delivered"])
-        .gte("created_at", openCash.opened_at);
-
-      if (!completedOrders?.length) return;
-
+      // Fetch existing movements refs
       const { data: existingMovs } = await supabase
         .from("cash_movements")
         .select("reference_id")
@@ -290,26 +350,33 @@ export default function AdminCaixa() {
         .eq("source", "automatic");
 
       const existingRefs = new Set((existingMovs || []).map(m => m.reference_id));
-
       const toInsert: any[] = [];
-      completedOrders
+
+      // 1. Sync PIX orders
+      const { data: completedOrders } = await supabase
+        .from("orders")
+        .select("code, total, payment_method")
+        .in("status", ["completed", "delivered"])
+        .gte("created_at", openCash.opened_at);
+
+      (completedOrders || [])
         .filter((o) => isBankPaymentMethod(o.payment_method))
         .forEach((o) => {
           const total = Number(o.total || 0);
           const fee = Math.round(total * mpFeeRate) / 100;
+          const refId = `venda-${o.code}`;
 
-          // Insert entry if missing
-          if (!existingRefs.has(o.code)) {
+          // Check both new format (venda-CODE) and legacy format (CODE) to avoid duplicates
+          if (!existingRefs.has(refId) && !existingRefs.has(o.code)) {
             toInsert.push({
               cash_register_id: openCash.id,
               type: "entry",
               source: "automatic",
               amount: total,
-              description: `Venda #${o.code}`,
-              reference_id: o.code,
+              description: `🛒 Venda PIX #${o.code} (pedido pago via PIX)`,
+              reference_id: refId,
             });
           }
-          // Insert fee if missing
           if (fee > 0 && !existingRefs.has(`fee-${o.code}`)) {
             toInsert.push({
               cash_register_id: openCash.id,
@@ -321,6 +388,41 @@ export default function AdminCaixa() {
             });
           }
         });
+
+      // 2. Sync PIX wallet recharges (payments without order_id)
+      const { data: recharges } = await supabase
+        .from("payments")
+        .select("code, amount")
+        .eq("status", "completed")
+        .is("order_id", null)
+        .gte("created_at", openCash.opened_at);
+
+      (recharges || []).forEach((r) => {
+        const amount = Number(r.amount || 0);
+        const fee = Math.round(amount * mpFeeRate) / 100;
+        const refId = `recarga-${r.code}`;
+
+        if (!existingRefs.has(refId)) {
+          toInsert.push({
+            cash_register_id: openCash.id,
+            type: "entry",
+            source: "automatic",
+            amount,
+            description: `💳 Recarga Saldo PIX - ${r.code} (cliente recarregou carteira)`,
+            reference_id: refId,
+          });
+        }
+        if (fee > 0 && !existingRefs.has(`fee-recarga-${r.code}`)) {
+          toInsert.push({
+            cash_register_id: openCash.id,
+            type: "exit",
+            source: "automatic",
+            amount: fee,
+            description: `Taxa MP ${mpFeeRate.toFixed(2).replace(".", ",")}% - Recarga ${r.code}`,
+            reference_id: `fee-recarga-${r.code}`,
+          });
+        }
+      });
 
       if (toInsert.length > 0) {
         await supabase.from("cash_movements").insert(toInsert);
