@@ -1262,7 +1262,12 @@ export default function Checkout() {
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-center">
                         <p className="font-bold text-foreground text-xs">{bump.name}</p>
-                        <span className="text-primary font-bold text-xs ml-2">+ R$ {bump.price.toFixed(2).replace(".", ",")}</span>
+                        <div className="flex items-center gap-1.5 ml-2">
+                          {(bump as any)._hasDiscount && (bump as any)._originalPrice && (
+                            <span className="text-muted-foreground text-[10px] line-through">R$ {(bump as any)._originalPrice.toFixed(2).replace(".", ",")}</span>
+                          )}
+                          <span className="text-primary font-bold text-xs">+ R$ {bump.price.toFixed(2).replace(".", ",")}</span>
+                        </div>
                       </div>
                       <p className="text-[11px] text-muted-foreground leading-snug">{bump.description}</p>
                     </div>
