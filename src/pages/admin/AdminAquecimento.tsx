@@ -911,8 +911,8 @@ export default function AdminAquecimento() {
                     {operationMode === "execute" ? "Fila de Aquecimento" : "Perfis em Aquecimento"}
                   </h3>
                 </div>
-                <div className="max-h-52 overflow-y-auto">
-                  {[...visibleProfiles].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()).filter(p => p.status === "active").map((p) => {
+              <div className="max-h-52 overflow-y-auto">
+                  {sortedActiveQueue.map((p) => {
                     const prog = getProgress(p);
                     const isSelected = selectedProfileId === p.id;
                     return (
@@ -922,7 +922,7 @@ export default function AdminAquecimento() {
                         className={`flex items-center gap-2.5 px-4 py-2 cursor-pointer border-b border-slate-50 dark:border-white/5 transition-colors ${isSelected ? "bg-blue-50 dark:bg-blue-500/10 border-l-2 border-l-[#1876f2]" : "hover:bg-slate-50 dark:hover:bg-white/5"}`}
                       >
                         <MIcon
-                          name={isSelected && isTimerActive ? "local_fire_department" : "local_fire_department"}
+                          name="local_fire_department"
                           className={`text-base ${isSelected && isTimerActive ? "text-orange-500 animate-pulse" : isSelected ? "text-orange-500" : "text-orange-400/60"}`}
                         />
                         <div className="flex-grow min-w-0">
