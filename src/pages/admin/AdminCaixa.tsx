@@ -58,7 +58,16 @@ const parseBRL = (value: string): number => {
 };
 
 const isBankPaymentMethod = (paymentMethod: string | null | undefined) =>
-  paymentMethod === "pix";
+  paymentMethod === "pix" || paymentMethod === "cartao";
+
+const isCardPayment = (paymentMethod: string | null | undefined) =>
+  paymentMethod === "cartao";
+
+const getPaymentLabel = (paymentMethod: string | null | undefined) =>
+  isCardPayment(paymentMethod) ? "Cartão" : "PIX";
+
+const getPaymentEmoji = (paymentMethod: string | null | undefined) =>
+  isCardPayment(paymentMethod) ? "💳" : "🛒";
 
 // Returns the start of the day (00:00:00 UTC) for the given date string
 const getStartOfDay = (dateStr: string) => {
@@ -124,7 +133,8 @@ export default function AdminCaixa() {
   const [addingMovement, setAddingMovement] = useState(false);
 
   // Fee config
-  const [mpFeeRate, setMpFeeRate] = useState(0.99); // 0.99% default
+  const [mpFeeRate, setMpFeeRate] = useState(0.99); // 0.99% default PIX
+  const [mpCardFeeRate, setMpCardFeeRate] = useState(4.98); // ~4.98% default Cartão
   const [showFeeConfig, setShowFeeConfig] = useState(false);
 
   // System values
