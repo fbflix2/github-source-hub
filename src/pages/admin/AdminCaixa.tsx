@@ -359,7 +359,8 @@ export default function AdminCaixa() {
           const fee = Math.round(total * mpFeeRate) / 100;
           const refId = `venda-${o.code}`;
 
-          if (!existingRefs.has(refId)) {
+          // Check both new format (venda-CODE) and legacy format (CODE) to avoid duplicates
+          if (!existingRefs.has(refId) && !existingRefs.has(o.code)) {
             toInsert.push({
               cash_register_id: openCash.id,
               type: "entry",
