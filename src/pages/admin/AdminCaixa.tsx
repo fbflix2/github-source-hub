@@ -331,18 +331,11 @@ export default function AdminCaixa() {
     };
   }, [openCash?.id, openCash?.opened_at, mpFeeRate]);
 
-  // ── Sync existing completed orders as automatic movements on open ──
+  // ── Sync existing completed orders & recharges as automatic movements on open ──
   useEffect(() => {
     if (!openCash) return;
     const syncAutoMovements = async () => {
-      const { data: completedOrders } = await supabase
-        .from("orders")
-        .select("code, total, payment_method")
-        .in("status", ["completed", "delivered"])
-        .gte("created_at", openCash.opened_at);
-
-      if (!completedOrders?.length) return;
-
+      // Fetch existing movements refs
       const { data: existingMovs } = await supabase
         .from("cash_movements")
         .select("reference_id")
@@ -350,26 +343,32 @@ export default function AdminCaixa() {
         .eq("source", "automatic");
 
       const existingRefs = new Set((existingMovs || []).map(m => m.reference_id));
-
       const toInsert: any[] = [];
-      completedOrders
+
+      // 1. Sync PIX orders
+      const { data: completedOrders } = await supabase
+        .from("orders")
+        .select("code, total, payment_method")
+        .in("status", ["completed", "delivered"])
+        .gte("created_at", openCash.opened_at);
+
+      (completedOrders || [])
         .filter((o) => isBankPaymentMethod(o.payment_method))
         .forEach((o) => {
           const total = Number(o.total || 0);
           const fee = Math.round(total * mpFeeRate) / 100;
+          const refId = `venda-${o.code}`;
 
-          // Insert entry if missing
-          if (!existingRefs.has(o.code)) {
+          if (!existingRefs.has(refId)) {
             toInsert.push({
               cash_register_id: openCash.id,
               type: "entry",
               source: "automatic",
               amount: total,
-              description: `Venda #${o.code}`,
-              reference_id: o.code,
+              description: `🛒 Venda PIX #${o.code} (pedido pago via PIX)`,
+              reference_id: refId,
             });
           }
-          // Insert fee if missing
           if (fee > 0 && !existingRefs.has(`fee-${o.code}`)) {
             toInsert.push({
               cash_register_id: openCash.id,
@@ -381,6 +380,41 @@ export default function AdminCaixa() {
             });
           }
         });
+
+      // 2. Sync PIX wallet recharges (payments without order_id)
+      const { data: recharges } = await supabase
+        .from("payments")
+        .select("code, amount")
+        .eq("status", "completed")
+        .is("order_id", null)
+        .gte("created_at", openCash.opened_at);
+
+      (recharges || []).forEach((r) => {
+        const amount = Number(r.amount || 0);
+        const fee = Math.round(amount * mpFeeRate) / 100;
+        const refId = `recarga-${r.code}`;
+
+        if (!existingRefs.has(refId)) {
+          toInsert.push({
+            cash_register_id: openCash.id,
+            type: "entry",
+            source: "automatic",
+            amount,
+            description: `💳 Recarga Saldo PIX - ${r.code} (cliente recarregou carteira)`,
+            reference_id: refId,
+          });
+        }
+        if (fee > 0 && !existingRefs.has(`fee-recarga-${r.code}`)) {
+          toInsert.push({
+            cash_register_id: openCash.id,
+            type: "exit",
+            source: "automatic",
+            amount: fee,
+            description: `Taxa MP ${mpFeeRate.toFixed(2).replace(".", ",")}% - Recarga ${r.code}`,
+            reference_id: `fee-recarga-${r.code}`,
+          });
+        }
+      });
 
       if (toInsert.length > 0) {
         await supabase.from("cash_movements").insert(toInsert);
