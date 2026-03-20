@@ -49,17 +49,17 @@ Deno.serve(async (req) => {
         .select("total")
         .in("status", ["completed", "delivered"])
         .eq("payment_method", "pix")
-        .gte("created_at", openedAt),
+        .gte("created_at", sinceDateStr),
       supabase
         .from("purchases")
         .select("total_value")
-        .gte("created_at", openedAt),
+        .gte("created_at", sinceDateStr),
       supabase
         .from("payments")
         .select("amount")
         .eq("status", "completed")
         .is("order_id", null)
-        .gte("created_at", openedAt),
+        .gte("created_at", sinceDateStr),
     ]);
 
     const pixOrderRevenue = (ordersRes.data ?? []).reduce(
