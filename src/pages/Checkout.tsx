@@ -195,10 +195,10 @@ export default function Checkout() {
   const [discount, setDiscount] = useState(0);
   const [couponApplied, setCouponApplied] = useState(false);
   const [applyingCoupon, setApplyingCoupon] = useState(false);
-  const [cardNumber, setCardNumber] = useState("");
   const [cardName, setCardName] = useState("");
-  const [cardExpiry, setCardExpiry] = useState("");
-  const [cardCvv, setCardCvv] = useState("");
+  const mpInstanceRef = useRef<any>(null);
+  const cardFieldsRef = useRef<{ cardNumber: any; expirationDate: any; securityCode: any } | null>(null);
+  const fieldsInitializedRef = useRef(false);
   const [processing, setProcessing] = useState(false);
   const [pixModal, setPixModal] = useState(false);
   const [pixData, setPixData] = useState<{ qr_code: string | null; qr_code_base64: string | null; amount: number } | null>(null);
@@ -929,33 +929,24 @@ export default function Checkout() {
         setCopied(false);
         setPixModal(true);
       } else if (paymentMethod === "cartao") {
-        // Validate card fields
-        if (!cardNumber.replace(/\s/g, "") || !cardName || !cardExpiry || !cardCvv) {
-          toast.error("Preencha todos os dados do cartão.");
+        // Validate card name
+        if (!cardName) {
+          toast.error("Preencha o nome no cartão.");
+          return;
+        }
+
+        if (!mpInstanceRef.current || !cardFieldsRef.current) {
+          toast.error("Campos do cartão não inicializados. Aguarde e tente novamente.");
           return;
         }
 
         updateData.status = "processing";
         await supabase.from("orders").update(updateData).eq("id", orderId);
 
-        // Tokenize card using MercadoPago.js SDK
-        const mpPublicKey = import.meta.env.VITE_MERCADOPAGO_PUBLIC_KEY;
-        if (!mpPublicKey) {
-          toast.error("Configuração de pagamento incompleta.");
-          return;
-        }
-
-        const mp = new (window as any).MercadoPago(mpPublicKey);
-        const [expMonth, expYear] = cardExpiry.split("/");
-
         let cardToken: string;
         try {
-          const tokenResult = await mp.createCardToken({
-            cardNumber: cardNumber.replace(/\s/g, ""),
+          const tokenResult = await mpInstanceRef.current.fields.createCardToken({
             cardholderName: cardName,
-            cardExpirationMonth: expMonth,
-            cardExpirationYear: "20" + expYear,
-            securityCode: cardCvv,
             identificationType: "CPF",
             identificationNumber: "00000000000",
           });
@@ -1230,10 +1221,7 @@ export default function Checkout() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="col-span-1 md:col-span-2 space-y-1">
                     <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Número do Cartão</label>
-                    <div className="relative">
-                      <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <input type="text" value={cardNumber} onChange={(e) => setCardNumber(e.target.value)} placeholder="0000 0000 0000 0000" className="glass-input w-full rounded-lg py-2.5 pl-9 pr-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-1 focus:ring-primary bg-black/30 border border-border" />
-                    </div>
+                    <div id="mp-card-number" className="w-full rounded-lg bg-black/30 border border-border overflow-hidden" style={{ height: '40px' }} />
                   </div>
                   <div className="col-span-1 md:col-span-2 space-y-1">
                     <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Nome no Cartão</label>
@@ -1244,17 +1232,11 @@ export default function Checkout() {
                   </div>
                   <div className="space-y-1">
                     <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Validade</label>
-                    <div className="relative">
-                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <input type="text" value={cardExpiry} onChange={(e) => setCardExpiry(e.target.value)} placeholder="MM/AA" className="glass-input w-full rounded-lg py-2.5 pl-9 pr-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-1 focus:ring-primary bg-black/30 border border-border" />
-                    </div>
+                    <div id="mp-expiration-date" className="w-full rounded-lg bg-black/30 border border-border overflow-hidden" style={{ height: '40px' }} />
                   </div>
                   <div className="space-y-1">
                     <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">CVV</label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <input type="text" value={cardCvv} onChange={(e) => setCardCvv(e.target.value)} placeholder="123" className="glass-input w-full rounded-lg py-2.5 pl-9 pr-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-1 focus:ring-primary bg-black/30 border border-border" />
-                    </div>
+                    <div id="mp-security-code" className="w-full rounded-lg bg-black/30 border border-border overflow-hidden" style={{ height: '40px' }} />
                   </div>
                 </div>
               </div>
