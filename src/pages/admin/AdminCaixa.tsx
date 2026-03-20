@@ -364,7 +364,7 @@ export default function AdminCaixa() {
         .from("orders")
         .select("code, total, payment_method")
         .in("status", ["completed", "delivered"])
-        .gte("created_at", openCash.opened_at);
+        .gte("created_at", getStartOfDay(openCash.opened_at));
 
       (completedOrders || [])
         .filter((o) => isBankPaymentMethod(o.payment_method))
