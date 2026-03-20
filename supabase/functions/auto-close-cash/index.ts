@@ -87,14 +87,7 @@ Deno.serve(async (req) => {
 
     if (closeErr) throw closeErr;
 
-    // Open new cash register with the expected balance as opening balance
-    const { error: openErr } = await supabase.from("cash_register").insert({
-      opened_by: openCash.opened_by,
-      status: "open",
-      opening_balance: expectedBalance,
-    });
-
-    if (openErr) throw openErr;
+    // Do NOT auto-open next day — admin opens manually
 
     console.log(
       `Auto-closed cash ${openCash.id}. Revenue: ${systemRevenue}, Expenses: ${systemExpenses}, New opening: ${expectedBalance}`
