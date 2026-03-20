@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ export default function ClientEditModal({ open, onClose, client, onUpdate }: Cli
   const [phone, setPhone] = useState("");
   const [balance, setBalance] = useState("0");
   const [status, setStatus] = useState("active");
+  const [cardPaymentEnabled, setCardPaymentEnabled] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -37,6 +39,10 @@ export default function ClientEditModal({ open, onClose, client, onUpdate }: Cli
       setPhone(client.phone || "");
       setBalance(client.balance.toString());
       setStatus(client.status);
+      // Fetch card_payment_enabled
+      supabase.from("profiles").select("card_payment_enabled").eq("user_id", client.user_id).single().then(({ data }) => {
+        setCardPaymentEnabled(data?.card_payment_enabled ?? false);
+      });
     }
   }, [client]);
 
@@ -51,6 +57,7 @@ export default function ClientEditModal({ open, onClose, client, onUpdate }: Cli
           phone: phone || null,
           balance: parseFloat(balance) || 0,
           status,
+          card_payment_enabled: cardPaymentEnabled,
         })
         .eq("user_id", client.user_id);
 
@@ -102,6 +109,13 @@ export default function ClientEditModal({ open, onClose, client, onUpdate }: Cli
                 <SelectItem value="blocked">Bloqueado</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          <div className="flex items-center justify-between rounded-lg border border-border p-3">
+            <div>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Pagamento via Cartão</Label>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Liberar crédito/débito para este cliente</p>
+            </div>
+            <Switch checked={cardPaymentEnabled} onCheckedChange={setCardPaymentEnabled} />
           </div>
           <Button onClick={handleSave} disabled={saving} className="w-full gap-2">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}

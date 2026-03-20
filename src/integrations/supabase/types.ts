@@ -1456,6 +1456,7 @@ export type Database = {
           bairro: string | null
           balance: number
           birth_date: string | null
+          card_payment_enabled: boolean
           cep: string | null
           cidade: string | null
           cpf: string | null
@@ -1480,6 +1481,7 @@ export type Database = {
           bairro?: string | null
           balance?: number
           birth_date?: string | null
+          card_payment_enabled?: boolean
           cep?: string | null
           cidade?: string | null
           cpf?: string | null
@@ -1504,6 +1506,7 @@ export type Database = {
           bairro?: string | null
           balance?: number
           birth_date?: string | null
+          card_payment_enabled?: boolean
           cep?: string | null
           cidade?: string | null
           cpf?: string | null

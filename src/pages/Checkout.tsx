@@ -208,6 +208,7 @@ export default function Checkout() {
   const [draftOrderId, setDraftOrderId] = useState<string | null>(null);
   const [draftOrderCode, setDraftOrderCode] = useState<string | null>(null);
   const [isFirstPurchase, setIsFirstPurchase] = useState(false);
+  const [cardEnabled, setCardEnabled] = useState(false);
   const draftCreatingRef = useRef(false);
 
   // Check if first purchase
@@ -217,6 +218,9 @@ export default function Checkout() {
       if (!user) return;
       const { count } = await supabase.from("orders").select("id", { count: "exact", head: true }).eq("user_id", user.id).in("status", ["completed", "paid"]);
       setIsFirstPurchase((count ?? 0) === 0);
+      // Check if card payment is enabled for this user
+      const { data: profile } = await supabase.from("profiles").select("card_payment_enabled").eq("user_id", user.id).single();
+      setCardEnabled(profile?.card_payment_enabled ?? false);
     };
     checkFirstPurchase();
   }, []);
@@ -872,8 +876,126 @@ export default function Checkout() {
         setPixConfirmed(false);
         setCopied(false);
         setPixModal(true);
+      } else if (paymentMethod === "cartao") {
+        // Validate card fields
+        if (!cardNumber.replace(/\s/g, "") || !cardName || !cardExpiry || !cardCvv) {
+          toast.error("Preencha todos os dados do cartão.");
+          return;
+        }
+
+        updateData.status = "processing";
+        await supabase.from("orders").update(updateData).eq("id", orderId);
+
+        // Build proxy data if applicable
+        const proxyDataForCard = getProxyPurchaseData();
+        const isProxyBRCard = product?.icon_type === 'proxy' && !!product?.external_id;
+        const cardBody: any = {
+          amount: total,
+          order_id: orderId,
+          card: {
+            number: cardNumber.replace(/\s/g, ""),
+            holder_name: cardName,
+            expiration_month: parseInt(cardExpiry.split("/")[0]),
+            expiration_year: parseInt("20" + cardExpiry.split("/")[1]),
+            security_code: cardCvv,
+          },
+        };
+
+        if (proxyDataForCard?.product_variant_id || isProxyBRCard) {
+          let cardVariantId = proxyDataForCard?.product_variant_id;
+          if (!cardVariantId && product?.external_id) {
+            const { data: productsResult } = await supabase.functions.invoke("proxybr-api", {
+              body: { action: "get-products" },
+            });
+            if (productsResult && Array.isArray(productsResult)) {
+              const apiProduct = productsResult.find((p: any) => String(p.id) === String(product.external_id));
+              if (apiProduct?.variant?.length > 0) {
+                const availableVariant = apiProduct.variant.find((v: any) => v.stocks > 0) || apiProduct.variant[0];
+                cardVariantId = availableVariant.id;
+              }
+            }
+          }
+          if (cardVariantId) {
+            cardBody.proxy_data = {
+              product_variant_id: cardVariantId,
+              api_product_id: proxyDataForCard?.api_product_id || product?.external_id,
+              variant_location: proxyDataForCard?.variant_location,
+              quantity: proxyDataForCard?.quantity || quantity || 1,
+              interval: proxyDataForCard?.interval || "monthly",
+            };
+          }
+        }
+
+        const { data: cardResult, error: cardError } = await supabase.functions.invoke("create-card-payment", {
+          body: cardBody,
+        });
+
+        if (cardError) throw cardError;
+        if (cardResult?.error) throw new Error(cardResult.error);
+
+        if (cardResult?.status === "approved") {
+          // Payment approved — handle fulfillment
+          const isProxyPurchase = !!sessionStorage.getItem("proxy_purchase");
+          const isWebshareProduct = product?.icon_type === 'proxy' && !product?.external_id;
+
+          if (isWebshareProduct) {
+            const isRotatingProxy = product?.tags?.some((t: string) => t.toLowerCase() === 'rotativo');
+            const wsAction = isRotatingProxy ? "purchase-rotating-proxy" : "purchase-proxy-with-balance";
+            const { data: wsResult, error: wsError } = await supabase.functions.invoke("webshare-api", {
+              body: { action: wsAction, order_id: orderId, total, product_id: product.id, quantity, skip_balance_debit: true },
+            });
+            if (wsError || wsResult?.error) {
+              toast.error("Pagamento aprovado mas houve erro ao ativar proxy. Contate o suporte.");
+              navigate("/orders");
+              return;
+            }
+            sessionStorage.removeItem("proxy_purchase");
+            toast.success("Pagamento aprovado! Proxy ativado.");
+            queryClient.invalidateQueries({ queryKey: ["webshare-subscriptions"] });
+            navigate("/subscriptions");
+            return;
+          }
+
+          if (isProxyBRCard || proxyDataForCard?.product_variant_id) {
+            // ProxyBR will be handled by webhook/fulfillment
+            sessionStorage.removeItem("proxy_purchase");
+            toast.success("Pagamento aprovado! Proxy será ativado em instantes.");
+            queryClient.invalidateQueries({ queryKey: ["proxybr-subscriptions"] });
+            navigate("/subscriptions");
+            return;
+          }
+
+          // Normal product fulfillment
+          await supabase.from("orders").update({ status: "completed" }).eq("id", orderId);
+          const { data: createdItems } = await supabase.from("order_items").select("id, product_id").eq("order_id", orderId);
+          if (createdItems) {
+            for (const oi of createdItems) {
+              if (!oi.product_id) continue;
+              await supabase.rpc("fulfill_order_item", { p_order_item_id: oi.id, p_product_id: oi.product_id });
+            }
+          }
+
+          if (couponApplied && coupon.trim()) {
+            const { data: cpn } = await supabase.from("coupons").select("used_count").eq("code", coupon.trim().toUpperCase()).single();
+            if (cpn) await supabase.from("coupons").update({ used_count: cpn.used_count + 1 }).eq("code", coupon.trim().toUpperCase());
+          }
+
+          await supabase.from("notifications").insert({
+            title: "Pedido Concluído",
+            message: `Pedido #${orderCode} finalizado — R$ ${total.toFixed(2)} (Cartão)`,
+            type: "order",
+            global: true,
+          });
+
+          sessionStorage.removeItem("proxy_purchase");
+          toast.success("Pagamento aprovado! Pedido realizado.");
+          navigate("/orders");
+        } else {
+          toast.error(cardResult?.status_detail || "Pagamento recusado. Tente outro cartão ou método.");
+          await supabase.from("orders").update({ status: "payment_failed" }).eq("id", orderId);
+        }
       } else {
-        toast.error("Método de pagamento por cartão ainda não disponível.");
+        toast.error("Método de pagamento inválido.");
       }
     } catch (err: any) {
       console.error("Payment error:", err);
@@ -1008,13 +1130,23 @@ export default function Checkout() {
                   <span className="font-medium text-xs text-foreground">Pix</span>
                 </div>
               </label>
-              <div className="relative cursor-not-allowed group">
-                <div className="flex flex-col items-center justify-center gap-1 rounded-lg border border-border p-3 text-center opacity-50">
-                  <CreditCard className="w-6 h-6 text-muted-foreground" />
-                  <span className="font-medium text-xs text-foreground">Cartão</span>
+              {cardEnabled ? (
+                <label className="cursor-pointer group">
+                  <input type="radio" name="payment_method" checked={paymentMethod === "cartao"} onChange={() => setPaymentMethod("cartao")} className="peer sr-only" />
+                  <div className="flex flex-col items-center justify-center gap-1 rounded-lg border border-border p-3 text-center transition-all peer-checked:border-primary peer-checked:bg-primary/20 hover:bg-muted/50">
+                    <CreditCard className="w-6 h-6 text-muted-foreground" />
+                    <span className="font-medium text-xs text-foreground">Cartão</span>
+                  </div>
+                </label>
+              ) : (
+                <div className="relative cursor-not-allowed group">
+                  <div className="flex flex-col items-center justify-center gap-1 rounded-lg border border-border p-3 text-center opacity-50">
+                    <CreditCard className="w-6 h-6 text-muted-foreground" />
+                    <span className="font-medium text-xs text-foreground">Cartão</span>
+                  </div>
+                  <span className="absolute -top-2 -right-2 bg-amber-500 text-black text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none">EM BREVE</span>
                 </div>
-                <span className="absolute -top-2 -right-2 bg-amber-500 text-black text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none">EM BREVE</span>
-              </div>
+              )}
             </div>
 
             {/* Card Form (show only when card is selected) */}
