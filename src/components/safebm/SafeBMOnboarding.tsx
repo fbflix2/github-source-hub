@@ -11,9 +11,15 @@ const SAFE_EMAIL = "equipefbflix@gmail.com";
 export default function SafeBMOnboarding() {
   const [bmCount, setBmCount] = useState(1);
   const [bmNames, setBmNames] = useState<string[]>([""]);
-  const [submitted, setSubmitted] = useState(false);
+  const [submitted, setSubmitted] = useState(() => {
+    const saved = localStorage.getItem("safebm_onboarding_submitted");
+    return saved === "true";
+  });
   const [clientName, setClientName] = useState("");
-  const [submittedAt, setSubmittedAt] = useState<Date | null>(null);
+  const [submittedAt, setSubmittedAt] = useState<Date | null>(() => {
+    const saved = localStorage.getItem("safebm_onboarding_submitted_at");
+    return saved ? new Date(saved) : null;
+  });
   const [countdown, setCountdown] = useState("");
 
   useEffect(() => {
@@ -61,8 +67,11 @@ export default function SafeBMOnboarding() {
   const handleSubmit = () => {
     const empty = bmNames.findIndex(n => !n.trim());
     if (empty !== -1) return toast.error(`Digite o nome da BM ${empty + 1}`);
+    const now = new Date();
     setSubmitted(true);
-    setSubmittedAt(new Date());
+    setSubmittedAt(now);
+    localStorage.setItem("safebm_onboarding_submitted", "true");
+    localStorage.setItem("safebm_onboarding_submitted_at", now.toISOString());
     toast.success("Solicitação enviada com sucesso!");
   };
 
