@@ -48,8 +48,14 @@ const filters = [
 
 const statusConfig: Record<string, { label: string; className: string; badgeClassName: string }> = {
   completed: { label: "Concluído", className: "border-l-emerald-500 bg-muted/50", badgeClassName: "bg-emerald-500/20 text-emerald-400 border-emerald-500/20" },
+  courtesy: { label: "Cortesia", className: "border-l-violet-500 bg-muted/50", badgeClassName: "bg-violet-500/20 text-violet-400 border-violet-500/20" },
   processing: { label: "Pendente", className: "opacity-80 hover:opacity-100", badgeClassName: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20" },
   cancelled: { label: "Cancelado", className: "opacity-60", badgeClassName: "bg-destructive/10 text-destructive border-destructive/20" },
+};
+
+const getEffectiveStatus = (order: Order) => {
+  if (order.status === "completed" && order.payment_method === "cortesia") return "courtesy";
+  return order.status;
 };
 
 const formatDate = (dateString: string) => {
