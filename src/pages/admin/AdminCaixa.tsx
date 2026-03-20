@@ -402,7 +402,7 @@ export default function AdminCaixa() {
         .select("code, amount")
         .eq("status", "completed")
         .is("order_id", null)
-        .gte("created_at", openCash.opened_at);
+        .gte("created_at", getStartOfDay(openCash.opened_at));
 
       (recharges || []).forEach((r) => {
         const amount = Number(r.amount || 0);
