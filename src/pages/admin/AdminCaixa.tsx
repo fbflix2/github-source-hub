@@ -60,6 +60,12 @@ const parseBRL = (value: string): number => {
 const isBankPaymentMethod = (paymentMethod: string | null | undefined) =>
   paymentMethod === "pix";
 
+// Returns the start of the day (00:00:00 UTC) for the given date string
+const getStartOfDay = (dateStr: string) => {
+  const d = new Date(dateStr);
+  d.setUTCHours(0, 0, 0, 0);
+  return d.toISOString();
+};
 // ── Types ──
 interface CashRecord {
   id: string;
