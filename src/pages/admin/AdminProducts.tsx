@@ -876,6 +876,9 @@ export default function AdminProducts() {
                             <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-zinc-400 hover:text-white" onClick={() => openEditForm(product)}>
                               <Edit className="h-4 w-4" />
                             </Button>
+                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-zinc-400 hover:text-primary" title="Order Bumps" onClick={() => { setBumpsModalProduct({ id: product.id, name: product.name }); setBumpsModalOpen(true); }}>
+                              <Layers className="h-4 w-4" />
+                            </Button>
                             <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-zinc-400 hover:text-red-400" onClick={() => handleDelete(product.id)}>
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -1034,6 +1037,15 @@ export default function AdminProducts() {
           onOpenChange={setStockModalOpen}
           productId={stockModalProduct.id}
           productName={stockModalProduct.name}
+        />
+      )}
+
+      {bumpsModalProduct && (
+        <OrderBumpsManager
+          open={bumpsModalOpen}
+          onClose={() => setBumpsModalOpen(false)}
+          productId={bumpsModalProduct.id}
+          productName={bumpsModalProduct.name}
         />
       )}
     </div>
