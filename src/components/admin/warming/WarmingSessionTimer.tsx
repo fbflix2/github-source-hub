@@ -445,6 +445,31 @@ export default function WarmingSessionTimer({
           </span>
         </div>
       )}
+      {/* Confirmation dialog */}
+      <AlertDialog open={!!confirmStatus} onOpenChange={(open) => !open && setConfirmStatus(null)}>
+        <AlertDialogContent className="dark:bg-zinc-900 dark:border-white/10">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="dark:text-white">Confirmar alteração de status</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja marcar o perfil <strong>{profile.profile_code}</strong> como <strong>{confirmStatus?.label}</strong>?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="dark:bg-white/10 dark:text-white dark:border-white/10">Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className={confirmStatus?.status === "blocked" ? "bg-red-600 hover:bg-red-700" : "bg-amber-500 hover:bg-amber-600"}
+              onClick={() => {
+                if (confirmStatus && onStatusChange) {
+                  onStatusChange(profile.id, confirmStatus.status);
+                }
+                setConfirmStatus(null);
+              }}
+            >
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
