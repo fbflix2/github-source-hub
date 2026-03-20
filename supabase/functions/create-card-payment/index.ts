@@ -137,7 +137,6 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         transaction_amount: numericAmount,
         description: order_id ? `Pedido - ${paymentCode}` : `Recarga de saldo - ${paymentCode}`,
-        payment_method_id: "master",
         payer: { email: userEmail },
         token: cardToken,
         installments: 1,

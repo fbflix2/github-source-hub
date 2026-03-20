@@ -195,10 +195,10 @@ export default function Checkout() {
   const [discount, setDiscount] = useState(0);
   const [couponApplied, setCouponApplied] = useState(false);
   const [applyingCoupon, setApplyingCoupon] = useState(false);
-  const [cardNumber, setCardNumber] = useState("");
   const [cardName, setCardName] = useState("");
-  const [cardExpiry, setCardExpiry] = useState("");
-  const [cardCvv, setCardCvv] = useState("");
+  const mpInstanceRef = useRef<any>(null);
+  const cardFieldsRef = useRef<{ cardNumber: any; expirationDate: any; securityCode: any } | null>(null);
+  const fieldsInitializedRef = useRef(false);
   const [processing, setProcessing] = useState(false);
   const [pixModal, setPixModal] = useState(false);
   const [pixData, setPixData] = useState<{ qr_code: string | null; qr_code_base64: string | null; amount: number } | null>(null);
@@ -224,6 +224,51 @@ export default function Checkout() {
     };
     checkFirstPurchase();
   }, []);
+
+  // Initialize MercadoPago Secure Fields when card payment is selected
+  useEffect(() => {
+    if (paymentMethod !== "cartao" || fieldsInitializedRef.current) return;
+
+    const mpPublicKey = import.meta.env.VITE_MERCADOPAGO_PUBLIC_KEY;
+    if (!mpPublicKey || !(window as any).MercadoPago) return;
+
+    // Small delay to ensure DOM containers exist
+    const timer = setTimeout(() => {
+      try {
+        const mp = new (window as any).MercadoPago(mpPublicKey, { locale: "pt-BR" });
+        mpInstanceRef.current = mp;
+
+        const style = {
+          height: "100%",
+          width: "100%",
+          "font-size": "14px",
+          "font-family": "inherit",
+          color: "#e0e0e0",
+          "padding-left": "12px",
+        };
+
+        const cardNumber = mp.fields.create("cardNumber", { placeholder: "0000 0000 0000 0000", style }).mount("mp-card-number");
+        const expirationDate = mp.fields.create("expirationDate", { placeholder: "MM/AA", style }).mount("mp-expiration-date");
+        const securityCode = mp.fields.create("securityCode", { placeholder: "123", style }).mount("mp-security-code");
+
+        cardFieldsRef.current = { cardNumber, expirationDate, securityCode };
+        fieldsInitializedRef.current = true;
+      } catch (err) {
+        console.error("MP Fields init error:", err);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [paymentMethod]);
+
+  // Reset fields when switching away from card
+  useEffect(() => {
+    if (paymentMethod !== "cartao") {
+      fieldsInitializedRef.current = false;
+      cardFieldsRef.current = null;
+      mpInstanceRef.current = null;
+    }
+  }, [paymentMethod]);
 
   // Fetch bumps: prefer admin-configured, fallback to smart auto-detection
   useEffect(() => {
@@ -929,33 +974,24 @@ export default function Checkout() {
         setCopied(false);
         setPixModal(true);
       } else if (paymentMethod === "cartao") {
-        // Validate card fields
-        if (!cardNumber.replace(/\s/g, "") || !cardName || !cardExpiry || !cardCvv) {
-          toast.error("Preencha todos os dados do cartão.");
+        // Validate card name
+        if (!cardName) {
+          toast.error("Preencha o nome no cartão.");
+          return;
+        }
+
+        if (!mpInstanceRef.current || !cardFieldsRef.current) {
+          toast.error("Campos do cartão não inicializados. Aguarde e tente novamente.");
           return;
         }
 
         updateData.status = "processing";
         await supabase.from("orders").update(updateData).eq("id", orderId);
 
-        // Tokenize card using MercadoPago.js SDK
-        const mpPublicKey = import.meta.env.VITE_MERCADOPAGO_PUBLIC_KEY;
-        if (!mpPublicKey) {
-          toast.error("Configuração de pagamento incompleta.");
-          return;
-        }
-
-        const mp = new (window as any).MercadoPago(mpPublicKey);
-        const [expMonth, expYear] = cardExpiry.split("/");
-
         let cardToken: string;
         try {
-          const tokenResult = await mp.createCardToken({
-            cardNumber: cardNumber.replace(/\s/g, ""),
+          const tokenResult = await mpInstanceRef.current.fields.createCardToken({
             cardholderName: cardName,
-            cardExpirationMonth: expMonth,
-            cardExpirationYear: "20" + expYear,
-            securityCode: cardCvv,
             identificationType: "CPF",
             identificationNumber: "00000000000",
           });
@@ -1230,10 +1266,7 @@ export default function Checkout() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="col-span-1 md:col-span-2 space-y-1">
                     <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Número do Cartão</label>
-                    <div className="relative">
-                      <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <input type="text" value={cardNumber} onChange={(e) => setCardNumber(e.target.value)} placeholder="0000 0000 0000 0000" className="glass-input w-full rounded-lg py-2.5 pl-9 pr-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-1 focus:ring-primary bg-black/30 border border-border" />
-                    </div>
+                    <div id="mp-card-number" className="w-full rounded-lg bg-black/30 border border-border overflow-hidden" style={{ height: '40px' }} />
                   </div>
                   <div className="col-span-1 md:col-span-2 space-y-1">
                     <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Nome no Cartão</label>
@@ -1244,17 +1277,11 @@ export default function Checkout() {
                   </div>
                   <div className="space-y-1">
                     <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Validade</label>
-                    <div className="relative">
-                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <input type="text" value={cardExpiry} onChange={(e) => setCardExpiry(e.target.value)} placeholder="MM/AA" className="glass-input w-full rounded-lg py-2.5 pl-9 pr-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-1 focus:ring-primary bg-black/30 border border-border" />
-                    </div>
+                    <div id="mp-expiration-date" className="w-full rounded-lg bg-black/30 border border-border overflow-hidden" style={{ height: '40px' }} />
                   </div>
                   <div className="space-y-1">
                     <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">CVV</label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <input type="text" value={cardCvv} onChange={(e) => setCardCvv(e.target.value)} placeholder="123" className="glass-input w-full rounded-lg py-2.5 pl-9 pr-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-1 focus:ring-primary bg-black/30 border border-border" />
-                    </div>
+                    <div id="mp-security-code" className="w-full rounded-lg bg-black/30 border border-border overflow-hidden" style={{ height: '40px' }} />
                   </div>
                 </div>
               </div>
