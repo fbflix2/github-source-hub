@@ -57,6 +57,9 @@ const parseBRL = (value: string): number => {
   return isNaN(parsed) ? 0 : parsed;
 };
 
+const isBankPaymentMethod = (paymentMethod: string | null | undefined) =>
+  paymentMethod === "pix";
+
 // ── Types ──
 interface CashRecord {
   id: string;
@@ -161,7 +164,7 @@ export default function AdminCaixa() {
     const [ordersRes, purchasesRes] = await Promise.all([
       supabase
         .from("orders")
-        .select("total")
+        .select("total, payment_method")
         .in("status", ["completed", "delivered"])
         .gte("created_at", since),
       supabase
@@ -169,7 +172,12 @@ export default function AdminCaixa() {
         .select("total_value")
         .gte("created_at", since),
     ]);
-    setSystemRevenue((ordersRes.data ?? []).reduce((s, o) => s + Number(o.total || 0), 0));
+
+    const bankOrders = (ordersRes.data ?? []).filter((order) =>
+      isBankPaymentMethod(order.payment_method)
+    );
+
+    setSystemRevenue(bankOrders.reduce((s, o) => s + Number(o.total || 0), 0));
     setSystemExpenses((purchasesRes.data ?? []).reduce((s, p) => s + Number(p.total_value || 0), 0));
   };
 
@@ -201,7 +209,7 @@ export default function AdminCaixa() {
         const order = payload.new as any;
         if (
           (order.status === "completed" || order.status === "delivered") &&
-          order.payment_method !== "courtesy" &&
+          isBankPaymentMethod(order.payment_method) &&
           new Date(order.created_at) >= new Date(openedAt)
         ) {
           // Check if we already have this order as a movement
@@ -261,7 +269,7 @@ export default function AdminCaixa() {
       supabase.removeChannel(orderChannel);
       supabase.removeChannel(movChannel);
     };
-  }, [openCash?.id]);
+  }, [openCash?.id, openCash?.opened_at, mpFeeRate]);
 
   // ── Sync existing completed orders as automatic movements on open ──
   useEffect(() => {
@@ -284,33 +292,35 @@ export default function AdminCaixa() {
       const existingRefs = new Set((existingMovs || []).map(m => m.reference_id));
 
       const toInsert: any[] = [];
-      completedOrders.filter(o => o.payment_method !== 'courtesy').forEach(o => {
-        const total = Number(o.total || 0);
-        const fee = Math.round(total * mpFeeRate) / 100;
+      completedOrders
+        .filter((o) => isBankPaymentMethod(o.payment_method))
+        .forEach((o) => {
+          const total = Number(o.total || 0);
+          const fee = Math.round(total * mpFeeRate) / 100;
 
-        // Insert entry if missing
-        if (!existingRefs.has(o.code)) {
-          toInsert.push({
-            cash_register_id: openCash.id,
-            type: "entry",
-            source: "automatic",
-            amount: total,
-            description: `Venda #${o.code}`,
-            reference_id: o.code,
-          });
-        }
-        // Insert fee if missing
-        if (fee > 0 && !existingRefs.has(`fee-${o.code}`)) {
-          toInsert.push({
-            cash_register_id: openCash.id,
-            type: "exit",
-            source: "automatic",
-            amount: fee,
-            description: `Taxa MP ${mpFeeRate.toFixed(2).replace(".", ",")}% - Venda #${o.code}`,
-            reference_id: `fee-${o.code}`,
-          });
-        }
-      });
+          // Insert entry if missing
+          if (!existingRefs.has(o.code)) {
+            toInsert.push({
+              cash_register_id: openCash.id,
+              type: "entry",
+              source: "automatic",
+              amount: total,
+              description: `Venda #${o.code}`,
+              reference_id: o.code,
+            });
+          }
+          // Insert fee if missing
+          if (fee > 0 && !existingRefs.has(`fee-${o.code}`)) {
+            toInsert.push({
+              cash_register_id: openCash.id,
+              type: "exit",
+              source: "automatic",
+              amount: fee,
+              description: `Taxa MP ${mpFeeRate.toFixed(2).replace(".", ",")}% - Venda #${o.code}`,
+              reference_id: `fee-${o.code}`,
+            });
+          }
+        });
 
       if (toInsert.length > 0) {
         await supabase.from("cash_movements").insert(toInsert);
@@ -318,7 +328,7 @@ export default function AdminCaixa() {
       }
     };
     syncAutoMovements();
-  }, [openCash?.id]);
+  }, [openCash?.id, openCash?.opened_at, mpFeeRate]);
 
   // ── Actions ──
   const handleOpen = async () => {
