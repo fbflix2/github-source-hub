@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
         .from("orders")
         .select("total")
         .in("status", ["completed", "delivered"])
-        .neq("payment_method", "courtesy")
+        .eq("payment_method", "pix")
         .gte("created_at", openedAt),
       supabase
         .from("purchases")
