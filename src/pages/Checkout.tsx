@@ -994,21 +994,20 @@ export default function Checkout() {
         setCopied(false);
         setPixModal(true);
       } else if (paymentMethod === "cartao") {
-        // Validate card name
-        if (!cardName || !cardNumber || !cardExpiry || !cardCvv) {
-          toast.error("Preencha todos os dados do cartão.");
+        const identificationNumber = cardCpf.replace(/\D/g, "");
+
+        if (!cardName.trim()) {
+          toast.error("Preencha o nome no cartão.");
           return;
         }
 
-        if (!mpInstanceRef.current) {
-          toast.error("SDK de pagamento não inicializado. Recarregue a página.");
+        if (identificationNumber.length !== 11) {
+          toast.error("Informe um CPF válido para pagar com cartão.");
           return;
         }
 
-        // Parse expiry MM/AA
-        const expiryParts = cardExpiry.replace(/\s/g, "").split("/");
-        if (expiryParts.length !== 2 || expiryParts[0].length !== 2 || expiryParts[1].length !== 2) {
-          toast.error("Data de validade inválida. Use o formato MM/AA.");
+        if (!mpInstanceRef.current || !cardFieldsRef.current) {
+          toast.error("Campos do cartão não carregados. Recarregue a página e tente novamente.");
           return;
         }
 
@@ -1017,21 +1016,23 @@ export default function Checkout() {
 
         let cardToken: string;
         try {
-          const tokenResult = await mpInstanceRef.current.createCardToken({
-            cardNumber: cardNumber.replace(/\s/g, ""),
-            cardholderName: cardName,
-            cardExpirationMonth: expiryParts[0],
-            cardExpirationYear: "20" + expiryParts[1],
-            securityCode: cardCvv,
+          const tokenResult = await mpInstanceRef.current.fields.createCardToken({
+            cardholderName: cardName.trim(),
             identificationType: "CPF",
-            identificationNumber: "00000000000",
+            identificationNumber,
           });
           if (!tokenResult?.id) throw new Error("Token não gerado");
           cardToken = tokenResult.id;
         } catch (tokenErr: any) {
           console.error("Card token error:", tokenErr);
-          const msg = tokenErr?.message || "Dados do cartão inválidos.";
-          toast.error(msg);
+          const detailedMessage = Array.isArray(tokenErr?.cause)
+            ? tokenErr.cause.map((cause: any) => cause?.message || cause?.description).filter(Boolean).join(" | ")
+            : tokenErr?.message;
+          toast.error(
+            detailedMessage?.toLowerCase().includes("public key")
+              ? "Erro de configuração do cartão."
+              : detailedMessage || "Não foi possível validar os dados do cartão."
+          );
           return;
         }
 
