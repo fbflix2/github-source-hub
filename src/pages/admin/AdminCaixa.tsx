@@ -211,7 +211,7 @@ export default function AdminCaixa() {
   useEffect(() => {
     if (!openCash) return;
     const cashId = openCash.id;
-    const openedAt = openCash.opened_at;
+    const openedAt = getStartOfDay(openCash.opened_at);
 
     // Subscribe to new orders (PIX sales)
     const orderChannel = supabase
