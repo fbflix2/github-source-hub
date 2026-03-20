@@ -4,9 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Navigate } from "react-router-dom";
 import SecurityMonitor, { type SecurityMonitorHandle } from "@/components/safebm/SecurityMonitor";
 import PricingModal from "@/components/safebm/PricingModal";
+import SafeBMOnboarding from "@/components/safebm/SafeBMOnboarding";
 
 interface SafeBmVault {
   id: string;
@@ -83,7 +83,11 @@ export default function SafeBMClient() {
   }
 
   if (!loading && vaults.length === 0) {
-    return <Navigate to="/subscriptions" replace />;
+    return (
+      <div className="p-3 md:p-4 max-w-7xl mx-auto w-full" style={{ fontFamily: "'Inter', sans-serif" }}>
+        <SafeBMOnboarding />
+      </div>
+    );
   }
 
   return (
@@ -162,7 +166,7 @@ export default function SafeBMClient() {
         </div>
       </section>
 
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-2.5" style={{ minHeight: 180 }}>
+      <section className={`grid grid-cols-1 ${activeVaults.length > 0 ? 'md:grid-cols-2' : ''} gap-2.5`} style={{ minHeight: 180 }}>
         <div className="rounded-xl bg-[#1C2025] border border-[#5d3f3b]/15 p-4 flex items-center gap-4" style={{ minHeight: 180 }}>
           <div className="flex-1 space-y-0.5">
             <h4 className="font-bold text-sm" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Precisa de mais proteção?</h4>
@@ -178,7 +182,9 @@ export default function SafeBMClient() {
           </div>
         </div>
 
-        <SecurityMonitor ref={monitorRef} bmNames={activeVaults.map(v => v.bm_name)} />
+        {activeVaults.length > 0 && (
+          <SecurityMonitor ref={monitorRef} bmNames={activeVaults.map(v => v.bm_name)} />
+        )}
       </section>
 
       <PricingModal open={showPricing} onClose={() => setShowPricing(false)} />
