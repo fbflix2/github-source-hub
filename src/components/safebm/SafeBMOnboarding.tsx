@@ -11,30 +11,45 @@ const SAFE_EMAIL = "equipefbflix@gmail.com";
 export default function SafeBMOnboarding() {
   const [bmCount, setBmCount] = useState(1);
   const [bmNames, setBmNames] = useState<string[]>([""]);
-  const [submitted, setSubmitted] = useState(() => {
-    const saved = localStorage.getItem("safebm_onboarding_submitted");
-    return saved === "true";
-  });
+  const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [clientName, setClientName] = useState("");
-  const [submittedAt, setSubmittedAt] = useState<Date | null>(() => {
-    const saved = localStorage.getItem("safebm_onboarding_submitted_at");
-    return saved ? new Date(saved) : null;
-  });
+  const [submittedAt, setSubmittedAt] = useState<Date | null>(null);
   const [countdown, setCountdown] = useState("");
+  const [pendingCount, setPendingCount] = useState(0);
 
+  // Check DB for existing pending submissions
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data } = await supabase
+      if (!user) { setLoading(false); return; }
+
+      // Get profile name
+      const { data: profile } = await supabase
         .from("profiles")
         .select("full_name")
         .eq("user_id", user.id)
         .single();
-      if (data?.full_name) setClientName(data.full_name);
+      if (profile?.full_name) setClientName(profile.full_name);
+
+      // Check for pending BM tracking records
+      const { data: pending } = await supabase
+        .from("bm_tracking")
+        .select("created_at")
+        .eq("client_user_id", user.id)
+        .eq("status", "pending_setup")
+        .order("created_at", { ascending: false });
+
+      if (pending && pending.length > 0) {
+        setSubmitted(true);
+        setPendingCount(pending.length);
+        setSubmittedAt(new Date(pending[0].created_at));
+      }
+      setLoading(false);
     })();
   }, []);
 
+  // Countdown timer
   useEffect(() => {
     if (!submittedAt) return;
     const target = new Date(submittedAt.getTime() + 24 * 60 * 60 * 1000);
@@ -64,16 +79,48 @@ export default function SafeBMOnboarding() {
     toast.success("E-mail copiado!");
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const empty = bmNames.findIndex(n => !n.trim());
     if (empty !== -1) return toast.error(`Digite o nome da BM ${empty + 1}`);
+
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return toast.error("Faça login primeiro");
+
     const now = new Date();
+    const expires = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+
+    // Insert pending records into bm_tracking
+    const records = bmNames.map(name => ({
+      bm_link: "pending",
+      client_user_id: user.id,
+      client_name: clientName || null,
+      client_email: user.email || null,
+      product_name: name.trim(),
+      status: "pending_setup",
+      sold_at: now.toISOString(),
+      expires_at: expires.toISOString(),
+      sale_price: 0,
+    }));
+
+    const { error } = await supabase.from("bm_tracking").insert(records);
+    if (error) {
+      console.error(error);
+      return toast.error("Erro ao enviar solicitação");
+    }
+
     setSubmitted(true);
     setSubmittedAt(now);
-    localStorage.setItem("safebm_onboarding_submitted", "true");
-    localStorage.setItem("safebm_onboarding_submitted_at", now.toISOString());
+    setPendingCount(bmNames.length);
     toast.success("Solicitação enviada com sucesso!");
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   if (submitted) {
     return (
@@ -88,11 +135,9 @@ export default function SafeBMOnboarding() {
               Obrigado, <span className="text-emerald-400">{clientName || "Cliente"}</span>!
             </h3>
             <p className="text-[#c6c6c7]/80 text-sm max-w-md mx-auto">
-              Recebemos sua solicitação de proteção para <strong className="text-[#e0e2ea]">{bmCount} BM{bmCount > 1 ? "s" : ""}</strong>. 
+              Recebemos sua solicitação de proteção para <strong className="text-[#e0e2ea]">{pendingCount} BM{pendingCount > 1 ? "s" : ""}</strong>. 
               Em no máximo <strong className="text-emerald-400">24 horas</strong>, seus cofres estarão disponíveis e ativos.
             </p>
-
-            {/* Countdown */}
             <div className="rounded-xl bg-[#0a0e13] border border-emerald-500/20 p-5 max-w-xs mx-auto space-y-2">
               <p className="text-[10px] uppercase font-bold text-emerald-400 tracking-widest">Tempo estimado restante</p>
               <p className="text-3xl font-black text-[#e0e2ea] font-mono tracking-wider" style={{ fontFamily: "'Space Grotesk', monospace" }}>
@@ -102,7 +147,6 @@ export default function SafeBMOnboarding() {
                 <div className="h-full bg-emerald-500 rounded-full animate-pulse" style={{ width: "10%" }} />
               </div>
             </div>
-
             <div className="rounded-xl bg-[#1c2025] border border-[#5d3f3b]/15 p-4 text-left max-w-md mx-auto">
               <p className="text-[11px] text-[#c6c6c7]/60 leading-relaxed">
                 <MaterialIcon name="info" className="!text-sm text-[#68d3fc] align-middle mr-1" />
@@ -117,7 +161,6 @@ export default function SafeBMOnboarding() {
 
   return (
     <div className="space-y-4">
-      {/* Hero */}
       <div className="relative overflow-hidden rounded-xl bg-[#262a30]/40 border border-[#5d3f3b]/15 p-5 backdrop-blur-md">
         <div className="absolute -right-16 -top-16 w-64 h-64 bg-[#ffb4aa]/10 blur-[100px] rounded-full" />
         <div className="relative z-10">
@@ -134,9 +177,7 @@ export default function SafeBMOnboarding() {
         </div>
       </div>
 
-      {/* Steps */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {/* Step 1: Copy email */}
         <div className="rounded-xl bg-[#1c2025] border border-[#5d3f3b]/15 p-4 space-y-3">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-full bg-[#ffb4aa] text-[#410001] flex items-center justify-center text-xs font-black">1</div>
@@ -148,23 +189,17 @@ export default function SafeBMOnboarding() {
           <div className="flex items-center gap-2 bg-[#0a0e13] rounded-lg p-2.5 border border-[#ffb4aa]/20">
             <MaterialIcon name="email" className="text-[#ffb4aa] !text-lg" />
             <span className="text-sm font-mono text-[#e0e2ea] flex-1 select-all">{SAFE_EMAIL}</span>
-            <button
-              onClick={copyEmail}
-              className="p-1.5 rounded-lg bg-[#31353b] hover:bg-[#ffb4aa] hover:text-[#410001] text-[#c6c6c7] transition-all"
-              title="Copiar e-mail"
-            >
+            <button onClick={copyEmail} className="p-1.5 rounded-lg bg-[#31353b] hover:bg-[#ffb4aa] hover:text-[#410001] text-[#c6c6c7] transition-all" title="Copiar e-mail">
               <MaterialIcon name="content_copy" className="!text-sm" />
             </button>
           </div>
         </div>
 
-        {/* Step 2: Form */}
         <div className="rounded-xl bg-[#1c2025] border border-[#5d3f3b]/15 p-4 space-y-3">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-full bg-[#ffb4aa] text-[#410001] flex items-center justify-center text-xs font-black">2</div>
             <h4 className="font-bold text-sm text-[#e0e2ea]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Informe suas BMs</h4>
           </div>
-
           <div className="space-y-2">
             <div>
               <label className="text-[10px] uppercase font-bold text-[#c6c6c7]/60 mb-1 block">Quantidade de BMs contratadas</label>
@@ -174,36 +209,26 @@ export default function SafeBMOnboarding() {
                 <button onClick={() => handleCountChange(bmCount + 1)} className="w-8 h-8 rounded-lg bg-[#31353b] hover:bg-[#ffb4aa] hover:text-[#410001] text-[#c6c6c7] flex items-center justify-center font-bold transition-all">+</button>
               </div>
             </div>
-
             {bmNames.map((name, i) => (
               <div key={i}>
                 <label className="text-[10px] uppercase font-bold text-[#c6c6c7]/60 mb-1 block">Nome da BM {bmCount > 1 ? i + 1 : ""}</label>
                 <input
                   type="text"
                   value={name}
-                  onChange={e => {
-                    const next = [...bmNames];
-                    next[i] = e.target.value;
-                    setBmNames(next);
-                  }}
+                  onChange={e => { const next = [...bmNames]; next[i] = e.target.value; setBmNames(next); }}
                   placeholder={`Ex: BM ${i + 1} - Campanhas`}
                   className="w-full bg-[#0a0e13] border border-[#ffb4aa]/20 rounded-lg px-3 py-2 text-sm text-[#e0e2ea] placeholder:text-[#c6c6c7]/30 focus:outline-none focus:border-[#ffb4aa]/50"
                 />
               </div>
             ))}
           </div>
-
-          <button
-            onClick={handleSubmit}
-            className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2"
-          >
+          <button onClick={handleSubmit} className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2">
             <MaterialIcon name="shield" className="!text-sm" />
             Enviar para Proteção
           </button>
         </div>
       </div>
 
-      {/* Admin access warning */}
       <div className="rounded-xl bg-amber-500/5 border border-amber-500/20 p-4 space-y-2">
         <div className="flex items-start gap-2.5">
           <MaterialIcon name="warning" className="text-amber-400 !text-xl mt-0.5" />
