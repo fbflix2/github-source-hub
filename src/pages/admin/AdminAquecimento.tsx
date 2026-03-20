@@ -494,13 +494,17 @@ export default function AdminAquecimento() {
   const matureProfiles = visibleProfiles.filter(p => p.current_day > 15).length;
 
   const t3 = visibleProfiles.filter(p => p.trust_tier?.includes("3")).length;
-  const t2 = visibleProfiles.filter(p => p.trust_tier?.includes("2")).length;
-  const t1 = visibleProfiles.filter(p => p.trust_tier && !p.trust_tier.includes("2") && !p.trust_tier.includes("3")).length;
-  const tierTotal = t3 + t2 + t1 || 1;
+  const t2 = visibleProfiles.filter(p => p.trust_tier?.includes("2") && !p.trust_tier?.includes("3")).length;
+  const t1 = visibleProfiles.filter(p => {
+    if (!p.trust_tier) return false;
+    return !p.trust_tier.includes("2") && !p.trust_tier.includes("3");
+  }).length;
+  const noTier = visibleProfiles.filter(p => !p.trust_tier).length;
+  const tierTotal = t3 + t2 + t1 + noTier || 1;
   const t3Pct = Math.round((t3 / tierTotal) * 100);
   const t2Pct = Math.round((t2 / tierTotal) * 100);
-  const t1Pct = 100 - t3Pct - t2Pct;
-  const predominantTier = t3 >= t2 && t3 >= t1 ? "Tier 3" : t2 >= t1 ? "Tier 2" : "Tier 1";
+  const t1Pct = Math.round(((t1 + noTier) / tierTotal) * 100);
+  const predominantTier = t3 > t2 && t3 > (t1 + noTier) ? "Tier 3" : t2 > t3 && t2 > (t1 + noTier) ? "Tier 2" : "Tier 1";
 
 
   return (
