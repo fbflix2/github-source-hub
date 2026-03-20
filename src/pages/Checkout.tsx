@@ -196,10 +196,10 @@ export default function Checkout() {
   const [couponApplied, setCouponApplied] = useState(false);
   const [applyingCoupon, setApplyingCoupon] = useState(false);
   const [cardName, setCardName] = useState("");
-  const [cardNumber, setCardNumber] = useState("");
-  const [cardExpiry, setCardExpiry] = useState("");
-  const [cardCvv, setCardCvv] = useState("");
+  const [cardCpf, setCardCpf] = useState("");
   const mpInstanceRef = useRef<any>(null);
+  const cardFieldsRef = useRef<{ cardNumber: any; expirationDate: any; securityCode: any } | null>(null);
+  const fieldsInitializedRef = useRef(false);
   const [processing, setProcessing] = useState(false);
   const [pixModal, setPixModal] = useState(false);
   const [pixData, setPixData] = useState<{ qr_code: string | null; qr_code_base64: string | null; amount: number } | null>(null);
@@ -219,27 +219,75 @@ export default function Checkout() {
       if (!user) return;
       const { count } = await supabase.from("orders").select("id", { count: "exact", head: true }).eq("user_id", user.id).in("status", ["completed", "paid"]);
       setIsFirstPurchase((count ?? 0) === 0);
-      // Check if card payment is enabled for this user
-      const { data: profile } = await supabase.from("profiles").select("card_payment_enabled").eq("user_id", user.id).single();
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("card_payment_enabled, cpf, full_name")
+        .eq("user_id", user.id)
+        .single();
       setCardEnabled(profile?.card_payment_enabled ?? false);
+      if (profile?.cpf) setCardCpf(profile.cpf);
+      if (profile?.full_name) setCardName((prev) => prev || profile.full_name || "");
     };
     checkFirstPurchase();
   }, []);
 
-  // Initialize MercadoPago instance when card payment is selected
+  // Initialize MercadoPago secure fields when card payment is selected
   useEffect(() => {
-    if (paymentMethod !== "cartao") {
+    const cleanupFields = () => {
+      cardFieldsRef.current?.cardNumber?.unmount?.();
+      cardFieldsRef.current?.expirationDate?.unmount?.();
+      cardFieldsRef.current?.securityCode?.unmount?.();
+      cardFieldsRef.current = null;
+      fieldsInitializedRef.current = false;
       mpInstanceRef.current = null;
+    };
+
+    if (paymentMethod !== "cartao") {
+      cleanupFields();
       return;
     }
+
+    if (fieldsInitializedRef.current) return;
+
     const mpPublicKey = import.meta.env.VITE_MERCADOPAGO_PUBLIC_KEY;
-    if (!mpPublicKey || !(window as any).MercadoPago) return;
+    if (!mpPublicKey) {
+      console.error("Mercado Pago public key missing");
+      toast.error("Chave pública do cartão não configurada.");
+      return;
+    }
+
+    if (!(window as any).MercadoPago) {
+      console.error("Mercado Pago SDK not loaded");
+      toast.error("SDK do cartão indisponível no momento.");
+      return;
+    }
+
     try {
       const mp = new (window as any).MercadoPago(mpPublicKey, { locale: "pt-BR" });
       mpInstanceRef.current = mp;
+
+      const style = {
+        height: "100%",
+        width: "100%",
+        "font-size": "14px",
+        "font-family": "inherit",
+        color: "hsl(0 0% 95%)",
+        "padding-left": "12px",
+      };
+
+      const cardNumber = mp.fields.create("cardNumber", { placeholder: "0000 0000 0000 0000", style }).mount("mp-card-number");
+      const expirationDate = mp.fields.create("expirationDate", { placeholder: "MM/AA", style }).mount("mp-expiration-date");
+      const securityCode = mp.fields.create("securityCode", { placeholder: "123", style }).mount("mp-security-code");
+
+      cardFieldsRef.current = { cardNumber, expirationDate, securityCode };
+      fieldsInitializedRef.current = true;
     } catch (err) {
-      console.error("MP init error:", err);
+      console.error("MP fields init error:", err);
+      cleanupFields();
+      toast.error("Não foi possível carregar os campos do cartão.");
     }
+
+    return cleanupFields;
   }, [paymentMethod]);
 
   // Fetch bumps: prefer admin-configured, fallback to smart auto-detection
@@ -946,21 +994,20 @@ export default function Checkout() {
         setCopied(false);
         setPixModal(true);
       } else if (paymentMethod === "cartao") {
-        // Validate card name
-        if (!cardName || !cardNumber || !cardExpiry || !cardCvv) {
-          toast.error("Preencha todos os dados do cartão.");
+        const identificationNumber = cardCpf.replace(/\D/g, "");
+
+        if (!cardName.trim()) {
+          toast.error("Preencha o nome no cartão.");
           return;
         }
 
-        if (!mpInstanceRef.current) {
-          toast.error("SDK de pagamento não inicializado. Recarregue a página.");
+        if (identificationNumber.length !== 11) {
+          toast.error("Informe um CPF válido para pagar com cartão.");
           return;
         }
 
-        // Parse expiry MM/AA
-        const expiryParts = cardExpiry.replace(/\s/g, "").split("/");
-        if (expiryParts.length !== 2 || expiryParts[0].length !== 2 || expiryParts[1].length !== 2) {
-          toast.error("Data de validade inválida. Use o formato MM/AA.");
+        if (!mpInstanceRef.current || !cardFieldsRef.current) {
+          toast.error("Campos do cartão não carregados. Recarregue a página e tente novamente.");
           return;
         }
 
@@ -969,21 +1016,23 @@ export default function Checkout() {
 
         let cardToken: string;
         try {
-          const tokenResult = await mpInstanceRef.current.createCardToken({
-            cardNumber: cardNumber.replace(/\s/g, ""),
-            cardholderName: cardName,
-            cardExpirationMonth: expiryParts[0],
-            cardExpirationYear: "20" + expiryParts[1],
-            securityCode: cardCvv,
+          const tokenResult = await mpInstanceRef.current.fields.createCardToken({
+            cardholderName: cardName.trim(),
             identificationType: "CPF",
-            identificationNumber: "00000000000",
+            identificationNumber,
           });
           if (!tokenResult?.id) throw new Error("Token não gerado");
           cardToken = tokenResult.id;
         } catch (tokenErr: any) {
           console.error("Card token error:", tokenErr);
-          const msg = tokenErr?.message || "Dados do cartão inválidos.";
-          toast.error(msg);
+          const detailedMessage = Array.isArray(tokenErr?.cause)
+            ? tokenErr.cause.map((cause: any) => cause?.message || cause?.description).filter(Boolean).join(" | ")
+            : tokenErr?.message;
+          toast.error(
+            detailedMessage?.toLowerCase().includes("public key")
+              ? "Erro de configuração do cartão."
+              : detailedMessage || "Não foi possível validar os dados do cartão."
+          );
           return;
         }
 
@@ -1251,36 +1300,43 @@ export default function Checkout() {
                   <div className="col-span-1 md:col-span-2 space-y-1">
                     <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Número do Cartão</label>
                     <div className="relative">
-                      <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <input type="text" inputMode="numeric" value={cardNumber} onChange={(e) => {
-                        const v = e.target.value.replace(/\D/g, "").slice(0, 16);
-                        setCardNumber(v.replace(/(\d{4})(?=\d)/g, "$1 "));
-                      }} placeholder="0000 0000 0000 0000" className="glass-input w-full rounded-lg py-2.5 pl-9 pr-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-1 focus:ring-primary bg-black/30 border border-border" />
+                      <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                      <div id="mp-card-number" className="w-full rounded-lg border border-border bg-background/50 pl-9 overflow-hidden" style={{ height: "42px" }} />
                     </div>
                   </div>
                   <div className="col-span-1 md:col-span-2 space-y-1">
                     <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Nome no Cartão</label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <input type="text" value={cardName} onChange={(e) => setCardName(e.target.value)} placeholder="Como impresso no cartão" className="glass-input w-full rounded-lg py-2.5 pl-9 pr-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-1 focus:ring-primary bg-black/30 border border-border" />
+                      <input type="text" value={cardName} onChange={(e) => setCardName(e.target.value)} placeholder="Como impresso no cartão" className="glass-input w-full rounded-lg py-2.5 pl-9 pr-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-1 focus:ring-primary bg-background/50 border border-border" />
+                    </div>
+                  </div>
+                  <div className="col-span-1 md:col-span-2 space-y-1">
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">CPF do Titular</label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <input type="text" inputMode="numeric" value={cardCpf} onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, "").slice(0, 11);
+                        const formatted = digits
+                          .replace(/(\d{3})(\d)/, "$1.$2")
+                          .replace(/(\d{3})(\d)/, "$1.$2")
+                          .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+                        setCardCpf(formatted);
+                      }} placeholder="000.000.000-00" maxLength={14} className="glass-input w-full rounded-lg py-2.5 pl-9 pr-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-1 focus:ring-primary bg-background/50 border border-border" />
                     </div>
                   </div>
                   <div className="space-y-1">
                     <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Validade</label>
                     <div className="relative">
-                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <input type="text" inputMode="numeric" value={cardExpiry} onChange={(e) => {
-                        let v = e.target.value.replace(/\D/g, "").slice(0, 4);
-                        if (v.length >= 3) v = v.slice(0, 2) + "/" + v.slice(2);
-                        setCardExpiry(v);
-                      }} placeholder="MM/AA" maxLength={5} className="glass-input w-full rounded-lg py-2.5 pl-9 pr-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-1 focus:ring-primary bg-black/30 border border-border" />
+                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                      <div id="mp-expiration-date" className="w-full rounded-lg border border-border bg-background/50 pl-9 overflow-hidden" style={{ height: "42px" }} />
                     </div>
                   </div>
                   <div className="space-y-1">
                     <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">CVV</label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                      <input type="text" inputMode="numeric" value={cardCvv} onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="123" maxLength={4} className="glass-input w-full rounded-lg py-2.5 pl-9 pr-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-1 focus:ring-primary bg-black/30 border border-border" />
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                      <div id="mp-security-code" className="w-full rounded-lg border border-border bg-background/50 pl-9 overflow-hidden" style={{ height: "42px" }} />
                     </div>
                   </div>
                 </div>
