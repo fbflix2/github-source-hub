@@ -60,6 +60,12 @@ const parseBRL = (value: string): number => {
 const isBankPaymentMethod = (paymentMethod: string | null | undefined) =>
   paymentMethod === "pix";
 
+// Returns the start of the day (00:00:00 UTC) for the given date string
+const getStartOfDay = (dateStr: string) => {
+  const d = new Date(dateStr);
+  d.setUTCHours(0, 0, 0, 0);
+  return d.toISOString();
+};
 // ── Types ──
 interface CashRecord {
   id: string;
@@ -139,8 +145,9 @@ export default function AdminCaixa() {
 
     if (openData) {
       setOpenCash(openData as CashRecord);
+      const sinceDate = getStartOfDay(openData.opened_at);
       await Promise.all([
-        fetchSystemValues(openData.opened_at),
+        fetchSystemValues(sinceDate),
         fetchMovements(openData.id),
       ]);
     } else {
@@ -204,7 +211,7 @@ export default function AdminCaixa() {
   useEffect(() => {
     if (!openCash) return;
     const cashId = openCash.id;
-    const openedAt = openCash.opened_at;
+    const openedAt = getStartOfDay(openCash.opened_at);
 
     // Subscribe to new orders (PIX sales)
     const orderChannel = supabase
@@ -357,7 +364,7 @@ export default function AdminCaixa() {
         .from("orders")
         .select("code, total, payment_method")
         .in("status", ["completed", "delivered"])
-        .gte("created_at", openCash.opened_at);
+        .gte("created_at", getStartOfDay(openCash.opened_at));
 
       (completedOrders || [])
         .filter((o) => isBankPaymentMethod(o.payment_method))
@@ -395,7 +402,7 @@ export default function AdminCaixa() {
         .select("code, amount")
         .eq("status", "completed")
         .is("order_id", null)
-        .gte("created_at", openCash.opened_at);
+        .gte("created_at", getStartOfDay(openCash.opened_at));
 
       (recharges || []).forEach((r) => {
         const amount = Number(r.amount || 0);
