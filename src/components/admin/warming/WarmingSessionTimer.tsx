@@ -268,6 +268,16 @@ export default function WarmingSessionTimer({
                 {profile.profile_code}
                 {profile.profile_name && ` — ${profile.profile_name}`}
               </h2>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(profile.profile_code);
+                  toast.success("Código copiado!");
+                }}
+                className="p-1 rounded hover:bg-slate-100 dark:hover:bg-white/10 transition-colors"
+                title="Copiar código"
+              >
+                <MIcon name="content_copy" className="text-sm text-slate-400 hover:text-slate-600 dark:hover:text-white" />
+              </button>
             </div>
             <p className="text-xs text-slate-500 dark:text-white/50 font-medium">
               {trackLabel} • {completedCount}/{tasks.length} tarefas
