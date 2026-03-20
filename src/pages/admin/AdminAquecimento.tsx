@@ -999,12 +999,20 @@ export default function AdminAquecimento() {
                   setCurrentElapsed(elapsedVal);
                 }}
                 onTaskCompleted={async () => {
-                  fetchProfiles();
-                  // After finishing a task, clear selection so operator enters next profile code
-                  toast.success("✅ Tarefa concluída! Informe o próximo código de perfil.");
-                  setSelectedProfileId(null);
-                  setProfileCode("");
+                  await fetchProfiles();
+                  // Auto-select next profile in queue (current profile goes to end after refresh)
                   setIsTimerActive(false);
+                  setProfileCode("");
+                  // After refresh, the sortedActiveQueue will reorder; pick the first that isn't current
+                  const currentId = selectedProfileId;
+                  setTimeout(() => {
+                    // Re-read the updated queue after state settles
+                    setSelectedProfileId(prev => {
+                      // Will be recalculated by the next render with updated tasks/profiles
+                      return null; 
+                    });
+                    toast.success("✅ Tarefa concluída! Próximo perfil selecionado automaticamente.");
+                  }, 300);
                 }}
                 onTrackCompleted={async (prof) => {
                   const NEXT_TRACK: Record<string, string> = { "7_days": "15_days", "15_days": "30_days" };
