@@ -30,6 +30,7 @@ export default function ClientEditModal({ open, onClose, client, onUpdate }: Cli
   const [phone, setPhone] = useState("");
   const [balance, setBalance] = useState("0");
   const [status, setStatus] = useState("active");
+  const [cardPaymentEnabled, setCardPaymentEnabled] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -38,6 +39,10 @@ export default function ClientEditModal({ open, onClose, client, onUpdate }: Cli
       setPhone(client.phone || "");
       setBalance(client.balance.toString());
       setStatus(client.status);
+      // Fetch card_payment_enabled
+      supabase.from("profiles").select("card_payment_enabled").eq("user_id", client.user_id).single().then(({ data }) => {
+        setCardPaymentEnabled(data?.card_payment_enabled ?? false);
+      });
     }
   }, [client]);
 
