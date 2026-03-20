@@ -1,79 +1,62 @@
 
 
-# Contingência Total FBFlix - Painel Admin
+# Minha Contingência FBFlix - Área do Cliente
 
 ## Overview
-Create a complete admin module for managing the "Contingência Total" subscription service (White/Black plans) with dedicated database tables, a multi-tab admin page, and full CRUD operations.
+Create a client-facing dashboard at `/contingencia` (inside MainLayout) where subscribed clients can view their structure status, request replacements, manage their subscription, and access support — all using the existing `ct_*` tables.
 
-## Database Schema (Migration)
-
-**6 new tables:**
-
-1. **ct_plans** — Plan definitions (White Starter, White Pro, White Enterprise, Black Starter, Black Pro) with columns: name, tier (white/black), price, profiles_qty, proxies_qty, bms_qty, accounts_qty, replacements_qty, active
-2. **ct_clients** — Subscribed clients: user_id, plan_id, telegram, status (ativo/em_reposicao/suspenso/cancelado), start_date, next_billing, monthly_value, notes
-3. **ct_items** — Individual items assigned to each client: ct_client_id, type (perfil/proxy/bm/conta), identifier, status (ativo/block/substituido), metadata (jsonb for IP, proxy swaps, etc.)
-4. **ct_replacements** — Replacement history: ct_client_id, item_type, reason, old_item_id, new_item_id, performed_by, created_at
-5. **ct_tickets** — Support tickets: ct_client_id, type (block/proxy/analise_meta), priority (alta/media/baixa), status, message, resolved_at
-6. **ct_extra_charges** — Extra account charges: ct_client_id, description, amount, created_at
-
-All tables with RLS policies for staff-only access.
-
-## Frontend Implementation
-
-**Single page: `src/pages/admin/AdminContingencia.tsx`** with tab-based navigation (using existing Tabs component):
-
-### Tab 1: Dashboard
-- KPI cards: Total active subscriptions, White clients, Black clients, Replacements this month, MRR
-- Alert cards: Pending replacements, Blocked structures
-- Mini chart: MRR trend (last 6 months)
-
-### Tab 2: Clientes
-- Searchable/filterable table (plan tier, status)
-- Columns: Name/Telegram, Plan, Status badge, Start date, Next billing, Monthly value, Total items
-- "Ver Estrutura" button opens **client structure modal**
-- "Novo Cliente" button with plan auto-fill
-- CSV export button
-
-### Tab 3: Estrutura do Cliente (Modal)
-- Shows all items grouped by type (Perfis, Proxies, BMs, Contas)
-- Replacement counter (used/total)
-- Action buttons: Register replacement, Add extra account (+R$20-25), Swap proxy, Send Multilogin access
-
-### Tab 4: Planos
-- Editable table of all plans with quantities and prices
-- Inline editing with save
-
-### Tab 5: Reposições
-- History table: Client, Date, Type, Reason, Status
-- Filters by date and type
-
-### Tab 6: Suporte
-- Ticket list: Client, Type, Priority, Response time
-- Quick status updates
-
-### Tab 7: Financeiro
-- MRR total, Churn rate, Pending payments
-- Integration with existing wallet balance
-
-## Routing
-- Add route `/admin/contingencia` inside AdminLayout
-- Add sidebar link in AdminSidebar
-
-## Styling
-- Uses existing dark admin theme (bg-[#0a0505])
-- Neon green action buttons, blue/purple accent cards
-- Consistent with existing admin pages
-
-## Technical Details
-- All data fetched via Supabase client with react-query
-- Realtime subscriptions for tickets/replacements notifications
-- Bell icon notification count for pending replacements
-- XLSX export using existing `xlsx` dependency
-- Seed ct_plans with the 5 default plans via migration INSERT
+## No Database Changes Needed
+The existing `ct_*` tables already have the data. We just need RLS policies to let clients read their own data:
+- **Migration**: Add SELECT policies on `ct_clients`, `ct_items`, `ct_replacements`, `ct_tickets`, `ct_plans`, `ct_extra_charges` for `auth.uid() = user_id` (on ct_clients) and related joins for child tables.
 
 ## Files to Create/Edit
-1. **New migration** — All 6 tables + seed plans + RLS policies
-2. **New** `src/pages/admin/AdminContingencia.tsx` — Main page (~800-1000 lines, tab-based)
-3. **Edit** `src/App.tsx` — Add route
-4. **Edit** `src/components/admin/AdminSidebar.tsx` — Add nav link
+
+### 1. New: `src/pages/ClientContingencia.tsx`
+Single-page client portal with tabs:
+
+**Tab 1 - Visão Geral (Home)**
+- Hero card: structure status (green check "100% ativa" or yellow alert)
+- KPI cards: Current plan + price, Next billing date, Replacements remaining (progress bar), Active accounts count
+- Quick alert if any item has status "block"
+
+**Tab 2 - Minha Estrutura**
+- Cards grouped by type (Perfis, Proxies, BMs, Contas) showing count + status badges
+- No sensitive data exposed (no IPs, no internal IDs — just "Proxy BR Dedicado - Ativo")
+- Button "Pedir Reposição" → modal with reason select + textarea
+- Button "Adicionar Conta Extra" → confirms +R$25 deducted from wallet
+
+**Tab 3 - Histórico**
+- Table of past replacements: date, type, reason, status, resolution time
+- List of ct_tickets with status badges
+
+**Tab 4 - Assinatura**
+- Wallet balance (from profiles.balance)
+- Billing history (ct_extra_charges)
+- Plan comparison cards for upsell
+- Cancel button with confirmation dialog
+
+**Tab 5 - Ajuda**
+- FAQ accordion
+- "Falar com Suporte" button (WhatsApp link)
+- Notification bell integration
+
+### 2. Edit: `src/App.tsx`
+- Import `ClientContingencia`
+- Add route `/contingencia` inside AuthenticatedApp MainLayout routes
+
+### 3. New Migration
+- Add RLS SELECT policies so clients can read their own ct_clients row and related ct_items/ct_replacements/ct_tickets/ct_plans
+
+## Styling
+- Dark mode clean, consistent with existing MainLayout theme
+- Green neon for "active/ok", yellow for alerts, red for blocks
+- Mobile-first: large cards, minimal text, clear icons
+- Uses existing UI components (Card, Tabs, Badge, Dialog, Progress)
+
+## Technical Details
+- Fetch ct_client by `user_id = auth.uid()`, then load related items/replacements/tickets
+- Replacement request: INSERT into ct_replacements + ct_tickets
+- Extra account: deduct from profiles.balance via wallet_transactions + INSERT ct_extra_charges
+- Plan data from ct_plans (already seeded)
+- ~500-600 lines single file
 
