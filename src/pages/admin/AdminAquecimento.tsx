@@ -269,9 +269,7 @@ export default function AdminAquecimento() {
           });
           setTasks(grouped);
         }
-        const first = data.find((p: any) => p.status === "active");
-        if (first) setSelectedProfileId(first.id);
-      }
+        // Auto-selection will be handled by the useEffect with sortedActiveQueue
       // Fetch creator names
       const creatorIds = [...new Set((data || []).map(p => p.created_by).filter(Boolean))] as string[];
       if (creatorIds.length > 0) {
