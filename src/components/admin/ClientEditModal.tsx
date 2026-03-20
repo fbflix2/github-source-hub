@@ -57,6 +57,7 @@ export default function ClientEditModal({ open, onClose, client, onUpdate }: Cli
           phone: phone || null,
           balance: parseFloat(balance) || 0,
           status,
+          card_payment_enabled: cardPaymentEnabled,
         })
         .eq("user_id", client.user_id);
 
