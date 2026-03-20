@@ -442,13 +442,24 @@ export default function AdminAquecimento() {
     return profiles.filter(p => p.created_by === currentUserId);
   }, [profiles, isUserAdmin, currentUserId]);
 
-  // Sort active profiles: profiles worked on TODAY go to the end of the queue
-  const sortedActiveQueue = useMemo(() => {
+  // Helper: check if profile was worked on today
+  const wasWorkedToday = (profileId: string) => {
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const profileTasks = tasks[profileId] || [];
+    return profileTasks.some(t => t.completed && t.completed_at && new Date(t.completed_at).getTime() >= todayStart);
+  };
+
+  // Sort active profiles: profiles worked on TODAY are EXCLUDED from the execution queue
+  const sortedActiveQueue = useMemo(() => {
     const activeProfs = visibleProfiles.filter(p => p.status === "active");
     
-    return activeProfs.sort((a, b) => {
+    // Separate: not worked today (available) vs worked today (done for the day)
+    const available = activeProfs.filter(p => !wasWorkedToday(p.id));
+    const doneToday = activeProfs.filter(p => wasWorkedToday(p.id));
+    
+    // Sort available: never worked first, then oldest completion first
+    available.sort((a, b) => {
       const aLastCompleted = (tasks[a.id] || [])
         .filter(t => t.completed && t.completed_at)
         .reduce((max, t) => Math.max(max, new Date(t.completed_at!).getTime()), 0);
@@ -456,14 +467,6 @@ export default function AdminAquecimento() {
         .filter(t => t.completed && t.completed_at)
         .reduce((max, t) => Math.max(max, new Date(t.completed_at!).getTime()), 0);
       
-      // Profiles worked on today go to the bottom
-      const aWorkedToday = aLastCompleted >= todayStart;
-      const bWorkedToday = bLastCompleted >= todayStart;
-      
-      if (aWorkedToday && !bWorkedToday) return 1;  // a goes down
-      if (!aWorkedToday && bWorkedToday) return -1; // b goes down
-      
-      // Among profiles NOT worked today: never worked first, then oldest completion first
       if (aLastCompleted === 0 && bLastCompleted === 0) {
         return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
       }
@@ -471,7 +474,14 @@ export default function AdminAquecimento() {
       if (bLastCompleted === 0) return 1;
       return aLastCompleted - bLastCompleted;
     });
-  }, [visibleProfiles, tasks]);
+    
+    // In execute mode, only show available profiles (hide done today)
+    // In register mode, show all but done today go to the end
+    if (operationMode === "execute") {
+      return available;
+    }
+    return [...available, ...doneToday];
+  }, [visibleProfiles, tasks, operationMode]);
 
   // Auto-select first profile in queue when none is selected (execute mode)
   useEffect(() => {
