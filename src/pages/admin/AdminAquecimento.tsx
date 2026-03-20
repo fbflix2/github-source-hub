@@ -442,11 +442,13 @@ export default function AdminAquecimento() {
     return profiles.filter(p => p.created_by === currentUserId);
   }, [profiles, isUserAdmin, currentUserId]);
 
-  // Sort active profiles: oldest last-task-completion first (profiles not worked on recently come first)
+  // Sort active profiles: profiles worked on TODAY go to the end of the queue
   const sortedActiveQueue = useMemo(() => {
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
     const activeProfs = visibleProfiles.filter(p => p.status === "active");
+    
     return activeProfs.sort((a, b) => {
-      // Get last completed task time for each profile
       const aLastCompleted = (tasks[a.id] || [])
         .filter(t => t.completed && t.completed_at)
         .reduce((max, t) => Math.max(max, new Date(t.completed_at!).getTime()), 0);
@@ -454,7 +456,14 @@ export default function AdminAquecimento() {
         .filter(t => t.completed && t.completed_at)
         .reduce((max, t) => Math.max(max, new Date(t.completed_at!).getTime()), 0);
       
-      // Profiles never worked on (0) come first, then oldest completion first
+      // Profiles worked on today go to the bottom
+      const aWorkedToday = aLastCompleted >= todayStart;
+      const bWorkedToday = bLastCompleted >= todayStart;
+      
+      if (aWorkedToday && !bWorkedToday) return 1;  // a goes down
+      if (!aWorkedToday && bWorkedToday) return -1; // b goes down
+      
+      // Among profiles NOT worked today: never worked first, then oldest completion first
       if (aLastCompleted === 0 && bLastCompleted === 0) {
         return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
       }
@@ -539,9 +548,22 @@ export default function AdminAquecimento() {
           {(() => {
             const myProfiles = currentUserId ? profiles.filter(p => p.created_by === currentUserId) : profiles;
             const todayStart = new Date(); todayStart.setHours(0,0,0,0);
-            const myToday = myProfiles.filter(p => new Date(p.created_at) >= todayStart).length;
             const weekStart = new Date(todayStart); weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-            const myWeek = myProfiles.filter(p => new Date(p.created_at) >= weekStart).length;
+            
+            // Count unique profiles that had tasks completed today/this week
+            const profilesWorkedToday = new Set<string>();
+            const profilesWorkedThisWeek = new Set<string>();
+            myProfiles.forEach(p => {
+              (tasks[p.id] || []).forEach(t => {
+                if (t.completed && t.completed_at) {
+                  const completedTime = new Date(t.completed_at).getTime();
+                  if (completedTime >= todayStart.getTime()) profilesWorkedToday.add(p.id);
+                  if (completedTime >= weekStart.getTime()) profilesWorkedThisWeek.add(p.id);
+                }
+              });
+            });
+            const myToday = profilesWorkedToday.size;
+            const myWeek = profilesWorkedThisWeek.size;
             const myActive = myProfiles.filter(p => p.status === "active").length;
             const myCompleted = myProfiles.filter(p => p.status === "completed").length;
             let myTotalTime = 0;
