@@ -320,13 +320,22 @@ export default function Orders() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="text-lg font-bold text-foreground">Pedido {selectedOrder.code}</h3>
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                        selectedOrder.status === "completed"
+                        effectiveStatus === "courtesy"
+                          ? "bg-violet-500 text-white"
+                          : selectedOrder.status === "completed"
                           ? "bg-emerald-500 text-white"
                           : selectedOrder.status === "processing"
                           ? "bg-yellow-500 text-background"
                           : "bg-destructive text-destructive-foreground"
                       }`}>
                         {status.label}
+                      </span>
+                      {effectiveStatus === "courtesy" && (
+                        <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-400 border border-violet-500/30 text-[9px] font-bold">
+                          <span className="material-symbols-outlined text-[10px]">card_giftcard</span>
+                          Presente
+                        </span>
+                      )}
                       </span>
                     </div>
                     <p className="text-muted-foreground text-xs">{formatDateFull(selectedOrder.created_at)}</p>
