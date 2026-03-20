@@ -758,44 +758,6 @@ export default function AdminAquecimento() {
             </div>
           </div>
 
-          {/* Recent Activity */}
-          <div className="bg-white dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-slate-200 dark:border-white/10 flex items-center justify-between">
-              <h3 className="text-lg font-bold">Atividade Recente</h3>
-              <button className="text-[#1876f2] text-sm font-bold hover:underline">Ver tudo</button>
-            </div>
-            <div className="divide-y divide-slate-100 dark:divide-white/5">
-              {visibleProfiles.slice(0, 4).map((p, i) => {
-                const icons = ["trending_up", "person_add", "settings_backup_restore", "error"];
-                const colors = ["emerald", "blue", "amber", "rose"];
-                const color = colors[i % 4];
-                const bgMap: Record<string, string> = { emerald: "bg-emerald-100 text-emerald-600", blue: "bg-blue-100 text-[#1876f2]", amber: "bg-amber-100 text-amber-600", rose: "bg-rose-100 text-rose-600" };
-                const date = new Date(p.created_at);
-                const ago = Math.round((Date.now() - date.getTime()) / 60000);
-                const agoLabel = ago < 60 ? `${ago}m` : ago < 1440 ? `${Math.round(ago / 60)}h` : `${Math.round(ago / 1440)}d`;
-                return (
-                  <div key={p.id} className="p-4 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${bgMap[color]}`}>
-                        <MIcon name={icons[i % 4]} />
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold">Perfil {p.profile_code} — {p.status === "completed" ? "Maturidade concluída" : p.status === "active" ? `Dia ${p.current_day}/${p.track_days}` : "Restrição detectada"}</p>
-                        <p className="text-xs text-slate-500 dark:text-white/50">
-                          Esteira {TRACKS[p.track_type]?.label} • {new Date(p.created_at).toLocaleDateString("pt-BR")}
-                          {p.created_by && creatorNames[p.created_by] && <span className="ml-1 text-[#1876f2] font-semibold">• {creatorNames[p.created_by]}</span>}
-                        </p>
-                      </div>
-                    </div>
-                    <span className="text-xs font-bold text-slate-400 dark:text-white/40">{agoLabel}</span>
-                  </div>
-                );
-              })}
-              {visibleProfiles.length === 0 && (
-                <div className="p-8 text-center text-slate-400 dark:text-white/40 text-sm">Nenhuma atividade recente</div>
-              )}
-            </div>
-          </div>
         </main>
       )}
 
