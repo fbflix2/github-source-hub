@@ -269,8 +269,7 @@ export default function AdminAquecimento() {
           });
           setTasks(grouped);
         }
-        const first = data.find((p: any) => p.status === "active");
-        if (first) setSelectedProfileId(first.id);
+        // Auto-selection will be handled by the useEffect with sortedActiveQueue
       }
       // Fetch creator names
       const creatorIds = [...new Set((data || []).map(p => p.created_by).filter(Boolean))] as string[];
@@ -442,6 +441,37 @@ export default function AdminAquecimento() {
     if (!currentUserId) return [];
     return profiles.filter(p => p.created_by === currentUserId);
   }, [profiles, isUserAdmin, currentUserId]);
+
+  // Sort active profiles: oldest last-task-completion first (profiles not worked on recently come first)
+  const sortedActiveQueue = useMemo(() => {
+    const activeProfs = visibleProfiles.filter(p => p.status === "active");
+    return activeProfs.sort((a, b) => {
+      // Get last completed task time for each profile
+      const aLastCompleted = (tasks[a.id] || [])
+        .filter(t => t.completed && t.completed_at)
+        .reduce((max, t) => Math.max(max, new Date(t.completed_at!).getTime()), 0);
+      const bLastCompleted = (tasks[b.id] || [])
+        .filter(t => t.completed && t.completed_at)
+        .reduce((max, t) => Math.max(max, new Date(t.completed_at!).getTime()), 0);
+      
+      // Profiles never worked on (0) come first, then oldest completion first
+      if (aLastCompleted === 0 && bLastCompleted === 0) {
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      }
+      if (aLastCompleted === 0) return -1;
+      if (bLastCompleted === 0) return 1;
+      return aLastCompleted - bLastCompleted;
+    });
+  }, [visibleProfiles, tasks]);
+
+  // Auto-select first profile in queue when none is selected (execute mode)
+  useEffect(() => {
+    if (!selectedProfileId && operationMode === "execute" && sortedActiveQueue.length > 0) {
+      const next = sortedActiveQueue[0];
+      setSelectedProfileId(next.id);
+      if (!tasks[next.id]) fetchTasks(next.id);
+    }
+  }, [selectedProfileId, sortedActiveQueue, operationMode]);
 
   // Dashboard stats from visible profiles
   const totalProfiles = visibleProfiles.length;
@@ -889,8 +919,8 @@ export default function AdminAquecimento() {
                     {operationMode === "execute" ? "Fila de Aquecimento" : "Perfis em Aquecimento"}
                   </h3>
                 </div>
-                <div className="max-h-52 overflow-y-auto">
-                  {[...visibleProfiles].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()).filter(p => p.status === "active").map((p) => {
+              <div className="max-h-52 overflow-y-auto">
+                  {sortedActiveQueue.map((p) => {
                     const prog = getProgress(p);
                     const isSelected = selectedProfileId === p.id;
                     return (
@@ -900,7 +930,7 @@ export default function AdminAquecimento() {
                         className={`flex items-center gap-2.5 px-4 py-2 cursor-pointer border-b border-slate-50 dark:border-white/5 transition-colors ${isSelected ? "bg-blue-50 dark:bg-blue-500/10 border-l-2 border-l-[#1876f2]" : "hover:bg-slate-50 dark:hover:bg-white/5"}`}
                       >
                         <MIcon
-                          name={isSelected && isTimerActive ? "local_fire_department" : "local_fire_department"}
+                          name="local_fire_department"
                           className={`text-base ${isSelected && isTimerActive ? "text-orange-500 animate-pulse" : isSelected ? "text-orange-500" : "text-orange-400/60"}`}
                         />
                         <div className="flex-grow min-w-0">
@@ -977,12 +1007,20 @@ export default function AdminAquecimento() {
                   setCurrentElapsed(elapsedVal);
                 }}
                 onTaskCompleted={async () => {
-                  fetchProfiles();
-                  // After finishing a task, clear selection so operator enters next profile code
-                  toast.success("✅ Tarefa concluída! Informe o próximo código de perfil.");
-                  setSelectedProfileId(null);
-                  setProfileCode("");
+                  await fetchProfiles();
+                  // Auto-select next profile in queue (current profile goes to end after refresh)
                   setIsTimerActive(false);
+                  setProfileCode("");
+                  // After refresh, the sortedActiveQueue will reorder; pick the first that isn't current
+                  const currentId = selectedProfileId;
+                  setTimeout(() => {
+                    // Re-read the updated queue after state settles
+                    setSelectedProfileId(prev => {
+                      // Will be recalculated by the next render with updated tasks/profiles
+                      return null; 
+                    });
+                    toast.success("✅ Tarefa concluída! Próximo perfil selecionado automaticamente.");
+                  }, 300);
                 }}
                 onTrackCompleted={async (prof) => {
                   const NEXT_TRACK: Record<string, string> = { "7_days": "15_days", "15_days": "30_days" };
