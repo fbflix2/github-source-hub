@@ -197,6 +197,7 @@ export default function Checkout() {
   const [applyingCoupon, setApplyingCoupon] = useState(false);
   const [cardName, setCardName] = useState("");
   const [cardCpf, setCardCpf] = useState("");
+  const [cardEmail, setCardEmail] = useState("");
   const mpInstanceRef = useRef<any>(null);
   const cardFieldsRef = useRef<{ cardNumber: any; expirationDate: any; securityCode: any } | null>(null);
   const fieldsInitializedRef = useRef(false);
@@ -217,6 +218,7 @@ export default function Checkout() {
     const checkFirstPurchase = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+      if (user.email) setCardEmail(user.email);
       const { count } = await supabase.from("orders").select("id", { count: "exact", head: true }).eq("user_id", user.id).in("status", ["completed", "paid"]);
       setIsFirstPurchase((count ?? 0) === 0);
       const { data: profile } = await supabase
