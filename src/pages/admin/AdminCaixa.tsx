@@ -200,13 +200,13 @@ export default function AdminCaixa() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // ── Realtime: listen for new orders → auto-create entry movements ──
+  // ── Realtime: listen for new orders & recharges → auto-create entry movements ──
   useEffect(() => {
     if (!openCash) return;
     const cashId = openCash.id;
     const openedAt = openCash.opened_at;
 
-    // Subscribe to new orders
+    // Subscribe to new orders (PIX sales)
     const orderChannel = supabase
       .channel("cash-orders-realtime")
       .on("postgres_changes", {
@@ -220,12 +220,11 @@ export default function AdminCaixa() {
           isBankPaymentMethod(order.payment_method) &&
           new Date(order.created_at) >= new Date(openedAt)
         ) {
-          // Check if we already have this order as a movement
           const { data: existing } = await supabase
             .from("cash_movements")
             .select("id")
             .eq("cash_register_id", cashId)
-            .eq("reference_id", order.code)
+            .eq("reference_id", `venda-${order.code}`)
             .maybeSingle();
 
           if (!existing) {
@@ -237,8 +236,8 @@ export default function AdminCaixa() {
                 type: "entry",
                 source: "automatic",
                 amount: total,
-                description: `Venda #${order.code}`,
-                reference_id: order.code,
+                description: `🛒 Venda PIX #${order.code} (pedido pago via PIX)`,
+                reference_id: `venda-${order.code}`,
               },
             ];
             if (fee > 0) {
@@ -253,7 +252,59 @@ export default function AdminCaixa() {
             }
             await supabase.from("cash_movements").insert(movs);
           }
-          // Refresh
+          fetchMovements(cashId);
+          fetchSystemValues(openedAt);
+        }
+      })
+      .subscribe();
+
+    // Subscribe to wallet recharges (PIX payments without order)
+    const rechargeChannel = supabase
+      .channel("cash-recharges-realtime")
+      .on("postgres_changes", {
+        event: "UPDATE",
+        schema: "public",
+        table: "payments",
+      }, async (payload) => {
+        const payment = payload.new as any;
+        if (
+          payment.status === "completed" &&
+          !payment.order_id &&
+          new Date(payment.created_at) >= new Date(openedAt)
+        ) {
+          const refId = `recarga-${payment.code}`;
+          const { data: existing } = await supabase
+            .from("cash_movements")
+            .select("id")
+            .eq("cash_register_id", cashId)
+            .eq("reference_id", refId)
+            .maybeSingle();
+
+          if (!existing) {
+            const amount = Number(payment.amount || 0);
+            const fee = Math.round(amount * mpFeeRate) / 100;
+            const movs: any[] = [
+              {
+                cash_register_id: cashId,
+                type: "entry",
+                source: "automatic",
+                amount,
+                description: `💳 Recarga Saldo PIX - ${payment.code} (cliente recarregou carteira)`,
+                reference_id: refId,
+              },
+            ];
+            if (fee > 0) {
+              movs.push({
+                cash_register_id: cashId,
+                type: "exit",
+                source: "automatic",
+                amount: fee,
+                description: `Taxa MP ${mpFeeRate.toFixed(2).replace(".", ",")}% - Recarga ${payment.code}`,
+                reference_id: `fee-recarga-${payment.code}`,
+              });
+            }
+            await supabase.from("cash_movements").insert(movs);
+          }
           fetchMovements(cashId);
           fetchSystemValues(openedAt);
         }
@@ -275,6 +326,7 @@ export default function AdminCaixa() {
 
     return () => {
       supabase.removeChannel(orderChannel);
+      supabase.removeChannel(rechargeChannel);
       supabase.removeChannel(movChannel);
     };
   }, [openCash?.id, openCash?.opened_at, mpFeeRate]);
