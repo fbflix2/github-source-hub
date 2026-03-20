@@ -300,11 +300,37 @@ export default function AdminNovaVenda() {
         description: `${isCourtesy ? "[Cortesia] " : ""}${notes ? notes + " | " : ""}Entrega: ${deliveryMethods.find(d => d.value === deliveryMethod)?.label || deliveryMethod}`,
       }));
 
-      const { error: itemsError } = await supabase
+      const { data: insertedItems, error: itemsError } = await supabase
         .from("order_items")
-        .insert(orderItems);
+        .insert(orderItems)
+        .select("id, product_id, quantity");
 
       if (itemsError) throw itemsError;
+
+      // Auto-fulfill from stock when delivery method is automatic
+      if (deliveryMethod === "automatica" && insertedItems) {
+        let fulfillFailed = false;
+        for (const oi of insertedItems) {
+          if (oi.product_id) {
+            const { data: result, error: fulfillErr } = await supabase.rpc("fulfill_order_item", {
+              p_order_item_id: oi.id,
+              p_product_id: oi.product_id,
+            });
+            if (fulfillErr) {
+              console.error("Fulfill error:", fulfillErr);
+              fulfillFailed = true;
+            } else if (result && !(result as any).success) {
+              console.error("Fulfill failed:", result);
+              fulfillFailed = true;
+            }
+          }
+        }
+        if (fulfillFailed) {
+          // Mark as pending_fulfillment so admin knows to intervene
+          await supabase.from("orders").update({ status: "pending_fulfillment" }).eq("id", order.id);
+          toast.warning("Pedido criado, mas houve falha no fulfillment automático. Verifique o estoque.");
+        }
+      }
 
       // Register wallet transaction for client history (no balance impact for courtesy)
       const { data: profile } = await supabase
