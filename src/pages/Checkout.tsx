@@ -947,13 +947,20 @@ export default function Checkout() {
         setPixModal(true);
       } else if (paymentMethod === "cartao") {
         // Validate card name
-        if (!cardName) {
-          toast.error("Preencha o nome no cartão.");
+        if (!cardName || !cardNumber || !cardExpiry || !cardCvv) {
+          toast.error("Preencha todos os dados do cartão.");
           return;
         }
 
-        if (!mpInstanceRef.current || !cardFieldsRef.current) {
-          toast.error("Campos do cartão não inicializados. Aguarde e tente novamente.");
+        if (!mpInstanceRef.current) {
+          toast.error("SDK de pagamento não inicializado. Recarregue a página.");
+          return;
+        }
+
+        // Parse expiry MM/AA
+        const expiryParts = cardExpiry.replace(/\s/g, "").split("/");
+        if (expiryParts.length !== 2 || expiryParts[0].length !== 2 || expiryParts[1].length !== 2) {
+          toast.error("Data de validade inválida. Use o formato MM/AA.");
           return;
         }
 
@@ -962,8 +969,12 @@ export default function Checkout() {
 
         let cardToken: string;
         try {
-          const tokenResult = await mpInstanceRef.current.fields.createCardToken({
+          const tokenResult = await mpInstanceRef.current.createCardToken({
+            cardNumber: cardNumber.replace(/\s/g, ""),
             cardholderName: cardName,
+            cardExpirationMonth: expiryParts[0],
+            cardExpirationYear: "20" + expiryParts[1],
+            securityCode: cardCvv,
             identificationType: "CPF",
             identificationNumber: "00000000000",
           });
@@ -971,7 +982,8 @@ export default function Checkout() {
           cardToken = tokenResult.id;
         } catch (tokenErr: any) {
           console.error("Card token error:", tokenErr);
-          toast.error("Dados do cartão inválidos. Verifique e tente novamente.");
+          const msg = tokenErr?.message || "Dados do cartão inválidos.";
+          toast.error(msg);
           return;
         }
 
