@@ -523,6 +523,273 @@ export type Database = {
           },
         ]
       }
+      ct_clients: {
+        Row: {
+          created_at: string
+          id: string
+          monthly_value: number
+          next_billing: string | null
+          notes: string | null
+          plan_id: string | null
+          start_date: string
+          status: string
+          telegram: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          monthly_value?: number
+          next_billing?: string | null
+          notes?: string | null
+          plan_id?: string | null
+          start_date?: string
+          status?: string
+          telegram?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          monthly_value?: number
+          next_billing?: string | null
+          notes?: string | null
+          plan_id?: string | null
+          start_date?: string
+          status?: string
+          telegram?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ct_clients_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "ct_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ct_extra_charges: {
+        Row: {
+          amount: number
+          created_at: string
+          ct_client_id: string
+          description: string
+          id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          ct_client_id: string
+          description: string
+          id?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          ct_client_id?: string
+          description?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ct_extra_charges_ct_client_id_fkey"
+            columns: ["ct_client_id"]
+            isOneToOne: false
+            referencedRelation: "ct_clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ct_items: {
+        Row: {
+          created_at: string
+          ct_client_id: string
+          id: string
+          identifier: string | null
+          metadata: Json | null
+          status: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          ct_client_id: string
+          id?: string
+          identifier?: string | null
+          metadata?: Json | null
+          status?: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          ct_client_id?: string
+          id?: string
+          identifier?: string | null
+          metadata?: Json | null
+          status?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ct_items_ct_client_id_fkey"
+            columns: ["ct_client_id"]
+            isOneToOne: false
+            referencedRelation: "ct_clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ct_plans: {
+        Row: {
+          accounts_qty: number
+          active: boolean
+          bms_qty: number
+          created_at: string
+          id: string
+          name: string
+          price: number
+          profiles_qty: number
+          proxies_qty: number
+          replacements_qty: number
+          tier: string
+          updated_at: string
+        }
+        Insert: {
+          accounts_qty?: number
+          active?: boolean
+          bms_qty?: number
+          created_at?: string
+          id?: string
+          name: string
+          price?: number
+          profiles_qty?: number
+          proxies_qty?: number
+          replacements_qty?: number
+          tier?: string
+          updated_at?: string
+        }
+        Update: {
+          accounts_qty?: number
+          active?: boolean
+          bms_qty?: number
+          created_at?: string
+          id?: string
+          name?: string
+          price?: number
+          profiles_qty?: number
+          proxies_qty?: number
+          replacements_qty?: number
+          tier?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ct_replacements: {
+        Row: {
+          created_at: string
+          ct_client_id: string
+          id: string
+          item_type: string
+          new_item_id: string | null
+          old_item_id: string | null
+          performed_by: string | null
+          reason: string | null
+        }
+        Insert: {
+          created_at?: string
+          ct_client_id: string
+          id?: string
+          item_type: string
+          new_item_id?: string | null
+          old_item_id?: string | null
+          performed_by?: string | null
+          reason?: string | null
+        }
+        Update: {
+          created_at?: string
+          ct_client_id?: string
+          id?: string
+          item_type?: string
+          new_item_id?: string | null
+          old_item_id?: string | null
+          performed_by?: string | null
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ct_replacements_ct_client_id_fkey"
+            columns: ["ct_client_id"]
+            isOneToOne: false
+            referencedRelation: "ct_clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ct_replacements_new_item_id_fkey"
+            columns: ["new_item_id"]
+            isOneToOne: false
+            referencedRelation: "ct_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ct_replacements_old_item_id_fkey"
+            columns: ["old_item_id"]
+            isOneToOne: false
+            referencedRelation: "ct_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ct_tickets: {
+        Row: {
+          created_at: string
+          ct_client_id: string
+          id: string
+          message: string | null
+          priority: string
+          resolved_at: string | null
+          status: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          ct_client_id: string
+          id?: string
+          message?: string | null
+          priority?: string
+          resolved_at?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          ct_client_id?: string
+          id?: string
+          message?: string | null
+          priority?: string
+          resolved_at?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ct_tickets_ct_client_id_fkey"
+            columns: ["ct_client_id"]
+            isOneToOne: false
+            referencedRelation: "ct_clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fbx_orders: {
         Row: {
           created_at: string
