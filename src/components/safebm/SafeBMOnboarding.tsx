@@ -67,8 +67,11 @@ export default function SafeBMOnboarding() {
   const handleSubmit = () => {
     const empty = bmNames.findIndex(n => !n.trim());
     if (empty !== -1) return toast.error(`Digite o nome da BM ${empty + 1}`);
+    const now = new Date();
     setSubmitted(true);
-    setSubmittedAt(new Date());
+    setSubmittedAt(now);
+    localStorage.setItem("safebm_onboarding_submitted", "true");
+    localStorage.setItem("safebm_onboarding_submitted_at", now.toISOString());
     toast.success("Solicitação enviada com sucesso!");
   };
 
