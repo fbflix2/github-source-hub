@@ -37,6 +37,10 @@ Deno.serve(async (req) => {
 
     const openedAt = openCash.opened_at;
     const openingBalance = openCash.opening_balance || 0;
+    // Use start of the day to capture all transactions
+    const sinceDate = new Date(openedAt);
+    sinceDate.setUTCHours(0, 0, 0, 0);
+    const sinceDateStr = sinceDate.toISOString();
 
     // Calculate system revenue and expenses for the period
     const [ordersRes, purchasesRes, rechargesRes] = await Promise.all([
