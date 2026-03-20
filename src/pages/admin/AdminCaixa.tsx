@@ -253,14 +253,17 @@ export default function AdminCaixa() {
 
           if (!existingNew && !existingLegacy) {
             const total = Number(order.total || 0);
-            const fee = Math.round(total * mpFeeRate) / 100;
+            const feeRate = isCardPayment(order.payment_method) ? mpCardFeeRate : mpFeeRate;
+            const fee = Math.round(total * feeRate) / 100;
+            const label = getPaymentLabel(order.payment_method);
+            const emoji = getPaymentEmoji(order.payment_method);
             const movs: any[] = [
               {
                 cash_register_id: cashId,
                 type: "entry",
                 source: "automatic",
                 amount: total,
-                description: `🛒 Venda PIX #${order.code} (pedido pago via PIX)`,
+                description: `${emoji} Venda ${label} #${order.code} (pedido pago via ${label})`,
                 reference_id: `venda-${order.code}`,
               },
             ];
@@ -270,7 +273,7 @@ export default function AdminCaixa() {
                 type: "exit",
                 source: "automatic",
                 amount: fee,
-                description: `Taxa MP ${mpFeeRate.toFixed(2).replace(".", ",")}% - Venda #${order.code}`,
+                description: `Taxa MP ${feeRate.toFixed(2).replace(".", ",")}% (${label}) - Venda #${order.code}`,
                 reference_id: `fee-${order.code}`,
               });
             }
