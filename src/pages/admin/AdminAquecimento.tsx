@@ -443,6 +443,28 @@ export default function AdminAquecimento() {
     return profiles.filter(p => p.created_by === currentUserId);
   }, [profiles, isUserAdmin, currentUserId]);
 
+  // Sort active profiles: oldest last-task-completion first (profiles not worked on recently come first)
+  const sortedActiveQueue = useMemo(() => {
+    const activeProfs = visibleProfiles.filter(p => p.status === "active");
+    return activeProfs.sort((a, b) => {
+      // Get last completed task time for each profile
+      const aLastCompleted = (tasks[a.id] || [])
+        .filter(t => t.completed && t.completed_at)
+        .reduce((max, t) => Math.max(max, new Date(t.completed_at!).getTime()), 0);
+      const bLastCompleted = (tasks[b.id] || [])
+        .filter(t => t.completed && t.completed_at)
+        .reduce((max, t) => Math.max(max, new Date(t.completed_at!).getTime()), 0);
+      
+      // Profiles never worked on (0) come first, then oldest completion first
+      if (aLastCompleted === 0 && bLastCompleted === 0) {
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      }
+      if (aLastCompleted === 0) return -1;
+      if (bLastCompleted === 0) return 1;
+      return aLastCompleted - bLastCompleted;
+    });
+  }, [visibleProfiles, tasks]);
+
   // Dashboard stats from visible profiles
   const totalProfiles = visibleProfiles.length;
   const activeProfiles = visibleProfiles.filter(p => p.status === "active").length;
