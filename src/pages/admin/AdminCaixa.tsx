@@ -58,7 +58,16 @@ const parseBRL = (value: string): number => {
 };
 
 const isBankPaymentMethod = (paymentMethod: string | null | undefined) =>
-  paymentMethod === "pix";
+  paymentMethod === "pix" || paymentMethod === "cartao";
+
+const isCardPayment = (paymentMethod: string | null | undefined) =>
+  paymentMethod === "cartao";
+
+const getPaymentLabel = (paymentMethod: string | null | undefined) =>
+  isCardPayment(paymentMethod) ? "Cartão" : "PIX";
+
+const getPaymentEmoji = (paymentMethod: string | null | undefined) =>
+  isCardPayment(paymentMethod) ? "💳" : "🛒";
 
 // Returns the start of the day (00:00:00 UTC) for the given date string
 const getStartOfDay = (dateStr: string) => {
@@ -124,7 +133,8 @@ export default function AdminCaixa() {
   const [addingMovement, setAddingMovement] = useState(false);
 
   // Fee config
-  const [mpFeeRate, setMpFeeRate] = useState(0.99); // 0.99% default
+  const [mpFeeRate, setMpFeeRate] = useState(0.99); // 0.99% default PIX
+  const [mpCardFeeRate, setMpCardFeeRate] = useState(4.98); // ~4.98% default Cartão
   const [showFeeConfig, setShowFeeConfig] = useState(false);
 
   // System values
@@ -243,14 +253,17 @@ export default function AdminCaixa() {
 
           if (!existingNew && !existingLegacy) {
             const total = Number(order.total || 0);
-            const fee = Math.round(total * mpFeeRate) / 100;
+            const feeRate = isCardPayment(order.payment_method) ? mpCardFeeRate : mpFeeRate;
+            const fee = Math.round(total * feeRate) / 100;
+            const label = getPaymentLabel(order.payment_method);
+            const emoji = getPaymentEmoji(order.payment_method);
             const movs: any[] = [
               {
                 cash_register_id: cashId,
                 type: "entry",
                 source: "automatic",
                 amount: total,
-                description: `🛒 Venda PIX #${order.code} (pedido pago via PIX)`,
+                description: `${emoji} Venda ${label} #${order.code} (pedido pago via ${label})`,
                 reference_id: `venda-${order.code}`,
               },
             ];
@@ -260,7 +273,7 @@ export default function AdminCaixa() {
                 type: "exit",
                 source: "automatic",
                 amount: fee,
-                description: `Taxa MP ${mpFeeRate.toFixed(2).replace(".", ",")}% - Venda #${order.code}`,
+                description: `Taxa MP ${feeRate.toFixed(2).replace(".", ",")}% (${label}) - Venda #${order.code}`,
                 reference_id: `fee-${order.code}`,
               });
             }
@@ -343,7 +356,7 @@ export default function AdminCaixa() {
       supabase.removeChannel(rechargeChannel);
       supabase.removeChannel(movChannel);
     };
-  }, [openCash?.id, openCash?.opened_at, mpFeeRate]);
+  }, [openCash?.id, openCash?.opened_at, mpFeeRate, mpCardFeeRate]);
 
   // ── Sync existing completed orders & recharges as automatic movements on open ──
   useEffect(() => {
@@ -370,8 +383,11 @@ export default function AdminCaixa() {
         .filter((o) => isBankPaymentMethod(o.payment_method))
         .forEach((o) => {
           const total = Number(o.total || 0);
-          const fee = Math.round(total * mpFeeRate) / 100;
+          const feeRate = isCardPayment(o.payment_method) ? mpCardFeeRate : mpFeeRate;
+          const fee = Math.round(total * feeRate) / 100;
           const refId = `venda-${o.code}`;
+          const label = getPaymentLabel(o.payment_method);
+          const emoji = getPaymentEmoji(o.payment_method);
 
           // Check both new format (venda-CODE) and legacy format (CODE) to avoid duplicates
           if (!existingRefs.has(refId) && !existingRefs.has(o.code)) {
@@ -380,7 +396,7 @@ export default function AdminCaixa() {
               type: "entry",
               source: "automatic",
               amount: total,
-              description: `🛒 Venda PIX #${o.code} (pedido pago via PIX)`,
+              description: `${emoji} Venda ${label} #${o.code} (pedido pago via ${label})`,
               reference_id: refId,
             });
           }
@@ -390,7 +406,7 @@ export default function AdminCaixa() {
               type: "exit",
               source: "automatic",
               amount: fee,
-              description: `Taxa MP ${mpFeeRate.toFixed(2).replace(".", ",")}% - Venda #${o.code}`,
+              description: `Taxa MP ${feeRate.toFixed(2).replace(".", ",")}% (${label}) - Venda #${o.code}`,
               reference_id: `fee-${o.code}`,
             });
           }
@@ -437,7 +453,7 @@ export default function AdminCaixa() {
       }
     };
     syncAutoMovements();
-  }, [openCash?.id, openCash?.opened_at, mpFeeRate]);
+  }, [openCash?.id, openCash?.opened_at, mpFeeRate, mpCardFeeRate]);
 
   // ── Actions ──
   const handleOpen = async () => {
@@ -740,16 +756,16 @@ export default function AdminCaixa() {
                 onClick={() => setShowFeeConfig(!showFeeConfig)}
               >
                 <Percent className="size-3" />
-                Taxa MP: {mpFeeRate.toFixed(2).replace(".", ",")}%
+                Taxas MP
               </Button>
             </div>
 
             {/* Fee config */}
             {showFeeConfig && (
-              <div className="bg-white/[0.03] border border-white/10 rounded-lg p-4 flex items-center gap-4">
+              <div className="bg-white/[0.03] border border-white/10 rounded-lg p-4 flex flex-wrap items-center gap-4">
                 <Settings2 className="size-4 text-muted-foreground shrink-0" />
-                <div className="flex items-center gap-2 flex-1">
-                  <Label className="text-xs text-muted-foreground whitespace-nowrap">Taxa Mercado Pago (%)</Label>
+                <div className="flex items-center gap-2">
+                  <Label className="text-xs text-muted-foreground whitespace-nowrap">Taxa PIX (%)</Label>
                   <Input
                     type="text"
                     inputMode="decimal"
@@ -761,8 +777,22 @@ export default function AdminCaixa() {
                     className="w-24"
                     placeholder="0,99"
                   />
-                  <span className="text-xs text-muted-foreground">Aplicada automaticamente a cada venda</span>
                 </div>
+                <div className="flex items-center gap-2">
+                  <Label className="text-xs text-muted-foreground whitespace-nowrap">Taxa Cartão (%)</Label>
+                  <Input
+                    type="text"
+                    inputMode="decimal"
+                    value={mpCardFeeRate.toFixed(2).replace(".", ",")}
+                    onChange={(e) => {
+                      const val = parseBRL(e.target.value);
+                      if (val >= 0 && val <= 15) setMpCardFeeRate(val);
+                    }}
+                    className="w-24"
+                    placeholder="4,98"
+                  />
+                </div>
+                <span className="text-xs text-muted-foreground">Aplicadas automaticamente a cada venda</span>
               </div>
             )}
 
