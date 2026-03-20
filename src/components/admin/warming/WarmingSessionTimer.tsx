@@ -302,23 +302,23 @@ export default function WarmingSessionTimer({
                 <PopoverContent className="w-48 p-2" align="end">
                   <div className="space-y-1">
                     <button
-                      onClick={() => onStatusChange(profile.id, "blocked")}
-                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                      onClick={() => setConfirmStatus({ status: "blocked", label: "Bloqueado" })}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                     >
                       <MIcon name="block" className="text-base" />
                       Bloqueado
                     </button>
                     <button
-                      onClick={() => onStatusChange(profile.id, "checkpoint")}
-                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-amber-600 hover:bg-amber-50 transition-colors"
+                      onClick={() => setConfirmStatus({ status: "checkpoint", label: "Checkpoint" })}
+                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
                     >
                       <MIcon name="warning" className="text-base" />
                       Checkpoint
                     </button>
                     {(profile.status === "blocked" || profile.status === "checkpoint") && (
                       <button
-                        onClick={() => onStatusChange(profile.id, "active")}
-                        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-blue-600 hover:bg-blue-50 transition-colors"
+                        onClick={() => { onStatusChange(profile.id, "active"); }}
+                        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
                       >
                         <MIcon name="local_fire_department" className="text-base" />
                         Reativar
