@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { amount, order_id, card, proxy_data } = await req.json();
+    const { amount, order_id, token: cardToken, proxy_data } = await req.json();
     const numericAmount = Number(amount);
 
     if (!numericAmount || numericAmount < 1) {
@@ -72,8 +72,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (!card?.number || !card?.holder_name || !card?.expiration_month || !card?.expiration_year || !card?.security_code) {
-      return new Response(JSON.stringify({ error: "Dados do cartão incompletos" }), {
+    if (!cardToken) {
+      return new Response(JSON.stringify({ error: "Token do cartão não fornecido" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -126,7 +126,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Create Mercado Pago card payment
+    // Create Mercado Pago card payment using token
     const mpResponse = await fetch("https://api.mercadopago.com/v1/payments", {
       method: "POST",
       headers: {
@@ -137,25 +137,17 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         transaction_amount: numericAmount,
         description: order_id ? `Pedido - ${paymentCode}` : `Recarga de saldo - ${paymentCode}`,
-        payment_method_id: "master", // Mercado Pago auto-detects from card number
+        payment_method_id: "master",
         payer: { email: userEmail },
-        token: undefined, // We use card data directly for server-to-server
-        card: {
-          card_number: card.number,
-          cardholder: {
-            name: card.holder_name,
-          },
-          expiration_month: card.expiration_month,
-          expiration_year: card.expiration_year,
-          security_code: card.security_code,
-        },
+        token: cardToken,
+        installments: 1,
         external_reference: payment.id,
         notification_url: `https://mxnlerkeygfvdnznoxld.supabase.co/functions/v1/mercadopago-webhook`,
-        installments: 1,
       }),
     });
 
     const mpData = await mpResponse.json();
+    console.log("MP response status:", mpData.status, "detail:", mpData.status_detail);
 
     // Update payment record
     const finalStatus = mpData.status === "approved" ? "completed" : mpData.status === "in_process" ? "pending" : "failed";
@@ -177,7 +169,6 @@ Deno.serve(async (req) => {
     if (!mpResponse.ok && mpData.status !== "approved") {
       console.error("Mercado Pago card error:", JSON.stringify(mpData));
       
-      // Map common rejection reasons to user-friendly messages
       const rejectionMessages: Record<string, string> = {
         cc_rejected_bad_filled_card_number: "Número do cartão inválido",
         cc_rejected_bad_filled_date: "Data de validade inválida",

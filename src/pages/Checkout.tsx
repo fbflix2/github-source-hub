@@ -938,19 +938,42 @@ export default function Checkout() {
         updateData.status = "processing";
         await supabase.from("orders").update(updateData).eq("id", orderId);
 
+        // Tokenize card using MercadoPago.js SDK
+        const mpPublicKey = import.meta.env.VITE_MERCADOPAGO_PUBLIC_KEY;
+        if (!mpPublicKey) {
+          toast.error("Configuração de pagamento incompleta.");
+          return;
+        }
+
+        const mp = new (window as any).MercadoPago(mpPublicKey);
+        const [expMonth, expYear] = cardExpiry.split("/");
+
+        let cardToken: string;
+        try {
+          const tokenResult = await mp.createCardToken({
+            cardNumber: cardNumber.replace(/\s/g, ""),
+            cardholderName: cardName,
+            cardExpirationMonth: expMonth,
+            cardExpirationYear: "20" + expYear,
+            securityCode: cardCvv,
+            identificationType: "CPF",
+            identificationNumber: "00000000000",
+          });
+          if (!tokenResult?.id) throw new Error("Token não gerado");
+          cardToken = tokenResult.id;
+        } catch (tokenErr: any) {
+          console.error("Card token error:", tokenErr);
+          toast.error("Dados do cartão inválidos. Verifique e tente novamente.");
+          return;
+        }
+
         // Build proxy data if applicable
         const proxyDataForCard = getProxyPurchaseData();
         const isProxyBRCard = product?.icon_type === 'proxy' && !!product?.external_id;
         const cardBody: any = {
           amount: total,
           order_id: orderId,
-          card: {
-            number: cardNumber.replace(/\s/g, ""),
-            holder_name: cardName,
-            expiration_month: parseInt(cardExpiry.split("/")[0]),
-            expiration_year: parseInt("20" + cardExpiry.split("/")[1]),
-            security_code: cardCvv,
-          },
+          token: cardToken,
         };
 
         if (proxyDataForCard?.product_variant_id || isProxyBRCard) {
