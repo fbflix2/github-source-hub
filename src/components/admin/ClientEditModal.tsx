@@ -110,6 +110,13 @@ export default function ClientEditModal({ open, onClose, client, onUpdate }: Cli
               </SelectContent>
             </Select>
           </div>
+          <div className="flex items-center justify-between rounded-lg border border-border p-3">
+            <div>
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Pagamento via Cartão</Label>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Liberar crédito/débito para este cliente</p>
+            </div>
+            <Switch checked={cardPaymentEnabled} onCheckedChange={setCardPaymentEnabled} />
+          </div>
           <Button onClick={handleSave} disabled={saving} className="w-full gap-2">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             Salvar Alterações
