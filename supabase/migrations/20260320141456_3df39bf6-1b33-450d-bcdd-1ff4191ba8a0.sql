@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN card_payment_enabled boolean NOT NULL DEFAULT false;
