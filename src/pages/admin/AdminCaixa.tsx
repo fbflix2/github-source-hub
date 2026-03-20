@@ -145,8 +145,9 @@ export default function AdminCaixa() {
 
     if (openData) {
       setOpenCash(openData as CashRecord);
+      const sinceDate = getStartOfDay(openData.opened_at);
       await Promise.all([
-        fetchSystemValues(openData.opened_at),
+        fetchSystemValues(sinceDate),
         fetchMovements(openData.id),
       ]);
     } else {
