@@ -161,7 +161,7 @@ export default function AdminCaixa() {
   }, []);
 
   const fetchSystemValues = async (since: string) => {
-    const [ordersRes, purchasesRes] = await Promise.all([
+    const [ordersRes, purchasesRes, rechargesRes] = await Promise.all([
       supabase
         .from("orders")
         .select("total, payment_method")
@@ -171,13 +171,21 @@ export default function AdminCaixa() {
         .from("purchases")
         .select("total_value")
         .gte("created_at", since),
+      supabase
+        .from("payments")
+        .select("amount")
+        .eq("status", "completed")
+        .is("order_id", null)
+        .gte("created_at", since),
     ]);
 
     const bankOrders = (ordersRes.data ?? []).filter((order) =>
       isBankPaymentMethod(order.payment_method)
     );
+    const pixOrderRevenue = bankOrders.reduce((s, o) => s + Number(o.total || 0), 0);
+    const rechargeRevenue = (rechargesRes.data ?? []).reduce((s, r) => s + Number(r.amount || 0), 0);
 
-    setSystemRevenue(bankOrders.reduce((s, o) => s + Number(o.total || 0), 0));
+    setSystemRevenue(pixOrderRevenue + rechargeRevenue);
     setSystemExpenses((purchasesRes.data ?? []).reduce((s, p) => s + Number(p.total_value || 0), 0));
   };
 
