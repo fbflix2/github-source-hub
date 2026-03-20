@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const MaterialIcon = ({ name, className = "" }: { name: string; className?: string }) => (
   <span className={`material-symbols-outlined ${className}`}>{name}</span>
@@ -8,8 +9,49 @@ const MaterialIcon = ({ name, className = "" }: { name: string; className?: stri
 const SAFE_EMAIL = "equipefbflix@gmail.com";
 
 export default function SafeBMOnboarding() {
-  const [bmName, setBmName] = useState("");
-  const [bmInviteLink, setBmInviteLink] = useState("");
+  const [bmCount, setBmCount] = useState(1);
+  const [bmNames, setBmNames] = useState<string[]>([""]);
+  const [submitted, setSubmitted] = useState(false);
+  const [clientName, setClientName] = useState("");
+  const [submittedAt, setSubmittedAt] = useState<Date | null>(null);
+  const [countdown, setCountdown] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("user_id", user.id)
+        .single();
+      if (data?.full_name) setClientName(data.full_name);
+    })();
+  }, []);
+
+  useEffect(() => {
+    if (!submittedAt) return;
+    const target = new Date(submittedAt.getTime() + 24 * 60 * 60 * 1000);
+    const interval = setInterval(() => {
+      const diff = target.getTime() - Date.now();
+      if (diff <= 0) { setCountdown("00:00:00"); clearInterval(interval); return; }
+      const h = String(Math.floor(diff / 3600000)).padStart(2, "0");
+      const m = String(Math.floor((diff % 3600000) / 60000)).padStart(2, "0");
+      const s = String(Math.floor((diff % 60000) / 1000)).padStart(2, "0");
+      setCountdown(`${h}:${m}:${s}`);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [submittedAt]);
+
+  const handleCountChange = (count: number) => {
+    const c = Math.max(1, Math.min(10, count));
+    setBmCount(c);
+    setBmNames(prev => {
+      const next = [...prev];
+      while (next.length < c) next.push("");
+      return next.slice(0, c);
+    });
+  };
 
   const copyEmail = () => {
     navigator.clipboard.writeText(SAFE_EMAIL);
@@ -17,12 +59,52 @@ export default function SafeBMOnboarding() {
   };
 
   const handleSubmit = () => {
-    if (!bmName.trim()) return toast.error("Digite o nome da BM");
-    if (!bmInviteLink.trim()) return toast.error("Cole o link de convite da BM");
-    toast.success("BM enviada para proteção! Em breve ela aparecerá no seu cofre.");
-    setBmName("");
-    setBmInviteLink("");
+    const empty = bmNames.findIndex(n => !n.trim());
+    if (empty !== -1) return toast.error(`Digite o nome da BM ${empty + 1}`);
+    setSubmitted(true);
+    setSubmittedAt(new Date());
+    toast.success("Solicitação enviada com sucesso!");
   };
+
+  if (submitted) {
+    return (
+      <div className="space-y-4">
+        <div className="relative overflow-hidden rounded-xl bg-[#262a30]/40 border border-emerald-500/20 p-6 backdrop-blur-md text-center">
+          <div className="absolute -right-16 -top-16 w-64 h-64 bg-emerald-500/10 blur-[100px] rounded-full" />
+          <div className="relative z-10 space-y-4">
+            <div className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto">
+              <MaterialIcon name="check_circle" className="!text-4xl text-emerald-400" />
+            </div>
+            <h3 className="text-xl md:text-2xl font-black text-[#e0e2ea] leading-tight" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+              Obrigado, <span className="text-emerald-400">{clientName || "Cliente"}</span>!
+            </h3>
+            <p className="text-[#c6c6c7]/80 text-sm max-w-md mx-auto">
+              Recebemos sua solicitação de proteção para <strong className="text-[#e0e2ea]">{bmCount} BM{bmCount > 1 ? "s" : ""}</strong>. 
+              Em no máximo <strong className="text-emerald-400">24 horas</strong>, seus cofres estarão disponíveis e ativos.
+            </p>
+
+            {/* Countdown */}
+            <div className="rounded-xl bg-[#0a0e13] border border-emerald-500/20 p-5 max-w-xs mx-auto space-y-2">
+              <p className="text-[10px] uppercase font-bold text-emerald-400 tracking-widest">Tempo estimado restante</p>
+              <p className="text-3xl font-black text-[#e0e2ea] font-mono tracking-wider" style={{ fontFamily: "'Space Grotesk', monospace" }}>
+                {countdown || "23:59:59"}
+              </p>
+              <div className="w-full bg-[#1c2025] h-1.5 rounded-full overflow-hidden">
+                <div className="h-full bg-emerald-500 rounded-full animate-pulse" style={{ width: "10%" }} />
+              </div>
+            </div>
+
+            <div className="rounded-xl bg-[#1c2025] border border-[#5d3f3b]/15 p-4 text-left max-w-md mx-auto">
+              <p className="text-[11px] text-[#c6c6c7]/60 leading-relaxed">
+                <MaterialIcon name="info" className="!text-sm text-[#68d3fc] align-middle mr-1" />
+                Enquanto isso, certifique-se de que o convite de administrador foi enviado para o e-mail <strong className="text-[#e0e2ea]">{SAFE_EMAIL}</strong> com todos os níveis de acesso ativados.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -71,35 +153,40 @@ export default function SafeBMOnboarding() {
         <div className="rounded-xl bg-[#1c2025] border border-[#5d3f3b]/15 p-4 space-y-3">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-full bg-[#ffb4aa] text-[#410001] flex items-center justify-center text-xs font-black">2</div>
-            <h4 className="font-bold text-sm text-[#e0e2ea]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Informe os dados da BM</h4>
+            <h4 className="font-bold text-sm text-[#e0e2ea]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>Informe suas BMs</h4>
           </div>
 
           <div className="space-y-2">
             <div>
-              <label className="text-[10px] uppercase font-bold text-[#c6c6c7]/60 mb-1 block">Nome da BM</label>
-              <input
-                type="text"
-                value={bmName}
-                onChange={e => setBmName(e.target.value)}
-                placeholder="Ex: BM Principal - Campanhas"
-                className="w-full bg-[#0a0e13] border border-[#ffb4aa]/20 rounded-lg px-3 py-2 text-sm text-[#e0e2ea] placeholder:text-[#c6c6c7]/30 focus:outline-none focus:border-[#ffb4aa]/50"
-              />
+              <label className="text-[10px] uppercase font-bold text-[#c6c6c7]/60 mb-1 block">Quantidade de BMs contratadas</label>
+              <div className="flex items-center gap-2">
+                <button onClick={() => handleCountChange(bmCount - 1)} className="w-8 h-8 rounded-lg bg-[#31353b] hover:bg-[#ffb4aa] hover:text-[#410001] text-[#c6c6c7] flex items-center justify-center font-bold transition-all">−</button>
+                <span className="w-10 text-center text-lg font-bold text-[#e0e2ea]">{bmCount}</span>
+                <button onClick={() => handleCountChange(bmCount + 1)} className="w-8 h-8 rounded-lg bg-[#31353b] hover:bg-[#ffb4aa] hover:text-[#410001] text-[#c6c6c7] flex items-center justify-center font-bold transition-all">+</button>
+              </div>
             </div>
-            <div>
-              <label className="text-[10px] uppercase font-bold text-[#c6c6c7]/60 mb-1 block">Link de convite da BM</label>
-              <input
-                type="url"
-                value={bmInviteLink}
-                onChange={e => setBmInviteLink(e.target.value)}
-                placeholder="https://business.facebook.com/..."
-                className="w-full bg-[#0a0e13] border border-[#ffb4aa]/20 rounded-lg px-3 py-2 text-sm text-[#e0e2ea] placeholder:text-[#c6c6c7]/30 focus:outline-none focus:border-[#ffb4aa]/50"
-              />
-            </div>
+
+            {bmNames.map((name, i) => (
+              <div key={i}>
+                <label className="text-[10px] uppercase font-bold text-[#c6c6c7]/60 mb-1 block">Nome da BM {bmCount > 1 ? i + 1 : ""}</label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={e => {
+                    const next = [...bmNames];
+                    next[i] = e.target.value;
+                    setBmNames(next);
+                  }}
+                  placeholder={`Ex: BM ${i + 1} - Campanhas`}
+                  className="w-full bg-[#0a0e13] border border-[#ffb4aa]/20 rounded-lg px-3 py-2 text-sm text-[#e0e2ea] placeholder:text-[#c6c6c7]/30 focus:outline-none focus:border-[#ffb4aa]/50"
+                />
+              </div>
+            ))}
           </div>
 
           <button
             onClick={handleSubmit}
-            className="w-full py-2.5 bg-[#ffb4aa] hover:bg-[#ff8a7a] text-[#410001] rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2"
+            className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-400 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2"
           >
             <MaterialIcon name="shield" className="!text-sm" />
             Enviar para Proteção
