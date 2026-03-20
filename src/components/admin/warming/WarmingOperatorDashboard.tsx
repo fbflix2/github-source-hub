@@ -117,6 +117,20 @@ export default function WarmingOperatorDashboard({ profiles, tasks, creatorNames
       const dailyGoalObj = goals.find(g => g.operator_id === op.id && g.goal_type === "daily");
       const weeklyGoalObj = goals.find(g => g.operator_id === op.id && g.goal_type === "weekly");
 
+      // Count unique profiles that had tasks completed today/this week
+      const profilesWorkedToday = new Set<string>();
+      const profilesWorkedThisWeek = new Set<string>();
+      allOpProfiles.forEach(p => {
+        const profileTasks = tasks[p.id] || [];
+        profileTasks.forEach(t => {
+          if (t.completed && t.completed_at) {
+            const completedTime = new Date(t.completed_at).getTime();
+            if (completedTime >= todayStart) profilesWorkedToday.add(p.id);
+            if (completedTime >= weekStart) profilesWorkedThisWeek.add(p.id);
+          }
+        });
+      });
+
       return {
         operatorId: op.id,
         operatorName: op.name,
@@ -127,8 +141,8 @@ export default function WarmingOperatorDashboard({ profiles, tasks, creatorNames
         totalTaskTime,
         avgTimePerProfile: opProfiles.length > 0 ? Math.round(totalTaskTime / opProfiles.length) : 0,
         avgTimePerTask: totalTasks > 0 ? Math.round(totalTaskTime / totalTasks) : 0,
-        profilesToday: allOpProfiles.filter(p => new Date(p.created_at).getTime() >= todayStart).length,
-        profilesThisWeek: allOpProfiles.filter(p => new Date(p.created_at).getTime() >= weekStart).length,
+        profilesToday: profilesWorkedToday.size,
+        profilesThisWeek: profilesWorkedThisWeek.size,
         dailyGoal: dailyGoalObj?.target_profiles ?? null,
         weeklyGoal: weeklyGoalObj?.target_profiles ?? null,
       };
