@@ -38,6 +38,27 @@ export default function SubscriptionManage() {
   const [showExchangeHistory, setShowExchangeHistory] = useState(false);
   const [extraQuotaQty, setExtraQuotaQty] = useState(1);
   const [isBuyingQuota, setIsBuyingQuota] = useState(false);
+  const [showProxyTest, setShowProxyTest] = useState(false);
+  const [proxyTestInput, setProxyTestInput] = useState("");
+  const [testingProxy, setTestingProxy] = useState(false);
+  const [proxyTestResult, setProxyTestResult] = useState<any>(null);
+
+  const handleTestProxy = async () => {
+    if (!proxyTestInput.trim()) return;
+    setTestingProxy(true);
+    setProxyTestResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("test-proxy", {
+        body: { proxy: proxyTestInput.trim() },
+      });
+      if (error) throw error;
+      setProxyTestResult(data);
+    } catch (err: any) {
+      setProxyTestResult({ success: false, error: err.message || "Erro ao testar proxy" });
+    } finally {
+      setTestingProxy(false);
+    }
+  };
 
   // Extract the real subscription name (strip __proxy_XXX suffix for multi-proxy codes)
   const realSubName = code?.includes("__proxy_") ? code.split("__proxy_")[0] : code;
