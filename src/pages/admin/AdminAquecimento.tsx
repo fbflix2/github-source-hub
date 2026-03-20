@@ -270,6 +270,7 @@ export default function AdminAquecimento() {
           setTasks(grouped);
         }
         // Auto-selection will be handled by the useEffect with sortedActiveQueue
+      }
       // Fetch creator names
       const creatorIds = [...new Set((data || []).map(p => p.created_by).filter(Boolean))] as string[];
       if (creatorIds.length > 0) {
