@@ -584,68 +584,76 @@ export default function SubscriptionManage() {
             <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-xs h-8" onClick={() => navigate("/suporte")}>
               <span className="material-symbols-outlined text-sm">support_agent</span>Abrir Suporte
             </Button>
-            <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-xs h-8" onClick={() => setShowProxyTest(!showProxyTest)}>
-              <span className="material-symbols-outlined text-sm">speed</span>Testar seu Proxy
-            </Button>
+            {sub.proxy && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full justify-start gap-2 text-xs h-8"
+                disabled={testingProxy}
+                onClick={async () => {
+                  const proxyString = `${sub.proxy!.ip}:${sub.proxy!.port}:${sub.proxy!.username || ""}:${sub.proxy!.password || ""}`;
+                  setTestingProxy(true);
+                  setProxyTestResult(null);
+                  try {
+                    const { data, error } = await supabase.functions.invoke("test-proxy", {
+                      body: { proxy: proxyString },
+                    });
+                    if (error) throw error;
+                    setProxyTestResult(data);
+                  } catch (err: any) {
+                    setProxyTestResult({ success: false, error: err.message || "Erro ao testar proxy" });
+                  } finally {
+                    setTestingProxy(false);
+                  }
+                }}
+              >
+                {testingProxy ? (
+                  <>
+                    <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+                    Testando...
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined text-sm">speed</span>
+                    Testar Proxy
+                  </>
+                )}
+              </Button>
+            )}
 
-            {showProxyTest && (
-              <div className="mt-2 space-y-2 pt-2 border-t border-border/50">
-                <Input
-                  placeholder="host:porta:usuario:senha"
-                  value={proxyTestInput}
-                  onChange={(e) => setProxyTestInput(e.target.value)}
-                  className="text-xs h-8 font-mono"
-                />
-                <Button
-                  size="sm"
-                  className="w-full h-8 text-xs gap-2"
-                  disabled={testingProxy || !proxyTestInput.trim()}
-                  onClick={handleTestProxy}
-                >
-                  {testingProxy ? (
-                    <>
-                      <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
-                      Testando...
-                    </>
-                  ) : (
-                    <>
-                      <span className="material-symbols-outlined text-sm">lan</span>
-                      Verificar Localização
-                    </>
-                  )}
-                </Button>
-
-                {proxyTestResult && (
-                  <div className={`rounded-lg p-3 space-y-1.5 ${proxyTestResult.success ? "bg-green-500/10 border border-green-500/20" : "bg-destructive/10 border border-destructive/20"}`}>
-                    {proxyTestResult.success ? (
-                      <>
-                        <div className="flex items-center gap-2">
-                          <img
-                            src={`https://flagcdn.com/w40/${proxyTestResult.countryCode.toLowerCase()}.png`}
-                            alt={proxyTestResult.country}
-                            className="w-6 h-4 rounded-sm object-cover"
-                          />
-                          <span className="text-sm font-bold text-foreground">{proxyTestResult.country}</span>
-                        </div>
-                        <div className="space-y-0.5 text-[10px]">
-                          <p className="text-muted-foreground">
-                            <span className="text-foreground font-medium">IP:</span> {proxyTestResult.ip}
-                          </p>
-                          {proxyTestResult.city && (
-                            <p className="text-muted-foreground">
-                              <span className="text-foreground font-medium">Local:</span> {proxyTestResult.city}{proxyTestResult.region ? `, ${proxyTestResult.region}` : ""}
-                            </p>
-                          )}
-                          {proxyTestResult.isp && (
-                            <p className="text-muted-foreground">
-                              <span className="text-foreground font-medium">ISP:</span> {proxyTestResult.isp}
-                            </p>
-                          )}
-                        </div>
-                      </>
-                    ) : (
-                      <p className="text-destructive text-xs">{proxyTestResult.error}</p>
-                    )}
+            {proxyTestResult && (
+              <div className={`rounded-lg p-3 space-y-1.5 ${proxyTestResult.success ? "bg-green-500/10 border border-green-500/20" : "bg-destructive/10 border border-destructive/20"}`}>
+                {proxyTestResult.success ? (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <img
+                        src={`https://flagcdn.com/w40/${proxyTestResult.countryCode.toLowerCase()}.png`}
+                        alt={proxyTestResult.country}
+                        className="w-6 h-4 rounded-sm object-cover"
+                      />
+                      <span className="text-sm font-bold text-foreground">{proxyTestResult.country}</span>
+                      <span className="ml-auto text-[10px] font-bold text-green-500 bg-green-500/10 px-2 py-0.5 rounded-full">● Ativo</span>
+                    </div>
+                    <div className="space-y-0.5 text-[10px]">
+                      <p className="text-muted-foreground">
+                        <span className="text-foreground font-medium">IP:</span> {proxyTestResult.ip}
+                      </p>
+                      {proxyTestResult.city && (
+                        <p className="text-muted-foreground">
+                          <span className="text-foreground font-medium">Local:</span> {proxyTestResult.city}{proxyTestResult.region ? `, ${proxyTestResult.region}` : ""}
+                        </p>
+                      )}
+                      {proxyTestResult.isp && (
+                        <p className="text-muted-foreground">
+                          <span className="text-foreground font-medium">ISP:</span> {proxyTestResult.isp}
+                        </p>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold text-destructive bg-destructive/10 px-2 py-0.5 rounded-full">● Inativo</span>
+                    <p className="text-destructive text-xs">{proxyTestResult.error}</p>
                   </div>
                 )}
               </div>
