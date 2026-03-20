@@ -1279,15 +1279,19 @@ export default function Checkout() {
             {/* Upsell Offer - Proxy IPV4 Contingência only for non-proxy products */}
             {(() => {
               const isMainProxy = product?.icon_type === 'proxy' || product?.tags?.some(t => t.toLowerCase().includes('proxy'));
-              if (isMainProxy) return null;
+              // When bumps are admin-configured, the main bump is already set in promoProxy with correct price
+              const hasConfiguredBumps = (promoProxy as any)?._label;
+              if (!hasConfiguredBumps && isMainProxy) return null;
               if (!promoProxy || selectedBumps.includes(promoProxy.id)) return null;
-              const PROMO_PRICE = 9.99;
-              const originalPrice = 25;
+              const PROMO_PRICE = promoProxy.price;
+              const originalPrice = (promoProxy as any)?._originalPrice || promoProxy.price * 2.5;
+              const bumpLabel = (promoProxy as any)?._label || "OPORTUNIDADE ÚNICA";
+              const hasDiscount = originalPrice > PROMO_PRICE;
               return (
                 <div className="rounded-xl border-2 border-primary bg-gradient-to-b from-primary/10 to-background p-4 flex flex-col gap-2 relative overflow-hidden">
                   <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-500 text-white w-fit">
                     <Flame className="w-3 h-3" />
-                    OPORTUNIDADE ÚNICA
+                    {bumpLabel}
                   </span>
                   <div>
                     <h3 className="text-sm font-bold text-foreground">Complete sua compra!</h3>
@@ -1297,7 +1301,9 @@ export default function Checkout() {
                   </div>
                   <div className="flex items-center justify-between bg-secondary/80 border border-border rounded-lg p-3">
                     <div>
-                      <p className="text-xs text-muted-foreground line-through">R$ {originalPrice.toFixed(2).replace(".", ",")}</p>
+                      {hasDiscount && (
+                        <p className="text-xs text-muted-foreground line-through">R$ {originalPrice.toFixed(2).replace(".", ",")}</p>
+                      )}
                       <p className="text-lg font-black text-foreground">R$ {PROMO_PRICE.toFixed(2).replace(".", ",")}</p>
                     </div>
                     <button
