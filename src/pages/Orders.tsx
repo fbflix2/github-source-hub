@@ -48,8 +48,14 @@ const filters = [
 
 const statusConfig: Record<string, { label: string; className: string; badgeClassName: string }> = {
   completed: { label: "Concluído", className: "border-l-emerald-500 bg-muted/50", badgeClassName: "bg-emerald-500/20 text-emerald-400 border-emerald-500/20" },
+  courtesy: { label: "Cortesia", className: "border-l-violet-500 bg-muted/50", badgeClassName: "bg-violet-500/20 text-violet-400 border-violet-500/20" },
   processing: { label: "Pendente", className: "opacity-80 hover:opacity-100", badgeClassName: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20" },
   cancelled: { label: "Cancelado", className: "opacity-60", badgeClassName: "bg-destructive/10 text-destructive border-destructive/20" },
+};
+
+const getEffectiveStatus = (order: Order) => {
+  if (order.status === "completed" && order.payment_method === "cortesia") return "courtesy";
+  return order.status;
 };
 
 const formatDate = (dateString: string) => {
@@ -195,7 +201,8 @@ export default function Orders() {
     return order.status === activeFilter;
   });
 
-  const status = selectedOrder ? (statusConfig[selectedOrder.status] || statusConfig.processing) : null;
+  const effectiveStatus = selectedOrder ? getEffectiveStatus(selectedOrder) : null;
+  const status = selectedOrder ? (statusConfig[effectiveStatus!] || statusConfig.processing) : null;
   const subtotal = selectedOrder ? selectedOrder.items.reduce((acc, item) => acc + item.price * item.quantity, 0) : 0;
 
   if (loading) {
@@ -245,7 +252,8 @@ export default function Orders() {
           {/* Orders List - scrollable */}
           <div className="flex flex-col gap-2 overflow-y-auto pr-1 custom-scrollbar min-w-0">
             {filteredOrders.map((order) => {
-              const st = statusConfig[order.status] || statusConfig.processing;
+              const effectiveSt = getEffectiveStatus(order);
+              const st = statusConfig[effectiveSt] || statusConfig.processing;
               const isSelected = selectedOrder?.id === order.id;
               return (
                 <div
@@ -312,7 +320,9 @@ export default function Orders() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="text-lg font-bold text-foreground">Pedido {selectedOrder.code}</h3>
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                        selectedOrder.status === "completed"
+                        effectiveStatus === "courtesy"
+                          ? "bg-violet-500 text-white"
+                          : selectedOrder.status === "completed"
                           ? "bg-emerald-500 text-white"
                           : selectedOrder.status === "processing"
                           ? "bg-yellow-500 text-background"
@@ -320,6 +330,12 @@ export default function Orders() {
                       }`}>
                         {status.label}
                       </span>
+                      {effectiveStatus === "courtesy" && (
+                        <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-400 border border-violet-500/30 text-[9px] font-bold">
+                          <span className="material-symbols-outlined text-[10px]">card_giftcard</span>
+                          Presente
+                        </span>
+                      )}
                     </div>
                     <p className="text-muted-foreground text-xs">{formatDateFull(selectedOrder.created_at)}</p>
                   </div>
@@ -507,11 +523,11 @@ export default function Orders() {
                     <div className="flex-1">
                       <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Pagamento</h4>
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-6 rounded bg-muted flex items-center justify-center border border-border">
-                          <span className="material-symbols-outlined text-foreground text-[14px]">credit_card</span>
+                        <div className={`w-9 h-6 rounded flex items-center justify-center border ${effectiveStatus === "courtesy" ? "bg-violet-500/10 border-violet-500/20" : "bg-muted border-border"}`}>
+                          <span className="material-symbols-outlined text-foreground text-[14px]">{effectiveStatus === "courtesy" ? "card_giftcard" : "credit_card"}</span>
                         </div>
                         <p className="text-foreground text-xs font-medium">
-                          {selectedOrder.payment_method || "PIX"} {selectedOrder.payment_last4 && `final ${selectedOrder.payment_last4}`}
+                          {effectiveStatus === "courtesy" ? "Cortesia" : (selectedOrder.payment_method || "PIX")} {selectedOrder.payment_last4 && `final ${selectedOrder.payment_last4}`}
                         </p>
                       </div>
                     </div>
