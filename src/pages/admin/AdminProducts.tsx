@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { 
   Search, Plus, Upload, User, Briefcase, Globe, Server, Tag, Save, X,
   Filter, ChevronLeft, ChevronRight, Edit, Trash2, Image as ImageIcon, Loader2, ImagePlus,
-  BarChart3, Download, BellRing, Clock, CheckSquare, Square, CheckCheck, Store, Sparkles
+  BarChart3, Download, BellRing, Clock, CheckSquare, Square, CheckCheck, Store, Sparkles, Layers
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { useProxyBRProducts } from "@/hooks/useProxyBR";
 import { WaitlistTab } from "@/components/admin/WaitlistTab";
 import { StockItemsModal } from "@/components/admin/StockItemsModal";
+import { OrderBumpsManager } from "@/components/admin/OrderBumpsManager";
 
 interface Product {
   id: string;
@@ -107,6 +108,10 @@ export default function AdminProducts() {
   // Stock items modal
   const [stockModalOpen, setStockModalOpen] = useState(false);
   const [stockModalProduct, setStockModalProduct] = useState<{ id: string; name: string } | null>(null);
+
+  // Order bumps modal
+  const [bumpsModalOpen, setBumpsModalOpen] = useState(false);
+  const [bumpsModalProduct, setBumpsModalProduct] = useState<{ id: string; name: string } | null>(null);
 
   // Proxy import
   const { data: proxyProductsData } = useProxyBRProducts();
@@ -871,6 +876,9 @@ export default function AdminProducts() {
                             <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-zinc-400 hover:text-white" onClick={() => openEditForm(product)}>
                               <Edit className="h-4 w-4" />
                             </Button>
+                            <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-zinc-400 hover:text-primary" title="Order Bumps" onClick={() => { setBumpsModalProduct({ id: product.id, name: product.name }); setBumpsModalOpen(true); }}>
+                              <Layers className="h-4 w-4" />
+                            </Button>
                             <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-zinc-400 hover:text-red-400" onClick={() => handleDelete(product.id)}>
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -1029,6 +1037,15 @@ export default function AdminProducts() {
           onOpenChange={setStockModalOpen}
           productId={stockModalProduct.id}
           productName={stockModalProduct.name}
+        />
+      )}
+
+      {bumpsModalProduct && (
+        <OrderBumpsManager
+          open={bumpsModalOpen}
+          onClose={() => setBumpsModalOpen(false)}
+          productId={bumpsModalProduct.id}
+          productName={bumpsModalProduct.name}
         />
       )}
     </div>

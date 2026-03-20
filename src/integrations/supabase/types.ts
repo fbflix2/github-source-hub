@@ -802,6 +802,63 @@ export type Database = {
         }
         Relationships: []
       }
+      order_bumps: {
+        Row: {
+          active: boolean
+          bump_product_id: string
+          bump_type: string
+          created_at: string
+          discount_percent: number
+          fixed_price: number | null
+          id: string
+          label: string | null
+          position: number
+          product_id: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          bump_product_id: string
+          bump_type?: string
+          created_at?: string
+          discount_percent?: number
+          fixed_price?: number | null
+          id?: string
+          label?: string | null
+          position?: number
+          product_id: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          bump_product_id?: string
+          bump_type?: string
+          created_at?: string
+          discount_percent?: number
+          fixed_price?: number | null
+          id?: string
+          label?: string | null
+          position?: number
+          product_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_bumps_bump_product_id_fkey"
+            columns: ["bump_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_bumps_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_items: {
         Row: {
           created_at: string

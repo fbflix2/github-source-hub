@@ -225,10 +225,69 @@ export default function Checkout() {
     checkFirstPurchase();
   }, []);
 
-  // Fetch available bump products from DB (excluding main product)
+  // Fetch bumps: prefer admin-configured, fallback to smart auto-detection
   useEffect(() => {
     if (!product) return;
     const fetchBumps = async () => {
+      // 1. Check for admin-configured bumps
+      const { data: configuredBumps } = await supabase
+        .from("order_bumps")
+        .select("*")
+        .eq("product_id", product.id)
+        .eq("active", true)
+        .order("position", { ascending: true });
+
+      if (configuredBumps && configuredBumps.length > 0) {
+        // Fetch bump product details
+        const bumpProductIds = configuredBumps.map((b: any) => b.bump_product_id);
+        const { data: bumpProds } = await supabase
+          .from("products")
+          .select("id, name, description, price, image_url, tags, icon_type")
+          .in("id", bumpProductIds);
+
+        const productsMap = new Map((bumpProds || []).map((p: any) => [p.id, p]));
+
+        // Set main promo bump
+        const mainBump = configuredBumps.find((b: any) => b.bump_type === "main");
+        if (mainBump) {
+          const mainProd = productsMap.get(mainBump.bump_product_id);
+          if (mainProd) {
+            const bumpPrice = mainBump.fixed_price != null
+              ? mainBump.fixed_price
+              : mainProd.price * (1 - (mainBump.discount_percent || 0) / 100);
+            setPromoProxy({
+              ...mainProd,
+              price: bumpPrice,
+              _originalPrice: mainProd.price,
+              _label: mainBump.label || "OPORTUNIDADE ÚNICA",
+            } as any);
+          }
+        } else {
+          setPromoProxy(null);
+        }
+
+        // Set secondary bumps with discounts applied
+        const secondaryBumps = configuredBumps
+          .filter((b: any) => b.bump_type === "secondary")
+          .map((b: any) => {
+            const prod = productsMap.get(b.bump_product_id);
+            if (!prod) return null;
+            const finalPrice = b.fixed_price != null
+              ? b.fixed_price
+              : prod.price * (1 - (b.discount_percent || 0) / 100);
+            return {
+              ...prod,
+              price: finalPrice,
+              _originalPrice: prod.price,
+              _hasDiscount: b.fixed_price != null || b.discount_percent > 0,
+            };
+          })
+          .filter(Boolean);
+        setBumpProducts(secondaryBumps);
+        return;
+      }
+
+      // 2. Fallback: smart auto-detection (existing logic)
       const { data } = await supabase
         .from("products")
         .select("id, name, description, price, image_url, tags, icon_type")
@@ -238,25 +297,18 @@ export default function Checkout() {
         .order("price", { ascending: true })
         .limit(10);
       setBumpProducts(data || []);
-    };
-    // Fetch the specific promo proxy by ID
-    const fetchPromoProxy = async () => {
+
+      // Fallback promo proxy
       const PROMO_PROXY_ID = "6c396fa8-f6a0-43b2-8061-9148213df549";
       if (product.id === PROMO_PROXY_ID) { setPromoProxy(null); return; }
-      const { data, error } = await supabase
+      const { data: promoData } = await supabase
         .from("products")
         .select("id, name, description, price, image_url, tags, icon_type")
         .eq("id", PROMO_PROXY_ID)
         .maybeSingle();
-      console.log("[PromoProxy] fetch result:", { data, error, productId: product.id, isProxy: product.icon_type });
-      if (data && data.id) {
-        setPromoProxy(data);
-      } else {
-        setPromoProxy(null);
-      }
+      setPromoProxy(promoData || null);
     };
     fetchBumps();
-    fetchPromoProxy();
   }, [product]);
 
   // Create draft order when entering checkout (for abandoned cart tracking)
@@ -1210,7 +1262,12 @@ export default function Checkout() {
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-center">
                         <p className="font-bold text-foreground text-xs">{bump.name}</p>
-                        <span className="text-primary font-bold text-xs ml-2">+ R$ {bump.price.toFixed(2).replace(".", ",")}</span>
+                        <div className="flex items-center gap-1.5 ml-2">
+                          {(bump as any)._hasDiscount && (bump as any)._originalPrice && (
+                            <span className="text-muted-foreground text-[10px] line-through">R$ {(bump as any)._originalPrice.toFixed(2).replace(".", ",")}</span>
+                          )}
+                          <span className="text-primary font-bold text-xs">+ R$ {bump.price.toFixed(2).replace(".", ",")}</span>
+                        </div>
                       </div>
                       <p className="text-[11px] text-muted-foreground leading-snug">{bump.description}</p>
                     </div>
@@ -1227,15 +1284,19 @@ export default function Checkout() {
             {/* Upsell Offer - Proxy IPV4 Contingência only for non-proxy products */}
             {(() => {
               const isMainProxy = product?.icon_type === 'proxy' || product?.tags?.some(t => t.toLowerCase().includes('proxy'));
-              if (isMainProxy) return null;
+              // When bumps are admin-configured, the main bump is already set in promoProxy with correct price
+              const hasConfiguredBumps = (promoProxy as any)?._label;
+              if (!hasConfiguredBumps && isMainProxy) return null;
               if (!promoProxy || selectedBumps.includes(promoProxy.id)) return null;
-              const PROMO_PRICE = 9.99;
-              const originalPrice = 25;
+              const PROMO_PRICE = promoProxy.price;
+              const originalPrice = (promoProxy as any)?._originalPrice || promoProxy.price * 2.5;
+              const bumpLabel = (promoProxy as any)?._label || "OPORTUNIDADE ÚNICA";
+              const hasDiscount = originalPrice > PROMO_PRICE;
               return (
                 <div className="rounded-xl border-2 border-primary bg-gradient-to-b from-primary/10 to-background p-4 flex flex-col gap-2 relative overflow-hidden">
                   <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-500 text-white w-fit">
                     <Flame className="w-3 h-3" />
-                    OPORTUNIDADE ÚNICA
+                    {bumpLabel}
                   </span>
                   <div>
                     <h3 className="text-sm font-bold text-foreground">Complete sua compra!</h3>
@@ -1245,7 +1306,9 @@ export default function Checkout() {
                   </div>
                   <div className="flex items-center justify-between bg-secondary/80 border border-border rounded-lg p-3">
                     <div>
-                      <p className="text-xs text-muted-foreground line-through">R$ {originalPrice.toFixed(2).replace(".", ",")}</p>
+                      {hasDiscount && (
+                        <p className="text-xs text-muted-foreground line-through">R$ {originalPrice.toFixed(2).replace(".", ",")}</p>
+                      )}
                       <p className="text-lg font-black text-foreground">R$ {PROMO_PRICE.toFixed(2).replace(".", ",")}</p>
                     </div>
                     <button
