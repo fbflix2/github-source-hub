@@ -109,6 +109,10 @@ export default function AdminProducts() {
   const [stockModalOpen, setStockModalOpen] = useState(false);
   const [stockModalProduct, setStockModalProduct] = useState<{ id: string; name: string } | null>(null);
 
+  // Order bumps modal
+  const [bumpsModalOpen, setBumpsModalOpen] = useState(false);
+  const [bumpsModalProduct, setBumpsModalProduct] = useState<{ id: string; name: string } | null>(null);
+
   // Proxy import
   const { data: proxyProductsData } = useProxyBRProducts();
   const [importingProxy, setImportingProxy] = useState(false);
