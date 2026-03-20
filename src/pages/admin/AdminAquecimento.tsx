@@ -465,6 +465,15 @@ export default function AdminAquecimento() {
     });
   }, [visibleProfiles, tasks]);
 
+  // Auto-select first profile in queue when none is selected (execute mode)
+  useEffect(() => {
+    if (!selectedProfileId && operationMode === "execute" && sortedActiveQueue.length > 0) {
+      const next = sortedActiveQueue[0];
+      setSelectedProfileId(next.id);
+      if (!tasks[next.id]) fetchTasks(next.id);
+    }
+  }, [selectedProfileId, sortedActiveQueue, operationMode]);
+
   // Dashboard stats from visible profiles
   const totalProfiles = visibleProfiles.length;
   const activeProfiles = visibleProfiles.filter(p => p.status === "active").length;
