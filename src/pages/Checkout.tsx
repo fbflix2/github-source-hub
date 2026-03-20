@@ -1250,7 +1250,13 @@ export default function Checkout() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="col-span-1 md:col-span-2 space-y-1">
                     <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Número do Cartão</label>
-                    <div id="mp-card-number" className="w-full rounded-lg bg-black/30 border border-border overflow-hidden" style={{ height: '40px' }} />
+                    <div className="relative">
+                      <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <input type="text" inputMode="numeric" value={cardNumber} onChange={(e) => {
+                        const v = e.target.value.replace(/\D/g, "").slice(0, 16);
+                        setCardNumber(v.replace(/(\d{4})(?=\d)/g, "$1 "));
+                      }} placeholder="0000 0000 0000 0000" className="glass-input w-full rounded-lg py-2.5 pl-9 pr-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-1 focus:ring-primary bg-black/30 border border-border" />
+                    </div>
                   </div>
                   <div className="col-span-1 md:col-span-2 space-y-1">
                     <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Nome no Cartão</label>
@@ -1261,11 +1267,21 @@ export default function Checkout() {
                   </div>
                   <div className="space-y-1">
                     <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Validade</label>
-                    <div id="mp-expiration-date" className="w-full rounded-lg bg-black/30 border border-border overflow-hidden" style={{ height: '40px' }} />
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <input type="text" inputMode="numeric" value={cardExpiry} onChange={(e) => {
+                        let v = e.target.value.replace(/\D/g, "").slice(0, 4);
+                        if (v.length >= 3) v = v.slice(0, 2) + "/" + v.slice(2);
+                        setCardExpiry(v);
+                      }} placeholder="MM/AA" maxLength={5} className="glass-input w-full rounded-lg py-2.5 pl-9 pr-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-1 focus:ring-primary bg-black/30 border border-border" />
+                    </div>
                   </div>
                   <div className="space-y-1">
                     <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">CVV</label>
-                    <div id="mp-security-code" className="w-full rounded-lg bg-black/30 border border-border overflow-hidden" style={{ height: '40px' }} />
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <input type="text" inputMode="numeric" value={cardCvv} onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="123" maxLength={4} className="glass-input w-full rounded-lg py-2.5 pl-9 pr-3 text-sm text-foreground placeholder-muted-foreground outline-none focus:ring-1 focus:ring-primary bg-black/30 border border-border" />
+                    </div>
                   </div>
                 </div>
               </div>
