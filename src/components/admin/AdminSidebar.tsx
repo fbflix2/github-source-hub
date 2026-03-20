@@ -41,7 +41,8 @@ import {
   Flame,
   Store,
   KeyRound,
-  ImageIcon
+  ImageIcon,
+  ShieldAlert
 } from "lucide-react";
 
 interface SubItem {
@@ -80,6 +81,7 @@ const allMenuItems: MenuItem[] = [
     { title: "Proxy Interno", icon: Shield, path: "/admin/central-proxy/interno" },
     { title: "Assinaturas", icon: Monitor, path: "/admin/assinaturas" },
   ]},
+  { title: "Contingência Total", icon: ShieldAlert, path: "/admin/contingencia" },
   { title: "Fornecedor AccFace", icon: Store, path: "/admin/fornecedor" },
   { title: "Ferramentas", icon: KeyRound, path: "/admin/ferramentas-2fa", subItems: [
     { title: "Ferramentas", icon: KeyRound, path: "/admin/ferramentas-2fa" },
