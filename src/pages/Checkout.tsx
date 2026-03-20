@@ -208,6 +208,7 @@ export default function Checkout() {
   const [draftOrderId, setDraftOrderId] = useState<string | null>(null);
   const [draftOrderCode, setDraftOrderCode] = useState<string | null>(null);
   const [isFirstPurchase, setIsFirstPurchase] = useState(false);
+  const [cardEnabled, setCardEnabled] = useState(false);
   const draftCreatingRef = useRef(false);
 
   // Check if first purchase
