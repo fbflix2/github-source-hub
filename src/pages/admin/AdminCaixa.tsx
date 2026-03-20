@@ -356,7 +356,7 @@ export default function AdminCaixa() {
       supabase.removeChannel(rechargeChannel);
       supabase.removeChannel(movChannel);
     };
-  }, [openCash?.id, openCash?.opened_at, mpFeeRate]);
+  }, [openCash?.id, openCash?.opened_at, mpFeeRate, mpCardFeeRate]);
 
   // ── Sync existing completed orders & recharges as automatic movements on open ──
   useEffect(() => {
