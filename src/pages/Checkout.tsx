@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { Wallet, QrCode, CreditCard, Lock, ChevronLeft, User, Calendar, Flame, Loader2, Check, Copy, Share2 } from "lucide-react";
+import { Wallet, QrCode, CreditCard, Lock, ChevronLeft, User, Calendar, Flame, Loader2, Check, Copy, Share2, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useCart } from "@/contexts/CartContext";
@@ -197,6 +197,7 @@ export default function Checkout() {
   const [applyingCoupon, setApplyingCoupon] = useState(false);
   const [cardName, setCardName] = useState("");
   const [cardCpf, setCardCpf] = useState("");
+  const [cardEmail, setCardEmail] = useState("");
   const mpInstanceRef = useRef<any>(null);
   const cardFieldsRef = useRef<{ cardNumber: any; expirationDate: any; securityCode: any } | null>(null);
   const fieldsInitializedRef = useRef(false);
@@ -217,6 +218,7 @@ export default function Checkout() {
     const checkFirstPurchase = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+      if (user.email) setCardEmail(user.email);
       const { count } = await supabase.from("orders").select("id", { count: "exact", head: true }).eq("user_id", user.id).in("status", ["completed", "paid"]);
       setIsFirstPurchase((count ?? 0) === 0);
       const { data: profile } = await supabase
@@ -1302,6 +1304,13 @@ export default function Checkout() {
                     <div className="relative">
                       <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                       <div id="mp-card-number" className="w-full rounded-lg border border-border bg-background/50 pl-9 overflow-hidden" style={{ height: "42px" }} />
+                    </div>
+                  </div>
+                  <div className="col-span-1 md:col-span-2 space-y-1">
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">E-mail</label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <input type="email" value={cardEmail} readOnly className="glass-input w-full rounded-lg py-2.5 pl-9 pr-3 text-sm text-foreground/70 placeholder-muted-foreground outline-none bg-background/30 border border-border cursor-not-allowed" />
                     </div>
                   </div>
                   <div className="col-span-1 md:col-span-2 space-y-1">
