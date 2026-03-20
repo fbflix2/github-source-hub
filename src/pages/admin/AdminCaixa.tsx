@@ -756,16 +756,16 @@ export default function AdminCaixa() {
                 onClick={() => setShowFeeConfig(!showFeeConfig)}
               >
                 <Percent className="size-3" />
-                Taxa MP: {mpFeeRate.toFixed(2).replace(".", ",")}%
+                Taxas MP
               </Button>
             </div>
 
             {/* Fee config */}
             {showFeeConfig && (
-              <div className="bg-white/[0.03] border border-white/10 rounded-lg p-4 flex items-center gap-4">
+              <div className="bg-white/[0.03] border border-white/10 rounded-lg p-4 flex flex-wrap items-center gap-4">
                 <Settings2 className="size-4 text-muted-foreground shrink-0" />
-                <div className="flex items-center gap-2 flex-1">
-                  <Label className="text-xs text-muted-foreground whitespace-nowrap">Taxa Mercado Pago (%)</Label>
+                <div className="flex items-center gap-2">
+                  <Label className="text-xs text-muted-foreground whitespace-nowrap">Taxa PIX (%)</Label>
                   <Input
                     type="text"
                     inputMode="decimal"
@@ -777,8 +777,22 @@ export default function AdminCaixa() {
                     className="w-24"
                     placeholder="0,99"
                   />
-                  <span className="text-xs text-muted-foreground">Aplicada automaticamente a cada venda</span>
                 </div>
+                <div className="flex items-center gap-2">
+                  <Label className="text-xs text-muted-foreground whitespace-nowrap">Taxa Cartão (%)</Label>
+                  <Input
+                    type="text"
+                    inputMode="decimal"
+                    value={mpCardFeeRate.toFixed(2).replace(".", ",")}
+                    onChange={(e) => {
+                      const val = parseBRL(e.target.value);
+                      if (val >= 0 && val <= 15) setMpCardFeeRate(val);
+                    }}
+                    className="w-24"
+                    placeholder="4,98"
+                  />
+                </div>
+                <span className="text-xs text-muted-foreground">Aplicadas automaticamente a cada venda</span>
               </div>
             )}
 
