@@ -218,6 +218,9 @@ export default function Checkout() {
       if (!user) return;
       const { count } = await supabase.from("orders").select("id", { count: "exact", head: true }).eq("user_id", user.id).in("status", ["completed", "paid"]);
       setIsFirstPurchase((count ?? 0) === 0);
+      // Check if card payment is enabled for this user
+      const { data: profile } = await supabase.from("profiles").select("card_payment_enabled").eq("user_id", user.id).single();
+      setCardEnabled(profile?.card_payment_enabled ?? false);
     };
     checkFirstPurchase();
   }, []);
