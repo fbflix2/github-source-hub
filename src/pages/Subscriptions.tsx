@@ -310,11 +310,11 @@ function SafeBmPanel() {
         <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-5">
           <Shield className="text-primary size-6" />
         </div>
-        <h2 className="text-xl font-bold text-foreground mb-2">Nenhum cofre Safe BM ativo</h2>
-        <p className="text-text-secondary text-sm text-center max-w-md mb-6">Proteja suas BMs com backup automático e acesso seguro.</p>
-        <a href="/saiba-mais-safebm" className="bg-primary hover:bg-[#00c968] text-background h-11 px-6 rounded-xl text-sm font-bold transition-all shadow-glow flex items-center gap-2">
+        <h2 className="text-xl font-bold text-foreground mb-2">Configure seu cofre Safe BM</h2>
+        <p className="text-text-secondary text-sm text-center max-w-md mb-6">Adicione suas BMs ao cofre para ativar a proteção com backup automático e acesso seguro.</p>
+        <a href="/safe-bm" className="bg-primary hover:bg-[#00c968] text-background h-11 px-6 rounded-xl text-sm font-bold transition-all shadow-glow flex items-center gap-2">
           <Shield className="size-4" />
-          Conhecer Safe BM
+          Configurar Cofre
         </a>
       </div>
     );
