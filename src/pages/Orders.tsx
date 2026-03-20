@@ -201,7 +201,8 @@ export default function Orders() {
     return order.status === activeFilter;
   });
 
-  const status = selectedOrder ? (statusConfig[selectedOrder.status] || statusConfig.processing) : null;
+  const effectiveStatus = selectedOrder ? getEffectiveStatus(selectedOrder) : null;
+  const status = selectedOrder ? (statusConfig[effectiveStatus!] || statusConfig.processing) : null;
   const subtotal = selectedOrder ? selectedOrder.items.reduce((acc, item) => acc + item.price * item.quantity, 0) : 0;
 
   if (loading) {
