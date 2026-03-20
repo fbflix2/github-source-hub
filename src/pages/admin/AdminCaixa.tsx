@@ -393,9 +393,13 @@ export default function AdminCaixa() {
     if (!openCash) return;
     setSaving(true);
     try {
-      const totalEntries = movements.filter(m => m.type === "entry").reduce((s, m) => s + m.amount, 0);
-      const totalExits = movements.filter(m => m.type === "exit").reduce((s, m) => s + m.amount, 0);
-      const closingBalance = openCash.opening_balance + totalEntries - totalExits;
+      // For closing, use only movements BEFORE today (previous day's balance)
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const previousMovements = movements.filter(m => new Date(m.created_at) < todayStart);
+      const prevEntries = previousMovements.filter(m => m.type === "entry").reduce((s, m) => s + m.amount, 0);
+      const prevExits = previousMovements.filter(m => m.type === "exit").reduce((s, m) => s + m.amount, 0);
+      const closingBalance = openCash.opening_balance + prevEntries - prevExits;
 
       const { error } = await supabase
         .from("cash_register")
@@ -406,9 +410,9 @@ export default function AdminCaixa() {
           system_expenses: systemExpenses,
           system_balance: systemRevenue - systemExpenses,
           bank_balance: closingBalance,
-          withdrawals: totalExits,
-          deposits: totalEntries,
-          difference: totalEntries - totalExits,
+          withdrawals: prevExits,
+          deposits: prevEntries,
+          difference: prevEntries - prevExits,
           notes: closeNotes.trim() || null,
           updated_at: new Date().toISOString(),
         })
@@ -542,6 +546,13 @@ export default function AdminCaixa() {
   const totalExits = movements.filter(m => m.type === "exit").reduce((s, m) => s + m.amount, 0);
   const currentBalance = (openCash?.opening_balance || 0) + totalEntries - totalExits;
   const netChange = totalEntries - totalExits;
+
+  // Closing balance = only previous days (excludes today's movements)
+  const todayStartComputed = new Date();
+  todayStartComputed.setHours(0, 0, 0, 0);
+  const prevDayEntries = movements.filter(m => m.type === "entry" && new Date(m.created_at) < todayStartComputed).reduce((s, m) => s + m.amount, 0);
+  const prevDayExits = movements.filter(m => m.type === "exit" && new Date(m.created_at) < todayStartComputed).reduce((s, m) => s + m.amount, 0);
+  const closingBalanceDisplay = (openCash?.opening_balance || 0) + prevDayEntries - prevDayExits;
 
   if (loading) {
     return (
@@ -861,7 +872,7 @@ export default function AdminCaixa() {
               </div>
               <Button onClick={handleClose} disabled={saving} className="w-full gap-2 bg-red-600 hover:bg-red-700">
                 {saving ? <Loader2 className="size-4 animate-spin" /> : <DoorClosed className="size-4" />}
-                Fechar Caixa • Saldo Final: {formatCurrency(currentBalance)}
+                Fechar Caixa • Saldo Final: {formatCurrency(closingBalanceDisplay)}
               </Button>
             </div>
           </div>
