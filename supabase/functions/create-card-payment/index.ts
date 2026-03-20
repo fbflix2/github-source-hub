@@ -138,7 +138,15 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         transaction_amount: numericAmount,
         description: order_id ? `Pedido - ${paymentCode}` : `Recarga de saldo - ${paymentCode}`,
-        payer: { email: userEmail },
+        payer: {
+          email: userEmail,
+          first_name: profile?.full_name?.split(" ")[0] || "Cliente",
+          last_name: profile?.full_name?.split(" ").slice(1).join(" ") || "FBFLIX",
+          identification: {
+            type: "CPF",
+            number: (profile?.cpf || "").replace(/\D/g, ""),
+          },
+        },
         token: cardToken,
         installments: 1,
         external_reference: payment.id,
