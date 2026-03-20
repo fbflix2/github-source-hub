@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
 
     const { data: profile } = await supabaseAdmin
       .from("profiles")
-      .select("card_payment_enabled")
+      .select("card_payment_enabled, full_name, cpf")
       .eq("user_id", userId)
       .single();
 
@@ -61,6 +61,10 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Get real user email
+    const { data: userData } = await supabaseAdmin.auth.admin.getUserById(userId);
+    const userEmail = userData?.user?.email || `comprador-${userId.slice(0, 8)}@pagamento.com`;
 
     const { amount, order_id, token: cardToken, proxy_data } = await req.json();
     const numericAmount = Number(amount);
@@ -78,9 +82,6 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    // Payer email
-    const userEmail = `comprador-${userId.slice(0, 8)}@pagamento.com`;
 
     // Create payment record
     const paymentCode = `CARD-${Date.now()}`;
