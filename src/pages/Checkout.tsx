@@ -1012,13 +1012,23 @@ export default function Checkout() {
                   <span className="font-medium text-xs text-foreground">Pix</span>
                 </div>
               </label>
-              <div className="relative cursor-not-allowed group">
-                <div className="flex flex-col items-center justify-center gap-1 rounded-lg border border-border p-3 text-center opacity-50">
-                  <CreditCard className="w-6 h-6 text-muted-foreground" />
-                  <span className="font-medium text-xs text-foreground">Cartão</span>
+              {cardEnabled ? (
+                <label className="cursor-pointer group">
+                  <input type="radio" name="payment_method" checked={paymentMethod === "cartao"} onChange={() => setPaymentMethod("cartao")} className="peer sr-only" />
+                  <div className="flex flex-col items-center justify-center gap-1 rounded-lg border border-border p-3 text-center transition-all peer-checked:border-primary peer-checked:bg-primary/20 hover:bg-muted/50">
+                    <CreditCard className="w-6 h-6 text-muted-foreground" />
+                    <span className="font-medium text-xs text-foreground">Cartão</span>
+                  </div>
+                </label>
+              ) : (
+                <div className="relative cursor-not-allowed group">
+                  <div className="flex flex-col items-center justify-center gap-1 rounded-lg border border-border p-3 text-center opacity-50">
+                    <CreditCard className="w-6 h-6 text-muted-foreground" />
+                    <span className="font-medium text-xs text-foreground">Cartão</span>
+                  </div>
+                  <span className="absolute -top-2 -right-2 bg-amber-500 text-black text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none">EM BREVE</span>
                 </div>
-                <span className="absolute -top-2 -right-2 bg-amber-500 text-black text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none">EM BREVE</span>
-              </div>
+              )}
             </div>
 
             {/* Card Form (show only when card is selected) */}
