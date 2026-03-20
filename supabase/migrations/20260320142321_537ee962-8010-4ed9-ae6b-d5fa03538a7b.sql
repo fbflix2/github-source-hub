@@ -1,0 +1,2 @@
+INSERT INTO cash_movements (cash_register_id, type, source, amount, description)
+VALUES ('0330e074-fe72-4c22-8ece-086393b4d243', 'exit', 'manual', 108.91, '🔧 Ajuste de conciliação bancária - correção de saldo para R$ 11.477,86');
