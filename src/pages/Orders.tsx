@@ -336,7 +336,6 @@ export default function Orders() {
                           Presente
                         </span>
                       )}
-                      </span>
                     </div>
                     <p className="text-muted-foreground text-xs">{formatDateFull(selectedOrder.created_at)}</p>
                   </div>
