@@ -225,10 +225,69 @@ export default function Checkout() {
     checkFirstPurchase();
   }, []);
 
-  // Fetch available bump products from DB (excluding main product)
+  // Fetch bumps: prefer admin-configured, fallback to smart auto-detection
   useEffect(() => {
     if (!product) return;
     const fetchBumps = async () => {
+      // 1. Check for admin-configured bumps
+      const { data: configuredBumps } = await supabase
+        .from("order_bumps")
+        .select("*")
+        .eq("product_id", product.id)
+        .eq("active", true)
+        .order("position", { ascending: true });
+
+      if (configuredBumps && configuredBumps.length > 0) {
+        // Fetch bump product details
+        const bumpProductIds = configuredBumps.map((b: any) => b.bump_product_id);
+        const { data: bumpProds } = await supabase
+          .from("products")
+          .select("id, name, description, price, image_url, tags, icon_type")
+          .in("id", bumpProductIds);
+
+        const productsMap = new Map((bumpProds || []).map((p: any) => [p.id, p]));
+
+        // Set main promo bump
+        const mainBump = configuredBumps.find((b: any) => b.bump_type === "main");
+        if (mainBump) {
+          const mainProd = productsMap.get(mainBump.bump_product_id);
+          if (mainProd) {
+            const bumpPrice = mainBump.fixed_price != null
+              ? mainBump.fixed_price
+              : mainProd.price * (1 - (mainBump.discount_percent || 0) / 100);
+            setPromoProxy({
+              ...mainProd,
+              price: bumpPrice,
+              _originalPrice: mainProd.price,
+              _label: mainBump.label || "OPORTUNIDADE ÚNICA",
+            } as any);
+          }
+        } else {
+          setPromoProxy(null);
+        }
+
+        // Set secondary bumps with discounts applied
+        const secondaryBumps = configuredBumps
+          .filter((b: any) => b.bump_type === "secondary")
+          .map((b: any) => {
+            const prod = productsMap.get(b.bump_product_id);
+            if (!prod) return null;
+            const finalPrice = b.fixed_price != null
+              ? b.fixed_price
+              : prod.price * (1 - (b.discount_percent || 0) / 100);
+            return {
+              ...prod,
+              price: finalPrice,
+              _originalPrice: prod.price,
+              _hasDiscount: b.fixed_price != null || b.discount_percent > 0,
+            };
+          })
+          .filter(Boolean);
+        setBumpProducts(secondaryBumps);
+        return;
+      }
+
+      // 2. Fallback: smart auto-detection (existing logic)
       const { data } = await supabase
         .from("products")
         .select("id, name, description, price, image_url, tags, icon_type")
@@ -238,25 +297,18 @@ export default function Checkout() {
         .order("price", { ascending: true })
         .limit(10);
       setBumpProducts(data || []);
-    };
-    // Fetch the specific promo proxy by ID
-    const fetchPromoProxy = async () => {
+
+      // Fallback promo proxy
       const PROMO_PROXY_ID = "6c396fa8-f6a0-43b2-8061-9148213df549";
       if (product.id === PROMO_PROXY_ID) { setPromoProxy(null); return; }
-      const { data, error } = await supabase
+      const { data: promoData } = await supabase
         .from("products")
         .select("id, name, description, price, image_url, tags, icon_type")
         .eq("id", PROMO_PROXY_ID)
         .maybeSingle();
-      console.log("[PromoProxy] fetch result:", { data, error, productId: product.id, isProxy: product.icon_type });
-      if (data && data.id) {
-        setPromoProxy(data);
-      } else {
-        setPromoProxy(null);
-      }
+      setPromoProxy(promoData || null);
     };
     fetchBumps();
-    fetchPromoProxy();
   }, [product]);
 
   // Create draft order when entering checkout (for abandoned cart tracking)
