@@ -11,9 +11,15 @@ const SAFE_EMAIL = "equipefbflix@gmail.com";
 export default function SafeBMOnboarding() {
   const [bmCount, setBmCount] = useState(1);
   const [bmNames, setBmNames] = useState<string[]>([""]);
-  const [submitted, setSubmitted] = useState(false);
+  const [submitted, setSubmitted] = useState(() => {
+    const saved = localStorage.getItem("safebm_onboarding_submitted");
+    return saved === "true";
+  });
   const [clientName, setClientName] = useState("");
-  const [submittedAt, setSubmittedAt] = useState<Date | null>(null);
+  const [submittedAt, setSubmittedAt] = useState<Date | null>(() => {
+    const saved = localStorage.getItem("safebm_onboarding_submitted_at");
+    return saved ? new Date(saved) : null;
+  });
   const [countdown, setCountdown] = useState("");
 
   useEffect(() => {
