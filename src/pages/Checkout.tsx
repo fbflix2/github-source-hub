@@ -226,48 +226,19 @@ export default function Checkout() {
     checkFirstPurchase();
   }, []);
 
-  // Initialize MercadoPago Secure Fields when card payment is selected
-  useEffect(() => {
-    if (paymentMethod !== "cartao" || fieldsInitializedRef.current) return;
-
-    const mpPublicKey = import.meta.env.VITE_MERCADOPAGO_PUBLIC_KEY;
-    if (!mpPublicKey || !(window as any).MercadoPago) return;
-
-    // Small delay to ensure DOM containers exist
-    const timer = setTimeout(() => {
-      try {
-        const mp = new (window as any).MercadoPago(mpPublicKey, { locale: "pt-BR" });
-        mpInstanceRef.current = mp;
-
-        const style = {
-          height: "100%",
-          width: "100%",
-          "font-size": "14px",
-          "font-family": "inherit",
-          color: "#e0e0e0",
-          "padding-left": "12px",
-        };
-
-        const cardNumber = mp.fields.create("cardNumber", { placeholder: "0000 0000 0000 0000", style }).mount("mp-card-number");
-        const expirationDate = mp.fields.create("expirationDate", { placeholder: "MM/AA", style }).mount("mp-expiration-date");
-        const securityCode = mp.fields.create("securityCode", { placeholder: "123", style }).mount("mp-security-code");
-
-        cardFieldsRef.current = { cardNumber, expirationDate, securityCode };
-        fieldsInitializedRef.current = true;
-      } catch (err) {
-        console.error("MP Fields init error:", err);
-      }
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [paymentMethod]);
-
-  // Reset fields when switching away from card
+  // Initialize MercadoPago instance when card payment is selected
   useEffect(() => {
     if (paymentMethod !== "cartao") {
-      fieldsInitializedRef.current = false;
-      cardFieldsRef.current = null;
       mpInstanceRef.current = null;
+      return;
+    }
+    const mpPublicKey = import.meta.env.VITE_MERCADOPAGO_PUBLIC_KEY;
+    if (!mpPublicKey || !(window as any).MercadoPago) return;
+    try {
+      const mp = new (window as any).MercadoPago(mpPublicKey, { locale: "pt-BR" });
+      mpInstanceRef.current = mp;
+    } catch (err) {
+      console.error("MP init error:", err);
     }
   }, [paymentMethod]);
 
