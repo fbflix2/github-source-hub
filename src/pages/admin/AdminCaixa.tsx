@@ -383,8 +383,11 @@ export default function AdminCaixa() {
         .filter((o) => isBankPaymentMethod(o.payment_method))
         .forEach((o) => {
           const total = Number(o.total || 0);
-          const fee = Math.round(total * mpFeeRate) / 100;
+          const feeRate = isCardPayment(o.payment_method) ? mpCardFeeRate : mpFeeRate;
+          const fee = Math.round(total * feeRate) / 100;
           const refId = `venda-${o.code}`;
+          const label = getPaymentLabel(o.payment_method);
+          const emoji = getPaymentEmoji(o.payment_method);
 
           // Check both new format (venda-CODE) and legacy format (CODE) to avoid duplicates
           if (!existingRefs.has(refId) && !existingRefs.has(o.code)) {
@@ -393,7 +396,7 @@ export default function AdminCaixa() {
               type: "entry",
               source: "automatic",
               amount: total,
-              description: `🛒 Venda PIX #${o.code} (pedido pago via PIX)`,
+              description: `${emoji} Venda ${label} #${o.code} (pedido pago via ${label})`,
               reference_id: refId,
             });
           }
@@ -403,7 +406,7 @@ export default function AdminCaixa() {
               type: "exit",
               source: "automatic",
               amount: fee,
-              description: `Taxa MP ${mpFeeRate.toFixed(2).replace(".", ",")}% - Venda #${o.code}`,
+              description: `Taxa MP ${feeRate.toFixed(2).replace(".", ",")}% (${label}) - Venda #${o.code}`,
               reference_id: `fee-${o.code}`,
             });
           }
@@ -450,7 +453,7 @@ export default function AdminCaixa() {
       }
     };
     syncAutoMovements();
-  }, [openCash?.id, openCash?.opened_at, mpFeeRate]);
+  }, [openCash?.id, openCash?.opened_at, mpFeeRate, mpCardFeeRate]);
 
   // ── Actions ──
   const handleOpen = async () => {
