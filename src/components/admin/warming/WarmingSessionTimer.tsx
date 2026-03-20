@@ -76,6 +76,7 @@ export default function WarmingSessionTimer({
   const [timerStart, setTimerStart] = useState<number | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [isDelaying, setIsDelaying] = useState(false);
+  const [confirmStatus, setConfirmStatus] = useState<{ status: string; label: string } | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const delayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const timerStartRef = useRef(timerStart);
