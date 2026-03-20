@@ -548,9 +548,22 @@ export default function AdminAquecimento() {
           {(() => {
             const myProfiles = currentUserId ? profiles.filter(p => p.created_by === currentUserId) : profiles;
             const todayStart = new Date(); todayStart.setHours(0,0,0,0);
-            const myToday = myProfiles.filter(p => new Date(p.created_at) >= todayStart).length;
             const weekStart = new Date(todayStart); weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-            const myWeek = myProfiles.filter(p => new Date(p.created_at) >= weekStart).length;
+            
+            // Count unique profiles that had tasks completed today/this week
+            const profilesWorkedToday = new Set<string>();
+            const profilesWorkedThisWeek = new Set<string>();
+            myProfiles.forEach(p => {
+              (tasks[p.id] || []).forEach(t => {
+                if (t.completed && t.completed_at) {
+                  const completedTime = new Date(t.completed_at).getTime();
+                  if (completedTime >= todayStart.getTime()) profilesWorkedToday.add(p.id);
+                  if (completedTime >= weekStart.getTime()) profilesWorkedThisWeek.add(p.id);
+                }
+              });
+            });
+            const myToday = profilesWorkedToday.size;
+            const myWeek = profilesWorkedThisWeek.size;
             const myActive = myProfiles.filter(p => p.status === "active").length;
             const myCompleted = myProfiles.filter(p => p.status === "completed").length;
             let myTotalTime = 0;
