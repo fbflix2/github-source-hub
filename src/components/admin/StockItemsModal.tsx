@@ -45,6 +45,7 @@ export function StockItemsModal({ open, onOpenChange, productId, productName }: 
       .select("id, name, status, identification, identification_link, data, order_item_id, created_at")
       .eq("product_id", productId)
       .is("deleted_at", null)
+      .is("parent_id", null)
       .order("created_at", { ascending: false })
       .then(({ data }) => {
         setItems((data as unknown as StockItem[]) ?? []);
