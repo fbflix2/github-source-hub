@@ -872,7 +872,7 @@ export default function AdminCaixa() {
               </div>
               <Button onClick={handleClose} disabled={saving} className="w-full gap-2 bg-red-600 hover:bg-red-700">
                 {saving ? <Loader2 className="size-4 animate-spin" /> : <DoorClosed className="size-4" />}
-                Fechar Caixa • Saldo Final: {formatCurrency(currentBalance)}
+                Fechar Caixa • Saldo Final: {formatCurrency(closingBalanceDisplay)}
               </Button>
             </div>
           </div>
