@@ -547,6 +547,13 @@ export default function AdminCaixa() {
   const currentBalance = (openCash?.opening_balance || 0) + totalEntries - totalExits;
   const netChange = totalEntries - totalExits;
 
+  // Closing balance = only previous days (excludes today's movements)
+  const todayStartComputed = new Date();
+  todayStartComputed.setHours(0, 0, 0, 0);
+  const prevDayEntries = movements.filter(m => m.type === "entry" && new Date(m.created_at) < todayStartComputed).reduce((s, m) => s + m.amount, 0);
+  const prevDayExits = movements.filter(m => m.type === "exit" && new Date(m.created_at) < todayStartComputed).reduce((s, m) => s + m.amount, 0);
+  const closingBalanceDisplay = (openCash?.opening_balance || 0) + prevDayEntries - prevDayExits;
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
