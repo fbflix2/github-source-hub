@@ -220,14 +220,21 @@ export default function AdminCaixa() {
           isBankPaymentMethod(order.payment_method) &&
           new Date(order.created_at) >= new Date(openedAt)
         ) {
-          const { data: existing } = await supabase
+          // Check both new and legacy format to avoid duplicates
+          const { data: existingNew } = await supabase
             .from("cash_movements")
             .select("id")
             .eq("cash_register_id", cashId)
             .eq("reference_id", `venda-${order.code}`)
             .maybeSingle();
+          const { data: existingLegacy } = await supabase
+            .from("cash_movements")
+            .select("id")
+            .eq("cash_register_id", cashId)
+            .eq("reference_id", order.code)
+            .maybeSingle();
 
-          if (!existing) {
+          if (!existingNew && !existingLegacy) {
             const total = Number(order.total || 0);
             const fee = Math.round(total * mpFeeRate) / 100;
             const movs: any[] = [
