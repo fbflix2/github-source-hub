@@ -393,9 +393,13 @@ export default function AdminCaixa() {
     if (!openCash) return;
     setSaving(true);
     try {
-      const totalEntries = movements.filter(m => m.type === "entry").reduce((s, m) => s + m.amount, 0);
-      const totalExits = movements.filter(m => m.type === "exit").reduce((s, m) => s + m.amount, 0);
-      const closingBalance = openCash.opening_balance + totalEntries - totalExits;
+      // For closing, use only movements BEFORE today (previous day's balance)
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const previousMovements = movements.filter(m => new Date(m.created_at) < todayStart);
+      const prevEntries = previousMovements.filter(m => m.type === "entry").reduce((s, m) => s + m.amount, 0);
+      const prevExits = previousMovements.filter(m => m.type === "exit").reduce((s, m) => s + m.amount, 0);
+      const closingBalance = openCash.opening_balance + prevEntries - prevExits;
 
       const { error } = await supabase
         .from("cash_register")
@@ -406,9 +410,9 @@ export default function AdminCaixa() {
           system_expenses: systemExpenses,
           system_balance: systemRevenue - systemExpenses,
           bank_balance: closingBalance,
-          withdrawals: totalExits,
-          deposits: totalEntries,
-          difference: totalEntries - totalExits,
+          withdrawals: prevExits,
+          deposits: prevEntries,
+          difference: prevEntries - prevExits,
           notes: closeNotes.trim() || null,
           updated_at: new Date().toISOString(),
         })
