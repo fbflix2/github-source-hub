@@ -523,11 +523,11 @@ export default function Orders() {
                     <div className="flex-1">
                       <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Pagamento</h4>
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-6 rounded bg-muted flex items-center justify-center border border-border">
-                          <span className="material-symbols-outlined text-foreground text-[14px]">credit_card</span>
+                        <div className={`w-9 h-6 rounded flex items-center justify-center border ${effectiveStatus === "courtesy" ? "bg-violet-500/10 border-violet-500/20" : "bg-muted border-border"}`}>
+                          <span className="material-symbols-outlined text-foreground text-[14px]">{effectiveStatus === "courtesy" ? "card_giftcard" : "credit_card"}</span>
                         </div>
                         <p className="text-foreground text-xs font-medium">
-                          {selectedOrder.payment_method || "PIX"} {selectedOrder.payment_last4 && `final ${selectedOrder.payment_last4}`}
+                          {effectiveStatus === "courtesy" ? "Cortesia" : (selectedOrder.payment_method || "PIX")} {selectedOrder.payment_last4 && `final ${selectedOrder.payment_last4}`}
                         </p>
                       </div>
                     </div>
