@@ -466,11 +466,17 @@ export default function AdminCobrancaAvulsa() {
                       </td>
                       <td className="py-2 px-2">
                         <div className="flex gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => { setSelectedInvoice(inv); setShowDetailModal(true); }} title="Ver detalhes">
+                            <Eye className="size-3.5" />
+                          </Button>
                           <Button variant="ghost" size="sm" onClick={() => copyLink(inv.code)} title="Copiar link">
                             <Copy className="size-3.5" />
                           </Button>
-                          <Button variant="ghost" size="sm" onClick={() => window.open(getPublicLink(inv.code), "_blank")} title="Abrir link">
-                            <ExternalLink className="size-3.5" />
+                          <Button variant="ghost" size="sm" onClick={() => {
+                            const msg = `Olá ${inv.client_name || ""}! 👋\n\nVocê tem uma cobrança pendente na *FBFLIX*:\n\n📦 *${inv.product_name}*\n💰 *R$ ${Number(inv.amount).toFixed(2)}*\n\n🔗 ${getPublicLink(inv.code)}\n\nQualquer dúvida, estamos à disposição! ✅`;
+                            window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
+                          }} title="Enviar WhatsApp">
+                            <MessageCircle className="size-3.5" />
                           </Button>
                         </div>
                       </td>
@@ -482,6 +488,12 @@ export default function AdminCobrancaAvulsa() {
           )}
         </CardContent>
       </Card>
+
+      <InvoiceDetailModal
+        invoice={selectedInvoice}
+        open={showDetailModal}
+        onOpenChange={setShowDetailModal}
+      />
     </div>
   );
 }
