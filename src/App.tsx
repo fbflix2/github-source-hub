@@ -96,6 +96,7 @@ import AdminCaixa from "./pages/admin/AdminCaixa";
 import AdminSafeBM from "./pages/admin/AdminSafeBM";
 import AdminContingencia from "./pages/admin/AdminContingencia";
 import AdminCobrancaAvulsa from "./pages/admin/AdminCobrancaAvulsa";
+import AdminDashFabricio from "./pages/admin/AdminDashFabricio";
 import { AdminLayout } from "./components/admin/AdminLayout";
 
 // Layout
@@ -363,6 +364,7 @@ const App = () => {
                   <Route path="safe-bm" element={<AdminSafeBM />} />
                   <Route path="contingencia" element={<AdminContingencia />} />
                   <Route path="cobranca-avulsa" element={<AdminCobrancaAvulsa />} />
+                  <Route path="dash-fabricio" element={<AdminDashFabricio />} />
                 </Route>
 
                 {/* Protected routes */}
