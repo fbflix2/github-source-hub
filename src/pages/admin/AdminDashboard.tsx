@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Users, Receipt, Wallet, TrendingUp, Database, CheckCircle, Clock, AlertTriangle, RefreshCw, User, Briefcase, Globe, MoreVertical, Loader2, X, ExternalLink, Eye, EyeOff } from "lucide-react";
+import { Users, Receipt, Wallet, TrendingUp, Database, CheckCircle, Clock, AlertTriangle, RefreshCw, User, Briefcase, Globe, MoreVertical, Loader2, X, ExternalLink, Eye, EyeOff, Shield, Server } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -286,14 +286,42 @@ export default function AdminDashboard() {
       const sortedEntries = Object.entries(monthMap).sort(([a], [b]) => a.localeCompare(b)).slice(-7);
       setChartData(sortedEntries.map(([isoKey, value]) => ({ name: dateKeyMap[isoKey] || isoKey, value })));
 
-      setCategoryStats(cats.map(c => {
+      const productCategoryStats = cats.map(c => {
         const shouldZero = zeroedCategories.includes(c.name.toLowerCase().trim());
         return {
           name: c.name,
           sales: shouldZero ? 0 : (catStats[c.id]?.sales ?? 0),
           revenue: shouldZero ? 0 : (catStats[c.id]?.revenue ?? 0),
         };
-      }));
+      });
+
+      // Fetch service-based sales (Safe BM + Contingência)
+      const [safeBmRes, ctClientsRes, ctInvoicesRes] = await Promise.all([
+        supabase.from("safe_bm_vaults").select("id, subscription_price, status"),
+        supabase.from("ct_clients").select("id, monthly_value, status"),
+        supabase.from("invoice_links").select("id, amount, status, product_name").eq("status", "paid"),
+      ]);
+
+      const safeBmVaults = (safeBmRes.data ?? []).filter(v => v.status !== 'pending_setup');
+      const safeBmSales = safeBmVaults.length;
+      const safeBmRevenue = safeBmVaults.reduce((s, v) => s + (Number(v.subscription_price) || 0), 0);
+
+      const ctClients = (ctClientsRes.data ?? []).filter(c => c.status === 'ativo');
+      const ctInvoices = (ctInvoicesRes.data ?? []).filter(inv => 
+        (inv.product_name || '').toLowerCase().includes('contingência') || 
+        (inv.product_name || '').toLowerCase().includes('contingencia') ||
+        (inv.product_name || '').toLowerCase().includes('plano black') ||
+        (inv.product_name || '').toLowerCase().includes('plano white')
+      );
+      const ctSales = ctClients.length + ctInvoices.length;
+      const ctRevenue = ctClients.reduce((s, c) => s + (Number(c.monthly_value) || 0), 0) + 
+                        ctInvoices.reduce((s, inv) => s + (Number(inv.amount) || 0), 0);
+
+      setCategoryStats([
+        ...productCategoryStats,
+        { name: "Safe BM", sales: safeBmSales, revenue: safeBmRevenue },
+        { name: "Contingência", sales: ctSales, revenue: ctRevenue },
+      ]);
 
       // Calculate replacement rate for current month (non-proxy products)
       const replNow = new Date();
@@ -348,8 +376,8 @@ export default function AdminDashboard() {
     return `R$ ${v.toFixed(2).replace(".", ",")}`;
   };
 
-  const catColors = ["bg-blue-500", "bg-purple-500", "bg-primary", "bg-cyan-500"];
-  const catIcons = [User, Briefcase, Database, Globe];
+  const catColors = ["bg-blue-500", "bg-purple-500", "bg-primary", "bg-cyan-500", "bg-emerald-500", "bg-orange-500"];
+  const catIcons = [User, Briefcase, Database, Globe, Shield, Server];
 
   const periodLabels: Record<string, string> = { hoje: "Hoje", "7dias": "7 Dias", "30dias": "30 Dias" };
 
