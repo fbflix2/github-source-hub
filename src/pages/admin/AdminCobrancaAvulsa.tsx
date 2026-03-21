@@ -181,7 +181,43 @@ export default function AdminCobrancaAvulsa() {
   };
 
   const handleSubmit = async () => {
-    if (!selectedClient || !productName || !amount || Number(amount) < 1) {
+    let resolvedClient = selectedClient;
+
+    if (!resolvedClient && clientSearch.trim()) {
+      const searchValue = clientSearch.trim();
+      const searchLower = searchValue.toLowerCase();
+
+      resolvedClient = clients.find((client) => {
+        const email = (client.email || "").toLowerCase();
+        const fullName = (client.full_name || "").toLowerCase();
+        return email === searchLower || fullName === searchLower;
+      }) || null;
+
+      if (!resolvedClient && searchLower.includes("@")) {
+        const { data: userId } = await supabase.rpc("get_user_id_by_email", {
+          target_email: searchLower,
+        });
+
+        if (userId) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("user_id, full_name")
+            .eq("user_id", userId)
+            .maybeSingle();
+
+          if (profile) {
+            resolvedClient = {
+              user_id: profile.user_id,
+              full_name: profile.full_name,
+              email: searchValue,
+            };
+            setSelectedClient(resolvedClient);
+          }
+        }
+      }
+    }
+
+    if (!resolvedClient || !productName || !amount || Number(amount) < 1) {
       toast.error("Preencha todos os campos obrigatórios");
       return;
     }
@@ -190,9 +226,9 @@ export default function AdminCobrancaAvulsa() {
     try {
       const { data, error } = await supabase.functions.invoke("create-invoice-link", {
         body: {
-          client_user_id: selectedClient.user_id,
-          client_name: selectedClient.full_name,
-          client_email: selectedClient.email,
+          client_user_id: resolvedClient.user_id,
+          client_name: resolvedClient.full_name,
+          client_email: resolvedClient.email,
           product_name: productName,
           product_id: selectedProductId !== "custom" ? selectedProductId : null,
           amount: Number(amount),
