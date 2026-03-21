@@ -67,6 +67,18 @@ export default function AdminCobrancaAvulsa() {
 
     const searchLower = clientSearch.toLowerCase();
     const timer = setTimeout(async () => {
+      // Auto-select if exact email match
+      if (searchLower.includes("@")) {
+        const exactMatch = clients.find(c => (c.email || "").toLowerCase() === searchLower);
+        if (exactMatch) {
+          setSelectedClient(exactMatch);
+          setClientSearch("");
+          setShowClientDropdown(false);
+          setFilteredClients([]);
+          return;
+        }
+      }
+
       // Search by name in profiles
       const { data: byName } = await supabase
         .from("profiles")
@@ -86,34 +98,9 @@ export default function AdminCobrancaAvulsa() {
         !results.some(r => r.user_id === c.user_id)
       ).slice(0, 5);
 
-      // If search looks like an email and no matches found, try to find by email via edge function
-      if (searchLower.includes("@") && emailMatches.length === 0) {
-        try {
-          const { data: emailRes } = await supabase.functions.invoke("list-user-emails", {
-            body: { search_email: clientSearch }
-          });
-          if (emailRes?.users?.length) {
-            for (const u of emailRes.users) {
-              if (!results.some(r => r.user_id === u.id)) {
-                // Get profile name
-                const { data: prof } = await supabase
-                  .from("profiles")
-                  .select("full_name")
-                  .eq("user_id", u.id)
-                  .single();
-                results.push({
-                  user_id: u.id,
-                  full_name: prof?.full_name || u.email,
-                  email: u.email,
-                });
-              }
-            }
-          }
-        } catch { /* ignore */ }
-      }
-
-      setFilteredClients([...results, ...emailMatches].slice(0, 10));
-      setShowClientDropdown(true);
+      const combined = [...results, ...emailMatches].slice(0, 10);
+      setFilteredClients(combined);
+      setShowClientDropdown(combined.length > 0);
     }, 300);
 
     return () => clearTimeout(timer);
