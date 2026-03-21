@@ -44,7 +44,7 @@ export default function InvoiceDetailModal({ invoice, open, onOpenChange }: Prop
   const shareLink = `https://${projectId}.supabase.co/functions/v1/invoice-og?code=${invoice.code}`;
   const directLink = `${window.location.origin}/pagar/${invoice.code}`;
 
-  const whatsappMessage = `Olá ${invoice.client_name || ""}! 👋\n\nVocê tem uma cobrança pendente na *FBFLIX*:\n\n📦 *${invoice.product_name}*\n💰 *R$ ${Number(invoice.amount).toFixed(2)}*\n${invoice.description ? `📝 ${invoice.description}\n` : ""}\nAcesse o link abaixo para efetuar o pagamento via PIX:\n🔗 ${publicLink}\n\nQualquer dúvida, estamos à disposição! ✅`;
+  const whatsappMessage = `Olá ${invoice.client_name || ""}! 👋\n\nVocê tem uma cobrança pendente na *FBFLIX*:\n\n📦 *${invoice.product_name}*\n💰 *R$ ${Number(invoice.amount).toFixed(2)}*\n${invoice.description ? `📝 ${invoice.description}\n` : ""}\nAcesse o link abaixo para efetuar o pagamento via PIX:\n🔗 ${shareLink}\n\nQualquer dúvida, estamos à disposição! ✅`;
 
   const copyPixCode = () => {
     if (invoice.qr_code) {
@@ -141,7 +141,7 @@ export default function InvoiceDetailModal({ invoice, open, onOpenChange }: Prop
             </Button>
           </div>
           <Button
-            onClick={() => window.open(publicLink, "_blank")}
+            onClick={() => window.open(directLink, "_blank")}
             variant="outline"
             className="w-full gap-2"
           >
@@ -154,7 +154,7 @@ export default function InvoiceDetailModal({ invoice, open, onOpenChange }: Prop
         <div className="text-xs text-muted-foreground space-y-1 pt-2 border-t border-border">
           <p>Criado em: {format(new Date(invoice.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</p>
           <p>Expira em: {format(new Date(invoice.expires_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</p>
-          <p>Link: <span className="font-mono text-xs break-all">{publicLink}</span></p>
+          <p>Link: <span className="font-mono text-xs break-all">{shareLink}</span></p>
         </div>
       </DialogContent>
     </Dialog>
