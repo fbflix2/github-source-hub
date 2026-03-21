@@ -118,54 +118,51 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
   }
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-4">
       {/* KPIs Centrais */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {/* Saldo Total */}
-        <div className="p-6 rounded-xl border-l-4 border-[#1976d2] relative overflow-hidden" style={{ background: "#0e1c2d" }}>
-          <div className="absolute right-[-10%] top-[-10%] opacity-10">
-            <span className="material-symbols-outlined text-[80px] text-[#a5c8ff]">account_balance</span>
-          </div>
-          <p className="text-sm font-medium tracking-wide mb-2 uppercase text-[#c1c6d4]">Saldo Total</p>
-          <h3 className="text-3xl font-['Manrope'] font-extrabold text-[#d5e4fa]">{formatBRL(patrimonio)}</h3>
-          <div className="mt-4 flex items-center gap-2">
-            <span className={`text-xs font-bold flex items-center ${Number(patrimonioGrowth) >= 0 ? "text-[#40e56c]" : "text-[#ffb4a8]"}`}>
-              <span className="material-symbols-outlined text-sm">{Number(patrimonioGrowth) >= 0 ? "trending_up" : "trending_down"}</span> {patrimonioGrowth}%
+        <div className="p-4 rounded-xl border-l-4 border-[#1976d2] relative overflow-hidden" style={{ background: "#0e1c2d" }}>
+          <p className="text-[10px] font-medium tracking-wide mb-1 uppercase text-[#c1c6d4]">Saldo Total</p>
+          <h3 className="text-xl font-['Manrope'] font-extrabold text-[#d5e4fa]">{formatBRL(patrimonio)}</h3>
+          <div className="mt-2 flex items-center gap-1">
+            <span className={`text-[10px] font-bold flex items-center ${Number(patrimonioGrowth) >= 0 ? "text-[#40e56c]" : "text-[#ffb4a8]"}`}>
+              <span className="material-symbols-outlined text-xs">{Number(patrimonioGrowth) >= 0 ? "trending_up" : "trending_down"}</span> {patrimonioGrowth}%
             </span>
-            <span className="text-slate-500 text-[10px]">vs. mês anterior</span>
+            <span className="text-slate-500 text-[9px]">vs. mês anterior</span>
           </div>
         </div>
 
         {/* Receita Mensal */}
-        <div className="p-6 rounded-xl border-l-4 border-[#40e56c] relative overflow-hidden" style={{ background: "#0e1c2d" }}>
-          <p className="text-sm font-medium tracking-wide mb-2 uppercase text-[#c1c6d4]">Receita Mensal</p>
-          <h3 className="text-3xl font-['Manrope'] font-extrabold text-[#d5e4fa]">{formatBRL(receitaMensal)}</h3>
-          <div className="mt-4 flex items-center gap-2">
-            <span className={`text-xs font-bold flex items-center ${Number(receitaGrowth) >= 0 ? "text-[#40e56c]" : "text-[#ffb4a8]"}`}>
-              <span className="material-symbols-outlined text-sm">{Number(receitaGrowth) >= 0 ? "arrow_upward" : "arrow_downward"}</span> {receitaGrowth}%
+        <div className="p-4 rounded-xl border-l-4 border-[#40e56c] relative overflow-hidden" style={{ background: "#0e1c2d" }}>
+          <p className="text-[10px] font-medium tracking-wide mb-1 uppercase text-[#c1c6d4]">Receita Mensal</p>
+          <h3 className="text-xl font-['Manrope'] font-extrabold text-[#d5e4fa]">{formatBRL(receitaMensal)}</h3>
+          <div className="mt-2 flex items-center gap-1">
+            <span className={`text-[10px] font-bold flex items-center ${Number(receitaGrowth) >= 0 ? "text-[#40e56c]" : "text-[#ffb4a8]"}`}>
+              <span className="material-symbols-outlined text-xs">{Number(receitaGrowth) >= 0 ? "arrow_upward" : "arrow_downward"}</span> {receitaGrowth}%
             </span>
-            <span className="text-slate-500 text-[10px]">vs. mês anterior</span>
+            <span className="text-slate-500 text-[9px]">vs. mês anterior</span>
           </div>
         </div>
 
         {/* Despesa Mensal */}
-        <div className="p-6 rounded-xl border-l-4 border-[#e71a0e] relative overflow-hidden" style={{ background: "#0e1c2d" }}>
-          <p className="text-sm font-medium tracking-wide mb-2 uppercase text-[#c1c6d4]">Despesa Mensal</p>
-          <h3 className="text-3xl font-['Manrope'] font-extrabold text-[#d5e4fa]">{formatBRL(despesaMensal)}</h3>
-          <div className="mt-4 flex items-center gap-2">
-            <span className={`text-xs font-bold flex items-center ${despesaDiff <= 0 ? "text-[#40e56c]" : "text-[#ffb4a8]"}`}>
-              <span className="material-symbols-outlined text-sm">{despesaDiff <= 0 ? "trending_down" : "warning"}</span> {despesaDiff > 0 ? "+" : ""}{formatBRL(despesaDiff)}
+        <div className="p-4 rounded-xl border-l-4 border-[#e71a0e] relative overflow-hidden" style={{ background: "#0e1c2d" }}>
+          <p className="text-[10px] font-medium tracking-wide mb-1 uppercase text-[#c1c6d4]">Despesa Mensal</p>
+          <h3 className="text-xl font-['Manrope'] font-extrabold text-[#d5e4fa]">{formatBRL(despesaMensal)}</h3>
+          <div className="mt-2 flex items-center gap-1">
+            <span className={`text-[10px] font-bold flex items-center ${despesaDiff <= 0 ? "text-[#40e56c]" : "text-[#ffb4a8]"}`}>
+              <span className="material-symbols-outlined text-xs">{despesaDiff <= 0 ? "trending_down" : "warning"}</span> {formatBRL(Math.abs(despesaDiff))}
             </span>
-            <span className="text-slate-500 text-[10px]">vs. mês anterior</span>
+            <span className="text-slate-500 text-[9px]">vs. mês anterior</span>
           </div>
         </div>
 
         {/* Lucro Líquido */}
-        <div className="p-6 rounded-xl border-l-4 border-[#a5c8ff] relative overflow-hidden" style={{ background: "linear-gradient(to bottom right, #0e1c2d, rgba(25, 118, 210, 0.1))" }}>
-          <p className="text-sm font-medium tracking-wide mb-2 uppercase text-[#c1c6d4]">Lucro Líquido</p>
-          <h3 className={`text-3xl font-['Manrope'] font-extrabold ${lucroLiquido >= 0 ? "text-[#40e56c]" : "text-[#ffb4a8]"}`}>{formatBRL(lucroLiquido)}</h3>
-          <div className="mt-4">
-            <span className="px-2 py-1 text-[10px] font-bold rounded-full uppercase" style={{ background: lucroLiquido >= 0 ? "rgba(64, 229, 108, 0.1)" : "rgba(255, 180, 168, 0.1)", color: lucroLiquido >= 0 ? "#40e56c" : "#ffb4a8" }}>
+        <div className="p-4 rounded-xl border-l-4 border-[#a5c8ff] relative overflow-hidden" style={{ background: "linear-gradient(to bottom right, #0e1c2d, rgba(25, 118, 210, 0.1))" }}>
+          <p className="text-[10px] font-medium tracking-wide mb-1 uppercase text-[#c1c6d4]">Lucro Líquido</p>
+          <h3 className={`text-xl font-['Manrope'] font-extrabold ${lucroLiquido >= 0 ? "text-[#40e56c]" : "text-[#ffb4a8]"}`}>{formatBRL(lucroLiquido)}</h3>
+          <div className="mt-2">
+            <span className="px-2 py-0.5 text-[9px] font-bold rounded-full uppercase" style={{ background: lucroLiquido >= 0 ? "rgba(64, 229, 108, 0.1)" : "rgba(255, 180, 168, 0.1)", color: lucroLiquido >= 0 ? "#40e56c" : "#ffb4a8" }}>
               Margem: {margem}%
             </span>
           </div>
@@ -173,17 +170,16 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
       </div>
 
       {/* Bento Grid: Alocação + Evolução */}
-      <div className="grid grid-cols-12 gap-6">
+      <div className="grid grid-cols-12 gap-3">
         {/* Alocação Total */}
-        <div className="col-span-12 lg:col-span-5 rounded-2xl p-8 shadow-lg" style={{ background: "#0e1c2d" }}>
-          <div className="flex justify-between items-center mb-8">
-            <h4 className="font-['Manrope'] font-bold text-xl text-[#d5e4fa]">Alocação Total</h4>
-            <span className="material-symbols-outlined text-slate-500 cursor-pointer">more_vert</span>
+        <div className="col-span-12 lg:col-span-5 rounded-xl p-5 shadow-lg" style={{ background: "#0e1c2d" }}>
+          <div className="flex justify-between items-center mb-4">
+            <h4 className="font-['Manrope'] font-bold text-sm text-[#d5e4fa]">Alocação Total</h4>
+            <span className="material-symbols-outlined text-slate-500 cursor-pointer text-lg">more_vert</span>
           </div>
-          <div className="flex items-center justify-between gap-8">
-            {/* Donut chart simulation */}
-            <div className="relative w-48 h-48 flex items-center justify-center flex-shrink-0">
-              <svg viewBox="0 0 36 36" className="w-48 h-48">
+          <div className="flex items-center justify-between gap-4">
+            <div className="relative w-32 h-32 flex items-center justify-center flex-shrink-0">
+              <svg viewBox="0 0 36 36" className="w-32 h-32">
                 {(() => {
                   let offset = 0;
                   return allocations.map((a) => {
@@ -207,19 +203,18 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
                 })()}
               </svg>
               <div className="absolute text-center">
-                <span className="block text-2xl font-black text-[#d5e4fa]">{allocations[0]?.percent}%</span>
-                <span className="text-[10px] text-slate-500 uppercase font-bold">{allocations[0]?.name}</span>
+                <span className="block text-lg font-black text-[#d5e4fa]">{allocations[0]?.percent}%</span>
+                <span className="text-[8px] text-slate-500 uppercase font-bold">{allocations[0]?.name}</span>
               </div>
             </div>
-            {/* Legend */}
-            <div className="flex-1 space-y-4">
+            <div className="flex-1 space-y-2">
               {allocations.map((a) => (
                 <div key={a.name} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="w-3 h-3 rounded-sm" style={{ background: a.color }}></span>
-                    <span className="text-sm font-medium text-[#d5e4fa]">{a.name}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-sm" style={{ background: a.color }}></span>
+                    <span className="text-xs font-medium text-[#d5e4fa]">{a.name}</span>
                   </div>
-                  <span className="text-sm font-bold text-[#d5e4fa]">{a.percent}%</span>
+                  <span className="text-xs font-bold text-[#d5e4fa]">{a.percent}%</span>
                 </div>
               ))}
             </div>
@@ -227,30 +222,26 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
         </div>
 
         {/* Evolução Capital de Giro */}
-        <div className="col-span-12 lg:col-span-7 rounded-2xl p-8 shadow-lg" style={{ background: "#0e1c2d" }}>
-          <div className="flex justify-between items-center mb-6">
+        <div className="col-span-12 lg:col-span-7 rounded-xl p-5 shadow-lg" style={{ background: "#0e1c2d" }}>
+          <div className="flex justify-between items-center mb-3">
             <div>
-              <h4 className="font-['Manrope'] font-bold text-xl text-[#d5e4fa]">Evolução do Capital de Giro</h4>
-              <p className="text-xs text-slate-500">Últimos {capitalGiroPeriod} dias de performance</p>
+              <h4 className="font-['Manrope'] font-bold text-sm text-[#d5e4fa]">Evolução do Capital de Giro</h4>
+              <p className="text-[10px] text-slate-500">Últimos {capitalGiroPeriod} dias de performance</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-1">
               <button
                 onClick={() => setCapitalGiroPeriod("30")}
-                className={`px-3 py-1 text-[10px] rounded-lg border border-white/5 font-bold uppercase tracking-widest ${capitalGiroPeriod === "30" ? "text-[#c1c6d4]" : "text-slate-600"}`}
+                className={`px-2 py-0.5 text-[9px] rounded-md border border-white/5 font-bold uppercase tracking-widest ${capitalGiroPeriod === "30" ? "text-[#c1c6d4]" : "text-slate-600"}`}
                 style={{ background: "#122031" }}
-              >
-                30D
-              </button>
+              >30D</button>
               <button
                 onClick={() => setCapitalGiroPeriod("90")}
-                className={`px-3 py-1 text-[10px] rounded-lg border border-white/5 font-bold uppercase tracking-widest ${capitalGiroPeriod === "90" ? "text-[#c1c6d4]" : "text-slate-600"}`}
+                className={`px-2 py-0.5 text-[9px] rounded-md border border-white/5 font-bold uppercase tracking-widest ${capitalGiroPeriod === "90" ? "text-[#c1c6d4]" : "text-slate-600"}`}
                 style={{ background: "#122031" }}
-              >
-                90D
-              </button>
+              >90D</button>
             </div>
           </div>
-          <div className="h-48 w-full mt-10 relative flex items-end justify-between px-2">
+          <div className="h-28 w-full mt-4 relative flex items-end justify-between px-1">
             <div className="absolute bottom-0 left-0 w-full h-[60%]" style={{ background: "linear-gradient(to top, rgba(25, 118, 210, 0.2), transparent)" }}></div>
             {barHeights.map((h, i) => (
               <div
@@ -265,7 +256,7 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
               ></div>
             ))}
           </div>
-          <div className="flex justify-between text-[10px] text-slate-600 mt-4 px-2 uppercase font-bold tracking-widest">
+          <div className="flex justify-between text-[9px] text-slate-600 mt-2 px-1 uppercase font-bold tracking-widest">
             <span>01 {new Date().toLocaleDateString("pt-BR", { month: "short" }).replace(".", "")}</span>
             <span>10 {new Date().toLocaleDateString("pt-BR", { month: "short" }).replace(".", "")}</span>
             <span>20 {new Date().toLocaleDateString("pt-BR", { month: "short" }).replace(".", "")}</span>
@@ -275,46 +266,45 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
       </div>
 
       {/* Orçamento Mensal Pessoal */}
-      <div className="rounded-2xl p-8 shadow-lg" style={{ background: "#0e1c2d" }}>
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="flex items-center gap-6">
-            <div className="w-14 h-14 rounded-full flex items-center justify-center border" style={{ background: "rgba(165, 200, 255, 0.1)", borderColor: "rgba(165, 200, 255, 0.2)", color: "#a5c8ff" }}>
-              <span className="material-symbols-outlined text-3xl">person</span>
+      <div className="rounded-xl p-5 shadow-lg" style={{ background: "#0e1c2d" }}>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center border" style={{ background: "rgba(165, 200, 255, 0.1)", borderColor: "rgba(165, 200, 255, 0.2)", color: "#a5c8ff" }}>
+              <span className="material-symbols-outlined text-xl">person</span>
             </div>
             <div>
-              <h4 className="font-['Manrope'] font-bold text-xl text-[#d5e4fa]">Orçamento Mensal Pessoal</h4>
-              <p className="text-sm text-[#c1c6d4]">Gestão de Salário e Gastos Fixos</p>
+              <h4 className="font-['Manrope'] font-bold text-sm text-[#d5e4fa]">Orçamento Mensal Pessoal</h4>
+              <p className="text-[10px] text-[#c1c6d4]">Gestão de Salário e Gastos Fixos</p>
             </div>
           </div>
-          <div className="flex-1 max-w-2xl px-4">
-            <div className="flex justify-between text-xs font-bold uppercase tracking-widest mb-2">
+          <div className="flex-1 max-w-xl px-2">
+            <div className="flex justify-between text-[9px] font-bold uppercase tracking-widest mb-1">
               <span className="text-[#40e56c]">Receita Pessoal: {formatBRL(salario)}</span>
               <span className="text-[#ffb4a8]">Despesas: {formatBRL(totalDespPessoal)} ({percentUsado}%)</span>
             </div>
-            <div className="h-4 w-full rounded-full overflow-hidden flex" style={{ background: "#283647" }}>
+            <div className="h-3 w-full rounded-full overflow-hidden flex" style={{ background: "#283647" }}>
               <div className="h-full bg-[#e71a0e]" style={{ width: `${Math.min(Number(percentUsado), 100)}%` }}></div>
-              <div className="h-full flex-1" style={{ background: "#283647" }}></div>
             </div>
-            <div className="flex gap-4 mt-2">
-              <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-[#40e56c]"></span>
-                <span className="text-[10px] text-slate-500 uppercase font-bold">Pago: {formatBRL(despPago)}</span>
+            <div className="flex gap-3 mt-1">
+              <div className="flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#40e56c]"></span>
+                <span className="text-[9px] text-slate-500 uppercase font-bold">Pago: {formatBRL(despPago)}</span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-[#e71a0e]"></span>
-                <span className="text-[10px] text-slate-500 uppercase font-bold">Pendente: {formatBRL(totalDespPessoal - despPago)}</span>
+              <div className="flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#e71a0e]"></span>
+                <span className="text-[9px] text-slate-500 uppercase font-bold">Pendente: {formatBRL(totalDespPessoal - despPago)}</span>
               </div>
             </div>
           </div>
           <div className="text-right">
-            <span className={`text-2xl font-['Manrope'] font-black ${disponivel >= 0 ? "text-[#40e56c]" : "text-[#ffb4a8]"}`}>{formatBRL(disponivel)}</span>
-            <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Saldo Livre</p>
+            <span className={`text-lg font-['Manrope'] font-black ${disponivel >= 0 ? "text-[#40e56c]" : "text-[#ffb4a8]"}`}>{formatBRL(disponivel)}</span>
+            <p className="text-[9px] text-slate-500 uppercase font-bold tracking-widest">Saldo Livre</p>
           </div>
         </div>
       </div>
 
       {/* Quick Navigation */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
           { page: "lancamentos" as FbPage, icon: "receipt_long", label: "Lançamentos", desc: "Registrar entradas/saídas" },
           { page: "caixas" as FbPage, icon: "account_balance_wallet", label: "Caixas", desc: "Gestão de envelopes" },
@@ -324,12 +314,12 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
           <button
             key={item.page}
             onClick={() => onNavigate(item.page)}
-            className="p-5 rounded-xl border border-white/5 text-left hover:border-[#1976d2]/30 hover:translate-y-[-2px] transition-all group"
+            className="p-3 rounded-xl border border-white/5 text-left hover:border-[#1976d2]/30 hover:translate-y-[-2px] transition-all group"
             style={{ background: "#0e1c2d" }}
           >
-            <span className="material-symbols-outlined text-[#1976d2] text-2xl mb-3 block group-hover:scale-110 transition-transform">{item.icon}</span>
-            <h5 className="font-['Manrope'] font-bold text-[#d5e4fa] text-sm">{item.label}</h5>
-            <p className="text-[10px] text-slate-500 mt-1">{item.desc}</p>
+            <span className="material-symbols-outlined text-[#1976d2] text-xl mb-2 block group-hover:scale-110 transition-transform">{item.icon}</span>
+            <h5 className="font-['Manrope'] font-bold text-[#d5e4fa] text-xs">{item.label}</h5>
+            <p className="text-[9px] text-slate-500 mt-0.5">{item.desc}</p>
           </button>
         ))}
       </div>
