@@ -1981,6 +1981,8 @@ export type Database = {
       }
       safe_bm_vaults: {
         Row: {
+          backup_link: string | null
+          backup_link_set_at: string | null
           bm_link: string
           bm_name: string
           client_name: string | null
@@ -1997,6 +1999,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          backup_link?: string | null
+          backup_link_set_at?: string | null
           bm_link: string
           bm_name: string
           client_name?: string | null
@@ -2013,6 +2017,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          backup_link?: string | null
+          backup_link_set_at?: string | null
           bm_link?: string
           bm_name?: string
           client_name?: string | null

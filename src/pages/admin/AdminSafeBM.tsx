@@ -4,13 +4,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import {
   Search, Shield, ShieldCheck, ShieldOff, Plus, Loader2,
   ExternalLink, Pencil, Trash2, DollarSign, Link2,
   TrendingUp, Activity, BarChart3, CheckCircle, MoreVertical,
-  FileDown, Clock, Check
+  FileDown, Clock, Check, AlertTriangle, Copy, Timer
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription
@@ -36,8 +37,27 @@ interface SafeBmVault {
   status: string;
   subscription_price: number;
   notes: string | null;
+  backup_link: string | null;
+  backup_link_set_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+function getBackupLinkTimeLeft(setAt: string | null): { expired: boolean; text: string; percent: number } {
+  if (!setAt) return { expired: true, text: "Sem link", percent: 0 };
+  const set = new Date(setAt).getTime();
+  const expires = set + 7 * 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  const remaining = expires - now;
+  if (remaining <= 0) return { expired: true, text: "Expirado", percent: 0 };
+  const totalMs = 7 * 24 * 60 * 60 * 1000;
+  const percent = Math.round((remaining / totalMs) * 100);
+  const days = Math.floor(remaining / (24 * 60 * 60 * 1000));
+  const hours = Math.floor((remaining % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+  const mins = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
+  if (days > 0) return { expired: false, text: `${days}d ${hours}h`, percent };
+  if (hours > 0) return { expired: false, text: `${hours}h ${mins}m`, percent };
+  return { expired: false, text: `${mins}m`, percent };
 }
 
 export default function AdminSafeBM() {
@@ -60,6 +80,14 @@ export default function AdminSafeBM() {
   const [formPerfilBackup, setFormPerfilBackup] = useState("");
   const [formPurchaseDate, setFormPurchaseDate] = useState("");
   const [formNotes, setFormNotes] = useState("");
+  const [formBackupLink, setFormBackupLink] = useState("");
+  const [tickCount, setTickCount] = useState(0);
+
+  // Tick every minute to update countdown timers
+  useEffect(() => {
+    const iv = setInterval(() => setTickCount(c => c + 1), 60000);
+    return () => clearInterval(iv);
+  }, []);
 
   const fetchVaults = async () => {
     setLoading(true);
@@ -174,7 +202,8 @@ export default function AdminSafeBM() {
   const resetForm = () => {
     setFormClientEmail(""); setFormClientName(""); setFormUserId("");
     setFormBmName(""); setFormBmLink(""); setFormPerfilBackup("");
-    setFormPurchaseDate(""); setFormNotes(""); setEditingVault(null);
+    setFormPurchaseDate(""); setFormNotes(""); setFormBackupLink("");
+    setEditingVault(null);
   };
 
   const openAdd = () => { resetForm(); setModalOpen(true); };
@@ -187,6 +216,7 @@ export default function AdminSafeBM() {
     setFormPerfilBackup(v.perfil_backup || "");
     setFormPurchaseDate(v.purchase_date ? v.purchase_date.slice(0, 10) : "");
     setFormNotes(v.notes || "");
+    setFormBackupLink(v.backup_link || "");
     setModalOpen(true);
   };
 
@@ -200,7 +230,16 @@ export default function AdminSafeBM() {
       purchase_date: formPurchaseDate || null,
       notes: formNotes || null,
       client_name: formClientName || null,
+      backup_link: formBackupLink || null,
     };
+    // If backup_link changed, update set_at timestamp
+    if (editingVault) {
+      if (formBackupLink && formBackupLink !== (editingVault.backup_link || "")) {
+        payload.backup_link_set_at = new Date().toISOString();
+      }
+    } else if (formBackupLink) {
+      payload.backup_link_set_at = new Date().toISOString();
+    }
     if (editingVault) {
       const { error } = await supabase.from("safe_bm_vaults" as any).update(payload).eq("id", editingVault.id);
       if (error) toast.error(error.message); else toast.success("Cofre atualizado!");
@@ -540,14 +579,16 @@ export default function AdminSafeBM() {
                     <TableRow className="border-border">
                       <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Nome da BM</TableHead>
                       <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Dono/Cliente</TableHead>
-                      <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Status Assinatura</TableHead>
+                      <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Status</TableHead>
+                      <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Link Backup</TableHead>
                       <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Data de Proteção</TableHead>
-                      <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Último Backup</TableHead>
                       <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filtered.map(v => (
+                    {filtered.map(v => {
+                      const linkStatus = getBackupLinkTimeLeft(v.backup_link_set_at);
+                      return (
                       <TableRow key={v.id} className="border-border hover:bg-muted/5">
                         <TableCell>
                           <div className="flex items-center gap-2.5">
@@ -596,18 +637,39 @@ export default function AdminSafeBM() {
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">{v.client_name || "—"}</TableCell>
                         <TableCell>{getStatusBadge(v.status)}</TableCell>
+                        <TableCell>
+                          {v.backup_link ? (
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-1.5">
+                                <Timer className={`size-3 ${linkStatus.expired ? "text-red-400" : "text-emerald-400"}`} />
+                                <span className={`text-xs font-medium ${linkStatus.expired ? "text-red-400" : "text-emerald-400"}`}>
+                                  {linkStatus.text}
+                                </span>
+                                {linkStatus.expired && (
+                                  <Badge className="bg-red-500/20 text-red-400 border-red-500/30 text-[9px] px-1.5 py-0">
+                                    <AlertTriangle className="size-2.5 mr-0.5" /> Renovar
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className="w-20 h-1 rounded-full bg-muted-foreground/20">
+                                <div
+                                  className={`h-1 rounded-full transition-all ${linkStatus.expired ? "bg-red-500" : linkStatus.percent < 30 ? "bg-yellow-500" : "bg-emerald-500"}`}
+                                  style={{ width: `${linkStatus.percent}%` }}
+                                />
+                              </div>
+                              <button
+                                onClick={() => { navigator.clipboard.writeText(v.backup_link!); toast.success("Link copiado!"); }}
+                                className="flex items-center gap-1 text-[10px] text-primary/60 hover:text-primary"
+                              >
+                                <Copy className="size-2.5" /> Copiar link
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground/50 italic">Não configurado</span>
+                          )}
+                        </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {format(new Date(v.protection_start), "dd MMM, yyyy", { locale: ptBR })}
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <p className="text-sm text-foreground">
-                              {format(new Date(v.updated_at), "dd/MM, HH:mm")}
-                            </p>
-                            <p className={`text-[10px] ${v.status === "active" ? "text-emerald-400" : "text-red-400"}`}>
-                              {v.status === "active" ? "Sucesso total" : "Expirado"}
-                            </p>
-                          </div>
                         </TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>
@@ -617,6 +679,9 @@ export default function AdminSafeBM() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-44">
+                              <DropdownMenuItem onClick={() => openEdit(v)} className="gap-2 text-xs">
+                                <Pencil className="size-3.5" /> Editar / Link Backup
+                              </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => regenerateLink(v)} className="gap-2 text-xs">
                                 <Link2 className="size-3.5" /> Regenerar Link ({v.link_regenerations}x)
                               </DropdownMenuItem>
@@ -626,9 +691,6 @@ export default function AdminSafeBM() {
                                   : <><ShieldCheck className="size-3.5 text-emerald-400" /> Ativar</>
                                 }
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => openEdit(v)} className="gap-2 text-xs">
-                                <Pencil className="size-3.5" /> Editar
-                              </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => deleteVault(v)} className="gap-2 text-xs text-red-400">
                                 <Trash2 className="size-3.5" /> Excluir
                               </DropdownMenuItem>
@@ -636,7 +698,8 @@ export default function AdminSafeBM() {
                           </DropdownMenu>
                         </TableCell>
                       </TableRow>
-                    ))}
+                    );
+                    })}
                   </TableBody>
                 </Table>
                 <div className="flex items-center justify-between px-4 py-3 border-t border-border">
@@ -680,8 +743,42 @@ export default function AdminSafeBM() {
             </div>
             <div className="space-y-1.5">
               <Label>Link da BM</Label>
-              <Input value={formBmLink} onChange={e => setFormBmLink(e.target.value)} placeholder="https://..." />
+              <Input value={formBmLink} onChange={e => setFormBmLink(e.target.value)} placeholder="https://business.facebook.com/..." />
             </div>
+
+            {/* ─── LINK BACKUP (Novo Acesso) ─── */}
+            <div className="space-y-1.5 p-3 rounded-lg border border-primary/20 bg-primary/5">
+              <div className="flex items-center gap-2 mb-1">
+                <Link2 className="size-4 text-primary" />
+                <Label className="text-primary font-semibold text-sm">Link de Backup (Novo Acesso)</Label>
+              </div>
+              <p className="text-[10px] text-muted-foreground mb-2">
+                Este é o link de convite que o cliente receberá ao solicitar novo acesso. Validade: 7 dias a partir do cadastro.
+              </p>
+              <Input
+                value={formBackupLink}
+                onChange={e => setFormBackupLink(e.target.value)}
+                placeholder="https://business.facebook.com/invitation/?token=..."
+                className="font-mono text-xs"
+              />
+              {editingVault?.backup_link_set_at && (
+                <div className="flex items-center gap-2 mt-1.5">
+                  <Timer className="size-3 text-muted-foreground" />
+                  {(() => {
+                    const ls = getBackupLinkTimeLeft(editingVault.backup_link_set_at);
+                    return (
+                      <span className={`text-xs ${ls.expired ? "text-red-400 font-medium" : "text-muted-foreground"}`}>
+                        {ls.expired
+                          ? "⚠️ Link expirado — cole um novo link para renovar"
+                          : `Tempo restante: ${ls.text}`
+                        }
+                      </span>
+                    );
+                  })()}
+                </div>
+              )}
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Data de Compra</Label>
@@ -689,7 +786,7 @@ export default function AdminSafeBM() {
               </div>
               <div className="space-y-1.5">
                 <Label>Observações</Label>
-                <Input value={formNotes} onChange={e => setFormNotes(e.target.value)} placeholder="Opcional" />
+                <Textarea value={formNotes} onChange={e => setFormNotes(e.target.value)} placeholder="Opcional" className="h-20 resize-none" />
               </div>
             </div>
           </div>
