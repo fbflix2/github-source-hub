@@ -8,7 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Copy, ExternalLink, FileText, Plus, Search, Send, Clock, CheckCircle, XCircle } from "lucide-react";
+import { Copy, ExternalLink, FileText, Plus, Search, Send, Clock, CheckCircle, XCircle, Eye, MessageCircle } from "lucide-react";
+import InvoiceDetailModal from "@/components/admin/InvoiceDetailModal";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -28,12 +29,17 @@ interface InvoiceLink {
   id: string;
   code: string;
   client_name: string | null;
+  client_email: string | null;
   product_name: string;
   amount: number;
+  description: string | null;
   status: string;
   created_at: string;
   expires_at: string;
   paid_at: string | null;
+  qr_code: string | null;
+  qr_code_base64: string | null;
+  reference_date?: string;
 }
 
 export default function AdminCobrancaAvulsa() {
@@ -48,6 +54,8 @@ export default function AdminCobrancaAvulsa() {
   const [selectedProductId, setSelectedProductId] = useState<string>("");
   const [productName, setProductName] = useState("");
   const [amount, setAmount] = useState("");
+  const [selectedInvoice, setSelectedInvoice] = useState<InvoiceLink | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
   const [referenceDate, setReferenceDate] = useState(new Date().toISOString().split("T")[0]);
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
@@ -458,11 +466,17 @@ export default function AdminCobrancaAvulsa() {
                       </td>
                       <td className="py-2 px-2">
                         <div className="flex gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => { setSelectedInvoice(inv); setShowDetailModal(true); }} title="Ver detalhes">
+                            <Eye className="size-3.5" />
+                          </Button>
                           <Button variant="ghost" size="sm" onClick={() => copyLink(inv.code)} title="Copiar link">
                             <Copy className="size-3.5" />
                           </Button>
-                          <Button variant="ghost" size="sm" onClick={() => window.open(getPublicLink(inv.code), "_blank")} title="Abrir link">
-                            <ExternalLink className="size-3.5" />
+                          <Button variant="ghost" size="sm" onClick={() => {
+                            const msg = `Olá ${inv.client_name || ""}! 👋\n\nVocê tem uma cobrança pendente na *FBFLIX*:\n\n📦 *${inv.product_name}*\n💰 *R$ ${Number(inv.amount).toFixed(2)}*\n\n🔗 ${getPublicLink(inv.code)}\n\nQualquer dúvida, estamos à disposição! ✅`;
+                            window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
+                          }} title="Enviar WhatsApp">
+                            <MessageCircle className="size-3.5" />
                           </Button>
                         </div>
                       </td>
@@ -474,6 +488,12 @@ export default function AdminCobrancaAvulsa() {
           )}
         </CardContent>
       </Card>
+
+      <InvoiceDetailModal
+        invoice={selectedInvoice}
+        open={showDetailModal}
+        onOpenChange={setShowDetailModal}
+      />
     </div>
   );
 }
