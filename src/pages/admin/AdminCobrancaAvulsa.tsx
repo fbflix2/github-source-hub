@@ -86,6 +86,32 @@ export default function AdminCobrancaAvulsa() {
         !results.some(r => r.user_id === c.user_id)
       ).slice(0, 5);
 
+      // If search looks like an email and no matches found, try to find by email via edge function
+      if (searchLower.includes("@") && emailMatches.length === 0) {
+        try {
+          const { data: emailRes } = await supabase.functions.invoke("list-user-emails", {
+            body: { search_email: clientSearch }
+          });
+          if (emailRes?.users?.length) {
+            for (const u of emailRes.users) {
+              if (!results.some(r => r.user_id === u.id)) {
+                // Get profile name
+                const { data: prof } = await supabase
+                  .from("profiles")
+                  .select("full_name")
+                  .eq("user_id", u.id)
+                  .single();
+                results.push({
+                  user_id: u.id,
+                  full_name: prof?.full_name || u.email,
+                  email: u.email,
+                });
+              }
+            }
+          }
+        } catch { /* ignore */ }
+      }
+
       setFilteredClients([...results, ...emailMatches].slice(0, 10));
       setShowClientDropdown(true);
     }, 300);
