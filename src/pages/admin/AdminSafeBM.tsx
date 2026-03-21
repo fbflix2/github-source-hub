@@ -743,8 +743,42 @@ export default function AdminSafeBM() {
             </div>
             <div className="space-y-1.5">
               <Label>Link da BM</Label>
-              <Input value={formBmLink} onChange={e => setFormBmLink(e.target.value)} placeholder="https://..." />
+              <Input value={formBmLink} onChange={e => setFormBmLink(e.target.value)} placeholder="https://business.facebook.com/..." />
             </div>
+
+            {/* ─── LINK BACKUP (Novo Acesso) ─── */}
+            <div className="space-y-1.5 p-3 rounded-lg border border-primary/20 bg-primary/5">
+              <div className="flex items-center gap-2 mb-1">
+                <Link2 className="size-4 text-primary" />
+                <Label className="text-primary font-semibold text-sm">Link de Backup (Novo Acesso)</Label>
+              </div>
+              <p className="text-[10px] text-muted-foreground mb-2">
+                Este é o link de convite que o cliente receberá ao solicitar novo acesso. Validade: 7 dias a partir do cadastro.
+              </p>
+              <Input
+                value={formBackupLink}
+                onChange={e => setFormBackupLink(e.target.value)}
+                placeholder="https://business.facebook.com/invitation/?token=..."
+                className="font-mono text-xs"
+              />
+              {editingVault?.backup_link_set_at && (
+                <div className="flex items-center gap-2 mt-1.5">
+                  <Timer className="size-3 text-muted-foreground" />
+                  {(() => {
+                    const ls = getBackupLinkTimeLeft(editingVault.backup_link_set_at);
+                    return (
+                      <span className={`text-xs ${ls.expired ? "text-red-400 font-medium" : "text-muted-foreground"}`}>
+                        {ls.expired
+                          ? "⚠️ Link expirado — cole um novo link para renovar"
+                          : `Tempo restante: ${ls.text}`
+                        }
+                      </span>
+                    );
+                  })()}
+                </div>
+              )}
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Data de Compra</Label>
@@ -752,7 +786,7 @@ export default function AdminSafeBM() {
               </div>
               <div className="space-y-1.5">
                 <Label>Observações</Label>
-                <Input value={formNotes} onChange={e => setFormNotes(e.target.value)} placeholder="Opcional" />
+                <Textarea value={formNotes} onChange={e => setFormNotes(e.target.value)} placeholder="Opcional" className="h-20 resize-none" />
               </div>
             </div>
           </div>
