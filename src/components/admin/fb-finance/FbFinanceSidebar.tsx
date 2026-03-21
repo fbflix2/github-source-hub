@@ -23,8 +23,7 @@ export function FbFinanceSidebar({ currentPage, onNavigate }: Props) {
   return (
     <aside className="w-72 h-full flex flex-col py-8" style={{ background: "rgba(14, 28, 45, 0.8)", backdropFilter: "blur(20px)", boxShadow: "24px 0 48px rgba(0,0,0,0.4)" }}>
       <div className="px-8 mb-10">
-        <h1 className="font-['Manrope'] font-black text-[#1976d2] text-2xl uppercase tracking-widest">DIGITAL VAULT</h1>
-        <p className="text-slate-400 text-xs mt-1 uppercase tracking-tighter">Premium Finance</p>
+        <h1 className="font-['Manrope'] font-black text-[#1976d2] text-2xl uppercase tracking-widest">FB FINANCE</h1>
       </div>
 
       <nav className="flex-1 space-y-1">
