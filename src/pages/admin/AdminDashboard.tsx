@@ -103,7 +103,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     async function fetchStats() {
       try {
-      const [profilesRes, loggedInRes, transactionsRes, balanceRes, productsRes, ordersRes, orderItemsRes, categoriesRes, pendingPaymentsRes] = await Promise.all([
+      const [profilesRes, loggedInRes, transactionsRes, balanceRes, productsRes, ordersRes, orderItemsRes, categoriesRes, pendingPaymentsRes, paidInvoicesRes] = await Promise.all([
         supabase.from("profiles").select("id", { count: "exact", head: true }).limit(0),
         supabase.from("profiles").select("id", { count: "exact", head: true }).not("first_login_at", "is", null).limit(0),
         supabase.from("wallet_transactions").select("id", { count: "exact", head: true }),
@@ -113,6 +113,7 @@ export default function AdminDashboard() {
         supabase.from("order_items").select("product_id, price, quantity, created_at, order_id, name"),
         supabase.from("product_categories").select("id, name, slug"),
         supabase.from("payments").select("id", { count: "exact", head: true }).eq("status", "pending"),
+        supabase.from("invoice_links").select("id, amount, paid_at").eq("status", "paid").not("paid_at", "is", null),
       ]);
 
       setTotalClients(loggedInRes.count ?? 0);
@@ -131,14 +132,25 @@ export default function AdminDashboard() {
       const completedStatuses = ["completed", "delivered"];
       const completedOrds = ords.filter(o => completedStatuses.includes(o.status));
 
+      // Merge paid invoices (cobranças avulsas) into revenue
+      const paidInvoices = (paidInvoicesRes.data ?? []).map((inv: any) => ({
+        total: Number(inv.amount) || 0,
+        created_at: inv.paid_at as string,
+      }));
+
+      const allRevenue = [
+        ...completedOrds.map(o => ({ total: o.total || 0, created_at: o.created_at })),
+        ...paidInvoices,
+      ];
+
       // Calculate today's revenue
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
-      const todayRev = completedOrds
+      const todayRev = allRevenue
         .filter(o => new Date(o.created_at) >= todayStart)
-        .reduce((sum, o) => sum + (o.total || 0), 0);
+        .reduce((sum, o) => sum + o.total, 0);
       setTodayRevenue(todayRev);
-      setAllCompletedOrders(completedOrds.map(o => ({ total: o.total || 0, created_at: o.created_at })));
+      setAllCompletedOrders(allRevenue);
 
       const completedOrderIds = new Set(completedOrds.map(o => o.id));
 
