@@ -40,7 +40,9 @@ export default function InvoiceDetailModal({ invoice, open, onOpenChange }: Prop
   const isPaid = invoice.status === "paid";
   const isPending = !isPaid && !isExpired;
 
-  const publicLink = `${window.location.origin}/pagar/${invoice.code}`;
+  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "mxnlerkeygfvdnznoxld";
+  const shareLink = `https://${projectId}.supabase.co/functions/v1/invoice-og?code=${invoice.code}`;
+  const directLink = `${window.location.origin}/pagar/${invoice.code}`;
 
   const whatsappMessage = `Olá ${invoice.client_name || ""}! 👋\n\nVocê tem uma cobrança pendente na *FBFLIX*:\n\n📦 *${invoice.product_name}*\n💰 *R$ ${Number(invoice.amount).toFixed(2)}*\n${invoice.description ? `📝 ${invoice.description}\n` : ""}\nAcesse o link abaixo para efetuar o pagamento via PIX:\n🔗 ${publicLink}\n\nQualquer dúvida, estamos à disposição! ✅`;
 
