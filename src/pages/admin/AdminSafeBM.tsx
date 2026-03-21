@@ -441,6 +441,53 @@ export default function AdminSafeBM() {
         </div>
       </div>
 
+      {/* ───── PENDING REQUESTS ───── */}
+      {pendingRequests.length > 0 && (
+        <Card className="bg-[hsl(var(--card))] border-amber-500/30">
+          <CardContent className="p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                <Clock className="size-4 text-amber-400" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground text-sm">Solicitações Pendentes</h3>
+                <p className="text-[10px] text-muted-foreground">{pendingRequests.length} BM{pendingRequests.length > 1 ? 's' : ''} aguardando confirmação</p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              {pendingRequests.map(req => (
+                <div key={req.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/10 border border-border">
+                  <div className="flex items-center gap-3">
+                    <div className="w-7 h-7 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                      <Shield className="size-3.5 text-amber-400" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-foreground">{req.product_name}</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        Cliente: {req.client_name || "—"} • Enviado em {format(new Date(req.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    className="gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white"
+                    disabled={confirmingId === req.id}
+                    onClick={() => confirmBmProtection(req)}
+                  >
+                    {confirmingId === req.id ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <Check className="size-3.5" />
+                    )}
+                    Confirmar Proteção
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* ───── MONITORING TABLE ───── */}
       <div>
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
