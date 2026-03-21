@@ -57,17 +57,40 @@ export default function AdminCobrancaAvulsa() {
     loadData();
   }, []);
 
+  // Filter clients as user types — debounced search directly from DB for accuracy
   useEffect(() => {
-    if (clientSearch.length >= 2) {
-      const filtered = clients.filter(c =>
-        (c.full_name || "").toLowerCase().includes(clientSearch.toLowerCase()) ||
-        (c.email || "").toLowerCase().includes(clientSearch.toLowerCase())
-      );
-      setFilteredClients(filtered.slice(0, 10));
-      setShowClientDropdown(true);
-    } else {
+    if (clientSearch.length < 2) {
       setShowClientDropdown(false);
+      setFilteredClients([]);
+      return;
     }
+
+    const searchLower = clientSearch.toLowerCase();
+    const timer = setTimeout(async () => {
+      // Search by name in profiles
+      const { data: byName } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .ilike("full_name", `%${clientSearch}%`)
+        .limit(15);
+
+      const results: ClientOption[] = (byName || []).map(p => ({
+        user_id: p.user_id,
+        full_name: p.full_name,
+        email: clients.find(c => c.user_id === p.user_id)?.email || "",
+      }));
+
+      // Also check cached emails
+      const emailMatches = clients.filter(c =>
+        (c.email || "").toLowerCase().includes(searchLower) &&
+        !results.some(r => r.user_id === c.user_id)
+      ).slice(0, 5);
+
+      setFilteredClients([...results, ...emailMatches].slice(0, 10));
+      setShowClientDropdown(true);
+    }, 300);
+
+    return () => clearTimeout(timer);
   }, [clientSearch, clients]);
 
   const loadData = async () => {
