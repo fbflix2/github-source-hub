@@ -1,0 +1,1 @@
+UPDATE cash_register SET opening_balance = 9430.22 WHERE id = '0330e074-fe72-4c22-8ece-086393b4d243';
