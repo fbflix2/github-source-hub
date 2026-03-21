@@ -1,4 +1,10 @@
 import type { FbPage } from "./FbFinanceDashboard";
+import mapaDashboard from "@/assets/fb-finance/mapa-dashboard.png";
+import mapaLancamentos from "@/assets/fb-finance/mapa-lancamentos.png";
+import mapaCaixas from "@/assets/fb-finance/mapa-caixas.png";
+import mapaDistribuicao from "@/assets/fb-finance/mapa-distribuicao.png";
+import mapaPlanejamento from "@/assets/fb-finance/mapa-planejamento.png";
+import mapaRelatorios from "@/assets/fb-finance/mapa-relatorios.png";
 
 interface Props {
   onNavigate: (page: FbPage) => void;
@@ -11,44 +17,43 @@ const modules: {
   description: string;
   badge: string;
   badgeStyle: string;
-  gradient: string;
-  icon: string;
+  image: string;
 }[] = [
   {
     page: "dashboard", number: 1, title: "Dashboard",
     description: "A central de comando onde o saldo total e os KPIs de saúde financeira residem. Ponto de partida para todas as análises.",
     badge: "HUB CENTRAL", badgeStyle: "bg-[#1976d2] text-white",
-    gradient: "from-[#1976d2]/30 to-[#122031]", icon: "dashboard",
+    image: mapaDashboard,
   },
   {
     page: "lancamentos", number: 2, title: "Lançamentos",
     description: "Registro granular de cada entrada e saída. Onde os dados brutos são catalogados e categorizados.",
     badge: "TRANSACIONAL", badgeStyle: "bg-[#283647] text-[#c1c6d4]",
-    gradient: "from-[#283647]/50 to-[#122031]", icon: "receipt_long",
+    image: mapaLancamentos,
   },
   {
     page: "caixas", number: 3, title: "Caixas",
     description: "Segmentação de patrimônio por objetivos. Gestão de reserva de emergência e contas correntes.",
     badge: "ESTRUTURAL", badgeStyle: "bg-[#02c953]/20 text-[#40e56c]",
-    gradient: "from-[#40e56c]/10 to-[#122031]", icon: "account_balance_wallet",
+    image: mapaCaixas,
   },
   {
     page: "distribuicao", number: 4, title: "Distribuição",
     description: "A inteligência por trás da alocação de ativos. Visualização de porcentagens por classe de investimento.",
     badge: "ESTRATÉGICO", badgeStyle: "bg-[#283647] text-[#c1c6d4]",
-    gradient: "from-[#1976d2]/20 to-[#122031]", icon: "pie_chart",
+    image: mapaDistribuicao,
   },
   {
     page: "planejamento", number: 5, title: "Planejamento",
     description: "Projeções de longo prazo e metas de aposentadoria. Onde o futuro financeiro é desenhado.",
     badge: "PREDITIVO", badgeStyle: "bg-[#e71a0e]/20 text-[#ffb4a8]",
-    gradient: "from-[#e71a0e]/10 to-[#122031]", icon: "event_note",
+    image: mapaPlanejamento,
   },
   {
     page: "relatorios", number: 6, title: "Relatórios",
     description: "Exportação e análise histórica profunda. O fechamento do ciclo de inteligência de dados.",
     badge: "ANALÍTICO", badgeStyle: "bg-[#1976d2]/20 text-[#a5c8ff]",
-    gradient: "from-[#a5c8ff]/10 to-[#122031]", icon: "analytics",
+    image: mapaRelatorios,
   },
 ];
 
@@ -72,10 +77,12 @@ export function FbMapaFluxo({ onNavigate }: Props) {
             {/* Card Image Area */}
             <div className="p-1 rounded-2xl border border-white/5 shadow-2xl transition-all duration-500 group-hover:scale-[1.02] group-hover:shadow-blue-900/20"
               style={{ background: "#0e1c2d" }}>
-              <div className={`relative rounded-xl overflow-hidden aspect-[16/10] bg-gradient-to-br ${mod.gradient} flex items-center justify-center`}>
-                <span className="material-symbols-outlined text-[#1976d2]/30" style={{ fontSize: "120px", fontVariationSettings: "'FILL' 1" }}>
-                  {mod.icon}
-                </span>
+              <div className="relative rounded-xl overflow-hidden aspect-[16/10]">
+                <img
+                  src={mod.image}
+                  alt={mod.title}
+                  className="w-full h-full object-cover object-top"
+                />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#051424] via-transparent to-transparent" />
                 <div className={`absolute top-4 left-4 ${mod.badgeStyle} text-[10px] font-bold px-2 py-1 rounded`}>
                   {mod.badge}
@@ -97,7 +104,7 @@ export function FbMapaFluxo({ onNavigate }: Props) {
               </button>
             </div>
 
-            {/* Arrow connector (desktop only, first 2 of each row) */}
+            {/* Arrow connector (desktop only) */}
             {(idx === 0 || idx === 1 || idx === 3 || idx === 4) && (
               <div className="hidden md:block absolute z-10 text-[#1976d2] opacity-50"
                 style={{
