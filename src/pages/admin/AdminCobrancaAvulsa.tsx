@@ -121,10 +121,8 @@ export default function AdminCobrancaAvulsa() {
           const res = await supabase.functions.invoke("list-user-emails", {
             body: { user_ids: profilesData.map(p => p.user_id) }
           });
-          const emailMap: Record<string, string> = {};
-          if (res.data?.users) {
-            res.data.users.forEach((u: any) => { emailMap[u.id] = u.email; });
-          }
+          const emailMap: Record<string, string> = res.data?.emails || {};
+
           setClients(profilesData.map(p => ({
             ...p,
             email: emailMap[p.user_id] || ""
