@@ -12,6 +12,7 @@ const WEBSHARE_BASE = "https://proxy.webshare.io/api/v2";
 function detectCountryFromProduct(product: { name: string; tags: string[] | null }): string | null {
   const tags = (product.tags || []) as string[];
   const name = (product.name || "").toLowerCase();
+  const allText = tags.map(t => t.toLowerCase().trim()).join(" ") + " " + name;
 
   // Direct country code tags
   const countryTags = ["br", "us", "uk", "de", "fr", "ca", "au", "jp"];
@@ -25,13 +26,28 @@ function detectCountryFromProduct(product: { name: string; tags: string[] | null
     const lt = tag.toLowerCase().trim();
     if (lt === "brasil" || lt === "brazil") return "BR";
     if (lt === "usa" || lt === "estados unidos") return "US";
+    if (lt === "americano" || lt === "americana") return "US";
   }
 
-  // Fallback: check product name
-  if (name.includes("brasil") || name.includes("brazil") || name.includes(" br")) return "BR";
-  if (name.includes("usa") || name.includes("estados unidos") || name.includes(" us")) return "US";
+  // Brazilian region indicators in tags or name
+  const brIndicators = ["brasil", "brazil", "sudeste", "central/sudeste", "centra/sudeste", "nordeste", "sul", "centro-oeste"];
+  for (const indicator of brIndicators) {
+    if (allText.includes(indicator)) return "BR";
+  }
 
-  return null;
+  // US indicators
+  const usIndicators = ["usa", "estados unidos", "americano", "americana", "us premium"];
+  for (const indicator of usIndicators) {
+    if (allText.includes(indicator)) return "US";
+  }
+
+  // Fallback: check product name for country codes
+  if (name.includes(" br") || name.endsWith(" br")) return "BR";
+  if (name.includes(" us") || name.endsWith(" us")) return "US";
+
+  // DEFAULT: If no country detected, default to BR (most products are Brazilian)
+  console.log(`[detectCountry] No country detected for "${product.name}", defaulting to BR`);
+  return "BR";
 }
 
 function normalizeRotatingBaseUsername(rawUsername: string): string {
