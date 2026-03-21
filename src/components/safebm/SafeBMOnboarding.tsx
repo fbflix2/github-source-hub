@@ -18,7 +18,7 @@ export default function SafeBMOnboarding() {
   const [countdown, setCountdown] = useState("");
   const [pendingCount, setPendingCount] = useState(0);
 
-  // Check DB for existing pending submissions
+  // Check DB for existing pending submissions or active vaults
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
