@@ -67,6 +67,18 @@ export default function AdminCobrancaAvulsa() {
 
     const searchLower = clientSearch.toLowerCase();
     const timer = setTimeout(async () => {
+      // Auto-select if exact email match
+      if (searchLower.includes("@")) {
+        const exactMatch = clients.find(c => (c.email || "").toLowerCase() === searchLower);
+        if (exactMatch) {
+          setSelectedClient(exactMatch);
+          setClientSearch("");
+          setShowClientDropdown(false);
+          setFilteredClients([]);
+          return;
+        }
+      }
+
       // Search by name in profiles
       const { data: byName } = await supabase
         .from("profiles")
@@ -86,8 +98,9 @@ export default function AdminCobrancaAvulsa() {
         !results.some(r => r.user_id === c.user_id)
       ).slice(0, 5);
 
-      setFilteredClients([...results, ...emailMatches].slice(0, 10));
-      setShowClientDropdown(true);
+      const combined = [...results, ...emailMatches].slice(0, 10);
+      setFilteredClients(combined);
+      setShowClientDropdown(combined.length > 0);
     }, 300);
 
     return () => clearTimeout(timer);
@@ -108,10 +121,8 @@ export default function AdminCobrancaAvulsa() {
           const res = await supabase.functions.invoke("list-user-emails", {
             body: { user_ids: profilesData.map(p => p.user_id) }
           });
-          const emailMap: Record<string, string> = {};
-          if (res.data?.users) {
-            res.data.users.forEach((u: any) => { emailMap[u.id] = u.email; });
-          }
+          const emailMap: Record<string, string> = res.data?.emails || {};
+
           setClients(profilesData.map(p => ({
             ...p,
             email: emailMap[p.user_id] || ""
