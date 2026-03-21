@@ -1,62 +1,67 @@
 
 
-# Minha Contingência FBFlix - Área do Cliente
+## Plano: Criar "Dash Fabricio" - Sub-painel Financeiro dentro do Admin
 
-## Overview
-Create a client-facing dashboard at `/contingencia` (inside MainLayout) where subscribed clients can view their structure status, request replacements, manage their subscription, and access support — all using the existing `ct_*` tables.
+### Resumo
+Adicionar um submenu no item "Dashboard" da sidebar admin (igual ao padrão de "Gestão Itens", "Central Proxy", etc.) com duas opções: "Painel FBFLIX" (dashboard atual) e "Dash Fabricio" (novo painel financeiro independente). O "Dash Fabricio" terá autenticação por senha própria e um sistema financeiro completo com sidebar/menu próprio.
 
-## No Database Changes Needed
-The existing `ct_*` tables already have the data. We just need RLS policies to let clients read their own data:
-- **Migration**: Add SELECT policies on `ct_clients`, `ct_items`, `ct_replacements`, `ct_tickets`, `ct_plans`, `ct_extra_charges` for `auth.uid() = user_id` (on ct_clients) and related joins for child tables.
+### Etapas
 
-## Files to Create/Edit
+#### 1. Banco de Dados - Criar tabelas do Fb Finance
+Criar via migration as seguintes tabelas (todas com RLS para staff):
 
-### 1. New: `src/pages/ClientContingencia.tsx`
-Single-page client portal with tabs:
+- **fb_finance_config**: senha de acesso (hash), configurações globais de % distribuição
+- **fb_finance_lancamentos**: data, tipo (pessoal/empresa), categoria, descricao, entrada, saida, caixa_destino
+- **fb_finance_caixas**: nome, saldo_atual, alvo_percent, tipo (pessoal/empresa)
+- **fb_finance_distribuicoes**: data, entrada_dia, percentuais JSONB, valores alocados JSONB
+- **fb_finance_despesas_planejadas**: nome, valor, dia_vencimento, categoria, pago (boolean), mes_ref
 
-**Tab 1 - Visão Geral (Home)**
-- Hero card: structure status (green check "100% ativa" or yellow alert)
-- KPI cards: Current plan + price, Next billing date, Replacements remaining (progress bar), Active accounts count
-- Quick alert if any item has status "block"
+#### 2. Sidebar - Adicionar submenu no Dashboard
+Modificar `AdminSidebar.tsx` e `AdminMobileSidebar.tsx`:
+- Transformar "Dashboard" em item com subItems:
+  - "Painel FBFLIX" → `/admin` (dashboard atual)
+  - "Dash Fabricio" → `/admin/dash-fabricio`
 
-**Tab 2 - Minha Estrutura**
-- Cards grouped by type (Perfis, Proxies, BMs, Contas) showing count + status badges
-- No sensitive data exposed (no IPs, no internal IDs — just "Proxy BR Dedicado - Ativo")
-- Button "Pedir Reposição" → modal with reason select + textarea
-- Button "Adicionar Conta Extra" → confirms +R$25 deducted from wallet
+#### 3. Página Gate de Senha (`AdminDashFabricio.tsx`)
+- Tela de login com senha dedicada
+- No primeiro acesso: cadastrar senha (salva hash em `fb_finance_config`)
+- Nos acessos seguintes: pedir senha para entrar
+- Após autenticação, renderiza o painel financeiro completo
 
-**Tab 3 - Histórico**
-- Table of past replacements: date, type, reason, status, resolution time
-- List of ct_tickets with status badges
+#### 4. Painel Financeiro - Componente Principal (`FbFinanceDashboard.tsx`)
+Componente independente com:
+- **Sidebar própria** (menu lateral interno) com navegação entre as abas
+- **6 abas/páginas internas** (state-based, não rotas separadas):
+  1. **Dashboard Principal**: Cards (Saldo Pessoal, Empresa, Patrimonio), gráfico pizza alocação, gráfico linha Capital de Giro 90 dias, KPIs, barra progresso orçamento
+  2. **Lançamentos Diários**: Formulário + tabela filtrável
+  3. **Caixas/Envelopes**: Cards de cada caixa com saldo, %, crescimento
+  4. **Distribuição Diária PJ**: Tabela com % editáveis, cálculo automático, prova real
+  5. **Planejamento Mensal Pessoal**: Despesas fixas/variáveis editáveis, gráfico barras
+  6. **Relatórios**: Filtros por mês/ano, gráficos de evolução
 
-**Tab 4 - Assinatura**
-- Wallet balance (from profiles.balance)
-- Billing history (ct_extra_charges)
-- Plan comparison cards for upsell
-- Cancel button with confirmation dialog
+#### 5. Rota no App.tsx
+Adicionar rota: `<Route path="dash-fabricio" element={<AdminDashFabricio />} />`
 
-**Tab 5 - Ajuda**
-- FAQ accordion
-- "Falar com Suporte" button (WhatsApp link)
-- Notification bell integration
+### Detalhes Técnicos
 
-### 2. Edit: `src/App.tsx`
-- Import `ClientContingencia`
-- Add route `/contingencia` inside AuthenticatedApp MainLayout routes
+- Design dark mode com tons azul escuro + verde (positivo) / vermelho (negativo)
+- Formatação R$ pt-BR em todos os valores
+- Dados de exemplo pré-populados (salário R$7000, aluguel R$2000, entradas PJ ~R$1000/dia)
+- Caixas default: Conta Corrente Pessoal, Capital Giro, Fundos Reserva, Dividendos, Operacional, Dia a Dia, Investimentos, Fundo Emergência, Estilo de Vida, Janela Oportunidade
+- % distribuição default: Capital Giro 2%, Fundos Reserva 15%, Dividendos 1%, Operacional 80%, Dia a Dia 2%
+- Responsivo (sidebar colapsa em mobile)
+- Nenhuma alteração nas funcionalidades existentes da FBFLIX
 
-### 3. New Migration
-- Add RLS SELECT policies so clients can read their own ct_clients row and related ct_items/ct_replacements/ct_tickets/ct_plans
-
-## Styling
-- Dark mode clean, consistent with existing MainLayout theme
-- Green neon for "active/ok", yellow for alerts, red for blocks
-- Mobile-first: large cards, minimal text, clear icons
-- Uses existing UI components (Card, Tabs, Badge, Dialog, Progress)
-
-## Technical Details
-- Fetch ct_client by `user_id = auth.uid()`, then load related items/replacements/tickets
-- Replacement request: INSERT into ct_replacements + ct_tickets
-- Extra account: deduct from profiles.balance via wallet_transactions + INSERT ct_extra_charges
-- Plan data from ct_plans (already seeded)
-- ~500-600 lines single file
+### Arquivos a criar/modificar
+- **Modificar**: `AdminSidebar.tsx`, `AdminMobileSidebar.tsx`, `App.tsx`
+- **Criar**: `src/pages/admin/AdminDashFabricio.tsx` (gate de senha + container)
+- **Criar**: `src/components/admin/fb-finance/FbFinanceDashboard.tsx` (painel principal)
+- **Criar**: `src/components/admin/fb-finance/FbFinanceSidebar.tsx` (sidebar interna)
+- **Criar**: `src/components/admin/fb-finance/FbDashboardHome.tsx`
+- **Criar**: `src/components/admin/fb-finance/FbLancamentos.tsx`
+- **Criar**: `src/components/admin/fb-finance/FbCaixas.tsx`
+- **Criar**: `src/components/admin/fb-finance/FbDistribuicaoPJ.tsx`
+- **Criar**: `src/components/admin/fb-finance/FbPlanejamentoPessoal.tsx`
+- **Criar**: `src/components/admin/fb-finance/FbRelatorios.tsx`
+- **Migration**: Tabelas do Fb Finance
 
