@@ -230,7 +230,7 @@ export default function AdminCobrancaAvulsa() {
           client_name: resolvedClient.full_name,
           client_email: resolvedClient.email,
           product_name: productName,
-          product_id: selectedProductId !== "custom" ? selectedProductId : null,
+          product_id: selectedProductId !== "custom" && !selectedProductId.startsWith("ct_") ? selectedProductId : null,
           amount: Number(amount),
           reference_date: referenceDate,
           description,
