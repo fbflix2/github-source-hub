@@ -68,17 +68,14 @@ export function FbCaixas() {
       </div>
 
       {/* Financial Summary Bento Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
         {/* Total Vaulted */}
         <div className="md:col-span-2 bg-gradient-to-br from-[#1976d2] to-blue-900 p-8 rounded-xl shadow-2xl relative overflow-hidden">
           <div className="relative z-10">
             <span className="text-xs uppercase tracking-[0.2em] text-blue-100/70 font-bold mb-2 block">Patrimônio Reservado</span>
             <h3 className="text-5xl font-['Manrope'] font-black text-white mb-6 tracking-tighter">{formatBRL(totalPatrimonio)}</h3>
             <div className="flex items-center gap-4">
-              <span className="bg-[#40e56c]/20 text-[#40e56c] px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
-                <span className="material-symbols-outlined text-xs">trending_up</span> +12% este mês
-              </span>
-              <span className="text-blue-200/60 text-xs">Atualizado há 15 min</span>
+              <span className="text-blue-200/60 text-xs">{caixas.length} caixas ativas</span>
             </div>
           </div>
           <div className="absolute -right-12 -bottom-12 w-64 h-64 bg-white/5 rounded-full blur-3xl"></div>
@@ -91,26 +88,12 @@ export function FbCaixas() {
         <div className="bg-[#0e1c2d] p-6 rounded-xl border-l-4 border-[#40e56c] flex flex-col justify-between">
           <div>
             <span className="text-xs text-[#8b919e] uppercase tracking-wider block mb-1" style={{ fontFamily: "Inter" }}>Saúde das Reservas</span>
-            <p className="text-2xl font-['Manrope'] font-bold text-[#40e56c]">Excelente</p>
+            <p className="text-2xl font-['Manrope'] font-bold text-[#40e56c]">{healthPercent >= 80 ? "Excelente" : healthPercent >= 50 ? "Bom" : "Atenção"}</p>
           </div>
           <div className="h-1.5 bg-[#283647] rounded-full w-full overflow-hidden my-3">
             <div className="h-full bg-[#40e56c] rounded-full" style={{ width: `${healthPercent}%` }}></div>
           </div>
-          <p className="text-xs text-[#c1c6d4]">Você atingiu {healthPercent.toFixed(0)}% do planejado para este trimestre.</p>
-        </div>
-
-        {/* Warning Metric */}
-        <div className="bg-[#0e1c2d] p-6 rounded-xl border-l-4 border-[#ffb4a8] flex flex-col justify-between">
-          <div>
-            <span className="text-xs text-[#8b919e] uppercase tracking-wider block mb-1" style={{ fontFamily: "Inter" }}>Impostos Pendentes</span>
-            <p className="text-2xl font-['Manrope'] font-bold text-[#ffb4a8]">
-              {formatBRL(caixas.find(c => c.nome.toLowerCase().includes("imposto"))?.saldo_atual || 0)}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-[#ffb4a8] text-sm">event</span>
-            <span className="text-xs text-[#c1c6d4]">Vencimento em 14 dias</span>
-          </div>
+          <p className="text-xs text-[#c1c6d4]">{healthPercent.toFixed(0)}% do planejado.</p>
         </div>
       </div>
 
