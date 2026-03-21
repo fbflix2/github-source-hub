@@ -943,6 +943,90 @@ export type Database = {
         }
         Relationships: []
       }
+      invoice_links: {
+        Row: {
+          amount: number
+          client_email: string | null
+          client_name: string | null
+          client_user_id: string
+          code: string
+          created_at: string
+          created_by: string
+          description: string | null
+          expires_at: string
+          id: string
+          mp_payment_id: string | null
+          paid_at: string | null
+          payment_id: string | null
+          product_id: string | null
+          product_name: string
+          qr_code: string | null
+          qr_code_base64: string | null
+          reference_date: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          client_email?: string | null
+          client_name?: string | null
+          client_user_id: string
+          code?: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          expires_at?: string
+          id?: string
+          mp_payment_id?: string | null
+          paid_at?: string | null
+          payment_id?: string | null
+          product_id?: string | null
+          product_name: string
+          qr_code?: string | null
+          qr_code_base64?: string | null
+          reference_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          client_email?: string | null
+          client_name?: string | null
+          client_user_id?: string
+          code?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          expires_at?: string
+          id?: string
+          mp_payment_id?: string | null
+          paid_at?: string | null
+          payment_id?: string | null
+          product_id?: string | null
+          product_name?: string
+          qr_code?: string | null
+          qr_code_base64?: string | null
+          reference_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_links_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_links_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       migration_tracking: {
         Row: {
           added_by: string | null
