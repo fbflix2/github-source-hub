@@ -10,11 +10,12 @@ import {
   Ticket, GraduationCap, Image, Bell, FileText, Settings, Key,
   Monitor, Warehouse, Globe, ClipboardCheck, Headphones, Palette,
   Megaphone, ShieldCheck, MessageCircle, Shield, Recycle, RefreshCw,
-  ArrowRightLeft, Briefcase, Coins, Flame, Store, KeyRound, ImageIcon, Star, Receipt
+  ArrowRightLeft, Briefcase, Coins, Flame, Store, KeyRound, ImageIcon, Star, Receipt,
 } from "lucide-react";
 
 const allMenuItems = [
   { title: "Dashboard", icon: LayoutDashboard, path: "/admin" },
+  { title: "Dash Fabricio", icon: Coins, path: "/admin/dash-fabricio" },
   { title: "Suporte", icon: Headphones, path: "/admin/suporte" },
   { title: "Auditoria", icon: ClipboardCheck, path: "/admin/auditoria" },
   { title: "Estoque", icon: Warehouse, path: "/admin/estoque" },

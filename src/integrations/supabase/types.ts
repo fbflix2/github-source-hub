@@ -790,6 +790,170 @@ export type Database = {
           },
         ]
       }
+      fb_finance_caixas: {
+        Row: {
+          alvo_percent: number
+          created_at: string
+          id: string
+          nome: string
+          saldo_atual: number
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          alvo_percent?: number
+          created_at?: string
+          id?: string
+          nome: string
+          saldo_atual?: number
+          tipo?: string
+          updated_at?: string
+        }
+        Update: {
+          alvo_percent?: number
+          created_at?: string
+          id?: string
+          nome?: string
+          saldo_atual?: number
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      fb_finance_config: {
+        Row: {
+          created_at: string
+          distribution_percentages: Json
+          id: string
+          password_hash: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          distribution_percentages?: Json
+          id?: string
+          password_hash: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          distribution_percentages?: Json
+          id?: string
+          password_hash?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      fb_finance_despesas_planejadas: {
+        Row: {
+          categoria: string
+          created_at: string
+          dia_vencimento: number
+          id: string
+          mes_ref: string
+          nome: string
+          pago: boolean
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          categoria?: string
+          created_at?: string
+          dia_vencimento?: number
+          id?: string
+          mes_ref?: string
+          nome: string
+          pago?: boolean
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          categoria?: string
+          created_at?: string
+          dia_vencimento?: number
+          id?: string
+          mes_ref?: string
+          nome?: string
+          pago?: boolean
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: []
+      }
+      fb_finance_distribuicoes: {
+        Row: {
+          aplicado: boolean
+          created_at: string
+          data: string
+          entrada_dia: number
+          id: string
+          percentuais: Json
+          valores_alocados: Json
+        }
+        Insert: {
+          aplicado?: boolean
+          created_at?: string
+          data?: string
+          entrada_dia?: number
+          id?: string
+          percentuais?: Json
+          valores_alocados?: Json
+        }
+        Update: {
+          aplicado?: boolean
+          created_at?: string
+          data?: string
+          entrada_dia?: number
+          id?: string
+          percentuais?: Json
+          valores_alocados?: Json
+        }
+        Relationships: []
+      }
+      fb_finance_lancamentos: {
+        Row: {
+          caixa_destino_id: string | null
+          categoria: string
+          created_at: string
+          data: string
+          descricao: string | null
+          entrada: number
+          id: string
+          saida: number
+          tipo: string
+        }
+        Insert: {
+          caixa_destino_id?: string | null
+          categoria?: string
+          created_at?: string
+          data?: string
+          descricao?: string | null
+          entrada?: number
+          id?: string
+          saida?: number
+          tipo?: string
+        }
+        Update: {
+          caixa_destino_id?: string | null
+          categoria?: string
+          created_at?: string
+          data?: string
+          descricao?: string | null
+          entrada?: number
+          id?: string
+          saida?: number
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fb_finance_lancamentos_caixa_destino_id_fkey"
+            columns: ["caixa_destino_id"]
+            isOneToOne: false
+            referencedRelation: "fb_finance_caixas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fbx_orders: {
         Row: {
           created_at: string

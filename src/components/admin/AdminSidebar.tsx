@@ -60,7 +60,10 @@ interface MenuItem {
 }
 
 const allMenuItems: MenuItem[] = [
-  { title: "Dashboard", icon: LayoutDashboard, path: "/admin" },
+  { title: "Dashboard", icon: LayoutDashboard, path: "/admin", subItems: [
+    { title: "Painel FBFLIX", icon: LayoutDashboard, path: "/admin" },
+    { title: "Dash Fabricio", icon: Coins, path: "/admin/dash-fabricio" },
+  ]},
   { title: "Suporte", icon: Headphones, path: "/admin/suporte" },
   { title: "Auditoria", icon: ClipboardCheck, path: "/admin/auditoria" },
   { title: "Estoque", icon: Warehouse, path: "/admin/estoque" },
