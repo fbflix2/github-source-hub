@@ -741,10 +741,6 @@ export default function AdminSafeBM() {
                 <Input value={formPerfilBackup} onChange={e => setFormPerfilBackup(e.target.value)} placeholder="Nome do perfil" />
               </div>
             </div>
-            <div className="space-y-1.5">
-              <Label>Link da BM</Label>
-              <Input value={formBmLink} onChange={e => setFormBmLink(e.target.value)} placeholder="https://business.facebook.com/..." />
-            </div>
 
             {/* ─── LINK BACKUP (Novo Acesso) ─── */}
             <div className="space-y-1.5 p-3 rounded-lg border border-primary/20 bg-primary/5">
