@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
 import type { FbPage } from "./FbFinanceDashboard";
 
 interface Props {
@@ -16,6 +17,8 @@ const menuItems: { page: FbPage; label: string; icon: string }[] = [
 ];
 
 export function FbFinanceSidebar({ currentPage, onNavigate }: Props) {
+  const navigate = useNavigate();
+
   return (
     <aside className="w-72 h-full flex flex-col py-8" style={{ background: "rgba(14, 28, 45, 0.8)", backdropFilter: "blur(20px)", boxShadow: "24px 0 48px rgba(0,0,0,0.4)" }}>
       <div className="px-8 mb-10">
@@ -56,7 +59,10 @@ export function FbFinanceSidebar({ currentPage, onNavigate }: Props) {
           <span className="material-symbols-outlined text-lg">help</span>
           <span className="text-sm">Suporte</span>
         </button>
-        <button className="text-slate-400 hover:text-white py-2 flex items-center gap-3 transition-colors w-full">
+        <button
+          onClick={() => navigate("/admin")}
+          className="text-slate-400 hover:text-white py-2 flex items-center gap-3 transition-colors w-full"
+        >
           <span className="material-symbols-outlined text-lg">logout</span>
           <span className="text-sm">Sair</span>
         </button>

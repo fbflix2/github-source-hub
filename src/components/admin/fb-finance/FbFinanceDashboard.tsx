@@ -31,7 +31,7 @@ export function FbFinanceDashboard() {
   const dateStr = now.toLocaleDateString("pt-BR", { month: "long", year: "numeric" }) + " • " + now.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric" });
 
   return (
-    <div className="flex h-[calc(100vh-64px)] -m-6" style={{ background: "#051424", color: "#d5e4fa", fontFamily: "'Inter', sans-serif" }}>
+    <div className="flex h-screen" style={{ background: "#051424", color: "#d5e4fa", fontFamily: "'Inter', sans-serif" }}>
       {/* Mobile menu button */}
       {isMobile && (
         <button
