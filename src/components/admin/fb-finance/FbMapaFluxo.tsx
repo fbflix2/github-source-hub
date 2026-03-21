@@ -161,14 +161,6 @@ export function FbMapaFluxo({ onNavigate }: Props) {
               <div className="text-4xl font-extrabold font-['Manrope'] text-[#40e56c] mb-1">100%</div>
               <div className="text-xs uppercase tracking-widest font-bold text-slate-500">Integração</div>
             </div>
-            <div className="bg-white/5 p-6 rounded-2xl border border-white/5">
-              <div className="text-4xl font-extrabold font-['Manrope'] text-[#ffb4a8] mb-1">24ms</div>
-              <div className="text-xs uppercase tracking-widest font-bold text-slate-500">Latência de Sync</div>
-            </div>
-            <div className="bg-white/5 p-6 rounded-2xl border border-white/5">
-              <div className="text-4xl font-extrabold font-['Manrope'] text-[#d5e4fa] mb-1">∞</div>
-              <div className="text-xs uppercase tracking-widest font-bold text-slate-500">Escalabilidade</div>
-            </div>
           </div>
         </div>
       </section>
