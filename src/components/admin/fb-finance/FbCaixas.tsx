@@ -184,62 +184,6 @@ export function FbCaixas() {
         })}
       </div>
 
-      {/* Bottom Section: History + Intelligence */}
-      <section className="mt-16 grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Movement History */}
-        <div className="lg:col-span-2 bg-[#0e1c2d] p-8 rounded-xl">
-          <div className="flex justify-between items-center mb-8">
-            <h3 className="font-['Manrope'] font-bold text-xl text-[#d5e4fa]">Histórico de Movimentações</h3>
-            <button className="text-[#a5c8ff] text-sm font-bold flex items-center gap-1 hover:underline" style={{ fontFamily: "Inter" }}>
-              Ver tudo <span className="material-symbols-outlined text-sm">arrow_forward</span>
-            </button>
-          </div>
-          <div className="space-y-6">
-            {[
-              { icon: "add", iconColor: "text-[#40e56c]", title: "Aporte: Reserva de Emergência", time: "Hoje às 14:20", value: "+ R$ 1.200,00", valueColor: "text-[#40e56c]", via: "via Transferência PIX" },
-              { icon: "remove", iconColor: "text-[#ffb4a8]", title: "Retirada: Impostos", time: "Ontem às 09:15", value: "- R$ 500,00", valueColor: "text-[#ffb4a8]", via: "Pagamento DARF" },
-              { icon: "swap_horiz", iconColor: "text-[#a5c8ff]", title: "Transferência: Invest. → Emergência", time: "12 Abr, 2024", value: "R$ 2.000,00", valueColor: "text-[#d5e4fa]", via: "Interno" },
-            ].map((item, i) => (
-              <div key={i} className={`flex items-center justify-between ${i < 2 ? "pb-4 border-b border-white/5" : ""}`}>
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-[#283647] flex items-center justify-center">
-                    <span className={`material-symbols-outlined ${item.iconColor} text-sm`}>{item.icon}</span>
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-[#d5e4fa]">{item.title}</p>
-                    <p className="text-[10px] text-[#8b919e]">{item.time}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className={`text-sm font-bold ${item.valueColor}`}>{item.value}</p>
-                  <p className="text-[10px] text-[#8b919e]">{item.via}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Vault Intelligence */}
-        <div className="bg-gradient-to-br from-[#1d2b3c] to-[#010f1f] p-8 rounded-xl border border-white/5 flex flex-col justify-between">
-          <div>
-            <span className="bg-[#a5c8ff]/10 text-[#a5c8ff] text-[10px] font-black tracking-widest uppercase px-2 py-1 rounded mb-4 inline-block">
-              Vault Intelligence
-            </span>
-            <h4 className="font-['Manrope'] font-bold text-xl mb-4 leading-tight text-[#d5e4fa]">Sugestão de Rebalanceamento</h4>
-            <p className="text-sm text-[#c1c6d4] leading-relaxed">
-              Notamos que seu <strong className="text-[#d5e4fa]">Capital de Giro</strong> está crescendo bem. Deseja redirecionar os aportes automáticos para sua <strong className="text-[#d5e4fa]">Reserva de Emergência</strong>?
-            </p>
-          </div>
-          <div className="mt-8">
-            <button className="w-full bg-white text-black font-bold py-3 rounded-md text-sm mb-3 hover:bg-slate-200 transition-colors">
-              Aplicar Sugestão
-            </button>
-            <button className="w-full text-[#8b919e] text-xs hover:text-white transition-colors">
-              Dispensar por enquanto
-            </button>
-          </div>
-        </div>
-      </section>
     </section>
   );
 }
