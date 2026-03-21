@@ -10,7 +10,7 @@ import {
   Ticket, GraduationCap, Image, Bell, FileText, Settings, Key,
   Monitor, Warehouse, Globe, ClipboardCheck, Headphones, Palette,
   Megaphone, ShieldCheck, MessageCircle, Shield, Recycle, RefreshCw,
-  ArrowRightLeft, Briefcase, Coins, Flame, Store, KeyRound, ImageIcon, Star
+  ArrowRightLeft, Briefcase, Coins, Flame, Store, KeyRound, ImageIcon, Star, Receipt
 } from "lucide-react";
 
 const allMenuItems = [
@@ -27,6 +27,7 @@ const allMenuItems = [
   { title: "Produtos", icon: Package, path: "/admin/produtos" },
   { title: "Pedidos", icon: ShoppingCart, path: "/admin/pedidos" },
   { title: "Pagamentos", icon: CreditCard, path: "/admin/pagamentos" },
+  { title: "Cobrança Avulsa", icon: Receipt, path: "/admin/cobranca-avulsa" },
   { title: "Assinaturas", icon: Monitor, path: "/admin/assinaturas" },
   { title: "Central Proxy", icon: Globe, path: "/admin/central-proxy" },
   { title: "Fornecedor AccFace", icon: Store, path: "/admin/fornecedor" },
