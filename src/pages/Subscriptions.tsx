@@ -9,8 +9,10 @@ import { ptBR } from "date-fns/locale";
 import SubscriptionCard from "@/components/subscriptions/SubscriptionCard";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Globe, ShieldCheck, Layers } from "lucide-react";
+import { Shield, Globe, ShieldCheck, Layers, Zap, ArrowRight, Lock } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 
 export type SubscriptionStatus = "active" | "expiring" | "cancelled" | "expired";
 
