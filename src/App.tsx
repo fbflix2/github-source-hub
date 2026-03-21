@@ -366,7 +366,6 @@ const App = () => {
                   <Route path="cobranca-avulsa" element={<AdminCobrancaAvulsa />} />
                 </Route>
                 <Route path="/admin/dash-fabricio" element={<AdminDashFabricio />} />
-                </Route>
 
                 {/* Protected routes */}
                 {user ? (
