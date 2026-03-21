@@ -80,6 +80,14 @@ export default function AdminSafeBM() {
   const [formPerfilBackup, setFormPerfilBackup] = useState("");
   const [formPurchaseDate, setFormPurchaseDate] = useState("");
   const [formNotes, setFormNotes] = useState("");
+  const [formBackupLink, setFormBackupLink] = useState("");
+  const [tickCount, setTickCount] = useState(0);
+
+  // Tick every minute to update countdown timers
+  useEffect(() => {
+    const iv = setInterval(() => setTickCount(c => c + 1), 60000);
+    return () => clearInterval(iv);
+  }, []);
 
   const fetchVaults = async () => {
     setLoading(true);
@@ -194,7 +202,8 @@ export default function AdminSafeBM() {
   const resetForm = () => {
     setFormClientEmail(""); setFormClientName(""); setFormUserId("");
     setFormBmName(""); setFormBmLink(""); setFormPerfilBackup("");
-    setFormPurchaseDate(""); setFormNotes(""); setEditingVault(null);
+    setFormPurchaseDate(""); setFormNotes(""); setFormBackupLink("");
+    setEditingVault(null);
   };
 
   const openAdd = () => { resetForm(); setModalOpen(true); };
@@ -207,6 +216,7 @@ export default function AdminSafeBM() {
     setFormPerfilBackup(v.perfil_backup || "");
     setFormPurchaseDate(v.purchase_date ? v.purchase_date.slice(0, 10) : "");
     setFormNotes(v.notes || "");
+    setFormBackupLink(v.backup_link || "");
     setModalOpen(true);
   };
 
@@ -220,7 +230,16 @@ export default function AdminSafeBM() {
       purchase_date: formPurchaseDate || null,
       notes: formNotes || null,
       client_name: formClientName || null,
+      backup_link: formBackupLink || null,
     };
+    // If backup_link changed, update set_at timestamp
+    if (editingVault) {
+      if (formBackupLink && formBackupLink !== (editingVault.backup_link || "")) {
+        payload.backup_link_set_at = new Date().toISOString();
+      }
+    } else if (formBackupLink) {
+      payload.backup_link_set_at = new Date().toISOString();
+    }
     if (editingVault) {
       const { error } = await supabase.from("safe_bm_vaults" as any).update(payload).eq("id", editingVault.id);
       if (error) toast.error(error.message); else toast.success("Cofre atualizado!");
