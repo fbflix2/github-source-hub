@@ -49,6 +49,8 @@ export default function AdminSafeBM() {
   const [saving, setSaving] = useState(false);
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
 
   const [formClientEmail, setFormClientEmail] = useState("");
   const [formClientName, setFormClientName] = useState("");
@@ -223,6 +225,15 @@ export default function AdminSafeBM() {
       .eq("id", v.id);
     if (error) toast.error(error.message);
     else { toast.success("Regeneração contabilizada!"); fetchVaults(); }
+  };
+
+  const handleRename = async (v: SafeBmVault) => {
+    if (!renameValue.trim()) return;
+    const { error } = await supabase.from("safe_bm_vaults" as any)
+      .update({ bm_name: renameValue.trim() })
+      .eq("id", v.id);
+    if (error) toast.error(error.message);
+    else { toast.success("BM renomeada!"); setRenamingId(null); fetchVaults(); }
   };
 
   const deleteVault = async (v: SafeBmVault) => {
@@ -545,14 +556,42 @@ export default function AdminSafeBM() {
                             }`}>
                               <Shield className={`size-3.5 ${v.status === "active" ? "text-primary" : "text-muted-foreground"}`} />
                             </div>
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-medium text-sm text-foreground">{v.bm_name}</span>
-                              {v.bm_link && (
-                                <a href={v.bm_link} target="_blank" rel="noopener noreferrer" className="text-primary/60 hover:text-primary">
-                                  <ExternalLink className="size-3" />
-                                </a>
-                              )}
-                            </div>
+                            {renamingId === v.id ? (
+                              <div className="flex items-center gap-1.5">
+                                <Input
+                                  value={renameValue}
+                                  onChange={e => setRenameValue(e.target.value)}
+                                  onKeyDown={e => e.key === "Enter" && handleRename(v)}
+                                  className="h-7 text-sm w-40"
+                                  autoFocus
+                                />
+                                <Button size="icon" variant="ghost" className="size-6" onClick={() => handleRename(v)}>
+                                  <Check className="size-3 text-emerald-400" />
+                                </Button>
+                                <Button size="icon" variant="ghost" className="size-6" onClick={() => setRenamingId(null)}>
+                                  <ShieldOff className="size-3 text-muted-foreground" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-1.5">
+                                <span
+                                  className="font-medium text-sm text-foreground cursor-pointer hover:text-primary transition-colors"
+                                  onClick={() => { setRenamingId(v.id); setRenameValue(v.bm_name); }}
+                                  title="Clique para renomear"
+                                >
+                                  {v.bm_name}
+                                </span>
+                                <Pencil
+                                  className="size-3 text-muted-foreground hover:text-primary cursor-pointer"
+                                  onClick={() => { setRenamingId(v.id); setRenameValue(v.bm_name); }}
+                                />
+                                {v.bm_link && (
+                                  <a href={v.bm_link} target="_blank" rel="noopener noreferrer" className="text-primary/60 hover:text-primary">
+                                    <ExternalLink className="size-3" />
+                                  </a>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">{v.client_name || "—"}</TableCell>
