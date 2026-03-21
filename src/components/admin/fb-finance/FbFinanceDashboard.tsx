@@ -7,6 +7,7 @@ import { FbDistribuicaoPJ } from "./FbDistribuicaoPJ";
 import { FbPlanejamentoPessoal } from "./FbPlanejamentoPessoal";
 import { FbRelatorios } from "./FbRelatorios";
 import { FbMapaFluxo } from "./FbMapaFluxo";
+import { FbCalendarModal } from "./FbCalendarModal";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 export type FbPage = "dashboard" | "lancamentos" | "caixas" | "distribuicao" | "planejamento" | "relatorios" | "mapa_fluxo";
@@ -14,6 +15,7 @@ export type FbPage = "dashboard" | "lancamentos" | "caixas" | "distribuicao" | "
 export function FbFinanceDashboard() {
   const [currentPage, setCurrentPage] = useState<FbPage>("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const isMobile = useIsMobile();
 
   const renderPage = () => {
@@ -82,7 +84,7 @@ export function FbFinanceDashboard() {
               />
             </div>
             <div className="flex items-center gap-4 text-slate-400">
-              <button className="hover:bg-white/5 p-2 rounded-full transition-colors"><span className="material-symbols-outlined">calendar_today</span></button>
+              <button onClick={() => setCalendarOpen(true)} className="hover:bg-white/5 p-2 rounded-full transition-colors"><span className="material-symbols-outlined">calendar_today</span></button>
               <button className="hover:bg-white/5 p-2 rounded-full transition-colors relative">
                 <span className="material-symbols-outlined">notifications</span>
                 <span className="absolute top-2 right-2 w-2 h-2 bg-[#40e56c] rounded-full"></span>
@@ -102,6 +104,9 @@ export function FbFinanceDashboard() {
       <button className="fixed bottom-8 right-8 w-14 h-14 bg-[#1976d2] text-white rounded-full shadow-2xl shadow-blue-500/40 flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-50">
         <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>add</span>
       </button>
+
+      {/* Calendar Modal */}
+      <FbCalendarModal open={calendarOpen} onClose={() => setCalendarOpen(false)} />
     </div>
   );
 }
