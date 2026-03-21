@@ -1,5 +1,4 @@
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, BookOpen, Wallet, TrendingUp, CalendarCheck, BarChart3 } from "lucide-react";
 import type { FbPage } from "./FbFinanceDashboard";
 
 interface Props {
@@ -7,26 +6,24 @@ interface Props {
   onNavigate: (page: FbPage) => void;
 }
 
-const menuItems: { page: FbPage; label: string; icon: any }[] = [
-  { page: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { page: "lancamentos", label: "Lançamentos", icon: BookOpen },
-  { page: "caixas", label: "Caixas / Envelopes", icon: Wallet },
-  { page: "distribuicao", label: "Distribuição PJ", icon: TrendingUp },
-  { page: "planejamento", label: "Planejamento Pessoal", icon: CalendarCheck },
-  { page: "relatorios", label: "Relatórios", icon: BarChart3 },
+const menuItems: { page: FbPage; label: string; icon: string }[] = [
+  { page: "dashboard", label: "Visão Geral", icon: "dashboard" },
+  { page: "lancamentos", label: "Lançamentos Diários", icon: "receipt_long" },
+  { page: "caixas", label: "Caixas / Envelopes", icon: "account_balance_wallet" },
+  { page: "distribuicao", label: "Distribuição Diária PJ", icon: "share" },
+  { page: "planejamento", label: "Planejamento Mensal", icon: "event_note" },
+  { page: "relatorios", label: "Relatórios / Histórico", icon: "analytics" },
 ];
 
 export function FbFinanceSidebar({ currentPage, onNavigate }: Props) {
   return (
-    <aside className="w-56 h-full bg-[#0a1525] border-r border-blue-900/20 flex flex-col">
-      <div className="px-4 py-5 border-b border-blue-900/20">
-        <h2 className="text-lg font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-          Fb Finance
-        </h2>
-        <p className="text-[10px] text-blue-400/40 mt-0.5">Gestão Financeira Integrada</p>
+    <aside className="w-72 h-full flex flex-col py-8" style={{ background: "rgba(14, 28, 45, 0.8)", backdropFilter: "blur(20px)", boxShadow: "24px 0 48px rgba(0,0,0,0.4)" }}>
+      <div className="px-8 mb-10">
+        <h1 className="font-['Manrope'] font-black text-[#1976d2] text-2xl uppercase tracking-widest">DIGITAL VAULT</h1>
+        <p className="text-slate-400 text-xs mt-1 uppercase tracking-tighter">Premium Finance</p>
       </div>
 
-      <nav className="flex-1 px-2 py-3 space-y-1">
+      <nav className="flex-1 space-y-1">
         {menuItems.map((item) => {
           const isActive = currentPage === item.page;
           return (
@@ -34,18 +31,36 @@ export function FbFinanceSidebar({ currentPage, onNavigate }: Props) {
               key={item.page}
               onClick={() => onNavigate(item.page)}
               className={cn(
-                "flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-all",
+                "w-full py-3 px-6 flex items-center gap-4 transition-all duration-300 text-left",
                 isActive
-                  ? "bg-gradient-to-r from-blue-600/20 to-cyan-600/10 text-cyan-400 border border-blue-500/20 shadow-lg shadow-blue-500/5"
-                  : "text-blue-300/50 hover:bg-blue-900/20 hover:text-blue-200"
+                  ? "bg-blue-600/10 text-blue-400 border-l-4 border-blue-500"
+                  : "text-slate-400 hover:text-white hover:bg-white/5 hover:translate-x-1 border-l-4 border-transparent"
               )}
             >
-              <item.icon className={cn("size-4", isActive ? "text-cyan-400" : "")} />
-              <span>{item.label}</span>
+              <span className="material-symbols-outlined">{item.icon}</span>
+              <span className="font-medium text-sm tracking-wide">{item.label}</span>
             </button>
           );
         })}
       </nav>
+
+      <div className="px-6 mt-6">
+        <div className="p-4 rounded-xl border border-white/5" style={{ background: "#283647" }}>
+          <p className="text-[10px] text-blue-400 font-bold uppercase tracking-widest mb-2">Instrução</p>
+          <p className="text-xs text-[#c1c6d4] leading-relaxed">Clique nos botões do menu para navegar entre todas as telas</p>
+        </div>
+      </div>
+
+      <div className="mt-auto px-6 space-y-2 pt-4">
+        <button className="text-slate-400 hover:text-white py-2 flex items-center gap-3 transition-colors w-full">
+          <span className="material-symbols-outlined text-lg">help</span>
+          <span className="text-sm">Suporte</span>
+        </button>
+        <button className="text-slate-400 hover:text-white py-2 flex items-center gap-3 transition-colors w-full">
+          <span className="material-symbols-outlined text-lg">logout</span>
+          <span className="text-sm">Sair</span>
+        </button>
+      </div>
     </aside>
   );
 }
