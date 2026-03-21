@@ -56,10 +56,6 @@ export function FbFinanceSidebar({ currentPage, onNavigate }: Props) {
       </div>
 
       <div className="mt-auto px-6 space-y-2 pt-4">
-        <button className="text-slate-400 hover:text-white py-2 flex items-center gap-3 transition-colors w-full">
-          <span className="material-symbols-outlined text-lg">help</span>
-          <span className="text-sm">Suporte</span>
-        </button>
         <button
           onClick={() => navigate("/admin")}
           className="text-slate-400 hover:text-white py-2 flex items-center gap-3 transition-colors w-full"
