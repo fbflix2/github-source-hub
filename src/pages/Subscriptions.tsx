@@ -84,20 +84,53 @@ const categoryTabs: { key: SubscriptionCategory; label: string; icon: React.Reac
 export default function Subscriptions() {
   const [activeCategory, setActiveCategory] = useState<SubscriptionCategory>("proxies");
   const [hasSafeBm, setHasSafeBm] = useState<boolean | null>(null);
+  const [hasContingencia, setHasContingencia] = useState<boolean | null>(null);
+  const [hasActiveProxy, setHasActiveProxy] = useState<boolean | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { setHasSafeBm(false); return; }
-      const { count } = await supabase
-        .from("safe_bm_vaults" as any)
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .eq("status", "active");
-      setHasSafeBm((count ?? 0) > 0);
+      if (!user) { setHasSafeBm(false); setHasContingencia(false); return; }
+
+      const [safeBmRes, ctRes] = await Promise.all([
+        supabase
+          .from("safe_bm_vaults" as any)
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .eq("status", "active"),
+        supabase
+          .from("ct_clients")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .eq("status", "ativo"),
+      ]);
+      setHasSafeBm((safeBmRes.count ?? 0) > 0);
+      setHasContingencia((ctRes.count ?? 0) > 0);
     })();
   }, []);
+
+  const { data: subscriptionsRaw } = useProxyBRSubscriptions();
+  const { data: webshareRaw } = useWebshareSubscriptions();
+
+  useEffect(() => {
+    const allSubs = [
+      ...(Array.isArray(subscriptionsRaw) ? subscriptionsRaw : []),
+      ...(Array.isArray(webshareRaw) ? webshareRaw : []),
+    ];
+    const hasActive = allSubs.some((sub: any) => {
+      if (!sub.end_date) return true;
+      const daysLeft = differenceInDays(parseISO(sub.end_date), new Date());
+      return daysLeft >= 0 && sub.status !== "cancelled";
+    });
+    setHasActiveProxy(hasActive);
+  }, [subscriptionsRaw, webshareRaw]);
+
+  const activeServices: Record<SubscriptionCategory, boolean> = {
+    proxies: hasActiveProxy === true,
+    safebm: hasSafeBm === true,
+    contingencia: hasContingencia === true,
+  };
 
   const handleTabClick = (key: SubscriptionCategory) => {
     if (key === "safebm" && hasSafeBm) {
@@ -120,7 +153,7 @@ export default function Subscriptions() {
           <button
             key={tab.key}
             onClick={() => handleTabClick(tab.key)}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap border ${
+            className={`relative flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap border ${
               activeCategory === tab.key
                 ? "bg-primary/10 text-primary border-primary/30 shadow-sm"
                 : "bg-card/50 text-text-secondary border-glass-border hover:bg-card hover:text-foreground"
@@ -128,6 +161,12 @@ export default function Subscriptions() {
           >
             {tab.icon}
             {tab.label}
+            {activeServices[tab.key] && (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-green-500/15 border border-green-500/30 text-green-500 text-[9px] font-bold uppercase tracking-wider">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                Ativo
+              </span>
+            )}
           </button>
         ))}
       </div>
