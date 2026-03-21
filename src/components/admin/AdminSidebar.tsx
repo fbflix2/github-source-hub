@@ -42,7 +42,8 @@ import {
   Store,
   KeyRound,
   ImageIcon,
-  ShieldAlert
+  ShieldAlert,
+  Receipt
 } from "lucide-react";
 
 interface SubItem {
@@ -75,6 +76,7 @@ const allMenuItems: MenuItem[] = [
   { title: "Pedidos", icon: ShoppingCart, path: "/admin/pedidos" },
   { title: "Pagamentos", icon: CreditCard, path: "/admin/pagamentos" },
   { title: "Carrinhos Abandonados", icon: ShoppingCart, path: "/admin/carrinhos-abandonados" },
+  { title: "Cobrança Avulsa", icon: Receipt, path: "/admin/cobranca-avulsa" },
   { title: "Central Proxy", icon: Globe, path: "/admin/central-proxy", subItems: [
     { title: "Webshare", icon: Globe, path: "/admin/central-proxy" },
     { title: "ProxyBR", icon: Globe, path: "/admin/central-proxy/proxybr" },

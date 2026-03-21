@@ -177,8 +177,34 @@ Deno.serve(async (req) => {
 
     // Check if this is a wallet recharge or an order payment
     const metadataObj = typeof existingPayment.metadata === 'object' && existingPayment.metadata ? existingPayment.metadata : {};
+    const isInvoiceLink = (metadataObj as Record<string, unknown>).type === "invoice_link";
     // If there's no order_id, it's a wallet recharge (more robust than checking metadata.type)
-    const isWalletRecharge = !orderId;
+    const isWalletRecharge = !orderId && !isInvoiceLink;
+
+    // ========== INVOICE LINK FLOW ==========
+    if (isInvoiceLink) {
+      const invoiceCode = (metadataObj as Record<string, unknown>).invoice_code as string;
+      console.log(`Processing invoice link payment: ${invoiceCode}`);
+      
+      await supabase
+        .from("invoice_links")
+        .update({ status: "paid", paid_at: new Date().toISOString() })
+        .eq("payment_id", paymentId);
+
+      // Notify admin
+      await supabase.from("notifications").insert({
+        title: "Cobrança Paga",
+        message: `Cobrança ${invoiceCode} de R$ ${amount.toFixed(2)} foi paga via PIX.`,
+        type: "payment",
+        global: true,
+      });
+
+      console.log(`Invoice ${invoiceCode} marked as paid`);
+      return new Response(JSON.stringify({ received: true, type: "invoice_link" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     if (isWalletRecharge) {
       // ========== WALLET RECHARGE FLOW ==========

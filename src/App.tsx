@@ -40,6 +40,7 @@ import Ferramentas from "./pages/Ferramentas";
 import SafeBMClient from "./pages/SafeBMClient";
 import SafeBMLanding from "./pages/SafeBMLanding";
 import ClientContingencia from "./pages/ClientContingencia";
+import PagarInvoice from "./pages/PagarInvoice";
 
 // Admin Pages
 import AdminLogin from "./pages/admin/AdminLogin";
@@ -94,6 +95,7 @@ import AdminProxyBR from "./pages/admin/AdminProxyBR";
 import AdminCaixa from "./pages/admin/AdminCaixa";
 import AdminSafeBM from "./pages/admin/AdminSafeBM";
 import AdminContingencia from "./pages/admin/AdminContingencia";
+import AdminCobrancaAvulsa from "./pages/admin/AdminCobrancaAvulsa";
 import { AdminLayout } from "./components/admin/AdminLayout";
 
 // Layout
@@ -290,6 +292,7 @@ const App = () => {
                 <Route path="/produto/:slug" element={<ProductPage />} />
                 <Route path="/saiba-mais-fbx" element={<SaibaMaisFBX />} />
                 <Route path="/saiba-mais-safebm" element={<SafeBMLanding />} />
+                <Route path="/pagar/:code" element={<PagarInvoice />} />
                 <Route path="/parceiro/:slug" element={<PartnerRedirect />} />
                 <Route path="/migrar" element={user ? <Navigate to="/welcome" replace /> : <MigrationLogin />} />
 
@@ -347,6 +350,7 @@ const App = () => {
                   <Route path="imagens" element={<AdminImageViewer />} />
                   <Route path="safe-bm" element={<AdminSafeBM />} />
                   <Route path="contingencia" element={<AdminContingencia />} />
+                  <Route path="cobranca-avulsa" element={<AdminCobrancaAvulsa />} />
                 </Route>
 
                 {/* Protected routes */}
