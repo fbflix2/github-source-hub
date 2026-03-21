@@ -9,8 +9,10 @@ import { ptBR } from "date-fns/locale";
 import SubscriptionCard from "@/components/subscriptions/SubscriptionCard";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Globe, ShieldCheck, Layers } from "lucide-react";
+import { Shield, Globe, ShieldCheck, Layers, Zap, ArrowRight, Lock } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 
 export type SubscriptionStatus = "active" | "expiring" | "cancelled" | "expired";
 
@@ -81,10 +83,24 @@ const categoryTabs: { key: SubscriptionCategory; label: string; icon: React.Reac
 
 export default function Subscriptions() {
   const [activeCategory, setActiveCategory] = useState<SubscriptionCategory>("proxies");
+  const [hasSafeBm, setHasSafeBm] = useState<boolean | null>(null);
   const navigate = useNavigate();
 
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setHasSafeBm(false); return; }
+      const { count } = await supabase
+        .from("safe_bm_vaults" as any)
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("status", "active");
+      setHasSafeBm((count ?? 0) > 0);
+    })();
+  }, []);
+
   const handleTabClick = (key: SubscriptionCategory) => {
-    if (key === "safebm") {
+    if (key === "safebm" && hasSafeBm) {
       navigate("/safe-bm");
       return;
     }
@@ -118,7 +134,83 @@ export default function Subscriptions() {
 
       {/* Content based on active category */}
       {activeCategory === "proxies" && <ProxiesPanel />}
+      {activeCategory === "safebm" && <SafeBmPromoPanel />}
       {activeCategory === "contingencia" && <ContingenciaPanel />}
+    </div>
+  );
+}
+
+/* ─── SAFE BM PROMO (for non-subscribers) ─── */
+function SafeBmPromoPanel() {
+  const navigate = useNavigate();
+
+  return (
+    <div className="space-y-6">
+      <Card className="bg-gradient-to-br from-primary/5 via-card to-card border-primary/20 overflow-hidden relative">
+        <CardContent className="p-8 md:p-10">
+          <div className="flex flex-col md:flex-row gap-8 items-start">
+            <div className="flex-1 space-y-5">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Shield className="size-6 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-foreground">Safe BM</h2>
+                  <Badge className="bg-primary/20 text-primary border-primary/30 text-[10px] mt-1">Proteção Premium</Badge>
+                </div>
+              </div>
+
+              <p className="text-muted-foreground leading-relaxed">
+                O <strong className="text-foreground">Safe BM</strong> é o cofre digital da FBFlix que protege suas Business Managers 
+                contra perdas, bloqueios e acessos indevidos. Com backup automático de administradores, 
+                monitoramento em tempo real e regeneração instantânea de links de acesso, você nunca mais 
+                perde uma BM.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {[
+                  { icon: ShieldCheck, text: "Backup de admin em tempo real" },
+                  { icon: Lock, text: "Proteção contra perda de acesso" },
+                  { icon: Zap, text: "Regeneração instantânea de links" },
+                  { icon: Shield, text: "Monitoramento 24/7 do cofre" },
+                ].map((f, i) => (
+                  <div key={i} className="flex items-center gap-2.5 text-sm text-muted-foreground">
+                    <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <f.icon className="size-3.5 text-primary" />
+                    </div>
+                    {f.text}
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-2 pt-2">
+                <p className="text-3xl font-bold text-foreground">R$ 9,99</p>
+                <span className="text-sm text-muted-foreground">/mês por BM</span>
+              </div>
+
+              <div className="flex flex-wrap gap-3 pt-2">
+                <Button
+                  size="lg"
+                  className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold"
+                  onClick={() => navigate("/saiba-mais-safebm")}
+                >
+                  <Zap className="size-4" />
+                  Ativar Agora
+                </Button>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="gap-2"
+                  onClick={() => navigate("/saiba-mais-safebm")}
+                >
+                  Saiba Mais
+                  <ArrowRight className="size-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
