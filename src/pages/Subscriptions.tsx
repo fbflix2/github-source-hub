@@ -547,17 +547,163 @@ function ContingenciaPanel() {
   if (loading) return <div className="space-y-4">{[1, 2, 3].map(i => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>;
 
   if (!client) {
+    const plans = [
+      {
+        name: "White",
+        price: "2.500",
+        desc: "Ideal para quem está começando",
+        items: ["3 Perfis", "3 Proxies dedicados", "3 BMs verificadas", "3 Contas aquecidas", "2 reposições/mês"],
+        popular: false,
+      },
+      {
+        name: "Black",
+        price: "5.000",
+        desc: "Estrutura completa para escalar",
+        items: ["10 Perfis", "10 Proxies dedicados", "10 BMs verificadas", "10 Contas aquecidas", "5 reposições/mês", "Suporte prioritário"],
+        popular: true,
+      },
+    ];
+
     return (
-      <div className="flex flex-col items-center justify-center py-16 px-4">
-        <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-5">
-          <Layers className="text-primary size-6" />
+      <div className="space-y-8 animate-fade-in">
+        {/* Hero */}
+        <Card className="bg-gradient-to-br from-primary/5 via-card to-card border-primary/20 overflow-hidden relative">
+          <CardContent className="p-8 md:p-10">
+            <div className="flex flex-col gap-5">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Layers className="size-6 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-foreground">Contingência Total</h2>
+                  <Badge className="bg-primary/20 text-primary border-primary/30 text-[10px] mt-1">Estrutura Completa</Badge>
+                </div>
+              </div>
+
+              <p className="text-muted-foreground leading-relaxed max-w-2xl">
+                Pare de comprar itens avulsos e perder dinheiro com blocks. Com a <strong className="text-foreground">Contingência Total</strong>, 
+                você aluga uma estrutura completa com <strong className="text-foreground">reposição garantida</strong>. 
+                Se algo cair, a gente repõe — sem custo extra dentro do seu plano.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {[
+                  { icon: ShieldCheck, text: "Reposição garantida inclusa no plano" },
+                  { icon: Zap, text: "Estrutura pronta para operar imediatamente" },
+                  { icon: Lock, text: "Sem risco: itens reposto sem custo adicional" },
+                  { icon: Layers, text: "Perfis + Proxies + BMs + Contas integrados" },
+                ].map((f, i) => (
+                  <div key={i} className="flex items-center gap-2.5 text-sm text-muted-foreground">
+                    <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <f.icon className="size-3.5 text-primary" />
+                    </div>
+                    {f.text}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Comparativo: Avulso vs Assinatura */}
+        <div className="glass-card rounded-xl border border-glass-border p-6">
+          <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
+            <span className="material-symbols-outlined text-primary">compare_arrows</span>
+            Por que assinar ao invés de comprar avulso?
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="rounded-xl border border-destructive/20 bg-destructive/5 p-4 space-y-2">
+              <p className="text-sm font-bold text-destructive flex items-center gap-2">
+                <span className="material-symbols-outlined text-base">close</span>
+                Compra Avulsa
+              </p>
+              <ul className="space-y-1.5 text-xs text-muted-foreground">
+                <li>• Cada block = novo custo de reposição</li>
+                <li>• Sem garantia de reposição rápida</li>
+                <li>• Estrutura fragmentada e instável</li>
+                <li>• Gasto imprevisível todo mês</li>
+              </ul>
+            </div>
+            <div className="rounded-xl border border-green-500/20 bg-green-500/5 p-4 space-y-2">
+              <p className="text-sm font-bold text-green-500 flex items-center gap-2">
+                <span className="material-symbols-outlined text-base">check</span>
+                Contingência Total
+              </p>
+              <ul className="space-y-1.5 text-xs text-muted-foreground">
+                <li>• Reposição inclusa sem custo extra</li>
+                <li>• Estrutura sempre pronta e integrada</li>
+                <li>• Suporte prioritário para assinantes</li>
+                <li>• Valor fixo mensal, sem surpresas</li>
+              </ul>
+            </div>
+          </div>
         </div>
-        <h2 className="text-xl font-bold text-foreground mb-2">Nenhuma assinatura de Contingência</h2>
-        <p className="text-text-secondary text-sm text-center max-w-md mb-6">Locação de estrutura completa (Perfis, Proxies, BMs e Contas) para suas operações.</p>
-        <a href="/contingencia" className="bg-primary hover:bg-[#00c968] text-background h-11 px-6 rounded-xl text-sm font-bold transition-all shadow-glow flex items-center gap-2">
-          <Layers className="size-4" />
-          Saiba Mais
-        </a>
+
+        {/* Plans */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {plans.map((p) => (
+            <div
+              key={p.name}
+              className={`relative glass-card rounded-2xl p-6 border transition-all hover:scale-[1.01] ${
+                p.popular
+                  ? "border-primary/40 shadow-lg shadow-primary/10"
+                  : "border-glass-border"
+              }`}
+            >
+              {p.popular && (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-wider rounded-full">
+                  Mais Popular
+                </div>
+              )}
+              <div className="flex items-center gap-3 mb-3">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${p.popular ? "bg-primary/15" : "bg-muted"}`}>
+                  <Layers className={`size-5 ${p.popular ? "text-primary" : "text-muted-foreground"}`} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-foreground">Plano {p.name}</h3>
+                  <p className="text-xs text-muted-foreground">{p.desc}</p>
+                </div>
+              </div>
+
+              <div className="mb-4">
+                <span className="text-3xl font-black text-foreground">R$ {p.price}</span>
+                <span className="text-sm text-muted-foreground">/mês</span>
+              </div>
+
+              <ul className="space-y-2 mb-6">
+                {p.items.map((item) => (
+                  <li key={item} className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <ShieldCheck className="size-3.5 text-green-500 flex-shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+
+              <div className="flex gap-2">
+                <Button
+                  className={`flex-1 gap-2 font-bold ${p.popular ? "bg-primary hover:bg-primary/90 text-primary-foreground" : ""}`}
+                  variant={p.popular ? "default" : "outline"}
+                  onClick={() => window.open("https://wa.me/5511999999999?text=Quero%20assinar%20o%20plano%20" + p.name + "%20da%20Contingência%20Total", "_blank")}
+                >
+                  <Zap className="size-4" />
+                  Assinar {p.name}
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* CTA final */}
+        <div className="text-center py-4">
+          <p className="text-xs text-muted-foreground">
+            Dúvidas? Fale com nosso time pelo{" "}
+            <a href="https://wa.me/5511999999999" target="_blank" rel="noopener" className="text-primary hover:underline font-semibold">
+              WhatsApp
+            </a>{" "}
+            ou abra um{" "}
+            <a href="/suporte" className="text-primary hover:underline font-semibold">ticket de suporte</a>.
+          </p>
+        </div>
       </div>
     );
   }
