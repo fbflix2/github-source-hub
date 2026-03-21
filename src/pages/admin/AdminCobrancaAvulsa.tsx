@@ -54,6 +54,8 @@ export default function AdminCobrancaAvulsa() {
   const [selectedProductId, setSelectedProductId] = useState<string>("");
   const [productName, setProductName] = useState("");
   const [amount, setAmount] = useState("");
+  const [selectedInvoice, setSelectedInvoice] = useState<InvoiceLink | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
   const [referenceDate, setReferenceDate] = useState(new Date().toISOString().split("T")[0]);
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
