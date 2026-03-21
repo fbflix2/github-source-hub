@@ -6,9 +6,10 @@ import { FbCaixas } from "./FbCaixas";
 import { FbDistribuicaoPJ } from "./FbDistribuicaoPJ";
 import { FbPlanejamentoPessoal } from "./FbPlanejamentoPessoal";
 import { FbRelatorios } from "./FbRelatorios";
+import { FbMapaFluxo } from "./FbMapaFluxo";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-export type FbPage = "dashboard" | "lancamentos" | "caixas" | "distribuicao" | "planejamento" | "relatorios";
+export type FbPage = "dashboard" | "lancamentos" | "caixas" | "distribuicao" | "planejamento" | "relatorios" | "mapa_fluxo";
 
 export function FbFinanceDashboard() {
   const [currentPage, setCurrentPage] = useState<FbPage>("dashboard");
@@ -23,6 +24,7 @@ export function FbFinanceDashboard() {
       case "distribuicao": return <FbDistribuicaoPJ />;
       case "planejamento": return <FbPlanejamentoPessoal />;
       case "relatorios": return <FbRelatorios />;
+      case "mapa_fluxo": return <FbMapaFluxo onNavigate={setCurrentPage} />;
       default: return <FbDashboardHome onNavigate={setCurrentPage} />;
     }
   };
