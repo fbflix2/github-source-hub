@@ -515,31 +515,41 @@ function ContingenciaPanel() {
   const [plan, setPlan] = useState<any>(null);
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [availablePlans, setAvailablePlans] = useState<any[]>([]);
 
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setLoading(false); return; }
 
-      const { data: ctClient } = await supabase
-        .from("ct_clients")
-        .select("*, ct_plans:plan_id(*)")
-        .eq("user_id", user.id)
-        .eq("status", "ativo")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const [ctClientRes, plansRes] = await Promise.all([
+        supabase
+          .from("ct_clients")
+          .select("*, ct_plans:plan_id(*)")
+          .eq("user_id", user.id)
+          .eq("status", "ativo")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from("ct_plans")
+          .select("*")
+          .eq("active", true)
+          .order("price", { ascending: true }),
+      ]);
 
-      if (ctClient) {
-        setClient(ctClient);
-        setPlan((ctClient as any).ct_plans);
+      if (ctClientRes.data) {
+        setClient(ctClientRes.data);
+        setPlan((ctClientRes.data as any).ct_plans);
 
         const { data: ctItems } = await supabase
           .from("ct_items")
           .select("*")
-          .eq("ct_client_id", ctClient.id);
+          .eq("ct_client_id", ctClientRes.data.id);
         setItems(ctItems || []);
       }
+
+      setAvailablePlans(plansRes.data || []);
       setLoading(false);
     })();
   }, []);
@@ -547,22 +557,7 @@ function ContingenciaPanel() {
   if (loading) return <div className="space-y-4">{[1, 2, 3].map(i => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>;
 
   if (!client) {
-    const plans = [
-      {
-        name: "White",
-        price: "2.500",
-        desc: "Ideal para quem está começando",
-        items: ["3 Perfis", "3 Proxies dedicados", "3 BMs verificadas", "3 Contas aquecidas", "2 reposições/mês"],
-        popular: false,
-      },
-      {
-        name: "Black",
-        price: "5.000",
-        desc: "Estrutura completa para escalar",
-        items: ["10 Perfis", "10 Proxies dedicados", "10 BMs verificadas", "10 Contas aquecidas", "5 reposições/mês", "Suporte prioritário"],
-        popular: true,
-      },
-    ];
+    const isPopular = (p: any) => p.tier === "black";
 
     return (
       <div className="space-y-8 animate-fade-in">
@@ -590,7 +585,7 @@ function ContingenciaPanel() {
                 {[
                   { icon: ShieldCheck, text: "Reposição garantida inclusa no plano" },
                   { icon: Zap, text: "Estrutura pronta para operar imediatamente" },
-                  { icon: Lock, text: "Sem risco: itens reposto sem custo adicional" },
+                  { icon: Lock, text: "Sem risco: itens repostos sem custo adicional" },
                   { icon: Layers, text: "Perfis + Proxies + BMs + Contas integrados" },
                 ].map((f, i) => (
                   <div key={i} className="flex items-center gap-2.5 text-sm text-muted-foreground">
@@ -605,7 +600,7 @@ function ContingenciaPanel() {
           </CardContent>
         </Card>
 
-        {/* Comparativo: Avulso vs Assinatura */}
+        {/* Comparativo */}
         <div className="glass-card rounded-xl border border-glass-border p-6">
           <h3 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
             <span className="material-symbols-outlined text-primary">compare_arrows</span>
@@ -639,59 +634,71 @@ function ContingenciaPanel() {
           </div>
         </div>
 
-        {/* Plans */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {plans.map((p) => (
-            <div
-              key={p.name}
-              className={`relative glass-card rounded-2xl p-6 border transition-all hover:scale-[1.01] ${
-                p.popular
-                  ? "border-primary/40 shadow-lg shadow-primary/10"
-                  : "border-glass-border"
-              }`}
-            >
-              {p.popular && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-wider rounded-full">
-                  Mais Popular
-                </div>
-              )}
-              <div className="flex items-center gap-3 mb-3">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${p.popular ? "bg-primary/15" : "bg-muted"}`}>
-                  <Layers className={`size-5 ${p.popular ? "text-primary" : "text-muted-foreground"}`} />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-foreground">Plano {p.name}</h3>
-                  <p className="text-xs text-muted-foreground">{p.desc}</p>
-                </div>
-              </div>
+        {/* Plans from DB */}
+        {availablePlans.length > 0 && (
+          <div className={`grid grid-cols-1 ${availablePlans.length >= 2 ? "md:grid-cols-2" : ""} ${availablePlans.length >= 3 ? "lg:grid-cols-3" : ""} gap-5`}>
+            {availablePlans.map((p) => {
+              const popular = isPopular(p);
+              const features = [
+                `${p.profiles_qty} Perfis`,
+                `${p.proxies_qty} Proxies dedicados`,
+                `${p.bms_qty} BMs verificadas`,
+                `${p.accounts_qty} Contas aquecidas`,
+                `${p.replacements_qty} reposições/mês`,
+              ];
+              if (popular) features.push("Suporte prioritário");
 
-              <div className="mb-4">
-                <span className="text-3xl font-black text-foreground">R$ {p.price}</span>
-                <span className="text-sm text-muted-foreground">/mês</span>
-              </div>
-
-              <ul className="space-y-2 mb-6">
-                {p.items.map((item) => (
-                  <li key={item} className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <ShieldCheck className="size-3.5 text-green-500 flex-shrink-0" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-
-              <div className="flex gap-2">
-                <Button
-                  className={`flex-1 gap-2 font-bold ${p.popular ? "bg-primary hover:bg-primary/90 text-primary-foreground" : ""}`}
-                  variant={p.popular ? "default" : "outline"}
-                  onClick={() => window.open("https://wa.me/5511999999999?text=Quero%20assinar%20o%20plano%20" + p.name + "%20da%20Contingência%20Total", "_blank")}
+              return (
+                <div
+                  key={p.id}
+                  className={`relative glass-card rounded-2xl p-6 border transition-all hover:scale-[1.01] ${
+                    popular ? "border-primary/40 shadow-lg shadow-primary/10" : "border-glass-border"
+                  }`}
                 >
-                  <Zap className="size-4" />
-                  Assinar {p.name}
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
+                  {popular && (
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-primary text-primary-foreground text-[10px] font-bold uppercase tracking-wider rounded-full">
+                      Mais Popular
+                    </div>
+                  )}
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${popular ? "bg-primary/15" : "bg-muted"}`}>
+                      <Layers className={`size-5 ${popular ? "text-primary" : "text-muted-foreground"}`} />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-foreground">{p.name}</h3>
+                      <p className="text-xs text-muted-foreground capitalize">{p.tier}</p>
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <span className="text-3xl font-black text-foreground">
+                      R$ {Number(p.price).toLocaleString("pt-BR", { minimumFractionDigits: 0 })}
+                    </span>
+                    <span className="text-sm text-muted-foreground">/mês</span>
+                  </div>
+
+                  <ul className="space-y-2 mb-6">
+                    {features.map((item) => (
+                      <li key={item} className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <ShieldCheck className="size-3.5 text-green-500 flex-shrink-0" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+
+                  <Button
+                    className={`w-full gap-2 font-bold ${popular ? "bg-primary hover:bg-primary/90 text-primary-foreground" : ""}`}
+                    variant={popular ? "default" : "outline"}
+                    onClick={() => window.open("https://wa.me/5511999999999?text=Quero%20assinar%20o%20plano%20" + encodeURIComponent(p.name) + "%20da%20Contingência%20Total", "_blank")}
+                  >
+                    <Zap className="size-4" />
+                    Assinar {p.name}
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         {/* CTA final */}
         <div className="text-center py-4">
