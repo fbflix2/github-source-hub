@@ -37,8 +37,27 @@ interface SafeBmVault {
   status: string;
   subscription_price: number;
   notes: string | null;
+  backup_link: string | null;
+  backup_link_set_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+function getBackupLinkTimeLeft(setAt: string | null): { expired: boolean; text: string; percent: number } {
+  if (!setAt) return { expired: true, text: "Sem link", percent: 0 };
+  const set = new Date(setAt).getTime();
+  const expires = set + 7 * 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  const remaining = expires - now;
+  if (remaining <= 0) return { expired: true, text: "Expirado", percent: 0 };
+  const totalMs = 7 * 24 * 60 * 60 * 1000;
+  const percent = Math.round((remaining / totalMs) * 100);
+  const days = Math.floor(remaining / (24 * 60 * 60 * 1000));
+  const hours = Math.floor((remaining % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+  const mins = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
+  if (days > 0) return { expired: false, text: `${days}d ${hours}h`, percent };
+  if (hours > 0) return { expired: false, text: `${hours}h ${mins}m`, percent };
+  return { expired: false, text: `${mins}m`, percent };
 }
 
 export default function AdminSafeBM() {
