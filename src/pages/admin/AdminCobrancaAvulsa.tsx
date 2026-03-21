@@ -166,11 +166,12 @@ export default function AdminCobrancaAvulsa() {
     setProducts(allProducts);
 
     // Load invoices
-    const { data: invoicesData } = await supabase
+    const { data: invoicesData, error: invError } = await supabase
       .from("invoice_links" as any)
       .select("*")
       .order("created_at", { ascending: false })
       .limit(50);
+    console.log("Invoice load result:", { count: invoicesData?.length, error: invError });
     if (invoicesData) setInvoices(invoicesData as any);
   };
 
