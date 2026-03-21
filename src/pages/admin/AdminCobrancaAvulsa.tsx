@@ -270,8 +270,13 @@ export default function AdminCobrancaAvulsa() {
   };
 
   const getPublicLink = (code: string) => {
-    const base = window.location.origin;
-    return `${base}/pagar/${code}`;
+    // Use edge function URL for OG preview on WhatsApp/social
+    const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "mxnlerkeygfvdnznoxld";
+    return `https://${projectId}.supabase.co/functions/v1/invoice-og?code=${code}`;
+  };
+
+  const getDirectLink = (code: string) => {
+    return `${window.location.origin}/pagar/${code}`;
   };
 
   const copyLink = (code: string) => {
