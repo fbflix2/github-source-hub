@@ -313,9 +313,8 @@ export default function AdminDashboard() {
         (inv.product_name || '').toLowerCase().includes('plano black') ||
         (inv.product_name || '').toLowerCase().includes('plano white')
       );
-      const ctSales = ctClients.length + ctInvoices.length;
-      const ctRevenue = ctClients.reduce((s, c) => s + (Number(c.monthly_value) || 0), 0) + 
-                        ctInvoices.reduce((s, inv) => s + (Number(inv.amount) || 0), 0);
+      const ctSales = ctClients.length;
+      const ctRevenue = ctInvoices.reduce((s, inv) => s + (Number(inv.amount) || 0), 0);
 
       setCategoryStats([
         ...productCategoryStats,
