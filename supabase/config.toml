@@ -68,3 +68,9 @@ verify_jwt = false
 
 [functions.test-proxy]
 verify_jwt = false
+
+[functions.create-invoice-link]
+verify_jwt = false
+
+[functions.invoice-og]
+verify_jwt = false

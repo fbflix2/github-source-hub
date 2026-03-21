@@ -166,11 +166,12 @@ export default function AdminCobrancaAvulsa() {
     setProducts(allProducts);
 
     // Load invoices
-    const { data: invoicesData } = await supabase
+    const { data: invoicesData, error: invError } = await supabase
       .from("invoice_links" as any)
       .select("*")
       .order("created_at", { ascending: false })
       .limit(50);
+    console.log("Invoice load result:", { count: invoicesData?.length, error: invError });
     if (invoicesData) setInvoices(invoicesData as any);
   };
 
@@ -270,8 +271,13 @@ export default function AdminCobrancaAvulsa() {
   };
 
   const getPublicLink = (code: string) => {
-    const base = window.location.origin;
-    return `${base}/pagar/${code}`;
+    // Use edge function URL for OG preview on WhatsApp/social
+    const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "mxnlerkeygfvdnznoxld";
+    return `https://${projectId}.supabase.co/functions/v1/invoice-og?code=${code}`;
+  };
+
+  const getDirectLink = (code: string) => {
+    return `${window.location.origin}/pagar/${code}`;
   };
 
   const copyLink = (code: string) => {
