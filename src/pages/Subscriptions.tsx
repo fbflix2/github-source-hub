@@ -81,6 +81,15 @@ const categoryTabs: { key: SubscriptionCategory; label: string; icon: React.Reac
 
 export default function Subscriptions() {
   const [activeCategory, setActiveCategory] = useState<SubscriptionCategory>("proxies");
+  const navigate = useNavigate();
+
+  const handleTabClick = (key: SubscriptionCategory) => {
+    if (key === "safebm") {
+      navigate("/safe-bm");
+      return;
+    }
+    setActiveCategory(key);
+  };
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -94,7 +103,7 @@ export default function Subscriptions() {
         {categoryTabs.map((tab) => (
           <button
             key={tab.key}
-            onClick={() => setActiveCategory(tab.key)}
+            onClick={() => handleTabClick(tab.key)}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all whitespace-nowrap border ${
               activeCategory === tab.key
                 ? "bg-primary/10 text-primary border-primary/30 shadow-sm"
@@ -109,7 +118,6 @@ export default function Subscriptions() {
 
       {/* Content based on active category */}
       {activeCategory === "proxies" && <ProxiesPanel />}
-      {activeCategory === "safebm" && <SafeBmPanel />}
       {activeCategory === "contingencia" && <ContingenciaPanel />}
     </div>
   );
