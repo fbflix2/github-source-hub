@@ -128,7 +128,23 @@ export default function AdminCobrancaAvulsa() {
       .select("id, name, price")
       .eq("status", "active")
       .order("name");
-    if (productsData) setProducts(productsData);
+
+    // Load CT plans (Contingência Total)
+    const { data: ctPlans } = await supabase
+      .from("ct_plans")
+      .select("id, name, price, tier")
+      .eq("active", true)
+      .order("name");
+
+    const allProducts: ProductOption[] = [
+      ...(productsData || []),
+      ...(ctPlans || []).map(p => ({
+        id: `ct_${p.id}`,
+        name: `Contingência ${p.tier?.toUpperCase() || ''} — ${p.name}`,
+        price: p.price,
+      })),
+    ];
+    setProducts(allProducts);
 
     // Load invoices
     const { data: invoicesData } = await supabase
