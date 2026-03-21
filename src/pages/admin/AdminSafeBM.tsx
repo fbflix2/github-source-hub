@@ -227,6 +227,15 @@ export default function AdminSafeBM() {
     else { toast.success("Regeneração contabilizada!"); fetchVaults(); }
   };
 
+  const handleRename = async (v: SafeBmVault) => {
+    if (!renameValue.trim()) return;
+    const { error } = await supabase.from("safe_bm_vaults" as any)
+      .update({ bm_name: renameValue.trim() })
+      .eq("id", v.id);
+    if (error) toast.error(error.message);
+    else { toast.success("BM renomeada!"); setRenamingId(null); fetchVaults(); }
+  };
+
   const deleteVault = async (v: SafeBmVault) => {
     if (!confirm(`Remover "${v.bm_name}" do cofre?`)) return;
     const { error } = await supabase.from("safe_bm_vaults" as any).delete().eq("id", v.id);
