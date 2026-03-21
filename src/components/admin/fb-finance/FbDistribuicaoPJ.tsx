@@ -32,6 +32,7 @@ export function FbDistribuicaoPJ() {
   const [entradaHoje, setEntradaHoje] = useState("1000");
   const [distribuicoes, setDistribuicoes] = useState<Distribuicao[]>([]);
   const [loading, setLoading] = useState(true);
+  const [detailDist, setDetailDist] = useState<Distribuicao | null>(null);
 
   useEffect(() => { fetchData(); }, []);
 
@@ -97,6 +98,13 @@ export function FbDistribuicaoPJ() {
     fetchData();
   };
 
+  const handleDeleteDist = async (id: string) => {
+    if (!confirm("Excluir esta distribuição?")) return;
+    await supabase.from("fb_finance_distribuicoes" as any).delete().eq("id", id);
+    toast({ title: "Distribuição removida" });
+    fetchData();
+  };
+
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#a5c8ff]" /></div>;
 
   return (
@@ -116,22 +124,16 @@ export function FbDistribuicaoPJ() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {percConfig.map((cfg) => (
             <div key={cfg.key} className={`bg-[#0e1c2d] p-6 rounded-xl border-l-4 ${cfg.borderColor} shadow-lg transition-transform hover:-translate-y-1 duration-300`}>
-              <p className="text-xs uppercase tracking-widest text-[#8b919e] mb-4" style={{ fontFamily: "Inter" }}>{cfg.label}</p>
+              <p className="text-xs uppercase tracking-widest text-[#8b919e] mb-4">{cfg.label}</p>
               <div className="flex items-baseline gap-1">
                 <span className="text-3xl font-['Manrope'] font-extrabold text-[#d5e4fa]">{percentuais[cfg.key]}</span>
                 <span className={`text-xl font-['Manrope'] font-bold ${cfg.percentColor}`}>%</span>
               </div>
               <div className="mt-4 flex gap-2">
-                <button
-                  onClick={() => adjustPerc(cfg.key, -1)}
-                  className="p-1 rounded bg-white/5 hover:bg-white/10 text-[#d5e4fa] transition-colors"
-                >
+                <button onClick={() => adjustPerc(cfg.key, -1)} className="p-1 rounded bg-white/5 hover:bg-white/10 text-[#d5e4fa]">
                   <span className="material-symbols-outlined text-sm">remove</span>
                 </button>
-                <button
-                  onClick={() => adjustPerc(cfg.key, 1)}
-                  className="p-1 rounded bg-white/5 hover:bg-white/10 text-[#d5e4fa] transition-colors"
-                >
+                <button onClick={() => adjustPerc(cfg.key, 1)} className="p-1 rounded bg-white/5 hover:bg-white/10 text-[#d5e4fa]">
                   <span className="material-symbols-outlined text-sm">add</span>
                 </button>
               </div>
@@ -139,7 +141,6 @@ export function FbDistribuicaoPJ() {
           ))}
         </div>
 
-        {/* Soma validation + save */}
         <div className="flex items-center gap-4 mt-4">
           <div className={`flex items-center gap-2 text-sm font-medium ${isValid ? "text-[#40e56c]" : "text-[#e71a0e]"}`}>
             <span className="material-symbols-outlined text-sm">{isValid ? "check_circle" : "warning"}</span>
@@ -159,9 +160,7 @@ export function FbDistribuicaoPJ() {
           </h3>
           <div className="space-y-6">
             <div>
-              <label className="block text-xs uppercase tracking-widest text-[#8b919e] mb-2" style={{ fontFamily: "Inter" }}>
-                Valor de Entrada (R$)
-              </label>
+              <label className="block text-xs uppercase tracking-widest text-[#8b919e] mb-2">Valor de Entrada (R$)</label>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#a5c8ff] font-bold">R$</span>
                 <input
@@ -187,44 +186,32 @@ export function FbDistribuicaoPJ() {
               ))}
             </div>
 
-            <button
-              onClick={handleDistribuir}
-              className="w-full mt-6 py-4 bg-[#40e56c] text-[#003912] font-black rounded-lg uppercase tracking-widest text-xs hover:brightness-110 active:scale-95 transition-all"
-            >
+            <button onClick={handleDistribuir}
+              className="w-full mt-6 py-4 bg-[#40e56c] text-[#003912] font-black rounded-lg uppercase tracking-widest text-xs hover:brightness-110 active:scale-95 transition-all">
               Confirmar Distribuição
             </button>
           </div>
         </div>
 
-        {/* Histórico de Distribuições */}
+        {/* Histórico */}
         <div className="lg:col-span-2 space-y-6">
           <div className="flex items-center justify-between">
             <h3 className="font-['Manrope'] text-xl font-bold tracking-tight text-[#d5e4fa]">Histórico Recente</h3>
-            <div className="flex gap-2">
-              <button className="p-2 bg-[#283647] rounded-lg text-[#8b919e] hover:text-[#d5e4fa] transition-colors">
-                <span className="material-symbols-outlined text-sm">filter_list</span>
-              </button>
-              <button className="p-2 bg-[#283647] rounded-lg text-[#8b919e] hover:text-[#d5e4fa] transition-colors">
-                <span className="material-symbols-outlined text-sm">download</span>
-              </button>
-            </div>
           </div>
 
           <div className="bg-[#0e1c2d] rounded-2xl overflow-hidden shadow-xl">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-[#122031] text-[#8b919e]">
-                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-semibold" style={{ fontFamily: "Inter" }}>Data</th>
-                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-semibold text-right" style={{ fontFamily: "Inter" }}>Entrada</th>
-                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-semibold" style={{ fontFamily: "Inter" }}>Status</th>
-                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-semibold text-right" style={{ fontFamily: "Inter" }}>Ações</th>
+                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-semibold">Data</th>
+                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-semibold text-right">Entrada</th>
+                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-semibold">Status</th>
+                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-semibold text-right">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
                 {distribuicoes.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="text-center text-[#8b919e]/40 py-12">Nenhuma distribuição realizada</td>
-                  </tr>
+                  <tr><td colSpan={4} className="text-center text-[#8b919e]/40 py-12">Nenhuma distribuição realizada</td></tr>
                 ) : distribuicoes.map((d) => (
                   <tr key={d.id} className="hover:bg-white/5 transition-colors group">
                     <td className="px-6 py-5">
@@ -241,17 +228,16 @@ export function FbDistribuicaoPJ() {
                       {formatBRL(Number(d.entrada_dia))}
                     </td>
                     <td className="px-6 py-5">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        d.aplicado
-                          ? "bg-[#40e56c]/10 text-[#40e56c]"
-                          : "bg-[#e71a0e]/20 text-[#ffb4a8]"
-                      }`}>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${d.aplicado ? "bg-[#40e56c]/10 text-[#40e56c]" : "bg-[#e71a0e]/20 text-[#ffb4a8]"}`}>
                         {d.aplicado ? "Processado" : "Pendente"}
                       </span>
                     </td>
-                    <td className="px-6 py-5 text-right">
-                      <button className="text-[#8b919e] hover:text-[#a5c8ff] transition-colors">
+                    <td className="px-6 py-5 text-right flex items-center justify-end gap-2">
+                      <button onClick={() => setDetailDist(d)} className="text-[#8b919e] hover:text-[#a5c8ff] transition-colors" title="Ver detalhes">
                         <span className="material-symbols-outlined">visibility</span>
+                      </button>
+                      <button onClick={() => handleDeleteDist(d.id)} className="text-[#8b919e] hover:text-[#e71a0e] transition-colors opacity-0 group-hover:opacity-100" title="Excluir">
+                        <span className="material-symbols-outlined text-sm">delete</span>
                       </button>
                     </td>
                   </tr>
@@ -261,6 +247,45 @@ export function FbDistribuicaoPJ() {
           </div>
         </div>
       </div>
+
+      {/* Detail Modal */}
+      {detailDist && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setDetailDist(null)}>
+          <div className="bg-[#0e1c2d] rounded-2xl w-full max-w-md shadow-2xl border border-[#414752]/20 p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="font-['Manrope'] font-bold text-xl text-[#d5e4fa]">Detalhes da Distribuição</h3>
+              <button onClick={() => setDetailDist(null)} className="text-[#8b919e] hover:text-white"><span className="material-symbols-outlined">close</span></button>
+            </div>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center bg-[#051424] p-4 rounded-lg">
+                <span className="text-xs text-[#8b919e] uppercase">Data</span>
+                <span className="text-sm font-bold text-[#d5e4fa]">{new Date(detailDist.data + "T12:00:00").toLocaleDateString("pt-BR")}</span>
+              </div>
+              <div className="flex justify-between items-center bg-[#051424] p-4 rounded-lg">
+                <span className="text-xs text-[#8b919e] uppercase">Entrada Total</span>
+                <span className="text-lg font-bold text-[#40e56c]">{formatBRL(Number(detailDist.entrada_dia))}</span>
+              </div>
+              <div className="border-t border-white/10 pt-4 space-y-3">
+                <p className="text-xs text-[#8b919e] uppercase tracking-widest font-bold">Alocações</p>
+                {Object.entries(detailDist.valores_alocados || {}).map(([key, val]) => {
+                  const cfg = percConfig.find(p => p.key === key);
+                  const perc = (detailDist.percentuais as any)?.[key] || 0;
+                  return (
+                    <div key={key} className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <span className={`w-2 h-2 rounded-full ${cfg ? cfg.borderColor.replace("border-", "bg-") : "bg-[#8b919e]"}`}></span>
+                        <span className="text-sm text-[#c1c6d4]">{cfg?.label || key}</span>
+                        <span className="text-[10px] text-[#8b919e]">({perc}%)</span>
+                      </div>
+                      <span className="text-sm font-bold text-[#d5e4fa]">{formatBRL(Number(val))}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
