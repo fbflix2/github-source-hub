@@ -5,6 +5,7 @@ const formatBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", 
 const formatCompact = (v: number) => v >= 1000 ? `R$ ${(v / 1000).toFixed(0)}.000` : `R$ ${v.toFixed(0)}`;
 
 interface Caixa { id: string; nome: string; saldo_atual: number; alvo_percent: number; tipo: string }
+interface Lancamento { id: string; data: string; descricao: string | null; entrada: number; saida: number; categoria: string }
 
 const caixaIcons: Record<string, { icon: string; color: string; bg: string }> = {
   "Fundo Emergência": { icon: "security", color: "text-[#a5c8ff]", bg: "bg-blue-500/10" },
@@ -15,8 +16,10 @@ const caixaIcons: Record<string, { icon: string; color: string; bg: string }> = 
   "Dividendos": { icon: "payments", color: "text-yellow-400", bg: "bg-yellow-500/10" },
   "Operacional": { icon: "business_center", color: "text-cyan-400", bg: "bg-cyan-500/10" },
   "Dia a Dia": { icon: "shopping_cart", color: "text-orange-400", bg: "bg-orange-500/10" },
+  "Dia a Dia/Emergências": { icon: "shopping_cart", color: "text-orange-400", bg: "bg-orange-500/10" },
   "Conta Corrente Pessoal": { icon: "account_balance_wallet", color: "text-[#a5c8ff]", bg: "bg-blue-500/10" },
   "Janela Oportunidade": { icon: "trending_up", color: "text-purple-400", bg: "bg-purple-500/10" },
+  "Fundos Reserva/Colchão": { icon: "shield", color: "text-[#40e56c]", bg: "bg-green-500/10" },
 };
 
 const defaultIcon = { icon: "savings", color: "text-[#ffb4a8]", bg: "bg-red-500/10" };
@@ -24,6 +27,9 @@ const defaultIcon = { icon: "savings", color: "text-[#ffb4a8]", bg: "bg-red-500/
 export function FbCaixas() {
   const [caixas, setCaixas] = useState<Caixa[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedCaixa, setSelectedCaixa] = useState<Caixa | null>(null);
+  const [lancamentos, setLancamentos] = useState<Lancamento[]>([]);
+  const [loadingLanc, setLoadingLanc] = useState(false);
 
   useEffect(() => {
     supabase.from("fb_finance_caixas" as any).select("*").order("tipo").order("nome").then(({ data }) => {
@@ -31,6 +37,19 @@ export function FbCaixas() {
       setLoading(false);
     });
   }, []);
+
+  const openDetails = async (c: Caixa) => {
+    setSelectedCaixa(c);
+    setLoadingLanc(true);
+    const { data } = await supabase
+      .from("fb_finance_lancamentos" as any)
+      .select("*")
+      .eq("caixa_destino_id", c.id)
+      .order("data", { ascending: false })
+      .limit(50);
+    setLancamentos((data as any) || []);
+    setLoadingLanc(false);
+  };
 
   const totalPatrimonio = caixas.reduce((s, c) => s + Number(c.saldo_atual), 0);
   const totalAlvo = caixas.reduce((s, c) => s + (Number(c.alvo_percent) > 0 ? Number(c.saldo_atual) / (Number(c.alvo_percent) / 100) : 0), 0);
@@ -69,7 +88,6 @@ export function FbCaixas() {
 
       {/* Financial Summary Bento Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-        {/* Total Vaulted */}
         <div className="md:col-span-2 bg-gradient-to-br from-[#1976d2] to-blue-900 p-8 rounded-xl shadow-2xl relative overflow-hidden">
           <div className="relative z-10">
             <span className="text-xs uppercase tracking-[0.2em] text-blue-100/70 font-bold mb-2 block">Patrimônio Reservado</span>
@@ -84,7 +102,6 @@ export function FbCaixas() {
           </div>
         </div>
 
-        {/* Health Metric */}
         <div className="bg-[#0e1c2d] p-6 rounded-xl border-l-4 border-[#40e56c] flex flex-col justify-between">
           <div>
             <span className="text-xs text-[#8b919e] uppercase tracking-wider block mb-1" style={{ fontFamily: "Inter" }}>Saúde das Reservas</span>
@@ -108,14 +125,12 @@ export function FbCaixas() {
         {caixas.map((c) => {
           const saldo = Number(c.saldo_atual);
           const iconCfg = caixaIcons[c.nome] || defaultIcon;
-          // Estimate a "meta" based on alvo_percent (use saldo * 100/alvo or a fallback)
           const meta = c.alvo_percent > 0 ? saldo / (c.alvo_percent / 100) : saldo * 1.5;
           const progress = meta > 0 ? Math.min((saldo / meta) * 100, 100) : 0;
           const metaAtingida = progress >= 100;
 
           return (
             <div key={c.id} className="bg-[#0e1c2d] group hover:bg-[#122031] transition-all duration-300 p-6 rounded-xl relative">
-              {/* Icon & Menu */}
               <div className="flex justify-between items-start mb-6">
                 <div className={`w-12 h-12 rounded-lg ${iconCfg.bg} flex items-center justify-center ${iconCfg.color}`}>
                   <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>{iconCfg.icon}</span>
@@ -125,14 +140,12 @@ export function FbCaixas() {
                 </button>
               </div>
 
-              {/* Name & Description */}
               <h4 className="font-['Manrope'] font-bold text-lg text-[#d5e4fa] mb-1">{c.nome}</h4>
               <p className="text-xs text-[#8b919e] mb-4">
                 {c.tipo === "pessoal" ? "Envelope pessoal" : "Envelope empresarial"}
                 {c.alvo_percent > 0 && ` • ${c.alvo_percent}% alvo`}
               </p>
 
-              {/* Balance & Progress */}
               <div className="space-y-4">
                 <div>
                   <div className="flex justify-between text-xs mb-2">
@@ -158,8 +171,10 @@ export function FbCaixas() {
                 </div>
               </div>
 
-              {/* Action Button */}
-              <button className="mt-6 w-full py-2 border border-[#414752]/30 rounded text-xs font-bold text-[#c1c6d4] group-hover:bg-[#1976d2] group-hover:text-white group-hover:border-transparent transition-all">
+              <button
+                onClick={() => openDetails(c)}
+                className="mt-6 w-full py-2 border border-[#414752]/30 rounded text-xs font-bold text-[#c1c6d4] group-hover:bg-[#1976d2] group-hover:text-white group-hover:border-transparent transition-all"
+              >
                 Ver Detalhes
               </button>
             </div>
@@ -167,6 +182,89 @@ export function FbCaixas() {
         })}
       </div>
 
+      {/* Detail Modal */}
+      {selectedCaixa && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setSelectedCaixa(null)}>
+          <div className="bg-[#0e1c2d] rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden shadow-2xl border border-[#414752]/20" onClick={e => e.stopPropagation()}>
+            {/* Modal Header */}
+            <div className="p-6 border-b border-[#414752]/20 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                {(() => {
+                  const ic = caixaIcons[selectedCaixa.nome] || defaultIcon;
+                  return (
+                    <div className={`w-12 h-12 rounded-lg ${ic.bg} flex items-center justify-center ${ic.color}`}>
+                      <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>{ic.icon}</span>
+                    </div>
+                  );
+                })()}
+                <div>
+                  <h3 className="font-['Manrope'] font-bold text-xl text-[#d5e4fa]">{selectedCaixa.nome}</h3>
+                  <p className="text-xs text-[#8b919e]">
+                    {selectedCaixa.tipo === "pessoal" ? "Envelope pessoal" : "Envelope empresarial"}
+                    {selectedCaixa.alvo_percent > 0 && ` • ${selectedCaixa.alvo_percent}% alvo`}
+                  </p>
+                </div>
+              </div>
+              <button onClick={() => setSelectedCaixa(null)} className="text-[#8b919e] hover:text-white p-2 rounded-lg hover:bg-white/5 transition-colors">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            {/* Summary Cards */}
+            <div className="grid grid-cols-3 gap-4 p-6 pb-4">
+              <div className="bg-[#051424] rounded-lg p-4">
+                <span className="text-[10px] text-[#8b919e] uppercase tracking-wider block mb-1">Saldo Atual</span>
+                <span className="text-lg font-bold text-[#40e56c]">{formatBRL(Number(selectedCaixa.saldo_atual))}</span>
+              </div>
+              <div className="bg-[#051424] rounded-lg p-4">
+                <span className="text-[10px] text-[#8b919e] uppercase tracking-wider block mb-1">Total Entradas</span>
+                <span className="text-lg font-bold text-emerald-400">{formatBRL(lancamentos.reduce((s, l) => s + Number(l.entrada), 0))}</span>
+              </div>
+              <div className="bg-[#051424] rounded-lg p-4">
+                <span className="text-[10px] text-[#8b919e] uppercase tracking-wider block mb-1">Total Saídas</span>
+                <span className="text-lg font-bold text-red-400">{formatBRL(lancamentos.reduce((s, l) => s + Number(l.saida), 0))}</span>
+              </div>
+            </div>
+
+            {/* Transactions List */}
+            <div className="px-6 pb-6 overflow-y-auto" style={{ maxHeight: "400px" }}>
+              <h4 className="text-xs text-[#8b919e] uppercase tracking-wider mb-3 font-bold">Últimos Lançamentos</h4>
+              {loadingLanc ? (
+                <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#a5c8ff]" /></div>
+              ) : lancamentos.length === 0 ? (
+                <div className="text-center py-12">
+                  <span className="material-symbols-outlined text-4xl text-[#414752] mb-2 block">receipt_long</span>
+                  <p className="text-[#8b919e] text-sm">Nenhum lançamento vinculado a esta caixa.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {lancamentos.map(l => {
+                    const isEntrada = Number(l.entrada) > 0;
+                    return (
+                      <div key={l.id} className="flex items-center justify-between bg-[#051424] rounded-lg px-4 py-3 hover:bg-[#0a1a2e] transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isEntrada ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"}`}>
+                            <span className="material-symbols-outlined text-base">{isEntrada ? "arrow_downward" : "arrow_upward"}</span>
+                          </div>
+                          <div>
+                            <p className="text-sm text-[#d5e4fa] font-medium">{l.descricao || l.categoria}</p>
+                            <p className="text-[10px] text-[#8b919e]">
+                              {new Date(l.data).toLocaleDateString("pt-BR")} • {l.categoria}
+                            </p>
+                          </div>
+                        </div>
+                        <span className={`text-sm font-bold ${isEntrada ? "text-emerald-400" : "text-red-400"}`}>
+                          {isEntrada ? "+" : "-"} {formatBRL(isEntrada ? Number(l.entrada) : Number(l.saida))}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
