@@ -1,11 +1,25 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Wallet } from "lucide-react";
 
 const formatBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const formatCompact = (v: number) => v >= 1000 ? `R$ ${(v / 1000).toFixed(0)}.000` : `R$ ${v.toFixed(0)}`;
 
 interface Caixa { id: string; nome: string; saldo_atual: number; alvo_percent: number; tipo: string }
+
+const caixaIcons: Record<string, { icon: string; color: string; bg: string }> = {
+  "Fundo Emergência": { icon: "security", color: "text-[#a5c8ff]", bg: "bg-blue-500/10" },
+  "Estilo de Vida": { icon: "flight_takeoff", color: "text-yellow-500", bg: "bg-yellow-500/10" },
+  "Investimentos": { icon: "monitoring", color: "text-emerald-400", bg: "bg-emerald-500/10" },
+  "Capital de Giro": { icon: "account_balance", color: "text-[#a5c8ff]", bg: "bg-blue-500/10" },
+  "Fundos Reserva": { icon: "shield", color: "text-[#40e56c]", bg: "bg-green-500/10" },
+  "Dividendos": { icon: "payments", color: "text-yellow-400", bg: "bg-yellow-500/10" },
+  "Operacional": { icon: "business_center", color: "text-cyan-400", bg: "bg-cyan-500/10" },
+  "Dia a Dia": { icon: "shopping_cart", color: "text-orange-400", bg: "bg-orange-500/10" },
+  "Conta Corrente Pessoal": { icon: "account_balance_wallet", color: "text-[#a5c8ff]", bg: "bg-blue-500/10" },
+  "Janela Oportunidade": { icon: "trending_up", color: "text-purple-400", bg: "bg-purple-500/10" },
+};
+
+const defaultIcon = { icon: "savings", color: "text-[#ffb4a8]", bg: "bg-red-500/10" };
 
 export function FbCaixas() {
   const [caixas, setCaixas] = useState<Caixa[]>([]);
@@ -18,55 +32,214 @@ export function FbCaixas() {
     });
   }, []);
 
-  const pessoal = caixas.filter(c => c.tipo === "pessoal");
-  const empresa = caixas.filter(c => c.tipo === "empresa");
-  const totalPessoal = pessoal.reduce((s, c) => s + Number(c.saldo_atual), 0);
-  const totalEmpresa = empresa.reduce((s, c) => s + Number(c.saldo_atual), 0);
+  const totalPatrimonio = caixas.reduce((s, c) => s + Number(c.saldo_atual), 0);
+  const totalAlvo = caixas.reduce((s, c) => s + (Number(c.alvo_percent) > 0 ? Number(c.saldo_atual) / (Number(c.alvo_percent) / 100) : 0), 0);
+  const healthPercent = totalAlvo > 0 ? Math.min((totalPatrimonio / totalAlvo) * 100, 100) : 85;
 
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-400" /></div>;
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#a5c8ff]" /></div>;
 
-  const renderGroup = (title: string, items: Caixa[], total: number, color: string) => (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h2 className={`text-lg font-bold ${color}`}>{title}</h2>
-        <span className="text-sm font-semibold text-blue-200">{formatBRL(total)}</span>
+  return (
+    <section className="p-6 md:p-10 max-w-7xl mx-auto">
+      {/* Hero Header */}
+      <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="space-y-2">
+          <nav className="flex items-center gap-2 text-xs text-[#8b919e] uppercase tracking-widest mb-4" style={{ fontFamily: "Inter" }}>
+            <span>Início</span>
+            <span className="material-symbols-outlined text-[10px]">chevron_right</span>
+            <span className="text-[#a5c8ff]">Caixas / Envelopes</span>
+          </nav>
+          <h2 className="font-['Manrope'] font-extrabold text-4xl md:text-5xl text-[#d5e4fa] tracking-tight">
+            Gestão de <span className="text-[#a5c8ff]">Envelopes</span>
+          </h2>
+          <p className="text-[#c1c6d4] max-w-lg text-sm md:text-base leading-relaxed">
+            Organize sua vida financeira separando seu capital em caixas estratégicas. Priorize objetivos e visualize seu progresso em tempo real.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <button className="bg-[#1d2b3c] text-[#d5e4fa] hover:bg-[#283647] border border-[#414752]/20 px-5 py-3 rounded-md text-sm font-semibold flex items-center gap-2 transition-all" style={{ fontFamily: "Inter" }}>
+            <span className="material-symbols-outlined text-lg">swap_horiz</span>
+            Transferir entre Caixas
+          </button>
+          <button className="bg-[#1976d2] text-white px-6 py-3 rounded-md text-sm font-bold flex items-center gap-2 shadow-lg shadow-[#1976d2]/20 active:scale-95 transition-all" style={{ fontFamily: "Inter" }}>
+            <span className="material-symbols-outlined text-lg">add</span>
+            Nova Caixa
+          </button>
+        </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-        {items.map((c) => {
+
+      {/* Financial Summary Bento Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+        {/* Total Vaulted */}
+        <div className="md:col-span-2 bg-gradient-to-br from-[#1976d2] to-blue-900 p-8 rounded-xl shadow-2xl relative overflow-hidden">
+          <div className="relative z-10">
+            <span className="text-xs uppercase tracking-[0.2em] text-blue-100/70 font-bold mb-2 block">Patrimônio Reservado</span>
+            <h3 className="text-5xl font-['Manrope'] font-black text-white mb-6 tracking-tighter">{formatBRL(totalPatrimonio)}</h3>
+            <div className="flex items-center gap-4">
+              <span className="bg-[#40e56c]/20 text-[#40e56c] px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
+                <span className="material-symbols-outlined text-xs">trending_up</span> +12% este mês
+              </span>
+              <span className="text-blue-200/60 text-xs">Atualizado há 15 min</span>
+            </div>
+          </div>
+          <div className="absolute -right-12 -bottom-12 w-64 h-64 bg-white/5 rounded-full blur-3xl"></div>
+          <div className="absolute right-8 top-8 opacity-20">
+            <span className="material-symbols-outlined text-7xl text-white" style={{ fontVariationSettings: "'FILL' 1" }}>account_balance</span>
+          </div>
+        </div>
+
+        {/* Health Metric */}
+        <div className="bg-[#0e1c2d] p-6 rounded-xl border-l-4 border-[#40e56c] flex flex-col justify-between">
+          <div>
+            <span className="text-xs text-[#8b919e] uppercase tracking-wider block mb-1" style={{ fontFamily: "Inter" }}>Saúde das Reservas</span>
+            <p className="text-2xl font-['Manrope'] font-bold text-[#40e56c]">Excelente</p>
+          </div>
+          <div className="h-1.5 bg-[#283647] rounded-full w-full overflow-hidden my-3">
+            <div className="h-full bg-[#40e56c] rounded-full" style={{ width: `${healthPercent}%` }}></div>
+          </div>
+          <p className="text-xs text-[#c1c6d4]">Você atingiu {healthPercent.toFixed(0)}% do planejado para este trimestre.</p>
+        </div>
+
+        {/* Warning Metric */}
+        <div className="bg-[#0e1c2d] p-6 rounded-xl border-l-4 border-[#ffb4a8] flex flex-col justify-between">
+          <div>
+            <span className="text-xs text-[#8b919e] uppercase tracking-wider block mb-1" style={{ fontFamily: "Inter" }}>Impostos Pendentes</span>
+            <p className="text-2xl font-['Manrope'] font-bold text-[#ffb4a8]">
+              {formatBRL(caixas.find(c => c.nome.toLowerCase().includes("imposto"))?.saldo_atual || 0)}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-[#ffb4a8] text-sm">event</span>
+            <span className="text-xs text-[#c1c6d4]">Vencimento em 14 dias</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Envelopes Section Title */}
+      <h3 className="font-['Manrope'] font-bold text-xl text-[#d5e4fa] mb-8 flex items-center gap-3">
+        <span className="w-8 h-[2px] bg-[#a5c8ff]"></span>
+        Suas Caixas Ativas
+      </h3>
+
+      {/* Envelope Cards Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {caixas.map((c) => {
           const saldo = Number(c.saldo_atual);
-          const isPositive = saldo >= 0;
+          const iconCfg = caixaIcons[c.nome] || defaultIcon;
+          // Estimate a "meta" based on alvo_percent (use saldo * 100/alvo or a fallback)
+          const meta = c.alvo_percent > 0 ? saldo / (c.alvo_percent / 100) : saldo * 1.5;
+          const progress = meta > 0 ? Math.min((saldo / meta) * 100, 100) : 0;
+          const metaAtingida = progress >= 100;
+
           return (
-            <Card key={c.id} className="bg-[#0c1929] border-blue-900/30 hover:border-blue-700/40 transition-colors">
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <Wallet className="size-4 text-blue-400/60" />
-                    <p className="text-sm font-medium text-blue-100">{c.nome}</p>
+            <div key={c.id} className="bg-[#0e1c2d] group hover:bg-[#122031] transition-all duration-300 p-6 rounded-xl relative">
+              {/* Icon & Menu */}
+              <div className="flex justify-between items-start mb-6">
+                <div className={`w-12 h-12 rounded-lg ${iconCfg.bg} flex items-center justify-center ${iconCfg.color}`}>
+                  <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>{iconCfg.icon}</span>
+                </div>
+                <button className="text-[#8b919e] hover:text-[#d5e4fa] transition-colors">
+                  <span className="material-symbols-outlined">more_vert</span>
+                </button>
+              </div>
+
+              {/* Name & Description */}
+              <h4 className="font-['Manrope'] font-bold text-lg text-[#d5e4fa] mb-1">{c.nome}</h4>
+              <p className="text-xs text-[#8b919e] mb-4">
+                {c.tipo === "pessoal" ? "Envelope pessoal" : "Envelope empresarial"}
+                {c.alvo_percent > 0 && ` • ${c.alvo_percent}% alvo`}
+              </p>
+
+              {/* Balance & Progress */}
+              <div className="space-y-4">
+                <div>
+                  <div className="flex justify-between text-xs mb-2">
+                    <span className="text-[#c1c6d4] font-medium">Saldo Atual</span>
+                    <span className="text-[#40e56c] font-bold">{formatCompact(saldo)}</span>
                   </div>
-                  {c.alvo_percent > 0 && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-600/20 text-blue-300">{c.alvo_percent}%</span>
-                  )}
+                  <div className="h-2 bg-[#283647] rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${metaAtingida ? "bg-[#40e56c] shadow-[0_0_10px_rgba(64,229,108,0.4)]" : "bg-[#40e56c]"}`}
+                      style={{ width: `${progress}%` }}
+                    ></div>
+                  </div>
+                  <div className="flex justify-between text-[10px] mt-2 text-[#8b919e]">
+                    {metaAtingida ? (
+                      <span className="text-[#40e56c] font-bold flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[10px]">check_circle</span> META ATINGIDA
+                      </span>
+                    ) : (
+                      <span>{progress.toFixed(0)}% concluído</span>
+                    )}
+                    <span>Meta: {formatCompact(meta)}</span>
+                  </div>
                 </div>
-                <p className={`text-xl font-bold ${isPositive ? "text-emerald-400" : "text-red-400"}`}>
-                  {formatBRL(saldo)}
-                </p>
-                <div className="flex items-center gap-1 mt-2">
-                  {isPositive ? <TrendingUp className="size-3 text-emerald-500/60" /> : <TrendingDown className="size-3 text-red-500/60" />}
-                  <span className="text-[10px] text-blue-400/40">Saldo atual</span>
-                </div>
-              </CardContent>
-            </Card>
+              </div>
+
+              {/* Action Button */}
+              <button className="mt-6 w-full py-2 border border-[#414752]/30 rounded text-xs font-bold text-[#c1c6d4] group-hover:bg-[#1976d2] group-hover:text-white group-hover:border-transparent transition-all">
+                Ver Detalhes
+              </button>
+            </div>
           );
         })}
       </div>
-    </div>
-  );
 
-  return (
-    <div className="space-y-8 max-w-7xl mx-auto">
-      <h1 className="text-2xl font-bold text-white">Caixas / Envelopes</h1>
-      {renderGroup("🏠 Pessoal", pessoal, totalPessoal, "text-blue-400")}
-      {renderGroup("🏢 Empresa", empresa, totalEmpresa, "text-cyan-400")}
-    </div>
+      {/* Bottom Section: History + Intelligence */}
+      <section className="mt-16 grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Movement History */}
+        <div className="lg:col-span-2 bg-[#0e1c2d] p-8 rounded-xl">
+          <div className="flex justify-between items-center mb-8">
+            <h3 className="font-['Manrope'] font-bold text-xl text-[#d5e4fa]">Histórico de Movimentações</h3>
+            <button className="text-[#a5c8ff] text-sm font-bold flex items-center gap-1 hover:underline" style={{ fontFamily: "Inter" }}>
+              Ver tudo <span className="material-symbols-outlined text-sm">arrow_forward</span>
+            </button>
+          </div>
+          <div className="space-y-6">
+            {[
+              { icon: "add", iconColor: "text-[#40e56c]", title: "Aporte: Reserva de Emergência", time: "Hoje às 14:20", value: "+ R$ 1.200,00", valueColor: "text-[#40e56c]", via: "via Transferência PIX" },
+              { icon: "remove", iconColor: "text-[#ffb4a8]", title: "Retirada: Impostos", time: "Ontem às 09:15", value: "- R$ 500,00", valueColor: "text-[#ffb4a8]", via: "Pagamento DARF" },
+              { icon: "swap_horiz", iconColor: "text-[#a5c8ff]", title: "Transferência: Invest. → Emergência", time: "12 Abr, 2024", value: "R$ 2.000,00", valueColor: "text-[#d5e4fa]", via: "Interno" },
+            ].map((item, i) => (
+              <div key={i} className={`flex items-center justify-between ${i < 2 ? "pb-4 border-b border-white/5" : ""}`}>
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-full bg-[#283647] flex items-center justify-center">
+                    <span className={`material-symbols-outlined ${item.iconColor} text-sm`}>{item.icon}</span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-[#d5e4fa]">{item.title}</p>
+                    <p className="text-[10px] text-[#8b919e]">{item.time}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className={`text-sm font-bold ${item.valueColor}`}>{item.value}</p>
+                  <p className="text-[10px] text-[#8b919e]">{item.via}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Vault Intelligence */}
+        <div className="bg-gradient-to-br from-[#1d2b3c] to-[#010f1f] p-8 rounded-xl border border-white/5 flex flex-col justify-between">
+          <div>
+            <span className="bg-[#a5c8ff]/10 text-[#a5c8ff] text-[10px] font-black tracking-widest uppercase px-2 py-1 rounded mb-4 inline-block">
+              Vault Intelligence
+            </span>
+            <h4 className="font-['Manrope'] font-bold text-xl mb-4 leading-tight text-[#d5e4fa]">Sugestão de Rebalanceamento</h4>
+            <p className="text-sm text-[#c1c6d4] leading-relaxed">
+              Notamos que seu <strong className="text-[#d5e4fa]">Capital de Giro</strong> está crescendo bem. Deseja redirecionar os aportes automáticos para sua <strong className="text-[#d5e4fa]">Reserva de Emergência</strong>?
+            </p>
+          </div>
+          <div className="mt-8">
+            <button className="w-full bg-white text-black font-bold py-3 rounded-md text-sm mb-3 hover:bg-slate-200 transition-colors">
+              Aplicar Sugestão
+            </button>
+            <button className="w-full text-[#8b919e] text-xs hover:text-white transition-colors">
+              Dispensar por enquanto
+            </button>
+          </div>
+        </div>
+      </section>
+    </section>
   );
 }
