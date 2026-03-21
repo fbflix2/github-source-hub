@@ -1,0 +1,1 @@
+UPDATE invoice_links SET status = 'paid', paid_at = now(), updated_at = now() WHERE id = '5d7f0b9d-5203-4923-966c-a6afbe837e5e';
