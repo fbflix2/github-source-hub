@@ -548,7 +548,7 @@ export default function AdminDashboard() {
           <p className="text-white/40 text-xs">Desempenho comparativo por categoria de produto.</p>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {categoryStats.length > 0 ? categoryStats.map((cat, i) => {
+          {categoryStats.filter(c => c.sales > 0).length > 0 ? categoryStats.filter(c => c.sales > 0).map((cat, i) => {
             const Icon = catIcons[i % catIcons.length];
             return (
               <div key={cat.name} className="bg-white/5 rounded-lg p-3 hover:bg-white/10 transition-colors">
