@@ -49,6 +49,8 @@ export default function AdminSafeBM() {
   const [saving, setSaving] = useState(false);
   const [pendingRequests, setPendingRequests] = useState<any[]>([]);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
 
   const [formClientEmail, setFormClientEmail] = useState("");
   const [formClientName, setFormClientName] = useState("");
