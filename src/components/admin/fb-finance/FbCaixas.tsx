@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 const formatBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const formatCompact = (v: number) => v >= 1000 ? `R$ ${(v / 1000).toFixed(0)}.000` : `R$ ${v.toFixed(0)}`;
@@ -13,13 +14,14 @@ const caixaIcons: Record<string, { icon: string; color: string; bg: string }> = 
   "Investimentos": { icon: "monitoring", color: "text-emerald-400", bg: "bg-emerald-500/10" },
   "Capital de Giro": { icon: "account_balance", color: "text-[#a5c8ff]", bg: "bg-blue-500/10" },
   "Fundos Reserva": { icon: "shield", color: "text-[#40e56c]", bg: "bg-green-500/10" },
+  "Fundos Reserva/Colchão": { icon: "shield", color: "text-[#40e56c]", bg: "bg-green-500/10" },
+  "Fundos Reserva/Crise": { icon: "shield", color: "text-[#40e56c]", bg: "bg-green-500/10" },
   "Dividendos": { icon: "payments", color: "text-yellow-400", bg: "bg-yellow-500/10" },
   "Operacional": { icon: "business_center", color: "text-cyan-400", bg: "bg-cyan-500/10" },
   "Dia a Dia": { icon: "shopping_cart", color: "text-orange-400", bg: "bg-orange-500/10" },
   "Dia a Dia/Emergências": { icon: "shopping_cart", color: "text-orange-400", bg: "bg-orange-500/10" },
   "Conta Corrente Pessoal": { icon: "account_balance_wallet", color: "text-[#a5c8ff]", bg: "bg-blue-500/10" },
   "Janela Oportunidade": { icon: "trending_up", color: "text-purple-400", bg: "bg-purple-500/10" },
-  "Fundos Reserva/Colchão": { icon: "shield", color: "text-[#40e56c]", bg: "bg-green-500/10" },
 };
 
 const defaultIcon = { icon: "savings", color: "text-[#ffb4a8]", bg: "bg-red-500/10" };
@@ -30,13 +32,26 @@ export function FbCaixas() {
   const [selectedCaixa, setSelectedCaixa] = useState<Caixa | null>(null);
   const [lancamentos, setLancamentos] = useState<Lancamento[]>([]);
   const [loadingLanc, setLoadingLanc] = useState(false);
+  const [showNewModal, setShowNewModal] = useState(false);
+  const [showTransferModal, setShowTransferModal] = useState(false);
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  const [editCaixa, setEditCaixa] = useState<Caixa | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    supabase.from("fb_finance_caixas" as any).select("*").order("tipo").order("nome").then(({ data }) => {
-      if (data) setCaixas(data as any);
-      setLoading(false);
-    });
-  }, []);
+  // New caixa form
+  const [newForm, setNewForm] = useState({ nome: "", tipo: "empresa", alvo_percent: "0" });
+  // Transfer form
+  const [transferForm, setTransferForm] = useState({ from: "", to: "", valor: "" });
+  // Edit form
+  const [editForm, setEditForm] = useState({ nome: "", tipo: "empresa", alvo_percent: "0" });
+
+  useEffect(() => { fetchCaixas(); }, []);
+
+  const fetchCaixas = async () => {
+    const { data } = await supabase.from("fb_finance_caixas" as any).select("*").order("tipo").order("nome");
+    if (data) setCaixas(data as any);
+    setLoading(false);
+  };
 
   const openDetails = async (c: Caixa) => {
     setSelectedCaixa(c);
@@ -51,11 +66,83 @@ export function FbCaixas() {
     setLoadingLanc(false);
   };
 
+  const handleCreateCaixa = async () => {
+    if (!newForm.nome.trim()) { toast({ title: "Informe o nome", variant: "destructive" }); return; }
+    const { error } = await supabase.from("fb_finance_caixas" as any).insert({
+      nome: newForm.nome, tipo: newForm.tipo, alvo_percent: parseFloat(newForm.alvo_percent) || 0, saldo_atual: 0,
+    } as any);
+    if (error) { toast({ title: "Erro ao criar caixa", variant: "destructive" }); return; }
+    toast({ title: "Caixa criada com sucesso!" });
+    setNewForm({ nome: "", tipo: "empresa", alvo_percent: "0" });
+    setShowNewModal(false);
+    fetchCaixas();
+  };
+
+  const handleTransfer = async () => {
+    const valor = parseFloat(transferForm.valor);
+    if (!transferForm.from || !transferForm.to || !valor || valor <= 0) {
+      toast({ title: "Preencha todos os campos", variant: "destructive" }); return;
+    }
+    if (transferForm.from === transferForm.to) {
+      toast({ title: "Origem e destino devem ser diferentes", variant: "destructive" }); return;
+    }
+    const fromCaixa = caixas.find(c => c.id === transferForm.from);
+    const toCaixa = caixas.find(c => c.id === transferForm.to);
+    if (!fromCaixa || !toCaixa) return;
+    if (Number(fromCaixa.saldo_atual) < valor) {
+      toast({ title: "Saldo insuficiente na caixa de origem", variant: "destructive" }); return;
+    }
+
+    // Update balances
+    await Promise.all([
+      supabase.from("fb_finance_caixas" as any).update({ saldo_atual: Number(fromCaixa.saldo_atual) - valor } as any).eq("id", fromCaixa.id),
+      supabase.from("fb_finance_caixas" as any).update({ saldo_atual: Number(toCaixa.saldo_atual) + valor } as any).eq("id", toCaixa.id),
+    ]);
+
+    // Create lancamento records
+    const hoje = new Date().toISOString().split("T")[0];
+    await supabase.from("fb_finance_lancamentos" as any).insert([
+      { data: hoje, tipo: "empresa", categoria: "Transferência", descricao: `Transferência para ${toCaixa.nome}`, saida: valor, entrada: 0, caixa_destino_id: fromCaixa.id },
+      { data: hoje, tipo: "empresa", categoria: "Transferência", descricao: `Transferência de ${fromCaixa.nome}`, entrada: valor, saida: 0, caixa_destino_id: toCaixa.id },
+    ] as any);
+
+    toast({ title: `${formatBRL(valor)} transferido com sucesso!` });
+    setTransferForm({ from: "", to: "", valor: "" });
+    setShowTransferModal(false);
+    fetchCaixas();
+  };
+
+  const handleEditCaixa = async () => {
+    if (!editCaixa || !editForm.nome.trim()) return;
+    await supabase.from("fb_finance_caixas" as any).update({
+      nome: editForm.nome, tipo: editForm.tipo, alvo_percent: parseFloat(editForm.alvo_percent) || 0,
+    } as any).eq("id", editCaixa.id);
+    toast({ title: "Caixa atualizada!" });
+    setEditCaixa(null);
+    fetchCaixas();
+  };
+
+  const handleDeleteCaixa = async (id: string) => {
+    if (!confirm("Tem certeza que deseja excluir esta caixa?")) return;
+    await supabase.from("fb_finance_caixas" as any).delete().eq("id", id);
+    toast({ title: "Caixa removida" });
+    setMenuOpenId(null);
+    fetchCaixas();
+  };
+
   const totalPatrimonio = caixas.reduce((s, c) => s + Number(c.saldo_atual), 0);
   const totalAlvo = caixas.reduce((s, c) => s + (Number(c.alvo_percent) > 0 ? Number(c.saldo_atual) / (Number(c.alvo_percent) / 100) : 0), 0);
   const healthPercent = totalAlvo > 0 ? Math.min((totalPatrimonio / totalAlvo) * 100, 100) : 85;
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#a5c8ff]" /></div>;
+
+  const ModalOverlay = ({ children, onClose }: { children: React.ReactNode; onClose: () => void }) => (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-[#0e1c2d] rounded-2xl w-full max-w-lg shadow-2xl border border-[#414752]/20" onClick={e => e.stopPropagation()}>
+        {children}
+      </div>
+    </div>
+  );
 
   return (
     <section className="p-6 md:p-10 max-w-7xl mx-auto">
@@ -71,40 +158,37 @@ export function FbCaixas() {
             Gestão de <span className="text-[#a5c8ff]">Envelopes</span>
           </h2>
           <p className="text-[#c1c6d4] max-w-lg text-sm md:text-base leading-relaxed">
-            Organize sua vida financeira separando seu capital em caixas estratégicas. Priorize objetivos e visualize seu progresso em tempo real.
+            Organize sua vida financeira separando seu capital em caixas estratégicas.
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <button className="bg-[#1d2b3c] text-[#d5e4fa] hover:bg-[#283647] border border-[#414752]/20 px-5 py-3 rounded-md text-sm font-semibold flex items-center gap-2 transition-all" style={{ fontFamily: "Inter" }}>
+          <button onClick={() => setShowTransferModal(true)} className="bg-[#1d2b3c] text-[#d5e4fa] hover:bg-[#283647] border border-[#414752]/20 px-5 py-3 rounded-md text-sm font-semibold flex items-center gap-2 transition-all">
             <span className="material-symbols-outlined text-lg">swap_horiz</span>
             Transferir entre Caixas
           </button>
-          <button className="bg-[#1976d2] text-white px-6 py-3 rounded-md text-sm font-bold flex items-center gap-2 shadow-lg shadow-[#1976d2]/20 active:scale-95 transition-all" style={{ fontFamily: "Inter" }}>
+          <button onClick={() => setShowNewModal(true)} className="bg-[#1976d2] text-white px-6 py-3 rounded-md text-sm font-bold flex items-center gap-2 shadow-lg shadow-[#1976d2]/20 active:scale-95 transition-all">
             <span className="material-symbols-outlined text-lg">add</span>
             Nova Caixa
           </button>
         </div>
       </div>
 
-      {/* Financial Summary Bento Grid */}
+      {/* Financial Summary */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
         <div className="md:col-span-2 bg-gradient-to-br from-[#1976d2] to-blue-900 p-8 rounded-xl shadow-2xl relative overflow-hidden">
           <div className="relative z-10">
             <span className="text-xs uppercase tracking-[0.2em] text-blue-100/70 font-bold mb-2 block">Patrimônio Reservado</span>
             <h3 className="text-5xl font-['Manrope'] font-black text-white mb-6 tracking-tighter">{formatBRL(totalPatrimonio)}</h3>
-            <div className="flex items-center gap-4">
-              <span className="text-blue-200/60 text-xs">{caixas.length} caixas ativas</span>
-            </div>
+            <span className="text-blue-200/60 text-xs">{caixas.length} caixas ativas</span>
           </div>
           <div className="absolute -right-12 -bottom-12 w-64 h-64 bg-white/5 rounded-full blur-3xl"></div>
           <div className="absolute right-8 top-8 opacity-20">
             <span className="material-symbols-outlined text-7xl text-white" style={{ fontVariationSettings: "'FILL' 1" }}>account_balance</span>
           </div>
         </div>
-
         <div className="bg-[#0e1c2d] p-6 rounded-xl border-l-4 border-[#40e56c] flex flex-col justify-between">
           <div>
-            <span className="text-xs text-[#8b919e] uppercase tracking-wider block mb-1" style={{ fontFamily: "Inter" }}>Saúde das Reservas</span>
+            <span className="text-xs text-[#8b919e] uppercase tracking-wider block mb-1">Saúde das Reservas</span>
             <p className="text-2xl font-['Manrope'] font-bold text-[#40e56c]">{healthPercent >= 80 ? "Excelente" : healthPercent >= 50 ? "Bom" : "Atenção"}</p>
           </div>
           <div className="h-1.5 bg-[#283647] rounded-full w-full overflow-hidden my-3">
@@ -114,13 +198,12 @@ export function FbCaixas() {
         </div>
       </div>
 
-      {/* Envelopes Section Title */}
       <h3 className="font-['Manrope'] font-bold text-xl text-[#d5e4fa] mb-8 flex items-center gap-3">
         <span className="w-8 h-[2px] bg-[#a5c8ff]"></span>
         Suas Caixas Ativas
       </h3>
 
-      {/* Envelope Cards Grid */}
+      {/* Envelope Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {caixas.map((c) => {
           const saldo = Number(c.saldo_atual);
@@ -135,9 +218,23 @@ export function FbCaixas() {
                 <div className={`w-12 h-12 rounded-lg ${iconCfg.bg} flex items-center justify-center ${iconCfg.color}`}>
                   <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>{iconCfg.icon}</span>
                 </div>
-                <button className="text-[#8b919e] hover:text-[#d5e4fa] transition-colors">
-                  <span className="material-symbols-outlined">more_vert</span>
-                </button>
+                <div className="relative">
+                  <button onClick={() => setMenuOpenId(menuOpenId === c.id ? null : c.id)} className="text-[#8b919e] hover:text-[#d5e4fa] transition-colors">
+                    <span className="material-symbols-outlined">more_vert</span>
+                  </button>
+                  {menuOpenId === c.id && (
+                    <div ref={menuRef} className="absolute right-0 top-8 bg-[#122031] border border-[#414752]/30 rounded-lg shadow-2xl py-1 z-50 min-w-[140px]">
+                      <button onClick={() => { setEditCaixa(c); setEditForm({ nome: c.nome, tipo: c.tipo, alvo_percent: String(c.alvo_percent) }); setMenuOpenId(null); }}
+                        className="w-full text-left px-4 py-2 text-xs text-[#d5e4fa] hover:bg-white/5 flex items-center gap-2">
+                        <span className="material-symbols-outlined text-sm">edit</span> Editar
+                      </button>
+                      <button onClick={() => handleDeleteCaixa(c.id)}
+                        className="w-full text-left px-4 py-2 text-xs text-[#e71a0e] hover:bg-white/5 flex items-center gap-2">
+                        <span className="material-symbols-outlined text-sm">delete</span> Excluir
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <h4 className="font-['Manrope'] font-bold text-lg text-[#d5e4fa] mb-1">{c.nome}</h4>
@@ -153,10 +250,7 @@ export function FbCaixas() {
                     <span className="text-[#40e56c] font-bold">{formatCompact(saldo)}</span>
                   </div>
                   <div className="h-2 bg-[#283647] rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full ${metaAtingida ? "bg-[#40e56c] shadow-[0_0_10px_rgba(64,229,108,0.4)]" : "bg-[#40e56c]"}`}
-                      style={{ width: `${progress}%` }}
-                    ></div>
+                    <div className={`h-full rounded-full ${metaAtingida ? "bg-[#40e56c] shadow-[0_0_10px_rgba(64,229,108,0.4)]" : "bg-[#40e56c]"}`} style={{ width: `${progress}%` }}></div>
                   </div>
                   <div className="flex justify-between text-[10px] mt-2 text-[#8b919e]">
                     {metaAtingida ? (
@@ -171,10 +265,7 @@ export function FbCaixas() {
                 </div>
               </div>
 
-              <button
-                onClick={() => openDetails(c)}
-                className="mt-6 w-full py-2 border border-[#414752]/30 rounded text-xs font-bold text-[#c1c6d4] group-hover:bg-[#1976d2] group-hover:text-white group-hover:border-transparent transition-all"
-              >
+              <button onClick={() => openDetails(c)} className="mt-6 w-full py-2 border border-[#414752]/30 rounded text-xs font-bold text-[#c1c6d4] group-hover:bg-[#1976d2] group-hover:text-white group-hover:border-transparent transition-all">
                 Ver Detalhes
               </button>
             </div>
@@ -184,9 +275,8 @@ export function FbCaixas() {
 
       {/* Detail Modal */}
       {selectedCaixa && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setSelectedCaixa(null)}>
-          <div className="bg-[#0e1c2d] rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden shadow-2xl border border-[#414752]/20" onClick={e => e.stopPropagation()}>
-            {/* Modal Header */}
+        <ModalOverlay onClose={() => setSelectedCaixa(null)}>
+          <div className="max-h-[85vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="p-6 border-b border-[#414752]/20 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 {(() => {
@@ -201,16 +291,13 @@ export function FbCaixas() {
                   <h3 className="font-['Manrope'] font-bold text-xl text-[#d5e4fa]">{selectedCaixa.nome}</h3>
                   <p className="text-xs text-[#8b919e]">
                     {selectedCaixa.tipo === "pessoal" ? "Envelope pessoal" : "Envelope empresarial"}
-                    {selectedCaixa.alvo_percent > 0 && ` • ${selectedCaixa.alvo_percent}% alvo`}
                   </p>
                 </div>
               </div>
-              <button onClick={() => setSelectedCaixa(null)} className="text-[#8b919e] hover:text-white p-2 rounded-lg hover:bg-white/5 transition-colors">
+              <button onClick={() => setSelectedCaixa(null)} className="text-[#8b919e] hover:text-white p-2 rounded-lg hover:bg-white/5">
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
-
-            {/* Summary Cards */}
             <div className="grid grid-cols-3 gap-4 p-6 pb-4">
               <div className="bg-[#051424] rounded-lg p-4">
                 <span className="text-[10px] text-[#8b919e] uppercase tracking-wider block mb-1">Saldo Atual</span>
@@ -225,9 +312,7 @@ export function FbCaixas() {
                 <span className="text-lg font-bold text-red-400">{formatBRL(lancamentos.reduce((s, l) => s + Number(l.saida), 0))}</span>
               </div>
             </div>
-
-            {/* Transactions List */}
-            <div className="px-6 pb-6 overflow-y-auto" style={{ maxHeight: "400px" }}>
+            <div className="px-6 pb-6 overflow-y-auto flex-1" style={{ maxHeight: "400px" }}>
               <h4 className="text-xs text-[#8b919e] uppercase tracking-wider mb-3 font-bold">Últimos Lançamentos</h4>
               {loadingLanc ? (
                 <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#a5c8ff]" /></div>
@@ -248,9 +333,7 @@ export function FbCaixas() {
                           </div>
                           <div>
                             <p className="text-sm text-[#d5e4fa] font-medium">{l.descricao || l.categoria}</p>
-                            <p className="text-[10px] text-[#8b919e]">
-                              {new Date(l.data).toLocaleDateString("pt-BR")} • {l.categoria}
-                            </p>
+                            <p className="text-[10px] text-[#8b919e]">{new Date(l.data).toLocaleDateString("pt-BR")} • {l.categoria}</p>
                           </div>
                         </div>
                         <span className={`text-sm font-bold ${isEntrada ? "text-emerald-400" : "text-red-400"}`}>
@@ -263,7 +346,122 @@ export function FbCaixas() {
               )}
             </div>
           </div>
-        </div>
+        </ModalOverlay>
+      )}
+
+      {/* Nova Caixa Modal */}
+      {showNewModal && (
+        <ModalOverlay onClose={() => setShowNewModal(false)}>
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="font-['Manrope'] font-bold text-xl text-[#d5e4fa]">Nova Caixa</h3>
+              <button onClick={() => setShowNewModal(false)} className="text-[#8b919e] hover:text-white"><span className="material-symbols-outlined">close</span></button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="text-[10px] text-[#8b919e] uppercase tracking-widest block mb-1">Nome</label>
+                <input value={newForm.nome} onChange={e => setNewForm({ ...newForm, nome: e.target.value })} placeholder="Ex: Fundo de Emergência"
+                  className="w-full bg-[#051424] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-[#d5e4fa] outline-none focus:ring-2 focus:ring-[#1976d2]" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] text-[#8b919e] uppercase tracking-widest block mb-1">Tipo</label>
+                  <select value={newForm.tipo} onChange={e => setNewForm({ ...newForm, tipo: e.target.value })}
+                    className="w-full bg-[#051424] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-[#d5e4fa] outline-none">
+                    <option value="empresa">Empresarial</option>
+                    <option value="pessoal">Pessoal</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] text-[#8b919e] uppercase tracking-widest block mb-1">Alvo (%)</label>
+                  <input type="number" value={newForm.alvo_percent} onChange={e => setNewForm({ ...newForm, alvo_percent: e.target.value })}
+                    className="w-full bg-[#051424] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-[#d5e4fa] outline-none" />
+                </div>
+              </div>
+              <button onClick={handleCreateCaixa} className="w-full bg-[#1976d2] text-white py-3 rounded-lg font-bold text-sm mt-2 active:scale-[0.98] transition-transform">
+                Criar Caixa
+              </button>
+            </div>
+          </div>
+        </ModalOverlay>
+      )}
+
+      {/* Transferir Modal */}
+      {showTransferModal && (
+        <ModalOverlay onClose={() => setShowTransferModal(false)}>
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="font-['Manrope'] font-bold text-xl text-[#d5e4fa]">Transferir entre Caixas</h3>
+              <button onClick={() => setShowTransferModal(false)} className="text-[#8b919e] hover:text-white"><span className="material-symbols-outlined">close</span></button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="text-[10px] text-[#8b919e] uppercase tracking-widest block mb-1">Caixa Origem</label>
+                <select value={transferForm.from} onChange={e => setTransferForm({ ...transferForm, from: e.target.value })}
+                  className="w-full bg-[#051424] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-[#d5e4fa] outline-none">
+                  <option value="">Selecione...</option>
+                  {caixas.map(c => <option key={c.id} value={c.id}>{c.nome} ({formatBRL(Number(c.saldo_atual))})</option>)}
+                </select>
+              </div>
+              <div className="flex justify-center">
+                <span className="material-symbols-outlined text-[#1976d2] text-2xl">swap_vert</span>
+              </div>
+              <div>
+                <label className="text-[10px] text-[#8b919e] uppercase tracking-widest block mb-1">Caixa Destino</label>
+                <select value={transferForm.to} onChange={e => setTransferForm({ ...transferForm, to: e.target.value })}
+                  className="w-full bg-[#051424] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-[#d5e4fa] outline-none">
+                  <option value="">Selecione...</option>
+                  {caixas.filter(c => c.id !== transferForm.from).map(c => <option key={c.id} value={c.id}>{c.nome} ({formatBRL(Number(c.saldo_atual))})</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] text-[#8b919e] uppercase tracking-widest block mb-1">Valor (R$)</label>
+                <input type="number" step="0.01" value={transferForm.valor} onChange={e => setTransferForm({ ...transferForm, valor: e.target.value })} placeholder="0.00"
+                  className="w-full bg-[#051424] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-[#d5e4fa] outline-none focus:ring-2 focus:ring-[#1976d2]" />
+              </div>
+              <button onClick={handleTransfer} className="w-full bg-[#40e56c] text-[#003912] py-3 rounded-lg font-bold text-sm mt-2 active:scale-[0.98] transition-transform">
+                Confirmar Transferência
+              </button>
+            </div>
+          </div>
+        </ModalOverlay>
+      )}
+
+      {/* Edit Caixa Modal */}
+      {editCaixa && (
+        <ModalOverlay onClose={() => setEditCaixa(null)}>
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="font-['Manrope'] font-bold text-xl text-[#d5e4fa]">Editar Caixa</h3>
+              <button onClick={() => setEditCaixa(null)} className="text-[#8b919e] hover:text-white"><span className="material-symbols-outlined">close</span></button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="text-[10px] text-[#8b919e] uppercase tracking-widest block mb-1">Nome</label>
+                <input value={editForm.nome} onChange={e => setEditForm({ ...editForm, nome: e.target.value })}
+                  className="w-full bg-[#051424] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-[#d5e4fa] outline-none focus:ring-2 focus:ring-[#1976d2]" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[10px] text-[#8b919e] uppercase tracking-widest block mb-1">Tipo</label>
+                  <select value={editForm.tipo} onChange={e => setEditForm({ ...editForm, tipo: e.target.value })}
+                    className="w-full bg-[#051424] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-[#d5e4fa] outline-none">
+                    <option value="empresa">Empresarial</option>
+                    <option value="pessoal">Pessoal</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] text-[#8b919e] uppercase tracking-widest block mb-1">Alvo (%)</label>
+                  <input type="number" value={editForm.alvo_percent} onChange={e => setEditForm({ ...editForm, alvo_percent: e.target.value })}
+                    className="w-full bg-[#051424] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-[#d5e4fa] outline-none" />
+                </div>
+              </div>
+              <button onClick={handleEditCaixa} className="w-full bg-[#1976d2] text-white py-3 rounded-lg font-bold text-sm mt-2 active:scale-[0.98] transition-transform">
+                Salvar Alterações
+              </button>
+            </div>
+          </div>
+        </ModalOverlay>
       )}
     </section>
   );

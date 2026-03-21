@@ -156,13 +156,13 @@ export function FbRelatorios() {
           </p>
         </div>
         <div className="flex gap-3">
-          <button className="px-5 py-2.5 bg-[#1d2b3c] text-[#d5e4fa] rounded-xl flex items-center gap-2 hover:bg-[#283647] transition-colors border border-[#414752]/20">
-            <span className="material-symbols-outlined text-sm">picture_as_pdf</span>
-            <span className="text-sm font-semibold">PDF</span>
-          </button>
-          <button className="px-5 py-2.5 bg-[#1d2b3c] text-[#d5e4fa] rounded-xl flex items-center gap-2 hover:bg-[#283647] transition-colors border border-[#414752]/20">
+          <button onClick={() => {
+            const csv = ["Data,Descrição,Categoria,Tipo,Entrada,Saída", ...filtered.map(l => `${l.data},"${l.descricao || l.categoria}",${l.categoria},${l.tipo},${l.entrada},${l.saida}`)].join("\n");
+            const blob = new Blob([csv], { type: "text/csv" });
+            const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `relatorio-${period}.csv`; a.click();
+          }} className="px-5 py-2.5 bg-[#1d2b3c] text-[#d5e4fa] rounded-xl flex items-center gap-2 hover:bg-[#283647] transition-colors border border-[#414752]/20">
             <span className="material-symbols-outlined text-sm">table_view</span>
-            <span className="text-sm font-semibold">Excel</span>
+            <span className="text-sm font-semibold">Excel/CSV</span>
           </button>
         </div>
       </header>
