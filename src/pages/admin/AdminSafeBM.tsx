@@ -579,14 +579,16 @@ export default function AdminSafeBM() {
                     <TableRow className="border-border">
                       <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Nome da BM</TableHead>
                       <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Dono/Cliente</TableHead>
-                      <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Status Assinatura</TableHead>
+                      <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Status</TableHead>
+                      <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Link Backup</TableHead>
                       <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Data de Proteção</TableHead>
-                      <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Último Backup</TableHead>
                       <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filtered.map(v => (
+                    {filtered.map(v => {
+                      const linkStatus = getBackupLinkTimeLeft(v.backup_link_set_at);
+                      return (
                       <TableRow key={v.id} className="border-border hover:bg-muted/5">
                         <TableCell>
                           <div className="flex items-center gap-2.5">
@@ -635,18 +637,39 @@ export default function AdminSafeBM() {
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">{v.client_name || "—"}</TableCell>
                         <TableCell>{getStatusBadge(v.status)}</TableCell>
+                        <TableCell>
+                          {v.backup_link ? (
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-1.5">
+                                <Timer className={`size-3 ${linkStatus.expired ? "text-red-400" : "text-emerald-400"}`} />
+                                <span className={`text-xs font-medium ${linkStatus.expired ? "text-red-400" : "text-emerald-400"}`}>
+                                  {linkStatus.text}
+                                </span>
+                                {linkStatus.expired && (
+                                  <Badge className="bg-red-500/20 text-red-400 border-red-500/30 text-[9px] px-1.5 py-0">
+                                    <AlertTriangle className="size-2.5 mr-0.5" /> Renovar
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className="w-20 h-1 rounded-full bg-muted-foreground/20">
+                                <div
+                                  className={`h-1 rounded-full transition-all ${linkStatus.expired ? "bg-red-500" : linkStatus.percent < 30 ? "bg-yellow-500" : "bg-emerald-500"}`}
+                                  style={{ width: `${linkStatus.percent}%` }}
+                                />
+                              </div>
+                              <button
+                                onClick={() => { navigator.clipboard.writeText(v.backup_link!); toast.success("Link copiado!"); }}
+                                className="flex items-center gap-1 text-[10px] text-primary/60 hover:text-primary"
+                              >
+                                <Copy className="size-2.5" /> Copiar link
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted-foreground/50 italic">Não configurado</span>
+                          )}
+                        </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {format(new Date(v.protection_start), "dd MMM, yyyy", { locale: ptBR })}
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <p className="text-sm text-foreground">
-                              {format(new Date(v.updated_at), "dd/MM, HH:mm")}
-                            </p>
-                            <p className={`text-[10px] ${v.status === "active" ? "text-emerald-400" : "text-red-400"}`}>
-                              {v.status === "active" ? "Sucesso total" : "Expirado"}
-                            </p>
-                          </div>
                         </TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>
@@ -656,6 +679,9 @@ export default function AdminSafeBM() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-44">
+                              <DropdownMenuItem onClick={() => openEdit(v)} className="gap-2 text-xs">
+                                <Pencil className="size-3.5" /> Editar / Link Backup
+                              </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => regenerateLink(v)} className="gap-2 text-xs">
                                 <Link2 className="size-3.5" /> Regenerar Link ({v.link_regenerations}x)
                               </DropdownMenuItem>
@@ -665,9 +691,6 @@ export default function AdminSafeBM() {
                                   : <><ShieldCheck className="size-3.5 text-emerald-400" /> Ativar</>
                                 }
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => openEdit(v)} className="gap-2 text-xs">
-                                <Pencil className="size-3.5" /> Editar
-                              </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => deleteVault(v)} className="gap-2 text-xs text-red-400">
                                 <Trash2 className="size-3.5" /> Excluir
                               </DropdownMenuItem>
@@ -675,7 +698,8 @@ export default function AdminSafeBM() {
                           </DropdownMenu>
                         </TableCell>
                       </TableRow>
-                    ))}
+                    );
+                    })}
                   </TableBody>
                 </Table>
                 <div className="flex items-center justify-between px-4 py-3 border-t border-border">
