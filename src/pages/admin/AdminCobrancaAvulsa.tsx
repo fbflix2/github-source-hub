@@ -8,7 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Copy, ExternalLink, FileText, Plus, Search, Send, Clock, CheckCircle, XCircle } from "lucide-react";
+import { Copy, ExternalLink, FileText, Plus, Search, Send, Clock, CheckCircle, XCircle, Eye, MessageCircle } from "lucide-react";
+import InvoiceDetailModal from "@/components/admin/InvoiceDetailModal";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -28,12 +29,17 @@ interface InvoiceLink {
   id: string;
   code: string;
   client_name: string | null;
+  client_email: string | null;
   product_name: string;
   amount: number;
+  description: string | null;
   status: string;
   created_at: string;
   expires_at: string;
   paid_at: string | null;
+  qr_code: string | null;
+  qr_code_base64: string | null;
+  reference_date?: string;
 }
 
 export default function AdminCobrancaAvulsa() {
