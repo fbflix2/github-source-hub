@@ -5,54 +5,109 @@ import type { FbPage } from "./FbFinanceDashboard";
 const formatBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 interface CaixaRow { id: string; nome: string; saldo_atual: number; tipo: string; alvo_percent: number }
+interface LancamentoRow { id: string; data: string; tipo: string; categoria: string; descricao: string | null; entrada: number; saida: number; caixa_destino_id: string | null }
+interface DespesaRow { id: string; nome: string; valor: number; pago: boolean; mes_ref: string; categoria: string }
+interface ConfigRow { distribution_percentages: Record<string, number> }
 
 export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => void }) {
   const [caixas, setCaixas] = useState<CaixaRow[]>([]);
+  const [lancamentos, setLancamentos] = useState<LancamentoRow[]>([]);
+  const [despesas, setDespesas] = useState<DespesaRow[]>([]);
+  const [config, setConfig] = useState<ConfigRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [capitalGiroPeriod, setCapitalGiroPeriod] = useState<"30" | "90">("30");
+
+  const mesAtual = new Date().toISOString().slice(0, 7);
 
   useEffect(() => {
     fetchData();
   }, []);
 
   const fetchData = async () => {
-    const { data } = await supabase.from("fb_finance_caixas" as any).select("*");
-    if (data) setCaixas(data as any);
+    const now = new Date();
+    const startOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const startLastMonth = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, "0")}-01`;
+    const endLastMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+
+    const [caixasRes, lancMesRes, lancLastRes, despesasRes, configRes] = await Promise.all([
+      supabase.from("fb_finance_caixas").select("*"),
+      supabase.from("fb_finance_lancamentos").select("*").gte("data", startOfMonth),
+      supabase.from("fb_finance_lancamentos").select("*").gte("data", startLastMonth).lt("data", endLastMonth),
+      supabase.from("fb_finance_despesas_planejadas").select("*").eq("mes_ref", mesAtual),
+      supabase.from("fb_finance_config").select("*").limit(1).single(),
+    ]);
+
+    if (caixasRes.data) setCaixas(caixasRes.data as any);
+    if (lancMesRes.data) setLancamentos(lancMesRes.data as any);
+    if (despesasRes.data) setDespesas(despesasRes.data as any);
+    if (configRes.data) setConfig(configRes.data as any);
+
+    // Store last month data for comparison
+    const lastLanc = (lancLastRes.data || []) as any as LancamentoRow[];
+    setLastMonthReceita(lastLanc.reduce((s, l) => s + Number(l.entrada), 0));
+    setLastMonthDespesa(lastLanc.reduce((s, l) => s + Number(l.saida), 0));
+
     setLoading(false);
   };
 
+  const [lastMonthReceita, setLastMonthReceita] = useState(0);
+  const [lastMonthDespesa, setLastMonthDespesa] = useState(0);
+
+  // Real calculations
   const pessoal = caixas.filter(c => c.tipo === "pessoal");
   const empresa = caixas.filter(c => c.tipo === "empresa");
   const saldoPessoal = pessoal.reduce((s, c) => s + Number(c.saldo_atual), 0);
   const saldoEmpresa = empresa.reduce((s, c) => s + Number(c.saldo_atual), 0);
   const patrimonio = saldoPessoal + saldoEmpresa;
 
-  // Mock data for demonstration
-  const receitaMensal = 30000;
-  const despesaMensal = 12400;
+  const receitaMensal = lancamentos.reduce((s, l) => s + Number(l.entrada), 0);
+  const despesaMensal = lancamentos.reduce((s, l) => s + Number(l.saida), 0);
   const lucroLiquido = receitaMensal - despesaMensal;
-  const margem = ((lucroLiquido / receitaMensal) * 100).toFixed(1);
+  const margem = receitaMensal > 0 ? ((lucroLiquido / receitaMensal) * 100).toFixed(1) : "0.0";
 
-  // Allocation percentages
+  // Growth vs last month
+  const receitaGrowth = lastMonthReceita > 0 ? (((receitaMensal - lastMonthReceita) / lastMonthReceita) * 100).toFixed(1) : "0.0";
+  const despesaDiff = despesaMensal - lastMonthDespesa;
+  const patrimonioGrowth = lastMonthReceita > 0 ? (((patrimonio - (patrimonio - lucroLiquido)) / Math.max(patrimonio - lucroLiquido, 1)) * 100).toFixed(1) : "0.0";
+
+  // Allocation from config
+  const distPerc = config?.distribution_percentages || { operacional: 80, fundos_reserva: 15, capital_giro: 2, dia_a_dia: 2, dividendos: 1 };
   const allocations = [
-    { name: "Operacional", percent: 80, color: "#40e56c" },
-    { name: "Fundos", percent: 15, color: "#1976d2" },
-    { name: "Capital Giro", percent: 2, color: "#93c5fd" },
-    { name: "Dia a Dia", percent: 2, color: "#94a3b8" },
-    { name: "Dividendos", percent: 1, color: "#eab308" },
+    { name: "Operacional", percent: distPerc.operacional || 80, color: "#40e56c" },
+    { name: "Fundos", percent: distPerc.fundos_reserva || 15, color: "#1976d2" },
+    { name: "Capital Giro", percent: distPerc.capital_giro || 2, color: "#93c5fd" },
+    { name: "Dia a Dia", percent: distPerc.dia_a_dia || 2, color: "#94a3b8" },
+    { name: "Dividendos", percent: distPerc.dividendos || 1, color: "#eab308" },
   ];
 
-  // Mock bar chart data
-  const barCount = capitalGiroPeriod === "30" ? 15 : 30;
-  const barHeights = Array.from({ length: barCount }, (_, i) => 40 + (i / barCount) * 55 + Math.random() * 5);
+  // Capital de Giro chart - real daily data
+  const days = capitalGiroPeriod === "30" ? 30 : 90;
+  const today = new Date();
+  const dayLabels: string[] = [];
+  const dayValues: number[] = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().slice(0, 10);
+    dayLabels.push(dateStr);
+    const dayLancs = lancamentos.filter(l => l.data === dateStr);
+    const dayNet = dayLancs.reduce((s, l) => s + Number(l.entrada) - Number(l.saida), 0);
+    dayValues.push(dayNet);
+  }
+  // Cumulative
+  let cumulative = 0;
+  const cumulativeValues = dayValues.map(v => { cumulative += v; return cumulative; });
+  const maxCum = Math.max(...cumulativeValues.map(Math.abs), 1);
+  const barHeights = cumulativeValues.map(v => Math.max(10, ((v + maxCum) / (2 * maxCum)) * 95));
 
-  // Personal budget
-  const salario = 7000;
-  const aluguel = 2000;
-  const outrosGastos = 2200;
-  const utilizado = aluguel + outrosGastos;
-  const disponivel = salario - utilizado;
-  const percentUsado = ((utilizado / salario) * 100).toFixed(0);
+  // Personal budget from despesas_planejadas
+  const salarioLancs = lancamentos.filter(l => l.tipo === "pessoal" && l.entrada > 0);
+  const salario = salarioLancs.reduce((s, l) => s + Number(l.entrada), 0);
+  const totalDespPessoal = despesas.reduce((s, d) => s + Number(d.valor), 0);
+  const despPago = despesas.filter(d => d.pago).reduce((s, d) => s + Number(d.valor), 0);
+  const disponivel = salario - totalDespPessoal;
+  const percentUsado = salario > 0 ? ((totalDespPessoal / salario) * 100).toFixed(0) : "0";
 
   if (loading) {
     return (
@@ -72,10 +127,10 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
             <span className="material-symbols-outlined text-[80px] text-[#a5c8ff]">account_balance</span>
           </div>
           <p className="text-sm font-medium tracking-wide mb-2 uppercase text-[#c1c6d4]">Saldo Total</p>
-          <h3 className="text-3xl font-['Manrope'] font-extrabold text-[#d5e4fa]">{formatBRL(patrimonio || 45600)}</h3>
+          <h3 className="text-3xl font-['Manrope'] font-extrabold text-[#d5e4fa]">{formatBRL(patrimonio)}</h3>
           <div className="mt-4 flex items-center gap-2">
-            <span className="text-[#40e56c] text-xs font-bold flex items-center">
-              <span className="material-symbols-outlined text-sm">trending_up</span> +2.4%
+            <span className={`text-xs font-bold flex items-center ${Number(patrimonioGrowth) >= 0 ? "text-[#40e56c]" : "text-[#ffb4a8]"}`}>
+              <span className="material-symbols-outlined text-sm">{Number(patrimonioGrowth) >= 0 ? "trending_up" : "trending_down"}</span> {patrimonioGrowth}%
             </span>
             <span className="text-slate-500 text-[10px]">vs. mês anterior</span>
           </div>
@@ -86,12 +141,10 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
           <p className="text-sm font-medium tracking-wide mb-2 uppercase text-[#c1c6d4]">Receita Mensal</p>
           <h3 className="text-3xl font-['Manrope'] font-extrabold text-[#d5e4fa]">{formatBRL(receitaMensal)}</h3>
           <div className="mt-4 flex items-center gap-2">
-            <span className="text-[#40e56c] text-xs font-bold flex items-center">
-              <span className="material-symbols-outlined text-sm">arrow_upward</span> Meta: 95%
+            <span className={`text-xs font-bold flex items-center ${Number(receitaGrowth) >= 0 ? "text-[#40e56c]" : "text-[#ffb4a8]"}`}>
+              <span className="material-symbols-outlined text-sm">{Number(receitaGrowth) >= 0 ? "arrow_upward" : "arrow_downward"}</span> {receitaGrowth}%
             </span>
-            <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: "#283647" }}>
-              <div className="h-full bg-[#40e56c]" style={{ width: "95%" }}></div>
-            </div>
+            <span className="text-slate-500 text-[10px]">vs. mês anterior</span>
           </div>
         </div>
 
@@ -100,19 +153,19 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
           <p className="text-sm font-medium tracking-wide mb-2 uppercase text-[#c1c6d4]">Despesa Mensal</p>
           <h3 className="text-3xl font-['Manrope'] font-extrabold text-[#d5e4fa]">{formatBRL(despesaMensal)}</h3>
           <div className="mt-4 flex items-center gap-2">
-            <span className="text-[#ffb4a8] text-xs font-bold flex items-center">
-              <span className="material-symbols-outlined text-sm">warning</span> -R$ 1.200
+            <span className={`text-xs font-bold flex items-center ${despesaDiff <= 0 ? "text-[#40e56c]" : "text-[#ffb4a8]"}`}>
+              <span className="material-symbols-outlined text-sm">{despesaDiff <= 0 ? "trending_down" : "warning"}</span> {despesaDiff > 0 ? "+" : ""}{formatBRL(despesaDiff)}
             </span>
-            <span className="text-slate-500 text-[10px]">Projeção excedida</span>
+            <span className="text-slate-500 text-[10px]">vs. mês anterior</span>
           </div>
         </div>
 
         {/* Lucro Líquido */}
         <div className="p-6 rounded-xl border-l-4 border-[#a5c8ff] relative overflow-hidden" style={{ background: "linear-gradient(to bottom right, #0e1c2d, rgba(25, 118, 210, 0.1))" }}>
           <p className="text-sm font-medium tracking-wide mb-2 uppercase text-[#c1c6d4]">Lucro Líquido</p>
-          <h3 className="text-3xl font-['Manrope'] font-extrabold text-[#40e56c]">{formatBRL(lucroLiquido)}</h3>
+          <h3 className={`text-3xl font-['Manrope'] font-extrabold ${lucroLiquido >= 0 ? "text-[#40e56c]" : "text-[#ffb4a8]"}`}>{formatBRL(lucroLiquido)}</h3>
           <div className="mt-4">
-            <span className="px-2 py-1 text-[10px] font-bold rounded-full uppercase" style={{ background: "rgba(64, 229, 108, 0.1)", color: "#40e56c" }}>
+            <span className="px-2 py-1 text-[10px] font-bold rounded-full uppercase" style={{ background: lucroLiquido >= 0 ? "rgba(64, 229, 108, 0.1)" : "rgba(255, 180, 168, 0.1)", color: lucroLiquido >= 0 ? "#40e56c" : "#ffb4a8" }}>
               Margem: {margem}%
             </span>
           </div>
@@ -130,12 +183,32 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
           <div className="flex items-center justify-between gap-8">
             {/* Donut chart simulation */}
             <div className="relative w-48 h-48 flex items-center justify-center flex-shrink-0">
-              <div className="absolute inset-0 rounded-full border-[16px]" style={{ borderColor: "#283647" }}></div>
-              <div className="absolute inset-0 rounded-full border-[16px] border-l-transparent border-t-transparent border-r-transparent transform rotate-45" style={{ borderBottomColor: "#40e56c" }}></div>
-              <div className="absolute inset-0 rounded-full border-[16px] border-b-transparent border-r-transparent border-t-transparent transform -rotate-12" style={{ borderLeftColor: "#1976d2" }}></div>
-              <div className="text-center">
-                <span className="block text-2xl font-black text-[#d5e4fa]">80%</span>
-                <span className="text-[10px] text-slate-500 uppercase font-bold">Operacional</span>
+              <svg viewBox="0 0 36 36" className="w-48 h-48">
+                {(() => {
+                  let offset = 0;
+                  return allocations.map((a) => {
+                    const dash = a.percent;
+                    const gap = 100 - dash;
+                    const el = (
+                      <circle
+                        key={a.name}
+                        cx="18" cy="18" r="15.9155"
+                        fill="none"
+                        stroke={a.color}
+                        strokeWidth="3.5"
+                        strokeDasharray={`${dash} ${gap}`}
+                        strokeDashoffset={-offset}
+                        className="transition-all duration-500"
+                      />
+                    );
+                    offset += dash;
+                    return el;
+                  });
+                })()}
+              </svg>
+              <div className="absolute text-center">
+                <span className="block text-2xl font-black text-[#d5e4fa]">{allocations[0]?.percent}%</span>
+                <span className="text-[10px] text-slate-500 uppercase font-bold">{allocations[0]?.name}</span>
               </div>
             </div>
             {/* Legend */}
@@ -185,7 +258,7 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
                 className="rounded-t-sm"
                 style={{
                   height: `${h}%`,
-                  width: `${90 / barCount}%`,
+                  width: `${90 / barHeights.length}%`,
                   background: h > 75 ? "rgba(25, 118, 210, 1)" : h > 60 ? "rgba(25, 118, 210, 0.8)" : h > 50 ? "rgba(25, 118, 210, 0.6)" : "rgba(25, 118, 210, 0.4)",
                   borderTop: h > 70 ? "2px solid #a5c8ff" : "none",
                 }}
@@ -215,34 +288,50 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
           </div>
           <div className="flex-1 max-w-2xl px-4">
             <div className="flex justify-between text-xs font-bold uppercase tracking-widest mb-2">
-              <span className="text-[#40e56c]">Salário: {formatBRL(salario)}</span>
-              <span className="text-[#ffb4a8]">Utilizado: {formatBRL(utilizado)} ({percentUsado}%)</span>
+              <span className="text-[#40e56c]">Receita Pessoal: {formatBRL(salario)}</span>
+              <span className="text-[#ffb4a8]">Despesas: {formatBRL(totalDespPessoal)} ({percentUsado}%)</span>
             </div>
             <div className="h-4 w-full rounded-full overflow-hidden flex" style={{ background: "#283647" }}>
-              <div className="h-full bg-blue-400" style={{ width: `${(aluguel / salario) * 100}%` }} title={`Aluguel: ${formatBRL(aluguel)}`}></div>
-              <div className="h-full bg-blue-600" style={{ width: `${(outrosGastos / salario) * 100}%` }} title={`Outros: ${formatBRL(outrosGastos)}`}></div>
+              <div className="h-full bg-[#e71a0e]" style={{ width: `${Math.min(Number(percentUsado), 100)}%` }}></div>
               <div className="h-full flex-1" style={{ background: "#283647" }}></div>
             </div>
             <div className="flex gap-4 mt-2">
               <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-blue-400"></span>
-                <span className="text-[10px] text-slate-500 uppercase font-bold">Aluguel ({formatBRL(aluguel).replace("R$\u00a0", "R$ ")})</span>
+                <span className="w-2 h-2 rounded-full bg-[#40e56c]"></span>
+                <span className="text-[10px] text-slate-500 uppercase font-bold">Pago: {formatBRL(despPago)}</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-blue-600"></span>
-                <span className="text-[10px] text-slate-500 uppercase font-bold">Outros Gastos ({formatBRL(outrosGastos).replace("R$\u00a0", "R$ ")})</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full" style={{ background: "#283647" }}></span>
-                <span className="text-[10px] text-slate-500 uppercase font-bold">Disponível ({formatBRL(disponivel).replace("R$\u00a0", "R$ ")})</span>
+                <span className="w-2 h-2 rounded-full bg-[#e71a0e]"></span>
+                <span className="text-[10px] text-slate-500 uppercase font-bold">Pendente: {formatBRL(totalDespPessoal - despPago)}</span>
               </div>
             </div>
           </div>
           <div className="text-right">
-            <span className="text-2xl font-['Manrope'] font-black text-[#d5e4fa]">{formatBRL(disponivel)}</span>
-            <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Saldo Livre Estimado</p>
+            <span className={`text-2xl font-['Manrope'] font-black ${disponivel >= 0 ? "text-[#40e56c]" : "text-[#ffb4a8]"}`}>{formatBRL(disponivel)}</span>
+            <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Saldo Livre</p>
           </div>
         </div>
+      </div>
+
+      {/* Quick Navigation */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          { page: "lancamentos" as FbPage, icon: "receipt_long", label: "Lançamentos", desc: "Registrar entradas/saídas" },
+          { page: "caixas" as FbPage, icon: "account_balance_wallet", label: "Caixas", desc: "Gestão de envelopes" },
+          { page: "distribuicao" as FbPage, icon: "pie_chart", label: "Distribuição", desc: "Alocação automática" },
+          { page: "planejamento" as FbPage, icon: "event_note", label: "Planejamento", desc: "Orçamento pessoal" },
+        ].map((item) => (
+          <button
+            key={item.page}
+            onClick={() => onNavigate(item.page)}
+            className="p-5 rounded-xl border border-white/5 text-left hover:border-[#1976d2]/30 hover:translate-y-[-2px] transition-all group"
+            style={{ background: "#0e1c2d" }}
+          >
+            <span className="material-symbols-outlined text-[#1976d2] text-2xl mb-3 block group-hover:scale-110 transition-transform">{item.icon}</span>
+            <h5 className="font-['Manrope'] font-bold text-[#d5e4fa] text-sm">{item.label}</h5>
+            <p className="text-[10px] text-slate-500 mt-1">{item.desc}</p>
+          </button>
+        ))}
       </div>
     </div>
   );
