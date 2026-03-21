@@ -4,13 +4,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import {
   Search, Shield, ShieldCheck, ShieldOff, Plus, Loader2,
   ExternalLink, Pencil, Trash2, DollarSign, Link2,
   TrendingUp, Activity, BarChart3, CheckCircle, MoreVertical,
-  FileDown, Clock, Check
+  FileDown, Clock, Check, AlertTriangle, Copy, Timer
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription
