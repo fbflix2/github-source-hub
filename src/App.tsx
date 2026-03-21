@@ -109,8 +109,20 @@ const queryClient = new QueryClient();
 
 function AuthenticatedApp({ user, onLogout }: { user: User; onLogout: () => void }) {
   const { totalUnread } = useTickets();
-  const userName = user.user_metadata?.full_name || user.email?.split("@")[0] || "Usuário";
+  const [userName, setUserName] = useState(user.user_metadata?.full_name || user.email?.split("@")[0] || "Usuário");
   const userEmail = user.email || "";
+
+  useEffect(() => {
+    const fetchProfileName = async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (data?.full_name) setUserName(data.full_name);
+    };
+    fetchProfileName();
+  }, [user.id]);
 
   return (
     <Routes>
