@@ -47,6 +47,8 @@ export default function AdminSafeBM() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingVault, setEditingVault] = useState<SafeBmVault | null>(null);
   const [saving, setSaving] = useState(false);
+  const [pendingRequests, setPendingRequests] = useState<any[]>([]);
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
 
   const [formClientEmail, setFormClientEmail] = useState("");
   const [formClientName, setFormClientName] = useState("");
@@ -71,7 +73,49 @@ export default function AdminSafeBM() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchVaults(); }, []);
+  const fetchPendingRequests = async () => {
+    const { data } = await supabase
+      .from("bm_tracking")
+      .select("*")
+      .eq("status", "pending_setup")
+      .order("created_at", { ascending: false });
+    setPendingRequests((data as any[]) || []);
+  };
+
+  const confirmBmProtection = async (request: any) => {
+    setConfirmingId(request.id);
+    try {
+      // Create safe_bm_vaults entry
+      const { error: vaultError } = await supabase
+        .from("safe_bm_vaults" as any)
+        .insert({
+          user_id: request.client_user_id,
+          client_name: request.client_name,
+          bm_name: request.product_name,
+          bm_link: request.bm_link || "https://business.facebook.com",
+          status: "active",
+          subscription_price: 9.99,
+        });
+      if (vaultError) throw vaultError;
+
+      // Update bm_tracking status to active
+      const { error: trackError } = await supabase
+        .from("bm_tracking")
+        .update({ status: "active" } as any)
+        .eq("id", request.id);
+      if (trackError) throw trackError;
+
+      toast.success(`BM "${request.product_name}" confirmada e cofre ativado!`);
+      fetchPendingRequests();
+      fetchVaults();
+    } catch (err: any) {
+      toast.error("Erro ao confirmar: " + err.message);
+    } finally {
+      setConfirmingId(null);
+    }
+  };
+
+  useEffect(() => { fetchVaults(); fetchPendingRequests(); }, []);
 
   const filtered = useMemo(() => {
     let items = vaults;
