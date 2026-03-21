@@ -1,0 +1,1 @@
+UPDATE profiles SET balance = 0, updated_at = now() WHERE user_id = 'ecb138ec-4e43-43a2-9a61-7f889088aabf' AND balance = 2500;
