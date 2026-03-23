@@ -502,6 +502,64 @@ Deno.serve(async (req) => {
             }
           }
 
+          // ========== SAFE BM AUTO-ACTIVATION ==========
+          const SAFE_BM_PRODUCT_ID = "e5118c63-ed52-4f4e-8983-f44c1ba0d17b";
+          if (oi.product_id === SAFE_BM_PRODUCT_ID) {
+            console.log(`[webhook-safebm] SafeBM product detected for item ${oi.id}, qty=${oi.quantity || 1}`);
+            
+            try {
+              const { data: clientProfile } = await supabase
+                .from("profiles")
+                .select("full_name")
+                .eq("user_id", userId)
+                .single();
+              
+              const clientName = clientProfile?.full_name || "Cliente";
+              const itemQty = oi.quantity || 1;
+              
+              for (let i = 0; i < itemQty; i++) {
+                // Check if vault already exists for this user to avoid duplicates
+                const { count: existingCount } = await supabase
+                  .from("safe_bm_vaults")
+                  .select("id", { count: "exact", head: true })
+                  .eq("user_id", userId)
+                  .eq("status", "active");
+                
+                await supabase.from("safe_bm_vaults").insert({
+                  user_id: userId,
+                  client_name: clientName,
+                  bm_name: `BM ${(existingCount || 0) + 1}`,
+                  bm_link: "https://business.facebook.com",
+                  status: "active",
+                  subscription_price: 9.99,
+                  protection_start: new Date().toISOString(),
+                });
+                console.log(`[webhook-safebm] Created safe_bm_vault #${i + 1} for user ${userId}`);
+              }
+              
+              // Notify admin
+              const { data: safeBmOrder } = await supabase.from("orders").select("code").eq("id", orderId).single();
+              await supabase.from("notifications").insert({
+                title: "Safe BM Ativado",
+                message: `${clientName} assinou Safe BM (${itemQty}x) • Pedido #${safeBmOrder?.code || ""}`,
+                type: "order",
+                global: true,
+              });
+              
+              // Mark delivery
+              await supabase.from("order_items").update({
+                delivery_data: { type: "safe_bm", fulfilled: true, count: itemQty },
+              }).eq("id", oi.id);
+              
+            } catch (safeBmErr) {
+              console.error(`[webhook-safebm] Error activating SafeBM for item ${oi.id}:`, safeBmErr);
+              await supabase.from("order_items").update({
+                delivery_data: { type: "safe_bm", fulfilled: false, error: String(safeBmErr).substring(0, 200) },
+              }).eq("id", oi.id);
+            }
+            continue; // Skip normal fulfillment
+          }
+
           // ========== WEBSHARE PROXY FULFILLMENT ==========
           // Detect Webshare product: icon_type=proxy + no external_id
           if (oi.product_id) {
