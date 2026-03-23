@@ -359,10 +359,7 @@ export default function AdminImageViewer() {
       return sizePx * (W / imgRect.w);
     };
 
-    // CSS line-height offset: CSS positions the div top, but text inside has
-    // implicit line-height that pushes glyphs down. Canvas textBaseline="top"
-    // draws at exact Y, so we compensate with a larger offset.
-    const cssLineHeightOffset = (fs: number) => fs * 0.35;
+    // No offset needed — CSS preview now uses lineHeight:1 to match canvas textBaseline="top"
 
     ctx.textBaseline = "top";
 
@@ -373,7 +370,7 @@ export default function AdminImageViewer() {
       ctx.fillStyle = "rgba(0,0,0,0.9)";
       ctx.letterSpacing = "0.05em";
       const x = (textPos.nome.xPct / 100) * W;
-      const y = (textPos.nome.yPct / 100) * H + cssLineHeightOffset(fs);
+      const y = (textPos.nome.yPct / 100) * H;
       ctx.fillText(formData.nomeCompleto.toUpperCase(), x, y);
       ctx.letterSpacing = "0px";
     }
@@ -384,7 +381,7 @@ export default function AdminImageViewer() {
       ctx.font = `600 ${fs}px "Arial Narrow", Arial, sans-serif`;
       ctx.fillStyle = "rgba(0,0,0,0.9)";
       const x = (safeTextPos.docIdentidade.xPct / 100) * W;
-      const y = (safeTextPos.docIdentidade.yPct / 100) * H + cssLineHeightOffset(fs);
+      const y = (safeTextPos.docIdentidade.yPct / 100) * H;
       ctx.fillText(docIdentidade.toUpperCase(), x, y);
     }
 
@@ -394,7 +391,7 @@ export default function AdminImageViewer() {
       ctx.font = `600 ${fs}px "Arial Narrow", Arial, sans-serif`;
       ctx.fillStyle = "rgba(0,0,0,0.9)";
       const x = (textPos.nascimento.xPct / 100) * W;
-      const y = (textPos.nascimento.yPct / 100) * H + cssLineHeightOffset(fs);
+      const y = (textPos.nascimento.yPct / 100) * H;
       const parts: string[] = [];
       if (formData.dataNascimento) parts.push(parseLocalDate(formData.dataNascimento).toLocaleDateString("pt-BR"));
       if (formData.naturalidade) parts.push(formData.naturalidade);
@@ -408,7 +405,7 @@ export default function AdminImageViewer() {
       ctx.font = `600 ${fs}px "Arial Narrow", Arial, sans-serif`;
       ctx.fillStyle = "rgba(0,0,0,0.9)";
       const x = (textPos.filiacao.xPct / 100) * W;
-      let y = (textPos.filiacao.yPct / 100) * H + cssLineHeightOffset(fs);
+      let y = (textPos.filiacao.yPct / 100) * H;
       if (formData.nomePai) { ctx.fillText(formData.nomePai.toUpperCase(), x, y); y += fs * 1.15; }
       if (formData.nomeMae) { ctx.fillText(formData.nomeMae.toUpperCase(), x, y); }
     }
@@ -419,7 +416,7 @@ export default function AdminImageViewer() {
       ctx.font = `${fs}px "${signatureFont}", cursive`;
       ctx.fillStyle = "#1a1a8a";
       const x = (textPos.assinatura.xPct / 100) * W;
-      const y = (textPos.assinatura.yPct / 100) * H + cssLineHeightOffset(fs);
+      const y = (textPos.assinatura.yPct / 100) * H;
       ctx.fillText(formData.nomeCompleto, x, y);
     }
 
@@ -915,7 +912,7 @@ export default function AdminImageViewer() {
                   {formData.nomeCompleto && (
                     <div
                       className="absolute select-none whitespace-nowrap"
-                      style={{ left: `${textPos.nome.xPct}%`, top: `${textPos.nome.yPct}%`, cursor: panMode ? "inherit" : "move" }}
+                      style={{ left: `${textPos.nome.xPct}%`, top: `${textPos.nome.yPct}%`, cursor: panMode ? "inherit" : "move", lineHeight: 1 }}
                       onMouseDown={(e) => onElementMouseDown("nome", e)}
                     >
                       <span className="font-bold tracking-wide text-black/90 uppercase" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${fontSizes.nome}px` }}>
@@ -926,7 +923,7 @@ export default function AdminImageViewer() {
                   {docIdentidade && (
                     <div
                       className="absolute select-none whitespace-nowrap"
-                      style={{ left: `${safeTextPos.docIdentidade.xPct}%`, top: `${safeTextPos.docIdentidade.yPct}%`, cursor: panMode ? "inherit" : "move" }}
+                      style={{ left: `${safeTextPos.docIdentidade.xPct}%`, top: `${safeTextPos.docIdentidade.yPct}%`, cursor: panMode ? "inherit" : "move", lineHeight: 1 }}
                       onMouseDown={(e) => onElementMouseDown("docIdentidade", e)}
                     >
                       <span className="font-semibold text-black/90 uppercase" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${safeFontSizes.docIdentidade}px` }}>
@@ -937,7 +934,7 @@ export default function AdminImageViewer() {
                   {(formData.dataNascimento || formData.naturalidade) && (
                     <div
                       className="absolute select-none whitespace-nowrap"
-                      style={{ left: `${textPos.nascimento.xPct}%`, top: `${textPos.nascimento.yPct}%`, cursor: panMode ? "inherit" : "move" }}
+                      style={{ left: `${textPos.nascimento.xPct}%`, top: `${textPos.nascimento.yPct}%`, cursor: panMode ? "inherit" : "move", lineHeight: 1 }}
                       onMouseDown={(e) => onElementMouseDown("nascimento", e)}
                     >
                       <span className="font-semibold text-black/90" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${fontSizes.nascimento}px` }}>
@@ -952,7 +949,7 @@ export default function AdminImageViewer() {
                   {(formData.nomePai || formData.nomeMae) && (
                     <div
                       className="absolute select-none flex flex-col"
-                      style={{ left: `${textPos.filiacao.xPct}%`, top: `${textPos.filiacao.yPct}%`, cursor: panMode ? "inherit" : "move" }}
+                      style={{ left: `${textPos.filiacao.xPct}%`, top: `${textPos.filiacao.yPct}%`, cursor: panMode ? "inherit" : "move", lineHeight: 1 }}
                       onMouseDown={(e) => onElementMouseDown("filiacao", e)}
                     >
                       {formData.nomePai && (
