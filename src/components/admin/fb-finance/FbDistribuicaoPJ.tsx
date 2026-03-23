@@ -27,6 +27,14 @@ const percConfig: { key: keyof Percentuais; label: string; borderColor: string; 
   { key: "dia_a_dia", label: "Dia a Dia", borderColor: "border-[#8b919e]", percentColor: "text-[#8b919e]", valueColor: "text-[#8b919e]" },
 ];
 
+const caixaMap: Record<keyof Percentuais, string> = {
+  capital_giro: "Capital de Giro",
+  fundos_reserva: "Fundos Reserva/Crise",
+  dividendos: "Dividendos",
+  operacional: "Operacional",
+  dia_a_dia: "Dia a Dia/Emergências",
+};
+
 export function FbDistribuicaoPJ() {
   const [percentuais, setPercentuais] = useState<Percentuais>(defaultPerc);
   const [entradaHoje, setEntradaHoje] = useState("1000");
@@ -78,19 +86,16 @@ export function FbDistribuicaoPJ() {
     } as any);
     if (error) { toast({ title: "Erro ao distribuir", variant: "destructive" }); return; }
 
-    const caixaMap: Record<string, string> = {
-      capital_giro: "Capital de Giro", fundos_reserva: "Fundos Reserva/Crise",
-      dividendos: "Dividendos", operacional: "Operacional", dia_a_dia: "Dia a Dia/Emergências",
-    };
     const { data: caixas } = await supabase.from("fb_finance_caixas" as any).select("id, nome, saldo_atual");
     if (caixas) {
-      for (const [key, nome] of Object.entries(caixaMap)) {
-        const caixa = (caixas as any[]).find((c: any) => c.nome === nome);
-        if (caixa) {
-          const newBalance = Number(caixa.saldo_atual) + valores[key];
+      await Promise.all(
+        Object.entries(caixaMap).map(async ([key, nome]) => {
+          const caixa = (caixas as any[]).find((c: any) => c.nome === nome);
+          if (!caixa) return;
+          const newBalance = Number(caixa.saldo_atual) + Number(valores[key] || 0);
           await supabase.from("fb_finance_caixas" as any).update({ saldo_atual: newBalance } as any).eq("id", caixa.id);
-        }
-      }
+        })
+      );
     }
 
     toast({ title: "Distribuição aplicada com sucesso!" });
@@ -100,6 +105,22 @@ export function FbDistribuicaoPJ() {
 
   const handleDeleteDist = async (id: string) => {
     if (!confirm("Excluir esta distribuição?")) return;
+
+    const dist = distribuicoes.find((item) => item.id === id);
+    if (!dist) return;
+
+    const { data: caixas } = await supabase.from("fb_finance_caixas" as any).select("id, nome, saldo_atual");
+    if (caixas) {
+      await Promise.all(
+        Object.entries(caixaMap).map(async ([key, nome]) => {
+          const caixa = (caixas as any[]).find((c: any) => c.nome === nome);
+          const valorAlocado = Number((dist.valores_alocados || {})[key] || 0);
+          if (!caixa || !valorAlocado) return;
+          await supabase.from("fb_finance_caixas" as any).update({ saldo_atual: Math.max(Number(caixa.saldo_atual) - valorAlocado, 0) } as any).eq("id", caixa.id);
+        })
+      );
+    }
+
     await supabase.from("fb_finance_distribuicoes" as any).delete().eq("id", id);
     toast({ title: "Distribuição removida" });
     fetchData();

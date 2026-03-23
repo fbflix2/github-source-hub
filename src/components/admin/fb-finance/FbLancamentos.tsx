@@ -1,16 +1,17 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { getOperationalTotals } from "@/lib/fb-finance";
 
 const formatBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 const categorias = [
   "Salário", "Venda PJ", "Aluguel", "Energia", "Internet", "Gasolina", "Mercado",
   "Transporte", "Lazer", "Educação", "Saúde", "Serviços", "Vendas", "Tecnologia",
-  "Suprimentos", "Fixo", "Aporte Pessoal", "Outros"
+  "Suprimentos", "Fixo", "Aporte Pessoal", "Transferência", "Outros"
 ];
 
-interface Caixa { id: string; nome: string; tipo: string }
+interface Caixa { id: string; nome: string; tipo: string; saldo_atual: number }
 interface Lancamento {
   id: string; data: string; tipo: string; categoria: string;
   descricao: string | null; entrada: number; saida: number;
@@ -41,7 +42,7 @@ export function FbLancamentos() {
   const fetchAll = async () => {
     setLoading(true);
     const [caixasRes, lancRes] = await Promise.all([
-      supabase.from("fb_finance_caixas" as any).select("id, nome, tipo"),
+      supabase.from("fb_finance_caixas" as any).select("id, nome, tipo, saldo_atual"),
       supabase.from("fb_finance_lancamentos" as any).select("*").gte("data", `${mesFilter}-01`).lte("data", `${mesFilter}-31`).order("data", { ascending: false }),
     ]);
     if (caixasRes.data) setCaixas(caixasRes.data as any);
@@ -50,11 +51,35 @@ export function FbLancamentos() {
     setPage(0);
   };
 
+  const syncCaixaSaldo = async (caixaId: string, delta: number) => {
+    const { data: caixa } = await supabase.from("fb_finance_caixas" as any).select("id, tipo, saldo_atual").eq("id", caixaId).single();
+    if (!caixa) return;
+
+    if ((caixa as any).tipo === "pessoal") {
+      const { data: caixaLancamentos } = await supabase
+        .from("fb_finance_lancamentos" as any)
+        .select("entrada, saida")
+        .eq("caixa_destino_id", caixaId);
+
+      const saldoPessoal = ((caixaLancamentos as any[]) || []).reduce(
+        (sum, lancamento) => sum + Number(lancamento.entrada || 0) - Number(lancamento.saida || 0),
+        0
+      );
+
+      await supabase.from("fb_finance_caixas" as any).update({ saldo_atual: saldoPessoal } as any).eq("id", caixaId);
+      return;
+    }
+
+    const novoSaldo = Number((caixa as any).saldo_atual || 0) + delta;
+    await supabase.from("fb_finance_caixas" as any).update({ saldo_atual: novoSaldo } as any).eq("id", caixaId);
+  };
+
   const handleSubmit = async () => {
     if (!form.caixa_destino_id) {
       toast({ title: "Selecione um caixa destino", variant: "destructive" });
       return;
     }
+
     const payload = {
       data: form.data, tipo: form.tipo, categoria: form.categoria,
       descricao: form.descricao || null,
@@ -62,15 +87,11 @@ export function FbLancamentos() {
       saida: parseFloat(form.saida) || 0,
       caixa_destino_id: form.caixa_destino_id,
     };
+
     const { error } = await supabase.from("fb_finance_lancamentos" as any).insert(payload as any);
     if (error) { toast({ title: "Erro ao salvar", variant: "destructive" }); return; }
 
-    const caixa = caixas.find(c => c.id === form.caixa_destino_id);
-    if (caixa) {
-      const { data: current } = await supabase.from("fb_finance_caixas" as any).select("saldo_atual").eq("id", caixa.id).single();
-      const newBalance = Number((current as any)?.saldo_atual || 0) + (parseFloat(form.entrada) || 0) - (parseFloat(form.saida) || 0);
-      await supabase.from("fb_finance_caixas" as any).update({ saldo_atual: newBalance } as any).eq("id", caixa.id);
-    }
+    await syncCaixaSaldo(form.caixa_destino_id, payload.entrada - payload.saida);
 
     toast({ title: "Lançamento adicionado!" });
     setForm({ ...form, descricao: "", entrada: "", saida: "" });
@@ -79,19 +100,19 @@ export function FbLancamentos() {
   };
 
   const handleDelete = async (id: string) => {
+    const lancamento = lancamentos.find((item) => item.id === id);
     await supabase.from("fb_finance_lancamentos" as any).delete().eq("id", id);
+    if (lancamento?.caixa_destino_id) {
+      await syncCaixaSaldo(lancamento.caixa_destino_id, Number(lancamento.saida) - Number(lancamento.entrada));
+    }
     toast({ title: "Removido" });
     fetchAll();
   };
 
-  const nonRevenueCats = ["Aporte Pessoal"];
-  const lancOperacionais = lancamentos.filter(l => !nonRevenueCats.includes(l.categoria));
-  const totalEntradas = lancOperacionais.reduce((s, l) => s + Number(l.entrada), 0);
-  const totalSaidas = lancOperacionais.reduce((s, l) => s + Number(l.saida), 0);
-  const saldoAtual = totalEntradas - totalSaidas;
-  const diasUnicos = Math.max(new Set(lancOperacionais.map(l => l.data)).size, 1);
-  const mediaEntradas = lancOperacionais.length > 0 ? totalEntradas / diasUnicos : 0;
-  const mediaSaidas = lancOperacionais.length > 0 ? totalSaidas / diasUnicos : 0;
+  const { totalEntradas, totalSaidas, saldo: saldoAtual, uniqueDays } = getOperationalTotals(lancamentos);
+  const diasUnicos = Math.max(uniqueDays, 1);
+  const mediaEntradas = totalEntradas > 0 ? totalEntradas / diasUnicos : 0;
+  const mediaSaidas = totalSaidas > 0 ? totalSaidas / diasUnicos : 0;
   const taxaConversao = totalEntradas > 0 ? ((totalEntradas - totalSaidas) / totalEntradas * 100) : 0;
 
   const paginatedLancamentos = lancamentos.slice(page * perPage, (page + 1) * perPage);
