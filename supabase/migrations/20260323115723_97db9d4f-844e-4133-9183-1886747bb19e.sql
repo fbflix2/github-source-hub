@@ -1,0 +1,1 @@
+UPDATE fb_finance_lancamentos SET categoria = 'Aporte Pessoal' WHERE id = 'a101e341-f3c7-485e-b200-4aa0388ea0b8';
