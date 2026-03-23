@@ -12,10 +12,13 @@ interface ConfigRow { distribution_percentages: Record<string, number> }
 export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => void }) {
   const [caixas, setCaixas] = useState<CaixaRow[]>([]);
   const [lancamentos, setLancamentos] = useState<LancamentoRow[]>([]);
+  const [allLancamentos, setAllLancamentos] = useState<LancamentoRow[]>([]);
   const [despesas, setDespesas] = useState<DespesaRow[]>([]);
   const [config, setConfig] = useState<ConfigRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [capitalGiroPeriod, setCapitalGiroPeriod] = useState<"30" | "90">("30");
+  const [lastMonthReceita, setLastMonthReceita] = useState(0);
+  const [lastMonthDespesa, setLastMonthDespesa] = useState(0);
 
   const mesAtual = new Date().toISOString().slice(0, 7);
 
@@ -30,8 +33,9 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
     const startLastMonth = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, "0")}-01`;
     const endLastMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
 
-    const [caixasRes, lancMesRes, lancLastRes, despesasRes, configRes] = await Promise.all([
+    const [caixasRes, allLancRes, lancMesRes, lancLastRes, despesasRes, configRes] = await Promise.all([
       supabase.from("fb_finance_caixas").select("*"),
+      supabase.from("fb_finance_lancamentos").select("*"),
       supabase.from("fb_finance_lancamentos").select("*").gte("data", startOfMonth),
       supabase.from("fb_finance_lancamentos").select("*").gte("data", startLastMonth).lt("data", endLastMonth),
       supabase.from("fb_finance_despesas_planejadas").select("*").eq("mes_ref", mesAtual),
@@ -39,11 +43,11 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
     ]);
 
     if (caixasRes.data) setCaixas(caixasRes.data as any);
+    if (allLancRes.data) setAllLancamentos(allLancRes.data as any);
     if (lancMesRes.data) setLancamentos(lancMesRes.data as any);
     if (despesasRes.data) setDespesas(despesasRes.data as any);
     if (configRes.data) setConfig(configRes.data as any);
 
-    // Store last month data for comparison
     const lastLanc = (lancLastRes.data || []) as any as LancamentoRow[];
     setLastMonthReceita(lastLanc.reduce((s, l) => s + Number(l.entrada), 0));
     setLastMonthDespesa(lastLanc.reduce((s, l) => s + Number(l.saida), 0));
@@ -51,14 +55,17 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
     setLoading(false);
   };
 
-  const [lastMonthReceita, setLastMonthReceita] = useState(0);
-  const [lastMonthDespesa, setLastMonthDespesa] = useState(0);
-
   // Real calculations
+  const caixaBalancesFromLancamentos = allLancamentos.reduce<Record<string, number>>((acc, lancamento) => {
+    if (!lancamento.caixa_destino_id) return acc;
+    acc[lancamento.caixa_destino_id] = (acc[lancamento.caixa_destino_id] || 0) + Number(lancamento.entrada) - Number(lancamento.saida);
+    return acc;
+  }, {});
+
   const pessoal = caixas.filter(c => c.tipo === "pessoal");
   const empresa = caixas.filter(c => c.tipo === "empresa");
-  const saldoPessoal = pessoal.reduce((s, c) => s + Number(c.saldo_atual), 0);
-  const saldoEmpresa = empresa.reduce((s, c) => s + Number(c.saldo_atual), 0);
+  const saldoPessoal = pessoal.reduce((s, c) => s + (c.id in caixaBalancesFromLancamentos ? caixaBalancesFromLancamentos[c.id] : Number(c.saldo_atual)), 0);
+  const saldoEmpresa = empresa.reduce((s, c) => s + (c.id in caixaBalancesFromLancamentos ? caixaBalancesFromLancamentos[c.id] : Number(c.saldo_atual)), 0);
   const patrimonio = saldoPessoal + saldoEmpresa;
 
   // Categorias que não contam como receita operacional (aportes pessoais pré-existentes)
