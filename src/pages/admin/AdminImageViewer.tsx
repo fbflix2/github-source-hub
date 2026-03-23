@@ -374,7 +374,7 @@ export default function AdminImageViewer() {
       ctx.fillStyle = "rgba(0,0,0,0.9)";
       ctx.letterSpacing = "0.05em";
       const x = (textPos.nome.xPct / 100) * W;
-      const y = (textPos.nome.yPct / 100) * H;
+      const y = (textPos.nome.yPct / 100) * H + cssTopOffset(fs);
       ctx.fillText(formData.nomeCompleto.toUpperCase(), x, y);
       ctx.letterSpacing = "0px";
     }
@@ -385,7 +385,7 @@ export default function AdminImageViewer() {
       ctx.font = `600 ${fs}px "Arial Narrow", Arial, sans-serif`;
       ctx.fillStyle = "rgba(0,0,0,0.9)";
       const x = (safeTextPos.docIdentidade.xPct / 100) * W;
-      const y = (safeTextPos.docIdentidade.yPct / 100) * H;
+      const y = (safeTextPos.docIdentidade.yPct / 100) * H + cssTopOffset(fs);
       ctx.fillText(docIdentidade.toUpperCase(), x, y);
     }
 
@@ -395,7 +395,7 @@ export default function AdminImageViewer() {
       ctx.font = `600 ${fs}px "Arial Narrow", Arial, sans-serif`;
       ctx.fillStyle = "rgba(0,0,0,0.9)";
       const x = (textPos.nascimento.xPct / 100) * W;
-      const y = (textPos.nascimento.yPct / 100) * H;
+      const y = (textPos.nascimento.yPct / 100) * H + cssTopOffset(fs);
       const parts: string[] = [];
       if (formData.dataNascimento) parts.push(parseLocalDate(formData.dataNascimento).toLocaleDateString("pt-BR"));
       if (formData.naturalidade) parts.push(formData.naturalidade);
@@ -409,7 +409,7 @@ export default function AdminImageViewer() {
       ctx.font = `600 ${fs}px "Arial Narrow", Arial, sans-serif`;
       ctx.fillStyle = "rgba(0,0,0,0.9)";
       const x = (textPos.filiacao.xPct / 100) * W;
-      let y = (textPos.filiacao.yPct / 100) * H;
+      let y = (textPos.filiacao.yPct / 100) * H + cssTopOffset(fs);
       if (formData.nomePai) { ctx.fillText(formData.nomePai.toUpperCase(), x, y); y += fs * 1.15; }
       if (formData.nomeMae) { ctx.fillText(formData.nomeMae.toUpperCase(), x, y); }
     }
@@ -420,7 +420,7 @@ export default function AdminImageViewer() {
       ctx.font = `${fs}px "${signatureFont}", cursive`;
       ctx.fillStyle = "#1a1a8a";
       const x = (textPos.assinatura.xPct / 100) * W;
-      const y = (textPos.assinatura.yPct / 100) * H;
+      const y = (textPos.assinatura.yPct / 100) * H + cssTopOffset(fs);
       ctx.fillText(formData.nomeCompleto, x, y);
     }
 
