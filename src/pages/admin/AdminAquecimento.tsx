@@ -225,6 +225,9 @@ export default function AdminAquecimento() {
         });
       }
     });
+    return () => {
+      cleanupChannels();
+    };
   }, []);
 
   // Load track config from DB (site_settings)
