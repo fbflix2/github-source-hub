@@ -912,7 +912,7 @@ export default function AdminImageViewer() {
                   {formData.nomeCompleto && (
                     <div
                       className="absolute select-none whitespace-nowrap"
-                      style={{ left: `${textPos.nome.xPct}%`, top: `${textPos.nome.yPct}%`, cursor: panMode ? "inherit" : "move" }}
+                      style={{ left: `${textPos.nome.xPct}%`, top: `${textPos.nome.yPct}%`, cursor: panMode ? "inherit" : "move", lineHeight: 1 }}
                       onMouseDown={(e) => onElementMouseDown("nome", e)}
                     >
                       <span className="font-bold tracking-wide text-black/90 uppercase" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${fontSizes.nome}px` }}>
@@ -923,7 +923,7 @@ export default function AdminImageViewer() {
                   {docIdentidade && (
                     <div
                       className="absolute select-none whitespace-nowrap"
-                      style={{ left: `${safeTextPos.docIdentidade.xPct}%`, top: `${safeTextPos.docIdentidade.yPct}%`, cursor: panMode ? "inherit" : "move" }}
+                      style={{ left: `${safeTextPos.docIdentidade.xPct}%`, top: `${safeTextPos.docIdentidade.yPct}%`, cursor: panMode ? "inherit" : "move", lineHeight: 1 }}
                       onMouseDown={(e) => onElementMouseDown("docIdentidade", e)}
                     >
                       <span className="font-semibold text-black/90 uppercase" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${safeFontSizes.docIdentidade}px` }}>
@@ -934,7 +934,7 @@ export default function AdminImageViewer() {
                   {(formData.dataNascimento || formData.naturalidade) && (
                     <div
                       className="absolute select-none whitespace-nowrap"
-                      style={{ left: `${textPos.nascimento.xPct}%`, top: `${textPos.nascimento.yPct}%`, cursor: panMode ? "inherit" : "move" }}
+                      style={{ left: `${textPos.nascimento.xPct}%`, top: `${textPos.nascimento.yPct}%`, cursor: panMode ? "inherit" : "move", lineHeight: 1 }}
                       onMouseDown={(e) => onElementMouseDown("nascimento", e)}
                     >
                       <span className="font-semibold text-black/90" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${fontSizes.nascimento}px` }}>
@@ -949,7 +949,7 @@ export default function AdminImageViewer() {
                   {(formData.nomePai || formData.nomeMae) && (
                     <div
                       className="absolute select-none flex flex-col"
-                      style={{ left: `${textPos.filiacao.xPct}%`, top: `${textPos.filiacao.yPct}%`, cursor: panMode ? "inherit" : "move" }}
+                      style={{ left: `${textPos.filiacao.xPct}%`, top: `${textPos.filiacao.yPct}%`, cursor: panMode ? "inherit" : "move", lineHeight: 1 }}
                       onMouseDown={(e) => onElementMouseDown("filiacao", e)}
                     >
                       {formData.nomePai && (
