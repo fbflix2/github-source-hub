@@ -359,7 +359,11 @@ export default function AdminImageViewer() {
       return sizePx * (W / imgRect.w);
     };
 
-    // No offset needed — CSS preview now uses lineHeight:1 to match canvas textBaseline="top"
+    // CSS with lineHeight:1 still has a small gap between div top and where
+    // the browser actually paints the glyph (ascent padding). Canvas textBaseline
+    // "top" aligns to the font ascent, which is slightly higher than CSS rendering.
+    // A factor of ~0.15 * fontSize compensates precisely.
+    const cssTopOffset = (fs: number) => fs * 0.15;
 
     ctx.textBaseline = "top";
 
