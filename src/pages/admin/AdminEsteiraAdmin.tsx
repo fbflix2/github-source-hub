@@ -115,6 +115,17 @@ export default function AdminEsteiraAdmin() {
       })
       .subscribe();
 
+    // Realtime for config changes (site_settings)
+    const configChannel = supabase
+      .channel("warming-config-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "site_settings" }, (payload) => {
+        const row = payload.new as any;
+        if (row?.key === "warming_track_config") {
+          loadConfigFromDB();
+        }
+      })
+      .subscribe();
+
     // Fallback polling every 10s to ensure data stays fresh
     const pollInterval = setInterval(() => {
       fetchProfiles();
@@ -123,6 +134,7 @@ export default function AdminEsteiraAdmin() {
     return () => {
       supabase.removeChannel(profilesChannel);
       supabase.removeChannel(tasksChannel);
+      supabase.removeChannel(configChannel);
       clearInterval(pollInterval);
     };
   }, []);
