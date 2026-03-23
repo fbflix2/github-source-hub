@@ -84,11 +84,14 @@ export function FbLancamentos() {
     fetchAll();
   };
 
-  const totalEntradas = lancamentos.reduce((s, l) => s + Number(l.entrada), 0);
-  const totalSaidas = lancamentos.reduce((s, l) => s + Number(l.saida), 0);
+  const nonRevenueCats = ["Aporte Pessoal"];
+  const lancOperacionais = lancamentos.filter(l => !nonRevenueCats.includes(l.categoria));
+  const totalEntradas = lancOperacionais.reduce((s, l) => s + Number(l.entrada), 0);
+  const totalSaidas = lancOperacionais.reduce((s, l) => s + Number(l.saida), 0);
   const saldoAtual = totalEntradas - totalSaidas;
-  const mediaEntradas = lancamentos.length > 0 ? totalEntradas / Math.max(new Set(lancamentos.map(l => l.data)).size, 1) : 0;
-  const mediaSaidas = lancamentos.length > 0 ? totalSaidas / Math.max(new Set(lancamentos.map(l => l.data)).size, 1) : 0;
+  const diasUnicos = Math.max(new Set(lancOperacionais.map(l => l.data)).size, 1);
+  const mediaEntradas = lancOperacionais.length > 0 ? totalEntradas / diasUnicos : 0;
+  const mediaSaidas = lancOperacionais.length > 0 ? totalSaidas / diasUnicos : 0;
   const taxaConversao = totalEntradas > 0 ? ((totalEntradas - totalSaidas) / totalEntradas * 100) : 0;
 
   const paginatedLancamentos = lancamentos.slice(page * perPage, (page + 1) * perPage);
