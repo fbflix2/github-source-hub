@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { filterOperationalLancamentos, getLancamentoTotals } from "@/lib/fb-finance";
 
 const formatBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -49,7 +50,7 @@ function getDateRange(period: string): { from: string; to: string } {
     case "3m":
       from = new Date(now.getFullYear(), now.getMonth() - 3, 1);
       break;
-    default: // 12m
+    default:
       from = new Date(now.getFullYear(), now.getMonth() - 12, 1);
   }
 
@@ -86,24 +87,20 @@ export function FbRelatorios() {
       });
   }, [period]);
 
-  // Filter
   let filtered = lancamentos;
   if (catFilter !== "all") filtered = filtered.filter((l) => l.categoria === catFilter);
   if (flowType === "receitas") filtered = filtered.filter((l) => Number(l.entrada) > 0);
   if (flowType === "despesas") filtered = filtered.filter((l) => Number(l.saida) > 0);
 
-  const totalEntradas = filtered.reduce((s, l) => s + Number(l.entrada), 0);
-  const totalSaidas = filtered.reduce((s, l) => s + Number(l.saida), 0);
-  const saldoPeriodo = totalEntradas - totalSaidas;
+  const summaryLancamentos = catFilter === "all" ? filterOperationalLancamentos(filtered) : filtered;
+  const { totalEntradas, totalSaidas, saldo: saldoPeriodo } = getLancamentoTotals(summaryLancamentos);
   const growthPercent = totalSaidas > 0 ? ((totalEntradas / totalSaidas - 1) * 100).toFixed(1) : "0";
 
-  // Pagination
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
   const paginated = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
-  // Monthly aggregation for bar chart
   const monthlyMap: Record<string, { entradas: number; saidas: number }> = {};
-  lancamentos.forEach((l) => {
+  filterOperationalLancamentos(lancamentos).forEach((l) => {
     const m = l.data.slice(0, 7);
     if (!monthlyMap[m]) monthlyMap[m] = { entradas: 0, saidas: 0 };
     monthlyMap[m].entradas += Number(l.entrada);
@@ -118,9 +115,8 @@ export function FbRelatorios() {
     }));
   const maxMonthly = Math.max(...monthlyData.map((d) => Math.max(d.entradas, d.saidas)), 1);
 
-  // Category aggregation for donut
   const catMap: Record<string, number> = {};
-  filtered.forEach((l) => {
+  summaryLancamentos.forEach((l) => {
     const cat = l.categoria || "outros";
     catMap[cat] = (catMap[cat] || 0) + Number(l.saida) + Number(l.entrada);
   });
@@ -133,7 +129,6 @@ export function FbRelatorios() {
   let cumulativePercent = 0;
   const circumference = 2 * Math.PI * 40;
 
-  // Unique categories for filter
   const allCats = [...new Set(lancamentos.map((l) => l.categoria))].sort();
 
   if (loading)

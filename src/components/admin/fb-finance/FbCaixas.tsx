@@ -1,12 +1,13 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { buildDisplayCaixaBalanceMap } from "@/lib/fb-finance";
 
 const formatBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const formatCompact = (v: number) => v >= 1000 ? `R$ ${(v / 1000).toFixed(0)}.000` : `R$ ${v.toFixed(0)}`;
 
 interface Caixa { id: string; nome: string; saldo_atual: number; alvo_percent: number; tipo: string }
-interface Lancamento { id: string; data: string; descricao: string | null; entrada: number; saida: number; categoria: string }
+interface Lancamento { id: string; data: string; descricao: string | null; entrada: number; saida: number; categoria: string; caixa_destino_id: string | null }
 
 const caixaIcons: Record<string, { icon: string; color: string; bg: string }> = {
   "Fundo Emergência": { icon: "security", color: "text-[#a5c8ff]", bg: "bg-blue-500/10" },
@@ -38,18 +39,27 @@ export function FbCaixas() {
   const [editCaixa, setEditCaixa] = useState<Caixa | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // New caixa form
   const [newForm, setNewForm] = useState({ nome: "", tipo: "empresa", alvo_percent: "0" });
-  // Transfer form
   const [transferForm, setTransferForm] = useState({ from: "", to: "", valor: "" });
-  // Edit form
   const [editForm, setEditForm] = useState({ nome: "", tipo: "empresa", alvo_percent: "0" });
 
   useEffect(() => { fetchCaixas(); }, []);
 
   const fetchCaixas = async () => {
-    const { data } = await supabase.from("fb_finance_caixas" as any).select("*").order("tipo").order("nome");
-    if (data) setCaixas(data as any);
+    const [{ data: caixasData }, { data: lancamentosData }] = await Promise.all([
+      supabase.from("fb_finance_caixas" as any).select("*").order("tipo").order("nome"),
+      supabase.from("fb_finance_lancamentos" as any).select("id, caixa_destino_id, entrada, saida"),
+    ]);
+
+    const caixaRows = (caixasData as any[]) || [];
+    const saldoMap = buildDisplayCaixaBalanceMap(caixaRows, (lancamentosData as any[]) || []);
+
+    setCaixas(
+      caixaRows.map((caixa) => ({
+        ...caixa,
+        saldo_atual: saldoMap[caixa.id] ?? Number(caixa.saldo_atual || 0),
+      })) as any
+    );
     setLoading(false);
   };
 
@@ -93,13 +103,11 @@ export function FbCaixas() {
       toast({ title: "Saldo insuficiente na caixa de origem", variant: "destructive" }); return;
     }
 
-    // Update balances
     await Promise.all([
       supabase.from("fb_finance_caixas" as any).update({ saldo_atual: Number(fromCaixa.saldo_atual) - valor } as any).eq("id", fromCaixa.id),
       supabase.from("fb_finance_caixas" as any).update({ saldo_atual: Number(toCaixa.saldo_atual) + valor } as any).eq("id", toCaixa.id),
     ]);
 
-    // Create lancamento records
     const hoje = new Date().toISOString().split("T")[0];
     await supabase.from("fb_finance_lancamentos" as any).insert([
       { data: hoje, tipo: "empresa", categoria: "Transferência", descricao: `Transferência para ${toCaixa.nome}`, saida: valor, entrada: 0, caixa_destino_id: fromCaixa.id },

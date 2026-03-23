@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { buildDisplayCaixaBalanceMap, getOperationalTotals } from "@/lib/fb-finance";
 import type { FbPage } from "./FbFinanceDashboard";
 
 const formatBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -49,30 +50,22 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
     if (configRes.data) setConfig(configRes.data as any);
 
     const lastLanc = (lancLastRes.data || []) as any as LancamentoRow[];
-    setLastMonthReceita(lastLanc.reduce((s, l) => s + Number(l.entrada), 0));
-    setLastMonthDespesa(lastLanc.reduce((s, l) => s + Number(l.saida), 0));
+    const lastMonthMetrics = getOperationalTotals(lastLanc);
+    setLastMonthReceita(lastMonthMetrics.totalEntradas);
+    setLastMonthDespesa(lastMonthMetrics.totalSaidas);
 
     setLoading(false);
   };
 
   // Real calculations
-  const caixaBalancesFromLancamentos = allLancamentos.reduce<Record<string, number>>((acc, lancamento) => {
-    if (!lancamento.caixa_destino_id) return acc;
-    acc[lancamento.caixa_destino_id] = (acc[lancamento.caixa_destino_id] || 0) + Number(lancamento.entrada) - Number(lancamento.saida);
-    return acc;
-  }, {});
-
+  const caixaBalanceMap = buildDisplayCaixaBalanceMap(caixas, allLancamentos);
   const pessoal = caixas.filter(c => c.tipo === "pessoal");
   const empresa = caixas.filter(c => c.tipo === "empresa");
-  const saldoPessoal = pessoal.reduce((s, c) => s + (c.id in caixaBalancesFromLancamentos ? caixaBalancesFromLancamentos[c.id] : Number(c.saldo_atual)), 0);
-  const saldoEmpresa = empresa.reduce((s, c) => s + (c.id in caixaBalancesFromLancamentos ? caixaBalancesFromLancamentos[c.id] : Number(c.saldo_atual)), 0);
+  const saldoPessoal = pessoal.reduce((s, c) => s + (caixaBalanceMap[c.id] ?? Number(c.saldo_atual)), 0);
+  const saldoEmpresa = empresa.reduce((s, c) => s + (caixaBalanceMap[c.id] ?? Number(c.saldo_atual)), 0);
   const patrimonio = saldoPessoal + saldoEmpresa;
 
-  // Categorias que não contam como receita operacional (aportes pessoais pré-existentes)
-  const nonRevenueCats = ["Aporte Pessoal"];
-  const receitaMensal = lancamentos.filter(l => !nonRevenueCats.includes(l.categoria)).reduce((s, l) => s + Number(l.entrada), 0);
-  const despesaMensal = lancamentos.filter(l => !nonRevenueCats.includes(l.categoria)).reduce((s, l) => s + Number(l.saida), 0);
-  const lucroLiquido = receitaMensal - despesaMensal;
+  const { totalEntradas: receitaMensal, totalSaidas: despesaMensal, saldo: lucroLiquido } = getOperationalTotals(lancamentos);
   const margem = receitaMensal > 0 ? ((lucroLiquido / receitaMensal) * 100).toFixed(1) : "0.0";
 
   // Growth vs last month
