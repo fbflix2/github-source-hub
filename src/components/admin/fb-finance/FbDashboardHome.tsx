@@ -61,8 +61,10 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
   const saldoEmpresa = empresa.reduce((s, c) => s + Number(c.saldo_atual), 0);
   const patrimonio = saldoPessoal + saldoEmpresa;
 
-  const receitaMensal = lancamentos.reduce((s, l) => s + Number(l.entrada), 0);
-  const despesaMensal = lancamentos.reduce((s, l) => s + Number(l.saida), 0);
+  // Categorias que não contam como receita operacional (aportes pessoais pré-existentes)
+  const nonRevenueCats = ["Aporte Pessoal"];
+  const receitaMensal = lancamentos.filter(l => !nonRevenueCats.includes(l.categoria)).reduce((s, l) => s + Number(l.entrada), 0);
+  const despesaMensal = lancamentos.filter(l => !nonRevenueCats.includes(l.categoria)).reduce((s, l) => s + Number(l.saida), 0);
   const lucroLiquido = receitaMensal - despesaMensal;
   const margem = receitaMensal > 0 ? ((lucroLiquido / receitaMensal) * 100).toFixed(1) : "0.0";
 

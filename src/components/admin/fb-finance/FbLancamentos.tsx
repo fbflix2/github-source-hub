@@ -7,7 +7,7 @@ const formatBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", 
 const categorias = [
   "Salário", "Venda PJ", "Aluguel", "Energia", "Internet", "Gasolina", "Mercado",
   "Transporte", "Lazer", "Educação", "Saúde", "Serviços", "Vendas", "Tecnologia",
-  "Suprimentos", "Fixo", "Outros"
+  "Suprimentos", "Fixo", "Aporte Pessoal", "Outros"
 ];
 
 interface Caixa { id: string; nome: string; tipo: string }
