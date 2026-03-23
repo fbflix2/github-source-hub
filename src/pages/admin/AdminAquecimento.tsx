@@ -167,6 +167,40 @@ export default function AdminAquecimento() {
     }
     fetchProfiles();
     loadConfigFromDB();
+
+    // Realtime subscriptions for instant updates
+    const profilesChannel = supabase
+      .channel("operator-profiles-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "warming_profiles" }, () => {
+        fetchProfiles();
+      })
+      .subscribe();
+
+    const tasksChannel = supabase
+      .channel("operator-tasks-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "warming_tasks" }, () => {
+        fetchProfiles();
+      })
+      .subscribe();
+
+    // Realtime for config changes from admin
+    const configChannel = supabase
+      .channel("operator-config-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "site_settings" }, (payload) => {
+        const row = payload.new as any;
+        if (row?.key === "warming_track_config") {
+          loadConfigFromDB();
+        }
+      })
+      .subscribe();
+
+    // Cleanup function
+    const cleanupChannels = () => {
+      supabase.removeChannel(profilesChannel);
+      supabase.removeChannel(tasksChannel);
+      supabase.removeChannel(configChannel);
+    };
+
     // Fetch current user
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) {
