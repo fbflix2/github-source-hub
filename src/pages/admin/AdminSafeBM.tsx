@@ -116,6 +116,28 @@ export default function AdminSafeBM() {
     setPendingRequests((data as any[]) || []);
   };
 
+  const checkAllLinksHealth = async (vaultIds?: string[]) => {
+    setCheckingHealth(true);
+    if (vaultIds) setCheckingIds(new Set(vaultIds));
+    else setCheckingIds(new Set(vaults.filter(v => v.status === "active").map(v => v.id)));
+    try {
+      const { data, error } = await supabase.functions.invoke("check-bm-link", {
+        body: { vault_ids: vaultIds || null },
+      });
+      if (error) throw error;
+      const results = data?.results || [];
+      const errors = results.filter((r: any) => r.health === "error").length;
+      const healthy = results.filter((r: any) => r.health === "healthy").length;
+      toast.success(`Verificação concluída: ${healthy} saudáveis, ${errors} com problema`);
+      fetchVaults();
+    } catch (err: any) {
+      toast.error("Erro ao verificar links: " + err.message);
+    } finally {
+      setCheckingHealth(false);
+      setCheckingIds(new Set());
+    }
+  };
+
   const confirmBmProtection = async (request: any) => {
     setConfirmingId(request.id);
     try {
