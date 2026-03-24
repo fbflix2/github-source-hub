@@ -108,19 +108,22 @@ serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // Verify caller is staff
+    // Verify caller is staff using getClaims
     const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader || "" } },
     });
-    const { data: { user } } = await userClient.auth.getUser();
-    if (!user) {
+    
+    const token = (authHeader || "").replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims?.sub) {
       return new Response(JSON.stringify({ error: "Não autenticado" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    const userId = claimsData.claims.sub as string;
 
     const adminClient = createClient(supabaseUrl, serviceKey);
-    const { data: isStaff } = await adminClient.rpc("is_staff", { _user_id: user.id });
+    const { data: isStaff } = await adminClient.rpc("is_staff", { _user_id: userId });
     if (!isStaff) {
       return new Response(JSON.stringify({ error: "Sem permissão" }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
