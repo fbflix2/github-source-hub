@@ -96,7 +96,7 @@ async function checkSingleLink(vaultId: string, url: string): Promise<CheckResul
       if (res.status >= 500) {
         return { vault_id: vaultId, health: "error", detail: `HTTP ${res.status}` };
       }
-      return { vault_id: vaultId, health: "login_required", detail: "Link genérico (requer login)" };
+      return { vault_id: vaultId, health: "healthy", detail: "OK (link FB válido)" };
     }
 
     // For non-Facebook links, do full content analysis
