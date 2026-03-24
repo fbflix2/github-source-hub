@@ -11,7 +11,7 @@ import {
   Search, Shield, ShieldCheck, ShieldOff, Plus, Loader2,
   ExternalLink, Pencil, Trash2, DollarSign, Link2,
   TrendingUp, Activity, BarChart3, CheckCircle, MoreVertical,
-  FileDown, Clock, Check, AlertTriangle, Copy, Timer
+  FileDown, Clock, Check, AlertTriangle, Copy, Timer, HeartPulse, Wifi, WifiOff
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription
@@ -39,6 +39,8 @@ interface SafeBmVault {
   notes: string | null;
   backup_link: string | null;
   backup_link_set_at: string | null;
+  link_health: string;
+  link_health_checked_at: string | null;
   created_at: string;
   updated_at: string;
 }
