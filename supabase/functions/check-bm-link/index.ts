@@ -44,6 +44,9 @@ async function checkSingleLink(vaultId: string, url: string): Promise<CheckResul
     return { vault_id: vaultId, health: "unknown", detail: "URL inválida" };
   }
 
+  const isBizFbInvitation = url.includes("business.facebook.com/invitation");
+  const isBizFbGeneric = url.includes("business.facebook.com") && !isBizFbInvitation;
+
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 12000);
@@ -61,29 +64,61 @@ async function checkSingleLink(vaultId: string, url: string): Promise<CheckResul
 
     clearTimeout(timeout);
 
+    // For business.facebook.com invitation links: if we got ANY response, the link exists
+    // These always redirect to login — that's normal behavior
+    if (isBizFbInvitation) {
+      if (res.status >= 500) {
+        return { vault_id: vaultId, health: "error", detail: `Servidor FB com erro (${res.status})` };
+      }
+      // Check if the invitation token was invalidated (specific error pages)
+      const html = await res.text();
+      const lower = html.toLowerCase();
+      // Only flag as error if the page explicitly says the invitation/content is unavailable
+      const INVITATION_ERROR_PATTERNS = [
+        "this invitation has expired",
+        "este convite expirou",
+        "invitation is no longer valid",
+        "convite não é mais válido",
+        "account has been disabled",
+        "conta foi desativada",
+      ];
+      for (const pattern of INVITATION_ERROR_PATTERNS) {
+        if (lower.includes(pattern)) {
+          return { vault_id: vaultId, health: "error", detail: `Detectado: "${pattern}"` };
+        }
+      }
+      // Otherwise treat as healthy — login redirect is expected
+      return { vault_id: vaultId, health: "healthy", detail: `OK (convite acessível)` };
+    }
+
+    // For generic business.facebook.com links (no invitation token)
+    if (isBizFbGeneric) {
+      if (res.status >= 500) {
+        return { vault_id: vaultId, health: "error", detail: `HTTP ${res.status}` };
+      }
+      return { vault_id: vaultId, health: "login_required", detail: "Link genérico (requer login)" };
+    }
+
+    // For non-Facebook links, do full content analysis
     const html = await res.text();
     const lower = html.toLowerCase();
 
-    // Check for error patterns
     for (const pattern of ERROR_PATTERNS) {
       if (lower.includes(pattern.toLowerCase())) {
         return { vault_id: vaultId, health: "error", detail: `Detectado: "${pattern}"` };
       }
     }
 
-    // Check for login redirect
     for (const pattern of LOGIN_PATTERNS) {
       if (lower.includes(pattern.toLowerCase())) {
         return { vault_id: vaultId, health: "login_required", detail: "Requer login (pode ser normal)" };
       }
     }
 
-    // Check HTTP status
     if (res.status >= 400) {
       return { vault_id: vaultId, health: "error", detail: `HTTP ${res.status}` };
     }
 
-    // If we got a page with reasonable content and no errors
     if (html.length > 500) {
       return { vault_id: vaultId, health: "healthy", detail: `OK (${res.status})` };
     }
