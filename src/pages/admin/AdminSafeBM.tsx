@@ -675,6 +675,45 @@ export default function AdminSafeBM() {
                         <TableCell className="text-sm text-muted-foreground">{v.client_name || "—"}</TableCell>
                         <TableCell>{getStatusBadge(v.status)}</TableCell>
                         <TableCell>
+                          {checkingIds.has(v.id) ? (
+                            <div className="flex items-center gap-1.5">
+                              <Loader2 className="size-3 animate-spin text-primary" />
+                              <span className="text-[10px] text-muted-foreground">Verificando...</span>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col gap-0.5">
+                              {v.link_health === "healthy" && (
+                                <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-[10px] px-2 py-0.5 gap-1 w-fit">
+                                  <Wifi className="size-2.5" /> Saudável
+                                </Badge>
+                              )}
+                              {v.link_health === "error" && (
+                                <Badge className="bg-red-500/20 text-red-400 border-red-500/30 text-[10px] px-2 py-0.5 gap-1 w-fit">
+                                  <WifiOff className="size-2.5" /> Indisponível
+                                </Badge>
+                              )}
+                              {v.link_health === "login_required" && (
+                                <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-[10px] px-2 py-0.5 gap-1 w-fit">
+                                  <AlertTriangle className="size-2.5" /> Requer Login
+                                </Badge>
+                              )}
+                              {v.link_health === "timeout" && (
+                                <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30 text-[10px] px-2 py-0.5 gap-1 w-fit">
+                                  <Clock className="size-2.5" /> Timeout
+                                </Badge>
+                              )}
+                              {v.link_health === "unknown" && (
+                                <span className="text-[10px] text-muted-foreground/50 italic">Não verificado</span>
+                              )}
+                              {v.link_health_checked_at && (
+                                <span className="text-[9px] text-muted-foreground/40">
+                                  {format(new Date(v.link_health_checked_at), "dd/MM HH:mm")}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell>
                           {v.backup_link ? (
                             <div className="space-y-1">
                               <div className="flex items-center gap-1.5">
