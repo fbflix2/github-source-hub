@@ -11,7 +11,7 @@ import {
   Search, Shield, ShieldCheck, ShieldOff, Plus, Loader2,
   ExternalLink, Pencil, Trash2, DollarSign, Link2,
   TrendingUp, Activity, BarChart3, CheckCircle, MoreVertical,
-  FileDown, Clock, Check, AlertTriangle, Copy, Timer
+  FileDown, Clock, Check, AlertTriangle, Copy, Timer, HeartPulse, Wifi, WifiOff
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription
@@ -39,6 +39,8 @@ interface SafeBmVault {
   notes: string | null;
   backup_link: string | null;
   backup_link_set_at: string | null;
+  link_health: string;
+  link_health_checked_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -82,6 +84,8 @@ export default function AdminSafeBM() {
   const [formNotes, setFormNotes] = useState("");
   const [formBackupLink, setFormBackupLink] = useState("");
   const [tickCount, setTickCount] = useState(0);
+  const [checkingHealth, setCheckingHealth] = useState(false);
+  const [checkingIds, setCheckingIds] = useState<Set<string>>(new Set());
 
   // Tick every minute to update countdown timers
   useEffect(() => {
@@ -110,6 +114,28 @@ export default function AdminSafeBM() {
       .eq("status", "pending_setup")
       .order("created_at", { ascending: false });
     setPendingRequests((data as any[]) || []);
+  };
+
+  const checkAllLinksHealth = async (vaultIds?: string[]) => {
+    setCheckingHealth(true);
+    if (vaultIds) setCheckingIds(new Set(vaultIds));
+    else setCheckingIds(new Set(vaults.filter(v => v.status === "active").map(v => v.id)));
+    try {
+      const { data, error } = await supabase.functions.invoke("check-bm-link", {
+        body: { vault_ids: vaultIds || null },
+      });
+      if (error) throw error;
+      const results = data?.results || [];
+      const errors = results.filter((r: any) => r.health === "error").length;
+      const healthy = results.filter((r: any) => r.health === "healthy").length;
+      toast.success(`Verificação concluída: ${healthy} saudáveis, ${errors} com problema`);
+      fetchVaults();
+    } catch (err: any) {
+      toast.error("Erro ao verificar links: " + err.message);
+    } finally {
+      setCheckingHealth(false);
+      setCheckingIds(new Set());
+    }
   };
 
   const confirmBmProtection = async (request: any) => {
@@ -555,8 +581,18 @@ export default function AdminSafeBM() {
                 className="pl-9 h-9 text-sm"
               />
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 h-9"
+              onClick={() => checkAllLinksHealth()}
+              disabled={checkingHealth}
+            >
+              {checkingHealth ? <Loader2 className="size-3.5 animate-spin" /> : <HeartPulse className="size-3.5" />}
+              Verificar Saúde
+            </Button>
             <Button variant="outline" size="sm" className="gap-1.5 h-9" onClick={exportCSV}>
-              <FileDown className="size-3.5" /> Exportar CSV
+              <FileDown className="size-3.5" /> CSV
             </Button>
             <Button size="sm" className="gap-1.5 h-9" onClick={openAdd}>
               <Plus className="size-3.5" /> Adicionar
@@ -580,6 +616,7 @@ export default function AdminSafeBM() {
                       <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Nome da BM</TableHead>
                       <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Dono/Cliente</TableHead>
                       <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Status</TableHead>
+                      <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Saúde do Link</TableHead>
                       <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Link Backup</TableHead>
                       <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Data de Proteção</TableHead>
                       <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold text-right">Ações</TableHead>
@@ -638,6 +675,45 @@ export default function AdminSafeBM() {
                         <TableCell className="text-sm text-muted-foreground">{v.client_name || "—"}</TableCell>
                         <TableCell>{getStatusBadge(v.status)}</TableCell>
                         <TableCell>
+                          {checkingIds.has(v.id) ? (
+                            <div className="flex items-center gap-1.5">
+                              <Loader2 className="size-3 animate-spin text-primary" />
+                              <span className="text-[10px] text-muted-foreground">Verificando...</span>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col gap-0.5">
+                              {v.link_health === "healthy" && (
+                                <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-[10px] px-2 py-0.5 gap-1 w-fit">
+                                  <Wifi className="size-2.5" /> Saudável
+                                </Badge>
+                              )}
+                              {v.link_health === "error" && (
+                                <Badge className="bg-red-500/20 text-red-400 border-red-500/30 text-[10px] px-2 py-0.5 gap-1 w-fit">
+                                  <WifiOff className="size-2.5" /> Indisponível
+                                </Badge>
+                              )}
+                              {v.link_health === "login_required" && (
+                                <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-[10px] px-2 py-0.5 gap-1 w-fit">
+                                  <AlertTriangle className="size-2.5" /> Requer Login
+                                </Badge>
+                              )}
+                              {v.link_health === "timeout" && (
+                                <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30 text-[10px] px-2 py-0.5 gap-1 w-fit">
+                                  <Clock className="size-2.5" /> Timeout
+                                </Badge>
+                              )}
+                              {v.link_health === "unknown" && (
+                                <span className="text-[10px] text-muted-foreground/50 italic">Não verificado</span>
+                              )}
+                              {v.link_health_checked_at && (
+                                <span className="text-[9px] text-muted-foreground/40">
+                                  {format(new Date(v.link_health_checked_at), "dd/MM HH:mm")}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell>
                           {v.backup_link ? (
                             <div className="space-y-1">
                               <div className="flex items-center gap-1.5">
@@ -681,6 +757,9 @@ export default function AdminSafeBM() {
                             <DropdownMenuContent align="end" className="w-44">
                               <DropdownMenuItem onClick={() => openEdit(v)} className="gap-2 text-xs">
                                 <Pencil className="size-3.5" /> Editar / Link Backup
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => checkAllLinksHealth([v.id])} className="gap-2 text-xs" disabled={checkingHealth}>
+                                <HeartPulse className="size-3.5 text-blue-400" /> Verificar Saúde
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => regenerateLink(v)} className="gap-2 text-xs">
                                 <Link2 className="size-3.5" /> Regenerar Link ({v.link_regenerations}x)

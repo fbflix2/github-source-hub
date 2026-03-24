@@ -2236,6 +2236,8 @@ export type Database = {
           client_name: string | null
           created_at: string
           id: string
+          link_health: string
+          link_health_checked_at: string | null
           link_regenerations: number
           notes: string | null
           perfil_backup: string | null
@@ -2254,6 +2256,8 @@ export type Database = {
           client_name?: string | null
           created_at?: string
           id?: string
+          link_health?: string
+          link_health_checked_at?: string | null
           link_regenerations?: number
           notes?: string | null
           perfil_backup?: string | null
@@ -2272,6 +2276,8 @@ export type Database = {
           client_name?: string | null
           created_at?: string
           id?: string
+          link_health?: string
+          link_health_checked_at?: string | null
           link_regenerations?: number
           notes?: string | null
           perfil_backup?: string | null
