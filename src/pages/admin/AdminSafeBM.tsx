@@ -581,8 +581,18 @@ export default function AdminSafeBM() {
                 className="pl-9 h-9 text-sm"
               />
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 h-9"
+              onClick={() => checkAllLinksHealth()}
+              disabled={checkingHealth}
+            >
+              {checkingHealth ? <Loader2 className="size-3.5 animate-spin" /> : <HeartPulse className="size-3.5" />}
+              Verificar Saúde
+            </Button>
             <Button variant="outline" size="sm" className="gap-1.5 h-9" onClick={exportCSV}>
-              <FileDown className="size-3.5" /> Exportar CSV
+              <FileDown className="size-3.5" /> CSV
             </Button>
             <Button size="sm" className="gap-1.5 h-9" onClick={openAdd}>
               <Plus className="size-3.5" /> Adicionar
