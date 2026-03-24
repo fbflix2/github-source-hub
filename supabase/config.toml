@@ -74,3 +74,6 @@ verify_jwt = false
 
 [functions.invoice-og]
 verify_jwt = false
+
+[functions.check-bm-link]
+verify_jwt = false
