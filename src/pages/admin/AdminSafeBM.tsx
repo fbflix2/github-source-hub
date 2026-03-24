@@ -758,6 +758,9 @@ export default function AdminSafeBM() {
                               <DropdownMenuItem onClick={() => openEdit(v)} className="gap-2 text-xs">
                                 <Pencil className="size-3.5" /> Editar / Link Backup
                               </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => checkAllLinksHealth([v.id])} className="gap-2 text-xs" disabled={checkingHealth}>
+                                <HeartPulse className="size-3.5 text-blue-400" /> Verificar Saúde
+                              </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => regenerateLink(v)} className="gap-2 text-xs">
                                 <Link2 className="size-3.5" /> Regenerar Link ({v.link_regenerations}x)
                               </DropdownMenuItem>
