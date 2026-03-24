@@ -616,6 +616,7 @@ export default function AdminSafeBM() {
                       <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Nome da BM</TableHead>
                       <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Dono/Cliente</TableHead>
                       <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Status</TableHead>
+                      <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Saúde do Link</TableHead>
                       <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Link Backup</TableHead>
                       <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Data de Proteção</TableHead>
                       <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold text-right">Ações</TableHead>
