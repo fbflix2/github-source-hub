@@ -1154,15 +1154,16 @@ Deno.serve(async (req) => {
           const freshResp = await proxyFetch(freshUrl, PROXYBR_API_KEY);
           if (freshResp.ok) {
             const freshData = await freshResp.json();
-            // Cap renewal end_date to 30 days from now to prevent accumulation
+            // Cap renewal end_date to exactly 30 days from now to prevent early-renewal accumulation
             let newEndDate: string | null = null;
             if (freshData.due_date) {
               const apiEndMs = new Date(freshData.due_date).getTime();
               const daysFromNow = (apiEndMs - Date.now()) / (1000 * 60 * 60 * 24);
-              if (daysFromNow > 35) {
+              if (daysFromNow > 30) {
                 const capped = new Date();
                 capped.setDate(capped.getDate() + 30);
                 newEndDate = capped.toISOString();
+                console.log(`Renewal: capped end_date from ${Math.round(daysFromNow)} days to 30 days`);
               } else {
                 newEndDate = new Date(freshData.due_date).toISOString();
               }
