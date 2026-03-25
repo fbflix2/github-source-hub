@@ -1047,6 +1047,74 @@ export type Database = {
         }
         Relationships: []
       }
+      funnel_folders: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      funnel_projects: {
+        Row: {
+          created_at: string
+          edges: Json
+          folder_id: string | null
+          id: string
+          name: string
+          nodes: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          edges?: Json
+          folder_id?: string | null
+          id?: string
+          name: string
+          nodes?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          edges?: Json
+          folder_id?: string | null
+          id?: string
+          name?: string
+          nodes?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funnel_projects_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "funnel_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       internal_proxy_configs: {
         Row: {
           alt_http_port: number
