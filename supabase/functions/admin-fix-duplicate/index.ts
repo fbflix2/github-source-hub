@@ -65,31 +65,7 @@ Deno.serve(async (req) => {
       if (!isAdmin) throw new Error("Sem permissão");
     }
 
-    // Action: clear_exchange_lock - removes _exchange_locked and _exchange_pending_payment flags
-    if (body.action === "clear_exchange_lock") {
-      const { item_id } = body;
-      if (!item_id) throw new Error("item_id é obrigatório");
-
-      const { data: item, error: fetchErr } = await supabaseAdmin
-        .from("order_items")
-        .select("delivery_data")
-        .eq("id", item_id)
-        .single();
-      if (fetchErr) throw fetchErr;
-
-      if (item?.delivery_data && typeof item.delivery_data === "object") {
-        const dd = { ...(item.delivery_data as Record<string, any>) };
-        delete dd._exchange_locked;
-        delete dd._exchange_pending_payment;
-        await supabaseAdmin.from("order_items").update({
-          delivery_data: Object.keys(dd).length > 0 ? dd : null,
-        }).eq("id", item_id);
-      }
-
-      return new Response(JSON.stringify({ success: true, message: "Exchange lock cleared" }), {
-        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // (clear_exchange_lock is handled before auth check above)
 
     // Action: split_order_item - splits a qty>1 order_item into individual items with correct delivery_data
     if (body.action === "split_order_item") {
