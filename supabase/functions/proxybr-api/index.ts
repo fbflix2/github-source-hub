@@ -787,17 +787,17 @@ Deno.serve(async (req) => {
               const profileTags2 = Object.fromEntries(Object.entries(prevRaw).filter(([k]) => k.startsWith("profile_tag")));
               const mergedSub = { ...sub, ...profileTags2 };
 
-              // Cap end_date to prevent accumulated renewals (monthly = max 35 days from now)
+              // Cap end_date to prevent accumulated renewals (monthly = max 30 days from now)
               let finalEndDate = endDateStr;
               const subType2 = (sub.type || "").toUpperCase();
               if (subType2 === "MONTHLY") {
                 const apiEnd2 = new Date(endDateStr).getTime();
                 const now2 = Date.now();
                 const daysFromNow2 = (apiEnd2 - now2) / (1000 * 60 * 60 * 24);
-                if (daysFromNow2 > 35 && existing) {
+                if (daysFromNow2 > 30 && existing) {
                   // Preserve local end_date
                   finalEndDate = "__PRESERVE_LOCAL__";
-                } else if (daysFromNow2 > 35) {
+                } else if (daysFromNow2 > 30) {
                   const capped2 = new Date();
                   capped2.setDate(capped2.getDate() + 30);
                   finalEndDate = capped2.toISOString();
@@ -1027,8 +1027,11 @@ Deno.serve(async (req) => {
 
         // Determine renewal price — ALWAYS use catalog price, never order_items price
         // (order_items may contain promotional/discounted prices valid only for the first purchase)
-        let renewalPrice = 0;
+        // For multi-proxy subscriptions, multiply unit price by proxy count
+        let renewalUnitPrice = 0;
         const subUserId = localSub?.user_id || user.id;
+        const rawDataForPrice = (localSub?.raw_data || {}) as Record<string, any>;
+        const proxyCount = rawDataForPrice?.proxies?.data?.length || rawDataForPrice?.subscription?.proxies?.data?.length || 1;
 
         if (localSub?.product_id) {
           const { data: product } = await supabaseAdmin
@@ -1036,21 +1039,24 @@ Deno.serve(async (req) => {
             .select("price")
             .eq("id", localSub.product_id)
             .maybeSingle();
-          if (product?.price != null) renewalPrice = Number(product.price);
+          if (product?.price != null) renewalUnitPrice = Number(product.price);
         }
 
-        if (!renewalPrice && localSub) {
-          const rawData = localSub.raw_data as Record<string, any> || {};
-          const apiProductId = rawData?.product?.id;
+        if (!renewalUnitPrice && localSub) {
+          const apiProductId = rawDataForPrice?.product?.id;
           if (apiProductId) {
             const { data: product } = await supabaseAdmin
               .from("products")
               .select("price")
               .eq("external_id", String(apiProductId))
               .maybeSingle();
-            if (product?.price != null) renewalPrice = Number(product.price);
+            if (product?.price != null) renewalUnitPrice = Number(product.price);
           }
         }
+
+        // Multiply by number of proxies in the subscription
+        const renewalPrice = renewalUnitPrice * proxyCount;
+        console.log(`Renewal price: R$ ${renewalUnitPrice} x ${proxyCount} proxies = R$ ${renewalPrice}`);
 
         // 2. Check balance (but DON'T debit yet)
         if (renewalPrice > 0) {
@@ -1148,15 +1154,16 @@ Deno.serve(async (req) => {
           const freshResp = await proxyFetch(freshUrl, PROXYBR_API_KEY);
           if (freshResp.ok) {
             const freshData = await freshResp.json();
-            // Cap renewal end_date to 30 days from now to prevent accumulation
+            // Cap renewal end_date to exactly 30 days from now to prevent early-renewal accumulation
             let newEndDate: string | null = null;
             if (freshData.due_date) {
               const apiEndMs = new Date(freshData.due_date).getTime();
               const daysFromNow = (apiEndMs - Date.now()) / (1000 * 60 * 60 * 24);
-              if (daysFromNow > 35) {
+              if (daysFromNow > 30) {
                 const capped = new Date();
                 capped.setDate(capped.getDate() + 30);
                 newEndDate = capped.toISOString();
+                console.log(`Renewal: capped end_date from ${Math.round(daysFromNow)} days to 30 days`);
               } else {
                 newEndDate = new Date(freshData.due_date).toISOString();
               }
