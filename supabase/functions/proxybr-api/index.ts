@@ -787,17 +787,17 @@ Deno.serve(async (req) => {
               const profileTags2 = Object.fromEntries(Object.entries(prevRaw).filter(([k]) => k.startsWith("profile_tag")));
               const mergedSub = { ...sub, ...profileTags2 };
 
-              // Cap end_date to prevent accumulated renewals (monthly = max 35 days from now)
+              // Cap end_date to prevent accumulated renewals (monthly = max 30 days from now)
               let finalEndDate = endDateStr;
               const subType2 = (sub.type || "").toUpperCase();
               if (subType2 === "MONTHLY") {
                 const apiEnd2 = new Date(endDateStr).getTime();
                 const now2 = Date.now();
                 const daysFromNow2 = (apiEnd2 - now2) / (1000 * 60 * 60 * 24);
-                if (daysFromNow2 > 35 && existing) {
+                if (daysFromNow2 > 30 && existing) {
                   // Preserve local end_date
                   finalEndDate = "__PRESERVE_LOCAL__";
-                } else if (daysFromNow2 > 35) {
+                } else if (daysFromNow2 > 30) {
                   const capped2 = new Date();
                   capped2.setDate(capped2.getDate() + 30);
                   finalEndDate = capped2.toISOString();
