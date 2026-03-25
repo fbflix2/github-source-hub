@@ -60,7 +60,7 @@ export default function ProductExchangeModal({ open, onOpenChange, orderItem, or
       setAdminPassword("");
       setShowPasswordStep(false);
     }
-  }, [open]);
+  }, [open, orderItem?.product_id]);
 
   async function checkAdmin() {
     const { data: { user } } = await supabase.auth.getUser();
