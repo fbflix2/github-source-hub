@@ -12,7 +12,8 @@ Deno.serve(async (req) => {
 
   try {
     const authHeader = req.headers.get("Authorization") || req.headers.get("authorization");
-    console.log("Auth header present:", !!authHeader);
+    const apiKeyHeader = req.headers.get("apikey") || "";
+    console.log("Auth header present:", !!authHeader, "apikey matches anon:", apiKeyHeader === Deno.env.get("SUPABASE_ANON_KEY"));
 
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
