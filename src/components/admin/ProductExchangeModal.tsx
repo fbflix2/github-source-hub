@@ -228,9 +228,9 @@ export default function ProductExchangeModal({ open, onOpenChange, orderItem, or
         _exchange_locked: exchangeTimestamp,
       } : {};
 
-      // 3. Update the FIRST unit on the existing order_item (carries the payment gate)
+      // 3. Update the FIRST unit on the existing order_item (WITHOUT payment flag first)
       const first = linkedItems[0];
-      const firstDelivery = { ...first.deliveryData, ...pendingPaymentData };
+      const firstDelivery = { ...first.deliveryData };
       await supabase.from("order_items").update({
         product_id: first.product.id,
         name: first.product.name,
@@ -244,10 +244,13 @@ export default function ProductExchangeModal({ open, onOpenChange, orderItem, or
         status: "vendido",
       }).eq("id", first.stockItemId);
 
-      // 4. Create NEW order_items for remaining units (locked, not payment gate)
+      // Collect all new order item IDs for lock step
+      const allNewOrderItemIds: string[] = [];
+
+      // 4. Create NEW order_items for remaining units
       for (let i = 1; i < linkedItems.length; i++) {
         const item = linkedItems[i];
-        const itemDelivery = { ...item.deliveryData, ...lockedData };
+        const itemDelivery = { ...item.deliveryData };
         const { data: newOI, error: oiErr } = await supabase.from("order_items").insert({
           order_id: orderId,
           product_id: item.product.id,
@@ -258,11 +261,61 @@ export default function ProductExchangeModal({ open, onOpenChange, orderItem, or
         }).select("id").single();
 
         if (oiErr) throw oiErr;
+        allNewOrderItemIds.push(newOI.id);
 
         await supabase.from("stock_items").update({
           order_item_id: newOI.id,
           status: "vendido",
         }).eq("id", item.stockItemId);
+      }
+
+      // 4b. FINAL STEP: Apply payment flag / lock AFTER all stock operations
+      // This ensures no trigger or side-effect can overwrite the flag
+      if (priceDiff > 0) {
+        // Re-read current delivery_data to merge safely
+        const { data: freshItem } = await supabase
+          .from("order_items")
+          .select("delivery_data")
+          .eq("id", orderItem.order_item_id)
+          .single();
+
+        const freshDD = (freshItem?.delivery_data && typeof freshItem.delivery_data === "object")
+          ? { ...(freshItem.delivery_data as Record<string, any>) }
+          : { ...first.deliveryData };
+
+        freshDD._exchange_pending_payment = {
+          amount: priceDiff,
+          original_product: orderItem.product_name,
+          created_at: exchangeTimestamp,
+        };
+
+        const { error: flagErr } = await supabase.from("order_items").update({
+          delivery_data: freshDD,
+        }).eq("id", orderItem.order_item_id);
+
+        if (flagErr) {
+          console.error("Failed to set exchange payment flag:", flagErr);
+          throw new Error("Erro ao definir flag de pagamento pendente");
+        }
+
+        // Lock sibling items
+        for (const sibId of allNewOrderItemIds) {
+          const { data: sibItem } = await supabase
+            .from("order_items")
+            .select("delivery_data")
+            .eq("id", sibId)
+            .single();
+
+          const sibDD = (sibItem?.delivery_data && typeof sibItem.delivery_data === "object")
+            ? { ...(sibItem.delivery_data as Record<string, any>) }
+            : {};
+
+          sibDD._exchange_locked = exchangeTimestamp;
+
+          await supabase.from("order_items").update({
+            delivery_data: sibDD,
+          }).eq("id", sibId);
+        }
       }
 
       // 5. Adjust wallet (only credit for cheaper items; debit is handled by client payment)
