@@ -71,12 +71,30 @@ export default function ProductExchangeModal({ open, onOpenChange, orderItem, or
 
   async function fetchProducts() {
     setLoadingProducts(true);
-    const { data } = await supabase
+
+    // Get the category of the original product to filter by same category
+    let categoryId: string | null = null;
+    if (orderItem?.product_id) {
+      const { data: origProduct } = await supabase
+        .from("products")
+        .select("category_id")
+        .eq("id", orderItem.product_id)
+        .single();
+      categoryId = origProduct?.category_id ?? null;
+    }
+
+    let query = supabase
       .from("products")
       .select("id, name, price, stock, image_url")
       .eq("status", "active")
       .gt("stock", 0)
       .order("name");
+
+    if (categoryId) {
+      query = query.eq("category_id", categoryId);
+    }
+
+    const { data } = await query;
     setProducts(data || []);
     setLoadingProducts(false);
   }
