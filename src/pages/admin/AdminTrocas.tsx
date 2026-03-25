@@ -231,14 +231,20 @@ export default function AdminTrocas() {
         }).eq("id", selectedItem.stock_item_id);
       }
 
-      // 2. Find available stock_item for new product
-      const { data: newStockItem, error: stockErr } = await supabase
+      // 2. Find available stock_item for new product (exclude the original to avoid swapping with itself)
+      let stockQuery = supabase
         .from("stock_items")
         .select("id, data, identification, identification_link")
         .eq("product_id", selectedProduct.id)
         .eq("status", "revisado")
         .is("order_item_id", null)
-        .is("deleted_at", null)
+        .is("deleted_at", null);
+
+      if (selectedItem.stock_item_id) {
+        stockQuery = stockQuery.neq("id", selectedItem.stock_item_id);
+      }
+
+      const { data: newStockItem, error: stockErr } = await stockQuery
         .order("created_at", { ascending: true })
         .limit(1)
         .single();
