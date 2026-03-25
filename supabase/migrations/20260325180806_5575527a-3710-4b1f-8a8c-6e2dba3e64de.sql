@@ -1,0 +1,1 @@
+UPDATE order_items SET delivery_data = delivery_data || '{"_exchange_pending_payment": {"amount": 20, "original_product": "BM 3 (Antiga)", "created_at": "2026-03-25T17:28:20.301Z"}, "_exchange_locked": true}'::jsonb WHERE id = 'ba77b1bb-3365-4bbd-a97e-3b0a138aa11b';
