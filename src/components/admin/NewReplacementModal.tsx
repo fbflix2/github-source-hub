@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCw, Loader2, Search, Package, ArrowRightLeft } from "lucide-react";
+import { RefreshCw, Loader2, Search, Package, ArrowRightLeft, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -22,6 +22,7 @@ interface OrderItemOption {
   price: number;
   order_id: string;
   order_code: string;
+  product_id: string | null;
   product_name?: string;
 }
 
@@ -48,10 +49,14 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
   const [orderItems, setOrderItems] = useState<OrderItemOption[]>([]);
   const [selectedOrderItem, setSelectedOrderItem] = useState<OrderItemOption | null>(null);
 
-  // Original problematic item (optional — can type product name manually)
+  // Original item info
   const [productName, setProductName] = useState("");
   const [itemName, setItemName] = useState("");
   const [originalStockId, setOriginalStockId] = useState<string | null>(null);
+
+  // Auto-filled product context for filtering stock
+  const [matchedProductId, setMatchedProductId] = useState<string | null>(null);
+  const [matchedCategoryId, setMatchedCategoryId] = useState<string | null>(null);
 
   // New stock item for replacement
   const [stockFilter, setStockFilter] = useState("");
@@ -66,42 +71,75 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
       setOrderSearch(""); setOrderItems([]); setSelectedOrderItem(null);
       setProductName(""); setItemName(""); setOriginalStockId(null);
       setStockFilter(""); setAllStockItems([]); setSelectedNewItem(null);
-    } else {
-      loadStockItems();
+      setMatchedProductId(null); setMatchedCategoryId(null);
     }
   }, [open]);
 
-  const loadStockItems = async () => {
+  // Load stock items filtered by category/product when context changes
+  const loadStockItems = useCallback(async (filterProductId?: string | null, filterCategoryId?: string | null) => {
     setLoadingStock(true);
+
+    // Get proxy product IDs to exclude
     const { data: proxyProducts } = await supabase
       .from("products").select("id").eq("icon_type", "proxy");
     const proxyIds = new Set((proxyProducts || []).map(p => p.id));
 
-    const { data } = await supabase
+    // If we have a category, get all product IDs in that category
+    let sameCategoryProductIds: Set<string> | null = null;
+    if (filterCategoryId) {
+      const { data: catProducts } = await supabase
+        .from("products").select("id").eq("category_id", filterCategoryId);
+      if (catProducts?.length) {
+        sameCategoryProductIds = new Set(catProducts.map(p => p.id));
+      }
+    }
+
+    let query = supabase
       .from("stock_items")
       .select("id, name, identification, product_id, type")
       .eq("status", "revisado")
       .is("order_item_id", null)
       .is("deleted_at", null)
+      .is("parent_id", null)
       .order("created_at", { ascending: false })
       .limit(500);
 
+    // If we know the exact product, filter to it
+    if (filterProductId) {
+      query = query.eq("product_id", filterProductId);
+    }
+
+    const { data } = await query;
+
     if (data) {
-      const nonProxy = data.filter(si => !si.product_id || !proxyIds.has(si.product_id));
-      const productIds = [...new Set(nonProxy.filter(i => i.product_id).map(i => i.product_id!))];
+      let filtered = data.filter(si => !si.product_id || !proxyIds.has(si.product_id));
+
+      // If no exact product match but we have category, filter by category products
+      if (!filterProductId && sameCategoryProductIds) {
+        filtered = filtered.filter(si => si.product_id && sameCategoryProductIds!.has(si.product_id));
+      }
+
+      const productIds = [...new Set(filtered.filter(i => i.product_id).map(i => i.product_id!))];
       let productMap = new Map<string, string>();
       if (productIds.length > 0) {
         const { data: products } = await supabase
           .from("products").select("id, name").in("id", productIds);
         productMap = new Map((products || []).map(p => [p.id, p.name]));
       }
-      setAllStockItems(nonProxy.map(si => ({
+      setAllStockItems(filtered.map(si => ({
         ...si,
         product_name: si.product_id ? productMap.get(si.product_id) || undefined : undefined,
       })));
     }
     setLoadingStock(false);
-  };
+  }, []);
+
+  // Reload stock when product/category context changes
+  useEffect(() => {
+    if (open) {
+      loadStockItems(matchedProductId, matchedCategoryId);
+    }
+  }, [open, matchedProductId, matchedCategoryId, loadStockItems]);
 
   const searchClients = async (query: string) => {
     setClientSearch(query);
@@ -120,27 +158,64 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
     setOrderItems([]); setSelectedOrderItem(null);
     const query = orderSearch.trim();
     const { data: orders } = await supabase
-      .from("orders").select("id, code")
+      .from("orders").select("id, code, user_id")
       .or(`code.ilike.%${query}%,id.eq.${query.length === 36 ? query : '00000000-0000-0000-0000-000000000000'}`)
       .limit(5);
     if (!orders?.length) { toast.error("Pedido não encontrado"); setSearchingOrder(false); return; }
+
+    // Auto-fill client from first order
+    const firstOrder = orders[0];
+    if (!selectedClient && firstOrder.user_id) {
+      const { data: profile } = await supabase
+        .from("profiles").select("user_id, full_name")
+        .eq("user_id", firstOrder.user_id).maybeSingle();
+      if (profile) {
+        setSelectedClient({ user_id: profile.user_id, full_name: profile.full_name || "Sem nome" });
+      }
+    }
 
     const { data: items } = await supabase
       .from("order_items").select("id, name, price, order_id, product_id")
       .in("order_id", orders.map(o => o.id));
 
+    // Get product names
+    const productIds = [...new Set((items || []).filter(i => i.product_id).map(i => i.product_id!))];
+    let productMap = new Map<string, string>();
+    if (productIds.length > 0) {
+      const { data: products } = await supabase
+        .from("products").select("id, name").in("id", productIds);
+      productMap = new Map((products || []).map(p => [p.id, p.name]));
+    }
+
     setOrderItems((items || []).map(oi => {
       const order = orders.find(o => o.id === oi.order_id);
-      return { id: oi.id, name: oi.name, price: Number(oi.price), order_id: oi.order_id, order_code: order?.code || "" };
+      return {
+        id: oi.id,
+        name: oi.name,
+        price: Number(oi.price),
+        order_id: oi.order_id,
+        order_code: order?.code || "",
+        product_id: oi.product_id,
+        product_name: oi.product_id ? productMap.get(oi.product_id) : undefined,
+      };
     }));
     setSearchingOrder(false);
   };
 
-  // When order item is selected, auto-fill product/item name
+  // When order item is selected, auto-fill product/item name + filter stock by same category
   useEffect(() => {
-    if (selectedOrderItem) {
-      setProductName(selectedOrderItem.name);
-      setItemName(selectedOrderItem.name);
+    if (!selectedOrderItem) return;
+    setProductName(selectedOrderItem.product_name || selectedOrderItem.name);
+    setItemName(selectedOrderItem.name);
+    setSelectedNewItem(null);
+
+    if (selectedOrderItem.product_id) {
+      setMatchedProductId(selectedOrderItem.product_id);
+      // Also get category for broader fallback
+      supabase.from("products").select("category_id").eq("id", selectedOrderItem.product_id).maybeSingle()
+        .then(({ data }) => {
+          if (data?.category_id) setMatchedCategoryId(data.category_id);
+        });
     }
   }, [selectedOrderItem]);
 
@@ -212,6 +287,8 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
     (si.product_name || "").toLowerCase().includes(stockFilter.toLowerCase())
   );
 
+  const hasProductContext = !!matchedProductId || !!matchedCategoryId;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg bg-zinc-900 border-zinc-800 text-white max-h-[90vh] overflow-y-auto">
@@ -223,33 +300,7 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Client */}
-          <div className="space-y-2">
-            <Label className="text-zinc-400">Cliente *</Label>
-            {selectedClient ? (
-              <div className="flex items-center gap-2 p-2 rounded-lg bg-zinc-800 border border-zinc-700">
-                <span className="text-sm text-white flex-1">{selectedClient.full_name}</span>
-                <Button size="sm" variant="ghost" className="h-6 px-2 text-zinc-400" onClick={() => setSelectedClient(null)}>✕</Button>
-              </div>
-            ) : (
-              <div className="space-y-1">
-                <Input placeholder="Buscar cliente por nome..." value={clientSearch} onChange={(e) => searchClients(e.target.value)} className="bg-zinc-800 border-zinc-700" />
-                {searching && <p className="text-xs text-zinc-500">Buscando...</p>}
-                {clients.length > 0 && (
-                  <div className="max-h-32 overflow-y-auto rounded-lg border border-zinc-700 bg-zinc-800">
-                    {clients.map((c) => (
-                      <button key={c.user_id} className="w-full text-left px-3 py-1.5 text-sm text-zinc-300 hover:bg-zinc-700 transition-colors"
-                        onClick={() => { setSelectedClient(c); setClients([]); setClientSearch(""); }}>
-                        {c.full_name || "Sem nome"}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Order */}
+          {/* Order — moved to top for auto-fill flow */}
           <div className="space-y-2">
             <Label className="text-zinc-400 flex items-center gap-1">
               <Package className="h-3.5 w-3.5" /> Pedido (opcional)
@@ -261,7 +312,11 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
                   <p className="text-sm text-white">{selectedOrderItem.name}</p>
                   <p className="text-xs text-zinc-400">R$ {selectedOrderItem.price.toFixed(2)}</p>
                 </div>
-                <Button size="sm" variant="ghost" className="h-6 px-2 text-zinc-400" onClick={() => setSelectedOrderItem(null)}>✕</Button>
+                <Button size="sm" variant="ghost" className="h-6 px-2 text-zinc-400" onClick={() => {
+                  setSelectedOrderItem(null);
+                  setMatchedProductId(null);
+                  setMatchedCategoryId(null);
+                }}>✕</Button>
               </div>
             ) : (
               <div className="space-y-1">
@@ -280,6 +335,33 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
                         <p className="text-xs text-yellow-400">#{oi.order_code}</p>
                         <p className="text-sm text-zinc-300">{oi.name}</p>
                         <p className="text-xs text-zinc-500">R$ {oi.price.toFixed(2)}</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Client */}
+          <div className="space-y-2">
+            <Label className="text-zinc-400">Cliente *</Label>
+            {selectedClient ? (
+              <div className="flex items-center gap-2 p-2 rounded-lg bg-zinc-800 border border-zinc-700">
+                <CheckCircle className="h-3.5 w-3.5 text-green-400 shrink-0" />
+                <span className="text-sm text-white flex-1">{selectedClient.full_name}</span>
+                <Button size="sm" variant="ghost" className="h-6 px-2 text-zinc-400" onClick={() => setSelectedClient(null)}>✕</Button>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                <Input placeholder="Buscar cliente por nome..." value={clientSearch} onChange={(e) => searchClients(e.target.value)} className="bg-zinc-800 border-zinc-700" />
+                {searching && <p className="text-xs text-zinc-500">Buscando...</p>}
+                {clients.length > 0 && (
+                  <div className="max-h-32 overflow-y-auto rounded-lg border border-zinc-700 bg-zinc-800">
+                    {clients.map((c) => (
+                      <button key={c.user_id} className="w-full text-left px-3 py-1.5 text-sm text-zinc-300 hover:bg-zinc-700 transition-colors"
+                        onClick={() => { setSelectedClient(c); setClients([]); setClientSearch(""); }}>
+                        {c.full_name || "Sem nome"}
                       </button>
                     ))}
                   </div>
@@ -319,6 +401,19 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
             <Label className="text-zinc-400 flex items-center gap-1">
               <ArrowRightLeft className="h-3.5 w-3.5" /> Item de Reposição (novo) *
             </Label>
+            {hasProductContext && (
+              <div className="flex items-center gap-1.5">
+                <Badge variant="outline" className="text-[10px] border-yellow-500/40 text-yellow-400">
+                  Filtrado: mesma categoria
+                </Badge>
+                <button
+                  className="text-[10px] text-zinc-500 hover:text-zinc-300 underline"
+                  onClick={() => { setMatchedProductId(null); setMatchedCategoryId(null); }}
+                >
+                  Ver todos
+                </button>
+              </div>
+            )}
             {selectedNewItem ? (
               <div className="flex items-center gap-2 p-2 rounded-lg bg-zinc-800 border border-green-600/40">
                 <div className="flex-1">
@@ -342,7 +437,9 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
                 ) : (
                   <div className="max-h-48 overflow-y-auto rounded-lg border border-zinc-700 bg-zinc-800">
                     {filteredStock.length === 0 ? (
-                      <p className="text-xs text-zinc-500 p-3 text-center">Nenhum item disponível</p>
+                      <p className="text-xs text-zinc-500 p-3 text-center">
+                        {hasProductContext ? "Nenhum item disponível nesta categoria" : "Nenhum item disponível"}
+                      </p>
                     ) : filteredStock.slice(0, 30).map((si) => (
                       <button key={si.id} className="w-full text-left px-3 py-2 hover:bg-zinc-700 transition-colors border-b border-zinc-700/50 last:border-0"
                         onClick={() => setSelectedNewItem(si)}>
