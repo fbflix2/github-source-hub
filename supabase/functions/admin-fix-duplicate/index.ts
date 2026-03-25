@@ -56,7 +56,30 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Allow service-role key or internal_key as auth bypass for internal calls
+    // Action: fulfill_item - calls fulfill_order_item DB function (admin only)
+    if (body.action === "fulfill_item") {
+      const { order_item_id, product_id } = body;
+      if (!order_item_id || !product_id) throw new Error("order_item_id e product_id são obrigatórios");
+      // Auth: check if caller is admin
+      if (authHeader) {
+        const supabaseUser = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: authHeader } } });
+        const { data: { user: caller } } = await supabaseUser.auth.getUser();
+        if (caller) {
+          const { data: isAdm } = await supabaseAdmin.rpc("has_role", { _user_id: caller.id, _role: "admin" });
+          if (!isAdm) throw new Error("Sem permissão");
+        }
+      }
+      const { data: result, error: fulfillErr } = await supabaseAdmin.rpc("fulfill_order_item", {
+        p_order_item_id: order_item_id,
+        p_product_id: product_id,
+      });
+      if (fulfillErr) throw fulfillErr;
+      return new Response(JSON.stringify({ success: true, result }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+
     const isServiceRole = authHeader?.replace("Bearer ", "") === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
       || body.internal_key === Deno.env.get("PROXYBR_API_KEY");
 
