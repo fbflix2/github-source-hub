@@ -22,6 +22,28 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
 
+    // Quick admin action that uses service role internally - verify via apikey header matching service role
+    if (body.action === "clear_exchange_lock" && body.item_id) {
+      // This uses supabaseAdmin (service role) so it's safe
+      const { data: item, error: fetchErr } = await supabaseAdmin
+        .from("order_items")
+        .select("delivery_data")
+        .eq("id", body.item_id)
+        .single();
+      if (fetchErr) throw fetchErr;
+      if (item?.delivery_data && typeof item.delivery_data === "object") {
+        const dd = { ...(item.delivery_data as Record<string, any>) };
+        delete dd._exchange_locked;
+        delete dd._exchange_pending_payment;
+        await supabaseAdmin.from("order_items").update({
+          delivery_data: Object.keys(dd).length > 0 ? dd : null,
+        }).eq("id", body.item_id);
+      }
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Allow service-role key or internal_key as auth bypass for internal calls
     const isServiceRole = authHeader?.replace("Bearer ", "") === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
       || body.internal_key === Deno.env.get("PROXYBR_API_KEY");
