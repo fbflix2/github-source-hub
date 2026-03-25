@@ -1027,8 +1027,11 @@ Deno.serve(async (req) => {
 
         // Determine renewal price — ALWAYS use catalog price, never order_items price
         // (order_items may contain promotional/discounted prices valid only for the first purchase)
-        let renewalPrice = 0;
+        // For multi-proxy subscriptions, multiply unit price by proxy count
+        let renewalUnitPrice = 0;
         const subUserId = localSub?.user_id || user.id;
+        const rawDataForPrice = (localSub?.raw_data || {}) as Record<string, any>;
+        const proxyCount = rawDataForPrice?.proxies?.data?.length || rawDataForPrice?.subscription?.proxies?.data?.length || 1;
 
         if (localSub?.product_id) {
           const { data: product } = await supabaseAdmin
@@ -1036,21 +1039,24 @@ Deno.serve(async (req) => {
             .select("price")
             .eq("id", localSub.product_id)
             .maybeSingle();
-          if (product?.price != null) renewalPrice = Number(product.price);
+          if (product?.price != null) renewalUnitPrice = Number(product.price);
         }
 
-        if (!renewalPrice && localSub) {
-          const rawData = localSub.raw_data as Record<string, any> || {};
-          const apiProductId = rawData?.product?.id;
+        if (!renewalUnitPrice && localSub) {
+          const apiProductId = rawDataForPrice?.product?.id;
           if (apiProductId) {
             const { data: product } = await supabaseAdmin
               .from("products")
               .select("price")
               .eq("external_id", String(apiProductId))
               .maybeSingle();
-            if (product?.price != null) renewalPrice = Number(product.price);
+            if (product?.price != null) renewalUnitPrice = Number(product.price);
           }
         }
+
+        // Multiply by number of proxies in the subscription
+        const renewalPrice = renewalUnitPrice * proxyCount;
+        console.log(`Renewal price: R$ ${renewalUnitPrice} x ${proxyCount} proxies = R$ ${renewalPrice}`);
 
         // 2. Check balance (but DON'T debit yet)
         if (renewalPrice > 0) {
