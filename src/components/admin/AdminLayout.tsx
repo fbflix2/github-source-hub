@@ -94,6 +94,7 @@ export function AdminLayout() {
         <AdminMobileBottomNav />
         <ProxyBRLowBalanceAlert />
         <PageRequestNotification />
+        <PendingSafeBMPopup />
       </div>
     );
   }
@@ -120,6 +121,7 @@ export function AdminLayout() {
         </div>
         <ProxyBRLowBalanceAlert />
         <PageRequestNotification />
+        <PendingSafeBMPopup />
       </main>
     </div>
   );
