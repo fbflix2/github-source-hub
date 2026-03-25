@@ -139,18 +139,36 @@ export default function AdminTrocas() {
     // Auto-select if single item
     if (enriched.length === 1) {
       setSelectedItem(enriched[0]);
-      fetchProducts();
+      fetchProducts(enriched[0].product_id);
     }
   }
 
-  async function fetchProducts() {
+  async function fetchProducts(productId?: string | null) {
     setLoadingProducts(true);
-    const { data } = await supabase
+
+    // Get the category of the original product to filter by same category
+    let categoryId: string | null = null;
+    if (productId) {
+      const { data: origProduct } = await supabase
+        .from("products")
+        .select("category_id")
+        .eq("id", productId)
+        .single();
+      categoryId = origProduct?.category_id ?? null;
+    }
+
+    let query = supabase
       .from("products")
       .select("id, name, price, stock")
       .eq("status", "active")
       .gt("stock", 0)
       .order("name");
+
+    if (categoryId) {
+      query = query.eq("category_id", categoryId);
+    }
+
+    const { data } = await query;
     setProducts(data || []);
     setLoadingProducts(false);
   }
@@ -160,12 +178,11 @@ export default function AdminTrocas() {
     setSelectedProduct(null);
     setProductSearch("");
     setShowPasswordStep(false);
-    if (products.length === 0) fetchProducts();
+    fetchProducts(item.product_id);
   }
 
   const filteredProducts = products.filter(p =>
-    p.name.toLowerCase().includes(productSearch.toLowerCase()) &&
-    p.id !== selectedItem?.product_id
+    p.name.toLowerCase().includes(productSearch.toLowerCase())
   );
 
   const priceDiff = selectedProduct && selectedItem
