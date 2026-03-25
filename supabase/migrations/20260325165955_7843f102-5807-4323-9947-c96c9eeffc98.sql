@@ -1,0 +1,1 @@
+DELETE FROM subscriptions WHERE id = 'bc7fba4f-e81a-4659-9622-8992c4ea8fc3' AND user_id = 'a2d8e419-5546-463e-9023-eb851c95b810';
