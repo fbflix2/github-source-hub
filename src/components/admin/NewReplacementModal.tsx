@@ -205,17 +205,20 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
   // When order item is selected, auto-fill product/item name + filter stock by same category
   useEffect(() => {
     if (!selectedOrderItem) return;
-    setProductName(selectedOrderItem.product_name || selectedOrderItem.name);
     setItemName(selectedOrderItem.name);
     setSelectedNewItem(null);
 
     if (selectedOrderItem.product_id) {
       setMatchedProductId(selectedOrderItem.product_id);
-      // Also get category for broader fallback
-      supabase.from("products").select("category_id").eq("id", selectedOrderItem.product_id).maybeSingle()
+      // Fetch full product info (name + category) from products table
+      supabase.from("products").select("name, category_id").eq("id", selectedOrderItem.product_id).maybeSingle()
         .then(({ data }) => {
+          if (data?.name) setProductName(data.name);
+          else setProductName(selectedOrderItem.product_name || selectedOrderItem.name);
           if (data?.category_id) setMatchedCategoryId(data.category_id);
         });
+    } else {
+      setProductName(selectedOrderItem.product_name || selectedOrderItem.name);
     }
   }, [selectedOrderItem]);
 
