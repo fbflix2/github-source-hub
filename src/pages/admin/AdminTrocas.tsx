@@ -178,12 +178,11 @@ export default function AdminTrocas() {
     setSelectedProduct(null);
     setProductSearch("");
     setShowPasswordStep(false);
-    if (products.length === 0) fetchProducts();
+    fetchProducts(item.product_id);
   }
 
   const filteredProducts = products.filter(p =>
-    p.name.toLowerCase().includes(productSearch.toLowerCase()) &&
-    p.id !== selectedItem?.product_id
+    p.name.toLowerCase().includes(productSearch.toLowerCase())
   );
 
   const priceDiff = selectedProduct && selectedItem
