@@ -162,11 +162,13 @@ export function useProxyBRSubscriptions() {
 
           proxies.forEach((proxy: any, index: number) => {
             const proxyTagKey = `profile_tag_${proxy.id}`;
+            const parsed = buildProxyInfo(proxy);
+            const proxyDisplayName = parsed ? `${parsed.ip}:${parsed.port}` : `${sub.name}#${index + 1}`;
             results.push({
               ...baseEntry,
               code: `${sub.name}__proxy_${proxy.id}`,
-              name: sub.name,
-              proxy: buildProxyInfo(proxy),
+              name: proxyDisplayName,
+              proxy: parsed,
               proxyIndex: index + 1,
               totalProxies: proxies.length,
               proxyLabel: `Proxy ${index + 1}/${proxies.length}`,
