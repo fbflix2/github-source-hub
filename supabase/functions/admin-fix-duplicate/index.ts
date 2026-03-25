@@ -56,11 +56,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Action: fulfill_item - calls fulfill_order_item DB function (admin only)
+    // Action: fulfill_item - manually links a stock item to an order_item (admin only)
     if (body.action === "fulfill_item") {
       const { order_item_id, product_id } = body;
       if (!order_item_id || !product_id) throw new Error("order_item_id e product_id são obrigatórios");
-      // Auth: check if caller is admin
       if (authHeader) {
         const supabaseUser = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!, { global: { headers: { Authorization: authHeader } } });
         const { data: { user: caller } } = await supabaseUser.auth.getUser();
@@ -69,15 +68,79 @@ Deno.serve(async (req) => {
           if (!isAdm) throw new Error("Sem permissão");
         }
       }
-      const { data: result, error: fulfillErr } = await supabaseAdmin.rpc("fulfill_order_item", {
-        p_order_item_id: order_item_id,
-        p_product_id: product_id,
-      });
-      if (fulfillErr) throw fulfillErr;
-      return new Response(JSON.stringify({ success: true, result }), {
+      // Find available stock item
+      const { data: stockItem, error: stockErr } = await supabaseAdmin
+        .from("stock_items")
+        .select("*")
+        .eq("product_id", product_id)
+        .eq("status", "revisado")
+        .is("order_item_id", null)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .single();
+      if (stockErr || !stockItem) throw new Error("Nenhum item de estoque disponível");
+
+      // Mark stock as sold
+      await supabaseAdmin.from("stock_items")
+        .update({ order_item_id, status: "vendido" })
+        .eq("id", stockItem.id);
+
+      // Get product info
+      const { data: product } = await supabaseAdmin
+        .from("products")
+        .select("name, icon_type, price")
+        .eq("id", product_id)
+        .single();
+
+      // Build delivery_data
+      const deliveryData: Record<string, any> = {
+        ...(stockItem.data || {}),
+        ...(stockItem.identification ? { idPerfil: stockItem.identification } : {}),
+        ...(stockItem.identification_link ? { linkPerfil: stockItem.identification_link } : {}),
+      };
+      if (product?.icon_type === "bm" && stockItem.identification_link) {
+        deliveryData.bmLinks = [stockItem.identification_link];
+      }
+      // Add product metadata
+      if (product) {
+        deliveryData.nomeProduto = product.name;
+        deliveryData.preco = product.price;
+      }
+
+      // Update order_item with delivery_data
+      await supabaseAdmin.from("order_items")
+        .update({ delivery_data: deliveryData })
+        .eq("id", order_item_id);
+
+      // Get order info for BM tracking
+      const { data: orderItem } = await supabaseAdmin
+        .from("order_items")
+        .select("order_id, price")
+        .eq("id", order_item_id)
+        .single();
+      if (orderItem && product?.icon_type === "bm" && stockItem.identification_link) {
+        const { data: order } = await supabaseAdmin.from("orders").select("user_id").eq("id", orderItem.order_id).single();
+        const { data: profile } = order ? await supabaseAdmin.from("profiles").select("full_name").eq("user_id", order.user_id).single() : { data: null };
+        await supabaseAdmin.from("bm_tracking").upsert({
+          stock_item_id: stockItem.id,
+          order_id: orderItem.order_id,
+          order_item_id,
+          client_user_id: order?.user_id || "00000000-0000-0000-0000-000000000000",
+          client_name: profile?.full_name || null,
+          product_name: product.name || "BM",
+          bm_link: stockItem.identification_link,
+          sale_price: orderItem.price || 0,
+          status: "active",
+          sold_at: new Date().toISOString(),
+          expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        }, { onConflict: "stock_item_id" });
+      }
+
+      return new Response(JSON.stringify({ success: true, stock_item_id: stockItem.id }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
 
 
     const isServiceRole = authHeader?.replace("Bearer ", "") === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
