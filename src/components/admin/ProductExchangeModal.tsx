@@ -110,8 +110,7 @@ export default function ProductExchangeModal({ open, onOpenChange, orderItem, or
   }
 
   const filtered = products.filter(p =>
-    p.name.toLowerCase().includes(search.toLowerCase()) &&
-    p.id !== orderItem?.product_id
+    p.name.toLowerCase().includes(search.toLowerCase())
   );
 
   function addProduct(p: ProductOption) {
