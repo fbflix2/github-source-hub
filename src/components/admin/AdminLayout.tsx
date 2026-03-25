@@ -6,6 +6,7 @@ import { AdminHeader } from "./AdminHeader";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { ProxyBRLowBalanceAlert } from "./ProxyBRLowBalanceAlert";
 import { PageRequestNotification } from "./PageRequestNotification";
+import { PendingSafeBMPopup } from "./PendingSafeBMPopup";
 import { Play } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
