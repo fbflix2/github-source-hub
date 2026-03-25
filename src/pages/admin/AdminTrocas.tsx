@@ -139,7 +139,7 @@ export default function AdminTrocas() {
     // Auto-select if single item
     if (enriched.length === 1) {
       setSelectedItem(enriched[0]);
-      fetchProducts();
+      fetchProducts(enriched[0].product_id);
     }
   }
 
