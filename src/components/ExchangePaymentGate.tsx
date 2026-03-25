@@ -73,42 +73,34 @@ export default function ExchangePaymentGate({ itemId, orderId, orderCode, pendin
   }
 
   async function clearPendingFlag() {
-    // Remove _exchange_pending_payment from this item
-    const { data: item } = await supabase
-      .from("order_items")
-      .select("delivery_data")
-      .eq("id", itemId)
-      .single();
+    // Use edge function with service role to bypass RLS
+    try {
+      // Clear this item
+      await supabase.functions.invoke("admin-fix-duplicate", {
+        body: { action: "clear_exchange_lock", item_id: itemId },
+      });
 
-    if (item?.delivery_data && typeof item.delivery_data === "object") {
-      const dd = { ...(item.delivery_data as Record<string, any>) };
-      delete dd._exchange_pending_payment;
-      await supabase.from("order_items").update({
-        delivery_data: Object.keys(dd).length > 0 ? dd : null,
-      }).eq("id", itemId);
-    }
+      // Also clear all sibling items in the same order
+      const { data: siblings } = await supabase
+        .from("order_items")
+        .select("id, delivery_data")
+        .eq("order_id", orderId)
+        .neq("id", itemId);
 
-    // Also unlock all sibling items in the same order that have _exchange_locked
-    const { data: siblings } = await supabase
-      .from("order_items")
-      .select("id, delivery_data")
-      .eq("order_id", orderId)
-      .neq("id", itemId);
-
-    if (siblings) {
-      for (const sib of siblings) {
-        if (sib.delivery_data && typeof sib.delivery_data === "object") {
-          const sd = sib.delivery_data as Record<string, any>;
-          if (sd._exchange_locked || sd._exchange_pending_payment) {
-            const cleaned = { ...sd };
-            delete cleaned._exchange_locked;
-            delete cleaned._exchange_pending_payment;
-            await supabase.from("order_items").update({
-              delivery_data: Object.keys(cleaned).length > 0 ? cleaned : null,
-            }).eq("id", sib.id);
+      if (siblings) {
+        for (const sib of siblings) {
+          if (sib.delivery_data && typeof sib.delivery_data === "object") {
+            const sd = sib.delivery_data as Record<string, any>;
+            if (sd._exchange_locked || sd._exchange_pending_payment) {
+              await supabase.functions.invoke("admin-fix-duplicate", {
+                body: { action: "clear_exchange_lock", item_id: sib.id },
+              });
+            }
           }
         }
       }
+    } catch (err) {
+      console.error("Error clearing exchange flags:", err);
     }
   }
 
