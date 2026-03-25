@@ -79,6 +79,20 @@ Deno.serve(async (req) => {
 
     // (clear_exchange_lock is handled before auth check above)
 
+    // Action: fulfill_item - calls fulfill_order_item DB function with service role
+    if (body.action === "fulfill_item") {
+      const { order_item_id, product_id } = body;
+      if (!order_item_id || !product_id) throw new Error("order_item_id e product_id são obrigatórios");
+      const { data: result, error: fulfillErr } = await supabaseAdmin.rpc("fulfill_order_item", {
+        p_order_item_id: order_item_id,
+        p_product_id: product_id,
+      });
+      if (fulfillErr) throw fulfillErr;
+      return new Response(JSON.stringify({ success: true, result }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Action: split_order_item - splits a qty>1 order_item into individual items with correct delivery_data
     if (body.action === "split_order_item") {
       const { order_item_id } = body;
