@@ -404,7 +404,7 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
             {hasProductContext && (
               <div className="flex items-center gap-1.5">
                 <Badge variant="outline" className="text-[10px] border-yellow-500/40 text-yellow-400">
-                  Filtrado: mesma categoria
+                  {matchedProductId ? "Filtrado: mesmo produto" : "Filtrado: mesma categoria"}
                 </Badge>
                 <button
                   className="text-[10px] text-zinc-500 hover:text-zinc-300 underline"
