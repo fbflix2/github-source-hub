@@ -214,19 +214,8 @@ export default function ProductExchangeModal({ open, onOpenChange, orderItem, or
         linkedItems.push({ product: prod, stockItemId: available.id, deliveryData });
       }
 
-      // Build pending payment flag if client owes money
+      // Build exchange timestamp for tracking
       const exchangeTimestamp = new Date().toISOString();
-      const pendingPaymentData = priceDiff > 0 ? {
-        _exchange_pending_payment: {
-          amount: priceDiff,
-          original_product: orderItem.product_name,
-          created_at: exchangeTimestamp,
-        }
-      } : {};
-      // For additional items: just lock them (no separate payment needed)
-      const lockedData = priceDiff > 0 ? {
-        _exchange_locked: exchangeTimestamp,
-      } : {};
 
       // 3. Update the FIRST unit on the existing order_item (WITHOUT payment flag first)
       const first = linkedItems[0];
