@@ -1408,6 +1408,8 @@ export type Database = {
           created_at: string
           global: boolean
           id: string
+          image_url: string | null
+          link: string | null
           message: string
           read: boolean
           title: string
@@ -1418,6 +1420,8 @@ export type Database = {
           created_at?: string
           global?: boolean
           id?: string
+          image_url?: string | null
+          link?: string | null
           message: string
           read?: boolean
           title: string
@@ -1428,6 +1432,8 @@ export type Database = {
           created_at?: string
           global?: boolean
           id?: string
+          image_url?: string | null
+          link?: string | null
           message?: string
           read?: boolean
           title?: string
