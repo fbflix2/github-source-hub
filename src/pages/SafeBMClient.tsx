@@ -7,6 +7,7 @@ import { ptBR } from "date-fns/locale";
 import SecurityMonitor, { type SecurityMonitorHandle } from "@/components/safebm/SecurityMonitor";
 import PricingModal from "@/components/safebm/PricingModal";
 import SafeBMOnboarding from "@/components/safebm/SafeBMOnboarding";
+import SafeBMVaultConfig from "@/components/safebm/SafeBMVaultConfig";
 
 interface SafeBmVault {
   id: string;
