@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -18,6 +18,9 @@ import {
   Clock,
   Loader2,
   X,
+  Users,
+  Globe,
+  UserPlus,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -43,9 +46,15 @@ interface AdminNotification {
   scheduled_at: string | null;
   is_active: boolean;
   global: boolean;
+  target_user_ids: string[] | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
+}
+
+interface UserOption {
+  user_id: string;
+  full_name: string | null;
 }
 
 export default function AdminNotificacoes() {
@@ -65,6 +74,42 @@ export default function AdminNotificacoes() {
   const [formLink, setFormLink] = useState("");
   const [formSchedule, setFormSchedule] = useState("now");
   const [formScheduledAt, setFormScheduledAt] = useState("");
+  const [formAudience, setFormAudience] = useState<"all" | "specific">("all");
+  const [selectedUsers, setSelectedUsers] = useState<UserOption[]>([]);
+  const [userSearch, setUserSearch] = useState("");
+  const [userResults, setUserResults] = useState<UserOption[]>([]);
+  const [searchingUsers, setSearchingUsers] = useState(false);
+  const userSearchTimeout = useRef<ReturnType<typeof setTimeout>>();
+
+  const searchUsers = async (query: string) => {
+    if (query.length < 2) { setUserResults([]); return; }
+    setSearchingUsers(true);
+    const { data } = await supabase
+      .from("profiles")
+      .select("user_id, full_name")
+      .or(`full_name.ilike.%${query}%`)
+      .limit(10);
+    setUserResults(
+      (data || []).filter(u => !selectedUsers.some(s => s.user_id === u.user_id)) as UserOption[]
+    );
+    setSearchingUsers(false);
+  };
+
+  const handleUserSearch = (val: string) => {
+    setUserSearch(val);
+    if (userSearchTimeout.current) clearTimeout(userSearchTimeout.current);
+    userSearchTimeout.current = setTimeout(() => searchUsers(val), 300);
+  };
+
+  const addUser = (u: UserOption) => {
+    setSelectedUsers(prev => [...prev, u]);
+    setUserResults(prev => prev.filter(r => r.user_id !== u.user_id));
+    setUserSearch("");
+  };
+
+  const removeUser = (userId: string) => {
+    setSelectedUsers(prev => prev.filter(u => u.user_id !== userId));
+  };
 
   const fetchNotifications = async () => {
     const { data, error } = await supabase
@@ -92,6 +137,10 @@ export default function AdminNotificacoes() {
     setFormLink("");
     setFormSchedule("now");
     setFormScheduledAt("");
+    setFormAudience("all");
+    setSelectedUsers([]);
+    setUserSearch("");
+    setUserResults([]);
   };
 
   const handleSubmit = async () => {
@@ -108,6 +157,11 @@ export default function AdminNotificacoes() {
         ? "scheduled"
         : "draft";
 
+    const isGlobal = formAudience === "all";
+    const targetIds = !isGlobal && selectedUsers.length > 0
+      ? selectedUsers.map(u => u.user_id)
+      : null;
+
     const payload: any = {
       type: formType,
       title: formTitle.trim(),
@@ -120,6 +174,8 @@ export default function AdminNotificacoes() {
           ? new Date(formScheduledAt).toISOString()
           : null,
       is_active: status !== "draft",
+      global: isGlobal,
+      target_user_ids: targetIds,
     };
 
     let error;
@@ -135,14 +191,25 @@ export default function AdminNotificacoes() {
       payload.created_by = user?.id || null;
       ({ error } = await supabase.from("admin_notifications").insert(payload));
 
-      // If sending now, also create a record in the notifications table for users
+      // If sending now, also create notifications for users
       if (status === "sent") {
-        await supabase.from("notifications").insert({
-          title: payload.title,
-          message: payload.message,
-          type: formType === "push" ? "info" : "promo",
-          global: true,
-        });
+        if (isGlobal) {
+          await supabase.from("notifications").insert({
+            title: payload.title,
+            message: payload.message,
+            type: formType === "push" ? "info" : "promo",
+            global: true,
+          });
+        } else if (targetIds) {
+          const notifs = targetIds.map(uid => ({
+            title: payload.title,
+            message: payload.message,
+            type: formType === "push" ? "info" : "promo",
+            global: false,
+            user_id: uid,
+          }));
+          await supabase.from("notifications").insert(notifs);
+        }
       }
     }
 
@@ -158,7 +225,7 @@ export default function AdminNotificacoes() {
     setSaving(false);
   };
 
-  const handleEdit = (n: AdminNotification) => {
+  const handleEdit = async (n: AdminNotification) => {
     setEditingId(n.id);
     setFormType(n.type as "push" | "popup");
     setFormTitle(n.title);
@@ -177,6 +244,20 @@ export default function AdminNotificacoes() {
     } else {
       setFormSchedule("now");
     }
+
+    // Load audience
+    if (n.target_user_ids && n.target_user_ids.length > 0) {
+      setFormAudience("specific");
+      const { data } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", n.target_user_ids);
+      setSelectedUsers((data || []) as UserOption[]);
+    } else {
+      setFormAudience("all");
+      setSelectedUsers([]);
+    }
+
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -207,13 +288,24 @@ export default function AdminNotificacoes() {
       .update({ status: "sent", is_active: true })
       .eq("id", n.id);
 
-    // Push to user notifications
-    await supabase.from("notifications").insert({
-      title: n.title,
-      message: n.message,
-      type: n.type === "push" ? "info" : "promo",
-      global: true,
-    });
+    // Push to user notifications (targeted or global)
+    if (n.target_user_ids && n.target_user_ids.length > 0) {
+      const notifs = n.target_user_ids.map(uid => ({
+        title: n.title,
+        message: n.message,
+        type: n.type === "push" ? "info" : "promo",
+        global: false,
+        user_id: uid,
+      }));
+      await supabase.from("notifications").insert(notifs);
+    } else {
+      await supabase.from("notifications").insert({
+        title: n.title,
+        message: n.message,
+        type: n.type === "push" ? "info" : "promo",
+        global: true,
+      });
+    }
 
     toast.success("Notificação enviada!");
     fetchNotifications();
@@ -379,6 +471,91 @@ export default function AdminNotificacoes() {
                 </div>
               )}
 
+              {/* Audience */}
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-white/80">Público-Alvo</label>
+                <div className="grid grid-cols-2 gap-2 p-1 bg-black/40 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => setFormAudience("all")}
+                    className={`flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                      formAudience === "all" ? "bg-primary text-white" : "text-white/60 hover:text-white/80"
+                    }`}
+                  >
+                    <Globe className="w-4 h-4" /> Todos
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormAudience("specific")}
+                    className={`flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                      formAudience === "specific" ? "bg-primary text-white" : "text-white/60 hover:text-white/80"
+                    }`}
+                  >
+                    <Users className="w-4 h-4" /> Específicos
+                  </button>
+                </div>
+              </div>
+
+              {formAudience === "specific" && (
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-white/80">Buscar Usuários</label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/40" />
+                    <Input
+                      className="bg-[rgba(20,20,20,0.6)] border-white/10 rounded-xl pl-9 pr-4 py-3 text-sm text-white placeholder-white/30 focus:border-primary focus:ring-primary/20"
+                      placeholder="Digite o nome do cliente..."
+                      value={userSearch}
+                      onChange={(e) => handleUserSearch(e.target.value)}
+                    />
+                    {searchingUsers && (
+                      <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 animate-spin text-white/40" />
+                    )}
+                  </div>
+
+                  {/* Search results dropdown */}
+                  {userResults.length > 0 && (
+                    <div className="bg-[rgba(20,20,20,0.9)] border border-white/10 rounded-xl overflow-hidden max-h-40 overflow-y-auto">
+                      {userResults.map(u => (
+                        <button
+                          key={u.user_id}
+                          type="button"
+                          onClick={() => addUser(u)}
+                          className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-white/80 hover:bg-white/5 transition-colors text-left"
+                        >
+                          <UserPlus className="w-3.5 h-3.5 text-primary shrink-0" />
+                          <span className="truncate">{u.full_name || "Sem nome"}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Selected users */}
+                  {selectedUsers.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {selectedUsers.map(u => (
+                        <span
+                          key={u.user_id}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/15 text-primary text-xs font-medium"
+                        >
+                          {u.full_name || "Sem nome"}
+                          <button
+                            type="button"
+                            onClick={() => removeUser(u.user_id)}
+                            className="hover:text-white transition-colors"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {formAudience === "specific" && selectedUsers.length === 0 && (
+                    <p className="text-xs text-white/30 italic">Nenhum usuário selecionado</p>
+                  )}
+                </div>
+              )}
+
               {/* Submit */}
               <Button
                 type="button"
@@ -516,6 +693,19 @@ export default function AdminNotificacoes() {
                         <div className="flex items-center gap-2 text-yellow-500/80 text-xs font-medium bg-yellow-500/5 px-3 py-2 rounded-lg border border-yellow-500/10">
                           <Clock className="w-3.5 h-3.5" />
                           Envia em: {format(new Date(n.scheduled_at), "dd/MM 'às' HH:mm")}
+                        </div>
+                      )}
+
+                      {/* Audience indicator */}
+                      {n.target_user_ids && n.target_user_ids.length > 0 ? (
+                        <div className="flex items-center gap-2 text-purple-400/80 text-xs font-medium bg-purple-500/5 px-3 py-2 rounded-lg border border-purple-500/10">
+                          <Users className="w-3.5 h-3.5" />
+                          {n.target_user_ids.length} usuário{n.target_user_ids.length > 1 ? "s" : ""} selecionado{n.target_user_ids.length > 1 ? "s" : ""}
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 text-blue-400/60 text-xs font-medium px-1">
+                          <Globe className="w-3.5 h-3.5" />
+                          Todos os usuários
                         </div>
                       )}
 
