@@ -37,20 +37,22 @@ export default function SafeBMClient() {
   const [showPricing, setShowPricing] = useState(false);
   const monitorRef = useRef<SecurityMonitorHandle>(null);
 
-  useEffect(() => {
-    (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { setLoading(false); return; }
-      const { data, error } = await supabase
-        .from("safe_bm_vaults" as any)
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
-      if (error) toast.error("Erro ao carregar cofre: " + error.message);
-      setVaults((data as any[]) || []);
-      setLoading(false);
-    })();
-  }, []);
+  const GENERIC_BM_LINK = "https://business.facebook.com";
+
+  const fetchVaults = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setLoading(false); return; }
+    const { data, error } = await supabase
+      .from("safe_bm_vaults" as any)
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+    if (error) toast.error("Erro ao carregar cofre: " + error.message);
+    setVaults((data as any[]) || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchVaults(); }, []);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return vaults;
