@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_notifications: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          global: boolean
+          id: string
+          image_url: string | null
+          is_active: boolean
+          link: string | null
+          message: string
+          scheduled_at: string | null
+          status: string
+          title: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          global?: boolean
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          link?: string | null
+          message?: string
+          scheduled_at?: string | null
+          status?: string
+          title: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          global?: boolean
+          id?: string
+          image_url?: string | null
+          is_active?: boolean
+          link?: string | null
+          message?: string
+          scheduled_at?: string | null
+          status?: string
+          title?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ads: {
         Row: {
           created_at: string

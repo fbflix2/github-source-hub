@@ -1,21 +1,23 @@
-import { useState } from "react";
-import { 
-  Bell, 
-  BellRing, 
-  Monitor, 
-  Search, 
-  Link as LinkIcon, 
-  Edit, 
-  Eye, 
-  Trash2, 
-  Send, 
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import {
+  Bell,
+  BellRing,
+  Monitor,
+  Search,
+  Link as LinkIcon,
+  Edit,
+  Eye,
+  Trash2,
+  Send,
   Image,
   Settings,
   Megaphone,
   Calendar,
   Clock,
-  ChevronLeft,
-  ChevronRight
+  Loader2,
+  X,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -28,68 +30,201 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { format } from "date-fns";
 
-interface Notification {
+interface AdminNotification {
   id: string;
-  type: "push" | "popup";
+  type: string;
   title: string;
   message: string;
-  imageUrl?: string;
-  link: string;
-  status: "sent" | "scheduled" | "draft" | "active";
-  scheduledDate?: string;
-  isActive: boolean;
+  image_url: string | null;
+  link: string | null;
+  status: string;
+  scheduled_at: string | null;
+  is_active: boolean;
+  global: boolean;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
-const mockNotifications: Notification[] = [
-  {
-    id: "1",
-    type: "push",
-    title: "Estreia Stranger Things S5",
-    message: "A espera acabou! Assista agora aos novos episódios da temporada final.",
-    imageUrl: "https://images.unsplash.com/photo-1626814026160-2237a95fc5a0?q=80&w=2070&auto=format&fit=crop",
-    link: "/series/details/stranger-things-s5",
-    status: "sent",
-    isActive: true,
-  },
-  {
-    id: "2",
-    type: "popup",
-    title: "Promoção Black Friday",
-    message: "50% OFF no plano anual. Aproveite agora! Oferta válida por tempo limitado.",
-    link: "/pricing/black-friday",
-    status: "scheduled",
-    scheduledDate: "24/11 às 09:00",
-    isActive: true,
-  },
-  {
-    id: "3",
-    type: "push",
-    title: 'Lançamento "Oppenheimer"',
-    message: "Disponível para aluguel. Assista em 4K com exclusividade.",
-    imageUrl: "https://images.unsplash.com/photo-1440404653325-ab127d49abc1?q=80&w=2070&auto=format&fit=crop",
-    link: "/movies/oppenheimer",
-    status: "draft",
-    isActive: false,
-  },
-  {
-    id: "4",
-    type: "popup",
-    title: "Manutenção Programada",
-    message: "O sistema ficará instável dia 30/11 às 03:00 para atualizações de segurança.",
-    link: "/system/status",
-    status: "active",
-    scheduledDate: "30/11 às 03:00",
-    isActive: true,
-  },
-];
-
 export default function AdminNotificacoes() {
-  const [notifications] = useState<Notification[]>(mockNotifications);
-  const [notificationType, setNotificationType] = useState<"push" | "popup">("push");
+  const [notifications, setNotifications] = useState<AdminNotification[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
+
+  // Form state
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [formType, setFormType] = useState<"push" | "popup">("push");
+  const [formTitle, setFormTitle] = useState("");
+  const [formMessage, setFormMessage] = useState("");
+  const [formImageUrl, setFormImageUrl] = useState("");
+  const [formLink, setFormLink] = useState("");
+  const [formSchedule, setFormSchedule] = useState("now");
+  const [formScheduledAt, setFormScheduledAt] = useState("");
+
+  const fetchNotifications = async () => {
+    const { data, error } = await supabase
+      .from("admin_notifications")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) {
+      toast.error("Erro ao carregar notificações");
+    } else {
+      setNotifications((data || []) as AdminNotification[]);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+
+  const resetForm = () => {
+    setEditingId(null);
+    setFormType("push");
+    setFormTitle("");
+    setFormMessage("");
+    setFormImageUrl("");
+    setFormLink("");
+    setFormSchedule("now");
+    setFormScheduledAt("");
+  };
+
+  const handleSubmit = async () => {
+    if (!formTitle.trim()) {
+      toast.error("Título é obrigatório");
+      return;
+    }
+    setSaving(true);
+
+    const status =
+      formSchedule === "now"
+        ? "sent"
+        : formSchedule === "schedule"
+        ? "scheduled"
+        : "draft";
+
+    const payload: any = {
+      type: formType,
+      title: formTitle.trim(),
+      message: formMessage.trim(),
+      image_url: formImageUrl.trim() || null,
+      link: formLink.trim() || "",
+      status,
+      scheduled_at:
+        formSchedule === "schedule" && formScheduledAt
+          ? new Date(formScheduledAt).toISOString()
+          : null,
+      is_active: status !== "draft",
+    };
+
+    let error;
+    if (editingId) {
+      ({ error } = await supabase
+        .from("admin_notifications")
+        .update(payload)
+        .eq("id", editingId));
+    } else {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      payload.created_by = user?.id || null;
+      ({ error } = await supabase.from("admin_notifications").insert(payload));
+
+      // If sending now, also create a record in the notifications table for users
+      if (status === "sent") {
+        await supabase.from("notifications").insert({
+          title: payload.title,
+          message: payload.message,
+          type: formType === "push" ? "info" : "promo",
+          global: true,
+        });
+      }
+    }
+
+    if (error) {
+      toast.error("Erro ao salvar notificação");
+    } else {
+      toast.success(
+        editingId ? "Notificação atualizada!" : "Notificação criada!"
+      );
+      resetForm();
+      fetchNotifications();
+    }
+    setSaving(false);
+  };
+
+  const handleEdit = (n: AdminNotification) => {
+    setEditingId(n.id);
+    setFormType(n.type as "push" | "popup");
+    setFormTitle(n.title);
+    setFormMessage(n.message);
+    setFormImageUrl(n.image_url || "");
+    setFormLink(n.link || "");
+    if (n.status === "scheduled") {
+      setFormSchedule("schedule");
+      setFormScheduledAt(
+        n.scheduled_at
+          ? format(new Date(n.scheduled_at), "yyyy-MM-dd'T'HH:mm")
+          : ""
+      );
+    } else if (n.status === "draft") {
+      setFormSchedule("draft");
+    } else {
+      setFormSchedule("now");
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase
+      .from("admin_notifications")
+      .delete()
+      .eq("id", id);
+    if (error) {
+      toast.error("Erro ao excluir");
+    } else {
+      toast.success("Notificação excluída");
+      fetchNotifications();
+    }
+  };
+
+  const handleToggleActive = async (n: AdminNotification) => {
+    await supabase
+      .from("admin_notifications")
+      .update({ is_active: !n.is_active })
+      .eq("id", n.id);
+    fetchNotifications();
+  };
+
+  const handleSendNow = async (n: AdminNotification) => {
+    await supabase
+      .from("admin_notifications")
+      .update({ status: "sent", is_active: true })
+      .eq("id", n.id);
+
+    // Push to user notifications
+    await supabase.from("notifications").insert({
+      title: n.title,
+      message: n.message,
+      type: n.type === "push" ? "info" : "promo",
+      global: true,
+    });
+
+    toast.success("Notificação enviada!");
+    fetchNotifications();
+  };
+
+  const filteredNotifications = notifications.filter((n) => {
+    if (searchQuery && !n.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    if (statusFilter !== "all" && n.status !== statusFilter) return false;
+    if (typeFilter !== "all" && n.type !== typeFilter) return false;
+    return true;
+  });
 
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { color: string; label: string }> = {
@@ -101,7 +236,7 @@ export default function AdminNotificacoes() {
     const config = statusConfig[status] || statusConfig.draft;
     return (
       <span className="bg-black/60 backdrop-blur-md border border-white/10 px-3 py-1 rounded-full text-[11px] font-medium text-white flex items-center gap-1.5">
-        <span className={`w-2 h-2 rounded-full ${config.color} ${status !== 'draft' ? 'shadow-[0_0_8px_rgba(34,197,94,0.6)]' : ''}`}></span>
+        <span className={`w-2 h-2 rounded-full ${config.color} ${status !== "draft" ? "shadow-[0_0_8px_rgba(34,197,94,0.6)]" : ""}`} />
         {config.label}
       </span>
     );
@@ -109,7 +244,6 @@ export default function AdminNotificacoes() {
 
   return (
     <div className="flex flex-col gap-8 py-6">
-      {/* Header */}
       <header className="flex flex-col gap-2">
         <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-white">
           Gerenciamento de Notificações
@@ -119,44 +253,46 @@ export default function AdminNotificacoes() {
         </p>
       </header>
 
-      {/* Content Grid */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
         {/* Form Panel */}
         <div className="xl:col-span-4 w-full">
           <div className="rounded-2xl p-6 md:p-8 flex flex-col gap-6 sticky top-8">
-            <div className="flex items-center gap-3 border-b border-white/10 pb-4">
-              <BellRing className="w-5 h-5 text-primary" />
-              <h2 className="text-xl font-bold tracking-tight">Nova Notificação</h2>
+            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+              <div className="flex items-center gap-3">
+                <BellRing className="w-5 h-5 text-primary" />
+                <h2 className="text-xl font-bold tracking-tight">
+                  {editingId ? "Editar Notificação" : "Nova Notificação"}
+                </h2>
+              </div>
+              {editingId && (
+                <button onClick={resetForm} className="p-1.5 rounded-lg hover:bg-white/10 text-white/50 hover:text-white transition-colors">
+                  <X className="w-4 h-4" />
+                </button>
+              )}
             </div>
 
-            <form className="flex flex-col gap-5">
-              {/* Notification Type */}
+            <div className="flex flex-col gap-5">
+              {/* Type */}
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-medium text-white/80">Tipo de Notificação</label>
                 <div className="grid grid-cols-2 gap-2 p-1 bg-black/40 rounded-xl">
                   <button
                     type="button"
-                    onClick={() => setNotificationType("push")}
+                    onClick={() => setFormType("push")}
                     className={`flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                      notificationType === "push"
-                        ? "bg-primary text-white"
-                        : "text-white/60 hover:text-white/80"
+                      formType === "push" ? "bg-primary text-white" : "text-white/60 hover:text-white/80"
                     }`}
                   >
-                    <Bell className="w-4 h-4" />
-                    Push
+                    <Bell className="w-4 h-4" /> Push
                   </button>
                   <button
                     type="button"
-                    onClick={() => setNotificationType("popup")}
+                    onClick={() => setFormType("popup")}
                     className={`flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                      notificationType === "popup"
-                        ? "bg-primary text-white"
-                        : "text-white/60 hover:text-white/80"
+                      formType === "popup" ? "bg-primary text-white" : "text-white/60 hover:text-white/80"
                     }`}
                   >
-                    <Monitor className="w-4 h-4" />
-                    Pop-up
+                    <Monitor className="w-4 h-4" /> Pop-up
                   </button>
                 </div>
               </div>
@@ -167,6 +303,8 @@ export default function AdminNotificacoes() {
                 <Input
                   className="bg-[rgba(20,20,20,0.6)] border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:border-primary focus:ring-primary/20"
                   placeholder="Ex: Estreia da Temporada 2"
+                  value={formTitle}
+                  onChange={(e) => setFormTitle(e.target.value)}
                 />
               </div>
 
@@ -177,6 +315,8 @@ export default function AdminNotificacoes() {
                   className="bg-[rgba(20,20,20,0.6)] border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 resize-none focus:border-primary focus:ring-primary/20"
                   placeholder="Digite o corpo da notificação..."
                   rows={4}
+                  value={formMessage}
+                  onChange={(e) => setFormMessage(e.target.value)}
                 />
               </div>
 
@@ -188,6 +328,8 @@ export default function AdminNotificacoes() {
                     className="bg-[rgba(20,20,20,0.6)] border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 flex-1 focus:border-primary focus:ring-primary/20"
                     placeholder="https://..."
                     type="url"
+                    value={formImageUrl}
+                    onChange={(e) => setFormImageUrl(e.target.value)}
                   />
                   <Button
                     type="button"
@@ -205,13 +347,15 @@ export default function AdminNotificacoes() {
                 <Input
                   className="bg-[rgba(20,20,20,0.6)] border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:border-primary focus:ring-primary/20"
                   placeholder="/series/dark-matter"
+                  value={formLink}
+                  onChange={(e) => setFormLink(e.target.value)}
                 />
               </div>
 
               {/* Schedule */}
               <div className="flex flex-col gap-2">
                 <label className="text-sm font-medium text-white/80">Agendamento</label>
-                <Select defaultValue="now">
+                <Select value={formSchedule} onValueChange={setFormSchedule}>
                   <SelectTrigger className="bg-[rgba(20,20,20,0.6)] border-white/10 rounded-xl px-4 py-3 text-sm text-white">
                     <SelectValue />
                   </SelectTrigger>
@@ -223,15 +367,33 @@ export default function AdminNotificacoes() {
                 </Select>
               </div>
 
+              {formSchedule === "schedule" && (
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-white/80">Data e Hora</label>
+                  <Input
+                    type="datetime-local"
+                    className="bg-[rgba(20,20,20,0.6)] border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-primary focus:ring-primary/20"
+                    value={formScheduledAt}
+                    onChange={(e) => setFormScheduledAt(e.target.value)}
+                  />
+                </div>
+              )}
+
               {/* Submit */}
               <Button
                 type="button"
+                onClick={handleSubmit}
+                disabled={saving}
                 className="mt-4 w-full bg-primary hover:bg-primary/90 text-white font-bold py-3.5 px-6 rounded-xl shadow-lg shadow-primary/20 transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
               >
-                <Send className="w-4 h-4" />
-                Criar Notificação
+                {saving ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4" />
+                )}
+                {editingId ? "Salvar Alterações" : "Criar Notificação"}
               </Button>
-            </form>
+            </div>
           </div>
         </div>
 
@@ -274,141 +436,138 @@ export default function AdminNotificacoes() {
             </div>
           </div>
 
-          {/* Notification Cards Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {notifications.map((notification) => (
-              <div
-                key={notification.id}
-                className="bg-[#141414] border border-white/[0.05] rounded-2xl overflow-hidden flex flex-col group h-full hover:border-primary/30 hover:-translate-y-0.5 hover:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] transition-all duration-300"
-              >
-                {/* Card Header Image */}
-                <div className="h-40 bg-gradient-to-br from-gray-900 to-black relative">
-                  {notification.imageUrl ? (
-                    <div
-                      className="absolute inset-0 bg-cover bg-center opacity-40 group-hover:opacity-60 transition-all duration-500"
-                      style={{ backgroundImage: `url(${notification.imageUrl})` }}
-                    />
-                  ) : (
-                    <>
-                      <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 to-transparent opacity-50 group-hover:opacity-70 transition-all" />
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        {notification.status === "active" ? (
-                          <Settings className="w-16 h-16 text-white/5" />
-                        ) : (
-                          <Megaphone className="w-16 h-16 text-white/5" />
-                        )}
-                      </div>
-                    </>
-                  )}
-                  
-                  {/* Type Badge */}
-                  <div className="absolute top-4 left-4 z-10">
-                    {notification.type === "push" ? (
-                      <span className="bg-primary text-white px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-[0_2px_10px_rgba(249,6,6,0.3)]">
-                        <Bell className="w-3 h-3" /> Push
-                      </span>
-                    ) : (
-                      <span className="bg-white/90 text-black px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5">
-                        <Monitor className="w-3 h-3" /> Pop-up
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Status Badge */}
-                  <div className="absolute top-4 right-4 z-10">
-                    {getStatusBadge(notification.status)}
-                  </div>
-                </div>
-
-                {/* Card Content */}
-                <div className="p-5 flex flex-col gap-4 flex-1">
-                  <div>
-                    <h3 className="text-lg font-bold text-white mb-1.5 leading-tight">
-                      {notification.title}
-                    </h3>
-                    <p className="text-sm text-white/50 line-clamp-2 leading-relaxed">
-                      {notification.message}
-                    </p>
-                  </div>
-
-                  <div className="mt-auto flex flex-col gap-4">
-                    {/* Link */}
-                    <div className="bg-white/[0.03] border border-white/5 rounded-lg p-2.5 flex items-center gap-3">
-                      <LinkIcon className="w-4 h-4 text-white/20" />
-                      <span className="text-xs font-mono text-white/40 truncate">
-                        {notification.link}
-                      </span>
-                    </div>
-
-                    {/* Scheduled Date */}
-                    {notification.scheduledDate && notification.status === "scheduled" && (
-                      <div className="flex items-center gap-2 text-yellow-500/80 text-xs font-medium bg-yellow-500/5 px-3 py-2 rounded-lg border border-yellow-500/10">
-                        <Clock className="w-3.5 h-3.5" />
-                        Envia em: {notification.scheduledDate}
-                      </div>
-                    )}
-
-                    {notification.scheduledDate && notification.status === "active" && (
-                      <div className="flex items-center gap-2 text-white/50 text-xs font-medium px-1">
-                        <Calendar className="w-3.5 h-3.5" />
-                        Data: {notification.scheduledDate}
-                      </div>
-                    )}
-
-                    {/* Actions */}
-                    <div className="pt-4 border-t border-white/5 flex items-center justify-between">
-                      <div className="flex items-center gap-1">
-                        <button
-                          className="p-2 text-white/40 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
-                          title="Editar"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        {notification.status === "sent" || notification.status === "active" ? (
-                          <button
-                            className="p-2 text-white/40 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
-                            title="Visualizar"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
-                        ) : (
-                          <button
-                            className="p-2 text-white/40 hover:text-green-400 hover:bg-green-500/10 rounded-lg transition-colors"
-                            title="Enviar Agora"
-                          >
-                            <Send className="w-4 h-4" />
-                          </button>
-                        )}
-                        <button
-                          className="p-2 text-white/40 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                          title="Excluir"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <Switch
-                        checked={notification.isActive}
-                        className={notification.status === "scheduled" ? "data-[state=checked]:bg-yellow-600" : "data-[state=checked]:bg-primary"}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Pagination */}
-          <div className="flex items-center justify-between text-sm text-white/40 mt-4">
-            <span>Mostrando 1-4 de 24 notificações</span>
-            <div className="flex items-center gap-2">
-              <button className="p-2 hover:bg-white/5 rounded-lg transition-colors">
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <button className="p-2 hover:bg-white/5 rounded-lg transition-colors">
-                <ChevronRight className="w-4 h-4" />
-              </button>
+          {/* Cards */}
+          {loading ? (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="w-6 h-6 animate-spin text-white/40" />
             </div>
-          </div>
+          ) : filteredNotifications.length === 0 ? (
+            <div className="text-center py-16 text-white/40">
+              <Megaphone className="w-12 h-12 mx-auto mb-4 opacity-30" />
+              <p className="text-lg font-medium">Nenhuma notificação encontrada</p>
+              <p className="text-sm mt-1">Crie uma nova notificação usando o formulário ao lado.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {filteredNotifications.map((n) => (
+                <div
+                  key={n.id}
+                  className="bg-[#141414] border border-white/[0.05] rounded-2xl overflow-hidden flex flex-col group h-full hover:border-primary/30 hover:-translate-y-0.5 hover:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] transition-all duration-300"
+                >
+                  {/* Card Header */}
+                  <div className="h-40 bg-gradient-to-br from-gray-900 to-black relative">
+                    {n.image_url ? (
+                      <div
+                        className="absolute inset-0 bg-cover bg-center opacity-40 group-hover:opacity-60 transition-all duration-500"
+                        style={{ backgroundImage: `url(${n.image_url})` }}
+                      />
+                    ) : (
+                      <>
+                        <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 to-transparent opacity-50 group-hover:opacity-70 transition-all" />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          {n.status === "active" ? (
+                            <Settings className="w-16 h-16 text-white/5" />
+                          ) : (
+                            <Megaphone className="w-16 h-16 text-white/5" />
+                          )}
+                        </div>
+                      </>
+                    )}
+
+                    <div className="absolute top-4 left-4 z-10">
+                      {n.type === "push" ? (
+                        <span className="bg-primary text-white px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-[0_2px_10px_rgba(249,6,6,0.3)]">
+                          <Bell className="w-3 h-3" /> Push
+                        </span>
+                      ) : (
+                        <span className="bg-white/90 text-black px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5">
+                          <Monitor className="w-3 h-3" /> Pop-up
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="absolute top-4 right-4 z-10">
+                      {getStatusBadge(n.status)}
+                    </div>
+                  </div>
+
+                  {/* Card Content */}
+                  <div className="p-5 flex flex-col gap-4 flex-1">
+                    <div>
+                      <h3 className="text-lg font-bold text-white mb-1.5 leading-tight">
+                        {n.title}
+                      </h3>
+                      <p className="text-sm text-white/50 line-clamp-2 leading-relaxed">
+                        {n.message}
+                      </p>
+                    </div>
+
+                    <div className="mt-auto flex flex-col gap-4">
+                      {n.link && (
+                        <div className="bg-white/[0.03] border border-white/5 rounded-lg p-2.5 flex items-center gap-3">
+                          <LinkIcon className="w-4 h-4 text-white/20" />
+                          <span className="text-xs font-mono text-white/40 truncate">
+                            {n.link}
+                          </span>
+                        </div>
+                      )}
+
+                      {n.scheduled_at && n.status === "scheduled" && (
+                        <div className="flex items-center gap-2 text-yellow-500/80 text-xs font-medium bg-yellow-500/5 px-3 py-2 rounded-lg border border-yellow-500/10">
+                          <Clock className="w-3.5 h-3.5" />
+                          Envia em: {format(new Date(n.scheduled_at), "dd/MM 'às' HH:mm")}
+                        </div>
+                      )}
+
+                      <div className="pt-4 border-t border-white/5 flex items-center justify-between">
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => handleEdit(n)}
+                            className="p-2 text-white/40 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                            title="Editar"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          {(n.status === "draft" || n.status === "scheduled") && (
+                            <button
+                              onClick={() => handleSendNow(n)}
+                              className="p-2 text-white/40 hover:text-green-400 hover:bg-green-500/10 rounded-lg transition-colors"
+                              title="Enviar Agora"
+                            >
+                              <Send className="w-4 h-4" />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleDelete(n.id)}
+                            className="p-2 text-white/40 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                            title="Excluir"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <Switch
+                          checked={n.is_active}
+                          onCheckedChange={() => handleToggleActive(n)}
+                          className={
+                            n.status === "scheduled"
+                              ? "data-[state=checked]:bg-yellow-600"
+                              : "data-[state=checked]:bg-primary"
+                          }
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Count */}
+          {!loading && filteredNotifications.length > 0 && (
+            <div className="text-sm text-white/40 mt-2">
+              Mostrando {filteredNotifications.length} de {notifications.length} notificações
+            </div>
+          )}
         </div>
       </div>
     </div>
