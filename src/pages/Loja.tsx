@@ -447,32 +447,29 @@ export default function Dashboard() {
                         </div>
                       </div>
                     )}
-                    <div className="p-5 flex flex-col flex-1 gap-4">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className="shrink-0 w-10 h-10 rounded-lg overflow-hidden bg-secondary flex items-center justify-center">
-                            {product.image_url ? (
-                              <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                            ) : (
-                              <span className="material-symbols-outlined text-[20px] text-muted-foreground">dns</span>
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <h3 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors leading-tight truncate">{product.name}</h3>
-                            {product.badge_text && (
-                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border inline-flex items-center gap-1 mt-1 ${product.badge_color || "bg-muted text-foreground border-border"}`}>
-                                {product.badge_icon && <span className="material-symbols-outlined text-[11px]">{product.badge_icon}</span>}
-                                {product.badge_text}
-                              </span>
-                            )}
-                          </div>
+                    <div className="p-4 flex flex-col flex-1 gap-3">
+                      {/* Badge */}
+                      {product.badge_text && (
+                        <div>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border inline-flex items-center gap-1 ${product.badge_color || "bg-muted text-foreground border-border"}`}>
+                            {product.badge_icon && <span className="material-symbols-outlined text-[11px]">{product.badge_icon}</span>}
+                            {product.badge_text}
+                          </span>
                         </div>
-                        <div className="text-right shrink-0">
-                          <p className="text-lg font-bold text-foreground">R$ {product.price.toFixed(2).replace(".", ",")}</p>
-                          <p className="text-[10px] text-muted-foreground">mensal</p>
+                      )}
+                      {/* Image + Name + Price */}
+                      <div className="flex items-center gap-3">
+                        <div className="shrink-0 w-12 h-12 rounded-lg overflow-hidden bg-secondary flex items-center justify-center">
+                          {product.image_url ? (
+                            <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                          ) : (
+                            <span className="material-symbols-outlined text-[22px] text-muted-foreground">dns</span>
+                          )}
                         </div>
+                        <h3 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors leading-tight truncate flex-1 min-w-0">{product.name}</h3>
+                        <p className="text-base font-bold text-foreground shrink-0">R$ {product.price.toFixed(2).replace(".", ",")}</p>
                       </div>
-                      {product.description && <p className="text-sm text-muted-foreground">{product.description.length > 150 ? product.description.substring(0, 150) + "..." : product.description}</p>}
+                      {/* Tags */}
                       {product.tags && product.tags.length > 0 && (
                         <div className="flex items-center gap-1.5 flex-wrap">
                           {product.tags.map((tag) => (
@@ -480,28 +477,26 @@ export default function Dashboard() {
                           ))}
                         </div>
                       )}
-                      <div className="space-y-1.5">
-                        <div className="flex justify-between text-xs font-medium">
-                          <span className={`${stockInfo.statusColor} flex items-center gap-1`}>
-                            {stockInfo.percentage > 0 && <span className={`w-1.5 h-1.5 rounded-full ${stockInfo.statusColor === "text-emerald-500" ? "bg-emerald-500 animate-pulse" : "bg-destructive"}`} />}
-                            {stockInfo.status}
-                          </span>
-                          <span className="text-muted-foreground">{stockInfo.sold}</span>
-                        </div>
-                        <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+                      {/* Stock */}
+                      <div className="flex items-center gap-2 text-[11px] font-medium">
+                        <span className={`${stockInfo.statusColor} flex items-center gap-1`}>
+                          {stockInfo.percentage > 0 && <span className={`w-1.5 h-1.5 rounded-full ${stockInfo.statusColor === "text-emerald-500" ? "bg-emerald-500 animate-pulse" : "bg-destructive"}`} />}
+                          {stockInfo.status}
+                        </span>
+                        <span className="text-muted-foreground">· {stockInfo.sold}</span>
+                        <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden">
                           <div className={`h-full rounded-full ${stockInfo.statusColor === "text-emerald-500" ? "bg-gradient-to-r from-green-400 to-green-600" : "bg-gradient-to-r from-red-500 to-orange-500"}`} style={{ width: `${stockInfo.percentage}%` }} />
                         </div>
                       </div>
-                      <div className="mt-auto pt-4 flex flex-col gap-3 border-t border-border">
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center bg-secondary rounded-lg border border-border h-10 px-1">
-                            <button onClick={() => updateQuantity(product.id, -1, product.stock)} className="w-8 h-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted rounded transition"><span className="material-symbols-outlined text-[16px]">remove</span></button>
-                            <input type="text" readOnly value={getQuantity(product.id)} className="w-8 bg-transparent text-center text-sm font-medium border-0 focus:ring-0 text-foreground" />
-                            <button onClick={() => updateQuantity(product.id, 1, product.stock)} className="w-8 h-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted rounded transition"><span className="material-symbols-outlined text-[16px]">add</span></button>
-                          </div>
-                          <button onClick={() => { addItem({ productId: product.id, name: product.name, price: product.price, quantity: getQuantity(product.id), image: product.image_url || "/placeholder.svg" }); toast.success(`${product.name} adicionado ao carrinho!`); }} className="h-10 px-3 rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all flex items-center justify-center" title="Adicionar ao carrinho"><span className="material-symbols-outlined text-[20px]">shopping_cart</span></button>
+                      {/* Actions */}
+                      <div className="mt-auto pt-3 flex items-center gap-2 border-t border-border">
+                        <div className="flex items-center bg-secondary rounded-lg border border-border h-8 px-0.5">
+                          <button onClick={() => updateQuantity(product.id, -1, product.stock)} className="w-7 h-full flex items-center justify-center text-muted-foreground hover:text-foreground rounded transition"><span className="material-symbols-outlined text-[14px]">remove</span></button>
+                          <span className="w-6 text-center text-xs font-medium text-foreground">{getQuantity(product.id)}</span>
+                          <button onClick={() => updateQuantity(product.id, 1, product.stock)} className="w-7 h-full flex items-center justify-center text-muted-foreground hover:text-foreground rounded transition"><span className="material-symbols-outlined text-[14px]">add</span></button>
                         </div>
-                        <button onClick={() => navigate(`/checkout?product=${product.id}&qty=${getQuantity(product.id)}`)} className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm h-10 rounded-lg transition-all flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(220,38,38,0.2)]"><span className="material-symbols-outlined text-[18px]">flash_on</span>Comprar agora</button>
+                        <button onClick={() => { addItem({ productId: product.id, name: product.name, price: product.price, quantity: getQuantity(product.id), image: product.image_url || "/placeholder.svg" }); toast.success(`${product.name} adicionado ao carrinho!`); }} className="h-8 w-8 rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all flex items-center justify-center shrink-0" title="Adicionar ao carrinho"><span className="material-symbols-outlined text-[16px]">shopping_cart</span></button>
+                        <button onClick={() => navigate(`/checkout?product=${product.id}&qty=${getQuantity(product.id)}`)} className="flex-1 h-8 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs rounded-lg transition-all flex items-center justify-center gap-1.5"><span className="material-symbols-outlined text-[14px]">flash_on</span>Comprar</button>
                       </div>
                     </div>
                   </article>
@@ -545,139 +540,61 @@ export default function Dashboard() {
                     </div>
                   )}
                   {/* Content */}
-                  <div className="p-5 flex flex-col flex-1 gap-4">
-                    {/* Header: image + name + price */}
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <div className="shrink-0 w-10 h-10 rounded-lg overflow-hidden bg-secondary flex items-center justify-center">
-                          {product.image_url ? (
-                            <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                          ) : (
-                            <span className="material-symbols-outlined text-[20px] text-muted-foreground">inventory_2</span>
-                          )}
-                        </div>
-                        <div className="min-w-0">
-                          <h3 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors leading-tight truncate">
-                            {product.name}
-                          </h3>
-                          {product.badge_text && (
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border inline-flex items-center gap-1 mt-1 ${product.badge_color || "bg-muted text-foreground border-border"}`}>
-                              {product.badge_icon && <span className="material-symbols-outlined text-[11px]">{product.badge_icon}</span>}
-                              {product.badge_text}
-                            </span>
-                          )}
-                        </div>
+                  <div className="p-4 flex flex-col flex-1 gap-3">
+                    {/* Badge */}
+                    {product.badge_text && (
+                      <div>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border inline-flex items-center gap-1 ${product.badge_color || "bg-muted text-foreground border-border"}`}>
+                          {product.badge_icon && <span className="material-symbols-outlined text-[11px]">{product.badge_icon}</span>}
+                          {product.badge_text}
+                        </span>
                       </div>
-                      <div className="text-right shrink-0">
-                        <p className="text-lg font-bold text-foreground">
-                          R$ {product.price.toFixed(2).replace(".", ",")}
-                        </p>
-                        {product.price_label && (
-                          <p className="text-[10px] text-muted-foreground">{product.price_label}</p>
+                    )}
+                    {/* Image + Name + Price */}
+                    <div className="flex items-center gap-3">
+                      <div className="shrink-0 w-12 h-12 rounded-lg overflow-hidden bg-secondary flex items-center justify-center">
+                        {product.image_url ? (
+                          <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                        ) : (
+                          <span className="material-symbols-outlined text-[22px] text-muted-foreground">inventory_2</span>
                         )}
                       </div>
+                      <h3 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors leading-tight truncate flex-1 min-w-0">{product.name}</h3>
+                      <p className="text-base font-bold text-foreground shrink-0">R$ {product.price.toFixed(2).replace(".", ",")}</p>
                     </div>
-
-                    {/* Description */}
-                    <p className="text-sm text-muted-foreground">
-                      {product.description && product.description.length > 150
-                        ? <>{product.description.substring(0, 150)}... <button onClick={() => setDetailProduct(product)} className="text-primary hover:underline font-medium text-xs">ler mais</button></>
-                        : product.description}
-                    </p>
 
                     {/* Tags */}
                     {product.tags && product.tags.length > 0 && (
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {product.tags.map((tag) => (
-                          <span
-                            key={tag}
-                            className="text-[10px] px-2 py-0.5 rounded-full bg-foreground text-background font-medium"
-                          >
-                            {tag}
-                          </span>
+                          <span key={tag} className="text-[10px] px-2 py-0.5 rounded-full bg-foreground text-background font-medium">{tag}</span>
                         ))}
                       </div>
                     )}
 
-                    {/* Availability Bar */}
-                    <div className="space-y-1.5">
-                      <div className="flex justify-between text-xs font-medium">
-                        <span className={`${stockInfo.statusColor} flex items-center gap-1`}>
-                          {stockInfo.percentage > 0 && (
-                            <span
-                              className={`w-1.5 h-1.5 rounded-full ${
-                                stockInfo.statusColor === "text-emerald-500" ? "bg-emerald-500 animate-pulse" : "bg-destructive"
-                              }`}
-                            />
-                          )}
-                          {stockInfo.status}
-                        </span>
-                        <span className="text-muted-foreground">{stockInfo.sold}</span>
-                      </div>
-                      <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full ${
-                            stockInfo.statusColor === "text-emerald-500"
-                              ? "bg-gradient-to-r from-green-400 to-green-600"
-                              : stockInfo.statusColor === "text-destructive"
-                              ? "bg-gradient-to-r from-red-500 to-orange-500"
-                              : "bg-muted"
-                          }`}
-                          style={{ width: `${stockInfo.percentage}%` }}
-                        />
+                    {/* Stock */}
+                    <div className="flex items-center gap-2 text-[11px] font-medium">
+                      <span className={`${stockInfo.statusColor} flex items-center gap-1`}>
+                        {stockInfo.percentage > 0 && <span className={`w-1.5 h-1.5 rounded-full ${stockInfo.statusColor === "text-emerald-500" ? "bg-emerald-500 animate-pulse" : "bg-destructive"}`} />}
+                        {stockInfo.status}
+                      </span>
+                      <span className="text-muted-foreground">· {stockInfo.sold}</span>
+                      <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full ${stockInfo.statusColor === "text-emerald-500" ? "bg-gradient-to-r from-green-400 to-green-600" : stockInfo.statusColor === "text-destructive" ? "bg-gradient-to-r from-red-500 to-orange-500" : "bg-muted"}`} style={{ width: `${stockInfo.percentage}%` }} />
                       </div>
                     </div>
 
                     {/* Actions */}
-                    <div className="mt-auto pt-4 flex flex-col gap-3 border-t border-border">
+                    <div className="mt-auto pt-3 flex items-center gap-2 border-t border-border">
                       {product.available && product.stock > 0 ? (
                         <>
-                          <div className="flex items-center justify-between gap-3">
-                            <div className="flex items-center bg-secondary rounded-lg border border-border h-10 px-1">
-                              <button
-                                onClick={() => updateQuantity(product.id, -1, product.stock)}
-                                className="w-8 h-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted rounded transition"
-                              >
-                                <span className="material-symbols-outlined text-[16px]">remove</span>
-                              </button>
-                              <input
-                                type="text"
-                                readOnly
-                                value={getQuantity(product.id)}
-                                className="w-8 bg-transparent text-center text-sm font-medium border-0 focus:ring-0 text-foreground"
-                              />
-                              <button
-                                onClick={() => updateQuantity(product.id, 1, product.stock)}
-                                disabled={getQuantity(product.id) >= product.stock}
-                                className="w-8 h-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted rounded transition disabled:opacity-30 disabled:cursor-not-allowed"
-                              >
-                                <span className="material-symbols-outlined text-[16px]">add</span>
-                              </button>
-                            </div>
-                            <button
-                              onClick={() => {
-                                addItem({
-                                  productId: product.id,
-                                  name: product.name,
-                                  price: product.price,
-                                  quantity: getQuantity(product.id),
-                                  image: product.image_url || "/placeholder.svg",
-                                });
-                                toast.success(`${product.name} adicionado ao carrinho!`);
-                              }}
-                              className="h-10 px-3 rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all flex items-center justify-center"
-                              title="Adicionar ao carrinho"
-                            >
-                              <span className="material-symbols-outlined text-[20px]">shopping_cart</span>
-                            </button>
+                          <div className="flex items-center bg-secondary rounded-lg border border-border h-8 px-0.5">
+                            <button onClick={() => updateQuantity(product.id, -1, product.stock)} className="w-7 h-full flex items-center justify-center text-muted-foreground hover:text-foreground rounded transition"><span className="material-symbols-outlined text-[14px]">remove</span></button>
+                            <span className="w-6 text-center text-xs font-medium text-foreground">{getQuantity(product.id)}</span>
+                            <button onClick={() => updateQuantity(product.id, 1, product.stock)} disabled={getQuantity(product.id) >= product.stock} className="w-7 h-full flex items-center justify-center text-muted-foreground hover:text-foreground rounded transition disabled:opacity-30"><span className="material-symbols-outlined text-[14px]">add</span></button>
                           </div>
-                          <button
-                            onClick={() => navigate(`/checkout?product=${product.id}&qty=${getQuantity(product.id)}`)}
-                            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm h-10 rounded-lg transition-all flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(220,38,38,0.2)]"
-                          >
-                            <span className="material-symbols-outlined text-[18px]">flash_on</span>
-                            Comprar agora
-                          </button>
+                          <button onClick={() => { addItem({ productId: product.id, name: product.name, price: product.price, quantity: getQuantity(product.id), image: product.image_url || "/placeholder.svg" }); toast.success(`${product.name} adicionado ao carrinho!`); }} className="h-8 w-8 rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all flex items-center justify-center shrink-0" title="Adicionar ao carrinho"><span className="material-symbols-outlined text-[16px]">shopping_cart</span></button>
+                          <button onClick={() => navigate(`/checkout?product=${product.id}&qty=${getQuantity(product.id)}`)} className="flex-1 h-8 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs rounded-lg transition-all flex items-center justify-center gap-1.5"><span className="material-symbols-outlined text-[14px]">flash_on</span>Comprar</button>
                         </>
                       ) : (
                         <button
@@ -685,18 +602,14 @@ export default function Dashboard() {
                             const { data: { user } } = await supabase.auth.getUser();
                             if (!user) return;
                             const { error } = await supabase.from("product_waitlist" as any).insert({ user_id: user.id, product_id: product.id } as any);
-                            if (error && error.code === '23505') {
-                              toast.info("Você já será notificado quando este produto chegar!");
-                            } else if (error) {
-                              toast.error("Erro ao registrar interesse");
-                            } else {
-                              toast.success("Você será notificado quando este produto estiver disponível!");
-                            }
+                            if (error && error.code === '23505') { toast.info("Você já será notificado quando este produto chegar!"); }
+                            else if (error) { toast.error("Erro ao registrar interesse"); }
+                            else { toast.success("Você será notificado quando este produto estiver disponível!"); }
                           }}
-                          className="w-full bg-secondary hover:bg-secondary/80 text-foreground font-bold text-sm h-10 rounded-lg border border-border transition-all flex items-center justify-center gap-2"
+                          className="w-full bg-secondary hover:bg-secondary/80 text-foreground font-bold text-xs h-8 rounded-lg border border-border transition-all flex items-center justify-center gap-1.5"
                         >
-                          <span className="material-symbols-outlined text-[18px]">notifications_active</span>
-                          Avise-me quando chegar
+                          <span className="material-symbols-outlined text-[14px]">notifications_active</span>
+                          Avise-me
                         </button>
                       )}
                     </div>
