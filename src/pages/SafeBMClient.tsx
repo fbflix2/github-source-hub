@@ -107,6 +107,10 @@ export default function SafeBMClient() {
   return (
     <div className="p-3 md:p-4 max-w-7xl mx-auto w-full space-y-2.5" style={{ fontFamily: "'Inter', sans-serif" }}>
 
+      {/* Show config UI if some vaults are unconfigured */}
+      {unconfiguredVaults.length > 0 && (
+        <SafeBMVaultConfig vaults={unconfiguredVaults} onConfigured={fetchVaults} />
+      )}
       {/* ───── HERO STATUS SECTION ───── */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-2.5">
 
