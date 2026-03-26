@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Copy, ExternalLink, FileText, Plus, Search, Send, Clock, CheckCircle, XCircle, Eye, MessageCircle } from "lucide-react";
+import { Copy, ExternalLink, FileText, Plus, Search, Send, Clock, CheckCircle, XCircle, Eye, MessageCircle, UserPlus, Loader2 } from "lucide-react";
 import InvoiceDetailModal from "@/components/admin/InvoiceDetailModal";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
