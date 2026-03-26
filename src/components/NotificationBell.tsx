@@ -1,9 +1,7 @@
-import { useState, useEffect, useRef } from "react";
-import { Bell, X, ExternalLink, ChevronRight } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { X, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { cn } from "@/lib/utils";
-import { format } from "date-fns";
 
 interface Notification {
   id: string;
@@ -18,68 +16,95 @@ interface Notification {
   image_url?: string | null;
 }
 
-export function NotificationBell() {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [open, setOpen] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
-  const ref = useRef<HTMLDivElement>(null);
+export function NotificationPopup() {
+  const [current, setCurrent] = useState<Notification | null>(null);
+  const [queue, setQueue] = useState<Notification[]>([]);
+  const [seenIds, setSeenIds] = useState<Set<string>>(new Set());
   const navigate = useNavigate();
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
-
-  const fetchNotifications = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    setUserId(user.id);
-
-    const { data } = await supabase
-      .from("notifications")
-      .select("*")
-      .or(`user_id.eq.${user.id},global.eq.true`)
-      .order("created_at", { ascending: false })
-      .limit(20);
-
-    setNotifications((data || []) as Notification[]);
-  };
-
-  useEffect(() => {
-    fetchNotifications();
-
-    const channel = supabase
-      .channel("client-notifications")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications" }, () => {
-        fetchNotifications();
-      })
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
-  }, []);
-
-  // Close on outside click
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+  const showNext = useCallback((q: Notification[]) => {
+    if (q.length > 0) {
+      setCurrent(q[0]);
+      setQueue(q.slice(1));
     }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  const markAsRead = async (id: string) => {
-    await supabase.from("notifications").update({ read: true }).eq("id", id);
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+  useEffect(() => {
+    let mounted = true;
+
+    const init = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || !mounted) return;
+
+      // Fetch recent unread notifications
+      const { data } = await supabase
+        .from("notifications")
+        .select("*")
+        .or(`user_id.eq.${user.id},global.eq.true`)
+        .eq("read", false)
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      const unread = (data || []) as Notification[];
+      if (unread.length > 0 && mounted) {
+        const ids = new Set(unread.map(n => n.id));
+        setSeenIds(ids);
+        setCurrent(unread[0]);
+        setQueue(unread.slice(1));
+      }
+
+      // Listen for new notifications in real-time
+      const channel = supabase
+        .channel("client-notif-popup")
+        .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications" }, async (payload) => {
+          if (!mounted) return;
+          const n = payload.new as Notification;
+          // Check if it's for this user or global
+          if (n.user_id && n.user_id !== user.id && !n.global) return;
+          
+          setSeenIds(prev => {
+            if (prev.has(n.id)) return prev;
+            const next = new Set(prev);
+            next.add(n.id);
+            return next;
+          });
+
+          setCurrent(prev => {
+            if (!prev) return n;
+            setQueue(q => [...q, n]);
+            return prev;
+          });
+        })
+        .subscribe();
+
+      return () => { supabase.removeChannel(channel); };
+    };
+
+    init();
+    return () => { mounted = false; };
+  }, []);
+
+  const dismiss = async () => {
+    if (current) {
+      await supabase.from("notifications").update({ read: true }).eq("id", current.id);
+    }
+    setCurrent(null);
+    // Show next in queue after small delay
+    setTimeout(() => {
+      setQueue(q => {
+        if (q.length > 0) {
+          setCurrent(q[0]);
+          return q.slice(1);
+        }
+        return q;
+      });
+    }, 300);
   };
 
-  const markAllRead = async () => {
-    if (!userId) return;
-    // Mark user-specific
-    await supabase.from("notifications").update({ read: true }).eq("user_id", userId).eq("read", false);
-    // For global, we can't update them for all users — we'll just mark them locally
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-  };
-
-  const handleAction = (n: Notification) => {
-    markAsRead(n.id);
-    const link = (n as any).link;
+  const handleAction = async () => {
+    if (!current) return;
+    await supabase.from("notifications").update({ read: true }).eq("id", current.id);
+    const link = current.link;
     if (link) {
       if (link.startsWith("http")) {
         window.open(link, "_blank");
@@ -87,95 +112,77 @@ export function NotificationBell() {
         navigate(link);
       }
     }
-    setOpen(false);
+    dismiss();
   };
 
-  const typeIcon = (type: string) => {
-    switch (type) {
-      case "promo": return "🎉";
-      case "warning": return "⚠️";
-      case "success": return "✅";
-      default: return "🔔";
-    }
-  };
+  if (!current) return null;
 
   return (
-    <div className="relative" ref={ref}>
-      <button
-        onClick={() => setOpen(!open)}
-        className="relative flex items-center justify-center w-10 h-10 rounded-full bg-card border border-border hover:border-primary/50 hover:bg-primary/10 transition-all group"
-      >
-        <Bell className="size-5 text-muted-foreground group-hover:text-primary transition-colors" />
-        {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-5 h-5 px-1 rounded-full bg-primary text-primary-foreground text-xs font-bold animate-pulse">
-            {unreadCount > 9 ? "9+" : unreadCount}
-          </span>
-        )}
-      </button>
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="relative w-full max-w-md mx-4 bg-card border border-border rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
+        {/* Close button */}
+        <button
+          onClick={dismiss}
+          className="absolute top-3 right-3 z-10 p-1.5 rounded-full bg-background/80 hover:bg-muted border border-border transition-colors"
+        >
+          <X className="size-4 text-muted-foreground" />
+        </button>
 
-      {open && (
-        <div className="absolute right-0 top-12 w-80 sm:w-96 bg-card border border-border rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-            <h3 className="text-sm font-bold text-foreground">Notificações</h3>
-            <div className="flex items-center gap-2">
-              {unreadCount > 0 && (
-                <button
-                  onClick={markAllRead}
-                  className="text-xs text-primary hover:underline"
-                >
-                  Marcar todas como lidas
-                </button>
-              )}
-              <button onClick={() => setOpen(false)} className="p-1 rounded hover:bg-muted">
-                <X className="size-4 text-muted-foreground" />
-              </button>
+        {/* Image */}
+        {current.image_url && (
+          <div className="w-full h-48 overflow-hidden bg-muted">
+            <img
+              src={current.image_url}
+              alt={current.title}
+              className="w-full h-full object-cover"
+            />
+          </div>
+        )}
+
+        {/* Content */}
+        <div className="p-6 space-y-3">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <span className="text-lg">
+                {current.type === "promo" ? "🎉" : current.type === "warning" ? "⚠️" : current.type === "success" ? "✅" : "🔔"}
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="text-lg font-bold text-foreground leading-tight">{current.title}</h3>
             </div>
           </div>
 
-          {/* List */}
-          <div className="max-h-80 overflow-y-auto divide-y divide-border">
-            {notifications.length === 0 ? (
-              <div className="py-10 text-center text-muted-foreground text-sm">
-                <Bell className="size-8 mx-auto mb-2 opacity-30" />
-                Nenhuma notificação
-              </div>
-            ) : (
-              notifications.map((n) => (
-                <div
-                  key={n.id}
-                  className={cn(
-                    "px-4 py-3 flex gap-3 hover:bg-muted/50 transition-colors cursor-pointer",
-                    !n.read && "bg-primary/5"
-                  )}
-                  onClick={() => handleAction(n)}
-                >
-                  <span className="text-lg mt-0.5 shrink-0">{typeIcon(n.type)}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className={cn("text-sm font-semibold text-foreground line-clamp-1", !n.read && "text-primary")}>
-                        {n.title}
-                      </p>
-                      {!n.read && <span className="w-2 h-2 rounded-full bg-primary shrink-0 mt-1.5" />}
-                    </div>
-                    <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{n.message}</p>
-                    <div className="flex items-center justify-between mt-1.5">
-                      <span className="text-[10px] text-muted-foreground">
-                        {format(new Date(n.created_at), "dd/MM 'às' HH:mm")}
-                      </span>
-                      {(n as any).link && (
-                        <span className="text-[10px] text-primary flex items-center gap-0.5 font-medium">
-                          Ver mais <ChevronRight className="size-3" />
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))
+          <p className="text-sm text-muted-foreground leading-relaxed">{current.message}</p>
+
+          {/* Actions */}
+          <div className="flex items-center gap-3 pt-2">
+            <button
+              onClick={dismiss}
+              className="flex-1 h-10 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:bg-muted transition-colors"
+            >
+              Fechar
+            </button>
+            {current.link && (
+              <button
+                onClick={handleAction}
+                className="flex-1 h-10 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-bold transition-colors flex items-center justify-center gap-2"
+              >
+                <ExternalLink className="size-4" />
+                Ver mais
+              </button>
             )}
           </div>
         </div>
-      )}
+
+        {/* Queue indicator */}
+        {queue.length > 0 && (
+          <div className="px-6 pb-4 pt-0">
+            <p className="text-[11px] text-muted-foreground text-center">
+              +{queue.length} {queue.length === 1 ? "notificação" : "notificações"} pendente{queue.length > 1 ? "s" : ""}
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
