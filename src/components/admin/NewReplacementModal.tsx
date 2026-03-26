@@ -178,16 +178,21 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
       .from("order_items").select("id, name, price, order_id, product_id")
       .in("order_id", orders.map(o => o.id));
 
-    // Get product names
+    // Get product names and identify proxy products to deprioritize
     const productIds = [...new Set((items || []).filter(i => i.product_id).map(i => i.product_id!))];
     let productMap = new Map<string, string>();
+    let proxyProductIds = new Set<string>();
     if (productIds.length > 0) {
       const { data: products } = await supabase
-        .from("products").select("id, name").in("id", productIds);
+        .from("products").select("id, name, icon_type").in("id", productIds);
       productMap = new Map((products || []).map(p => [p.id, p.name]));
+      proxyProductIds = new Set((products || []).filter(p => p.icon_type === "proxy").map(p => p.id));
     }
 
-    setOrderItems((items || []).map(oi => {
+    // Filter out proxy items — they don't get replacements
+    const nonProxyItems = (items || []).filter(oi => !oi.product_id || !proxyProductIds.has(oi.product_id));
+
+    setOrderItems((nonProxyItems).map(oi => {
       const order = orders.find(o => o.id === oi.order_id);
       return {
         id: oi.id,
