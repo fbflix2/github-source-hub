@@ -46,9 +46,15 @@ interface AdminNotification {
   scheduled_at: string | null;
   is_active: boolean;
   global: boolean;
+  target_user_ids: string[] | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
+}
+
+interface UserOption {
+  user_id: string;
+  full_name: string | null;
 }
 
 export default function AdminNotificacoes() {
