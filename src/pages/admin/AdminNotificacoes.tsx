@@ -310,6 +310,7 @@ export default function AdminNotificacoes() {
         user_id: uid,
         link: n.link || null,
         image_url: n.image_url || null,
+        cta_text: (n as any).cta_text || null,
       }));
       await supabase.from("notifications").insert(notifs);
     } else {
@@ -320,6 +321,7 @@ export default function AdminNotificacoes() {
         global: true,
         link: n.link || null,
         image_url: n.image_url || null,
+        cta_text: (n as any).cta_text || null,
       });
     }
 
