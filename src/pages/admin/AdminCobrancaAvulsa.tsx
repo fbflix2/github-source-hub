@@ -288,7 +288,7 @@ export default function AdminCobrancaAvulsa() {
       const res = await supabase.functions.invoke("import-clients", {
         body: {
           clients: [{
-            email: newClientEmail.trim().toLowerCase(),
+            email: emailToUse,
             full_name: newClientName.trim() || null,
             password: tempPassword,
           }]
