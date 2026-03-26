@@ -201,6 +201,8 @@ export default function AdminNotificacoes() {
             message: payload.message,
             type: formType === "push" ? "info" : "promo",
             global: true,
+            link: payload.link || null,
+            image_url: payload.image_url || null,
           });
         } else if (targetIds) {
           const notifs = targetIds.map(uid => ({
@@ -209,6 +211,8 @@ export default function AdminNotificacoes() {
             type: formType === "push" ? "info" : "promo",
             global: false,
             user_id: uid,
+            link: payload.link || null,
+            image_url: payload.image_url || null,
           }));
           await supabase.from("notifications").insert(notifs);
         }
@@ -298,6 +302,8 @@ export default function AdminNotificacoes() {
         type: n.type === "push" ? "info" : "promo",
         global: false,
         user_id: uid,
+        link: n.link || null,
+        image_url: n.image_url || null,
       }));
       await supabase.from("notifications").insert(notifs);
     } else {
@@ -306,6 +312,8 @@ export default function AdminNotificacoes() {
         message: n.message,
         type: n.type === "push" ? "info" : "promo",
         global: true,
+        link: n.link || null,
+        image_url: n.image_url || null,
       });
     }
 
