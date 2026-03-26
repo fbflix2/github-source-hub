@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { NotificationBell } from "@/components/NotificationBell";
+import { NotificationPopup } from "@/components/NotificationBell";
 import { Ticket, Handshake } from "lucide-react";
 import { useNavVisibility } from "@/hooks/useNavVisibility";
 
@@ -71,8 +71,8 @@ export function Navbar({ userName, balance, avatarUrl, isPartner, onLogout, unre
 
         {/* Right Actions */}
         <div className="flex items-center gap-4 shrink-0 whitespace-nowrap">
-          {/* Notifications Bell */}
-          <NotificationBell />
+          {/* Notification Popup Overlay */}
+          <NotificationPopup />
 
           {/* Tickets Button */}
           <NavLink
