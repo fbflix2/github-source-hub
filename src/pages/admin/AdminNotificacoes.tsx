@@ -225,7 +225,7 @@ export default function AdminNotificacoes() {
     setSaving(false);
   };
 
-  const handleEdit = (n: AdminNotification) => {
+  const handleEdit = async (n: AdminNotification) => {
     setEditingId(n.id);
     setFormType(n.type as "push" | "popup");
     setFormTitle(n.title);
@@ -244,6 +244,20 @@ export default function AdminNotificacoes() {
     } else {
       setFormSchedule("now");
     }
+
+    // Load audience
+    if (n.target_user_ids && n.target_user_ids.length > 0) {
+      setFormAudience("specific");
+      const { data } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", n.target_user_ids);
+      setSelectedUsers((data || []) as UserOption[]);
+    } else {
+      setFormAudience("all");
+      setSelectedUsers([]);
+    }
+
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
