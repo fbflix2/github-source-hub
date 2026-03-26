@@ -696,7 +696,20 @@ export default function AdminNotificacoes() {
                         </div>
                       )}
 
-                      <div className="pt-4 border-t border-white/5 flex items-center justify-between">
+                      {/* Audience indicator */}
+                      {n.target_user_ids && n.target_user_ids.length > 0 ? (
+                        <div className="flex items-center gap-2 text-purple-400/80 text-xs font-medium bg-purple-500/5 px-3 py-2 rounded-lg border border-purple-500/10">
+                          <Users className="w-3.5 h-3.5" />
+                          {n.target_user_ids.length} usuário{n.target_user_ids.length > 1 ? "s" : ""} selecionado{n.target_user_ids.length > 1 ? "s" : ""}
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 text-blue-400/60 text-xs font-medium px-1">
+                          <Globe className="w-3.5 h-3.5" />
+                          Todos os usuários
+                        </div>
+                      )}
+
+
                         <div className="flex items-center gap-1">
                           <button
                             onClick={() => handleEdit(n)}
