@@ -563,6 +563,11 @@ export default function Dashboard() {
                       <p className="text-base font-bold text-foreground shrink-0">R$ {product.price.toFixed(2).replace(".", ",")}</p>
                     </div>
 
+                    {/* Description */}
+                    {product.description && (
+                      <p className="text-xs text-muted-foreground line-clamp-2">{product.description}</p>
+                    )}
+
                     {/* Tags */}
                     {product.tags && product.tags.length > 0 && (
                       <div className="flex items-center gap-1.5 flex-wrap">
