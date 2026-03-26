@@ -43,21 +43,18 @@ export function useAdminAuth() {
       try {
         let { data: { session } } = await supabase.auth.getSession();
 
-        // If no session, try refreshing (token may have expired in background)
         if (!session) {
           const { data: refreshData } = await supabase.auth.refreshSession();
           session = refreshData.session;
         }
 
-        // Still no session — retry up to 2 times with delay before giving up
         if (!session) {
-          if (retryCount < 2) {
-            console.warn(`[useAdminAuth] No session found, retrying (${retryCount + 1}/2)...`);
-            await new Promise(r => setTimeout(r, 1500));
+          if (retryCount < 3) {
+            console.warn(`[useAdminAuth] No session found, retrying (${retryCount + 1}/3)...`);
+            await new Promise(r => setTimeout(r, 2000));
             if (!cancelled) return checkAdmin(retryCount + 1);
             return;
           }
-          // Only redirect if user truly has no session after retries
           if (!cancelled) navigate("/admin/login");
           return;
         }
@@ -74,13 +71,13 @@ export function useAdminAuth() {
       } catch (err) {
         console.error("useAdminAuth check failed:", err);
         // NEVER logout on transient/network errors — just stop loading
+        // If we already authenticated before, keep that state
         if (!cancelled) {
-          setState(prev => ({ ...prev, loading: false }));
+          setState(prev => prev.isAdmin ? prev : { ...prev, loading: false });
         }
       }
     };
 
-    // Only check once on mount
     if (!checkedRef.current) {
       checkedRef.current = true;
       checkAdmin();
@@ -89,11 +86,17 @@ export function useAdminAuth() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (cancelled) return;
 
+      // Only react to explicit sign-out, ignore transient events
       if (event === 'SIGNED_OUT') {
-        setState({ isAdmin: null, loading: false, role: null });
-        navigate("/admin/login");
+        // Double-check there's truly no session before redirecting
+        supabase.auth.getSession().then(({ data }) => {
+          if (cancelled) return;
+          if (!data.session) {
+            setState({ isAdmin: null, loading: false, role: null });
+            navigate("/admin/login");
+          }
+        }).catch(() => {});
       } else if (event === 'TOKEN_REFRESHED' && session) {
-        // Re-verify role on token refresh to keep session alive
         verifyRole(session.user.id).then(role => {
           if (cancelled) return;
           if (role) {
@@ -105,7 +108,6 @@ export function useAdminAuth() {
 
     return () => {
       cancelled = true;
-      checkedRef.current = false;
       subscription.unsubscribe();
     };
   }, [navigate]);
