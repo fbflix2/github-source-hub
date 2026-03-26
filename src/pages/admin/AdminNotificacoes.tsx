@@ -157,6 +157,11 @@ export default function AdminNotificacoes() {
         ? "scheduled"
         : "draft";
 
+    const isGlobal = formAudience === "all";
+    const targetIds = !isGlobal && selectedUsers.length > 0
+      ? selectedUsers.map(u => u.user_id)
+      : null;
+
     const payload: any = {
       type: formType,
       title: formTitle.trim(),
@@ -169,6 +174,8 @@ export default function AdminNotificacoes() {
           ? new Date(formScheduledAt).toISOString()
           : null,
       is_active: status !== "draft",
+      global: isGlobal,
+      target_user_ids: targetIds,
     };
 
     let error;
@@ -184,14 +191,25 @@ export default function AdminNotificacoes() {
       payload.created_by = user?.id || null;
       ({ error } = await supabase.from("admin_notifications").insert(payload));
 
-      // If sending now, also create a record in the notifications table for users
+      // If sending now, also create notifications for users
       if (status === "sent") {
-        await supabase.from("notifications").insert({
-          title: payload.title,
-          message: payload.message,
-          type: formType === "push" ? "info" : "promo",
-          global: true,
-        });
+        if (isGlobal) {
+          await supabase.from("notifications").insert({
+            title: payload.title,
+            message: payload.message,
+            type: formType === "push" ? "info" : "promo",
+            global: true,
+          });
+        } else if (targetIds) {
+          const notifs = targetIds.map(uid => ({
+            title: payload.title,
+            message: payload.message,
+            type: formType === "push" ? "info" : "promo",
+            global: false,
+            user_id: uid,
+          }));
+          await supabase.from("notifications").insert(notifs);
+        }
       }
     }
 
