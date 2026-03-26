@@ -274,6 +274,50 @@ export default function AdminCobrancaAvulsa() {
     setDescription("");
   };
 
+  const handleRegisterClient = async () => {
+    if (!newClientEmail || !newClientEmail.includes("@")) {
+      toast.error("Informe um e-mail válido");
+      return;
+    }
+    setRegisteringClient(true);
+    try {
+      const tempPassword = "Fb" + Math.random().toString(36).slice(2, 10) + "!1";
+      const res = await supabase.functions.invoke("import-clients", {
+        body: {
+          clients: [{
+            email: newClientEmail.trim().toLowerCase(),
+            full_name: newClientName.trim() || null,
+            password: tempPassword,
+          }]
+        }
+      });
+      if (res.error) throw res.error;
+      const result = res.data;
+      if (result?.errors?.length > 0) throw new Error(result.errors[0]);
+
+      const { data: userId } = await supabase.rpc("get_user_id_by_email", { target_email: newClientEmail.trim().toLowerCase() });
+      if (userId) {
+        const newClient: ClientOption = {
+          user_id: userId,
+          full_name: newClientName.trim() || newClientEmail.trim(),
+          email: newClientEmail.trim().toLowerCase(),
+        };
+        setSelectedClient(newClient);
+        setClients(prev => [...prev, newClient]);
+      }
+      toast.success("Cliente cadastrado com sucesso!");
+      setShowNewClientForm(false);
+      setNewClientName("");
+      setNewClientEmail("");
+      setShowClientDropdown(false);
+      setClientSearch("");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao cadastrar cliente");
+    } finally {
+      setRegisteringClient(false);
+    }
+  };
+
   const getPublicLink = (code: string) => {
     // Use edge function URL for OG preview on WhatsApp/social
     const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "mxnlerkeygfvdnznoxld";
