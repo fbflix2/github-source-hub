@@ -137,6 +137,10 @@ export default function AdminNotificacoes() {
     setFormLink("");
     setFormSchedule("now");
     setFormScheduledAt("");
+    setFormAudience("all");
+    setSelectedUsers([]);
+    setUserSearch("");
+    setUserResults([]);
   };
 
   const handleSubmit = async () => {
