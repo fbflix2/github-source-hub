@@ -298,12 +298,12 @@ export default function AdminCobrancaAvulsa() {
       const result = res.data;
       if (result?.errors?.length > 0) throw new Error(result.errors[0]);
 
-      const { data: userId } = await supabase.rpc("get_user_id_by_email", { target_email: newClientEmail.trim().toLowerCase() });
+      const { data: userId } = await supabase.rpc("get_user_id_by_email", { target_email: emailToUse });
       if (userId) {
         const newClient: ClientOption = {
           user_id: userId,
-          full_name: newClientName.trim() || newClientEmail.trim(),
-          email: newClientEmail.trim().toLowerCase(),
+          full_name: newClientName.trim() || emailToUse,
+          email: emailToUse,
         };
         setSelectedClient(newClient);
         setClients(prev => [...prev, newClient]);
