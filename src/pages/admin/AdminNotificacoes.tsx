@@ -471,6 +471,91 @@ export default function AdminNotificacoes() {
                 </div>
               )}
 
+              {/* Audience */}
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-white/80">Público-Alvo</label>
+                <div className="grid grid-cols-2 gap-2 p-1 bg-black/40 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => setFormAudience("all")}
+                    className={`flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                      formAudience === "all" ? "bg-primary text-white" : "text-white/60 hover:text-white/80"
+                    }`}
+                  >
+                    <Globe className="w-4 h-4" /> Todos
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormAudience("specific")}
+                    className={`flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                      formAudience === "specific" ? "bg-primary text-white" : "text-white/60 hover:text-white/80"
+                    }`}
+                  >
+                    <Users className="w-4 h-4" /> Específicos
+                  </button>
+                </div>
+              </div>
+
+              {formAudience === "specific" && (
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-white/80">Buscar Usuários</label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/40" />
+                    <Input
+                      className="bg-[rgba(20,20,20,0.6)] border-white/10 rounded-xl pl-9 pr-4 py-3 text-sm text-white placeholder-white/30 focus:border-primary focus:ring-primary/20"
+                      placeholder="Digite o nome do cliente..."
+                      value={userSearch}
+                      onChange={(e) => handleUserSearch(e.target.value)}
+                    />
+                    {searchingUsers && (
+                      <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 animate-spin text-white/40" />
+                    )}
+                  </div>
+
+                  {/* Search results dropdown */}
+                  {userResults.length > 0 && (
+                    <div className="bg-[rgba(20,20,20,0.9)] border border-white/10 rounded-xl overflow-hidden max-h-40 overflow-y-auto">
+                      {userResults.map(u => (
+                        <button
+                          key={u.user_id}
+                          type="button"
+                          onClick={() => addUser(u)}
+                          className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-white/80 hover:bg-white/5 transition-colors text-left"
+                        >
+                          <UserPlus className="w-3.5 h-3.5 text-primary shrink-0" />
+                          <span className="truncate">{u.full_name || "Sem nome"}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Selected users */}
+                  {selectedUsers.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {selectedUsers.map(u => (
+                        <span
+                          key={u.user_id}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/15 text-primary text-xs font-medium"
+                        >
+                          {u.full_name || "Sem nome"}
+                          <button
+                            type="button"
+                            onClick={() => removeUser(u.user_id)}
+                            className="hover:text-white transition-colors"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {formAudience === "specific" && selectedUsers.length === 0 && (
+                    <p className="text-xs text-white/30 italic">Nenhum usuário selecionado</p>
+                  )}
+                </div>
+              )}
+
               {/* Submit */}
               <Button
                 type="button"
