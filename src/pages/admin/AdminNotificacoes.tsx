@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { validateFileUpload } from "@/lib/file-validation";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -423,12 +424,43 @@ export default function AdminNotificacoes() {
                     value={formImageUrl}
                     onChange={(e) => setFormImageUrl(e.target.value)}
                   />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    id="notif-image-upload"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const validation = validateFileUpload(file, ['image/jpeg', 'image/png', 'image/webp', 'image/gif'], 5 * 1024 * 1024);
+                      if (!validation.isValid) {
+                        toast.error(validation.error || 'Arquivo inválido');
+                        return;
+                      }
+                      setUploading(true);
+                      const ext = file.name.split('.').pop();
+                      const path = `notifications/${Date.now()}.${ext}`;
+                      const { error } = await supabase.storage.from('banners').upload(path, file);
+                      if (error) {
+                        toast.error('Erro ao enviar imagem');
+                        setUploading(false);
+                        return;
+                      }
+                      const { data: urlData } = supabase.storage.from('banners').getPublicUrl(path);
+                      setFormImageUrl(urlData.publicUrl);
+                      toast.success('Imagem enviada!');
+                      setUploading(false);
+                      e.target.value = '';
+                    }}
+                  />
                   <Button
                     type="button"
                     variant="outline"
                     className="w-12 h-auto bg-[rgba(20,20,20,0.6)] border-white/10 rounded-xl hover:bg-white/10"
+                    disabled={uploading}
+                    onClick={() => document.getElementById('notif-image-upload')?.click()}
                   >
-                    <Image className="w-5 h-5 text-white/70" />
+                    {uploading ? <Loader2 className="w-5 h-5 text-white/70 animate-spin" /> : <Image className="w-5 h-5 text-white/70" />}
                   </Button>
                 </div>
               </div>
