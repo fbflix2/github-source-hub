@@ -26,6 +26,7 @@ export type Database = {
           message: string
           scheduled_at: string | null
           status: string
+          target_user_ids: string[] | null
           title: string
           type: string
           updated_at: string
@@ -41,6 +42,7 @@ export type Database = {
           message?: string
           scheduled_at?: string | null
           status?: string
+          target_user_ids?: string[] | null
           title: string
           type?: string
           updated_at?: string
@@ -56,6 +58,7 @@ export type Database = {
           message?: string
           scheduled_at?: string | null
           status?: string
+          target_user_ids?: string[] | null
           title?: string
           type?: string
           updated_at?: string

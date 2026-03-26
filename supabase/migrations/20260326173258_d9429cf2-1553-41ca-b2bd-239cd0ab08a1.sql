@@ -1,0 +1,1 @@
+ALTER TABLE public.admin_notifications ADD COLUMN target_user_ids uuid[] DEFAULT NULL;
