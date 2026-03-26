@@ -433,8 +433,8 @@ export default function AdminNotificacoes() {
                     onChange={async (e) => {
                       const file = e.target.files?.[0];
                       if (!file) return;
-                      const validation = validateFileUpload(file, ['image/jpeg', 'image/png', 'image/webp', 'image/gif'], 5 * 1024 * 1024);
-                      if (!validation.isValid) {
+                      const validation = await validateImageFile(file, 5);
+                      if (!validation.valid) {
                         toast.error(validation.error || 'Arquivo inválido');
                         return;
                       }
