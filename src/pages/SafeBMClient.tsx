@@ -85,10 +85,21 @@ export default function SafeBMClient() {
     );
   }
 
+  const unconfiguredVaults = vaults.filter(v => v.bm_link === GENERIC_BM_LINK);
+
   if (!loading && vaults.length === 0) {
     return (
       <div className="p-3 md:p-4 max-w-7xl mx-auto w-full" style={{ fontFamily: "'Inter', sans-serif" }}>
         <SafeBMOnboarding />
+      </div>
+    );
+  }
+
+  if (!loading && unconfiguredVaults.length > 0 && unconfiguredVaults.length === vaults.length) {
+    // All vaults are unconfigured — show only config screen
+    return (
+      <div className="p-3 md:p-4 max-w-7xl mx-auto w-full" style={{ fontFamily: "'Inter', sans-serif" }}>
+        <SafeBMVaultConfig vaults={unconfiguredVaults} onConfigured={fetchVaults} />
       </div>
     );
   }
