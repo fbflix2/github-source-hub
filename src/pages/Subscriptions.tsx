@@ -161,12 +161,16 @@ export default function Subscriptions() {
           >
             {tab.icon}
             {tab.label}
-            {activeServices[tab.key] && (
+            {activeServices[tab.key] ? (
               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-green-500/15 border border-green-500/30 text-green-500 text-[9px] font-bold uppercase tracking-wider">
                 <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
                 Ativo
               </span>
-            )}
+            ) : (tab.key === "safebm" || tab.key === "contingencia") && activeServices[tab.key] === false ? (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-primary/15 border border-primary/30 text-primary text-[9px] font-bold uppercase tracking-wider animate-pulse">
+                Novidade
+              </span>
+            ) : null}
           </button>
         ))}
       </div>
