@@ -1,0 +1,1 @@
+ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS cta_text text;
