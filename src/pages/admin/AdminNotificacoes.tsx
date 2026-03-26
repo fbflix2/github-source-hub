@@ -288,13 +288,24 @@ export default function AdminNotificacoes() {
       .update({ status: "sent", is_active: true })
       .eq("id", n.id);
 
-    // Push to user notifications
-    await supabase.from("notifications").insert({
-      title: n.title,
-      message: n.message,
-      type: n.type === "push" ? "info" : "promo",
-      global: true,
-    });
+    // Push to user notifications (targeted or global)
+    if (n.target_user_ids && n.target_user_ids.length > 0) {
+      const notifs = n.target_user_ids.map(uid => ({
+        title: n.title,
+        message: n.message,
+        type: n.type === "push" ? "info" : "promo",
+        global: false,
+        user_id: uid,
+      }));
+      await supabase.from("notifications").insert(notifs);
+    } else {
+      await supabase.from("notifications").insert({
+        title: n.title,
+        message: n.message,
+        type: n.type === "push" ? "info" : "promo",
+        global: true,
+      });
+    }
 
     toast.success("Notificação enviada!");
     fetchNotifications();
