@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Copy, ExternalLink, FileText, Plus, Search, Send, Clock, CheckCircle, XCircle, Eye, MessageCircle } from "lucide-react";
+import { Copy, ExternalLink, FileText, Plus, Search, Send, Clock, CheckCircle, XCircle, Eye, MessageCircle, UserPlus, Loader2 } from "lucide-react";
 import InvoiceDetailModal from "@/components/admin/InvoiceDetailModal";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -60,6 +60,10 @@ export default function AdminCobrancaAvulsa() {
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [showNewClientForm, setShowNewClientForm] = useState(false);
+  const [newClientName, setNewClientName] = useState("");
+  const [newClientEmail, setNewClientEmail] = useState("");
+  const [registeringClient, setRegisteringClient] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -270,6 +274,50 @@ export default function AdminCobrancaAvulsa() {
     setDescription("");
   };
 
+  const handleRegisterClient = async () => {
+    if (!newClientEmail || !newClientEmail.includes("@")) {
+      toast.error("Informe um e-mail válido");
+      return;
+    }
+    setRegisteringClient(true);
+    try {
+      const tempPassword = "Fb" + Math.random().toString(36).slice(2, 10) + "!1";
+      const res = await supabase.functions.invoke("import-clients", {
+        body: {
+          clients: [{
+            email: newClientEmail.trim().toLowerCase(),
+            full_name: newClientName.trim() || null,
+            password: tempPassword,
+          }]
+        }
+      });
+      if (res.error) throw res.error;
+      const result = res.data;
+      if (result?.errors?.length > 0) throw new Error(result.errors[0]);
+
+      const { data: userId } = await supabase.rpc("get_user_id_by_email", { target_email: newClientEmail.trim().toLowerCase() });
+      if (userId) {
+        const newClient: ClientOption = {
+          user_id: userId,
+          full_name: newClientName.trim() || newClientEmail.trim(),
+          email: newClientEmail.trim().toLowerCase(),
+        };
+        setSelectedClient(newClient);
+        setClients(prev => [...prev, newClient]);
+      }
+      toast.success("Cliente cadastrado com sucesso!");
+      setShowNewClientForm(false);
+      setNewClientName("");
+      setNewClientEmail("");
+      setShowClientDropdown(false);
+      setClientSearch("");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao cadastrar cliente");
+    } finally {
+      setRegisteringClient(false);
+    }
+  };
+
   const getPublicLink = (code: string) => {
     // Use edge function URL for OG preview on WhatsApp/social
     const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "mxnlerkeygfvdnznoxld";
@@ -348,6 +396,47 @@ export default function AdminCobrancaAvulsa() {
                           <span className="text-muted-foreground text-xs">{c.email}</span>
                         </button>
                       ))}
+                      <button
+                        className="w-full text-left px-3 py-2 hover:bg-muted text-sm flex items-center gap-2 border-t border-border text-primary"
+                        onClick={() => { setShowNewClientForm(true); setShowClientDropdown(false); setNewClientEmail(clientSearch.includes("@") ? clientSearch : ""); setNewClientName(!clientSearch.includes("@") ? clientSearch : ""); }}
+                      >
+                        <UserPlus className="size-4" />
+                        <span className="font-medium">Cadastrar novo cliente</span>
+                      </button>
+                    </div>
+                  )}
+                  {clientSearch.length >= 2 && !showClientDropdown && filteredClients.length === 0 && (
+                    <div className="absolute z-50 w-full mt-1 bg-popover border rounded-lg shadow-lg">
+                      <div className="px-3 py-2 text-sm text-muted-foreground">Nenhum cliente encontrado</div>
+                      <button
+                        className="w-full text-left px-3 py-2 hover:bg-muted text-sm flex items-center gap-2 border-t border-border text-primary"
+                        onClick={() => { setShowNewClientForm(true); setNewClientEmail(clientSearch.includes("@") ? clientSearch : ""); setNewClientName(!clientSearch.includes("@") ? clientSearch : ""); }}
+                      >
+                        <UserPlus className="size-4" />
+                        <span className="font-medium">Cadastrar novo cliente</span>
+                      </button>
+                    </div>
+                  )}
+                  {showNewClientForm && (
+                    <div className="mt-2 p-3 border border-primary/30 rounded-lg bg-muted/50 space-y-3">
+                      <p className="text-sm font-medium flex items-center gap-2"><UserPlus className="size-4 text-primary" /> Cadastrar novo cliente</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-xs">Nome</Label>
+                          <Input placeholder="Nome completo" value={newClientName} onChange={e => setNewClientName(e.target.value)} className="mt-1" />
+                        </div>
+                        <div>
+                          <Label className="text-xs">E-mail *</Label>
+                          <Input placeholder="email@exemplo.com" type="email" value={newClientEmail} onChange={e => setNewClientEmail(e.target.value)} className="mt-1" />
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={handleRegisterClient} disabled={registeringClient} className="gap-1.5">
+                          {registeringClient ? <Loader2 className="size-3.5 animate-spin" /> : <UserPlus className="size-3.5" />}
+                          {registeringClient ? "Cadastrando..." : "Cadastrar e selecionar"}
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => { setShowNewClientForm(false); setNewClientName(""); setNewClientEmail(""); }}>Cancelar</Button>
+                      </div>
                     </div>
                   )}
                 </>
