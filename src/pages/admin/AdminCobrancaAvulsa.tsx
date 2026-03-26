@@ -275,17 +275,20 @@ export default function AdminCobrancaAvulsa() {
   };
 
   const handleRegisterClient = async () => {
-    if (!newClientEmail || !newClientEmail.includes("@")) {
-      toast.error("Informe um e-mail válido");
+    if (!newClientName.trim() && !newClientEmail.trim()) {
+      toast.error("Informe pelo menos o nome ou e-mail");
       return;
     }
+    const emailToUse = newClientEmail.trim()
+      ? newClientEmail.trim().toLowerCase()
+      : `cliente-${Date.now()}@placeholder.fbflix.com`;
     setRegisteringClient(true);
     try {
       const tempPassword = "Fb" + Math.random().toString(36).slice(2, 10) + "!1";
       const res = await supabase.functions.invoke("import-clients", {
         body: {
           clients: [{
-            email: newClientEmail.trim().toLowerCase(),
+            email: emailToUse,
             full_name: newClientName.trim() || null,
             password: tempPassword,
           }]
@@ -295,12 +298,12 @@ export default function AdminCobrancaAvulsa() {
       const result = res.data;
       if (result?.errors?.length > 0) throw new Error(result.errors[0]);
 
-      const { data: userId } = await supabase.rpc("get_user_id_by_email", { target_email: newClientEmail.trim().toLowerCase() });
+      const { data: userId } = await supabase.rpc("get_user_id_by_email", { target_email: emailToUse });
       if (userId) {
         const newClient: ClientOption = {
           user_id: userId,
-          full_name: newClientName.trim() || newClientEmail.trim(),
-          email: newClientEmail.trim().toLowerCase(),
+          full_name: newClientName.trim() || emailToUse,
+          email: emailToUse,
         };
         setSelectedClient(newClient);
         setClients(prev => [...prev, newClient]);
@@ -426,7 +429,7 @@ export default function AdminCobrancaAvulsa() {
                           <Input placeholder="Nome completo" value={newClientName} onChange={e => setNewClientName(e.target.value)} className="mt-1" />
                         </div>
                         <div>
-                          <Label className="text-xs">E-mail *</Label>
+                          <Label className="text-xs">E-mail <span className="text-muted-foreground">(opcional)</span></Label>
                           <Input placeholder="email@exemplo.com" type="email" value={newClientEmail} onChange={e => setNewClientEmail(e.target.value)} className="mt-1" />
                         </div>
                       </div>
