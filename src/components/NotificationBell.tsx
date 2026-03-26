@@ -14,6 +14,7 @@ interface Notification {
   created_at: string;
   link?: string | null;
   image_url?: string | null;
+  cta_text?: string | null;
 }
 
 export function NotificationPopup() {
@@ -119,7 +120,7 @@ export function NotificationPopup() {
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md mx-4 bg-card border border-border rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
+      <div className="relative w-full max-w-md mx-4 bg-card border border-border rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300" style={{ marginTop: 0 }}>
         {/* Close button */}
         <button
           onClick={dismiss}
@@ -135,6 +136,7 @@ export function NotificationPopup() {
               src={current.image_url}
               alt={current.title}
               className="w-full h-full object-cover"
+              onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }}
             />
           </div>
         )}
@@ -168,7 +170,7 @@ export function NotificationPopup() {
                 className="flex-1 h-10 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-bold transition-colors flex items-center justify-center gap-2"
               >
                 <ExternalLink className="size-4" />
-                Ver mais
+                {current.cta_text || "Ver mais"}
               </button>
             )}
           </div>

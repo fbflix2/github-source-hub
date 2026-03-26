@@ -74,6 +74,7 @@ export default function AdminNotificacoes() {
   const [formMessage, setFormMessage] = useState("");
   const [formImageUrl, setFormImageUrl] = useState("");
   const [formLink, setFormLink] = useState("");
+  const [formCtaText, setFormCtaText] = useState("");
   const [formSchedule, setFormSchedule] = useState("now");
   const [formScheduledAt, setFormScheduledAt] = useState("");
   const [formAudience, setFormAudience] = useState<"all" | "specific">("all");
@@ -137,6 +138,7 @@ export default function AdminNotificacoes() {
     setFormMessage("");
     setFormImageUrl("");
     setFormLink("");
+    setFormCtaText("");
     setFormSchedule("now");
     setFormScheduledAt("");
     setFormAudience("all");
@@ -170,6 +172,7 @@ export default function AdminNotificacoes() {
       message: formMessage.trim(),
       image_url: formImageUrl.trim() || null,
       link: formLink.trim() || "",
+      cta_text: formCtaText.trim() || null,
       status,
       scheduled_at:
         formSchedule === "schedule" && formScheduledAt
@@ -203,6 +206,7 @@ export default function AdminNotificacoes() {
             global: true,
             link: payload.link || null,
             image_url: payload.image_url || null,
+            cta_text: payload.cta_text || null,
           });
         } else if (targetIds) {
           const notifs = targetIds.map(uid => ({
@@ -213,6 +217,7 @@ export default function AdminNotificacoes() {
             user_id: uid,
             link: payload.link || null,
             image_url: payload.image_url || null,
+            cta_text: payload.cta_text || null,
           }));
           await supabase.from("notifications").insert(notifs);
         }
@@ -238,6 +243,7 @@ export default function AdminNotificacoes() {
     setFormMessage(n.message);
     setFormImageUrl(n.image_url || "");
     setFormLink(n.link || "");
+    setFormCtaText((n as any).cta_text || "");
     if (n.status === "scheduled") {
       setFormSchedule("schedule");
       setFormScheduledAt(
@@ -304,6 +310,7 @@ export default function AdminNotificacoes() {
         user_id: uid,
         link: n.link || null,
         image_url: n.image_url || null,
+        cta_text: (n as any).cta_text || null,
       }));
       await supabase.from("notifications").insert(notifs);
     } else {
@@ -314,6 +321,7 @@ export default function AdminNotificacoes() {
         global: true,
         link: n.link || null,
         image_url: n.image_url || null,
+        cta_text: (n as any).cta_text || null,
       });
     }
 
@@ -484,6 +492,20 @@ export default function AdminNotificacoes() {
                   onChange={(e) => setFormLink(e.target.value)}
                 />
               </div>
+
+              {/* CTA Text */}
+              {formLink && (
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-white/80">Texto do Botão de Ação</label>
+                  <Input
+                    className="bg-[rgba(20,20,20,0.6)] border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:border-primary focus:ring-primary/20"
+                    placeholder="Ver mais (padrão)"
+                    value={formCtaText}
+                    onChange={(e) => setFormCtaText(e.target.value)}
+                  />
+                  <p className="text-[11px] text-white/40">Deixe vazio para usar "Ver mais"</p>
+                </div>
+              )}
 
               {/* Schedule */}
               <div className="flex flex-col gap-2">
