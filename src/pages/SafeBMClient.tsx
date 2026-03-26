@@ -7,6 +7,7 @@ import { ptBR } from "date-fns/locale";
 import SecurityMonitor, { type SecurityMonitorHandle } from "@/components/safebm/SecurityMonitor";
 import PricingModal from "@/components/safebm/PricingModal";
 import SafeBMOnboarding from "@/components/safebm/SafeBMOnboarding";
+import SafeBMVaultConfig from "@/components/safebm/SafeBMVaultConfig";
 
 interface SafeBmVault {
   id: string;
@@ -36,20 +37,22 @@ export default function SafeBMClient() {
   const [showPricing, setShowPricing] = useState(false);
   const monitorRef = useRef<SecurityMonitorHandle>(null);
 
-  useEffect(() => {
-    (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { setLoading(false); return; }
-      const { data, error } = await supabase
-        .from("safe_bm_vaults" as any)
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
-      if (error) toast.error("Erro ao carregar cofre: " + error.message);
-      setVaults((data as any[]) || []);
-      setLoading(false);
-    })();
-  }, []);
+  const GENERIC_BM_LINK = "https://business.facebook.com";
+
+  const fetchVaults = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setLoading(false); return; }
+    const { data, error } = await supabase
+      .from("safe_bm_vaults" as any)
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+    if (error) toast.error("Erro ao carregar cofre: " + error.message);
+    setVaults((data as any[]) || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchVaults(); }, []);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return vaults;
@@ -82,6 +85,8 @@ export default function SafeBMClient() {
     );
   }
 
+  const unconfiguredVaults = vaults.filter(v => v.bm_link === GENERIC_BM_LINK);
+
   if (!loading && vaults.length === 0) {
     return (
       <div className="p-3 md:p-4 max-w-7xl mx-auto w-full" style={{ fontFamily: "'Inter', sans-serif" }}>
@@ -90,9 +95,22 @@ export default function SafeBMClient() {
     );
   }
 
+  if (!loading && unconfiguredVaults.length > 0 && unconfiguredVaults.length === vaults.length) {
+    // All vaults are unconfigured — show only config screen
+    return (
+      <div className="p-3 md:p-4 max-w-7xl mx-auto w-full" style={{ fontFamily: "'Inter', sans-serif" }}>
+        <SafeBMVaultConfig vaults={unconfiguredVaults} onConfigured={fetchVaults} />
+      </div>
+    );
+  }
+
   return (
     <div className="p-3 md:p-4 max-w-7xl mx-auto w-full space-y-2.5" style={{ fontFamily: "'Inter', sans-serif" }}>
 
+      {/* Show config UI if some vaults are unconfigured */}
+      {unconfiguredVaults.length > 0 && (
+        <SafeBMVaultConfig vaults={unconfiguredVaults} onConfigured={fetchVaults} />
+      )}
       {/* ───── HERO STATUS SECTION ───── */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-2.5">
 
