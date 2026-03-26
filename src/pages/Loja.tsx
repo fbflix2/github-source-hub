@@ -565,7 +565,7 @@ export default function Dashboard() {
 
                     {/* Description */}
                     {product.description && (
-                      <p className="text-xs text-muted-foreground line-clamp-2">
+                      <p className="text-xs text-muted-foreground">
                         {product.description.length > 150
                           ? <>{product.description.substring(0, 150)}... <button onClick={() => setDetailProduct(product)} className="text-primary hover:underline font-medium">ler mais</button></>
                           : product.description}
