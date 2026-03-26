@@ -74,6 +74,7 @@ export default function AdminNotificacoes() {
   const [formMessage, setFormMessage] = useState("");
   const [formImageUrl, setFormImageUrl] = useState("");
   const [formLink, setFormLink] = useState("");
+  const [formCtaText, setFormCtaText] = useState("");
   const [formSchedule, setFormSchedule] = useState("now");
   const [formScheduledAt, setFormScheduledAt] = useState("");
   const [formAudience, setFormAudience] = useState<"all" | "specific">("all");
@@ -137,6 +138,7 @@ export default function AdminNotificacoes() {
     setFormMessage("");
     setFormImageUrl("");
     setFormLink("");
+    setFormCtaText("");
     setFormSchedule("now");
     setFormScheduledAt("");
     setFormAudience("all");
@@ -238,6 +240,7 @@ export default function AdminNotificacoes() {
     setFormMessage(n.message);
     setFormImageUrl(n.image_url || "");
     setFormLink(n.link || "");
+    setFormCtaText((n as any).cta_text || "");
     if (n.status === "scheduled") {
       setFormSchedule("schedule");
       setFormScheduledAt(
