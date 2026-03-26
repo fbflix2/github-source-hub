@@ -60,6 +60,10 @@ export default function AdminCobrancaAvulsa() {
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [showNewClientForm, setShowNewClientForm] = useState(false);
+  const [newClientName, setNewClientName] = useState("");
+  const [newClientEmail, setNewClientEmail] = useState("");
+  const [registeringClient, setRegisteringClient] = useState(false);
 
   useEffect(() => {
     loadData();
