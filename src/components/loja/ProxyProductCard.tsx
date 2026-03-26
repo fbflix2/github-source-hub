@@ -59,55 +59,41 @@ export function ProxyProductCard({ product, proxyImage, quantity, onQuantityChan
           </div>
         </div>
       )}
-      <div className="p-5 flex flex-col flex-1 gap-4">
-        {/* Header: price + badges */}
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="shrink-0 w-10 h-10 rounded-lg overflow-hidden bg-secondary flex items-center justify-center">
-              {imageUrl ? (
-                <img src={imageUrl} alt={product.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-              ) : (
-                <span className="material-symbols-outlined text-[20px] text-muted-foreground">dns</span>
-              )}
-            </div>
-            <div className="min-w-0">
-              <h3 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors leading-tight truncate">
-                {displayName}
-              </h3>
-              <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border bg-primary/10 text-primary border-primary/20">
-                  <span className="material-symbols-outlined text-[11px]">bolt</span>
-                  {typeLabel}
-                </span>
-                {localData?.badge_text && (
-                  <span
-                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full border inline-flex items-center gap-1 ${
-                      localData.badge_color || "bg-muted text-foreground border-border"
-                    }`}
-                  >
-                    {localData.badge_icon && (
-                      <span className="material-symbols-outlined text-[11px]">{localData.badge_icon}</span>
-                    )}
-                    {localData.badge_text}
-                  </span>
-                )}
-              </div>
-            </div>
+      <div className="p-5 flex flex-col flex-1 gap-3">
+        {/* Type badge */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border bg-primary/10 text-primary border-primary/20">
+            <span className="material-symbols-outlined text-[11px]">bolt</span>
+            {typeLabel}
+          </span>
+          {localData?.badge_text && (
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border inline-flex items-center gap-1 ${localData.badge_color || "bg-muted text-foreground border-border"}`}>
+              {localData.badge_icon && <span className="material-symbols-outlined text-[11px]">{localData.badge_icon}</span>}
+              {localData.badge_text}
+            </span>
+          )}
+        </div>
+
+        {/* Image + Name + Price */}
+        <div className="flex items-center gap-3">
+          <div className="shrink-0 w-12 h-12 rounded-lg overflow-hidden bg-secondary flex items-center justify-center">
+            {imageUrl ? (
+              <img src={imageUrl} alt={product.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+            ) : (
+              <span className="material-symbols-outlined text-[22px] text-muted-foreground">dns</span>
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <h3 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors leading-tight truncate">
+              {displayName}
+            </h3>
           </div>
           <div className="text-right shrink-0">
-            <p className="text-lg font-bold text-foreground">{formattedPrice}</p>
-            <p className="text-[10px] text-muted-foreground">mensal</p>
+            <p className="text-base font-bold text-foreground">{formattedPrice}</p>
           </div>
         </div>
 
-        {/* Description */}
-        {description && (
-          <p className="text-sm text-muted-foreground">
-            {description.length > 150
-              ? <>{description.substring(0, 150)}... <button onClick={() => onReadMore?.({ name: displayName, description, tags, image_url: imageUrl, price: Number(price) })} className="text-primary hover:underline font-medium text-xs">ler mais</button></>
-              : description}
-          </p>
-        )}
+        {/* Description - hidden in grid for compactness */}
 
         {/* Tags */}
         {tags.length > 0 && (
@@ -138,46 +124,27 @@ export function ProxyProductCard({ product, proxyImage, quantity, onQuantityChan
         </div>
 
         {/* Actions */}
-        <div className="mt-auto pt-4 flex flex-col gap-3 border-t border-border">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center bg-secondary rounded-lg border border-border h-10 px-1">
-              <button
-                onClick={() => onQuantityChange(productId, -1)}
-                className="w-8 h-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted rounded transition"
-              >
-                <span className="material-symbols-outlined text-[16px]">remove</span>
-              </button>
-              <input
-                type="text"
-                readOnly
-                value={quantity}
-                className="w-8 bg-transparent text-center text-sm font-medium border-0 focus:ring-0 text-foreground"
-              />
-              <button
-                onClick={() => onQuantityChange(productId, 1)}
-                className="w-8 h-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted rounded transition"
-              >
-                <span className="material-symbols-outlined text-[16px]">add</span>
-              </button>
-            </div>
-            <button
-              onClick={() => {
-                const localId = localData?.id;
-                addItem({
-                  productId: localId || productId,
-                  name: displayName,
-                  price: Number(price),
-                  quantity,
-                  image: imageUrl || "/placeholder.svg",
-                });
-                toast.success(`${displayName} adicionado ao carrinho!`);
-              }}
-              className="h-10 px-3 rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all flex items-center justify-center"
-              title="Adicionar ao carrinho"
-            >
-              <span className="material-symbols-outlined text-[20px]">shopping_cart</span>
+        <div className="mt-auto pt-3 flex items-center gap-2 border-t border-border">
+          <div className="flex items-center bg-secondary rounded-lg border border-border h-8 px-0.5">
+            <button onClick={() => onQuantityChange(productId, -1)} className="w-7 h-full flex items-center justify-center text-muted-foreground hover:text-foreground rounded transition">
+              <span className="material-symbols-outlined text-[14px]">remove</span>
+            </button>
+            <span className="w-6 text-center text-xs font-medium text-foreground">{quantity}</span>
+            <button onClick={() => onQuantityChange(productId, 1)} className="w-7 h-full flex items-center justify-center text-muted-foreground hover:text-foreground rounded transition">
+              <span className="material-symbols-outlined text-[14px]">add</span>
             </button>
           </div>
+          <button
+            onClick={() => {
+              const localId = localData?.id;
+              addItem({ productId: localId || productId, name: displayName, price: Number(price), quantity, image: imageUrl || "/placeholder.svg" });
+              toast.success(`${displayName} adicionado ao carrinho!`);
+            }}
+            className="h-8 w-8 rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all flex items-center justify-center shrink-0"
+            title="Adicionar ao carrinho"
+          >
+            <span className="material-symbols-outlined text-[16px]">shopping_cart</span>
+          </button>
           <button
             onClick={() => {
               // Auto-select cheapest variant and go straight to checkout
@@ -205,10 +172,10 @@ export function ProxyProductCard({ product, proxyImage, quantity, onQuantityChan
                 navigate("/checkout");
               }
             }}
-            className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm h-10 rounded-lg transition-all flex items-center justify-center gap-2 shadow-[0_0_10px_rgba(220,38,38,0.2)]"
+            className="flex-1 h-8 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs rounded-lg transition-all flex items-center justify-center gap-1.5"
           >
-            <span className="material-symbols-outlined text-[18px]">flash_on</span>
-            Comprar agora
+            <span className="material-symbols-outlined text-[14px]">flash_on</span>
+            Comprar
           </button>
         </div>
       </div>
