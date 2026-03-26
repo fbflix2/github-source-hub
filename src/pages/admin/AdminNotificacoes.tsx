@@ -74,6 +74,42 @@ export default function AdminNotificacoes() {
   const [formLink, setFormLink] = useState("");
   const [formSchedule, setFormSchedule] = useState("now");
   const [formScheduledAt, setFormScheduledAt] = useState("");
+  const [formAudience, setFormAudience] = useState<"all" | "specific">("all");
+  const [selectedUsers, setSelectedUsers] = useState<UserOption[]>([]);
+  const [userSearch, setUserSearch] = useState("");
+  const [userResults, setUserResults] = useState<UserOption[]>([]);
+  const [searchingUsers, setSearchingUsers] = useState(false);
+  const userSearchTimeout = useRef<ReturnType<typeof setTimeout>>();
+
+  const searchUsers = async (query: string) => {
+    if (query.length < 2) { setUserResults([]); return; }
+    setSearchingUsers(true);
+    const { data } = await supabase
+      .from("profiles")
+      .select("user_id, full_name")
+      .or(`full_name.ilike.%${query}%`)
+      .limit(10);
+    setUserResults(
+      (data || []).filter(u => !selectedUsers.some(s => s.user_id === u.user_id)) as UserOption[]
+    );
+    setSearchingUsers(false);
+  };
+
+  const handleUserSearch = (val: string) => {
+    setUserSearch(val);
+    if (userSearchTimeout.current) clearTimeout(userSearchTimeout.current);
+    userSearchTimeout.current = setTimeout(() => searchUsers(val), 300);
+  };
+
+  const addUser = (u: UserOption) => {
+    setSelectedUsers(prev => [...prev, u]);
+    setUserResults(prev => prev.filter(r => r.user_id !== u.user_id));
+    setUserSearch("");
+  };
+
+  const removeUser = (userId: string) => {
+    setSelectedUsers(prev => prev.filter(u => u.user_id !== userId));
+  };
 
   const fetchNotifications = async () => {
     const { data, error } = await supabase
