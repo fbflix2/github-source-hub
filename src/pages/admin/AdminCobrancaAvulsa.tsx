@@ -275,10 +275,13 @@ export default function AdminCobrancaAvulsa() {
   };
 
   const handleRegisterClient = async () => {
-    if (!newClientEmail || !newClientEmail.includes("@")) {
-      toast.error("Informe um e-mail válido");
+    if (!newClientName.trim() && !newClientEmail.trim()) {
+      toast.error("Informe pelo menos o nome ou e-mail");
       return;
     }
+    const emailToUse = newClientEmail.trim()
+      ? newClientEmail.trim().toLowerCase()
+      : `cliente-${Date.now()}@placeholder.fbflix.com`;
     setRegisteringClient(true);
     try {
       const tempPassword = "Fb" + Math.random().toString(36).slice(2, 10) + "!1";
