@@ -455,6 +455,74 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Action: configure_vault - client configures their unconfigured safe_bm vault
+    if (body.action === "configure_vault") {
+      const { vault_id, bm_name, bm_link } = body;
+      if (!vault_id || !bm_name || !bm_link) {
+        return new Response(JSON.stringify({ error: "vault_id, bm_name e bm_link são obrigatórios" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Get caller user from JWT
+      let callerUserId: string | null = null;
+      if (authHeader) {
+        const token = authHeader.replace("Bearer ", "");
+        const anonClient = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_ANON_KEY")!
+        );
+        const { data: { user } } = await anonClient.auth.getUser(token);
+        callerUserId = user?.id || null;
+      }
+
+      if (!callerUserId) {
+        return new Response(JSON.stringify({ error: "Autenticação necessária" }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Verify vault belongs to user and is unconfigured
+      const { data: vault, error: vaultErr } = await supabaseAdmin
+        .from("safe_bm_vaults")
+        .select("id, user_id, bm_link")
+        .eq("id", vault_id)
+        .single();
+
+      if (vaultErr || !vault) {
+        return new Response(JSON.stringify({ error: "Cofre não encontrado" }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (vault.user_id !== callerUserId) {
+        return new Response(JSON.stringify({ error: "Sem permissão" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Update the vault
+      const { error: updateErr } = await supabaseAdmin
+        .from("safe_bm_vaults")
+        .update({
+          bm_name: bm_name.trim(),
+          bm_link: bm_link.trim(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", vault_id);
+
+      if (updateErr) {
+        return new Response(JSON.stringify({ error: updateErr.message }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(
+        JSON.stringify({ success: true }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Erro desconhecido";
     return new Response(JSON.stringify({ error: msg }), {
