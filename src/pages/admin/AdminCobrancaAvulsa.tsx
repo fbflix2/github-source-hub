@@ -429,7 +429,7 @@ export default function AdminCobrancaAvulsa() {
                           <Input placeholder="Nome completo" value={newClientName} onChange={e => setNewClientName(e.target.value)} className="mt-1" />
                         </div>
                         <div>
-                          <Label className="text-xs">E-mail *</Label>
+                          <Label className="text-xs">E-mail <span className="text-muted-foreground">(opcional)</span></Label>
                           <Input placeholder="email@exemplo.com" type="email" value={newClientEmail} onChange={e => setNewClientEmail(e.target.value)} className="mt-1" />
                         </div>
                       </div>
