@@ -125,7 +125,7 @@ const Index = () => {
           {/* Shield icon */}
           <div className="mb-6 flex justify-center lp-reveal">
             <div className="w-24 h-24 bg-[#111111] rounded-xl rotate-45 flex items-center justify-center shadow-[0_0_40px_rgba(255,49,49,0.15)] border border-[#ff3131]/30">
-              <span className="material-symbols-outlined text-[#ff3131] text-5xl -rotate-45" style={{ fontVariationSettings: "'FILL' 1" }}>shield_with_heart</span>
+              <img src={logoFbflix} alt="FBFLIX" className="w-12 h-12 object-contain -rotate-45" />
             </div>
           </div>
 
