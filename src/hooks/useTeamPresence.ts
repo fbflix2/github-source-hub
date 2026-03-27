@@ -23,23 +23,32 @@ export function useTeamPresenceTracker() {
   useEffect(() => {
     let cancelled = false;
 
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (cancelled || !user) return;
+    const setupPresence = async (userId: string | null) => {
+      if (!userId) {
+        if (channelInstance) {
+          supabase.removeChannel(channelInstance);
+          channelInstance = null;
+        }
+        channelUserId = null;
+        globalOnlineIds = new Set();
+        notifyAll();
+        return;
+      }
 
       refCount++;
 
-      // If channel already active for this user, skip
-      if (channelInstance && channelUserId === user.id) return;
+      if (channelInstance && channelUserId === userId) {
+        return;
+      }
 
-      // Remove old channel if user changed
       if (channelInstance) {
         supabase.removeChannel(channelInstance);
         channelInstance = null;
       }
 
-      channelUserId = user.id;
+      channelUserId = userId;
       const channel = supabase.channel(CHANNEL_NAME, {
-        config: { presence: { key: user.id } },
+        config: { presence: { key: userId } },
       });
 
       channel
@@ -49,18 +58,24 @@ export function useTeamPresenceTracker() {
         })
         .subscribe(async (status) => {
           if (status === "SUBSCRIBED" && !cancelled) {
-            await channel.track({
-              user_id: user.id,
-              online_at: new Date().toISOString(),
-            });
+            await channel.track({ user_id: userId, online_at: new Date().toISOString() });
           }
         });
 
       channelInstance = channel;
+    };
+
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!cancelled) void setupPresence(user?.id ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!cancelled) void setupPresence(session?.user?.id ?? null);
     });
 
     return () => {
       cancelled = true;
+      subscription.unsubscribe();
       refCount--;
       if (refCount <= 0 && channelInstance) {
         supabase.removeChannel(channelInstance);
