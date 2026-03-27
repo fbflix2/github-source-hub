@@ -13,6 +13,7 @@ import {
   Crown,
   UserCog,
   KeyRound,
+  Building2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -361,6 +362,16 @@ export default function AdminConfiguracoes() {
                             <KeyRound className="w-5 h-5" />
                           </button>
                         )}
+                        <button
+                          onClick={() => {
+                            setDeptMember(member);
+                            setDeptValue(member.department || "");
+                          }}
+                          className="p-2 hover:bg-emerald-500/20 rounded-lg text-gray-400 hover:text-emerald-400 transition-colors"
+                          title="Definir Setor"
+                        >
+                          <Building2 className="w-5 h-5" />
+                        </button>
                         <button
                           onClick={() => {
                             setEditMember(member);
