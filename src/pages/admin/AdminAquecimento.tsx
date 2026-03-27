@@ -400,9 +400,10 @@ export default function AdminAquecimento() {
     const customTasks = configTasks[selectedTrack] || [];
     const tasksToUse = customTasks.length > 0 ? customTasks : track.tasks;
     const { data: { user } } = await supabase.auth.getUser();
+    const assignTo = assignOperatorId || user?.id || null;
     const { data: profile, error } = await supabase
       .from("warming_profiles")
-      .insert({ profile_code: profileCode.trim(), track_type: selectedTrack, track_days: tasksToUse.length, created_by: user?.id || null })
+      .insert({ profile_code: profileCode.trim(), track_type: selectedTrack, track_days: tasksToUse.length, created_by: assignTo })
       .select()
       .single();
     if (error || !profile) { toast.error("Erro ao criar perfil"); setCreating(false); return; }
