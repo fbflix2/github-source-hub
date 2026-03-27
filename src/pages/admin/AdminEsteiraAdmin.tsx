@@ -72,6 +72,8 @@ export default function AdminEsteiraAdmin() {
   const [resetPassword, setResetPassword] = useState("");
   const [resetError, setResetError] = useState("");
   const [resetting, setResetting] = useState(false);
+  const [commissionRate, setCommissionRate] = useState("0.25");
+  const [savingCommission, setSavingCommission] = useState(false);
 
   const defaultConfigTasks: Record<string, { title: string; description: string }[]> = {
     "7_days": [
