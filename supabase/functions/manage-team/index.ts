@@ -277,6 +277,20 @@ async function handleSetPermissions(sb: any, body: any) {
   return jsonResponse({ success: true });
 }
 
+async function handleUpdateDepartment(sb: any, body: any) {
+  const { user_id, department } = body;
+  if (!user_id) throw new Error("user_id é obrigatório");
+
+  const { error } = await sb
+    .from("profiles")
+    .update({ department: department || null })
+    .eq("user_id", user_id);
+
+  if (error) throw new Error(error.message);
+
+  return jsonResponse({ success: true });
+}
+
 function jsonResponse(data: any) {
   return new Response(JSON.stringify(data), {
     status: 200,
