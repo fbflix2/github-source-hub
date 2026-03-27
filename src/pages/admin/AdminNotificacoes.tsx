@@ -365,8 +365,60 @@ export default function AdminNotificacoes() {
       </header>
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+        {/* Live Preview */}
+        <div className="xl:col-span-4 w-full order-first xl:order-none">
+          <div className="sticky top-8 flex flex-col gap-4">
+            <div className="flex items-center gap-2 text-sm font-medium text-white/60">
+              <Eye className="w-4 h-4" />
+              Pré-visualização em tempo real
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-black/40 p-6 flex items-center justify-center min-h-[340px]">
+              <div className="w-full max-w-sm bg-card border border-border rounded-2xl shadow-2xl overflow-hidden">
+                {formImageUrl && (
+                  <div className="w-full h-36 overflow-hidden bg-muted">
+                    <img
+                      src={formImageUrl}
+                      alt="Preview"
+                      className="w-full h-full object-cover"
+                      onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }}
+                    />
+                  </div>
+                )}
+                <div className="p-5 space-y-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <span className="text-base">
+                        {formType === "popup" ? "🎉" : "🔔"}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-base font-bold text-foreground leading-tight">
+                        {formTitle || "Título da notificação"}
+                      </h3>
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {formMessage || "Mensagem da notificação aparecerá aqui..."}
+                  </p>
+                  <div className="flex items-center gap-3 pt-2">
+                    <button className="flex-1 h-9 rounded-lg border border-border text-xs font-medium text-muted-foreground cursor-default">
+                      Fechar
+                    </button>
+                    {(formLink || formCtaText) && (
+                      <button className="flex-1 h-9 rounded-lg bg-primary text-primary-foreground text-xs font-bold cursor-default flex items-center justify-center gap-1.5">
+                        <LinkIcon className="size-3.5" />
+                        {formCtaText || "Ver mais"}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Form Panel */}
-        <div className="xl:col-span-4 w-full">
+        <div className="xl:col-span-4 w-full order-last xl:order-none">
           <div className="rounded-2xl p-6 md:p-8 flex flex-col gap-6 sticky top-8">
             <div className="flex items-center justify-between border-b border-white/10 pb-4">
               <div className="flex items-center gap-3">
@@ -495,18 +547,16 @@ export default function AdminNotificacoes() {
               </div>
 
               {/* CTA Text */}
-              {formLink && (
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-white/80">Texto do Botão de Ação</label>
-                  <Input
-                    className="bg-[rgba(20,20,20,0.6)] border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:border-primary focus:ring-primary/20"
-                    placeholder="Ver mais (padrão)"
-                    value={formCtaText}
-                    onChange={(e) => setFormCtaText(e.target.value)}
-                  />
-                  <p className="text-[11px] text-white/40">Deixe vazio para usar "Ver mais"</p>
-                </div>
-              )}
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-white/80">Texto do Botão de Ação</label>
+                <Input
+                  className="bg-[rgba(20,20,20,0.6)] border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:border-primary focus:ring-primary/20"
+                  placeholder="Ver mais (padrão)"
+                  value={formCtaText}
+                  onChange={(e) => setFormCtaText(e.target.value)}
+                />
+                <p className="text-[11px] text-white/40">Personaliza o texto do botão. Deixe vazio para "Ver mais"</p>
+              </div>
 
               {/* Schedule */}
               <div className="flex flex-col gap-2">
@@ -639,7 +689,7 @@ export default function AdminNotificacoes() {
         </div>
 
         {/* Notifications List */}
-        <div className="xl:col-span-8 w-full flex flex-col gap-6">
+        <div className="xl:col-span-4 w-full flex flex-col gap-6">
           {/* Filters */}
           <div className="bg-[rgba(30,30,30,0.6)] backdrop-blur-xl border border-white/[0.08] rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="relative flex-1 w-full">
