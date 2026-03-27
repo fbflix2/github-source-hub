@@ -468,7 +468,7 @@ export default function AdminTeamChat() {
                             className={cn(
                               "min-w-0 rounded-2xl px-3 py-2 text-sm leading-relaxed",
                               isMe
-                                ? "rounded-br-md bg-accent/80 text-accent-foreground"
+                                ? "rounded-br-md bg-secondary text-secondary-foreground"
                                 : "rounded-bl-md border border-border bg-card text-foreground"
                             )}
                             style={{ wordBreak: "break-all", overflowWrap: "anywhere", whiteSpace: "pre-wrap" }}
