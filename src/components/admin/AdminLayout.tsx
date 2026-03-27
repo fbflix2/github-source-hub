@@ -12,7 +12,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { AdminMobileHeader } from "./mobile/AdminMobileHeader";
 import { AdminMobileBottomNav } from "./mobile/AdminMobileBottomNav";
-import { useTeamPresenceTracker } from "@/hooks/useTeamPresence";
 
 export function AdminLayout() {
   const { isAdmin, loading, role } = useAdminAuth();
@@ -20,7 +19,6 @@ export function AdminLayout() {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [permChecked, setPermChecked] = useState(false);
-  useTeamPresenceTracker(); // Global presence — tracks online status on every admin page
   const hideHeader = location.pathname === "/admin/blocagem" || location.pathname === "/admin/clientes";
   const isAquecimento = location.pathname === "/admin/aquecimento" || location.pathname === "/admin/esteira-admin";
 
