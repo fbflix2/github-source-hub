@@ -43,6 +43,7 @@ interface AdminNotification {
   message: string;
   image_url: string | null;
   link: string | null;
+  cta_text?: string | null;
   status: string;
   scheduled_at: string | null;
   is_active: boolean;
@@ -243,7 +244,7 @@ export default function AdminNotificacoes() {
     setFormMessage(n.message);
     setFormImageUrl(n.image_url || "");
     setFormLink(n.link || "");
-    setFormCtaText((n as any).cta_text || "");
+    setFormCtaText(n.cta_text || "");
     if (n.status === "scheduled") {
       setFormSchedule("schedule");
       setFormScheduledAt(
@@ -310,7 +311,7 @@ export default function AdminNotificacoes() {
         user_id: uid,
         link: n.link || null,
         image_url: n.image_url || null,
-        cta_text: (n as any).cta_text || null,
+        cta_text: n.cta_text || null,
       }));
       await supabase.from("notifications").insert(notifs);
     } else {
@@ -321,7 +322,7 @@ export default function AdminNotificacoes() {
         global: true,
         link: n.link || null,
         image_url: n.image_url || null,
-        cta_text: (n as any).cta_text || null,
+        cta_text: n.cta_text || null,
       });
     }
 
