@@ -749,31 +749,40 @@ export default function AdminAquecimento() {
             });
             const avgPerProfile = myProfiles.length > 0 ? Math.round(myTotalTime / myProfiles.length) : 0;
 
+            const isCurrency = viewMode === "currency";
+            const fmtVal = (count: number) => isCurrency
+              ? `R$ ${(count * commissionRate).toFixed(2).replace(".", ",")}`
+              : String(count);
+
             return (
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
                 <div className="bg-white/10 backdrop-blur-md p-3.5 rounded-xl border border-white/15">
-                  <p className="text-[10px] font-medium text-white/50 uppercase tracking-wider">Perfis Hoje</p>
+                  <p className="text-[10px] font-medium text-white/50 uppercase tracking-wider">
+                    {isCurrency ? "Ganhos Hoje" : "Perfis Hoje"}
+                  </p>
                   <div className="flex items-end gap-2 mt-1">
-                    <p className="text-2xl font-black">{myToday}</p>
-                    {operatorGoals.daily && (
+                    <p className={`font-black ${isCurrency ? "text-xl" : "text-2xl"}`}>{fmtVal(myToday)}</p>
+                    {!isCurrency && operatorGoals.daily && (
                       <p className="text-xs text-white/40 mb-0.5">/ {operatorGoals.daily}</p>
                     )}
                   </div>
-                  {operatorGoals.daily && (
+                  {!isCurrency && operatorGoals.daily && (
                     <div className="mt-2 h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
                       <div className={`h-full rounded-full ${myToday >= operatorGoals.daily ? "bg-emerald-400" : "bg-[#1876f2]"}`} style={{ width: `${Math.min(100, (myToday / operatorGoals.daily) * 100)}%` }} />
                     </div>
                   )}
                 </div>
                 <div className="bg-white/10 backdrop-blur-md p-3.5 rounded-xl border border-white/15">
-                  <p className="text-[10px] font-medium text-white/50 uppercase tracking-wider">Perfis Semana</p>
+                  <p className="text-[10px] font-medium text-white/50 uppercase tracking-wider">
+                    {isCurrency ? "Ganhos Semana" : "Perfis Semana"}
+                  </p>
                   <div className="flex items-end gap-2 mt-1">
-                    <p className="text-2xl font-black">{myWeek}</p>
-                    {operatorGoals.weekly && (
+                    <p className={`font-black ${isCurrency ? "text-xl" : "text-2xl"}`}>{fmtVal(myWeek)}</p>
+                    {!isCurrency && operatorGoals.weekly && (
                       <p className="text-xs text-white/40 mb-0.5">/ {operatorGoals.weekly}</p>
                     )}
                   </div>
-                  {operatorGoals.weekly && (
+                  {!isCurrency && operatorGoals.weekly && (
                     <div className="mt-2 h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
                       <div className={`h-full rounded-full ${myWeek >= operatorGoals.weekly ? "bg-emerald-400" : "bg-[#1876f2]"}`} style={{ width: `${Math.min(100, (myWeek / operatorGoals.weekly) * 100)}%` }} />
                     </div>
