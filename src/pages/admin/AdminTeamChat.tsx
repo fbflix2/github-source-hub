@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Send, MessageCircle, Trash2, Users, ArrowLeft, Reply, X } from "lucide-react";
+import { Send, MessageCircle, Trash2, Users, ArrowLeft, Reply, X, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -60,6 +60,7 @@ export default function AdminTeamChat() {
   const [selectedChat, setSelectedChat] = useState<SelectedChat>({ type: "group" });
   const [showSidebar, setShowSidebar] = useState(true);
   const [replyTo, setReplyTo] = useState<TeamMessage | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const profilesRef = useRef<Record<string, UserInfo>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -254,6 +255,12 @@ export default function AdminTeamChat() {
     await supabase.from("team_messages").delete().eq("id", id);
   };
 
+  const handleCopy = (msg: TeamMessage) => {
+    navigator.clipboard.writeText(msg.content);
+    setCopiedId(msg.id);
+    setTimeout(() => setCopiedId(null), 1500);
+  };
+
   const getProfile = (userId: string): UserInfo =>
     userProfiles[userId] || { full_name: null, avatar_url: null };
 
@@ -429,11 +436,12 @@ export default function AdminTeamChat() {
                         )}
                         <div
                           className={cn(
-                            "px-3 py-2 rounded-2xl text-sm leading-relaxed break-words",
+                            "px-3 py-2 rounded-2xl text-sm leading-relaxed break-words whitespace-pre-wrap overflow-hidden",
                             isMe
                               ? "bg-primary text-primary-foreground rounded-br-md"
                               : "bg-card border border-border text-foreground rounded-bl-md"
                           )}
+                          style={{ wordBreak: "break-word", overflowWrap: "anywhere" }}
                         >
                           {msg.content}
                         </div>
@@ -448,6 +456,13 @@ export default function AdminTeamChat() {
                           </button>
                         )}
                         <div className="flex items-center gap-1 opacity-0 group-hover/msg:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => handleCopy(msg)}
+                            className="text-muted-foreground hover:text-primary transition-colors"
+                            title="Copiar"
+                          >
+                            {copiedId === msg.id ? <Check className="size-3 text-green-500" /> : <Copy className="size-3" />}
+                          </button>
                           <span className="text-[9px] text-muted-foreground whitespace-nowrap">
                             {format(new Date(msg.created_at), "HH:mm")}
                           </span>
@@ -501,7 +516,7 @@ export default function AdminTeamChat() {
                   ? "Mensagem para o grupo..."
                   : `Mensagem para ${getProfile(selectedChat.userId).full_name || "membro"}...`
               }
-              className="flex-1 bg-card border-border text-foreground placeholder:text-muted-foreground rounded-xl h-11"
+              className="flex-1 bg-background border-border text-foreground placeholder:text-muted-foreground rounded-xl h-11"
               autoComplete="off"
             />
             <Button
