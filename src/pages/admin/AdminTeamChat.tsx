@@ -330,6 +330,7 @@ export default function AdminTeamChat() {
             members={teamMembers}
             currentUserId={currentUserId}
             selectedChat={selectedChat}
+            onlineUserIds={onlineUserIds}
             onSelect={(chat) => {
               setSelectedChat(chat);
               setShowSidebar(false);
