@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import logoFbflix from "@/assets/logo-fbflix.png";
 
 /* ---------- constants ---------- */
 const PROFILE_PRICE = 47;
@@ -96,7 +97,7 @@ const Index = () => {
       {/* ===== NAV ===== */}
       <nav className="fixed top-0 w-full z-50 bg-[#050505]/80 backdrop-blur-3xl border-b border-[#ff3131]/10 shadow-[0_0_40px_rgba(255,49,49,0.05)]">
         <div className="flex justify-between items-center px-8 py-4 max-w-7xl mx-auto">
-          <span className="text-2xl font-black text-[#ff3131] tracking-tighter italic cursor-pointer transition-all duration-300 hover:scale-105">FBFLIX</span>
+          <img src={logoFbflix} alt="FBFLIX" className="h-8 object-contain cursor-pointer transition-all duration-300 hover:scale-105" />
           <div className="hidden md:flex gap-8 items-center font-['Space_Grotesk'] tracking-tighter text-sm uppercase font-bold">
             <a href="#home" className="text-[#ff3131] border-b-2 border-[#ff3131] pb-1 cursor-pointer transition-all duration-300">Home</a>
             <a href="#como-funciona" className="text-white/70 hover:text-white transition-colors cursor-pointer">Como Funciona</a>
@@ -124,14 +125,14 @@ const Index = () => {
           {/* Shield icon */}
           <div className="mb-6 flex justify-center lp-reveal">
             <div className="w-24 h-24 bg-[#111111] rounded-xl rotate-45 flex items-center justify-center shadow-[0_0_40px_rgba(255,49,49,0.15)] border border-[#ff3131]/30">
-              <span className="material-symbols-outlined text-[#ff3131] text-5xl -rotate-45" style={{ fontVariationSettings: "'FILL' 1" }}>shield_with_heart</span>
+              <img src={logoFbflix} alt="FBFLIX" className="w-12 h-12 object-contain -rotate-45" />
             </div>
           </div>
 
           <h1 className="font-['Space_Grotesk'] text-6xl md:text-8xl font-black tracking-tighter text-white uppercase leading-[0.9] mb-6 lp-reveal" style={{ transitionDelay: "100ms" }}>
             CONTINGÊNCIA QUE <span className="text-[#ff3131] italic">ESCALA</span>
           </h1>
-          <p className="font-['Space_Grotesk'] text-lg md:text-2xl text-[#ebbbb4] max-w-3xl mx-auto mb-10 tracking-tight lp-reveal" style={{ transitionDelay: "200ms" }}>
+          <p className="font-['Space_Grotesk'] text-lg md:text-2xl text-[#ebbbb4] max-w-3xl mx-auto mb-10 tracking-tight whitespace-nowrap lp-reveal" style={{ transitionDelay: "200ms" }}>
             Perfis Premium • Proxies Residenciais • BM • Escala real sem banimento
           </p>
 
@@ -147,8 +148,8 @@ const Index = () => {
           {/* Pulse */}
           <div className="flex items-center justify-center gap-3 lp-reveal" style={{ transitionDelay: "400ms" }}>
             <div className="relative flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#ff3131] opacity-75" />
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-[#ff3131]" />
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75" />
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500" />
             </div>
             <span className="font-['Space_Grotesk'] font-bold text-[#ff3131] tracking-widest text-sm uppercase">+4.872 contas rodando agora</span>
           </div>
@@ -318,10 +319,11 @@ const Index = () => {
       <footer className="bg-[#030303] w-full py-16 px-8 border-t border-[#ff3131]/10">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 max-w-7xl mx-auto">
           <div className="col-span-1 md:col-span-2">
-            <span className="text-2xl font-black text-[#ff3131] mb-6 block italic">FBFLIX PREMIUM</span>
+            <span className="text-2xl font-black text-[#ff3131] mb-6 block italic">FBFLIX</span>
             <p className="text-sm text-white/40 max-w-sm mb-8 leading-relaxed">
-              © 2024 FBFLIX Premium. Todos os direitos reservados. Engenharia de precisão para contingência e escala profissional no mercado de tráfego pago.
+              © 2026 FBFLIX. Todos os direitos reservados. Engenharia de precisão para contingência e escala profissional no mercado de tráfego pago.
             </p>
+            <p className="text-xs text-white/30">CNPJ: 40.122.096/0001-85</p>
           </div>
           <div>
             <h6 className="text-white font-bold text-sm mb-6 uppercase tracking-widest">Links Rápidos</h6>
