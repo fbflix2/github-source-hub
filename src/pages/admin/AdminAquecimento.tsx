@@ -545,12 +545,19 @@ export default function AdminAquecimento() {
   const currentQueueTrack = useMemo(() => {
     const activeProfs = visibleProfiles.filter(p => p.status === "active" && !isFullyCompleted(p));
     const TRACK_ORDER = ["7_days", "15_days", "30_days"];
+    
+    // In execute mode: only "lock" on a track if it has profiles NOT yet worked today
+    // This prevents the queue from being empty when all profiles in a track were already done
     for (const track of TRACK_ORDER) {
       const trackProfs = activeProfs.filter(p => p.track_type === track);
-      // If there are profiles in this track with pending tasks (not all done today), show this track
+      if (trackProfs.length === 0) continue;
       const hasPending = trackProfs.some(p => !wasWorkedToday(p.id));
-      // Even if all were worked today, if there are active profiles in this track, stay on it
-      if (trackProfs.length > 0) return track;
+      if (hasPending) return track;
+    }
+    
+    // If all tracks are done for today, show the first track that has active profiles
+    for (const track of TRACK_ORDER) {
+      if (activeProfs.some(p => p.track_type === track)) return track;
     }
     return "7_days";
   }, [visibleProfiles, tasks]);
