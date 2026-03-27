@@ -218,6 +218,7 @@ export default function AdminNotificacoes() {
             link: payload.link || null,
             image_url: payload.image_url || null,
             cta_text: payload.cta_text || null,
+            cta_color: payload.cta_color || null,
           });
         } else if (targetIds) {
           const notifs = targetIds.map(uid => ({
@@ -229,6 +230,7 @@ export default function AdminNotificacoes() {
             link: payload.link || null,
             image_url: payload.image_url || null,
             cta_text: payload.cta_text || null,
+            cta_color: payload.cta_color || null,
           }));
           await supabase.from("notifications").insert(notifs);
         }
