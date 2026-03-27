@@ -8,7 +8,7 @@ import { Copy, CheckCircle, Clock, XCircle, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import logoFbflix from "@/assets/logo-fbflix.png";
+import logoFbflix from "@/assets/logo-fbflix.webp";
 
 interface InvoiceData {
   id: string;

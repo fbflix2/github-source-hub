@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import logoFbflix from "@/assets/logo-fbflix.png";
+import logoFbflix from "@/assets/logo-fbflix.webp";
 import { Shield, Zap, Users, Headphones, Star, ChevronRight, Globe, Lock, Clock, CheckCircle2 } from "lucide-react";
 
 const stats = [

@@ -3,7 +3,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import logoFbflix from "@/assets/logo-fbflix.png";
+import logoFbflix from "@/assets/logo-fbflix.webp";
 
 import {
   LayoutDashboard, Package, ShoppingCart, CreditCard, Users, UserCheck,

@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
 import { ThemeProvider } from "next-themes";
 import { useTickets } from "@/hooks/useTickets";
-import logoFbflix from "@/assets/logo-fbflix.png";
+import logoFbflix from "@/assets/logo-fbflix.webp";
 // Pages
 import Auth from "./pages/Auth";
 import Index from "./pages/Index";
