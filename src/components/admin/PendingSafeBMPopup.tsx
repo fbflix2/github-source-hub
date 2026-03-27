@@ -47,7 +47,19 @@ export function PendingSafeBMPopup() {
     }
   }, []);
 
+  // Check if current user is admin (not moderator)
   useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        supabase.rpc('has_role', { _user_id: user.id, _role: 'admin' as const }).then(({ data }) => {
+          setIsAdmin(!!data);
+        });
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!isAdmin) return;
     // Check on mount and listen for new notifications
     fetchPending();
 
@@ -63,7 +75,9 @@ export function PendingSafeBMPopup() {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [fetchPending]);
+  }, [fetchPending, isAdmin]);
+
+  if (!isAdmin) return null;
 
   const handleDismiss = () => {
     sessionStorage.setItem(dismissedKey, Date.now().toString());
