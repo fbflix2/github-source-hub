@@ -541,14 +541,31 @@ export default function AdminAquecimento() {
     return profileTasks.every(t => t.completed);
   };
 
-  // Sort active profiles: profiles worked on TODAY are EXCLUDED from the execution queue
+  // Current track tier being shown (progressive: 7→15→30)
+  const currentQueueTrack = useMemo(() => {
+    const activeProfs = visibleProfiles.filter(p => p.status === "active" && !isFullyCompleted(p));
+    const TRACK_ORDER = ["7_days", "15_days", "30_days"];
+    for (const track of TRACK_ORDER) {
+      const trackProfs = activeProfs.filter(p => p.track_type === track);
+      // If there are profiles in this track with pending tasks (not all done today), show this track
+      const hasPending = trackProfs.some(p => !wasWorkedToday(p.id));
+      // Even if all were worked today, if there are active profiles in this track, stay on it
+      if (trackProfs.length > 0) return track;
+    }
+    return "7_days";
+  }, [visibleProfiles, tasks]);
+
+  // Sort active profiles: PROGRESSIVE — only show current track tier
   const sortedActiveQueue = useMemo(() => {
     // Exclude profiles that are 100% on a promotable track (they'll be auto-promoted)
     const activeProfs = visibleProfiles.filter(p => p.status === "active" && !isFullyCompleted(p));
     
+    // Progressive filter: only show profiles from the current track tier
+    const trackProfs = activeProfs.filter(p => p.track_type === currentQueueTrack);
+    
     // Separate: not worked today (available) vs worked today (done for the day)
-    const available = activeProfs.filter(p => !wasWorkedToday(p.id));
-    const doneToday = activeProfs.filter(p => wasWorkedToday(p.id));
+    const available = trackProfs.filter(p => !wasWorkedToday(p.id));
+    const doneToday = trackProfs.filter(p => wasWorkedToday(p.id));
     
     // Sort available: never worked first, then oldest completion first
     available.sort((a, b) => {
@@ -573,7 +590,7 @@ export default function AdminAquecimento() {
       return available;
     }
     return [...available, ...doneToday];
-  }, [visibleProfiles, tasks, operationMode]);
+  }, [visibleProfiles, tasks, operationMode, currentQueueTrack]);
 
   // Auto-select first profile in queue when none is selected (execute mode)
   useEffect(() => {
@@ -1004,10 +1021,18 @@ export default function AdminAquecimento() {
 
             {visibleProfiles.filter(p => p.status === "active").length > 0 && (
               <div className="mt-3 bg-white dark:bg-white/5 rounded-xl shadow-sm border border-slate-200 dark:border-white/10 overflow-hidden">
-                <div className="px-4 py-2.5 border-b border-slate-100 dark:border-white/10">
+                <div className="px-4 py-2.5 border-b border-slate-100 dark:border-white/10 flex items-center justify-between">
                   <h3 className="text-xs font-bold text-slate-600 dark:text-white/60">
                     {operationMode === "execute" ? "Fila de Aquecimento" : "Perfis em Aquecimento"}
                   </h3>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    currentQueueTrack === "7_days" ? "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300" :
+                    currentQueueTrack === "15_days" ? "bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300" :
+                    "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300"
+                  }`}>
+                    Esteira {currentQueueTrack === "7_days" ? "7 Dias" : currentQueueTrack === "15_days" ? "15 Dias" : "30 Dias"}
+                    {" • "}{sortedActiveQueue.length} pendente{sortedActiveQueue.length !== 1 ? "s" : ""}
+                  </span>
                 </div>
               <div className="max-h-52 overflow-y-auto">
                   {sortedActiveQueue.map((p) => {
