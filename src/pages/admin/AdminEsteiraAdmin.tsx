@@ -495,6 +495,111 @@ export default function AdminEsteiraAdmin() {
         </main>
       )}
 
+      {/* BD Perfis Tab */}
+      {activeTab === "bd_perfis" && (
+        <main className="flex-1 px-6 md:px-8 lg:px-12 py-8 max-w-3xl mx-auto w-full space-y-6">
+          {/* Profile Creation Form */}
+          <div className="bg-white dark:bg-white/5 rounded-xl shadow-sm border border-slate-200 dark:border-white/10 overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-slate-100 dark:border-white/10 flex items-center gap-2.5">
+              <MIcon name="person_add" className="text-[#1876f2] text-xl" />
+              <h2 className="text-base font-bold text-slate-900 dark:text-white">Cadastrar Novo Perfil</h2>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-white/60 mb-1.5">Código do Perfil</label>
+                <div className="relative">
+                  <MIcon name="fingerprint" className="absolute left-3 top-2.5 text-slate-400 text-lg" />
+                  <input
+                    className="w-full pl-10 pr-3 py-2.5 text-sm bg-slate-50 dark:bg-white/10 border border-slate-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-slate-400 focus:border-slate-400 text-slate-900 dark:text-white transition-all"
+                    placeholder="ex: FB-123"
+                    value={profileCode}
+                    onChange={(e) => setProfileCode(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-white/60 mb-1.5">Atribuir ao Operador</label>
+                <div className="relative">
+                  <MIcon name="person" className="absolute left-3 top-2.5 text-slate-400 text-lg" />
+                  <select
+                    className="w-full pl-10 pr-3 py-2.5 text-sm bg-slate-50 dark:bg-white/10 border border-slate-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-slate-400 focus:border-slate-400 text-slate-900 dark:text-white transition-all appearance-none"
+                    value={assignOperatorId}
+                    onChange={(e) => setAssignOperatorId(e.target.value)}
+                  >
+                    <option value="">Selecione um operador...</option>
+                    {teamOperators.map(op => (
+                      <option key={op.id} value={op.id}>{op.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1">O perfil será visível apenas para o operador selecionado.</p>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-white/60 mb-1.5">Esteira</label>
+                <div className="relative flex items-center gap-2 pl-10 pr-3 py-2.5 text-sm bg-slate-100 dark:bg-white/10 border border-slate-200 dark:border-white/10 rounded-lg text-slate-600 dark:text-white/60">
+                  <MIcon name="layers" className="absolute left-3 top-2.5 text-slate-400 text-lg" />
+                  7 Dias - Básica
+                  <span className="ml-auto text-[10px] font-bold text-slate-400 uppercase">Automático</span>
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1">Após concluir 7 dias, avança automaticamente para 15 e depois 30 dias.</p>
+              </div>
+              <button
+                onClick={handleCreateProfile}
+                disabled={creating || !profileCode.trim() || !assignOperatorId}
+                className="w-full bg-[#1876f2] hover:bg-[#1565c0] text-white font-bold py-3 rounded-lg shadow-sm transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-50"
+              >
+                <MIcon name="person_add" className="text-lg" />
+                {creating ? "Cadastrando..." : "Cadastrar Perfil"}
+              </button>
+            </div>
+          </div>
+
+          {/* Profiles List */}
+          <div className="bg-white dark:bg-white/5 rounded-xl shadow-sm border border-slate-200 dark:border-white/10 overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-slate-100 dark:border-white/10 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <MIcon name="list" className="text-[#1876f2] text-xl" />
+                <h2 className="text-base font-bold text-slate-900 dark:text-white">Perfis Cadastrados</h2>
+              </div>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/10 text-slate-500 dark:text-white/50">
+                {profiles.length} total
+              </span>
+            </div>
+            <div className="max-h-[400px] overflow-y-auto divide-y divide-slate-100 dark:divide-white/10">
+              {profiles.length === 0 ? (
+                <div className="p-6 text-center text-xs text-slate-500">Nenhum perfil cadastrado ainda.</div>
+              ) : (
+                profiles.slice(0, 50).map(p => {
+                  const prog = getProgress(p);
+                  const operatorName = p.created_by ? creatorNames[p.created_by] || "—" : "—";
+                  return (
+                    <div key={p.id} className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 dark:hover:bg-white/5">
+                      <MIcon
+                        name={p.status === "completed" ? "check_circle" : p.status === "blocked" ? "block" : "local_fire_department"}
+                        className={`text-base ${p.status === "completed" ? "text-emerald-500" : p.status === "blocked" ? "text-rose-500" : "text-orange-400"}`}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{p.profile_code}</p>
+                        <p className="text-[11px] text-slate-500 dark:text-white/50">
+                          {TRACKS[p.track_type]?.label || p.track_type} • {prog}% • <span className="text-[#1876f2]">{operatorName}</span>
+                        </p>
+                      </div>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                        p.status === "completed" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300" :
+                        p.status === "blocked" ? "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300" :
+                        "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300"
+                      }`}>
+                        {p.status === "completed" ? "Concluído" : p.status === "blocked" ? "Bloqueado" : "Ativo"}
+                      </span>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </main>
+      )}
+
       {/* Configurações Tab */}
       {activeTab === "configuracoes" && (
         <main className="flex-1 p-6 md:p-10 max-w-5xl mx-auto w-full space-y-6">
