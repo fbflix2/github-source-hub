@@ -165,18 +165,12 @@ export default function AdminNotificacoes() {
     }
     setSaving(true);
 
-    const status =
-      formSchedule === "now"
-        ? "sent"
-        : formSchedule === "schedule"
-        ? "scheduled"
-        : "draft";
-
     const isGlobal = formAudience === "all";
     const targetIds = !isGlobal && selectedUsers.length > 0
       ? selectedUsers.map(u => u.user_id)
       : null;
 
+    // Always save as draft first
     const payload: any = {
       type: formType,
       title: formTitle.trim(),
@@ -185,12 +179,12 @@ export default function AdminNotificacoes() {
       link: formLink.trim() || "",
       cta_text: formCtaText.trim() || null,
       cta_color: formCtaColor || null,
-      status,
+      status: "draft",
       scheduled_at:
         formSchedule === "schedule" && formScheduledAt
           ? new Date(formScheduledAt).toISOString()
           : null,
-      is_active: status !== "draft",
+      is_active: false,
       global: isGlobal,
       target_user_ids: targetIds,
     };
@@ -202,51 +196,56 @@ export default function AdminNotificacoes() {
         .update(payload)
         .eq("id", editingId));
     } else {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
       payload.created_by = user?.id || null;
       ({ error } = await supabase.from("admin_notifications").insert(payload));
-
-      if (status === "sent") {
-        if (isGlobal) {
-          await supabase.from("notifications").insert({
-            title: payload.title,
-            message: payload.message,
-            type: formType === "push" ? "info" : "promo",
-            global: true,
-            link: payload.link || null,
-            image_url: payload.image_url || null,
-            cta_text: payload.cta_text || null,
-            cta_color: payload.cta_color || null,
-          });
-        } else if (targetIds) {
-          const notifs = targetIds.map(uid => ({
-            title: payload.title,
-            message: payload.message,
-            type: formType === "push" ? "info" : "promo",
-            global: false,
-            user_id: uid,
-            link: payload.link || null,
-            image_url: payload.image_url || null,
-            cta_text: payload.cta_text || null,
-            cta_color: payload.cta_color || null,
-          }));
-          await supabase.from("notifications").insert(notifs);
-        }
-      }
     }
 
     if (error) {
       toast.error("Erro ao salvar notificação");
-    } else {
-      toast.success(
-        editingId ? "Notificação atualizada!" : "Notificação criada!"
-      );
-      resetForm();
-      fetchNotifications();
+      setSaving(false);
+      return;
     }
+
+    toast.success(editingId ? "Notificação atualizada!" : "Notificação salva como rascunho!");
+    resetForm();
+    fetchNotifications();
     setSaving(false);
+  };
+
+  const handleDispatch = async (n: any) => {
+    const isGlobal = n.global;
+    const targetIds = n.target_user_ids;
+
+    const notifBase: any = {
+      title: n.title,
+      message: n.message,
+      type: n.type === "push" ? "info" : "promo",
+      link: n.link || null,
+      image_url: n.image_url || null,
+      cta_text: n.cta_text || null,
+      cta_color: n.cta_color || null,
+    };
+
+    let sendError;
+    if (isGlobal) {
+      ({ error: sendError } = await supabase.from("notifications").insert({ ...notifBase, global: true } as any));
+    } else if (targetIds && targetIds.length > 0) {
+      const notifs = targetIds.map((uid: string) => ({ ...notifBase, global: false, user_id: uid }));
+      ({ error: sendError } = await supabase.from("notifications").insert(notifs as any));
+    } else {
+      toast.error("Nenhum público definido");
+      return;
+    }
+
+    if (sendError) {
+      toast.error("Erro ao enviar notificação");
+      return;
+    }
+
+    await supabase.from("admin_notifications").update({ status: "sent", is_active: true } as any).eq("id", n.id);
+    toast.success("Notificação enviada!");
+    fetchNotifications();
   };
 
   const handleEdit = async (n: AdminNotification) => {
