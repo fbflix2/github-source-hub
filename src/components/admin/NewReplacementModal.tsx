@@ -192,7 +192,7 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
     // Filter out proxy items — they don't get replacements
     const nonProxyItems = (items || []).filter(oi => !oi.product_id || !proxyProductIds.has(oi.product_id));
 
-    setOrderItems((nonProxyItems).map(oi => {
+    const mappedItems = (nonProxyItems).map(oi => {
       const order = orders.find(o => o.id === oi.order_id);
       return {
         id: oi.id,
@@ -203,7 +203,16 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
         product_id: oi.product_id,
         product_name: oi.product_id ? productMap.get(oi.product_id) : undefined,
       };
-    }));
+    });
+
+    if (mappedItems.length === 1) {
+      setSelectedOrderItem(mappedItems[0]);
+      setOrderSearch("");
+      setSearchingOrder(false);
+      return;
+    }
+
+    setOrderItems(mappedItems);
     setSearchingOrder(false);
   };
 
@@ -232,6 +241,10 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
     if (!reason) { toast.error("Informe o motivo"); return; }
     if (!selectedNewItem) { toast.error("Selecione o item de reposição"); return; }
     if (!productName.trim()) { toast.error("Informe o nome do produto"); return; }
+    if ((orderSearch.trim() || orderItems.length > 0) && !selectedOrderItem) {
+      toast.error("Selecione o item do pedido para vincular a reposição");
+      return;
+    }
 
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
