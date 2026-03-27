@@ -306,37 +306,30 @@ export default function AdminNotificacoes() {
   };
 
   const handleSendNow = async (n: AdminNotification) => {
-    await supabase
-      .from("admin_notifications")
-      .update({ status: "sent", is_active: true })
-      .eq("id", n.id);
+    const notifBase: any = {
+      title: n.title,
+      message: n.message,
+      type: n.type === "push" ? "info" : "promo",
+      link: n.link || null,
+      image_url: n.image_url || null,
+      cta_text: n.cta_text || null,
+      cta_color: (n as any).cta_color || null,
+    };
 
+    let sendError;
     if (n.target_user_ids && n.target_user_ids.length > 0) {
-      const notifs = n.target_user_ids.map(uid => ({
-        title: n.title,
-        message: n.message,
-        type: n.type === "push" ? "info" : "promo",
-        global: false,
-        user_id: uid,
-        link: n.link || null,
-        image_url: n.image_url || null,
-        cta_text: n.cta_text || null,
-        cta_color: (n as any).cta_color || null,
-      }));
-      await supabase.from("notifications").insert(notifs);
+      const notifs = n.target_user_ids.map(uid => ({ ...notifBase, global: false, user_id: uid }));
+      ({ error: sendError } = await supabase.from("notifications").insert(notifs as any));
     } else {
-      await supabase.from("notifications").insert({
-        title: n.title,
-        message: n.message,
-        type: n.type === "push" ? "info" : "promo",
-        global: true,
-        link: n.link || null,
-        image_url: n.image_url || null,
-        cta_text: n.cta_text || null,
-        cta_color: (n as any).cta_color || null,
-      });
+      ({ error: sendError } = await supabase.from("notifications").insert({ ...notifBase, global: true } as any));
     }
 
+    if (sendError) {
+      toast.error("Erro ao enviar notificação");
+      return;
+    }
+
+    await supabase.from("admin_notifications").update({ status: "sent", is_active: true } as any).eq("id", n.id);
     toast.success("Notificação enviada!");
     fetchNotifications();
   };
