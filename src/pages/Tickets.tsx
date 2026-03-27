@@ -350,7 +350,7 @@ export default function Tickets() {
                           onClick={() => handleCopyMsg(message.id, message.content)}
                           className={cn(
                             "opacity-0 group-hover/bubble:opacity-100 transition-opacity",
-                            message.sender === "user" ? "text-primary-foreground/60 hover:text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                            message.sender === "user" ? "text-secondary-foreground/60 hover:text-secondary-foreground" : "text-muted-foreground hover:text-foreground"
                           )}
                           title="Copiar"
                         >
