@@ -507,6 +507,9 @@ export default function AdminAquecimento() {
       const nextTrackDef = TRACKS[nextTrackKey];
       const tasksToUse = nextCustomTasks.length > 0 ? nextCustomTasks : nextTrackDef.tasks;
 
+      // Delete ALL old tasks from previous track before inserting new ones
+      await supabase.from("warming_tasks").delete().eq("profile_id", prof.id);
+
       await supabase.from("warming_profiles").update({
         track_type: nextTrackKey,
         track_days: tasksToUse.length,
@@ -588,9 +591,9 @@ export default function AdminAquecimento() {
   const restrictedProfiles = visibleProfiles.filter(p => p.status === "restricted").length;
   const totalPct = totalProfiles > 0 ? Math.round((activeProfiles / totalProfiles) * 100) : 0;
 
-  const newProfiles = visibleProfiles.filter(p => p.current_day <= 7).length;
-  const midProfiles = visibleProfiles.filter(p => p.current_day > 7 && p.current_day <= 15).length;
-  const matureProfiles = visibleProfiles.filter(p => p.current_day > 15).length;
+  const newProfiles = visibleProfiles.filter(p => p.track_type === "7_days").length;
+  const midProfiles = visibleProfiles.filter(p => p.track_type === "15_days").length;
+  const matureProfiles = visibleProfiles.filter(p => p.track_type === "30_days").length;
 
   const t3 = visibleProfiles.filter(p => p.trust_tier?.includes("3")).length;
   const t2 = visibleProfiles.filter(p => p.trust_tier?.includes("2") && !p.trust_tier?.includes("3")).length;
