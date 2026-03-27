@@ -386,7 +386,15 @@ export default function AdminEsteiraAdmin() {
                     return (
                       <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
                         <td className="px-6 py-4 font-medium">#{p.profile_code}</td>
-                        <td className="px-6 py-4">Esteira {p.track_days} dias</td>
+                        <td className="px-6 py-4">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold ${
+                            p.track_type === "7_days" ? "bg-blue-50 text-blue-600 dark:bg-blue-500/20 dark:text-blue-400" :
+                            p.track_type === "15_days" ? "bg-purple-50 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400" :
+                            "bg-amber-50 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400"
+                          }`}>
+                            {p.track_type === "7_days" ? "7 Dias" : p.track_type === "15_days" ? "15 Dias" : "30 Dias"}
+                          </span>
+                        </td>
                         <td className="px-6 py-4">{new Date(p.start_date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })}</td>
                         <td className="px-6 py-4">
                           {totalSeconds > 0 ? (
