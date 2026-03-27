@@ -62,6 +62,8 @@ export function NotificationPopup() {
         .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications" }, async (payload) => {
           if (!mounted) return;
           const n = payload.new as Notification;
+          // Skip system notifications (orders, wallet, admin)
+          if (["order", "wallet", "admin"].includes(n.type)) return;
           // Check if it's for this user or global
           if (n.user_id && n.user_id !== user.id && !n.global) return;
           
