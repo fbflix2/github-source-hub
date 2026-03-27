@@ -144,6 +144,9 @@ export default function AdminAquecimento() {
   const [operationMode, setOperationMode] = useState<"register" | "execute">("execute");
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"count" | "currency">("count");
+  const [operatorDisplayName, setOperatorDisplayName] = useState("");
+  const [operatorCoverUrl, setOperatorCoverUrl] = useState<string | null>(null);
+  const [savingConfig, setSavingConfig] = useState(false);
   const [commissionRate, setCommissionRate] = useState(0.25);
   const [creating, setCreating] = useState(false);
   const [isTimerActive, setIsTimerActive] = useState(false);
@@ -151,7 +154,7 @@ export default function AdminAquecimento() {
   const [currentElapsed, setCurrentElapsed] = useState(0);
   const [finishSignal, setFinishSignal] = useState(0);
   const [startSignal, setStartSignal] = useState(0);
-  const [activeTab, setActiveTab] = useState<"dashboard" | "esteiras">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "esteiras" | "configuracoes">("dashboard");
   const [teamOperators, setTeamOperators] = useState<{ id: string; name: string }[]>([]);
   const [configTasks, setConfigTasks] = useState<Record<string, { title: string; description: string }[]>>({
     "7_days": TRACKS["7_days"].tasks.map(t => ({ title: t.title, description: t.description })),
@@ -496,9 +499,57 @@ export default function AdminAquecimento() {
   const selectedTrackDef = selectedProfile ? TRACKS[selectedProfile.track_type] : null;
   const selectedProgress = selectedProfile ? getProgress(selectedProfile) : 0;
 
+  const DEFAULT_COVERS = [
+    "/covers/cover-1.jpg",
+    "/covers/cover-2.jpg",
+    "/covers/cover-3.jpg",
+    "/covers/cover-4.jpg",
+    "/covers/cover-5.jpg",
+  ];
+
+  // Load operator config from profiles table
+  useEffect(() => {
+    if (currentUserId) {
+      supabase.from("profiles").select("full_name, avatar_url").eq("user_id", currentUserId).maybeSingle().then(({ data }) => {
+        if (data) {
+          setOperatorDisplayName(data.full_name || "");
+        }
+      });
+      // Load cover from site_settings per user
+      supabase.from("site_settings").select("value").eq("key", `operator_cover_${currentUserId}`).maybeSingle().then(({ data }) => {
+        if (data?.value) setOperatorCoverUrl(data.value);
+      });
+    }
+  }, [currentUserId]);
+
+  const saveOperatorConfig = async () => {
+    if (!currentUserId) return;
+    setSavingConfig(true);
+    try {
+      // Update display name
+      if (operatorDisplayName.trim()) {
+        await supabase.from("profiles").update({ full_name: operatorDisplayName.trim() }).eq("user_id", currentUserId);
+        setCurrentUserName(operatorDisplayName.trim());
+      }
+      // Save cover URL
+      const coverKey = `operator_cover_${currentUserId}`;
+      const { data: existing } = await supabase.from("site_settings").select("id").eq("key", coverKey).maybeSingle();
+      if (existing) {
+        await supabase.from("site_settings").update({ value: operatorCoverUrl || "" }).eq("key", coverKey);
+      } else {
+        await supabase.from("site_settings").insert({ key: coverKey, value: operatorCoverUrl || "" });
+      }
+      toast.success("Configurações salvas!");
+    } catch {
+      toast.error("Erro ao salvar configurações");
+    }
+    setSavingConfig(false);
+  };
+
   const tabs = [
     { key: "dashboard" as const, label: "Painel", icon: "dashboard" },
     { key: "esteiras" as const, label: "Esteiras", icon: "layers" },
+    { key: "configuracoes" as const, label: "Configurações", icon: "settings" },
   ];
 
   // Filter profiles: non-admins only see their own profiles
@@ -673,7 +724,8 @@ export default function AdminAquecimento() {
   return (
     <div className="flex flex-col min-h-full bg-[#f5f7f8] dark:bg-[#0a0505] text-slate-900 dark:text-white" style={{ fontFamily: "'Inter', sans-serif" }}>
       {/* ── Hero Section ── */}
-      <section className="relative overflow-hidden text-white pt-10 pb-16 px-6 md:px-12 lg:px-40" style={{ background: "linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 40%, #3a3a3a 70%, #1a1a1a 100%)" }}>
+      <section className="relative overflow-hidden text-white pt-10 pb-16 px-6 md:px-12 lg:px-40" style={operatorCoverUrl ? { backgroundImage: `url(${operatorCoverUrl})`, backgroundSize: "cover", backgroundPosition: "center" } : { background: "linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 40%, #3a3a3a 70%, #1a1a1a 100%)" }}>
+        <div className="absolute inset-0 bg-black/50" />
         <div className="absolute top-0 right-0 w-1/3 h-full opacity-10 pointer-events-none">
           <svg className="w-full h-full" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
             <path d="M44.7,-76.4C58.1,-69.2,69.5,-57.4,77.4,-43.8C85.3,-30.2,89.7,-15.1,89.1,-0.3C88.5,14.4,82.9,28.8,74.1,41.2C65.3,53.6,53.2,64.1,39.6,71.7C26,79.2,13,83.9,-0.8,85.2C-14.5,86.5,-29,84.5,-42.1,77.5C-55.2,70.5,-66.8,58.6,-74.6,44.9C-82.4,31.2,-86.3,15.6,-86.1,0.1C-85.9,-15.4,-81.5,-30.8,-73.2,-44C-64.9,-57.2,-52.7,-68.1,-38.8,-75C-24.9,-81.8,-9.2,-84.6,3.4,-90.4C16,-96.2,27.1,-83.5,44.7,-76.4Z" fill="currentColor" transform="translate(100 100)" />
@@ -704,13 +756,6 @@ export default function AdminAquecimento() {
             </div>
             <div className="flex items-center gap-3">
               <ThemeToggle />
-              <button
-                onClick={() => setViewMode(prev => prev === "count" ? "currency" : "count")}
-                className="w-10 h-10 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors border border-white/20"
-                title={viewMode === "count" ? "Ver em comissão (R$)" : "Ver em quantidade"}
-              >
-                <MIcon name={viewMode === "count" ? "tag" : "payments"} className="text-white text-[20px]" />
-              </button>
               <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
                 <MIcon name="fluid" className="text-white text-2xl" />
               </div>
@@ -1183,6 +1228,97 @@ export default function AdminAquecimento() {
             )}
           </section>
         </div>
+      )}
+
+      {/* ── Configurações Tab ── */}
+      {activeTab === "configuracoes" && (
+        <main className="flex-1 px-6 md:px-12 lg:px-40 py-6 max-w-[900px] mx-auto w-full space-y-6">
+          {/* Cover Preview */}
+          <div className="relative rounded-xl overflow-hidden border border-slate-200 dark:border-white/10 shadow-sm">
+            <div className="h-40 bg-slate-200 dark:bg-white/10" style={operatorCoverUrl ? { backgroundImage: `url(${operatorCoverUrl})`, backgroundSize: "cover", backgroundPosition: "center" } : { background: "linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 40%, #3a3a3a 70%, #1a1a1a 100%)" }}>
+            </div>
+            <div className="absolute bottom-3 left-5 flex items-center gap-3">
+              {currentUserAvatar ? (
+                <img src={currentUserAvatar} alt="" className="w-16 h-16 rounded-full border-3 border-white shadow-lg object-cover" />
+              ) : (
+                <div className="w-16 h-16 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center border-3 border-white shadow-lg">
+                  <MIcon name="person" className="text-white text-3xl" />
+                </div>
+              )}
+              <div>
+                <p className="text-white font-bold text-lg drop-shadow-lg">{operatorDisplayName || currentUserName || "Operador"}</p>
+                <p className="text-white/70 text-xs drop-shadow">Operador de Aquecimento</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Edit Name */}
+          <div className="bg-white dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-5">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+              <MIcon name="badge" className="text-[#1876f2] text-lg" />
+              Nome de Exibição
+            </h3>
+            <input
+              type="text"
+              value={operatorDisplayName}
+              onChange={(e) => setOperatorDisplayName(e.target.value)}
+              placeholder="Seu nome de operador"
+              className="w-full bg-slate-50 dark:bg-white/10 border border-slate-200 dark:border-white/10 rounded-lg px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-[#1876f2] focus:border-transparent outline-none"
+            />
+            <p className="text-[11px] text-slate-400 mt-1.5">Este nome será exibido no painel e nos relatórios.</p>
+          </div>
+
+          {/* Cover Photo Selection */}
+          <div className="bg-white dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-5">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+              <MIcon name="wallpaper" className="text-[#1876f2] text-lg" />
+              Foto de Capa
+            </h3>
+            <div className="grid grid-cols-3 gap-3">
+              {/* Default option */}
+              <button
+                onClick={() => setOperatorCoverUrl(null)}
+                className={`relative rounded-lg overflow-hidden h-20 border-2 transition-all ${!operatorCoverUrl ? "border-[#1876f2] ring-2 ring-[#1876f2]/30" : "border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20"}`}
+              >
+                <div className="w-full h-full" style={{ background: "linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 40%, #3a3a3a 70%, #1a1a1a 100%)" }} />
+                {!operatorCoverUrl && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                    <MIcon name="check_circle" className="text-white text-xl" />
+                  </div>
+                )}
+                <span className="absolute bottom-1 left-1 text-[9px] text-white font-bold bg-black/40 px-1.5 py-0.5 rounded">Padrão</span>
+              </button>
+              {/* Cover options */}
+              {DEFAULT_COVERS.map((cover, i) => {
+                const isSelected = operatorCoverUrl === cover;
+                return (
+                  <button
+                    key={cover}
+                    onClick={() => setOperatorCoverUrl(cover)}
+                    className={`relative rounded-lg overflow-hidden h-20 border-2 transition-all ${isSelected ? "border-[#1876f2] ring-2 ring-[#1876f2]/30" : "border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20"}`}
+                  >
+                    <img src={cover} alt={`Capa ${i + 1}`} className="w-full h-full object-cover" loading="lazy" />
+                    {isSelected && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                        <MIcon name="check_circle" className="text-white text-xl" />
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Save Button */}
+          <button
+            onClick={saveOperatorConfig}
+            disabled={savingConfig}
+            className="w-full bg-[#1876f2] hover:bg-[#1565c0] disabled:opacity-50 text-white font-bold py-3 rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 text-sm"
+          >
+            <MIcon name={savingConfig ? "hourglass_empty" : "save"} className="text-lg" />
+            {savingConfig ? "Salvando..." : "Salvar Configurações"}
+          </button>
+        </main>
       )}
 
     </div>
