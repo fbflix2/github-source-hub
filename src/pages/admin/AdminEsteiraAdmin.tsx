@@ -632,6 +632,49 @@ export default function AdminEsteiraAdmin() {
       {/* Configurações Tab */}
       {activeTab === "configuracoes" && (
         <main className="flex-1 p-6 md:p-10 max-w-5xl mx-auto w-full space-y-6">
+          {/* Commission Rate */}
+          <section className="bg-white dark:bg-white/5 rounded-xl shadow-sm border border-slate-200 dark:border-white/10 overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-white/10 flex items-center gap-3">
+              <MIcon name="payments" className="text-[#1876f2]" />
+              <h2 className="text-lg font-bold">Comissão por Perfil Aquecido</h2>
+            </div>
+            <div className="p-6">
+              <p className="text-sm text-slate-500 dark:text-white/50 mb-4">
+                Valor em R$ que cada operador recebe por perfil aquecido. Os operadores podem alternar a visualização entre quantidade e valor no painel.
+              </p>
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-bold text-slate-700 dark:text-white/70">R$</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={commissionRate}
+                  onChange={(e) => setCommissionRate(e.target.value)}
+                  className="w-32 bg-slate-50 dark:bg-white/10 border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm font-bold dark:text-white"
+                />
+                <span className="text-xs text-slate-400 dark:text-white/40">por perfil</span>
+                <button
+                  disabled={savingCommission}
+                  onClick={async () => {
+                    setSavingCommission(true);
+                    const val = commissionRate;
+                    const { data: existing } = await supabase.from("site_settings").select("id").eq("key", "warming_commission_rate").maybeSingle();
+                    if (existing) {
+                      await supabase.from("site_settings").update({ value: val }).eq("key", "warming_commission_rate");
+                    } else {
+                      await supabase.from("site_settings").insert({ key: "warming_commission_rate", value: val });
+                    }
+                    setSavingCommission(false);
+                    toast.success("Comissão atualizada!");
+                  }}
+                  className="px-4 py-2 text-sm font-bold text-white bg-[#1876f2] rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                >
+                  {savingCommission ? "Salvando..." : "Salvar"}
+                </button>
+              </div>
+            </div>
+          </section>
+
           <section className="bg-white dark:bg-white/5 rounded-xl shadow-sm border border-slate-200 dark:border-white/10 overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 dark:border-white/10 flex items-center justify-between">
               <div className="flex items-center gap-3">
