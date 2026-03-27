@@ -529,27 +529,19 @@ export default function AdminNotificacoes() {
             </div>
 
             {/* Audience */}
-            <div className="grid grid-cols-1 gap-2">
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-white/70">Público</label>
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-white/70">Público</label>
-                <div className="grid grid-cols-2 gap-1 p-0.5 bg-black/40 rounded-lg h-9">
-                  <button type="button" onClick={() => setFormAudience("all")}
-                    className={`flex items-center justify-center gap-1 rounded-md text-[10px] font-medium transition-all ${formAudience === "all" ? "bg-primary text-white" : "text-white/60"}`}>
-                    <Globe className="w-3 h-3" /> Todos
-                  </button>
-                  <button type="button" onClick={() => setFormAudience("specific")}
-                    className={`flex items-center justify-center gap-1 rounded-md text-[10px] font-medium transition-all ${formAudience === "specific" ? "bg-primary text-white" : "text-white/60"}`}>
-                    <Users className="w-3 h-3" /> Esp.
-                  </button>
-                </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-white/70">Público</label>
+              <div className="grid grid-cols-2 gap-1 p-0.5 bg-black/40 rounded-lg h-9">
+                <button type="button" onClick={() => setFormAudience("all")}
+                  className={`flex items-center justify-center gap-1 rounded-md text-[10px] font-medium transition-all ${formAudience === "all" ? "bg-primary text-white" : "text-white/60"}`}>
+                  <Globe className="w-3 h-3" /> Todos
+                </button>
+                <button type="button" onClick={() => setFormAudience("specific")}
+                  className={`flex items-center justify-center gap-1 rounded-md text-[10px] font-medium transition-all ${formAudience === "specific" ? "bg-primary text-white" : "text-white/60"}`}>
+                  <Users className="w-3 h-3" /> Esp.
+                </button>
               </div>
             </div>
-
-            {formSchedule === "schedule" && (
-              <Input type="datetime-local" className={inputCls} value={formScheduledAt} onChange={(e) => setFormScheduledAt(e.target.value)} />
-            )}
 
             {formAudience === "specific" && (
               <div className="flex flex-col gap-1.5">
