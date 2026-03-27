@@ -184,6 +184,7 @@ export default function AdminNotificacoes() {
       image_url: formImageUrl.trim() || null,
       link: formLink.trim() || "",
       cta_text: formCtaText.trim() || null,
+      cta_color: formCtaColor || null,
       status,
       scheduled_at:
         formSchedule === "schedule" && formScheduledAt
