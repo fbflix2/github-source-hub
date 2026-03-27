@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
+const CHANNEL_NAME = "team-presence-v2";
+
 // Global state shared across hook instances
 let globalOnlineIds = new Set<string>();
 const listeners = new Set<(ids: Set<string>) => void>();
-let activeTrackerCount = 0;
-let presenceChannel: ReturnType<typeof supabase.channel> | null = null;
+let channelInstance: ReturnType<typeof supabase.channel> | null = null;
+let channelUserId: string | null = null;
+let refCount = 0;
 
 function notifyAll() {
   const snapshot = new Set(globalOnlineIds);
@@ -17,17 +20,25 @@ function notifyAll() {
  * Call from AdminLayout so presence is active on every admin page.
  */
 export function useTeamPresenceTracker() {
-  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-
   useEffect(() => {
     let cancelled = false;
 
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (cancelled || !user) return;
 
-      // Use a unique channel name per mount to avoid conflicts
-      const channelName = `team-presence-${Date.now()}`;
-      const channel = supabase.channel(channelName, {
+      refCount++;
+
+      // If channel already active for this user, skip
+      if (channelInstance && channelUserId === user.id) return;
+
+      // Remove old channel if user changed
+      if (channelInstance) {
+        supabase.removeChannel(channelInstance);
+        channelInstance = null;
+      }
+
+      channelUserId = user.id;
+      const channel = supabase.channel(CHANNEL_NAME, {
         config: { presence: { key: user.id } },
       });
 
@@ -38,23 +49,26 @@ export function useTeamPresenceTracker() {
         })
         .subscribe(async (status) => {
           if (status === "SUBSCRIBED" && !cancelled) {
-            await channel.track({ user_id: user.id, online_at: new Date().toISOString() });
+            await channel.track({
+              user_id: user.id,
+              online_at: new Date().toISOString(),
+            });
           }
         });
 
-      channelRef.current = channel;
-
-      // Clean up old global channel if exists
-      if (presenceChannel && presenceChannel !== channel) {
-        supabase.removeChannel(presenceChannel);
-      }
-      presenceChannel = channel;
+      channelInstance = channel;
     });
 
     return () => {
       cancelled = true;
-      // Don't remove on normal navigation — only on full unmount
-      // The channel persists as long as the admin layout is mounted
+      refCount--;
+      if (refCount <= 0 && channelInstance) {
+        supabase.removeChannel(channelInstance);
+        channelInstance = null;
+        channelUserId = null;
+        globalOnlineIds = new Set();
+        notifyAll();
+      }
     };
   }, []);
 }
@@ -68,7 +82,6 @@ export function useOnlineUsers(): Set<string> {
   useEffect(() => {
     const handler = (ids: Set<string>) => setOnline(ids);
     listeners.add(handler);
-    // Sync immediately in case data arrived before subscription
     setOnline(new Set(globalOnlineIds));
     return () => { listeners.delete(handler); };
   }, []);
