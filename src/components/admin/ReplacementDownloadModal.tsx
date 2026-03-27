@@ -197,15 +197,17 @@ export function ReplacementDownloadModal({
 
   const handleSaveReplacement = async () => {
     if (!selectedClient) { toast.error("Selecione o cliente"); return; }
+    if (!selectedOrderItem) { toast.error("Selecione o item do pedido para vincular a reposição"); return; }
     if (!reason) { toast.error("Informe o motivo"); return; }
     if (!selectedNewItem) { toast.error("Selecione o item de reposição"); return; }
+    if (selectedNewItem.id === item.id) { toast.error("Selecione um item diferente do original para a reposição"); return; }
 
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
 
     const insertData: Record<string, unknown> = {
-      stock_item_id: item.id, // original problematic item
-      new_stock_item_id: selectedNewItem.id, // new replacement item
+      stock_item_id: item.id,
+      new_stock_item_id: selectedNewItem.id,
       product_name: productName,
       item_name: item.name,
       client_user_id: selectedClient.user_id,
@@ -214,12 +216,9 @@ export function ReplacementDownloadModal({
       item_value: parseFloat(itemValue) || 0,
       notes: notes || null,
       created_by: user!.id,
+      order_id: selectedOrderItem.order_id,
+      order_item_id: selectedOrderItem.id,
     };
-
-    if (selectedOrderItem) {
-      insertData.order_id = selectedOrderItem.order_id;
-      insertData.order_item_id = selectedOrderItem.id;
-    }
 
     const { error } = await supabase.from("replacements").insert(insertData as any);
 
@@ -230,32 +229,56 @@ export function ReplacementDownloadModal({
       return;
     }
 
-    // Fetch the new stock item's full data for delivery
-    const { data: newStockFull } = await supabase
-      .from("stock_items")
-      .select("id, name, data, identification, identification_link")
-      .eq("id", selectedNewItem.id)
-      .single();
+    const now = new Date().toISOString();
+
+    const [{ data: currentOrderItem }, { data: newStockFull }] = await Promise.all([
+      supabase
+        .from("order_items")
+        .select("delivery_data")
+        .eq("id", selectedOrderItem.id)
+        .maybeSingle(),
+      supabase
+        .from("stock_items")
+        .select("id, name, data, identification, identification_link")
+        .eq("id", selectedNewItem.id)
+        .single(),
+    ]);
 
     // Mark the NEW stock item as sold and link to the order_item
     await supabase
       .from("stock_items")
       .update({
         status: "vendido",
-        order_item_id: selectedOrderItem?.id || null,
-        updated_at: new Date().toISOString(),
+        order_item_id: selectedOrderItem.id,
+        updated_at: now,
       })
       .eq("id", selectedNewItem.id);
 
-    // Update the order_item's delivery_data so the client sees the new item
-    if (selectedOrderItem && newStockFull) {
+    // Unlink the ORIGINAL stock item so the old credentials stop being resolved in the client view
+    await supabase
+      .from("stock_items")
+      .update({
+        order_item_id: null,
+        updated_at: now,
+      })
+      .eq("id", item.id);
+
+    // Update the order_item's delivery_data so the client sees the new item, preserving operational flags
+    if (newStockFull) {
+      const currentDeliveryData =
+        currentOrderItem?.delivery_data && typeof currentOrderItem.delivery_data === "object"
+          ? { ...(currentOrderItem.delivery_data as Record<string, unknown>) }
+          : {};
       const d = (newStockFull.data as Record<string, unknown>) || {};
       const deliveryData: Record<string, unknown> = {
+        ...currentDeliveryData,
         ...d,
         ...(newStockFull.identification ? { idPerfil: newStockFull.identification } : {}),
         ...(newStockFull.identification_link ? { linkPerfil: newStockFull.identification_link } : {}),
         _replaced: true,
-        _replaced_at: new Date().toISOString(),
+        _replaced_at: now,
+        _replacement_stock_item_id: newStockFull.id,
+        _replacement_old_stock_item_id: item.id,
       };
 
       await supabase

@@ -281,28 +281,53 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
     const { error } = await supabase.from("replacements").insert(insertData as any);
     if (error) { toast.error("Erro ao salvar reposição"); console.error(error); setSaving(false); return; }
 
-    // Fetch new item data
-    const { data: newStockFull } = await supabase
-      .from("stock_items")
-      .select("id, name, data, identification, identification_link")
-      .eq("id", selectedNewItem.id).single();
+    const now = new Date().toISOString();
 
-    // Mark new item as sold
+    // Fetch current delivery data + new item data
+    const [{ data: currentOrderItem }, { data: newStockFull }] = await Promise.all([
+      supabase
+        .from("order_items")
+        .select("delivery_data")
+        .eq("id", selectedOrderItem.id)
+        .maybeSingle(),
+      supabase
+        .from("stock_items")
+        .select("id, name, data, identification, identification_link")
+        .eq("id", selectedNewItem.id)
+        .single(),
+    ]);
+
+    // Mark new item as sold and linked to the same order item
     await supabase.from("stock_items").update({
       status: "vendido",
       order_item_id: selectedOrderItem.id,
-      updated_at: new Date().toISOString(),
+      updated_at: now,
     }).eq("id", selectedNewItem.id);
 
-    // Update delivery_data if order item linked
+    // Unlink the original item so the client never sees stale credentials again
+    if (originalStockId) {
+      await supabase.from("stock_items").update({
+        order_item_id: null,
+        updated_at: now,
+      }).eq("id", originalStockId);
+    }
+
+    // Update delivery_data keeping operational flags already stored on the order item
     if (newStockFull) {
+      const currentDeliveryData =
+        currentOrderItem?.delivery_data && typeof currentOrderItem.delivery_data === "object"
+          ? { ...(currentOrderItem.delivery_data as Record<string, unknown>) }
+          : {};
       const d = (newStockFull.data as Record<string, unknown>) || {};
       const deliveryData: Record<string, unknown> = {
+        ...currentDeliveryData,
         ...d,
         ...(newStockFull.identification ? { idPerfil: newStockFull.identification } : {}),
         ...(newStockFull.identification_link ? { linkPerfil: newStockFull.identification_link } : {}),
         _replaced: true,
-        _replaced_at: new Date().toISOString(),
+        _replaced_at: now,
+        _replacement_stock_item_id: newStockFull.id,
+        ...(originalStockId ? { _replacement_old_stock_item_id: originalStockId } : {}),
       };
       await supabase.from("order_items").update({ delivery_data: deliveryData as any }).eq("id", selectedOrderItem.id);
     }
