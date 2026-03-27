@@ -106,6 +106,10 @@ export default function AdminEsteiraAdmin() {
     fetchProfiles();
     loadConfigFromDB();
     fetchTeamOperators();
+    // Load commission rate
+    supabase.from("site_settings").select("value").eq("key", "warming_commission_rate").maybeSingle().then(({ data }) => {
+      if (data?.value) setCommissionRate(data.value);
+    });
 
     // Realtime subscriptions for instant updates
     const profilesChannel = supabase
