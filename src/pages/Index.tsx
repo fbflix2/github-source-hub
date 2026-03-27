@@ -124,9 +124,7 @@ const Index = () => {
         <div className="relative z-20 max-w-7xl mx-auto px-8 w-full text-center">
           {/* Shield icon */}
           <div className="mb-6 flex justify-center lp-reveal">
-            <div className="w-24 h-24 bg-[#111111] rounded-xl rotate-45 flex items-center justify-center shadow-[0_0_40px_rgba(255,49,49,0.15)] border border-[#ff3131]/30">
-              <img src={logoFbflix} alt="FBFLIX" className="w-12 h-12 object-contain -rotate-45" />
-            </div>
+            <img src={logoFbflix} alt="FBFLIX" className="w-20 h-20 object-contain drop-shadow-[0_0_30px_rgba(255,49,49,0.3)]" />
           </div>
 
           <h1 className="font-['Space_Grotesk'] text-6xl md:text-8xl font-black tracking-tighter text-white uppercase leading-[0.9] mb-6 lp-reveal" style={{ transitionDelay: "100ms" }}>
