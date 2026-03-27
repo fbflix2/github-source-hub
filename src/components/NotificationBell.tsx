@@ -44,6 +44,7 @@ export function NotificationPopup() {
         .select("*")
         .or(`user_id.eq.${user.id},global.eq.true`)
         .eq("read", false)
+        .not("type", "in", "(order,wallet,admin)")
         .order("created_at", { ascending: false })
         .limit(5);
 
@@ -61,6 +62,8 @@ export function NotificationPopup() {
         .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications" }, async (payload) => {
           if (!mounted) return;
           const n = payload.new as Notification;
+          // Skip system notifications (orders, wallet, admin)
+          if (["order", "wallet", "admin"].includes(n.type)) return;
           // Check if it's for this user or global
           if (n.user_id && n.user_id !== user.id && !n.global) return;
           
