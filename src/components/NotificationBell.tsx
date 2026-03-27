@@ -154,10 +154,11 @@ export function NotificationPopup() {
             >
               Fechar
             </button>
-            {current.link && (
+            {(current.link || current.cta_text) && (
               <button
                 onClick={handleAction}
-                className="flex-1 h-9 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-bold transition-colors"
+                className="flex-1 h-9 rounded-lg text-white text-sm font-bold transition-colors"
+                style={{ backgroundColor: (current as any).cta_color || 'hsl(var(--primary))' }}
               >
                 {current.cta_text || "Ver mais"}
               </button>
