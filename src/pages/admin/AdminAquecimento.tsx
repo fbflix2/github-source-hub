@@ -1229,6 +1229,97 @@ export default function AdminAquecimento() {
         </div>
       )}
 
+      {/* ── Configurações Tab ── */}
+      {activeTab === "configuracoes" && (
+        <main className="flex-1 px-6 md:px-12 lg:px-40 py-6 max-w-[900px] mx-auto w-full space-y-6">
+          {/* Cover Preview */}
+          <div className="relative rounded-xl overflow-hidden border border-slate-200 dark:border-white/10 shadow-sm">
+            <div className="h-40 bg-slate-200 dark:bg-white/10" style={operatorCoverUrl ? { backgroundImage: `url(${operatorCoverUrl})`, backgroundSize: "cover", backgroundPosition: "center" } : { background: "linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 40%, #3a3a3a 70%, #1a1a1a 100%)" }}>
+            </div>
+            <div className="absolute bottom-3 left-5 flex items-center gap-3">
+              {currentUserAvatar ? (
+                <img src={currentUserAvatar} alt="" className="w-16 h-16 rounded-full border-3 border-white shadow-lg object-cover" />
+              ) : (
+                <div className="w-16 h-16 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center border-3 border-white shadow-lg">
+                  <MIcon name="person" className="text-white text-3xl" />
+                </div>
+              )}
+              <div>
+                <p className="text-white font-bold text-lg drop-shadow-lg">{operatorDisplayName || currentUserName || "Operador"}</p>
+                <p className="text-white/70 text-xs drop-shadow">Operador de Aquecimento</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Edit Name */}
+          <div className="bg-white dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-5">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+              <MIcon name="badge" className="text-[#1876f2] text-lg" />
+              Nome de Exibição
+            </h3>
+            <input
+              type="text"
+              value={operatorDisplayName}
+              onChange={(e) => setOperatorDisplayName(e.target.value)}
+              placeholder="Seu nome de operador"
+              className="w-full bg-slate-50 dark:bg-white/10 border border-slate-200 dark:border-white/10 rounded-lg px-4 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:ring-2 focus:ring-[#1876f2] focus:border-transparent outline-none"
+            />
+            <p className="text-[11px] text-slate-400 mt-1.5">Este nome será exibido no painel e nos relatórios.</p>
+          </div>
+
+          {/* Cover Photo Selection */}
+          <div className="bg-white dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-5">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+              <MIcon name="wallpaper" className="text-[#1876f2] text-lg" />
+              Foto de Capa
+            </h3>
+            <div className="grid grid-cols-3 gap-3">
+              {/* Default option */}
+              <button
+                onClick={() => setOperatorCoverUrl(null)}
+                className={`relative rounded-lg overflow-hidden h-20 border-2 transition-all ${!operatorCoverUrl ? "border-[#1876f2] ring-2 ring-[#1876f2]/30" : "border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20"}`}
+              >
+                <div className="w-full h-full" style={{ background: "linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 40%, #3a3a3a 70%, #1a1a1a 100%)" }} />
+                {!operatorCoverUrl && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                    <MIcon name="check_circle" className="text-white text-xl" />
+                  </div>
+                )}
+                <span className="absolute bottom-1 left-1 text-[9px] text-white font-bold bg-black/40 px-1.5 py-0.5 rounded">Padrão</span>
+              </button>
+              {/* Cover options */}
+              {DEFAULT_COVERS.map((cover, i) => {
+                const isSelected = operatorCoverUrl === cover;
+                return (
+                  <button
+                    key={cover}
+                    onClick={() => setOperatorCoverUrl(cover)}
+                    className={`relative rounded-lg overflow-hidden h-20 border-2 transition-all ${isSelected ? "border-[#1876f2] ring-2 ring-[#1876f2]/30" : "border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20"}`}
+                  >
+                    <img src={cover} alt={`Capa ${i + 1}`} className="w-full h-full object-cover" loading="lazy" />
+                    {isSelected && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                        <MIcon name="check_circle" className="text-white text-xl" />
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Save Button */}
+          <button
+            onClick={saveOperatorConfig}
+            disabled={savingConfig}
+            className="w-full bg-[#1876f2] hover:bg-[#1565c0] disabled:opacity-50 text-white font-bold py-3 rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 text-sm"
+          >
+            <MIcon name={savingConfig ? "hourglass_empty" : "save"} className="text-lg" />
+            {savingConfig ? "Salvando..." : "Salvar Configurações"}
+          </button>
+        </main>
+      )}
+
     </div>
   );
 }
