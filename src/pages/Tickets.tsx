@@ -342,7 +342,7 @@ export default function Tickets() {
                       <div className="flex items-center justify-between gap-2 mt-2">
                         <p className={cn(
                           "text-xs",
-                          message.sender === "user" ? "text-primary-foreground/70" : "text-muted-foreground"
+                          message.sender === "user" ? "text-secondary-foreground/70" : "text-muted-foreground"
                         )}>
                           {formatDate(message.created_at)}
                         </p>
