@@ -285,6 +285,22 @@ export default function AdminAquecimento() {
     });
   };
 
+  const fetchTeamOperators = async () => {
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("user_id")
+      .eq("role", "moderator");
+    if (!roles || roles.length === 0) return;
+    const userIds = roles.map(r => r.user_id);
+    const { data: profs } = await supabase
+      .from("profiles")
+      .select("user_id, full_name")
+      .in("user_id", userIds);
+    if (profs) {
+      setTeamOperators(profs.map(p => ({ id: p.user_id, name: p.full_name || "Sem nome" })));
+    }
+  };
+
   const fetchProfiles = async () => {
     setLoading(true);
     const { data, error } = await supabase
