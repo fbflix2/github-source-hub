@@ -35,13 +35,13 @@ export default function AdminLogin() {
         return;
       }
 
-      // Check if user has admin role
-      const { data: roleData, error: roleError } = await supabase
-        .rpc('has_role', { _user_id: data.user.id, _role: 'admin' });
+      // Check if user has admin or moderator role
+      const { data: isStaff, error: roleError } = await supabase
+        .rpc('is_staff', { _user_id: data.user.id });
 
-      if (roleError || !roleData) {
+      if (roleError || !isStaff) {
         await supabase.auth.signOut();
-        toast.error("Acesso negado. Você não tem permissão de administrador.");
+        toast.error("Acesso negado. Você não tem permissão de administrador ou moderador.");
         return;
       }
 
