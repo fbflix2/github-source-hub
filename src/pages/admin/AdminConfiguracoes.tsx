@@ -46,6 +46,7 @@ interface TeamMember {
   status: string;
   avatar_url: string | null;
   created_at: string;
+  department: string | null;
 }
 
 const roleLabels: Record<string, string> = {
@@ -79,6 +80,10 @@ export default function AdminConfiguracoes() {
 
   // Permissions modal
   const [permsMember, setPermsMember] = useState<TeamMember | null>(null);
+
+  // Department editing
+  const [deptMember, setDeptMember] = useState<TeamMember | null>(null);
+  const [deptValue, setDeptValue] = useState("");
 
   const filters = [
     { key: "all", label: "Todos" },
