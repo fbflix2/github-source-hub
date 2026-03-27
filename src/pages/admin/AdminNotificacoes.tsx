@@ -528,21 +528,10 @@ export default function AdminNotificacoes() {
               </div>
             </div>
 
-            {/* Schedule + Audience in row */}
-            <div className="grid grid-cols-2 gap-2">
+            {/* Audience */}
+            <div className="grid grid-cols-1 gap-2">
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-white/70">Agendamento</label>
-                <Select value={formSchedule} onValueChange={setFormSchedule}>
-                  <SelectTrigger className="bg-[rgba(20,20,20,0.6)] border-white/10 rounded-lg px-3 h-9 text-xs text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-[#1a1a1a] border-white/10">
-                    <SelectItem value="now">Enviar Agora</SelectItem>
-                    <SelectItem value="schedule">Agendar</SelectItem>
-                    <SelectItem value="draft">Rascunho</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                <label className="text-xs font-medium text-white/70">Público</label>
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-medium text-white/70">Público</label>
                 <div className="grid grid-cols-2 gap-1 p-0.5 bg-black/40 rounded-lg h-9">
