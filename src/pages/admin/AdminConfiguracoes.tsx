@@ -661,8 +661,12 @@ export default function AdminConfiguracoes() {
                 placeholder="Ex: Suporte, Vendas, Financeiro, Operações..."
                 className="bg-black/30 border-white/10 text-white placeholder:text-gray-500"
               />
+              <p className="text-[11px] text-gray-500">Sugestões rápidas:</p>
               <div className="flex flex-wrap gap-2">
-                {["Suporte", "Vendas", "Financeiro", "Operações", "Aquecimento", "Marketing"].map((s) => (
+                {[
+                  "Suporte", "Vendas", "Financeiro", "Operações", "Aquecimento", "Marketing",
+                  "Chefe de Operações", "Dep. Aquecimento", "Dep. Suporte", "Líder Técnico",
+                ].map((s) => (
                   <button
                     key={s}
                     onClick={() => setDeptValue(s)}
