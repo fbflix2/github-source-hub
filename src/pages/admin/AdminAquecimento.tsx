@@ -801,8 +801,12 @@ export default function AdminAquecimento() {
                   <p className="text-2xl font-black mt-1">{formatDuration(avgPerProfile) || "—"}</p>
                 </div>
                 <div className="bg-white/10 backdrop-blur-md p-3.5 rounded-xl border border-white/15">
-                  <p className="text-[10px] font-medium text-white/50 uppercase tracking-wider">Total Meus Perfis</p>
-                  <p className="text-2xl font-black mt-1">{myProfiles.length}</p>
+                  <p className="text-[10px] font-medium text-white/50 uppercase tracking-wider">
+                    {isCurrency ? "Seu Saldo" : "Total Meus Perfis"}
+                  </p>
+                  <p className={`font-black mt-1 ${isCurrency ? "text-xl text-emerald-400" : "text-2xl"}`}>
+                    {isCurrency ? fmtVal(myProfiles.length) : myProfiles.length}
+                  </p>
                 </div>
               </div>
             );
