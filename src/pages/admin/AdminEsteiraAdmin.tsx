@@ -61,9 +61,13 @@ export default function AdminEsteiraAdmin() {
   const [tasks, setTasks] = useState<Record<string, WarmingTask[]>>({});
   const [loading, setLoading] = useState(true);
   const [creatorNames, setCreatorNames] = useState<Record<string, string>>({});
-  const [activeTab, setActiveTab] = useState<"gestao" | "relatorios" | "configuracoes">("gestao");
+  const [activeTab, setActiveTab] = useState<"gestao" | "relatorios" | "bd_perfis" | "configuracoes">("gestao");
   const [reportFilter, setReportFilter] = useState("");
   const [configTrack, setConfigTrack] = useState<"7_days" | "15_days" | "30_days">("7_days");
+  const [profileCode, setProfileCode] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [teamOperators, setTeamOperators] = useState<{ id: string; name: string }[]>([]);
+  const [assignOperatorId, setAssignOperatorId] = useState("");
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [resetPassword, setResetPassword] = useState("");
   const [resetError, setResetError] = useState("");
@@ -99,6 +103,7 @@ export default function AdminEsteiraAdmin() {
     }
     fetchProfiles();
     loadConfigFromDB();
+    fetchTeamOperators();
 
     // Realtime subscriptions for instant updates
     const profilesChannel = supabase
@@ -193,6 +198,66 @@ export default function AdminEsteiraAdmin() {
     });
   };
 
+  const fetchTeamOperators = async () => {
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("user_id")
+      .eq("role", "moderator");
+    if (!roles || roles.length === 0) return;
+    const userIds = roles.map(r => r.user_id);
+    const { data: profs } = await supabase
+      .from("profiles")
+      .select("user_id, full_name")
+      .in("user_id", userIds);
+    if (profs) {
+      setTeamOperators(profs.map(p => ({ id: p.user_id, name: p.full_name || "Sem nome" })));
+    }
+  };
+
+  const handleCreateProfile = async () => {
+    if (!profileCode.trim()) { toast.error("Digite o código do perfil"); return; }
+    if (!assignOperatorId) { toast.error("Selecione um operador"); return; }
+    setCreating(true);
+
+    const { data: existing } = await supabase
+      .from("warming_profiles")
+      .select("id")
+      .eq("profile_code", profileCode.trim())
+      .maybeSingle();
+    if (existing) {
+      toast.error(`O perfil "${profileCode.trim()}" já está cadastrado.`);
+      setCreating(false);
+      return;
+    }
+
+    const trackKey = "7_days";
+    const customTasks = configTasks[trackKey] || [];
+    const tasksToUse = customTasks.length > 0 ? customTasks : defaultConfigTasks[trackKey];
+
+    const { data: profile, error } = await supabase
+      .from("warming_profiles")
+      .insert({ profile_code: profileCode.trim(), track_type: trackKey, track_days: tasksToUse.length, created_by: assignOperatorId })
+      .select()
+      .single();
+    if (error || !profile) { toast.error("Erro ao criar perfil"); setCreating(false); return; }
+
+    const taskRows = tasksToUse.map((t, i) => ({ profile_id: profile.id, day_number: i + 1, title: t.title, description: t.description }));
+    await supabase.from("warming_tasks").insert(taskRows);
+
+    toast.success(`✅ Perfil "${profileCode.trim()}" cadastrado!`);
+    setProfileCode("");
+    setAssignOperatorId("");
+    fetchProfiles();
+    setCreating(false);
+  };
+
+  const getProgress = (profile: WarmingProfile) => {
+    const profileTaskList = tasks[profile.id];
+    if (!profileTaskList) return Math.min(100, Math.round(((profile.current_day - 1) / profile.track_days) * 100));
+    const completed = profileTaskList.filter((t) => t.completed).length;
+    return Math.min(100, Math.round((completed / profileTaskList.length) * 100));
+  };
+
   const fetchProfiles = async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -270,6 +335,7 @@ export default function AdminEsteiraAdmin() {
   const tabs = [
     { key: "gestao" as const, label: "Gestão", icon: "supervisor_account" },
     { key: "relatorios" as const, label: "Relatórios", icon: "analytics" },
+    { key: "bd_perfis" as const, label: "BD Perfis", icon: "database" },
     { key: "configuracoes" as const, label: "Configurações", icon: "settings" },
   ];
 
