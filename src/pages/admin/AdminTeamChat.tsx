@@ -61,6 +61,7 @@ export default function AdminTeamChat() {
   const [showSidebar, setShowSidebar] = useState(true);
   const [replyTo, setReplyTo] = useState<TeamMessage | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
   const inputRef = useRef<HTMLInputElement>(null);
   const profilesRef = useRef<Record<string, UserInfo>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -214,6 +215,27 @@ export default function AdminTeamChat() {
 
     return () => { supabase.removeChannel(channel); };
   }, [currentUserId, queryClient, refetch, loadProfiles]);
+
+  // Presence tracking — show who is online
+  useEffect(() => {
+    if (!currentUserId) return;
+    const presenceChannel = supabase.channel("team-presence", {
+      config: { presence: { key: currentUserId } },
+    });
+
+    presenceChannel
+      .on("presence", { event: "sync" }, () => {
+        const state = presenceChannel.presenceState();
+        setOnlineUserIds(new Set(Object.keys(state)));
+      })
+      .subscribe(async (status) => {
+        if (status === "SUBSCRIBED") {
+          await presenceChannel.track({ user_id: currentUserId, online_at: new Date().toISOString() });
+        }
+      });
+
+    return () => { supabase.removeChannel(presenceChannel); };
+  }, [currentUserId]);
 
   // Auto-scroll
   useEffect(() => {
