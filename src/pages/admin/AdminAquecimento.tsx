@@ -143,6 +143,8 @@ export default function AdminAquecimento() {
   const [selectedTrack, setSelectedTrack] = useState("7_days");
   const [operationMode, setOperationMode] = useState<"register" | "execute">("execute");
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"count" | "currency">("count");
+  const [commissionRate, setCommissionRate] = useState(0.25);
   const [creating, setCreating] = useState(false);
   const [isTimerActive, setIsTimerActive] = useState(false);
   const [activeTaskTitle, setActiveTaskTitle] = useState<string | null>(null);
@@ -228,6 +230,13 @@ export default function AdminAquecimento() {
     });
     // Fetch team operators (moderators) for admin assignment
     fetchTeamOperators();
+    // Load commission rate
+    supabase.from("site_settings").select("value").eq("key", "warming_commission_rate").maybeSingle().then(({ data }) => {
+      if (data?.value) {
+        const parsed = parseFloat(data.value);
+        if (!isNaN(parsed)) setCommissionRate(parsed);
+      }
+    });
     return () => {
       cleanupChannels();
     };
@@ -695,6 +704,13 @@ export default function AdminAquecimento() {
             </div>
             <div className="flex items-center gap-3">
               <ThemeToggle />
+              <button
+                onClick={() => setViewMode(prev => prev === "count" ? "currency" : "count")}
+                className="w-10 h-10 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors border border-white/20"
+                title={viewMode === "count" ? "Ver em comissão (R$)" : "Ver em quantidade"}
+              >
+                <MIcon name={viewMode === "count" ? "tag" : "payments"} className="text-white text-[20px]" />
+              </button>
               <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
                 <MIcon name="fluid" className="text-white text-2xl" />
               </div>
@@ -733,31 +749,40 @@ export default function AdminAquecimento() {
             });
             const avgPerProfile = myProfiles.length > 0 ? Math.round(myTotalTime / myProfiles.length) : 0;
 
+            const isCurrency = viewMode === "currency";
+            const fmtVal = (count: number) => isCurrency
+              ? `R$ ${(count * commissionRate).toFixed(2).replace(".", ",")}`
+              : String(count);
+
             return (
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
                 <div className="bg-white/10 backdrop-blur-md p-3.5 rounded-xl border border-white/15">
-                  <p className="text-[10px] font-medium text-white/50 uppercase tracking-wider">Perfis Hoje</p>
+                  <p className="text-[10px] font-medium text-white/50 uppercase tracking-wider">
+                    {isCurrency ? "Ganhos Hoje" : "Perfis Hoje"}
+                  </p>
                   <div className="flex items-end gap-2 mt-1">
-                    <p className="text-2xl font-black">{myToday}</p>
-                    {operatorGoals.daily && (
+                    <p className={`font-black ${isCurrency ? "text-xl" : "text-2xl"}`}>{fmtVal(myToday)}</p>
+                    {!isCurrency && operatorGoals.daily && (
                       <p className="text-xs text-white/40 mb-0.5">/ {operatorGoals.daily}</p>
                     )}
                   </div>
-                  {operatorGoals.daily && (
+                  {!isCurrency && operatorGoals.daily && (
                     <div className="mt-2 h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
                       <div className={`h-full rounded-full ${myToday >= operatorGoals.daily ? "bg-emerald-400" : "bg-[#1876f2]"}`} style={{ width: `${Math.min(100, (myToday / operatorGoals.daily) * 100)}%` }} />
                     </div>
                   )}
                 </div>
                 <div className="bg-white/10 backdrop-blur-md p-3.5 rounded-xl border border-white/15">
-                  <p className="text-[10px] font-medium text-white/50 uppercase tracking-wider">Perfis Semana</p>
+                  <p className="text-[10px] font-medium text-white/50 uppercase tracking-wider">
+                    {isCurrency ? "Ganhos Semana" : "Perfis Semana"}
+                  </p>
                   <div className="flex items-end gap-2 mt-1">
-                    <p className="text-2xl font-black">{myWeek}</p>
-                    {operatorGoals.weekly && (
+                    <p className={`font-black ${isCurrency ? "text-xl" : "text-2xl"}`}>{fmtVal(myWeek)}</p>
+                    {!isCurrency && operatorGoals.weekly && (
                       <p className="text-xs text-white/40 mb-0.5">/ {operatorGoals.weekly}</p>
                     )}
                   </div>
-                  {operatorGoals.weekly && (
+                  {!isCurrency && operatorGoals.weekly && (
                     <div className="mt-2 h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
                       <div className={`h-full rounded-full ${myWeek >= operatorGoals.weekly ? "bg-emerald-400" : "bg-[#1876f2]"}`} style={{ width: `${Math.min(100, (myWeek / operatorGoals.weekly) * 100)}%` }} />
                     </div>
@@ -776,8 +801,12 @@ export default function AdminAquecimento() {
                   <p className="text-2xl font-black mt-1">{formatDuration(avgPerProfile) || "—"}</p>
                 </div>
                 <div className="bg-white/10 backdrop-blur-md p-3.5 rounded-xl border border-white/15">
-                  <p className="text-[10px] font-medium text-white/50 uppercase tracking-wider">Total Meus Perfis</p>
-                  <p className="text-2xl font-black mt-1">{myProfiles.length}</p>
+                  <p className="text-[10px] font-medium text-white/50 uppercase tracking-wider">
+                    {isCurrency ? "Seu Saldo" : "Total Meus Perfis"}
+                  </p>
+                  <p className={`font-black mt-1 ${isCurrency ? "text-xl text-emerald-400" : "text-2xl"}`}>
+                    {isCurrency ? fmtVal(myProfiles.length) : myProfiles.length}
+                  </p>
                 </div>
               </div>
             );
