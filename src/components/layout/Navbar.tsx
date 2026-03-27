@@ -43,7 +43,7 @@ export function Navbar({ userName, balance, avatarUrl, isPartner, onLogout, unre
       <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
         {/* Logo */}
         <NavLink to="/loja" className="flex items-center select-none cursor-pointer mr-4 shrink-0">
-          <h1 className="text-xl font-bold tracking-tight text-foreground">FBFLIX</h1>
+          <span className="sr-only">FBFLIX</span>
         </NavLink>
 
         {/* Navigation Links */}
