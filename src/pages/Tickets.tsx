@@ -331,7 +331,7 @@ export default function Tickets() {
                       className={cn(
                         "max-w-[85%] rounded-2xl px-4 py-3 relative group/bubble",
                         message.sender === "user"
-                          ? "bg-primary text-primary-foreground rounded-br-md"
+                          ? "bg-secondary text-secondary-foreground rounded-br-md"
                           : "bg-muted text-foreground rounded-bl-md"
                       )}
                     >
