@@ -1062,7 +1062,44 @@ export default function AdminAquecimento() {
                             {p.created_by && creatorNames[p.created_by] && <span className="ml-1 text-[#1876f2]">• {creatorNames[p.created_by]}</span>}
                           </p>
                         </div>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                        {p.track_type !== "7_days" && (
+                          <button
+                            title="Voltar para esteira de 7 dias"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              if (!confirm(`Mover "${p.profile_code}" de volta para a esteira de 7 dias?`)) return;
+                              const customTasks = configTasks["7_days"] || [];
+                              const tasksToUse = customTasks.length > 0 ? customTasks : TRACKS["7_days"].tasks;
+                              // Delete existing tasks
+                              await supabase.from("warming_tasks").delete().eq("profile_id", p.id);
+                              // Update profile to 7_days
+                              await supabase.from("warming_profiles").update({
+                                track_type: "7_days",
+                                track_days: tasksToUse.length,
+                                current_day: 1,
+                                status: "active",
+                                updated_at: new Date().toISOString(),
+                              }).eq("id", p.id);
+                              // Insert new 7-day tasks
+                              const taskRows = tasksToUse.map((t, i) => ({
+                                profile_id: p.id,
+                                day_number: i + 1,
+                                title: t.title,
+                                description: t.description,
+                              }));
+                              await supabase.from("warming_tasks").insert(taskRows);
+                              toast.success(`🔄 Perfil "${p.profile_code}" movido para esteira de 7 dias`);
+                              fetchProfiles();
+                              if (selectedProfileId === p.id) {
+                                setSelectedProfileId(null);
+                              }
+                            }}
+                            className="flex-shrink-0 p-1 rounded-md hover:bg-amber-100 dark:hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 transition-colors"
+                          >
+                            <MIcon name="replay" className="text-sm" />
+                          </button>
+                        )}
+                        <span className={`flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
                           isSelected && isTimerActive ? "bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400" :
                           isSelected ? "bg-blue-100 dark:bg-blue-500/20 text-[#1876f2]" :
                           "bg-slate-100 dark:bg-white/10 text-slate-500 dark:text-white/50"
