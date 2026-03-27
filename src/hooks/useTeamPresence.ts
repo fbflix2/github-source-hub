@@ -1,37 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-const CHANNEL_NAME = "team-presence";
-
-let globalChannel: ReturnType<typeof supabase.channel> | null = null;
+// Global state shared across hook instances
 let globalOnlineIds = new Set<string>();
-let listeners = new Set<(ids: Set<string>) => void>();
-let trackedUserId: string | null = null;
+const listeners = new Set<(ids: Set<string>) => void>();
+let activeTrackerCount = 0;
+let presenceChannel: ReturnType<typeof supabase.channel> | null = null;
 
 function notifyAll() {
-  listeners.forEach((fn) => fn(new Set(globalOnlineIds)));
-}
-
-function ensureChannel(userId: string) {
-  if (globalChannel && trackedUserId === userId) return;
-  if (globalChannel) {
-    supabase.removeChannel(globalChannel);
-  }
-  trackedUserId = userId;
-  globalChannel = supabase.channel(CHANNEL_NAME, {
-    config: { presence: { key: userId } },
-  });
-
-  globalChannel
-    .on("presence", { event: "sync" }, () => {
-      globalOnlineIds = new Set(Object.keys(globalChannel!.presenceState()));
-      notifyAll();
-    })
-    .subscribe(async (status) => {
-      if (status === "SUBSCRIBED") {
-        await globalChannel!.track({ user_id: userId, online_at: new Date().toISOString() });
-      }
-    });
+  const snapshot = new Set(globalOnlineIds);
+  listeners.forEach((fn) => fn(snapshot));
 }
 
 /**
@@ -39,16 +17,44 @@ function ensureChannel(userId: string) {
  * Call from AdminLayout so presence is active on every admin page.
  */
 export function useTeamPresenceTracker() {
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
   useEffect(() => {
-    let userId: string | null = null;
+    let cancelled = false;
+
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) {
-        userId = user.id;
-        ensureChannel(user.id);
+      if (cancelled || !user) return;
+
+      // Use a unique channel name per mount to avoid conflicts
+      const channelName = `team-presence-${Date.now()}`;
+      const channel = supabase.channel(channelName, {
+        config: { presence: { key: user.id } },
+      });
+
+      channel
+        .on("presence", { event: "sync" }, () => {
+          globalOnlineIds = new Set(Object.keys(channel.presenceState()));
+          notifyAll();
+        })
+        .subscribe(async (status) => {
+          if (status === "SUBSCRIBED" && !cancelled) {
+            await channel.track({ user_id: user.id, online_at: new Date().toISOString() });
+          }
+        });
+
+      channelRef.current = channel;
+
+      // Clean up old global channel if exists
+      if (presenceChannel && presenceChannel !== channel) {
+        supabase.removeChannel(presenceChannel);
       }
+      presenceChannel = channel;
     });
+
     return () => {
-      // Don't destroy channel on unmount — it's global
+      cancelled = true;
+      // Don't remove on normal navigation — only on full unmount
+      // The channel persists as long as the admin layout is mounted
     };
   }, []);
 }
@@ -57,12 +63,12 @@ export function useTeamPresenceTracker() {
  * Hook to consume online user IDs from any component.
  */
 export function useOnlineUsers(): Set<string> {
-  const [online, setOnline] = useState<Set<string>>(globalOnlineIds);
+  const [online, setOnline] = useState<Set<string>>(() => new Set(globalOnlineIds));
 
   useEffect(() => {
     const handler = (ids: Set<string>) => setOnline(ids);
     listeners.add(handler);
-    // Sync immediately
+    // Sync immediately in case data arrived before subscription
     setOnline(new Set(globalOnlineIds));
     return () => { listeners.delete(handler); };
   }, []);
