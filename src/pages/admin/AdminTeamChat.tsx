@@ -291,242 +291,249 @@ export default function AdminTeamChat() {
       : "Mensagem direta";
 
   return (
-    <div className="flex h-[calc(100vh-6rem)] max-w-5xl mx-auto gap-0 overflow-hidden">
-      {/* Sidebar - Members */}
-      <div
-        className={cn(
-          "w-64 flex-shrink-0 border-r border-border pr-3 overflow-y-auto transition-all",
-          showSidebar ? "block" : "hidden md:block"
-        )}
-      >
-        <div className="flex items-center gap-2 pb-3 mb-3 border-b border-border">
-          <MessageCircle className="size-4 text-primary" />
-          <h2 className="text-sm font-bold text-foreground">Conversas</h2>
-        </div>
-        <TeamMembersList
-          members={teamMembers}
-          currentUserId={currentUserId}
-          selectedChat={selectedChat}
-          onSelect={(chat) => {
-            setSelectedChat(chat);
-            setShowSidebar(false);
-          }}
-        />
-      </div>
-
-      {/* Chat area */}
-      <div className={cn("flex-1 flex flex-col min-w-0 pl-4 overflow-hidden", !showSidebar ? "block" : "hidden md:block")}>
-        {/* Header - fixed */}
-        <div className="flex items-center gap-3 pb-4 border-b border-border mb-4 flex-shrink-0">
-          <button
-            onClick={() => setShowSidebar(true)}
-            className="md:hidden text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="size-5" />
-          </button>
-          <div className="flex items-center justify-center size-10 rounded-xl bg-primary/10">
-            {selectedChat.type === "group" ? (
-              <Users className="size-5 text-primary" />
-            ) : (
-              <Avatar className="size-8">
-                <AvatarImage src={getProfile(selectedChat.userId).avatar_url || undefined} />
-                <AvatarFallback className="bg-primary/20 text-primary text-xs font-bold">
-                  {getInitial(selectedChat.userId)}
-                </AvatarFallback>
-              </Avatar>
-            )}
-          </div>
-          <div>
-            <h1 className="text-lg font-bold text-foreground">{chatTitle}</h1>
-            <p className="text-xs text-muted-foreground">{chatSubtitle}</p>
-          </div>
-        </div>
-
-        {/* Messages */}
-        <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto space-y-1 pr-2 scroll-smooth">
-          {messages.length === 0 && (
-            <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-              <MessageCircle className="size-12 mb-3 opacity-30" />
-              <p className="text-sm">Nenhuma mensagem ainda. Comece a conversa!</p>
-            </div>
+    <div className="h-[calc(100vh-6rem)] min-h-0 overflow-hidden">
+      <div className="mx-auto flex h-full min-h-0 max-w-5xl gap-0 overflow-hidden">
+        {/* Sidebar - Members */}
+        <div
+          className={cn(
+            "w-64 h-full min-h-0 flex-shrink-0 border-r border-border pr-3 overflow-y-auto transition-all",
+            showSidebar ? "block" : "hidden md:block"
           )}
+        >
+          <div className="flex items-center gap-2 pb-3 mb-3 border-b border-border">
+            <MessageCircle className="size-4 text-primary" />
+            <h2 className="text-sm font-bold text-foreground">Conversas</h2>
+          </div>
+          <TeamMembersList
+            members={teamMembers}
+            currentUserId={currentUserId}
+            selectedChat={selectedChat}
+            onSelect={(chat) => {
+              setSelectedChat(chat);
+              setShowSidebar(false);
+            }}
+          />
+        </div>
 
-          {groupedMessages.map((group) => (
-            <div key={group.date}>
-              <div className="flex items-center gap-3 my-4">
-                <div className="flex-1 h-px bg-border" />
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
-                  {group.date}
-                </span>
-                <div className="flex-1 h-px bg-border" />
+        {/* Chat area */}
+        <div
+          className={cn(
+            "flex-1 h-full min-h-0 min-w-0 flex-col overflow-hidden pl-4",
+            showSidebar ? "hidden md:flex" : "flex"
+          )}
+        >
+          {/* Header - fixed */}
+          <div className="flex items-center gap-3 pb-4 mb-4 border-b border-border flex-shrink-0">
+            <button
+              onClick={() => setShowSidebar(true)}
+              className="md:hidden text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="size-5" />
+            </button>
+            <div className="flex items-center justify-center size-10 rounded-xl bg-primary/10">
+              {selectedChat.type === "group" ? (
+                <Users className="size-5 text-primary" />
+              ) : (
+                <Avatar className="size-8">
+                  <AvatarImage src={getProfile(selectedChat.userId).avatar_url || undefined} />
+                  <AvatarFallback className="bg-primary/20 text-primary text-xs font-bold">
+                    {getInitial(selectedChat.userId)}
+                  </AvatarFallback>
+                </Avatar>
+              )}
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-foreground">{chatTitle}</h1>
+              <p className="text-xs text-muted-foreground">{chatSubtitle}</p>
+            </div>
+          </div>
+
+          {/* Messages */}
+          <div
+            ref={scrollRef}
+            className="flex-1 min-h-0 overflow-y-auto overscroll-contain space-y-1 pr-2 pb-2 scroll-smooth"
+          >
+            {messages.length === 0 && (
+              <div className="flex h-full flex-col items-center justify-center text-muted-foreground">
+                <MessageCircle className="size-12 mb-3 opacity-30" />
+                <p className="text-sm">Nenhuma mensagem ainda. Comece a conversa!</p>
               </div>
+            )}
 
-              {group.msgs.map((msg, i) => {
-                const isMe = msg.user_id === currentUserId;
-                const profile = getProfile(msg.user_id);
-                const prevMsg = i > 0 ? group.msgs[i - 1] : null;
-                const showAvatar = !prevMsg || prevMsg.user_id !== msg.user_id;
+            {groupedMessages.map((group) => (
+              <div key={group.date}>
+                <div className="flex items-center gap-3 my-4">
+                  <div className="flex-1 h-px bg-border" />
+                  <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                    {group.date}
+                  </span>
+                  <div className="flex-1 h-px bg-border" />
+                </div>
 
-                // Find replied message
-                const repliedMsg = msg.reply_to_id
-                  ? messages.find((m) => m.id === msg.reply_to_id)
-                  : null;
-                const repliedProfile = repliedMsg ? getProfile(repliedMsg.user_id) : null;
+                {group.msgs.map((msg, i) => {
+                  const isMe = msg.user_id === currentUserId;
+                  const profile = getProfile(msg.user_id);
+                  const prevMsg = i > 0 ? group.msgs[i - 1] : null;
+                  const showAvatar = !prevMsg || prevMsg.user_id !== msg.user_id;
+                  const repliedMsg = msg.reply_to_id
+                    ? messages.find((m) => m.id === msg.reply_to_id)
+                    : null;
+                  const repliedProfile = repliedMsg ? getProfile(repliedMsg.user_id) : null;
 
-                return (
-                  <div
-                    key={msg.id}
-                    className={cn(
-                      "flex gap-2 group/msg",
-                      isMe ? "flex-row-reverse" : "flex-row",
-                      showAvatar ? "mt-3" : "mt-0.5"
-                    )}
-                  >
-                    <div className="w-8 flex-shrink-0">
-                      {showAvatar && (
-                        <Avatar className="size-8">
-                          <AvatarImage src={profile.avatar_url || undefined} />
-                          <AvatarFallback className="bg-primary/20 text-primary text-xs font-bold">
-                            {getInitial(msg.user_id)}
-                          </AvatarFallback>
-                        </Avatar>
+                  return (
+                    <div
+                      key={msg.id}
+                      className={cn(
+                        "group/msg flex gap-2",
+                        isMe ? "flex-row-reverse" : "flex-row",
+                        showAvatar ? "mt-3" : "mt-0.5"
                       )}
-                    </div>
-
-                    <div className={cn("max-w-[70%] min-w-0 flex flex-col", isMe ? "items-end" : "items-start")}>
-                      {showAvatar && (
-                        <span
-                          className={cn(
-                            "text-[10px] font-medium mb-0.5 px-1",
-                            isMe ? "text-primary" : "text-muted-foreground"
-                          )}
-                        >
-                          {profile.full_name || "Membro"}
-                        </span>
-                      )}
-
-                      {/* Reply quote */}
-                      {repliedMsg && (
-                        <div className={cn(
-                          "flex items-start gap-1.5 px-3 py-1.5 rounded-t-xl text-[11px] border-l-2 border-primary/50 bg-primary/5 mb-0.5 max-w-full",
-                          isMe ? "rounded-br-none" : "rounded-bl-none"
-                        )}>
-                          <Reply className="size-3 text-primary/60 mt-0.5 flex-shrink-0 rotate-180" />
-                          <div className="min-w-0">
-                            <span className="font-semibold text-primary/80 block truncate">
-                              {repliedProfile?.full_name || "Membro"}
-                            </span>
-                            <span className="text-muted-foreground truncate block">
-                              {repliedMsg.content.length > 60 ? repliedMsg.content.slice(0, 60) + "…" : repliedMsg.content}
-                            </span>
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="flex items-end gap-1.5 group/actions max-w-full">
-                        {/* Reply button - before bubble for own messages */}
-                        {isMe && (
-                          <button
-                            onClick={() => handleReply(msg)}
-                            className="text-muted-foreground hover:text-primary transition-colors opacity-0 group-hover/msg:opacity-100 flex-shrink-0"
-                            title="Responder"
-                          >
-                            <Reply className="size-3.5" />
-                          </button>
+                    >
+                      <div className="w-8 flex-shrink-0">
+                        {showAvatar && (
+                          <Avatar className="size-8">
+                            <AvatarImage src={profile.avatar_url || undefined} />
+                            <AvatarFallback className="bg-primary/20 text-primary text-xs font-bold">
+                              {getInitial(msg.user_id)}
+                            </AvatarFallback>
+                          </Avatar>
                         )}
-                        <div
-                          className={cn(
-                            "px-3 py-2 rounded-2xl text-sm leading-relaxed min-w-0",
-                            isMe
-                              ? "bg-accent/80 text-accent-foreground rounded-br-md"
-                              : "bg-card border border-border text-foreground rounded-bl-md"
-                          )}
-                          style={{ wordBreak: "break-all", overflowWrap: "anywhere", whiteSpace: "pre-wrap" }}
-                        >
-                          {msg.content}
-                        </div>
-                        {/* Reply button - after bubble for other messages */}
-                        {!isMe && (
-                          <button
-                            onClick={() => handleReply(msg)}
-                            className="text-muted-foreground hover:text-primary transition-colors opacity-0 group-hover/msg:opacity-100"
-                            title="Responder"
+                      </div>
+
+                      <div className={cn("max-w-[70%] min-w-0 flex flex-col", isMe ? "items-end" : "items-start")}>
+                        {showAvatar && (
+                          <span
+                            className={cn(
+                              "mb-0.5 px-1 text-[10px] font-medium",
+                              isMe ? "text-primary" : "text-muted-foreground"
+                            )}
                           >
-                            <Reply className="size-3.5" />
-                          </button>
-                        )}
-                        <div className="flex items-center gap-1 opacity-0 group-hover/msg:opacity-100 transition-opacity">
-                          <button
-                            onClick={() => handleCopy(msg)}
-                            className="text-muted-foreground hover:text-primary transition-colors"
-                            title="Copiar"
-                          >
-                            {copiedId === msg.id ? <Check className="size-3 text-green-500" /> : <Copy className="size-3" />}
-                          </button>
-                          <span className="text-[9px] text-muted-foreground whitespace-nowrap">
-                            {format(new Date(msg.created_at), "HH:mm")}
+                            {profile.full_name || "Membro"}
                           </span>
+                        )}
+
+                        {repliedMsg && (
+                          <div
+                            className={cn(
+                              "mb-0.5 flex max-w-full items-start gap-1.5 rounded-t-xl border-l-2 border-primary/50 bg-primary/5 px-3 py-1.5 text-[11px]",
+                              isMe ? "rounded-br-none" : "rounded-bl-none"
+                            )}
+                          >
+                            <Reply className="size-3 mt-0.5 flex-shrink-0 rotate-180 text-primary/60" />
+                            <div className="min-w-0">
+                              <span className="block truncate font-semibold text-primary/80">
+                                {repliedProfile?.full_name || "Membro"}
+                              </span>
+                              <span className="block truncate text-muted-foreground">
+                                {repliedMsg.content.length > 60 ? repliedMsg.content.slice(0, 60) + "…" : repliedMsg.content}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="group/actions flex max-w-full items-end gap-1.5">
                           {isMe && (
                             <button
-                              onClick={() => handleDelete(msg.id)}
-                              className="text-muted-foreground hover:text-destructive transition-colors"
+                              onClick={() => handleReply(msg)}
+                              className="flex-shrink-0 text-muted-foreground opacity-0 transition-colors group-hover/msg:opacity-100 hover:text-primary"
+                              title="Responder"
                             >
-                              <Trash2 className="size-3" />
+                              <Reply className="size-3.5" />
                             </button>
                           )}
+
+                          <div
+                            className={cn(
+                              "min-w-0 rounded-2xl px-3 py-2 text-sm leading-relaxed",
+                              isMe
+                                ? "rounded-br-md bg-accent/80 text-accent-foreground"
+                                : "rounded-bl-md border border-border bg-card text-foreground"
+                            )}
+                            style={{ wordBreak: "break-all", overflowWrap: "anywhere", whiteSpace: "pre-wrap" }}
+                          >
+                            {msg.content}
+                          </div>
+
+                          {!isMe && (
+                            <button
+                              onClick={() => handleReply(msg)}
+                              className="flex-shrink-0 text-muted-foreground opacity-0 transition-colors group-hover/msg:opacity-100 hover:text-primary"
+                              title="Responder"
+                            >
+                              <Reply className="size-3.5" />
+                            </button>
+                          )}
+
+                          <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover/msg:opacity-100">
+                            <button
+                              onClick={() => handleCopy(msg)}
+                              className="text-muted-foreground transition-colors hover:text-primary"
+                              title="Copiar"
+                            >
+                              {copiedId === msg.id ? <Check className="size-3 text-foreground" /> : <Copy className="size-3" />}
+                            </button>
+                            <span className="whitespace-nowrap text-[9px] text-muted-foreground">
+                              {format(new Date(msg.created_at), "HH:mm")}
+                            </span>
+                            {isMe && (
+                              <button
+                                onClick={() => handleDelete(msg.id)}
+                                className="text-muted-foreground transition-colors hover:text-destructive"
+                              >
+                                <Trash2 className="size-3" />
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          ))}
-        </div>
-
-        {/* Input */}
-        <div className="pt-3 border-t border-border mt-2 flex-shrink-0">
-          {/* Reply preview bar */}
-          {replyTo && (
-            <div className="flex items-center gap-2 mb-2 px-3 py-2 rounded-xl bg-primary/5 border border-primary/20">
-              <Reply className="size-4 text-primary flex-shrink-0 rotate-180" />
-              <div className="flex-1 min-w-0">
-                <span className="text-[11px] font-semibold text-primary block truncate">
-                  {getProfile(replyTo.user_id).full_name || "Membro"}
-                </span>
-                <span className="text-[11px] text-muted-foreground truncate block">
-                  {replyTo.content.length > 80 ? replyTo.content.slice(0, 80) + "…" : replyTo.content}
-                </span>
+                  );
+                })}
               </div>
-              <button onClick={() => setReplyTo(null)} className="text-muted-foreground hover:text-foreground">
-                <X className="size-4" />
-              </button>
-            </div>
-          )}
-          <form
-            onSubmit={(e) => { e.preventDefault(); handleSend(); }}
-            className="flex items-center gap-2"
-          >
-            <Input
-              ref={inputRef}
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder={
-                selectedChat.type === "group"
-                  ? "Mensagem para o grupo..."
-                  : `Mensagem para ${getProfile(selectedChat.userId).full_name || "membro"}...`
-              }
-              className="flex-1 bg-background border-border text-foreground placeholder:text-muted-foreground rounded-xl h-11"
-              autoComplete="off"
-            />
-            <Button
-              type="submit"
-              disabled={!message.trim() || sendMutation.isPending}
-              className="rounded-xl h-11 w-11 p-0 bg-primary hover:bg-primary/90"
-            >
-              <Send className="size-4" />
-            </Button>
-          </form>
+            ))}
+          </div>
+
+          {/* Input */}
+          <div className="mt-2 flex-shrink-0 border-t border-border pt-3">
+            {replyTo && (
+              <div className="mb-2 flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2">
+                <Reply className="size-4 flex-shrink-0 rotate-180 text-primary" />
+                <div className="min-w-0 flex-1">
+                  <span className="block truncate text-[11px] font-semibold text-primary">
+                    {getProfile(replyTo.user_id).full_name || "Membro"}
+                  </span>
+                  <span className="block truncate text-[11px] text-muted-foreground">
+                    {replyTo.content.length > 80 ? replyTo.content.slice(0, 80) + "…" : replyTo.content}
+                  </span>
+                </div>
+                <button onClick={() => setReplyTo(null)} className="text-muted-foreground hover:text-foreground">
+                  <X className="size-4" />
+                </button>
+              </div>
+            )}
+
+            <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex items-center gap-2">
+              <Input
+                ref={inputRef}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder={
+                  selectedChat.type === "group"
+                    ? "Mensagem para o grupo..."
+                    : `Mensagem para ${getProfile(selectedChat.userId).full_name || "membro"}...`
+                }
+                className="h-11 flex-1 rounded-xl border-border bg-background text-foreground placeholder:text-muted-foreground"
+                autoComplete="off"
+              />
+              <Button
+                type="submit"
+                disabled={!message.trim() || sendMutation.isPending}
+                className="h-11 w-11 rounded-xl bg-primary p-0 hover:bg-primary/90"
+              >
+                <Send className="size-4" />
+              </Button>
+            </form>
+          </div>
         </div>
       </div>
     </div>
