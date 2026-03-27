@@ -165,18 +165,12 @@ export default function AdminNotificacoes() {
     }
     setSaving(true);
 
-    const status =
-      formSchedule === "now"
-        ? "sent"
-        : formSchedule === "schedule"
-        ? "scheduled"
-        : "draft";
-
     const isGlobal = formAudience === "all";
     const targetIds = !isGlobal && selectedUsers.length > 0
       ? selectedUsers.map(u => u.user_id)
       : null;
 
+    // Always save as draft first
     const payload: any = {
       type: formType,
       title: formTitle.trim(),
@@ -185,12 +179,12 @@ export default function AdminNotificacoes() {
       link: formLink.trim() || "",
       cta_text: formCtaText.trim() || null,
       cta_color: formCtaColor || null,
-      status,
+      status: "draft",
       scheduled_at:
         formSchedule === "schedule" && formScheduledAt
           ? new Date(formScheduledAt).toISOString()
           : null,
-      is_active: status !== "draft",
+      is_active: false,
       global: isGlobal,
       target_user_ids: targetIds,
     };
@@ -199,54 +193,59 @@ export default function AdminNotificacoes() {
     if (editingId) {
       ({ error } = await supabase
         .from("admin_notifications")
-        .update(payload)
+        .update(payload as any)
         .eq("id", editingId));
     } else {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
       payload.created_by = user?.id || null;
-      ({ error } = await supabase.from("admin_notifications").insert(payload));
-
-      if (status === "sent") {
-        if (isGlobal) {
-          await supabase.from("notifications").insert({
-            title: payload.title,
-            message: payload.message,
-            type: formType === "push" ? "info" : "promo",
-            global: true,
-            link: payload.link || null,
-            image_url: payload.image_url || null,
-            cta_text: payload.cta_text || null,
-            cta_color: payload.cta_color || null,
-          });
-        } else if (targetIds) {
-          const notifs = targetIds.map(uid => ({
-            title: payload.title,
-            message: payload.message,
-            type: formType === "push" ? "info" : "promo",
-            global: false,
-            user_id: uid,
-            link: payload.link || null,
-            image_url: payload.image_url || null,
-            cta_text: payload.cta_text || null,
-            cta_color: payload.cta_color || null,
-          }));
-          await supabase.from("notifications").insert(notifs);
-        }
-      }
+      ({ error } = await supabase.from("admin_notifications").insert(payload as any));
     }
 
     if (error) {
       toast.error("Erro ao salvar notificação");
-    } else {
-      toast.success(
-        editingId ? "Notificação atualizada!" : "Notificação criada!"
-      );
-      resetForm();
-      fetchNotifications();
+      setSaving(false);
+      return;
     }
+
+    toast.success(editingId ? "Notificação atualizada!" : "Notificação salva como rascunho!");
+    resetForm();
+    fetchNotifications();
     setSaving(false);
+  };
+
+  const handleDispatch = async (n: any) => {
+    const isGlobal = n.global;
+    const targetIds = n.target_user_ids;
+
+    const notifBase: any = {
+      title: n.title,
+      message: n.message,
+      type: n.type === "push" ? "info" : "promo",
+      link: n.link || null,
+      image_url: n.image_url || null,
+      cta_text: n.cta_text || null,
+      cta_color: n.cta_color || null,
+    };
+
+    let sendError;
+    if (isGlobal) {
+      ({ error: sendError } = await supabase.from("notifications").insert({ ...notifBase, global: true } as any));
+    } else if (targetIds && targetIds.length > 0) {
+      const notifs = targetIds.map((uid: string) => ({ ...notifBase, global: false, user_id: uid }));
+      ({ error: sendError } = await supabase.from("notifications").insert(notifs as any));
+    } else {
+      toast.error("Nenhum público definido");
+      return;
+    }
+
+    if (sendError) {
+      toast.error("Erro ao enviar notificação");
+      return;
+    }
+
+    await supabase.from("admin_notifications").update({ status: "sent", is_active: true } as any).eq("id", n.id);
+    toast.success("Notificação enviada!");
+    fetchNotifications();
   };
 
   const handleEdit = async (n: AdminNotification) => {
@@ -307,37 +306,30 @@ export default function AdminNotificacoes() {
   };
 
   const handleSendNow = async (n: AdminNotification) => {
-    await supabase
-      .from("admin_notifications")
-      .update({ status: "sent", is_active: true })
-      .eq("id", n.id);
+    const notifBase: any = {
+      title: n.title,
+      message: n.message,
+      type: n.type === "push" ? "info" : "promo",
+      link: n.link || null,
+      image_url: n.image_url || null,
+      cta_text: n.cta_text || null,
+      cta_color: (n as any).cta_color || null,
+    };
 
+    let sendError;
     if (n.target_user_ids && n.target_user_ids.length > 0) {
-      const notifs = n.target_user_ids.map(uid => ({
-        title: n.title,
-        message: n.message,
-        type: n.type === "push" ? "info" : "promo",
-        global: false,
-        user_id: uid,
-        link: n.link || null,
-        image_url: n.image_url || null,
-        cta_text: n.cta_text || null,
-        cta_color: (n as any).cta_color || null,
-      }));
-      await supabase.from("notifications").insert(notifs);
+      const notifs = n.target_user_ids.map(uid => ({ ...notifBase, global: false, user_id: uid }));
+      ({ error: sendError } = await supabase.from("notifications").insert(notifs as any));
     } else {
-      await supabase.from("notifications").insert({
-        title: n.title,
-        message: n.message,
-        type: n.type === "push" ? "info" : "promo",
-        global: true,
-        link: n.link || null,
-        image_url: n.image_url || null,
-        cta_text: n.cta_text || null,
-        cta_color: (n as any).cta_color || null,
-      });
+      ({ error: sendError } = await supabase.from("notifications").insert({ ...notifBase, global: true } as any));
     }
 
+    if (sendError) {
+      toast.error("Erro ao enviar notificação");
+      return;
+    }
+
+    await supabase.from("admin_notifications").update({ status: "sent", is_active: true } as any).eq("id", n.id);
     toast.success("Notificação enviada!");
     fetchNotifications();
   };
@@ -536,39 +528,20 @@ export default function AdminNotificacoes() {
               </div>
             </div>
 
-            {/* Schedule + Audience in row */}
-            <div className="grid grid-cols-2 gap-2">
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-white/70">Agendamento</label>
-                <Select value={formSchedule} onValueChange={setFormSchedule}>
-                  <SelectTrigger className="bg-[rgba(20,20,20,0.6)] border-white/10 rounded-lg px-3 h-9 text-xs text-white">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-[#1a1a1a] border-white/10">
-                    <SelectItem value="now">Enviar Agora</SelectItem>
-                    <SelectItem value="schedule">Agendar</SelectItem>
-                    <SelectItem value="draft">Rascunho</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-white/70">Público</label>
-                <div className="grid grid-cols-2 gap-1 p-0.5 bg-black/40 rounded-lg h-9">
-                  <button type="button" onClick={() => setFormAudience("all")}
-                    className={`flex items-center justify-center gap-1 rounded-md text-[10px] font-medium transition-all ${formAudience === "all" ? "bg-primary text-white" : "text-white/60"}`}>
-                    <Globe className="w-3 h-3" /> Todos
-                  </button>
-                  <button type="button" onClick={() => setFormAudience("specific")}
-                    className={`flex items-center justify-center gap-1 rounded-md text-[10px] font-medium transition-all ${formAudience === "specific" ? "bg-primary text-white" : "text-white/60"}`}>
-                    <Users className="w-3 h-3" /> Esp.
-                  </button>
-                </div>
+            {/* Audience */}
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-white/70">Público</label>
+              <div className="grid grid-cols-2 gap-1 p-0.5 bg-black/40 rounded-lg h-9">
+                <button type="button" onClick={() => setFormAudience("all")}
+                  className={`flex items-center justify-center gap-1 rounded-md text-[10px] font-medium transition-all ${formAudience === "all" ? "bg-primary text-white" : "text-white/60"}`}>
+                  <Globe className="w-3 h-3" /> Todos
+                </button>
+                <button type="button" onClick={() => setFormAudience("specific")}
+                  className={`flex items-center justify-center gap-1 rounded-md text-[10px] font-medium transition-all ${formAudience === "specific" ? "bg-primary text-white" : "text-white/60"}`}>
+                  <Users className="w-3 h-3" /> Esp.
+                </button>
               </div>
             </div>
-
-            {formSchedule === "schedule" && (
-              <Input type="datetime-local" className={inputCls} value={formScheduledAt} onChange={(e) => setFormScheduledAt(e.target.value)} />
-            )}
 
             {formAudience === "specific" && (
               <div className="flex flex-col gap-1.5">
