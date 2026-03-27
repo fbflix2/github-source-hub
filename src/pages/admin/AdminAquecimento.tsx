@@ -227,6 +227,8 @@ export default function AdminAquecimento() {
         });
       }
     });
+    // Fetch team operators (moderators) for admin assignment
+    fetchTeamOperators();
     return () => {
       cleanupChannels();
     };
