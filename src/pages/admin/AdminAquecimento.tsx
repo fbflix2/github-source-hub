@@ -951,7 +951,7 @@ export default function AdminAquecimento() {
                     </button>
                   </div>
                 ) : null}
-                {operationMode === "register" && (
+                {isUserAdmin && operationMode === "register" && (
                   <>
                     <div>
                       <label className="block text-xs font-semibold text-slate-600 dark:text-white/60 mb-1.5">Código do Perfil</label>
