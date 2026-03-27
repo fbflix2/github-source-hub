@@ -1,0 +1,1 @@
+ALTER TABLE public.admin_notifications ADD COLUMN IF NOT EXISTS cta_text text DEFAULT NULL;

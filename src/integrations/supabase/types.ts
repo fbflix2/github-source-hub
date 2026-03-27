@@ -19,6 +19,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           cta_color: string | null
+          cta_text: string | null
           global: boolean
           id: string
           image_url: string | null
@@ -36,6 +37,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           cta_color?: string | null
+          cta_text?: string | null
           global?: boolean
           id?: string
           image_url?: string | null
@@ -53,6 +55,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           cta_color?: string | null
+          cta_text?: string | null
           global?: boolean
           id?: string
           image_url?: string | null
