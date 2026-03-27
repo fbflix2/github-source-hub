@@ -491,6 +491,7 @@ export default function AdminAquecimento() {
   const tabs = [
     { key: "dashboard" as const, label: "Painel", icon: "dashboard" },
     { key: "esteiras" as const, label: "Esteiras", icon: "layers" },
+    ...(isUserAdmin ? [{ key: "admin" as const, label: "Esteira Admin", icon: "admin_panel_settings" }] : []),
   ];
 
   // Filter profiles: non-admins only see their own profiles
