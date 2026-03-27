@@ -44,6 +44,7 @@ export function NotificationPopup() {
         .select("*")
         .or(`user_id.eq.${user.id},global.eq.true`)
         .eq("read", false)
+        .not("type", "in", "(order,wallet,admin)")
         .order("created_at", { ascending: false })
         .limit(5);
 
