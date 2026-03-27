@@ -2170,6 +2170,7 @@ export type Database = {
           cidade: string | null
           cpf: string | null
           created_at: string
+          department: string | null
           document_url: string | null
           estado: string | null
           fbx_balance: number
@@ -2195,6 +2196,7 @@ export type Database = {
           cidade?: string | null
           cpf?: string | null
           created_at?: string
+          department?: string | null
           document_url?: string | null
           estado?: string | null
           fbx_balance?: number
@@ -2220,6 +2222,7 @@ export type Database = {
           cidade?: string | null
           cpf?: string | null
           created_at?: string
+          department?: string | null
           document_url?: string | null
           estado?: string | null
           fbx_balance?: number

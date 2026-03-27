@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN department text DEFAULT NULL;
