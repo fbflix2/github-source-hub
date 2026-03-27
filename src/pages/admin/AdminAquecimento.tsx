@@ -154,7 +154,7 @@ export default function AdminAquecimento() {
   const [currentElapsed, setCurrentElapsed] = useState(0);
   const [finishSignal, setFinishSignal] = useState(0);
   const [startSignal, setStartSignal] = useState(0);
-  const [activeTab, setActiveTab] = useState<"dashboard" | "esteiras">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "esteiras" | "configuracoes">("dashboard");
   const [teamOperators, setTeamOperators] = useState<{ id: string; name: string }[]>([]);
   const [configTasks, setConfigTasks] = useState<Record<string, { title: string; description: string }[]>>({
     "7_days": TRACKS["7_days"].tasks.map(t => ({ title: t.title, description: t.description })),
@@ -499,9 +499,57 @@ export default function AdminAquecimento() {
   const selectedTrackDef = selectedProfile ? TRACKS[selectedProfile.track_type] : null;
   const selectedProgress = selectedProfile ? getProgress(selectedProfile) : 0;
 
+  const DEFAULT_COVERS = [
+    "/covers/cover-1.jpg",
+    "/covers/cover-2.jpg",
+    "/covers/cover-3.jpg",
+    "/covers/cover-4.jpg",
+    "/covers/cover-5.jpg",
+  ];
+
+  // Load operator config from profiles table
+  useEffect(() => {
+    if (currentUserId) {
+      supabase.from("profiles").select("full_name, avatar_url").eq("user_id", currentUserId).maybeSingle().then(({ data }) => {
+        if (data) {
+          setOperatorDisplayName(data.full_name || "");
+        }
+      });
+      // Load cover from site_settings per user
+      supabase.from("site_settings").select("value").eq("key", `operator_cover_${currentUserId}`).maybeSingle().then(({ data }) => {
+        if (data?.value) setOperatorCoverUrl(data.value);
+      });
+    }
+  }, [currentUserId]);
+
+  const saveOperatorConfig = async () => {
+    if (!currentUserId) return;
+    setSavingConfig(true);
+    try {
+      // Update display name
+      if (operatorDisplayName.trim()) {
+        await supabase.from("profiles").update({ full_name: operatorDisplayName.trim() }).eq("user_id", currentUserId);
+        setCurrentUserName(operatorDisplayName.trim());
+      }
+      // Save cover URL
+      const coverKey = `operator_cover_${currentUserId}`;
+      const { data: existing } = await supabase.from("site_settings").select("id").eq("key", coverKey).maybeSingle();
+      if (existing) {
+        await supabase.from("site_settings").update({ value: operatorCoverUrl || "" }).eq("key", coverKey);
+      } else {
+        await supabase.from("site_settings").insert({ key: coverKey, value: operatorCoverUrl || "" });
+      }
+      toast.success("Configurações salvas!");
+    } catch {
+      toast.error("Erro ao salvar configurações");
+    }
+    setSavingConfig(false);
+  };
+
   const tabs = [
     { key: "dashboard" as const, label: "Painel", icon: "dashboard" },
     { key: "esteiras" as const, label: "Esteiras", icon: "layers" },
+    { key: "configuracoes" as const, label: "Configurações", icon: "settings" },
   ];
 
   // Filter profiles: non-admins only see their own profiles
@@ -707,13 +755,6 @@ export default function AdminAquecimento() {
             </div>
             <div className="flex items-center gap-3">
               <ThemeToggle />
-              <button
-                onClick={() => setViewMode(prev => prev === "count" ? "currency" : "count")}
-                className="w-10 h-10 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors border border-white/20"
-                title={viewMode === "count" ? "Ver em comissão (R$)" : "Ver em quantidade"}
-              >
-                <MIcon name={viewMode === "count" ? "tag" : "payments"} className="text-white text-[20px]" />
-              </button>
               <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
                 <MIcon name="fluid" className="text-white text-2xl" />
               </div>
