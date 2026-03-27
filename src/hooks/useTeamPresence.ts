@@ -22,6 +22,7 @@ function notifyAll() {
 export function useTeamPresenceTracker() {
   useEffect(() => {
     let cancelled = false;
+    let didAcquireRef = false;
 
     const setupPresence = async (userId: string | null) => {
       if (!userId) {
@@ -35,7 +36,10 @@ export function useTeamPresenceTracker() {
         return;
       }
 
-      refCount++;
+      if (!didAcquireRef) {
+        refCount++;
+        didAcquireRef = true;
+      }
 
       if (channelInstance && channelUserId === userId) {
         return;
@@ -53,7 +57,18 @@ export function useTeamPresenceTracker() {
 
       channel
         .on("presence", { event: "sync" }, () => {
-          globalOnlineIds = new Set(Object.keys(channel.presenceState()));
+          const state = channel.presenceState();
+          globalOnlineIds = new Set(Object.keys(state));
+          notifyAll();
+        })
+        .on("presence", { event: "join" }, () => {
+          const state = channel.presenceState();
+          globalOnlineIds = new Set(Object.keys(state));
+          notifyAll();
+        })
+        .on("presence", { event: "leave" }, () => {
+          const state = channel.presenceState();
+          globalOnlineIds = new Set(Object.keys(state));
           notifyAll();
         })
         .subscribe(async (status) => {
@@ -76,7 +91,9 @@ export function useTeamPresenceTracker() {
     return () => {
       cancelled = true;
       subscription.unsubscribe();
-      refCount--;
+      if (didAcquireRef) {
+        refCount--;
+      }
       if (refCount <= 0 && channelInstance) {
         supabase.removeChannel(channelInstance);
         channelInstance = null;

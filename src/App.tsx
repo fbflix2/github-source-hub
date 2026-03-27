@@ -112,7 +112,6 @@ const queryClient = new QueryClient();
 
 function AuthenticatedApp({ user, onLogout }: { user: User; onLogout: () => void }) {
   const { totalUnread } = useTickets();
-  useTeamPresenceTracker();
   const [userName, setUserName] = useState(user.user_metadata?.full_name || user.email?.split("@")[0] || "Usuário");
   const userEmail = user.email || "";
 
@@ -168,6 +167,7 @@ function AuthenticatedApp({ user, onLogout }: { user: User; onLogout: () => void
 }
 
 const App = () => {
+  useTeamPresenceTracker();
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
