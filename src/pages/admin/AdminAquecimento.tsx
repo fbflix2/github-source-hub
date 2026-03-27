@@ -541,14 +541,31 @@ export default function AdminAquecimento() {
     return profileTasks.every(t => t.completed);
   };
 
-  // Sort active profiles: profiles worked on TODAY are EXCLUDED from the execution queue
+  // Current track tier being shown (progressive: 7→15→30)
+  const currentQueueTrack = useMemo(() => {
+    const activeProfs = visibleProfiles.filter(p => p.status === "active" && !isFullyCompleted(p));
+    const TRACK_ORDER = ["7_days", "15_days", "30_days"];
+    for (const track of TRACK_ORDER) {
+      const trackProfs = activeProfs.filter(p => p.track_type === track);
+      // If there are profiles in this track with pending tasks (not all done today), show this track
+      const hasPending = trackProfs.some(p => !wasWorkedToday(p.id));
+      // Even if all were worked today, if there are active profiles in this track, stay on it
+      if (trackProfs.length > 0) return track;
+    }
+    return "7_days";
+  }, [visibleProfiles, tasks]);
+
+  // Sort active profiles: PROGRESSIVE — only show current track tier
   const sortedActiveQueue = useMemo(() => {
     // Exclude profiles that are 100% on a promotable track (they'll be auto-promoted)
     const activeProfs = visibleProfiles.filter(p => p.status === "active" && !isFullyCompleted(p));
     
+    // Progressive filter: only show profiles from the current track tier
+    const trackProfs = activeProfs.filter(p => p.track_type === currentQueueTrack);
+    
     // Separate: not worked today (available) vs worked today (done for the day)
-    const available = activeProfs.filter(p => !wasWorkedToday(p.id));
-    const doneToday = activeProfs.filter(p => wasWorkedToday(p.id));
+    const available = trackProfs.filter(p => !wasWorkedToday(p.id));
+    const doneToday = trackProfs.filter(p => wasWorkedToday(p.id));
     
     // Sort available: never worked first, then oldest completion first
     available.sort((a, b) => {
@@ -573,7 +590,7 @@ export default function AdminAquecimento() {
       return available;
     }
     return [...available, ...doneToday];
-  }, [visibleProfiles, tasks, operationMode]);
+  }, [visibleProfiles, tasks, operationMode, currentQueueTrack]);
 
   // Auto-select first profile in queue when none is selected (execute mode)
   useEffect(() => {
