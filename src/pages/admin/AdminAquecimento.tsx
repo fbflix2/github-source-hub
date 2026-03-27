@@ -786,138 +786,94 @@ export default function AdminAquecimento() {
 
       {/* ── Dashboard Tab ── */}
       {activeTab === "dashboard" && (
-        <main className="flex-1 px-6 md:px-12 lg:px-40 py-10 max-w-[1200px] mx-auto w-full">
+        <main className="flex-1 px-6 md:px-12 lg:px-40 py-5 max-w-[1200px] mx-auto w-full">
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-            <div className="bg-white dark:bg-white/5 p-6 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <p className="text-slate-500 dark:text-white/50 font-medium text-sm">Total Perfis</p>
-                <MIcon name="group" className="text-[#1876f2]" />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+            {[
+              { label: "Total Perfis", value: totalProfiles, icon: "group", color: "text-[#1876f2]", sub: "Sem dados anteriores" },
+              { label: "Em Aquecimento", value: activeProfiles, icon: "local_fire_department", color: "text-amber-500", sub: `${totalPct}% do total` },
+              { label: "Prontos p/ Uso", value: completedProfiles, icon: "check_circle", color: "text-emerald-500", sub: "Alta maturidade", subIcon: "verified", subColor: "text-emerald-500" },
+              { label: "Perdas (24h)", value: restrictedProfiles, icon: "block", color: "text-rose-500", sub: "Sem dados anteriores" },
+            ].map(kpi => (
+              <div key={kpi.label} className="bg-white dark:bg-white/5 px-4 py-3 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm">
+                <div className="flex items-center justify-between mb-0.5">
+                  <p className="text-slate-500 dark:text-white/50 font-medium text-[11px]">{kpi.label}</p>
+                  <MIcon name={kpi.icon} className={`text-base ${kpi.color}`} />
+                </div>
+                <p className="text-2xl font-black text-slate-900 dark:text-white">{kpi.value.toLocaleString()}</p>
+                <div className={`flex items-center gap-1 ${kpi.subColor || "text-slate-400"} font-medium text-[11px]`}>
+                  {kpi.subIcon && <MIcon name={kpi.subIcon} className="text-xs" />}
+                  <span>{kpi.sub}</span>
+                </div>
               </div>
-              <p className="text-3xl font-black text-slate-900 dark:text-white">{totalProfiles.toLocaleString()}</p>
-              <div className="flex items-center gap-1 text-slate-400 font-medium text-sm">
-                <span>Sem dados anteriores</span>
-              </div>
-            </div>
-            <div className="bg-white dark:bg-white/5 p-6 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <p className="text-slate-500 dark:text-white/50 font-medium text-sm">Em Aquecimento</p>
-                <MIcon name="local_fire_department" className="text-amber-500" />
-              </div>
-              <p className="text-3xl font-black text-slate-900 dark:text-white">{activeProfiles.toLocaleString()}</p>
-              <div className="flex items-center gap-1 text-slate-400 font-medium text-sm">
-                <span>{totalPct}% do total</span>
-              </div>
-            </div>
-            <div className="bg-white dark:bg-white/5 p-6 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <p className="text-slate-500 dark:text-white/50 font-medium text-sm">Prontos p/ Uso</p>
-                <MIcon name="check_circle" className="text-emerald-500" />
-              </div>
-              <p className="text-3xl font-black text-slate-900 dark:text-white">{completedProfiles.toLocaleString()}</p>
-              <div className="flex items-center gap-1 text-emerald-500 font-bold text-sm">
-                <MIcon name="verified" className="text-sm" />
-                <span>Alta maturidade</span>
-              </div>
-            </div>
-            <div className="bg-white dark:bg-white/5 p-6 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <p className="text-slate-500 dark:text-white/50 font-medium text-sm">Perdas (24h)</p>
-                <MIcon name="block" className="text-rose-500" />
-              </div>
-              <p className="text-3xl font-black text-slate-900 dark:text-white">{restrictedProfiles}</p>
-              <div className="flex items-center gap-1 text-slate-400 font-medium text-sm">
-                <span>Sem dados anteriores</span>
-              </div>
-            </div>
+            ))}
           </div>
 
           {/* Progress by Stage + Trust Tier */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
-            <div className="lg:col-span-2 bg-white dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6">
-              <div className="flex items-center justify-between mb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="lg:col-span-2 bg-white dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm px-5 py-4">
+              <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h3 className="text-lg font-bold">Progresso por Estágio</h3>
-                  <p className="text-sm text-slate-500">Maturidade dos perfis na esteira</p>
+                  <h3 className="text-sm font-bold">Progresso por Estágio</h3>
+                  <p className="text-[11px] text-slate-500">Maturidade dos perfis na esteira</p>
                 </div>
-                <select className="bg-slate-50 dark:bg-white/10 dark:text-white border-none rounded-lg text-sm font-medium focus:ring-slate-400">
+                <select className="bg-slate-50 dark:bg-white/10 dark:text-white border-none rounded-lg text-xs font-medium focus:ring-slate-400 py-1 px-2">
                   <option>Últimos 30 dias</option>
                   <option>Últimos 7 dias</option>
                 </select>
               </div>
-              <div className="space-y-8">
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm font-bold">
-                    <span>Esteira 7 Dias</span>
-                    <span>{newProfiles} perfis</span>
+              <div className="space-y-4">
+                {[
+                  { label: "Esteira 7 Dias", count: newProfiles, opacity: "bg-[#1876f2]/40" },
+                  { label: "Esteira 15 Dias", count: midProfiles, opacity: "bg-[#1876f2]/70" },
+                  { label: "Esteira 30 Dias", count: matureProfiles, opacity: "bg-[#1876f2]" },
+                ].map(track => (
+                  <div key={track.label} className="space-y-1">
+                    <div className="flex justify-between text-xs font-bold">
+                      <span>{track.label}</span>
+                      <span>{track.count} perfis</span>
+                    </div>
+                    <div className="h-2 w-full bg-slate-100 dark:bg-white/10 rounded-full overflow-hidden">
+                      <div className={`h-full ${track.opacity} rounded-full`} style={{ width: `${totalProfiles ? Math.round((track.count / totalProfiles) * 100) : 0}%` }} />
+                    </div>
                   </div>
-                  <div className="h-3 w-full bg-slate-100 dark:bg-white/10 rounded-full overflow-hidden">
-                    <div className="h-full bg-[#1876f2]/40 rounded-full" style={{ width: `${totalProfiles ? Math.round((newProfiles / totalProfiles) * 100) : 35}%` }} />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm font-bold">
-                    <span>Esteira 15 Dias</span>
-                    <span>{midProfiles} perfis</span>
-                  </div>
-                  <div className="h-3 w-full bg-slate-100 dark:bg-white/10 rounded-full overflow-hidden">
-                    <div className="h-full bg-[#1876f2]/70 rounded-full" style={{ width: `${totalProfiles ? Math.round((midProfiles / totalProfiles) * 100) : 55}%` }} />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm font-bold">
-                    <span>Esteira 30 Dias</span>
-                    <span>{matureProfiles} perfis</span>
-                  </div>
-                  <div className="h-3 w-full bg-slate-100 dark:bg-white/10 rounded-full overflow-hidden">
-                    <div className="h-full bg-[#1876f2] rounded-full" style={{ width: `${totalProfiles ? Math.round((matureProfiles / totalProfiles) * 100) : 85}%` }} />
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
 
             {/* Trust Tier Distribution */}
-            <div className="bg-white dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm p-6">
-              <h3 className="text-lg font-bold mb-6">Distribuição de Confiança</h3>
-              <div className="flex flex-col items-center justify-center py-4">
-                <div className="relative w-48 h-48">
+            <div className="bg-white dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm px-5 py-4">
+              <h3 className="text-sm font-bold mb-3">Distribuição de Confiança</h3>
+              <div className="flex items-center gap-4">
+                <div className="relative w-28 h-28 flex-shrink-0">
                   <svg className="w-full h-full" viewBox="0 0 36 36">
                     <circle className="stroke-slate-100 dark:stroke-white/10" cx="18" cy="18" fill="none" r="16" strokeWidth="4" />
                     <circle className="stroke-[#1876f2]" cx="18" cy="18" fill="none" r="16" strokeDasharray={`${t2Pct}, 100`} strokeDashoffset={`-${t3Pct}`} strokeLinecap="round" strokeWidth="4" />
                     <circle className="stroke-emerald-500" cx="18" cy="18" fill="none" r="16" strokeDasharray={`${t3Pct}, 100`} strokeLinecap="round" strokeWidth="4" />
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-3xl font-black">{predominantTier}</span>
-                    <span className="text-xs text-slate-500 dark:text-white/50 font-medium">Predominante</span>
+                    <span className="text-lg font-black">{predominantTier}</span>
+                    <span className="text-[9px] text-slate-500 dark:text-white/50">Predominante</span>
                   </div>
                 </div>
-                <div className="mt-8 w-full space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="w-3 h-3 rounded-full bg-emerald-500" />
-                      <span className="text-sm font-medium">Confiança Alta (T3)</span>
+                <div className="space-y-2 flex-1">
+                  {[
+                    { label: "Alta (T3)", color: "bg-emerald-500", pct: t3Pct },
+                    { label: "Média (T2)", color: "bg-[#1876f2]", pct: t2Pct },
+                    { label: "Baixa (T1)", color: "bg-slate-300", pct: t1Pct },
+                  ].map(tier => (
+                    <div key={tier.label} className="flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-1.5">
+                        <span className={`w-2 h-2 rounded-full ${tier.color}`} />
+                        <span className="font-medium">{tier.label}</span>
+                      </div>
+                      <span className="font-bold">{tier.pct}%</span>
                     </div>
-                    <span className="text-sm font-bold">{t3Pct}%</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="w-3 h-3 rounded-full bg-[#1876f2]" />
-                      <span className="text-sm font-medium">Confiança Média (T2)</span>
-                    </div>
-                    <span className="text-sm font-bold">{t2Pct}%</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="w-3 h-3 rounded-full bg-slate-300" />
-                      <span className="text-sm font-medium">Confiança Baixa (T1)</span>
-                    </div>
-                    <span className="text-sm font-bold">{t1Pct}%</span>
-                  </div>
+                  ))}
                 </div>
               </div>
             </div>
           </div>
-
         </main>
       )}
 
