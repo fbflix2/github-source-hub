@@ -1064,29 +1064,7 @@ export default function AdminAquecimento() {
           </section>
 
           <section className="lg:col-span-7">
-            {operationMode === "register" && !selectedProfile ? (
-              <div className="bg-white dark:bg-white/5 rounded-xl shadow-sm border border-slate-200 dark:border-white/10 p-8 text-center">
-                <MIcon name="person_add" className="text-[#1876f2] text-4xl" />
-                <p className="text-sm font-bold text-slate-700 dark:text-white mt-3">Modo Novo Perfil</p>
-                <p className="text-xs text-slate-500 dark:text-white/50 mt-1 max-w-xs mx-auto">
-                  Digite o código do perfil e clique em <strong>"Iniciar Tarefas"</strong> para cadastrar e começar automaticamente.
-                </p>
-                {profiles.filter(p => p.status === "active").length > 0 && (
-                  <div className="mt-4 text-left max-w-sm mx-auto">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Últimos cadastrados</p>
-                    <div className="space-y-1.5 max-h-48 overflow-y-auto">
-                      {profiles.filter(p => p.status === "active").slice(0, 8).map(p => (
-                        <div key={p.id} className="flex items-center gap-2 bg-slate-50 dark:bg-white/10 rounded-lg px-3 py-1.5">
-                          <MIcon name="check_circle" className="text-emerald-500 text-sm" />
-                          <span className="text-xs font-bold text-slate-700 dark:text-white">{p.profile_code}</span>
-                          <span className="text-[10px] text-slate-400 dark:text-white/40 ml-auto">{TRACKS[p.track_type]?.label}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : loading ? (
+            {loading ? (
               <div className="bg-white dark:bg-white/5 rounded-xl shadow-sm border border-slate-200 dark:border-white/10 p-8 text-center">
                 <MIcon name="hourglass_empty" className="text-slate-300 text-3xl" />
                 <p className="text-slate-500 text-xs mt-2">Carregando...</p>
