@@ -816,7 +816,7 @@ export default function AdminAquecimento() {
               <div className="space-y-8">
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm font-bold">
-                    <span>Novos (0-7 dias)</span>
+                    <span>Esteira 7 Dias</span>
                     <span>{newProfiles} perfis</span>
                   </div>
                   <div className="h-3 w-full bg-slate-100 dark:bg-white/10 rounded-full overflow-hidden">
@@ -825,7 +825,7 @@ export default function AdminAquecimento() {
                 </div>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm font-bold">
-                    <span>Intermediários (15 dias)</span>
+                    <span>Esteira 15 Dias</span>
                     <span>{midProfiles} perfis</span>
                   </div>
                   <div className="h-3 w-full bg-slate-100 dark:bg-white/10 rounded-full overflow-hidden">
@@ -834,7 +834,7 @@ export default function AdminAquecimento() {
                 </div>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm font-bold">
-                    <span>Maturidade Máxima (30+ dias)</span>
+                    <span>Esteira 30 Dias</span>
                     <span>{matureProfiles} perfis</span>
                   </div>
                   <div className="h-3 w-full bg-slate-100 dark:bg-white/10 rounded-full overflow-hidden">
