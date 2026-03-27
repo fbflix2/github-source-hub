@@ -1,6 +1,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import { Users, User } from "lucide-react";
+import { Users } from "lucide-react";
 
 export interface TeamMember {
   user_id: string;
@@ -15,10 +15,12 @@ interface Props {
   currentUserId: string | null;
   selectedChat: SelectedChat;
   onSelect: (chat: SelectedChat) => void;
+  onlineUserIds?: Set<string>;
 }
 
-export function TeamMembersList({ members, currentUserId, selectedChat, onSelect }: Props) {
+export function TeamMembersList({ members, currentUserId, selectedChat, onSelect, onlineUserIds = new Set() }: Props) {
   const otherMembers = members.filter((m) => m.user_id !== currentUserId);
+  const onlineCount = members.filter((m) => onlineUserIds.has(m.user_id)).length;
 
   return (
     <div className="flex flex-col gap-1">
@@ -37,7 +39,9 @@ export function TeamMembersList({ members, currentUserId, selectedChat, onSelect
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold truncate">Grupo da Equipe</p>
-          <p className="text-[10px] text-muted-foreground">{members.length} membros</p>
+          <p className="text-[10px] text-muted-foreground">
+            {members.length} membros · <span className="text-green-500">{onlineCount} online</span>
+          </p>
         </div>
       </button>
 
@@ -49,6 +53,7 @@ export function TeamMembersList({ members, currentUserId, selectedChat, onSelect
       {otherMembers.map((member) => {
         const isSelected = selectedChat.type === "dm" && selectedChat.userId === member.user_id;
         const initial = (member.full_name || "?").charAt(0).toUpperCase();
+        const isOnline = onlineUserIds.has(member.user_id);
 
         return (
           <button
@@ -61,13 +66,27 @@ export function TeamMembersList({ members, currentUserId, selectedChat, onSelect
                 : "hover:bg-muted/50 text-muted-foreground"
             )}
           >
-            <Avatar className="size-8">
-              <AvatarImage src={member.avatar_url || undefined} />
-              <AvatarFallback className="bg-primary/20 text-primary text-xs font-bold">
-                {initial}
-              </AvatarFallback>
-            </Avatar>
-            <p className="text-sm font-medium truncate flex-1">{member.full_name || "Membro"}</p>
+            <div className="relative">
+              <Avatar className="size-8">
+                <AvatarImage src={member.avatar_url || undefined} />
+                <AvatarFallback className="bg-primary/20 text-primary text-xs font-bold">
+                  {initial}
+                </AvatarFallback>
+              </Avatar>
+              {/* Online indicator */}
+              <span
+                className={cn(
+                  "absolute -bottom-0.5 -right-0.5 size-3 rounded-full border-2 border-background",
+                  isOnline ? "bg-green-500" : "bg-muted-foreground/40"
+                )}
+              />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">{member.full_name || "Membro"}</p>
+              <p className={cn("text-[10px]", isOnline ? "text-green-500" : "text-muted-foreground")}>
+                {isOnline ? "Online" : "Offline"}
+              </p>
+            </div>
           </button>
         );
       })}

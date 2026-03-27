@@ -331,7 +331,7 @@ export default function Tickets() {
                       className={cn(
                         "max-w-[85%] rounded-2xl px-4 py-3 relative group/bubble",
                         message.sender === "user"
-                          ? "bg-primary text-primary-foreground rounded-br-md"
+                          ? "bg-secondary text-secondary-foreground rounded-br-md"
                           : "bg-muted text-foreground rounded-bl-md"
                       )}
                     >
@@ -342,7 +342,7 @@ export default function Tickets() {
                       <div className="flex items-center justify-between gap-2 mt-2">
                         <p className={cn(
                           "text-xs",
-                          message.sender === "user" ? "text-primary-foreground/70" : "text-muted-foreground"
+                          message.sender === "user" ? "text-secondary-foreground/70" : "text-muted-foreground"
                         )}>
                           {formatDate(message.created_at)}
                         </p>
@@ -350,7 +350,7 @@ export default function Tickets() {
                           onClick={() => handleCopyMsg(message.id, message.content)}
                           className={cn(
                             "opacity-0 group-hover/bubble:opacity-100 transition-opacity",
-                            message.sender === "user" ? "text-primary-foreground/60 hover:text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                            message.sender === "user" ? "text-secondary-foreground/60 hover:text-secondary-foreground" : "text-muted-foreground hover:text-foreground"
                           )}
                           title="Copiar"
                         >
