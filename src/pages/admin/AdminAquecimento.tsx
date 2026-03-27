@@ -1028,12 +1028,11 @@ export default function AdminAquecimento() {
               </div>
             </div>
 
-            {visibleProfiles.filter(p => p.status === "active").length > 0 && (
+            {/* Active queue - only show if there are pending profiles */}
+            {sortedActiveQueue.length > 0 && (
               <div className="mt-3 bg-white dark:bg-white/5 rounded-xl shadow-sm border border-slate-200 dark:border-white/10 overflow-hidden">
                 <div className="px-4 py-2.5 border-b border-slate-100 dark:border-white/10 flex items-center justify-between">
-                  <h3 className="text-xs font-bold text-slate-600 dark:text-white/60">
-                    {operationMode === "execute" ? "Fila de Aquecimento" : "Perfis em Aquecimento"}
-                  </h3>
+                  <h3 className="text-xs font-bold text-slate-600 dark:text-white/60">Fila de Aquecimento</h3>
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                     currentQueueTrack === "7_days" ? "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300" :
                     currentQueueTrack === "15_days" ? "bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300" :
@@ -1043,7 +1042,7 @@ export default function AdminAquecimento() {
                     {" • "}{sortedActiveQueue.length} pendente{sortedActiveQueue.length !== 1 ? "s" : ""}
                   </span>
                 </div>
-              <div className="max-h-52 overflow-y-auto">
+                <div className="max-h-52 overflow-y-auto">
                   {sortedActiveQueue.map((p) => {
                     const prog = getProgress(p);
                     const isSelected = selectedProfileId === p.id;
@@ -1072,9 +1071,7 @@ export default function AdminAquecimento() {
                               if (!confirm(`Mover "${p.profile_code}" de volta para a esteira de 7 dias?`)) return;
                               const customTasks = configTasks["7_days"] || [];
                               const tasksToUse = customTasks.length > 0 ? customTasks : TRACKS["7_days"].tasks;
-                              // Delete existing tasks
                               await supabase.from("warming_tasks").delete().eq("profile_id", p.id);
-                              // Update profile to 7_days
                               await supabase.from("warming_profiles").update({
                                 track_type: "7_days",
                                 track_days: tasksToUse.length,
@@ -1082,7 +1079,6 @@ export default function AdminAquecimento() {
                                 status: "active",
                                 updated_at: new Date().toISOString(),
                               }).eq("id", p.id);
-                              // Insert new 7-day tasks
                               const taskRows = tasksToUse.map((t, i) => ({
                                 profile_id: p.id,
                                 day_number: i + 1,
@@ -1114,6 +1110,48 @@ export default function AdminAquecimento() {
                 </div>
               </div>
             )}
+
+            {/* History - profiles worked today */}
+            {(() => {
+              const doneTodayProfiles = visibleProfiles.filter(p => p.status === "active" && wasWorkedToday(p.id));
+              if (doneTodayProfiles.length === 0) return null;
+              return (
+                <div className="mt-3 bg-white dark:bg-white/5 rounded-xl shadow-sm border border-slate-200 dark:border-white/10 overflow-hidden">
+                  <div className="px-4 py-2.5 border-b border-slate-100 dark:border-white/10 flex items-center justify-between">
+                    <h3 className="text-xs font-bold text-slate-600 dark:text-white/60">
+                      <MIcon name="history" className="text-sm align-middle mr-1" />
+                      Concluídos Hoje
+                    </h3>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">
+                      {doneTodayProfiles.length} perfil{doneTodayProfiles.length !== 1 ? "s" : ""}
+                    </span>
+                  </div>
+                  <div className="max-h-40 overflow-y-auto">
+                    {doneTodayProfiles.map((p) => {
+                      const prog = getProgress(p);
+                      return (
+                        <div
+                          key={p.id}
+                          className="flex items-center gap-2.5 px-4 py-2 border-b border-slate-50 dark:border-white/5 opacity-60"
+                        >
+                          <MIcon name="check_circle" className="text-base text-emerald-500" />
+                          <div className="flex-grow min-w-0">
+                            <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{p.profile_code}</p>
+                            <p className="text-[11px] text-slate-500 dark:text-white/50">
+                              {TRACKS[p.track_type]?.label} • {prog}%
+                              {p.created_by && creatorNames[p.created_by] && <span className="ml-1 text-[#1876f2]">• {creatorNames[p.created_by]}</span>}
+                            </p>
+                          </div>
+                          <span className="flex-shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 uppercase tracking-wider">
+                            Feito
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
           </section>
 
           <section className="lg:col-span-7">
