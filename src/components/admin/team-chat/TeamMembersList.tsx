@@ -6,6 +6,7 @@ export interface TeamMember {
   user_id: string;
   full_name: string | null;
   avatar_url: string | null;
+  department?: string | null;
 }
 
 export type SelectedChat = { type: "group" } | { type: "dm"; userId: string };
@@ -83,6 +84,9 @@ export function TeamMembersList({ members, currentUserId, selectedChat, onSelect
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">{member.full_name || "Membro"}</p>
+              {member.department && (
+                <p className="text-[10px] text-primary/70 truncate">{member.department}</p>
+              )}
               <p className={cn("text-[10px]", isOnline ? "text-green-500" : "text-muted-foreground")}>
                 {isOnline ? "Online" : "Offline"}
               </p>
