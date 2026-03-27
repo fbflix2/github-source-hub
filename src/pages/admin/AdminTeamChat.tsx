@@ -291,59 +291,60 @@ export default function AdminTeamChat() {
       : "Mensagem direta";
 
   return (
-    <div className="flex h-[calc(100vh-6rem)] max-w-5xl mx-auto gap-0 overflow-hidden">
-      {/* Sidebar - Members */}
-      <div
-        className={cn(
-          "w-64 flex-shrink-0 border-r border-border pr-3 overflow-y-auto transition-all",
-          showSidebar ? "block" : "hidden md:block"
-        )}
-      >
-        <div className="flex items-center gap-2 pb-3 mb-3 border-b border-border">
-          <MessageCircle className="size-4 text-primary" />
-          <h2 className="text-sm font-bold text-foreground">Conversas</h2>
-        </div>
-        <TeamMembersList
-          members={teamMembers}
-          currentUserId={currentUserId}
-          selectedChat={selectedChat}
-          onSelect={(chat) => {
-            setSelectedChat(chat);
-            setShowSidebar(false);
-          }}
-        />
-      </div>
-
-      {/* Chat area */}
-      <div className={cn("flex-1 flex flex-col min-w-0 pl-4 overflow-hidden", !showSidebar ? "block" : "hidden md:block")}>
-        {/* Header - fixed */}
-        <div className="flex items-center gap-3 pb-4 border-b border-border mb-4 flex-shrink-0">
-          <button
-            onClick={() => setShowSidebar(true)}
-            className="md:hidden text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="size-5" />
-          </button>
-          <div className="flex items-center justify-center size-10 rounded-xl bg-primary/10">
-            {selectedChat.type === "group" ? (
-              <Users className="size-5 text-primary" />
-            ) : (
-              <Avatar className="size-8">
-                <AvatarImage src={getProfile(selectedChat.userId).avatar_url || undefined} />
-                <AvatarFallback className="bg-primary/20 text-primary text-xs font-bold">
-                  {getInitial(selectedChat.userId)}
-                </AvatarFallback>
-              </Avatar>
-            )}
+    <div className="h-[calc(100vh-6rem)] min-h-0 overflow-hidden">
+      <div className="flex h-full min-h-0 max-w-5xl mx-auto gap-0 overflow-hidden">
+        {/* Sidebar - Members */}
+        <div
+          className={cn(
+            "w-64 h-full min-h-0 flex-shrink-0 border-r border-border pr-3 overflow-y-auto transition-all",
+            showSidebar ? "block" : "hidden md:block"
+          )}
+        >
+          <div className="flex items-center gap-2 pb-3 mb-3 border-b border-border">
+            <MessageCircle className="size-4 text-primary" />
+            <h2 className="text-sm font-bold text-foreground">Conversas</h2>
           </div>
-          <div>
-            <h1 className="text-lg font-bold text-foreground">{chatTitle}</h1>
-            <p className="text-xs text-muted-foreground">{chatSubtitle}</p>
-          </div>
+          <TeamMembersList
+            members={teamMembers}
+            currentUserId={currentUserId}
+            selectedChat={selectedChat}
+            onSelect={(chat) => {
+              setSelectedChat(chat);
+              setShowSidebar(false);
+            }}
+          />
         </div>
 
-        {/* Messages */}
-        <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto space-y-1 pr-2 scroll-smooth">
+        {/* Chat area */}
+        <div className={cn("flex-1 flex h-full min-h-0 flex-col min-w-0 pl-4 overflow-hidden", !showSidebar ? "block" : "hidden md:flex")}>
+          {/* Header - fixed */}
+          <div className="flex items-center gap-3 pb-4 border-b border-border mb-4 flex-shrink-0">
+            <button
+              onClick={() => setShowSidebar(true)}
+              className="md:hidden text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="size-5" />
+            </button>
+            <div className="flex items-center justify-center size-10 rounded-xl bg-primary/10">
+              {selectedChat.type === "group" ? (
+                <Users className="size-5 text-primary" />
+              ) : (
+                <Avatar className="size-8">
+                  <AvatarImage src={getProfile(selectedChat.userId).avatar_url || undefined} />
+                  <AvatarFallback className="bg-primary/20 text-primary text-xs font-bold">
+                    {getInitial(selectedChat.userId)}
+                  </AvatarFallback>
+                </Avatar>
+              )}
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-foreground">{chatTitle}</h1>
+              <p className="text-xs text-muted-foreground">{chatSubtitle}</p>
+            </div>
+          </div>
+
+          {/* Messages */}
+          <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto overscroll-contain space-y-1 pr-2 scroll-smooth">
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
               <MessageCircle className="size-12 mb-3 opacity-30" />
