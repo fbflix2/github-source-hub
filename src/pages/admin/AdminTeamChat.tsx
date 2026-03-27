@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Send, MessageCircle, Trash2, Users, ArrowLeft, Reply, X, Copy, Check } from "lucide-react";
+import { useOnlineUsers } from "@/hooks/useTeamPresence";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -61,7 +62,7 @@ export default function AdminTeamChat() {
   const [showSidebar, setShowSidebar] = useState(true);
   const [replyTo, setReplyTo] = useState<TeamMessage | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
+  const onlineUserIds = useOnlineUsers();
   const inputRef = useRef<HTMLInputElement>(null);
   const profilesRef = useRef<Record<string, UserInfo>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -103,7 +104,7 @@ export default function AdminTeamChat() {
       const userIds = [...new Set(roles.map((r) => r.user_id))];
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("user_id, full_name, avatar_url")
+        .select("user_id, full_name, avatar_url, department")
         .in("user_id", userIds);
       return (profiles || []) as TeamMember[];
     },
