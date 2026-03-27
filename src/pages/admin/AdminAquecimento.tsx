@@ -756,10 +756,13 @@ export default function AdminAquecimento() {
             </div>
             <div className="flex items-center gap-3">
               <ThemeToggle />
-              <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
-                <MIcon name="fluid" className="text-white text-2xl" />
-              </div>
-              <span className="text-xl font-bold tracking-tight">FBFlix</span>
+              <button
+                onClick={() => setViewMode(viewMode === "count" ? "currency" : "count")}
+                className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/30 transition-colors"
+                title={viewMode === "count" ? "Ver em R$" : "Ver em quantidade"}
+              >
+                <MIcon name={viewMode === "count" ? "payments" : "tag"} className="text-white text-xl" />
+              </button>
             </div>
           </div>
 
