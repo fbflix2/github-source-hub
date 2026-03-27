@@ -393,7 +393,7 @@ export default function AdminTeamChat() {
                       )}
                     </div>
 
-                    <div className={cn("max-w-[70%] flex flex-col", isMe ? "items-end" : "items-start")}>
+                    <div className={cn("max-w-[70%] min-w-0 flex flex-col", isMe ? "items-end" : "items-start")}>
                       {showAvatar && (
                         <span
                           className={cn(
@@ -423,12 +423,12 @@ export default function AdminTeamChat() {
                         </div>
                       )}
 
-                      <div className="flex items-end gap-1.5 group/actions">
+                      <div className="flex items-end gap-1.5 group/actions max-w-full">
                         {/* Reply button - before bubble for own messages */}
                         {isMe && (
                           <button
                             onClick={() => handleReply(msg)}
-                            className="text-muted-foreground hover:text-primary transition-colors opacity-0 group-hover/msg:opacity-100"
+                            className="text-muted-foreground hover:text-primary transition-colors opacity-0 group-hover/msg:opacity-100 flex-shrink-0"
                             title="Responder"
                           >
                             <Reply className="size-3.5" />
@@ -436,12 +436,12 @@ export default function AdminTeamChat() {
                         )}
                         <div
                           className={cn(
-                            "px-3 py-2 rounded-2xl text-sm leading-relaxed break-words whitespace-pre-wrap overflow-hidden",
+                            "px-3 py-2 rounded-2xl text-sm leading-relaxed min-w-0",
                             isMe
-                              ? "bg-primary text-primary-foreground rounded-br-md"
+                              ? "bg-accent/80 text-accent-foreground rounded-br-md"
                               : "bg-card border border-border text-foreground rounded-bl-md"
                           )}
-                          style={{ wordBreak: "break-word", overflowWrap: "anywhere" }}
+                          style={{ wordBreak: "break-all", overflowWrap: "anywhere", whiteSpace: "pre-wrap" }}
                         >
                           {msg.content}
                         </div>
