@@ -150,6 +150,7 @@ export default function AdminAquecimento() {
   const [finishSignal, setFinishSignal] = useState(0);
   const [startSignal, setStartSignal] = useState(0);
   const [activeTab, setActiveTab] = useState<"dashboard" | "esteiras" | "admin">("dashboard");
+  const [adminSubTab, setAdminSubTab] = useState<"relatorio" | "bd_perfis">("relatorio");
   const [teamOperators, setTeamOperators] = useState<{ id: string; name: string }[]>([]);
   const [assignOperatorId, setAssignOperatorId] = useState<string>("");
   const [configTasks, setConfigTasks] = useState<Record<string, { title: string; description: string }[]>>({
