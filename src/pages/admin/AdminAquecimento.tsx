@@ -934,8 +934,6 @@ export default function AdminAquecimento() {
                 <p className="text-[11px] text-slate-400 text-center leading-tight">
                   Certifique-se de que o perfil está logado no navegador multilogin antes de iniciar.
                 </p>
-                  </>
-                )}
               </div>
             </div>
 
