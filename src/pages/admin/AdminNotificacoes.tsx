@@ -184,6 +184,7 @@ export default function AdminNotificacoes() {
       image_url: formImageUrl.trim() || null,
       link: formLink.trim() || "",
       cta_text: formCtaText.trim() || null,
+      cta_color: formCtaColor || null,
       status,
       scheduled_at:
         formSchedule === "schedule" && formScheduledAt
@@ -217,6 +218,7 @@ export default function AdminNotificacoes() {
             link: payload.link || null,
             image_url: payload.image_url || null,
             cta_text: payload.cta_text || null,
+            cta_color: payload.cta_color || null,
           });
         } else if (targetIds) {
           const notifs = targetIds.map(uid => ({
@@ -228,6 +230,7 @@ export default function AdminNotificacoes() {
             link: payload.link || null,
             image_url: payload.image_url || null,
             cta_text: payload.cta_text || null,
+            cta_color: payload.cta_color || null,
           }));
           await supabase.from("notifications").insert(notifs);
         }
@@ -319,6 +322,7 @@ export default function AdminNotificacoes() {
         link: n.link || null,
         image_url: n.image_url || null,
         cta_text: n.cta_text || null,
+        cta_color: (n as any).cta_color || null,
       }));
       await supabase.from("notifications").insert(notifs);
     } else {
@@ -330,6 +334,7 @@ export default function AdminNotificacoes() {
         link: n.link || null,
         image_url: n.image_url || null,
         cta_text: n.cta_text || null,
+        cta_color: (n as any).cta_color || null,
       });
     }
 

@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
+          cta_color: string | null
           global: boolean
           id: string
           image_url: string | null
@@ -34,6 +35,7 @@ export type Database = {
         Insert: {
           created_at?: string
           created_by?: string | null
+          cta_color?: string | null
           global?: boolean
           id?: string
           image_url?: string | null
@@ -50,6 +52,7 @@ export type Database = {
         Update: {
           created_at?: string
           created_by?: string | null
+          cta_color?: string | null
           global?: boolean
           id?: string
           image_url?: string | null
@@ -1406,6 +1409,7 @@ export type Database = {
       notifications: {
         Row: {
           created_at: string
+          cta_color: string | null
           cta_text: string | null
           global: boolean
           id: string
@@ -1419,6 +1423,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          cta_color?: string | null
           cta_text?: string | null
           global?: boolean
           id?: string
@@ -1432,6 +1437,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          cta_color?: string | null
           cta_text?: string | null
           global?: boolean
           id?: string
