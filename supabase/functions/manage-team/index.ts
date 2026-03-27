@@ -66,6 +66,10 @@ Deno.serve(async (req) => {
       return await handleSetPermissions(supabaseAdmin, body);
     }
 
+    if (req.method === "POST" && body.action === "update_department") {
+      return await handleUpdateDepartment(supabaseAdmin, body);
+    }
+
     throw new Error("Ação não reconhecida");
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Erro desconhecido";
@@ -93,7 +97,7 @@ async function handleList(sb: any) {
   // Get profiles
   const { data: profiles } = await sb
     .from("profiles")
-    .select("user_id, full_name, phone, status, avatar_url, created_at")
+    .select("user_id, full_name, phone, status, avatar_url, created_at, department")
     .in("user_id", userIds);
 
   const profileMap = new Map((profiles || []).map((p: any) => [p.user_id, p]));
@@ -124,6 +128,7 @@ async function handleList(sb: any) {
       status: profile.status || "active",
       avatar_url: profile.avatar_url || null,
       created_at: r.created_at,
+      department: profile.department || null,
     };
   });
 
@@ -266,6 +271,20 @@ async function handleSetPermissions(sb: any, body: any) {
       { user_id, allowed_paths, updated_at: new Date().toISOString() },
       { onConflict: "user_id" }
     );
+
+  if (error) throw new Error(error.message);
+
+  return jsonResponse({ success: true });
+}
+
+async function handleUpdateDepartment(sb: any, body: any) {
+  const { user_id, department } = body;
+  if (!user_id) throw new Error("user_id é obrigatório");
+
+  const { error } = await sb
+    .from("profiles")
+    .update({ department: department || null })
+    .eq("user_id", user_id);
 
   if (error) throw new Error(error.message);
 

@@ -13,6 +13,7 @@ import {
   Crown,
   UserCog,
   KeyRound,
+  Building2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,6 +47,7 @@ interface TeamMember {
   status: string;
   avatar_url: string | null;
   created_at: string;
+  department: string | null;
 }
 
 const roleLabels: Record<string, string> = {
@@ -79,6 +81,10 @@ export default function AdminConfiguracoes() {
 
   // Permissions modal
   const [permsMember, setPermsMember] = useState<TeamMember | null>(null);
+
+  // Department editing
+  const [deptMember, setDeptMember] = useState<TeamMember | null>(null);
+  const [deptValue, setDeptValue] = useState("");
 
   const filters = [
     { key: "all", label: "Todos" },
@@ -308,6 +314,11 @@ export default function AdminConfiguracoes() {
                         </Avatar>
                         <div className="flex flex-col">
                           <span className="font-semibold text-white">{member.name}</span>
+                          {member.department && (
+                            <span className="text-[10px] font-medium text-primary/80 bg-primary/10 px-1.5 py-0.5 rounded w-fit mt-0.5">
+                              {member.department}
+                            </span>
+                          )}
                           <span className="text-xs text-gray-500">
                             Desde {formatDate(member.created_at)}
                           </span>
@@ -351,6 +362,16 @@ export default function AdminConfiguracoes() {
                             <KeyRound className="w-5 h-5" />
                           </button>
                         )}
+                        <button
+                          onClick={() => {
+                            setDeptMember(member);
+                            setDeptValue(member.department || "");
+                          }}
+                          className="p-2 hover:bg-emerald-500/20 rounded-lg text-gray-400 hover:text-emerald-400 transition-colors"
+                          title="Definir Setor"
+                        >
+                          <Building2 className="w-5 h-5" />
+                        </button>
                         <button
                           onClick={() => {
                             setEditMember(member);
@@ -619,6 +640,70 @@ export default function AdminConfiguracoes() {
         onClose={() => setPermsMember(null)}
         member={permsMember}
       />
+
+      {/* Department Modal */}
+      <Dialog open={!!deptMember} onOpenChange={(open) => !open && setDeptMember(null)}>
+        <DialogContent className="bg-[#1a1a1a] border-white/10 text-white max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Building2 className="w-5 h-5 text-emerald-400" />
+              Definir Setor
+            </DialogTitle>
+          </DialogHeader>
+          {deptMember && (
+            <div className="space-y-4">
+              <p className="text-sm text-gray-400">
+                Defina o setor de <strong className="text-white">{deptMember.name}</strong>
+              </p>
+              <Input
+                value={deptValue}
+                onChange={(e) => setDeptValue(e.target.value)}
+                placeholder="Ex: Suporte, Vendas, Financeiro, Operações..."
+                className="bg-black/30 border-white/10 text-white placeholder:text-gray-500"
+              />
+              <div className="flex flex-wrap gap-2">
+                {["Suporte", "Vendas", "Financeiro", "Operações", "Aquecimento", "Marketing"].map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => setDeptValue(s)}
+                    className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${
+                      deptValue === s
+                        ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400"
+                        : "bg-white/5 border-white/10 text-gray-400 hover:bg-white/10"
+                    }`}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeptMember(null)} className="border-white/10 text-gray-300">
+              Cancelar
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!deptMember) return;
+                try {
+                  const { error } = await supabase.functions.invoke("manage-team", {
+                    body: { action: "update_department", user_id: deptMember.user_id, department: deptValue.trim() },
+                  });
+                  if (error) throw new Error(error.message);
+                  toast.success("Setor atualizado!");
+                  setDeptMember(null);
+                  fetchMembers();
+                } catch (err: any) {
+                  toast.error(err.message);
+                }
+              }}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+            >
+              Salvar Setor
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
