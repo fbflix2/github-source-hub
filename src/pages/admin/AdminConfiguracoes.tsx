@@ -52,12 +52,12 @@ interface TeamMember {
 
 const roleLabels: Record<string, string> = {
   admin: "Administrador",
-  moderator: "Moderador",
+  moderator: "Membro da Equipe",
 };
 
 const roleOptions = [
   { value: "admin", label: "Administrador", description: "Acesso total ao sistema" },
-  { value: "moderator", label: "Moderador", description: "Acesso a conteúdo e suporte" },
+  { value: "moderator", label: "Membro da Equipe", description: "Acesso a conteúdo e suporte" },
 ];
 
 export default function AdminConfiguracoes() {
@@ -89,7 +89,7 @@ export default function AdminConfiguracoes() {
   const filters = [
     { key: "all", label: "Todos" },
     { key: "admin", label: "Administradores" },
-    { key: "moderator", label: "Moderadores" },
+    { key: "moderator", label: "Membros da Equipe" },
   ];
 
   const fetchMembers = useCallback(async () => {
@@ -113,8 +113,13 @@ export default function AdminConfiguracoes() {
   }, [fetchMembers]);
 
   const handleAdd = async () => {
-    if (!addEmail.trim()) {
+    const email = addEmail.trim();
+    if (!email) {
       toast.error("Digite o email do membro");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error("Digite um email válido (ex: usuario@email.com)");
       return;
     }
     setAddLoading(true);
@@ -428,7 +433,7 @@ export default function AdminConfiguracoes() {
               <UserCog className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-lg text-white">Moderadores</h3>
+              <h3 className="font-bold text-lg text-white">Membros da Equipe</h3>
               <p className="text-xs text-gray-400">Acesso a conteúdo, suporte e gestão de clientes.</p>
             </div>
           </div>
