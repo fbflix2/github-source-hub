@@ -193,12 +193,12 @@ export default function AdminNotificacoes() {
     if (editingId) {
       ({ error } = await supabase
         .from("admin_notifications")
-        .update(payload)
+        .update(payload as any)
         .eq("id", editingId));
     } else {
       const { data: { user } } = await supabase.auth.getUser();
       payload.created_by = user?.id || null;
-      ({ error } = await supabase.from("admin_notifications").insert(payload));
+      ({ error } = await supabase.from("admin_notifications").insert(payload as any));
     }
 
     if (error) {
