@@ -24,6 +24,7 @@ export function PendingSafeBMPopup() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [pendingVaults, setPendingVaults] = useState<PendingVault[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
   const dismissedKey = "safebm_popup_dismissed_at";
 
   const fetchPending = useCallback(async () => {
