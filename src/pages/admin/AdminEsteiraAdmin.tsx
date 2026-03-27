@@ -246,7 +246,6 @@ export default function AdminEsteiraAdmin() {
 
     toast.success(`✅ Perfil "${profileCode.trim()}" cadastrado!`);
     setProfileCode("");
-    setAssignOperatorId("");
     fetchProfiles();
     setCreating(false);
   };
@@ -498,11 +497,53 @@ export default function AdminEsteiraAdmin() {
       {/* BD Perfis Tab */}
       {activeTab === "bd_perfis" && (
         <main className="flex-1 px-6 md:px-8 lg:px-12 py-8 max-w-3xl mx-auto w-full space-y-6">
+          {/* Operator Selection - persistent */}
+          <div className="bg-white dark:bg-white/5 rounded-xl shadow-sm border border-slate-200 dark:border-white/10 overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-slate-100 dark:border-white/10 flex items-center gap-2.5">
+              <MIcon name="person" className="text-[#1876f2] text-xl" />
+              <h2 className="text-base font-bold text-slate-900 dark:text-white">Operador Selecionado</h2>
+            </div>
+            <div className="p-5">
+              <div className="flex flex-wrap gap-2">
+                {teamOperators.map(op => (
+                  <button
+                    key={op.id}
+                    onClick={() => setAssignOperatorId(op.id)}
+                    className={`px-4 py-2.5 rounded-lg text-sm font-bold transition-all border ${
+                      assignOperatorId === op.id
+                        ? "bg-[#1876f2] text-white border-[#1876f2] shadow-md"
+                        : "bg-slate-100 dark:bg-white/10 text-slate-700 dark:text-white/70 border-slate-200 dark:border-white/15 hover:bg-slate-200 dark:hover:bg-white/20"
+                    }`}
+                  >
+                    {op.name}
+                  </button>
+                ))}
+              </div>
+              {assignOperatorId && (
+                <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-3 flex items-center gap-1">
+                  <MIcon name="check_circle" className="text-sm" />
+                  Todos os perfis serão atribuídos a <strong>{teamOperators.find(o => o.id === assignOperatorId)?.name}</strong>
+                </p>
+              )}
+              {!assignOperatorId && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-3 flex items-center gap-1">
+                  <MIcon name="warning" className="text-sm" />
+                  Selecione um operador antes de cadastrar perfis
+                </p>
+              )}
+            </div>
+          </div>
+
           {/* Profile Creation Form */}
           <div className="bg-white dark:bg-white/5 rounded-xl shadow-sm border border-slate-200 dark:border-white/10 overflow-hidden">
             <div className="px-5 py-3.5 border-b border-slate-100 dark:border-white/10 flex items-center gap-2.5">
               <MIcon name="person_add" className="text-[#1876f2] text-xl" />
               <h2 className="text-base font-bold text-slate-900 dark:text-white">Cadastrar Novo Perfil</h2>
+              {assignOperatorId && (
+                <span className="ml-auto text-xs font-bold px-2.5 py-1 rounded-full bg-[#1876f2]/10 text-[#1876f2]">
+                  → {teamOperators.find(o => o.id === assignOperatorId)?.name}
+                </span>
+              )}
             </div>
             <div className="p-5 space-y-4">
               <div>
@@ -510,38 +551,20 @@ export default function AdminEsteiraAdmin() {
                 <div className="relative">
                   <MIcon name="fingerprint" className="absolute left-3 top-2.5 text-slate-400 text-lg" />
                   <input
-                    className="w-full pl-10 pr-3 py-2.5 text-sm bg-slate-50 dark:bg-white/10 border border-slate-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-slate-400 focus:border-slate-400 text-slate-900 dark:text-white transition-all"
+                    className="w-full pl-10 pr-3 py-2.5 text-sm bg-slate-50 dark:bg-white/10 border border-slate-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-[#1876f2] focus:border-[#1876f2] text-slate-900 dark:text-white transition-all"
                     placeholder="ex: FB-123"
                     value={profileCode}
                     onChange={(e) => setProfileCode(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleCreateProfile(); }}
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-white/60 mb-1.5">Atribuir ao Operador</label>
-                <div className="relative">
-                  <MIcon name="person" className="absolute left-3 top-2.5 text-slate-400 text-lg" />
-                  <select
-                    className="w-full pl-10 pr-3 py-2.5 text-sm bg-slate-50 dark:bg-white/10 border border-slate-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-slate-400 focus:border-slate-400 text-slate-900 dark:text-white transition-all appearance-none"
-                    value={assignOperatorId}
-                    onChange={(e) => setAssignOperatorId(e.target.value)}
-                  >
-                    <option value="">Selecione um operador...</option>
-                    {teamOperators.map(op => (
-                      <option key={op.id} value={op.id}>{op.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <p className="text-[10px] text-slate-400 mt-1">O perfil será visível apenas para o operador selecionado.</p>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 dark:text-white/60 mb-1.5">Esteira</label>
                 <div className="relative flex items-center gap-2 pl-10 pr-3 py-2.5 text-sm bg-slate-100 dark:bg-white/10 border border-slate-200 dark:border-white/10 rounded-lg text-slate-600 dark:text-white/60">
                   <MIcon name="layers" className="absolute left-3 top-2.5 text-slate-400 text-lg" />
                   7 Dias - Básica
                   <span className="ml-auto text-[10px] font-bold text-slate-400 uppercase">Automático</span>
                 </div>
-                <p className="text-[10px] text-slate-400 mt-1">Após concluir 7 dias, avança automaticamente para 15 e depois 30 dias.</p>
               </div>
               <button
                 onClick={handleCreateProfile}
