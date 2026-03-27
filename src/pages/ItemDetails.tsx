@@ -103,30 +103,34 @@ export default function ItemDetails() {
       if (!itemData) { setLoading(false); return; }
       setOrderItem(itemData);
 
+      const orderItemDeliveryData =
+        itemData.delivery_data && typeof itemData.delivery_data === "object"
+          ? (itemData.delivery_data as StockData & Record<string, any>)
+          : null;
+
       // Check delivery_data on order_item first
-      if (itemData.delivery_data && typeof itemData.delivery_data === "object") {
-        setStockData(itemData.delivery_data as StockData);
-        const dd = itemData.delivery_data as any;
-        if (dd.pageRequestedAt) {
+      if (orderItemDeliveryData) {
+        setStockData(orderItemDeliveryData);
+        if (orderItemDeliveryData.pageRequestedAt) {
           setPageRequested(true);
-          if (dd.pageProfileLinks) setProfileLinks(dd.pageProfileLinks);
-          if (dd.allOnOneProfile) setAllOnOneProfile(dd.allOnOneProfile);
+          if (orderItemDeliveryData.pageProfileLinks) setProfileLinks(orderItemDeliveryData.pageProfileLinks);
+          if (orderItemDeliveryData.allOnOneProfile) setAllOnOneProfile(orderItemDeliveryData.allOnOneProfile);
         }
-        if (dd.pageConfirmedAt) {
+        if (orderItemDeliveryData.pageConfirmedAt) {
           setPageConfirmedByAdmin(true);
-          if (dd.pageName) setPageName(dd.pageName);
+          if (orderItemDeliveryData.pageName) setPageName(orderItemDeliveryData.pageName);
         }
-        if (dd.pageReceivedByClient) {
+        if (orderItemDeliveryData.pageReceivedByClient) {
           setPageReceivedByClient(true);
         }
         // Restore disclaimer from DB
-        if (dd._credentials_accessed_at) {
+        if (orderItemDeliveryData._credentials_accessed_at) {
           setAcceptedDisclaimer(true);
         }
-        if (dd._exchange_pending_payment) {
-          setExchangePendingPayment(dd._exchange_pending_payment);
+        if (orderItemDeliveryData._exchange_pending_payment) {
+          setExchangePendingPayment(orderItemDeliveryData._exchange_pending_payment);
         }
-        if (dd._exchange_locked) {
+        if (orderItemDeliveryData._exchange_locked) {
           setExchangeLocked(true);
         }
       }
@@ -154,7 +158,15 @@ export default function ItemDetails() {
         .select("*")
         .eq("order_item_id", itemId);
 
-      const mainStockItem = stockItems?.find((s: any) => !s.parent_id) || stockItems?.[0] || null;
+      const preferredStockItem = stockItems?.find((s: any) => {
+        if (s.parent_id) return false;
+        return (
+          (!!orderItemDeliveryData?.idPerfil && s.identification === orderItemDeliveryData.idPerfil) ||
+          (!!orderItemDeliveryData?.linkPerfil && s.identification_link === orderItemDeliveryData.linkPerfil)
+        );
+      }) || null;
+
+      const mainStockItem = preferredStockItem || stockItems?.find((s: any) => !s.parent_id) || stockItems?.[0] || null;
 
       if (mainStockItem) {
         // Check for combo: children may be in the same query OR need a separate fetch by parent_id
@@ -185,14 +197,19 @@ export default function ItemDetails() {
             setComboChildren([]);
           }
         } else {
-          // Default behavior: show combo or single item
+          // Default behavior: merge stock data with order_item delivery_data, giving precedence to the replacement data
           setStockItemId(mainStockItem.id);
           if (mainStockItem.status === "bloqueado") setIsBlocked(true);
           if (mainStockItem.status === "ok") setIsConfirmedOk(true);
-          const baseData = (mainStockItem.data && typeof mainStockItem.data === "object") ? mainStockItem.data as StockData : {} as StockData;
-          if (mainStockItem.identification_link) baseData.linkPerfil = mainStockItem.identification_link;
-          if (mainStockItem.identification) baseData.idPerfil = mainStockItem.identification;
-          setStockData(baseData);
+
+          const baseData = (mainStockItem.data && typeof mainStockItem.data === "object") ? { ...(mainStockItem.data as StockData) } : {} as StockData;
+          if (mainStockItem.identification_link && !baseData.linkPerfil) baseData.linkPerfil = mainStockItem.identification_link;
+          if (mainStockItem.identification && !baseData.idPerfil) baseData.idPerfil = mainStockItem.identification;
+
+          setStockData({
+            ...baseData,
+            ...(orderItemDeliveryData || {}),
+          });
 
           if (mainStockItem.type === "combo" || children.length > 0) {
             setIsCombo(true);
@@ -200,7 +217,6 @@ export default function ItemDetails() {
           }
         }
       }
-
       // Fetch product info
       if (itemData.product_id) {
         const { data: prod } = await supabase
