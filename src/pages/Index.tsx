@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import logoFbflix from "@/assets/logo-fbflix.png";
+import logoFbflix from "@/assets/logo-fbflix.webp";
 
 /* ---------- constants ---------- */
 const PROFILE_PRICE = 47;
@@ -97,7 +97,7 @@ const Index = () => {
       {/* ===== NAV ===== */}
       <nav className="fixed top-0 w-full z-50 bg-[#050505]/80 backdrop-blur-3xl border-b border-[#ff3131]/10 shadow-[0_0_40px_rgba(255,49,49,0.05)]">
         <div className="flex justify-between items-center px-8 py-4 max-w-7xl mx-auto">
-          <img src={logoFbflix} alt="FBFLIX" className="h-8 object-contain cursor-pointer transition-all duration-300 hover:scale-105" />
+          <img src={logoFbflix} alt="FBFLIX" width={32} height={32} className="h-8 object-contain cursor-pointer transition-all duration-300 hover:scale-105" />
           <div className="hidden md:flex gap-8 items-center font-['Space_Grotesk'] tracking-tighter text-sm uppercase font-bold">
             <a href="#home" className="text-[#ff3131] border-b-2 border-[#ff3131] pb-1 cursor-pointer transition-all duration-300">Home</a>
             <a href="#como-funciona" className="text-white/70 hover:text-white transition-colors cursor-pointer">Como Funciona</a>
@@ -118,13 +118,17 @@ const Index = () => {
             alt="Digital Network"
             className="w-full h-full object-cover opacity-20 grayscale contrast-125"
             src="https://lh3.googleusercontent.com/aida-public/AB6AXuA6mgEPPp3A8WfZQmpvovGnq8PM9WQg_VkbqFOpX5utcy7JW7eYKsAV9pckAiLW4HXkTuCnkbHEzSZ3XgxxuKvKwpUukxRYguy3lK19izWDcioO08gGeV0zOD1FeiHJuxT3A2T4eviHN7giUTucvUtz0X1X_fv8_p0lyBhXQVoaXqw_kB8a3XkhmnWhIp7aJXlzHp8a8L3FttZWD1Bx6gMZA2n-sMXVQZ-CsESvtzVWY7V9EgAY2K_iL9-Ydu2XDyUc2mCIhqxA_Pc3"
+            width={1920}
+            height={1080}
+            loading="eager"
+            fetchPriority="low"
           />
         </div>
 
         <div className="relative z-20 max-w-7xl mx-auto px-8 w-full text-center">
           {/* Shield icon */}
           <div className="mb-6 flex justify-center lp-reveal">
-            <img src={logoFbflix} alt="FBFLIX" className="w-20 h-20 object-contain drop-shadow-[0_0_30px_rgba(255,49,49,0.3)]" />
+            <img src={logoFbflix} alt="FBFLIX" width={80} height={80} className="w-20 h-20 object-contain drop-shadow-[0_0_30px_rgba(255,49,49,0.3)]" fetchPriority="high" />
           </div>
 
           <h1 className="font-['Space_Grotesk'] text-6xl md:text-8xl font-black tracking-tighter text-white uppercase leading-[0.9] mb-6 lp-reveal" style={{ transitionDelay: "100ms" }}>
@@ -206,10 +210,10 @@ const Index = () => {
                 {p.featured && (
                   <div className="absolute top-0 right-0 bg-white text-[#ff3131] px-3 py-1 font-bold text-[10px] uppercase tracking-tighter">MAIS VENDIDO</div>
                 )}
-                <h4 className="font-['Space_Grotesk'] font-bold text-white text-xl mb-2">{p.title}</h4>
+                <h3 className="font-['Space_Grotesk'] font-bold text-white text-xl mb-2">{p.title}</h3>
                 <p className={`text-xs ${p.featured ? "text-white/80" : "text-[#ff3131]"} font-bold uppercase tracking-widest mb-6`}>{p.sub}</p>
                 <div className="mb-8">
-                  <img alt={p.title} className={`w-full h-32 object-cover ${p.featured ? "brightness-110" : "grayscale group-hover:grayscale-0"} transition-all duration-500`} src={p.img} />
+                  <img alt={p.title} className={`w-full h-32 object-cover ${p.featured ? "brightness-110" : "grayscale group-hover:grayscale-0"} transition-all duration-500`} src={p.img} width={400} height={128} loading="lazy" />
                 </div>
                 <ul className={`text-sm ${p.featured ? "text-white font-medium" : "text-[#ebbbb4]"} space-y-3 mb-8 flex-grow`}>
                   {p.features.map((f) => (
@@ -251,7 +255,7 @@ const Index = () => {
                   <div key={b.title} className="flex gap-4">
                     <span className="material-symbols-outlined text-[#ff3131] text-3xl shrink-0">{b.icon}</span>
                     <div>
-                      <h5 className="text-white font-bold mb-1">{b.title}</h5>
+                      <h3 className="text-white font-bold mb-1">{b.title}</h3>
                       <p className="text-sm text-[#ebbbb4]">{b.desc}</p>
                     </div>
                   </div>
@@ -265,7 +269,7 @@ const Index = () => {
                 {testimonials.map((t, i) => (
                   <div key={t.name} className={`bg-[#0d0d0d]/70 backdrop-blur-[24px] p-6 border border-white/5 hover:border-[#ff3131]/30 transition-colors duration-300 ${i === 1 ? "translate-x-4" : ""}`}>
                     <div className="flex items-center gap-4 mb-3">
-                      <img alt={t.name} className="w-12 h-12 rounded-full grayscale hover:grayscale-0 transition-all" src={t.img} />
+                      <img alt={t.name} className="w-12 h-12 rounded-full grayscale hover:grayscale-0 transition-all" src={t.img} width={48} height={48} loading="lazy" />
                       <div>
                         <p className="text-white font-bold text-sm">{t.name}</p>
                         <p className="text-[#ff3131] text-[10px] uppercase font-bold tracking-widest">{t.role}</p>
@@ -318,14 +322,14 @@ const Index = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 max-w-7xl mx-auto">
           <div className="col-span-1 md:col-span-2">
             <span className="text-2xl font-black text-[#ff3131] mb-6 block italic">FBFLIX</span>
-            <p className="text-sm text-white/40 max-w-sm mb-8 leading-relaxed">
+            <p className="text-sm text-white/50 max-w-sm mb-8 leading-relaxed">
               © 2026 FBFLIX. Todos os direitos reservados. Engenharia de precisão para contingência e escala profissional no mercado de tráfego pago.
             </p>
-            <p className="text-xs text-white/30">CNPJ: 40.122.096/0001-85</p>
+            <p className="text-xs text-white/50">CNPJ: 40.122.096/0001-85</p>
           </div>
           <div>
-            <h6 className="text-white font-bold text-sm mb-6 uppercase tracking-widest">Links Rápidos</h6>
-            <ul className="space-y-4 text-xs text-white/30">
+            <h3 className="text-white font-bold text-sm mb-6 uppercase tracking-widest">Links Rápidos</h3>
+            <ul className="space-y-4 text-xs text-white/50">
               <li><a href="/termos" className="hover:text-[#ff3131] transition-colors">Termos de Uso</a></li>
               <li><a href="/privacidade" className="hover:text-[#ff3131] transition-colors">Política de Privacidade</a></li>
               <li><a href="/suporte" className="hover:text-[#ff3131] transition-colors">Suporte ao Cliente</a></li>
@@ -333,7 +337,7 @@ const Index = () => {
             </ul>
           </div>
           <div>
-            <h6 className="text-white font-bold text-sm mb-6 uppercase tracking-widest">Segurança</h6>
+            <h3 className="text-white font-bold text-sm mb-6 uppercase tracking-widest">Segurança</h3>
             <div className="flex gap-6">
               <span className="material-symbols-outlined text-white/20 text-5xl">verified</span>
               <span className="material-symbols-outlined text-white/20 text-5xl">encrypted</span>
@@ -384,18 +388,21 @@ const Index = () => {
 
 /* ---------- Slider sub-component ---------- */
 function SliderField({ label, value, onChange, min, max }: { label: string; value: number; onChange: (v: number) => void; min: number; max: number }) {
+  const id = label.replace(/\s+/g, '-').toLowerCase();
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <label className="text-white font-bold uppercase text-[10px] tracking-[0.2em] opacity-70">{label}</label>
+        <label htmlFor={id} className="text-white font-bold uppercase text-[10px] tracking-[0.2em] opacity-70">{label}</label>
         <span className="text-[#ff3131] font-black text-2xl drop-shadow-[0_0_8px_rgba(255,49,49,0.5)]">{value}</span>
       </div>
       <input
+        id={id}
         type="range"
         min={min}
         max={max}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
+        aria-label={label}
         className="w-full h-1.5 bg-white/10 rounded-full appearance-none cursor-pointer"
       />
     </div>

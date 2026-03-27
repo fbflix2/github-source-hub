@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Mail, ArrowRight, Loader2, PartyPopper, MessageCircleQuestion } from "lucide-react";
-import logoFbflix from "@/assets/logo-fbflix.png";
+import logoFbflix from "@/assets/logo-fbflix.webp";
 
 export default function MigrationLogin() {
   const navigate = useNavigate();

@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import logoFbflix from "@/assets/logo-fbflix.png";
+import logoFbflix from "@/assets/logo-fbflix.webp";
 import {
   DropdownMenu,
   DropdownMenuContent,

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import logoFbflix from "@/assets/logo-fbflix.png";
+import logoFbflix from "@/assets/logo-fbflix.webp";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 

@@ -9,33 +9,36 @@
     <meta name="description" content="Plataforma líder em  ativos para anúnciantes com mais de 3.500 clientes. Pagamento seguro , entrega automática e garantia.">
     <meta name="author" content="FBFLIX" />
     <link rel="canonical" href="https://fbflix.com.br" />
+
+    <!-- Preconnect to font origins -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&family=Caveat:wght@400;700&family=Satisfy&family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+
+    <!-- Critical fonts: preload Inter & Space Grotesk via media="print" swap trick -->
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'" />
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" /></noscript>
+
+    <!-- Non-critical fonts: defer loading -->
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&family=Caveat:wght@400;700&family=Satisfy&family=Manrope:wght@400;500;600;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'" />
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&family=Caveat:wght@400;700&family=Satisfy&family=Manrope:wght@400;500;600;700;800&display=swap" /></noscript>
+
+    <!-- Material Symbols: defer -->
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" onload="this.onload=null;this.rel='stylesheet'" />
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" /></noscript>
 
     <meta property="og:type" content="website" />
-    
-    
     <meta property="og:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/fJXleP588dPKmFEfAyv9cbBn4ni1/social-images/social-1772211026866-Site_de_Portfólio_e_Currículo_de_Marketing_Simples_Preto_e_Verde_Escuro.webp">
-
     <meta name="twitter:card" content="summary_large_image" />
-    
-    
     <meta name="twitter:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/fJXleP588dPKmFEfAyv9cbBn4ni1/social-images/social-1772211026866-Site_de_Portfólio_e_Currículo_de_Marketing_Simples_Preto_e_Verde_Escuro.webp">
-  
-  
-  
-  
-  <meta property="og:title" content="FBFLIX  -  Lider em  contigência">
-  <meta name="twitter:title" content="FBFLIX  -  Lider em  contigência">
-  <meta property="og:description" content="Plataforma líder em  ativos para anúnciantes com mais de 3.500 clientes. Pagamento seguro , entrega automática e garantia.">
-  <meta name="twitter:description" content="Plataforma líder em  ativos para anúnciantes com mais de 3.500 clientes. Pagamento seguro , entrega automática e garantia.">
-</head>
+    <meta property="og:title" content="FBFLIX  -  Lider em  contigência">
+    <meta name="twitter:title" content="FBFLIX  -  Lider em  contigência">
+    <meta property="og:description" content="Plataforma líder em  ativos para anúnciantes com mais de 3.500 clientes. Pagamento seguro , entrega automática e garantia.">
+    <meta name="twitter:description" content="Plataforma líder em  ativos para anúnciantes com mais de 3.500 clientes. Pagamento seguro , entrega automática e garantia.">
+  </head>
 
   <body>
     <div id="root"></div>
-    <script src="https://sdk.mercadopago.com/js/v2"></script>
+    <script src="https://sdk.mercadopago.com/js/v2" async defer></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

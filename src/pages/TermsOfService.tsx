@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import logoFbflix from "@/assets/logo-fbflix.png";
+import logoFbflix from "@/assets/logo-fbflix.webp";
 
 export default function TermsOfService() {
   const navigate = useNavigate();
