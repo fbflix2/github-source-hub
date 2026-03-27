@@ -1021,10 +1021,18 @@ export default function AdminAquecimento() {
 
             {visibleProfiles.filter(p => p.status === "active").length > 0 && (
               <div className="mt-3 bg-white dark:bg-white/5 rounded-xl shadow-sm border border-slate-200 dark:border-white/10 overflow-hidden">
-                <div className="px-4 py-2.5 border-b border-slate-100 dark:border-white/10">
+                <div className="px-4 py-2.5 border-b border-slate-100 dark:border-white/10 flex items-center justify-between">
                   <h3 className="text-xs font-bold text-slate-600 dark:text-white/60">
                     {operationMode === "execute" ? "Fila de Aquecimento" : "Perfis em Aquecimento"}
                   </h3>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    currentQueueTrack === "7_days" ? "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300" :
+                    currentQueueTrack === "15_days" ? "bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-300" :
+                    "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300"
+                  }`}>
+                    Esteira {currentQueueTrack === "7_days" ? "7 Dias" : currentQueueTrack === "15_days" ? "15 Dias" : "30 Dias"}
+                    {" • "}{sortedActiveQueue.length} pendente{sortedActiveQueue.length !== 1 ? "s" : ""}
+                  </span>
                 </div>
               <div className="max-h-52 overflow-y-auto">
                   {sortedActiveQueue.map((p) => {
