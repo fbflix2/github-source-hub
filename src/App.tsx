@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { User, Session } from "@supabase/supabase-js";
 import { ThemeProvider } from "next-themes";
 import { useTickets } from "@/hooks/useTickets";
+import { useTeamPresenceTracker } from "@/hooks/useTeamPresence";
 import logoFbflix from "@/assets/logo-fbflix.webp";
 // Pages
 import Auth from "./pages/Auth";
@@ -111,6 +112,7 @@ const queryClient = new QueryClient();
 
 function AuthenticatedApp({ user, onLogout }: { user: User; onLogout: () => void }) {
   const { totalUnread } = useTickets();
+  useTeamPresenceTracker();
   const [userName, setUserName] = useState(user.user_metadata?.full_name || user.email?.split("@")[0] || "Usuário");
   const userEmail = user.email || "";
 
