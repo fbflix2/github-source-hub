@@ -11,6 +11,7 @@ import { useTickets } from "@/hooks/useTickets";
 import logoFbflix from "@/assets/logo-fbflix.png";
 // Pages
 import Auth from "./pages/Auth";
+import Index from "./pages/Index";
 import Loja from "./pages/Loja";
 import Checkout from "./pages/Checkout";
 import Subscriptions from "./pages/Subscriptions";
@@ -299,6 +300,7 @@ const App = () => {
                   path="/welcome"
                   element={user ? <Welcome /> : <Navigate to="/auth" replace />}
                 />
+                <Route path="/" element={user ? <Navigate to="/loja" replace /> : <Index />} />
                 <Route path="/privacidade" element={<PrivacyPolicy />} />
                 <Route path="/termos" element={<TermsOfService />} />
                 <Route path="/sobre" element={<Sobre />} />
