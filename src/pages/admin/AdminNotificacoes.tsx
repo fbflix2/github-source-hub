@@ -1,27 +1,24 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { validateImageFile } from "@/lib/file-validation";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   Bell,
-  BellRing,
   Monitor,
   Search,
   Link as LinkIcon,
   Edit,
-  Eye,
   Trash2,
   Send,
   Image,
-  Settings,
   Megaphone,
-  Calendar,
   Clock,
   Loader2,
   X,
   Users,
   Globe,
   UserPlus,
+  Palette,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -59,6 +56,17 @@ interface UserOption {
   full_name: string | null;
 }
 
+const BUTTON_COLORS = [
+  { label: "Vermelho", value: "#dc2626" },
+  { label: "Verde", value: "#16a34a" },
+  { label: "Azul", value: "#2563eb" },
+  { label: "Roxo", value: "#7c3aed" },
+  { label: "Laranja", value: "#ea580c" },
+  { label: "Rosa", value: "#db2777" },
+  { label: "Amarelo", value: "#ca8a04" },
+  { label: "Ciano", value: "#0891b2" },
+];
+
 export default function AdminNotificacoes() {
   const [notifications, setNotifications] = useState<AdminNotification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,6 +84,7 @@ export default function AdminNotificacoes() {
   const [formImageUrl, setFormImageUrl] = useState("");
   const [formLink, setFormLink] = useState("");
   const [formCtaText, setFormCtaText] = useState("");
+  const [formCtaColor, setFormCtaColor] = useState("#dc2626");
   const [formSchedule, setFormSchedule] = useState("now");
   const [formScheduledAt, setFormScheduledAt] = useState("");
   const [formAudience, setFormAudience] = useState<"all" | "specific">("all");
@@ -140,6 +149,7 @@ export default function AdminNotificacoes() {
     setFormImageUrl("");
     setFormLink("");
     setFormCtaText("");
+    setFormCtaColor("#dc2626");
     setFormSchedule("now");
     setFormScheduledAt("");
     setFormAudience("all");
@@ -197,7 +207,6 @@ export default function AdminNotificacoes() {
       payload.created_by = user?.id || null;
       ({ error } = await supabase.from("admin_notifications").insert(payload));
 
-      // If sending now, also create notifications for users
       if (status === "sent") {
         if (isGlobal) {
           await supabase.from("notifications").insert({
@@ -258,7 +267,6 @@ export default function AdminNotificacoes() {
       setFormSchedule("now");
     }
 
-    // Load audience
     if (n.target_user_ids && n.target_user_ids.length > 0) {
       setFormAudience("specific");
       const { data } = await supabase
@@ -301,7 +309,6 @@ export default function AdminNotificacoes() {
       .update({ status: "sent", is_active: true })
       .eq("id", n.id);
 
-    // Push to user notifications (targeted or global)
     if (n.target_user_ids && n.target_user_ids.length > 0) {
       const notifs = n.target_user_ids.map(uid => ({
         title: n.title,
@@ -346,518 +353,367 @@ export default function AdminNotificacoes() {
     };
     const config = statusConfig[status] || statusConfig.draft;
     return (
-      <span className="bg-black/60 backdrop-blur-md border border-white/10 px-3 py-1 rounded-full text-[11px] font-medium text-white flex items-center gap-1.5">
-        <span className={`w-2 h-2 rounded-full ${config.color} ${status !== "draft" ? "shadow-[0_0_8px_rgba(34,197,94,0.6)]" : ""}`} />
+      <span className="bg-black/60 backdrop-blur-md border border-white/10 px-2 py-0.5 rounded-full text-[10px] font-medium text-white flex items-center gap-1">
+        <span className={`w-1.5 h-1.5 rounded-full ${config.color}`} />
         {config.label}
       </span>
     );
   };
 
+  const inputCls = "bg-[rgba(20,20,20,0.6)] border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/30 focus:border-primary focus:ring-primary/20 h-9";
+
   return (
-    <div className="flex flex-col gap-8 py-6">
-      <header className="flex flex-col gap-2">
-        <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-white">
-          Gerenciamento de Notificações
-        </h1>
-        <p className="text-white/60 text-lg font-light max-w-2xl">
-          Crie, agende e monitore alertas e pop-ups para os usuários da plataforma.
-        </p>
+    <div className="flex flex-col gap-4 py-4">
+      <header>
+        <h1 className="text-2xl font-black tracking-tight text-white">Notificações</h1>
+        <p className="text-white/50 text-sm">Crie, agende e monitore alertas e pop-ups.</p>
       </header>
 
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
-        {/* Live Preview */}
-        <div className="xl:col-span-4 w-full order-first xl:order-none">
-          <div className="sticky top-8 flex flex-col gap-4">
-            <div className="flex items-center gap-2 text-sm font-medium text-white/60">
-              <Eye className="w-4 h-4" />
-              Pré-visualização em tempo real
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-black/40 p-6 flex items-center justify-center min-h-[340px]">
-              <div className="w-full max-w-sm bg-card border border-border rounded-2xl shadow-2xl overflow-hidden">
-                {formImageUrl && (
-                  <div className="w-full h-36 overflow-hidden bg-muted">
-                    <img
-                      src={formImageUrl}
-                      alt="Preview"
-                      className="w-full h-full object-cover"
-                      onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }}
-                    />
-                  </div>
-                )}
-                <div className="p-5 space-y-3">
-                  <div className="flex items-start gap-3">
-                    <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                      <span className="text-base">
-                        {formType === "popup" ? "🎉" : "🔔"}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-base font-bold text-foreground leading-tight">
-                        {formTitle || "Título da notificação"}
-                      </h3>
-                    </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {formMessage || "Mensagem da notificação aparecerá aqui..."}
-                  </p>
-                  <div className="flex items-center gap-3 pt-2">
-                    <button className="flex-1 h-9 rounded-lg border border-border text-xs font-medium text-muted-foreground cursor-default">
-                      Fechar
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+        {/* Left: Form + Preview stacked */}
+        <div className="lg:col-span-5 xl:col-span-4 flex flex-col gap-4 sticky top-4">
+          {/* Preview */}
+          <div className="rounded-xl border border-white/10 bg-black/40 p-4">
+            <p className="text-[11px] font-medium text-white/40 mb-3 uppercase tracking-wider">Preview</p>
+            <div className="w-full max-w-xs mx-auto bg-card border border-border rounded-xl shadow-xl overflow-hidden">
+              {formImageUrl && (
+                <div className="w-full h-28 overflow-hidden bg-muted">
+                  <img
+                    src={formImageUrl}
+                    alt="Preview"
+                    className="w-full h-full object-cover"
+                    onError={(e) => { (e.target as HTMLImageElement).parentElement!.style.display = 'none'; }}
+                  />
+                </div>
+              )}
+              <div className="p-4 space-y-2">
+                <h3 className="text-sm font-bold text-foreground leading-tight">
+                  {formTitle || "Título da notificação"}
+                </h3>
+                <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">
+                  {formMessage || "Mensagem da notificação..."}
+                </p>
+                <div className="flex items-center gap-2 pt-1">
+                  <button className="flex-1 h-8 rounded-lg border border-border text-[11px] font-medium text-muted-foreground cursor-default">
+                    Fechar
+                  </button>
+                  {(formLink || formCtaText) && (
+                    <button
+                      className="flex-1 h-8 rounded-lg text-white text-[11px] font-bold cursor-default"
+                      style={{ backgroundColor: formCtaColor }}
+                    >
+                      {formCtaText || "Ver mais"}
                     </button>
-                    {(formLink || formCtaText) && (
-                      <button className="flex-1 h-9 rounded-lg bg-primary text-primary-foreground text-xs font-bold cursor-default flex items-center justify-center gap-1.5">
-                        <LinkIcon className="size-3.5" />
-                        {formCtaText || "Ver mais"}
-                      </button>
-                    )}
-                  </div>
+                  )}
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Form Panel */}
-        <div className="xl:col-span-4 w-full order-last xl:order-none">
-          <div className="rounded-2xl p-6 md:p-8 flex flex-col gap-6 sticky top-8">
-            <div className="flex items-center justify-between border-b border-white/10 pb-4">
-              <div className="flex items-center gap-3">
-                <BellRing className="w-5 h-5 text-primary" />
-                <h2 className="text-xl font-bold tracking-tight">
-                  {editingId ? "Editar Notificação" : "Nova Notificação"}
-                </h2>
-              </div>
+          {/* Form */}
+          <div className="rounded-xl border border-white/10 bg-[rgba(20,20,20,0.4)] p-4 flex flex-col gap-3">
+            <div className="flex items-center justify-between pb-2 border-b border-white/10">
+              <h2 className="text-sm font-bold">{editingId ? "Editar" : "Nova Notificação"}</h2>
               {editingId && (
-                <button onClick={resetForm} className="p-1.5 rounded-lg hover:bg-white/10 text-white/50 hover:text-white transition-colors">
-                  <X className="w-4 h-4" />
+                <button onClick={resetForm} className="p-1 rounded hover:bg-white/10 text-white/50">
+                  <X className="w-3.5 h-3.5" />
                 </button>
               )}
             </div>
 
-            <div className="flex flex-col gap-5">
-              {/* Type */}
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-white/80">Tipo de Notificação</label>
-                <div className="grid grid-cols-2 gap-2 p-1 bg-black/40 rounded-xl">
-                  <button
-                    type="button"
-                    onClick={() => setFormType("push")}
-                    className={`flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                      formType === "push" ? "bg-primary text-white" : "text-white/60 hover:text-white/80"
-                    }`}
-                  >
-                    <Bell className="w-4 h-4" /> Push
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setFormType("popup")}
-                    className={`flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                      formType === "popup" ? "bg-primary text-white" : "text-white/60 hover:text-white/80"
-                    }`}
-                  >
-                    <Monitor className="w-4 h-4" /> Pop-up
-                  </button>
-                </div>
-              </div>
+            {/* Type */}
+            <div className="grid grid-cols-2 gap-1.5 p-1 bg-black/40 rounded-lg">
+              <button
+                type="button"
+                onClick={() => setFormType("push")}
+                className={`flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-medium transition-all ${
+                  formType === "push" ? "bg-primary text-white" : "text-white/60 hover:text-white/80"
+                }`}
+              >
+                <Bell className="w-3.5 h-3.5" /> Push
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormType("popup")}
+                className={`flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-medium transition-all ${
+                  formType === "popup" ? "bg-primary text-white" : "text-white/60 hover:text-white/80"
+                }`}
+              >
+                <Monitor className="w-3.5 h-3.5" /> Pop-up
+              </button>
+            </div>
 
-              {/* Title */}
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-white/80">Título</label>
-                <Input
-                  className="bg-[rgba(20,20,20,0.6)] border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:border-primary focus:ring-primary/20"
-                  placeholder="Ex: Estreia da Temporada 2"
-                  value={formTitle}
-                  onChange={(e) => setFormTitle(e.target.value)}
+            {/* Title */}
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-white/70">Título</label>
+              <Input className={inputCls} placeholder="Ex: Estreia da Temporada 2" value={formTitle} onChange={(e) => setFormTitle(e.target.value)} />
+            </div>
+
+            {/* Message */}
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-white/70">Mensagem</label>
+              <Textarea
+                className="bg-[rgba(20,20,20,0.6)] border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-white/30 resize-none focus:border-primary focus:ring-primary/20 min-h-[60px]"
+                placeholder="Corpo da notificação..."
+                rows={2}
+                value={formMessage}
+                onChange={(e) => setFormMessage(e.target.value)}
+              />
+            </div>
+
+            {/* Image URL */}
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-white/70">Imagem (URL)</label>
+              <div className="flex gap-1.5">
+                <Input className={`${inputCls} flex-1`} placeholder="https://..." type="url" value={formImageUrl} onChange={(e) => setFormImageUrl(e.target.value)} />
+                <input type="file" accept="image/*" className="hidden" id="notif-image-upload"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const validation = await validateImageFile(file, 5);
+                    if (!validation.valid) { toast.error(validation.error || 'Arquivo inválido'); return; }
+                    setUploading(true);
+                    const ext = file.name.split('.').pop();
+                    const path = `notifications/${Date.now()}.${ext}`;
+                    const { error } = await supabase.storage.from('banners').upload(path, file);
+                    if (error) { toast.error('Erro ao enviar imagem'); setUploading(false); return; }
+                    const { data: urlData } = supabase.storage.from('banners').getPublicUrl(path);
+                    setFormImageUrl(urlData.publicUrl);
+                    toast.success('Imagem enviada!');
+                    setUploading(false);
+                    e.target.value = '';
+                  }}
                 />
+                <Button type="button" variant="outline" className="w-9 h-9 p-0 bg-[rgba(20,20,20,0.6)] border-white/10 rounded-lg hover:bg-white/10" disabled={uploading}
+                  onClick={() => document.getElementById('notif-image-upload')?.click()}>
+                  {uploading ? <Loader2 className="w-4 h-4 animate-spin text-white/70" /> : <Image className="w-4 h-4 text-white/70" />}
+                </Button>
               </div>
+            </div>
 
-              {/* Message */}
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-white/80">Mensagem / Conteúdo</label>
-                <Textarea
-                  className="bg-[rgba(20,20,20,0.6)] border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 resize-none focus:border-primary focus:ring-primary/20"
-                  placeholder="Digite o corpo da notificação..."
-                  rows={4}
-                  value={formMessage}
-                  onChange={(e) => setFormMessage(e.target.value)}
-                />
+            {/* Link + CTA in row */}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium text-white/70">Link de Destino</label>
+                <Input className={inputCls} placeholder="/pagina" value={formLink} onChange={(e) => setFormLink(e.target.value)} />
               </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium text-white/70">Texto do Botão</label>
+                <Input className={inputCls} placeholder="Ver mais" value={formCtaText} onChange={(e) => setFormCtaText(e.target.value)} />
+              </div>
+            </div>
 
-              {/* Image URL */}
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-white/80">Imagem ou Vídeo (URL)</label>
-                <div className="flex gap-2">
-                  <Input
-                    className="bg-[rgba(20,20,20,0.6)] border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 flex-1 focus:border-primary focus:ring-primary/20"
-                    placeholder="https://..."
-                    type="url"
-                    value={formImageUrl}
-                    onChange={(e) => setFormImageUrl(e.target.value)}
+            {/* Button Color */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium text-white/70 flex items-center gap-1.5">
+                <Palette className="w-3 h-3" /> Cor do Botão
+              </label>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {BUTTON_COLORS.map(c => (
+                  <button
+                    key={c.value}
+                    type="button"
+                    onClick={() => setFormCtaColor(c.value)}
+                    className={`w-6 h-6 rounded-full border-2 transition-all ${formCtaColor === c.value ? "border-white scale-110" : "border-transparent opacity-70 hover:opacity-100"}`}
+                    style={{ backgroundColor: c.value }}
+                    title={c.label}
                   />
+                ))}
+                <div className="relative ml-1">
                   <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    id="notif-image-upload"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-                      const validation = await validateImageFile(file, 5);
-                      if (!validation.valid) {
-                        toast.error(validation.error || 'Arquivo inválido');
-                        return;
-                      }
-                      setUploading(true);
-                      const ext = file.name.split('.').pop();
-                      const path = `notifications/${Date.now()}.${ext}`;
-                      const { error } = await supabase.storage.from('banners').upload(path, file);
-                      if (error) {
-                        toast.error('Erro ao enviar imagem');
-                        setUploading(false);
-                        return;
-                      }
-                      const { data: urlData } = supabase.storage.from('banners').getPublicUrl(path);
-                      setFormImageUrl(urlData.publicUrl);
-                      toast.success('Imagem enviada!');
-                      setUploading(false);
-                      e.target.value = '';
-                    }}
+                    type="color"
+                    value={formCtaColor}
+                    onChange={(e) => setFormCtaColor(e.target.value)}
+                    className="w-6 h-6 rounded-full cursor-pointer border-0 p-0 bg-transparent"
+                    title="Cor personalizada"
                   />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="w-12 h-auto bg-[rgba(20,20,20,0.6)] border-white/10 rounded-xl hover:bg-white/10"
-                    disabled={uploading}
-                    onClick={() => document.getElementById('notif-image-upload')?.click()}
-                  >
-                    {uploading ? <Loader2 className="w-5 h-5 text-white/70 animate-spin" /> : <Image className="w-5 h-5 text-white/70" />}
-                  </Button>
                 </div>
               </div>
+            </div>
 
-              {/* Link */}
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-white/80">Link de Destino</label>
-                <Input
-                  className="bg-[rgba(20,20,20,0.6)] border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:border-primary focus:ring-primary/20"
-                  placeholder="/series/dark-matter"
-                  value={formLink}
-                  onChange={(e) => setFormLink(e.target.value)}
-                />
-              </div>
-
-              {/* CTA Text */}
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-white/80">Texto do Botão de Ação</label>
-                <Input
-                  className="bg-[rgba(20,20,20,0.6)] border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-white/30 focus:border-primary focus:ring-primary/20"
-                  placeholder="Ver mais (padrão)"
-                  value={formCtaText}
-                  onChange={(e) => setFormCtaText(e.target.value)}
-                />
-                <p className="text-[11px] text-white/40">Personaliza o texto do botão. Deixe vazio para "Ver mais"</p>
-              </div>
-
-              {/* Schedule */}
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-white/80">Agendamento</label>
+            {/* Schedule + Audience in row */}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium text-white/70">Agendamento</label>
                 <Select value={formSchedule} onValueChange={setFormSchedule}>
-                  <SelectTrigger className="bg-[rgba(20,20,20,0.6)] border-white/10 rounded-xl px-4 py-3 text-sm text-white">
+                  <SelectTrigger className="bg-[rgba(20,20,20,0.6)] border-white/10 rounded-lg px-3 h-9 text-xs text-white">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-[#1a1a1a] border-white/10">
                     <SelectItem value="now">Enviar Agora</SelectItem>
-                    <SelectItem value="schedule">Agendar para depois</SelectItem>
-                    <SelectItem value="draft">Salvar como Rascunho</SelectItem>
+                    <SelectItem value="schedule">Agendar</SelectItem>
+                    <SelectItem value="draft">Rascunho</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-
-              {formSchedule === "schedule" && (
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-white/80">Data e Hora</label>
-                  <Input
-                    type="datetime-local"
-                    className="bg-[rgba(20,20,20,0.6)] border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:border-primary focus:ring-primary/20"
-                    value={formScheduledAt}
-                    onChange={(e) => setFormScheduledAt(e.target.value)}
-                  />
-                </div>
-              )}
-
-              {/* Audience */}
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-white/80">Público-Alvo</label>
-                <div className="grid grid-cols-2 gap-2 p-1 bg-black/40 rounded-xl">
-                  <button
-                    type="button"
-                    onClick={() => setFormAudience("all")}
-                    className={`flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                      formAudience === "all" ? "bg-primary text-white" : "text-white/60 hover:text-white/80"
-                    }`}
-                  >
-                    <Globe className="w-4 h-4" /> Todos
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium text-white/70">Público</label>
+                <div className="grid grid-cols-2 gap-1 p-0.5 bg-black/40 rounded-lg h-9">
+                  <button type="button" onClick={() => setFormAudience("all")}
+                    className={`flex items-center justify-center gap-1 rounded-md text-[10px] font-medium transition-all ${formAudience === "all" ? "bg-primary text-white" : "text-white/60"}`}>
+                    <Globe className="w-3 h-3" /> Todos
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setFormAudience("specific")}
-                    className={`flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                      formAudience === "specific" ? "bg-primary text-white" : "text-white/60 hover:text-white/80"
-                    }`}
-                  >
-                    <Users className="w-4 h-4" /> Específicos
+                  <button type="button" onClick={() => setFormAudience("specific")}
+                    className={`flex items-center justify-center gap-1 rounded-md text-[10px] font-medium transition-all ${formAudience === "specific" ? "bg-primary text-white" : "text-white/60"}`}>
+                    <Users className="w-3 h-3" /> Esp.
                   </button>
                 </div>
               </div>
-
-              {formAudience === "specific" && (
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-white/80">Buscar Usuários</label>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/40" />
-                    <Input
-                      className="bg-[rgba(20,20,20,0.6)] border-white/10 rounded-xl pl-9 pr-4 py-3 text-sm text-white placeholder-white/30 focus:border-primary focus:ring-primary/20"
-                      placeholder="Digite o nome do cliente..."
-                      value={userSearch}
-                      onChange={(e) => handleUserSearch(e.target.value)}
-                    />
-                    {searchingUsers && (
-                      <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 animate-spin text-white/40" />
-                    )}
-                  </div>
-
-                  {/* Search results dropdown */}
-                  {userResults.length > 0 && (
-                    <div className="bg-[rgba(20,20,20,0.9)] border border-white/10 rounded-xl overflow-hidden max-h-40 overflow-y-auto">
-                      {userResults.map(u => (
-                        <button
-                          key={u.user_id}
-                          type="button"
-                          onClick={() => addUser(u)}
-                          className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-white/80 hover:bg-white/5 transition-colors text-left"
-                        >
-                          <UserPlus className="w-3.5 h-3.5 text-primary shrink-0" />
-                          <span className="truncate">{u.full_name || "Sem nome"}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Selected users */}
-                  {selectedUsers.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      {selectedUsers.map(u => (
-                        <span
-                          key={u.user_id}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/15 text-primary text-xs font-medium"
-                        >
-                          {u.full_name || "Sem nome"}
-                          <button
-                            type="button"
-                            onClick={() => removeUser(u.user_id)}
-                            className="hover:text-white transition-colors"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  {formAudience === "specific" && selectedUsers.length === 0 && (
-                    <p className="text-xs text-white/30 italic">Nenhum usuário selecionado</p>
-                  )}
-                </div>
-              )}
-
-              {/* Submit */}
-              <Button
-                type="button"
-                onClick={handleSubmit}
-                disabled={saving}
-                className="mt-4 w-full bg-primary hover:bg-primary/90 text-white font-bold py-3.5 px-6 rounded-xl shadow-lg shadow-primary/20 transition-all transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2"
-              >
-                {saving ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Send className="w-4 h-4" />
-                )}
-                {editingId ? "Salvar Alterações" : "Criar Notificação"}
-              </Button>
             </div>
+
+            {formSchedule === "schedule" && (
+              <Input type="datetime-local" className={inputCls} value={formScheduledAt} onChange={(e) => setFormScheduledAt(e.target.value)} />
+            )}
+
+            {formAudience === "specific" && (
+              <div className="flex flex-col gap-1.5">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-white/40" />
+                  <Input className={`${inputCls} pl-7`} placeholder="Buscar usuário..." value={userSearch} onChange={(e) => handleUserSearch(e.target.value)} />
+                  {searchingUsers && <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3 h-3 animate-spin text-white/40" />}
+                </div>
+                {userResults.length > 0 && (
+                  <div className="bg-[rgba(20,20,20,0.9)] border border-white/10 rounded-lg overflow-hidden max-h-32 overflow-y-auto">
+                    {userResults.map(u => (
+                      <button key={u.user_id} type="button" onClick={() => addUser(u)}
+                        className="w-full flex items-center gap-2 px-2.5 py-1.5 text-xs text-white/80 hover:bg-white/5 text-left">
+                        <UserPlus className="w-3 h-3 text-primary shrink-0" />
+                        <span className="truncate">{u.full_name || "Sem nome"}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {selectedUsers.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {selectedUsers.map(u => (
+                      <span key={u.user_id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary/15 text-primary text-[10px] font-medium">
+                        {u.full_name || "Sem nome"}
+                        <button type="button" onClick={() => removeUser(u.user_id)} className="hover:text-white"><X className="w-2.5 h-2.5" /></button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {selectedUsers.length === 0 && <p className="text-[10px] text-white/30 italic">Nenhum usuário selecionado</p>}
+              </div>
+            )}
+
+            <Button type="button" onClick={handleSubmit} disabled={saving}
+              className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-2 rounded-lg text-sm flex items-center justify-center gap-2 mt-1">
+              {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+              {editingId ? "Salvar" : "Criar Notificação"}
+            </Button>
           </div>
         </div>
 
-        {/* Notifications List */}
-        <div className="xl:col-span-4 w-full flex flex-col gap-6">
+        {/* Right: List */}
+        <div className="lg:col-span-7 xl:col-span-8 flex flex-col gap-3">
           {/* Filters */}
-          <div className="bg-[rgba(30,30,30,0.6)] backdrop-blur-xl border border-white/[0.08] rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="relative flex-1 w-full">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
-              <Input
-                className="bg-[rgba(20,20,20,0.6)] border-white/10 w-full pl-10 pr-4 py-2.5 rounded-lg text-sm text-white placeholder-white/30 focus:border-primary/50"
-                placeholder="Buscar por título..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="relative flex-1 min-w-[180px]">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/40" />
+              <Input className={`${inputCls} pl-8 w-full`} placeholder="Buscar..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
             </div>
-            <div className="flex items-center gap-3 w-full md:w-auto">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="bg-[rgba(20,20,20,0.6)] border-white/10 rounded-lg px-3 py-2.5 text-sm text-white/80 min-w-[140px]">
-                  <SelectValue placeholder="Todos Status" />
-                </SelectTrigger>
-                <SelectContent className="bg-[#1a1a1a] border-white/10">
-                  <SelectItem value="all">Todos Status</SelectItem>
-                  <SelectItem value="active">Ativa</SelectItem>
-                  <SelectItem value="scheduled">Agendada</SelectItem>
-                  <SelectItem value="sent">Enviada</SelectItem>
-                  <SelectItem value="draft">Rascunho</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="bg-[rgba(20,20,20,0.6)] border-white/10 rounded-lg px-3 py-2.5 text-sm text-white/80 min-w-[140px]">
-                  <SelectValue placeholder="Todos Tipos" />
-                </SelectTrigger>
-                <SelectContent className="bg-[#1a1a1a] border-white/10">
-                  <SelectItem value="all">Todos Tipos</SelectItem>
-                  <SelectItem value="push">Push</SelectItem>
-                  <SelectItem value="popup">Pop-up</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="bg-[rgba(20,20,20,0.6)] border-white/10 rounded-lg px-2.5 h-9 text-xs text-white/80 w-[120px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent className="bg-[#1a1a1a] border-white/10">
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="sent">Enviada</SelectItem>
+                <SelectItem value="scheduled">Agendada</SelectItem>
+                <SelectItem value="draft">Rascunho</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger className="bg-[rgba(20,20,20,0.6)] border-white/10 rounded-lg px-2.5 h-9 text-xs text-white/80 w-[120px]">
+                <SelectValue placeholder="Tipo" />
+              </SelectTrigger>
+              <SelectContent className="bg-[#1a1a1a] border-white/10">
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="push">Push</SelectItem>
+                <SelectItem value="popup">Pop-up</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Cards */}
           {loading ? (
-            <div className="flex items-center justify-center py-16">
-              <Loader2 className="w-6 h-6 animate-spin text-white/40" />
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-5 h-5 animate-spin text-white/40" />
             </div>
           ) : filteredNotifications.length === 0 ? (
-            <div className="text-center py-16 text-white/40">
-              <Megaphone className="w-12 h-12 mx-auto mb-4 opacity-30" />
-              <p className="text-lg font-medium">Nenhuma notificação encontrada</p>
-              <p className="text-sm mt-1">Crie uma nova notificação usando o formulário ao lado.</p>
+            <div className="text-center py-12 text-white/40">
+              <Megaphone className="w-10 h-10 mx-auto mb-3 opacity-30" />
+              <p className="text-sm font-medium">Nenhuma notificação</p>
+              <p className="text-xs mt-1">Crie uma usando o formulário ao lado.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
               {filteredNotifications.map((n) => (
-                <div
-                  key={n.id}
-                  className="bg-[#141414] border border-white/[0.05] rounded-2xl overflow-hidden flex flex-col group h-full hover:border-primary/30 hover:-translate-y-0.5 hover:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.5)] transition-all duration-300"
-                >
+                <div key={n.id}
+                  className="bg-[#141414] border border-white/[0.05] rounded-xl overflow-hidden flex flex-col group hover:border-primary/30 transition-all duration-200">
                   {/* Card Header */}
-                  <div className="h-40 bg-gradient-to-br from-gray-900 to-black relative">
+                  <div className="h-24 bg-gradient-to-br from-gray-900 to-black relative">
                     {n.image_url ? (
-                      <div
-                        className="absolute inset-0 bg-cover bg-center opacity-40 group-hover:opacity-60 transition-all duration-500"
-                        style={{ backgroundImage: `url(${n.image_url})` }}
-                      />
+                      <div className="absolute inset-0 bg-cover bg-center opacity-40 group-hover:opacity-60 transition-all" style={{ backgroundImage: `url(${n.image_url})` }} />
                     ) : (
-                      <>
-                        <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 to-transparent opacity-50 group-hover:opacity-70 transition-all" />
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          {n.status === "active" ? (
-                            <Settings className="w-16 h-16 text-white/5" />
-                          ) : (
-                            <Megaphone className="w-16 h-16 text-white/5" />
-                          )}
-                        </div>
-                      </>
+                      <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 to-transparent opacity-50" />
                     )}
-
-                    <div className="absolute top-4 left-4 z-10">
-                      {n.type === "push" ? (
-                        <span className="bg-primary text-white px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-[0_2px_10px_rgba(249,6,6,0.3)]">
-                          <Bell className="w-3 h-3" /> Push
-                        </span>
-                      ) : (
-                        <span className="bg-white/90 text-black px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5">
-                          <Monitor className="w-3 h-3" /> Pop-up
-                        </span>
-                      )}
+                    <div className="absolute top-2 left-2 z-10">
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider flex items-center gap-1 ${
+                        n.type === "push" ? "bg-primary text-white" : "bg-white/90 text-black"
+                      }`}>
+                        {n.type === "push" ? <><Bell className="w-2.5 h-2.5" /> Push</> : <><Monitor className="w-2.5 h-2.5" /> Pop-up</>}
+                      </span>
                     </div>
-
-                    <div className="absolute top-4 right-4 z-10">
-                      {getStatusBadge(n.status)}
-                    </div>
+                    <div className="absolute top-2 right-2 z-10">{getStatusBadge(n.status)}</div>
                   </div>
 
-                  {/* Card Content */}
-                  <div className="p-5 flex flex-col gap-4 flex-1">
+                  <div className="p-3 flex flex-col gap-2 flex-1">
                     <div>
-                      <h3 className="text-lg font-bold text-white mb-1.5 leading-tight">
-                        {n.title}
-                      </h3>
-                      <p className="text-sm text-white/50 line-clamp-2 leading-relaxed">
-                        {n.message}
-                      </p>
+                      <h3 className="text-sm font-bold text-white leading-tight line-clamp-1">{n.title}</h3>
+                      <p className="text-xs text-white/50 line-clamp-2 mt-0.5">{n.message}</p>
                     </div>
 
-                    <div className="mt-auto flex flex-col gap-4">
+                    <div className="mt-auto flex flex-col gap-1.5">
                       {n.link && (
-                        <div className="bg-white/[0.03] border border-white/5 rounded-lg p-2.5 flex items-center gap-3">
-                          <LinkIcon className="w-4 h-4 text-white/20" />
-                          <span className="text-xs font-mono text-white/40 truncate">
-                            {n.link}
-                          </span>
+                        <div className="bg-white/[0.03] border border-white/5 rounded-md p-1.5 flex items-center gap-2">
+                          <LinkIcon className="w-3 h-3 text-white/20 shrink-0" />
+                          <span className="text-[10px] font-mono text-white/40 truncate">{n.link}</span>
                         </div>
                       )}
 
                       {n.scheduled_at && n.status === "scheduled" && (
-                        <div className="flex items-center gap-2 text-yellow-500/80 text-xs font-medium bg-yellow-500/5 px-3 py-2 rounded-lg border border-yellow-500/10">
-                          <Clock className="w-3.5 h-3.5" />
-                          Envia em: {format(new Date(n.scheduled_at), "dd/MM 'às' HH:mm")}
+                        <div className="flex items-center gap-1.5 text-yellow-500/80 text-[10px] font-medium bg-yellow-500/5 px-2 py-1 rounded-md border border-yellow-500/10">
+                          <Clock className="w-3 h-3" />
+                          {format(new Date(n.scheduled_at), "dd/MM 'às' HH:mm")}
                         </div>
                       )}
 
-                      {/* Audience indicator */}
-                      {n.target_user_ids && n.target_user_ids.length > 0 ? (
-                        <div className="flex items-center gap-2 text-purple-400/80 text-xs font-medium bg-purple-500/5 px-3 py-2 rounded-lg border border-purple-500/10">
-                          <Users className="w-3.5 h-3.5" />
-                          {n.target_user_ids.length} usuário{n.target_user_ids.length > 1 ? "s" : ""} selecionado{n.target_user_ids.length > 1 ? "s" : ""}
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2 text-blue-400/60 text-xs font-medium px-1">
-                          <Globe className="w-3.5 h-3.5" />
-                          Todos os usuários
-                        </div>
-                      )}
+                      <div className="flex items-center gap-1.5 text-[10px] text-white/40">
+                        {n.target_user_ids && n.target_user_ids.length > 0 ? (
+                          <><Users className="w-3 h-3" /> {n.target_user_ids.length} usuário{n.target_user_ids.length > 1 ? "s" : ""}</>
+                        ) : (
+                          <><Globe className="w-3 h-3" /> Todos</>
+                        )}
+                      </div>
 
-                      <div className="pt-4 border-t border-white/5 flex items-center justify-between">
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => handleEdit(n)}
-                            className="p-2 text-white/40 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
-                            title="Editar"
-                          >
-                            <Edit className="w-4 h-4" />
+                      <div className="pt-2 border-t border-white/5 flex items-center justify-between">
+                        <div className="flex items-center gap-0.5">
+                          <button onClick={() => handleEdit(n)} className="p-1.5 text-white/40 hover:text-white hover:bg-white/5 rounded-md transition-colors" title="Editar">
+                            <Edit className="w-3.5 h-3.5" />
                           </button>
                           {(n.status === "draft" || n.status === "scheduled") && (
-                            <button
-                              onClick={() => handleSendNow(n)}
-                              className="p-2 text-white/40 hover:text-green-400 hover:bg-green-500/10 rounded-lg transition-colors"
-                              title="Enviar Agora"
-                            >
-                              <Send className="w-4 h-4" />
+                            <button onClick={() => handleSendNow(n)} className="p-1.5 text-white/40 hover:text-green-400 hover:bg-green-500/10 rounded-md transition-colors" title="Enviar">
+                              <Send className="w-3.5 h-3.5" />
                             </button>
                           )}
-                          <button
-                            onClick={() => handleDelete(n.id)}
-                            className="p-2 text-white/40 hover:text-primary hover:bg-primary/10 rounded-lg transition-colors"
-                            title="Excluir"
-                          >
-                            <Trash2 className="w-4 h-4" />
+                          <button onClick={() => handleDelete(n.id)} className="p-1.5 text-white/40 hover:text-primary hover:bg-primary/10 rounded-md transition-colors" title="Excluir">
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
-                        <Switch
-                          checked={n.is_active}
-                          onCheckedChange={() => handleToggleActive(n)}
-                          className={
-                            n.status === "scheduled"
-                              ? "data-[state=checked]:bg-yellow-600"
-                              : "data-[state=checked]:bg-primary"
-                          }
-                        />
+                        <Switch checked={n.is_active} onCheckedChange={() => handleToggleActive(n)}
+                          className={`scale-75 ${n.status === "scheduled" ? "data-[state=checked]:bg-yellow-600" : "data-[state=checked]:bg-primary"}`} />
                       </div>
                     </div>
                   </div>
@@ -866,11 +722,8 @@ export default function AdminNotificacoes() {
             </div>
           )}
 
-          {/* Count */}
           {!loading && filteredNotifications.length > 0 && (
-            <div className="text-sm text-white/40 mt-2">
-              Mostrando {filteredNotifications.length} de {notifications.length} notificações
-            </div>
+            <p className="text-[11px] text-white/30 mt-1">{filteredNotifications.length} de {notifications.length}</p>
           )}
         </div>
       </div>
