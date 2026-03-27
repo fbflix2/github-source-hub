@@ -531,5 +531,6 @@ export default function AdminTeamChat() {
         </div>
       </div>
     </div>
+  </div>
   );
 }
