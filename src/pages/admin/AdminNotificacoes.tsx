@@ -322,6 +322,7 @@ export default function AdminNotificacoes() {
         link: n.link || null,
         image_url: n.image_url || null,
         cta_text: n.cta_text || null,
+        cta_color: (n as any).cta_color || null,
       }));
       await supabase.from("notifications").insert(notifs);
     } else {
@@ -333,6 +334,7 @@ export default function AdminNotificacoes() {
         link: n.link || null,
         image_url: n.image_url || null,
         cta_text: n.cta_text || null,
+        cta_color: (n as any).cta_color || null,
       });
     }
 
