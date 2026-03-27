@@ -313,6 +313,11 @@ export default function AdminConfiguracoes() {
                         </Avatar>
                         <div className="flex flex-col">
                           <span className="font-semibold text-white">{member.name}</span>
+                          {member.department && (
+                            <span className="text-[10px] font-medium text-primary/80 bg-primary/10 px-1.5 py-0.5 rounded w-fit mt-0.5">
+                              {member.department}
+                            </span>
+                          )}
                           <span className="text-xs text-gray-500">
                             Desde {formatDate(member.created_at)}
                           </span>
