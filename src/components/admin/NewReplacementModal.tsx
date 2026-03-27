@@ -221,6 +221,18 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
     if (!selectedOrderItem) return;
     setItemName(selectedOrderItem.name);
     setSelectedNewItem(null);
+    setOriginalStockId(null);
+
+    supabase
+      .from("stock_items")
+      .select("id")
+      .eq("order_item_id", selectedOrderItem.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        setOriginalStockId(data?.id ?? null);
+      });
 
     if (selectedOrderItem.product_id) {
       setMatchedProductId(selectedOrderItem.product_id);
@@ -238,11 +250,12 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
 
   const handleSave = async () => {
     if (!selectedClient) { toast.error("Selecione o cliente"); return; }
+    if (!selectedOrderItem) { toast.error("Selecione o item do pedido para vincular a reposição"); return; }
     if (!reason) { toast.error("Informe o motivo"); return; }
     if (!selectedNewItem) { toast.error("Selecione o item de reposição"); return; }
     if (!productName.trim()) { toast.error("Informe o nome do produto"); return; }
-    if ((orderSearch.trim() || orderItems.length > 0) && !selectedOrderItem) {
-      toast.error("Selecione o item do pedido para vincular a reposição");
+    if (originalStockId && selectedNewItem.id === originalStockId) {
+      toast.error("Selecione um item diferente do original para a reposição");
       return;
     }
 
@@ -262,10 +275,8 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
       stock_item_id: originalStockId,
     };
 
-    if (selectedOrderItem) {
-      insertData.order_id = selectedOrderItem.order_id;
-      insertData.order_item_id = selectedOrderItem.id;
-    }
+    insertData.order_id = selectedOrderItem.order_id;
+    insertData.order_item_id = selectedOrderItem.id;
 
     const { error } = await supabase.from("replacements").insert(insertData as any);
     if (error) { toast.error("Erro ao salvar reposição"); console.error(error); setSaving(false); return; }
@@ -279,12 +290,12 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
     // Mark new item as sold
     await supabase.from("stock_items").update({
       status: "vendido",
-      order_item_id: selectedOrderItem?.id || null,
+      order_item_id: selectedOrderItem.id,
       updated_at: new Date().toISOString(),
     }).eq("id", selectedNewItem.id);
 
     // Update delivery_data if order item linked
-    if (selectedOrderItem && newStockFull) {
+    if (newStockFull) {
       const d = (newStockFull.data as Record<string, unknown>) || {};
       const deliveryData: Record<string, unknown> = {
         ...d,
@@ -303,9 +314,11 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
   };
 
   const filteredStock = allStockItems.filter(si =>
-    !stockFilter || si.name.toLowerCase().includes(stockFilter.toLowerCase()) ||
-    (si.identification || "").toLowerCase().includes(stockFilter.toLowerCase()) ||
-    (si.product_name || "").toLowerCase().includes(stockFilter.toLowerCase())
+    si.id !== originalStockId && (
+      !stockFilter || si.name.toLowerCase().includes(stockFilter.toLowerCase()) ||
+      (si.identification || "").toLowerCase().includes(stockFilter.toLowerCase()) ||
+      (si.product_name || "").toLowerCase().includes(stockFilter.toLowerCase())
+    )
   );
 
   const hasProductContext = !!matchedProductId || !!matchedCategoryId;
@@ -324,7 +337,7 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
           {/* Order — moved to top for auto-fill flow */}
           <div className="space-y-2">
             <Label className="text-zinc-400 flex items-center gap-1">
-              <Package className="h-3.5 w-3.5" /> Pedido (opcional)
+              <Package className="h-3.5 w-3.5" /> Pedido *
             </Label>
             {selectedOrderItem ? (
               <div className="flex items-center gap-2 p-2 rounded-lg bg-zinc-800 border border-yellow-600/40">
@@ -335,6 +348,7 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
                 </div>
                 <Button size="sm" variant="ghost" className="h-6 px-2 text-zinc-400" onClick={() => {
                   setSelectedOrderItem(null);
+                  setOriginalStockId(null);
                   setMatchedProductId(null);
                   setMatchedCategoryId(null);
                 }}>✕</Button>
