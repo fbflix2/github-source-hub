@@ -599,6 +599,14 @@ export default function AdminAquecimento() {
     return [...available, ...doneToday];
   }, [visibleProfiles, tasks, operationMode, currentQueueTrack]);
 
+  // Auto-deselect profile that was already worked today (execute mode)
+  useEffect(() => {
+    if (selectedProfileId && operationMode === "execute" && wasWorkedToday(selectedProfileId)) {
+      // Profile was completed for today — clear selection so it doesn't keep showing
+      setSelectedProfileId(null);
+    }
+  }, [selectedProfileId, operationMode, tasks]);
+
   // Auto-select first profile in queue when none is selected (execute mode)
   useEffect(() => {
     if (!selectedProfileId && operationMode === "execute" && sortedActiveQueue.length > 0) {
