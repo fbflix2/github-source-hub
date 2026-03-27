@@ -143,34 +143,22 @@ export function NotificationPopup() {
         )}
 
         {/* Content */}
-        <div className="p-6 space-y-3">
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-              <span className="text-lg">
-                {current.type === "promo" ? "🎉" : current.type === "warning" ? "⚠️" : current.type === "success" ? "✅" : "🔔"}
-              </span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="text-lg font-bold text-foreground leading-tight">{current.title}</h3>
-            </div>
-          </div>
-
+        <div className="p-5 space-y-3">
+          <h3 className="text-base font-bold text-foreground leading-tight">{current.title}</h3>
           <p className="text-sm text-muted-foreground leading-relaxed">{current.message}</p>
 
-          {/* Actions */}
           <div className="flex items-center gap-3 pt-2">
             <button
               onClick={dismiss}
-              className="flex-1 h-10 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:bg-muted transition-colors"
+              className="flex-1 h-9 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:bg-muted transition-colors"
             >
               Fechar
             </button>
             {current.link && (
               <button
                 onClick={handleAction}
-                className="flex-1 h-10 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-bold transition-colors flex items-center justify-center gap-2"
+                className="flex-1 h-9 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-bold transition-colors"
               >
-                <ExternalLink className="size-4" />
                 {current.cta_text || "Ver mais"}
               </button>
             )}
