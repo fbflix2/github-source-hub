@@ -487,9 +487,61 @@ export default function AdminAquecimento() {
     return profileTasks.some(t => t.completed && t.completed_at && new Date(t.completed_at).getTime() >= todayStart);
   };
 
+  // Auto-promote profiles that completed 100% of their current track (7→15, 15→30)
+  const promotingRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const NEXT_TRACK: Record<string, string> = { "7_days": "15_days", "15_days": "30_days" };
+    const profilesToPromote = profiles.filter(p => {
+      if (p.status !== "active") return false;
+      if (!NEXT_TRACK[p.track_type]) return false;
+      if (promotingRef.current.has(p.id)) return false;
+      const profileTasks = tasks[p.id];
+      if (!profileTasks || profileTasks.length === 0) return false;
+      return profileTasks.every(t => t.completed);
+    });
+
+    profilesToPromote.forEach(async (prof) => {
+      promotingRef.current.add(prof.id);
+      const nextTrackKey = NEXT_TRACK[prof.track_type];
+      const nextCustomTasks = configTasks[nextTrackKey] || [];
+      const nextTrackDef = TRACKS[nextTrackKey];
+      const tasksToUse = nextCustomTasks.length > 0 ? nextCustomTasks : nextTrackDef.tasks;
+
+      await supabase.from("warming_profiles").update({
+        track_type: nextTrackKey,
+        track_days: tasksToUse.length,
+        current_day: 1,
+        status: "active",
+        updated_at: new Date().toISOString(),
+      }).eq("id", prof.id);
+
+      const taskRows = tasksToUse.map((t, i) => ({
+        profile_id: prof.id,
+        day_number: i + 1,
+        title: t.title,
+        description: t.description,
+      }));
+      await supabase.from("warming_tasks").insert(taskRows);
+
+      toast.success(`🎉 Perfil ${prof.profile_code} avançou automaticamente para ${nextTrackDef.label}!`);
+      promotingRef.current.delete(prof.id);
+      fetchProfiles();
+    });
+  }, [profiles, tasks, configTasks]);
+
+  // Helper: check if profile completed all tasks on current track (pending promotion)
+  const isFullyCompleted = (p: WarmingProfile) => {
+    const NEXT_TRACK: Record<string, string> = { "7_days": "15_days", "15_days": "30_days" };
+    if (!NEXT_TRACK[p.track_type]) return false;
+    const profileTasks = tasks[p.id];
+    if (!profileTasks || profileTasks.length === 0) return false;
+    return profileTasks.every(t => t.completed);
+  };
+
   // Sort active profiles: profiles worked on TODAY are EXCLUDED from the execution queue
   const sortedActiveQueue = useMemo(() => {
-    const activeProfs = visibleProfiles.filter(p => p.status === "active");
+    // Exclude profiles that are 100% on a promotable track (they'll be auto-promoted)
+    const activeProfs = visibleProfiles.filter(p => p.status === "active" && !isFullyCompleted(p));
     
     // Separate: not worked today (available) vs worked today (done for the day)
     const available = activeProfs.filter(p => !wasWorkedToday(p.id));
