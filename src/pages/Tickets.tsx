@@ -10,6 +10,8 @@ import {
   Send,
   Loader2,
   Star,
+  Copy,
+  Check,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -72,6 +74,13 @@ export default function Tickets() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [ratingTicket, setRatingTicket] = useState<TicketData | null>(null);
   const [ratedTicketIds, setRatedTicketIds] = useState<Set<string>>(new Set());
+  const [copiedMsgId, setCopiedMsgId] = useState<string | null>(null);
+
+  const handleCopyMsg = (id: string, content: string) => {
+    navigator.clipboard.writeText(content);
+    setCopiedMsgId(id);
+    setTimeout(() => setCopiedMsgId(null), 1500);
+  };
 
   // Fetch already-rated tickets
   useEffect(() => {
@@ -320,7 +329,7 @@ export default function Tickets() {
                   >
                     <div
                       className={cn(
-                        "max-w-[85%] rounded-2xl px-4 py-3 relative",
+                        "max-w-[85%] rounded-2xl px-4 py-3 relative group/bubble",
                         message.sender === "user"
                           ? "bg-primary text-primary-foreground rounded-br-md"
                           : "bg-muted text-foreground rounded-bl-md"
@@ -329,13 +338,25 @@ export default function Tickets() {
                       {message.sender === "support" && !message.read && (
                         <span className="absolute -left-2 top-3 w-2 h-2 rounded-full bg-primary animate-pulse" />
                       )}
-                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                      <p className={cn(
-                        "text-xs mt-2",
-                        message.sender === "user" ? "text-primary-foreground/70" : "text-muted-foreground"
-                      )}>
-                        {formatDate(message.created_at)}
-                      </p>
+                      <p className="text-sm whitespace-pre-wrap" style={{ wordBreak: "break-word", overflowWrap: "anywhere" }}>{message.content}</p>
+                      <div className="flex items-center justify-between gap-2 mt-2">
+                        <p className={cn(
+                          "text-xs",
+                          message.sender === "user" ? "text-primary-foreground/70" : "text-muted-foreground"
+                        )}>
+                          {formatDate(message.created_at)}
+                        </p>
+                        <button
+                          onClick={() => handleCopyMsg(message.id, message.content)}
+                          className={cn(
+                            "opacity-0 group-hover/bubble:opacity-100 transition-opacity",
+                            message.sender === "user" ? "text-primary-foreground/60 hover:text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                          )}
+                          title="Copiar"
+                        >
+                          {copiedMsgId === message.id ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -350,7 +371,7 @@ export default function Tickets() {
                       placeholder="Digite sua resposta..."
                       value={replyMessage}
                       onChange={(e) => setReplyMessage(e.target.value)}
-                      className="min-h-[80px] bg-background border-border resize-none"
+                      className="min-h-[80px] bg-background border-border resize-none text-foreground"
                       onKeyDown={(e) => {
                         if (e.key === "Enter" && !e.shiftKey) {
                           e.preventDefault();
