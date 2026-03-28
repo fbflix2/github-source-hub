@@ -117,6 +117,7 @@ export default function AdminGestaoBMs() {
   const [protectForm, setProtectForm] = useState({ bmName: "", bmLink: "" });
   const [protecting, setProtecting] = useState(false);
   const [safeBmClients, setSafeBmClients] = useState<Set<string>>(new Set());
+  const [protectedBmTrackingIds, setProtectedBmTrackingIds] = useState<Set<string>>(new Set());
   const fetchItems = async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -142,9 +143,16 @@ export default function AdminGestaoBMs() {
       // Fetch clients who have Safe BM subscriptions (vaults + order purchases)
       const safeBmSet = new Set<string>();
       
-      // Check safe_bm_vaults
-      supabase.from("safe_bm_vaults").select("user_id").then(({ data }) => {
-        if (data) data.forEach(v => safeBmSet.add(v.user_id));
+      // Check safe_bm_vaults - also get bm_tracking_id for cross-reference
+      supabase.from("safe_bm_vaults").select("user_id, bm_tracking_id").then(({ data }) => {
+        const protectedIds = new Set<string>();
+        if (data) {
+          data.forEach((v: any) => {
+            safeBmSet.add(v.user_id);
+            if (v.bm_tracking_id) protectedIds.add(v.bm_tracking_id);
+          });
+        }
+        setProtectedBmTrackingIds(protectedIds);
       });
 
       // Also check order_items for Safe BM product purchases (vault may not have been created)
