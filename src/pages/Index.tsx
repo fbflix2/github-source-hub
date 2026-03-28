@@ -126,7 +126,7 @@ const Index = () => {
           <img
             alt="Digital Network"
             className="w-full h-full object-cover opacity-20 grayscale contrast-125"
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuA6mgEPPp3A8WfZQmpvovGnq8PM9WQg_VkbqFOpX5utcy7JW7eYKsAV9pckAiLW4HXkTuCnkbHEzSZ3XgxxuKvKwpUukxRYguy3lK19izWDcioO08gGeV0zOD1FeiHJuxT3A2T4eviHN7giUTucvUtz0X1X_fv8_p0lyBhXQVoaXqw_kB8a3XkhmnWhIp7aJXlzHp8a8L3FttZWD1Bx6gMZA2n-sMXVQZ-CsESvtzVWY7V9EgAY2K_iL9-Ydu2XDyUc2mCIhqxA_Pc3"
+            src={cfg.hero.backgroundImage}
             width={1920}
             height={1080}
             loading="eager"
@@ -141,18 +141,18 @@ const Index = () => {
           </div>
 
           <h1 className="font-['Space_Grotesk'] text-6xl md:text-8xl font-black tracking-tighter text-white uppercase leading-[0.9] mb-6 lp-reveal" style={{ transitionDelay: "100ms" }}>
-            CONTINGÊNCIA QUE <span className="text-[#ff3131] italic">ESCALA</span>
+            {cfg.hero.title} <span className="text-[#ff3131] italic">{cfg.hero.titleHighlight}</span>
           </h1>
           <p className="font-['Space_Grotesk'] text-lg md:text-2xl text-[#ebbbb4] max-w-3xl mx-auto mb-10 tracking-tight whitespace-nowrap lp-reveal" style={{ transitionDelay: "200ms" }}>
-            Perfis Premium • Proxies Residenciais • BM • Escala real sem banimento
+            {cfg.hero.subtitle}
           </p>
 
           <div className="flex flex-col md:flex-row gap-4 justify-center items-center mb-16 lp-reveal" style={{ transitionDelay: "300ms" }}>
             <button onClick={goAuth} className="bg-[#ff3131] text-white px-10 py-5 font-['Space_Grotesk'] font-bold text-lg uppercase tracking-wider hover:shadow-[0_0_25px_rgba(255,49,49,0.6)] transition-all duration-300">
-              COMPRAR AGORA
+              {cfg.hero.ctaText}
             </button>
             <button onClick={() => document.getElementById("produtos")?.scrollIntoView({ behavior: "smooth" })} className="border-2 border-white/20 text-white px-10 py-5 font-['Space_Grotesk'] font-bold text-lg uppercase tracking-wider hover:bg-white hover:text-black transition-all duration-300">
-              VER PACOTES
+              {cfg.hero.ctaSecondary}
             </button>
           </div>
 
@@ -162,14 +162,14 @@ const Index = () => {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75" />
               <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500" />
             </div>
-            <span className="font-['Space_Grotesk'] font-bold text-[#ff3131] tracking-widest text-sm uppercase">+4.872 contas rodando agora</span>
+            <span className="font-['Space_Grotesk'] font-bold text-[#ff3131] tracking-widest text-sm uppercase">{cfg.hero.liveCounter}</span>
           </div>
 
           {/* Partners */}
           <div className="mt-24 pb-12 lp-reveal" style={{ transitionDelay: "500ms" }}>
             <p className="text-[10px] font-['Space_Grotesk'] font-bold uppercase tracking-[0.4em] text-white/30 text-center mb-10 italic">Parceiros e Clientes que Confiam</p>
             <div className="flex flex-wrap justify-center items-center gap-x-12 gap-y-8 opacity-50 grayscale hover:grayscale-0 transition-all duration-700">
-              {partners.map((p) => (
+              {cfg.partners.map((p) => (
                 <div key={p} className="group cursor-pointer">
                   <span className="font-['Space_Grotesk'] font-bold text-xl md:text-2xl text-white/50 group-hover:text-white group-hover:drop-shadow-[0_0_10px_rgba(255,49,49,0.5)] transition-all duration-300">{p}</span>
                 </div>
@@ -184,15 +184,15 @@ const Index = () => {
         <div className="max-w-7xl mx-auto px-8">
           <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-4 lp-reveal">
             <h2 className="font-['Space_Grotesk'] text-4xl md:text-6xl font-bold tracking-tighter text-white max-w-xl">
-              Sua contingência em <span className="text-[#ff3131]">3 passos</span>
+              {cfg.stepsTitle} <span className="text-[#ff3131]">{cfg.stepsTitleHighlight}</span>
             </h2>
-            <p className="text-[#ebbbb4] font-medium max-w-xs mb-2">Engenharia de alta precisão para afiliados e gestores que buscam o topo.</p>
+            <p className="text-[#ebbbb4] font-medium max-w-xs mb-2">{cfg.stepsSubtitle}</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {steps.map((s, i) => (
-              <div key={s.num} className="group bg-[#0a0a0a] p-10 relative overflow-hidden transition-all duration-500 hover:-translate-y-2 border border-white/5 hover:border-[#ff3131]/20 lp-reveal" style={{ transitionDelay: `${(i + 1) * 100}ms` }}>
-                <div className="absolute top-0 right-0 p-4 text-8xl font-black text-white/5 font-['Space_Grotesk']">{s.num}</div>
+            {cfg.steps.map((s, i) => (
+              <div key={i} className="group bg-[#0a0a0a] p-10 relative overflow-hidden transition-all duration-500 hover:-translate-y-2 border border-white/5 hover:border-[#ff3131]/20 lp-reveal" style={{ transitionDelay: `${(i + 1) * 100}ms` }}>
+                <div className="absolute top-0 right-0 p-4 text-8xl font-black text-white/5 font-['Space_Grotesk']">{String(i + 1).padStart(2, "0")}</div>
                 <span className="material-symbols-outlined text-[#ff3131] text-5xl mb-6 group-hover:scale-110 transition-transform duration-300">{s.icon}</span>
                 <h3 className="font-['Space_Grotesk'] text-2xl font-bold text-white mb-4">{s.title}</h3>
                 <p className="text-[#ebbbb4]">{s.desc}</p>
@@ -206,11 +206,11 @@ const Index = () => {
       <section id="produtos" className="py-24">
         <div className="max-w-7xl mx-auto px-8">
           <h2 className="font-['Space_Grotesk'] text-4xl md:text-5xl font-bold tracking-tighter text-white mb-16 text-center lp-reveal">
-            Escolha sua arma de <span className="text-[#ff3131] italic">contingência</span>
+            {cfg.productsTitle} <span className="text-[#ff3131] italic">{cfg.productsTitleHighlight}</span>
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {products.map((p, i) => (
+            {cfg.products.map((p, i) => (
               <div
                 key={p.title}
                 className={`${p.featured ? "bg-[#ff3131] shadow-[0_0_40px_rgba(255,49,49,0.15)]" : "bg-[#0d0d0d] border border-white/5 hover:border-[#ff3131]/30"} p-8 flex flex-col h-full relative overflow-hidden transition-all duration-300 group lp-reveal`}
@@ -257,10 +257,10 @@ const Index = () => {
           <div className="grid grid-cols-1 md:grid-cols-[1.2fr_0.8fr] gap-16 items-center">
             <div className="lp-reveal">
               <h2 className="font-['Space_Grotesk'] text-4xl md:text-5xl font-bold tracking-tighter text-white mb-8 leading-tight">
-                Por que milhares de usuários escolhem a <span className="text-[#ff3131] italic">FBFLIX</span>
+                {cfg.benefitsTitle} <span className="text-[#ff3131] italic">{cfg.benefitsTitleHighlight}</span>
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-                {benefits.map((b) => (
+                {cfg.benefits.map((b) => (
                   <div key={b.title} className="flex gap-4">
                     <span className="material-symbols-outlined text-[#ff3131] text-3xl shrink-0">{b.icon}</span>
                     <div>
@@ -275,7 +275,7 @@ const Index = () => {
             <div className="relative lp-reveal" style={{ transitionDelay: "200ms" }}>
               <div className="absolute -inset-4 bg-[#ff3131]/10 blur-3xl rounded-full" />
               <div className="relative space-y-4">
-                {testimonials.map((t, i) => (
+                {cfg.testimonials.map((t, i) => (
                   <div key={t.name} className={`bg-[#0d0d0d]/70 backdrop-blur-[24px] p-6 border border-white/5 hover:border-[#ff3131]/30 transition-colors duration-300 ${i === 1 ? "translate-x-4" : ""}`}>
                     <div className="flex items-center gap-4 mb-3">
                       <img alt={t.name} className="w-12 h-12 rounded-full grayscale hover:grayscale-0 transition-all" src={t.img} width={48} height={48} loading="lazy" />
@@ -301,13 +301,19 @@ const Index = () => {
               Simulador de Preço
             </div>
 
-            <h2 className="font-['Space_Grotesk'] text-3xl md:text-4xl font-bold text-white mb-14 text-center">Monte seu pacote e veja o preço na hora</h2>
+            <h2 className="font-['Space_Grotesk'] text-3xl md:text-4xl font-bold text-white mb-14 text-center">{cfg.simulator.title}</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-12">
-              <SliderField label="Quantidade de Perfis" value={profiles} onChange={setProfiles} min={1} max={50} />
-              <SliderField label="Proxies Residenciais" value={proxies} onChange={setProxies} min={0} max={10} />
-              <SliderField label="Quantidade de Páginas" value={pages} onChange={setPages} min={1} max={20} />
-              <SliderField label="Campanhas Bulk BM" value={bm} onChange={setBm} min={0} max={10} />
+              {cfg.simulator.items.map((item) => (
+                <SliderField
+                  key={item.key}
+                  label={item.label}
+                  value={simValues[item.key] || 0}
+                  onChange={(v) => setSimValues((prev) => ({ ...prev, [item.key]: v }))}
+                  min={item.min}
+                  max={item.max}
+                />
+              ))}
             </div>
 
             <div className="mt-16 pt-12 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-10">
