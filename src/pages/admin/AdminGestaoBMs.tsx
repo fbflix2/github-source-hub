@@ -247,6 +247,7 @@ export default function AdminGestaoBMs() {
           client_user_id: protectItem.client_user_id,
           bm_name: protectForm.bmName.trim(),
           bm_link: protectForm.bmLink.trim(),
+          bm_tracking_id: protectItem.id,
         },
       });
 
