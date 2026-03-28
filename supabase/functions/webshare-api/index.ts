@@ -1078,7 +1078,7 @@ Deno.serve(async (req) => {
         .from("subscriptions")
         .select("*")
         .eq("id", maintSubId)
-        .eq("type", "webshare")
+        .in("type", ["webshare", "webshare_rotating", "proxybr"])
         .single();
 
       if (maintSubErr || !maintSub) throw new Error("Assinatura não encontrada");
