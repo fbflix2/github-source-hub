@@ -51,6 +51,7 @@ interface SafeBmVault {
     sold_at: string;
     status: string;
     stock_item_id: string | null;
+    bm_link: string | null;
   } | null;
 }
 
@@ -106,7 +107,7 @@ export default function AdminSafeBM() {
     setLoading(true);
     const { data, error } = await supabase
       .from("safe_bm_vaults" as any)
-      .select("*, bm_tracking:bm_tracking_id(product_name, sale_price, sold_at, status, stock_item_id)")
+      .select("*, bm_tracking:bm_tracking_id(product_name, sale_price, sold_at, status, stock_item_id, bm_link)")
       .order("created_at", { ascending: false });
     if (error) {
       toast.error("Erro ao carregar cofre: " + error.message);
@@ -160,6 +161,7 @@ export default function AdminSafeBM() {
           bm_link: request.bm_link || "https://business.facebook.com",
           status: "active",
           subscription_price: 9.99,
+          bm_tracking_id: request.id,
         });
       if (vaultError) throw vaultError;
 
@@ -662,22 +664,31 @@ export default function AdminSafeBM() {
                               </div>
                             ) : (
                               <div className="flex items-center gap-1.5">
-                                <span
-                                  className="font-medium text-sm text-foreground cursor-pointer hover:text-primary transition-colors"
-                                  onClick={() => { setRenamingId(v.id); setRenameValue(v.bm_name); }}
-                                  title="Clique para renomear"
-                                >
-                                  {v.bm_name}
-                                </span>
-                                <Pencil
-                                  className="size-3 text-muted-foreground hover:text-primary cursor-pointer"
-                                  onClick={() => { setRenamingId(v.id); setRenameValue(v.bm_name); }}
-                                />
-                                {v.bm_link && (
-                                  <a href={v.bm_link} target="_blank" rel="noopener noreferrer" className="text-primary/60 hover:text-primary">
-                                    <ExternalLink className="size-3" />
-                                  </a>
-                                )}
+                                {(() => {
+                                  const displayLink = (v.bm_link && v.bm_link !== "https://business.facebook.com")
+                                    ? v.bm_link
+                                    : v.bm_tracking?.bm_link || v.bm_link;
+                                  return (
+                                    <>
+                                      <span
+                                        className="font-medium text-sm text-foreground cursor-pointer hover:text-primary transition-colors"
+                                        onClick={() => { setRenamingId(v.id); setRenameValue(v.bm_name); }}
+                                        title="Clique para renomear"
+                                      >
+                                        {v.bm_name}
+                                      </span>
+                                      <Pencil
+                                        className="size-3 text-muted-foreground hover:text-primary cursor-pointer"
+                                        onClick={() => { setRenamingId(v.id); setRenameValue(v.bm_name); }}
+                                      />
+                                      {displayLink && (
+                                        <a href={displayLink} target="_blank" rel="noopener noreferrer" className="text-primary/60 hover:text-primary">
+                                          <ExternalLink className="size-3" />
+                                        </a>
+                                      )}
+                                    </>
+                                  );
+                                })()}
                               </div>
                             )}
                           </div>
