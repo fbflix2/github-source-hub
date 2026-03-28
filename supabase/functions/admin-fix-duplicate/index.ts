@@ -331,35 +331,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Default action: delete_user
-    const { delete_user_id } = body;
-    if (!delete_user_id) throw new Error("delete_user_id é obrigatório");
-
-    // 1. Delete profile
-    const { error: delProfile } = await supabaseAdmin
-      .from("profiles")
-      .delete()
-      .eq("user_id", delete_user_id);
-
-    // 2. Delete user_roles
-    const { error: delRoles } = await supabaseAdmin
-      .from("user_roles")
-      .delete()
-      .eq("user_id", delete_user_id);
-
-    // 3. Delete auth user
-    const { error: delUser } = await supabaseAdmin.auth.admin.deleteUser(delete_user_id);
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        profile_deleted: !delProfile,
-        roles_deleted: !delRoles,
-        auth_deleted: !delUser,
-        errors: [delProfile?.message, delRoles?.message, delUser?.message].filter(Boolean),
-      }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
     // Action: fulfill_proxybr - manually contract a ProxyBR proxy for an order item
     if (body.action === "fulfill_proxybr") {
       const { order_item_id, user_id, external_id } = body;
