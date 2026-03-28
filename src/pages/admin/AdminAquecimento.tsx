@@ -788,6 +788,11 @@ export default function AdminAquecimento() {
             const myWeek = profilesWorkedThisWeek.size;
             const myActive = myProfiles.filter(p => p.status === "active").length;
             const myCompleted = myProfiles.filter(p => p.status === "completed").length;
+            // All-time: count profiles that fully completed their track (all tasks done)
+            const myAllTimeCompleted = myProfiles.filter(p => {
+              const pTasks = tasks[p.id] || [];
+              return pTasks.length > 0 && pTasks.every(t => t.completed);
+            }).length;
             let myTotalTime = 0;
             let myTaskCount = 0;
             myProfiles.forEach(p => {
