@@ -664,22 +664,31 @@ export default function AdminSafeBM() {
                               </div>
                             ) : (
                               <div className="flex items-center gap-1.5">
-                                <span
-                                  className="font-medium text-sm text-foreground cursor-pointer hover:text-primary transition-colors"
-                                  onClick={() => { setRenamingId(v.id); setRenameValue(v.bm_name); }}
-                                  title="Clique para renomear"
-                                >
-                                  {v.bm_name}
-                                </span>
-                                <Pencil
-                                  className="size-3 text-muted-foreground hover:text-primary cursor-pointer"
-                                  onClick={() => { setRenamingId(v.id); setRenameValue(v.bm_name); }}
-                                />
-                                {v.bm_link && (
-                                  <a href={v.bm_link} target="_blank" rel="noopener noreferrer" className="text-primary/60 hover:text-primary">
-                                    <ExternalLink className="size-3" />
-                                  </a>
-                                )}
+                                {(() => {
+                                  const displayLink = (v.bm_link && v.bm_link !== "https://business.facebook.com")
+                                    ? v.bm_link
+                                    : v.bm_tracking?.bm_link || v.bm_link;
+                                  return (
+                                    <>
+                                      <span
+                                        className="font-medium text-sm text-foreground cursor-pointer hover:text-primary transition-colors"
+                                        onClick={() => { setRenamingId(v.id); setRenameValue(v.bm_name); }}
+                                        title="Clique para renomear"
+                                      >
+                                        {v.bm_name}
+                                      </span>
+                                      <Pencil
+                                        className="size-3 text-muted-foreground hover:text-primary cursor-pointer"
+                                        onClick={() => { setRenamingId(v.id); setRenameValue(v.bm_name); }}
+                                      />
+                                      {displayLink && (
+                                        <a href={displayLink} target="_blank" rel="noopener noreferrer" className="text-primary/60 hover:text-primary">
+                                          <ExternalLink className="size-3" />
+                                        </a>
+                                      )}
+                                    </>
+                                  );
+                                })()}
                               </div>
                             )}
                           </div>
