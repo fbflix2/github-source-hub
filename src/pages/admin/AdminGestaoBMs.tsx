@@ -91,7 +91,7 @@ function CountdownBadge({ expiresAt, status }: { expiresAt: string; status: stri
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; className: string }> = {
     em_estoque: { label: "Na Loja", className: "bg-purple-500/20 text-purple-400 border-purple-500/30" },
-    active: { label: "Ativo", className: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
+    active: { label: "Vendido", className: "bg-green-500/20 text-green-400 border-green-500/30" },
     notified: { label: "Notificado", className: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
     removed: { label: "Removido", className: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" },
     expired: { label: "Expirado", className: "bg-red-500/20 text-red-400 border-red-500/30" },
