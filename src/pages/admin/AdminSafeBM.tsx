@@ -51,6 +51,7 @@ interface SafeBmVault {
     sold_at: string;
     status: string;
     stock_item_id: string | null;
+    bm_link: string | null;
   } | null;
 }
 
@@ -106,7 +107,7 @@ export default function AdminSafeBM() {
     setLoading(true);
     const { data, error } = await supabase
       .from("safe_bm_vaults" as any)
-      .select("*, bm_tracking:bm_tracking_id(product_name, sale_price, sold_at, status, stock_item_id)")
+      .select("*, bm_tracking:bm_tracking_id(product_name, sale_price, sold_at, status, stock_item_id, bm_link)")
       .order("created_at", { ascending: false });
     if (error) {
       toast.error("Erro ao carregar cofre: " + error.message);
@@ -160,6 +161,7 @@ export default function AdminSafeBM() {
           bm_link: request.bm_link || "https://business.facebook.com",
           status: "active",
           subscription_price: 9.99,
+          bm_tracking_id: request.id,
         });
       if (vaultError) throw vaultError;
 
