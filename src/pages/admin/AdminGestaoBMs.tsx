@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { 
   Search, ExternalLink, Bell, CheckCircle, Clock, AlertTriangle, 
-  ShieldAlert, Plus, Loader2, RefreshCw
+  ShieldAlert, Plus, Loader2, RefreshCw, Shield
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription
