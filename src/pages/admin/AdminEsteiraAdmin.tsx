@@ -74,6 +74,8 @@ export default function AdminEsteiraAdmin() {
   const [resetting, setResetting] = useState(false);
   const [commissionRate, setCommissionRate] = useState("0.25");
   const [savingCommission, setSavingCommission] = useState(false);
+  const [editingProfileId, setEditingProfileId] = useState<string | null>(null);
+  const [editingCode, setEditingCode] = useState("");
 
   const defaultConfigTasks: Record<string, { title: string; description: string }[]> = {
     "7_days": [
@@ -608,7 +610,51 @@ export default function AdminEsteiraAdmin() {
                         className={`text-base ${p.status === "completed" ? "text-emerald-500" : p.status === "blocked" ? "text-rose-500" : "text-orange-400"}`}
                       />
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{p.profile_code}</p>
+                        {editingProfileId === p.id ? (
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              autoFocus
+                              value={editingCode}
+                              onChange={(e) => setEditingCode(e.target.value)}
+                              onKeyDown={async (e) => {
+                                if (e.key === "Enter") {
+                                  if (!editingCode.trim()) return;
+                                  await supabase.from("warming_profiles").update({ profile_code: editingCode.trim() }).eq("id", p.id);
+                                  toast.success("Código atualizado!");
+                                  setEditingProfileId(null);
+                                  fetchProfiles();
+                                }
+                                if (e.key === "Escape") setEditingProfileId(null);
+                              }}
+                              className="w-24 text-sm font-bold bg-slate-100 dark:bg-white/10 border border-slate-300 dark:border-white/20 rounded px-1.5 py-0.5 dark:text-white"
+                            />
+                            <button
+                              onClick={async () => {
+                                if (!editingCode.trim()) return;
+                                await supabase.from("warming_profiles").update({ profile_code: editingCode.trim() }).eq("id", p.id);
+                                toast.success("Código atualizado!");
+                                setEditingProfileId(null);
+                                fetchProfiles();
+                              }}
+                              className="text-emerald-500 hover:text-emerald-400"
+                            >
+                              <MIcon name="check" className="text-base" />
+                            </button>
+                            <button onClick={() => setEditingProfileId(null)} className="text-slate-400 hover:text-slate-300">
+                              <MIcon name="close" className="text-base" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 group/code">
+                            <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{p.profile_code}</p>
+                            <button
+                              onClick={() => { setEditingProfileId(p.id); setEditingCode(p.profile_code); }}
+                              className="opacity-0 group-hover/code:opacity-100 transition-opacity text-slate-400 hover:text-[#1876f2]"
+                            >
+                              <MIcon name="edit" className="text-sm" />
+                            </button>
+                          </div>
+                        )}
                         <p className="text-[11px] text-slate-500 dark:text-white/50">
                           {TRACKS[p.track_type]?.label || p.track_type} • {prog}% • <span className="text-[#1876f2]">{operatorName}</span>
                         </p>
