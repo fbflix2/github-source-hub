@@ -598,6 +598,49 @@ export default function AdminGestaoBMs() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Protect BM Dialog */}
+      <Dialog open={protectOpen} onOpenChange={setProtectOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Shield className="size-5 text-purple-400" />
+              Proteger BM via Safe BM
+            </DialogTitle>
+            <DialogDescription>
+              Configure o cofre Safe BM para a BM vendida ao cliente <strong>{protectItem?.client_name}</strong>.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nome da BM</Label>
+              <Input
+                value={protectForm.bmName}
+                onChange={e => setProtectForm(f => ({ ...f, bmName: e.target.value }))}
+                placeholder="Ex: BM Principal"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Link de Convite da BM</Label>
+              <Input
+                value={protectForm.bmLink}
+                onChange={e => setProtectForm(f => ({ ...f, bmLink: e.target.value }))}
+                placeholder="https://business.facebook.com/settings/..."
+              />
+              <p className="text-xs text-muted-foreground">
+                Cole o link de convite de admin da BM para configurar o cofre seguro.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setProtectOpen(false)}>Cancelar</Button>
+            <Button onClick={handleProtect} disabled={protecting} className="bg-purple-600 hover:bg-purple-500">
+              {protecting ? <Loader2 className="size-4 mr-1 animate-spin" /> : <Shield className="size-4 mr-1" />}
+              Proteger BM
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
