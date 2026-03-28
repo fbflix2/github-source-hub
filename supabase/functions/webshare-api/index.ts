@@ -1085,9 +1085,10 @@ Deno.serve(async (req) => {
 
       const maintRaw = (maintSub.raw_data || {}) as Record<string, any>;
 
-      // Determine country
-      let maintCountry = maintRaw.country_code ? String(maintRaw.country_code).toUpperCase() : null;
-      if (!maintCountry && maintSub.product_id) {
+      // Determine country — prioritize product-based detection over raw_data.country_code
+      // because raw_data.country_code may be stale/incorrect from legacy ProxyBR data
+      let maintCountry: string | null = null;
+      if (maintSub.product_id) {
         const { data: prodData } = await supabaseAdmin
           .from("products")
           .select("name, tags")
@@ -1095,6 +1096,15 @@ Deno.serve(async (req) => {
           .maybeSingle();
         if (prodData) maintCountry = detectCountryFromProduct(prodData);
       }
+      // Also check product name stored in raw_data if no product_id
+      if (!maintCountry && maintRaw.product?.name) {
+        maintCountry = detectCountryFromProduct({ name: maintRaw.product.name, tags: null });
+      }
+      // Last resort: use raw_data.country_code
+      if (!maintCountry) {
+        maintCountry = maintRaw.country_code ? String(maintRaw.country_code).toUpperCase() : "BR";
+      }
+      console.log(`[admin-maint-exchange] Detected country: ${maintCountry} for sub ${maintSubId}`);
 
       const maintCurrentProxyId = maintRaw.webshare_proxy_id;
       const maintOldProxy = `${maintRaw.proxy_address || ""}:${maintRaw.port || ""}`;
