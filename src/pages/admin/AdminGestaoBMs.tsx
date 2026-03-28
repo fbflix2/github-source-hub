@@ -544,14 +544,20 @@ export default function AdminGestaoBMs() {
                         {(item.status === "active" || item.status === "notified") && 
                          item.client_user_id !== "00000000-0000-0000-0000-000000000000" &&
                          safeBmClients.has(item.client_user_id) && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-purple-400 border-purple-500/30 hover:bg-purple-500/10 h-7 text-xs"
-                            onClick={() => handleOpenProtect(item)}
-                          >
-                            <Shield className="size-3 mr-1" /> Proteger
-                          </Button>
+                          protectedBmTrackingIds.has(item.id) ? (
+                            <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30 text-[10px] px-2 py-1">
+                              <Shield className="size-3 mr-1" /> Protegido
+                            </Badge>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-purple-400 border-purple-500/30 hover:bg-purple-500/10 h-7 text-xs"
+                              onClick={() => handleOpenProtect(item)}
+                            >
+                              <Shield className="size-3 mr-1" /> Proteger
+                            </Button>
+                          )
                         )}
                         {(item.status === "active") && (
                           <Button
