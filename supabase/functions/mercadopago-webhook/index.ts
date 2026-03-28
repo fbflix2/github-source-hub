@@ -408,9 +408,26 @@ Deno.serve(async (req) => {
                   if (raw.webshare_proxy_id) assignedIds.add(raw.webshare_proxy_id);
                 }
 
-                // Find unassigned proxies
-                const available = allProxies.filter((p: any) => p.valid && !assignedIds.has(p.id));
-                console.log(`[webhook-webshare] ${available.length} proxies available, need ${itemQty}`);
+                // Detect target country from product info
+                let targetCountry: string | null = null;
+                if (wsProductInfo) {
+                  const tags = (wsProductInfo.tags || []) as string[];
+                  const pName = (wsProductInfo.name || "").toLowerCase();
+                  const allText = tags.map((t: string) => t.toLowerCase().trim()).join(" ") + " " + pName;
+                  const brIndicators = ["brasil", "brazil", "br", "sudeste", "central/sudeste", "nordeste", "sul", "centro-oeste"];
+                  const usIndicators = ["usa", "estados unidos", "americano", "us premium"];
+                  for (const ind of brIndicators) { if (allText.includes(ind)) { targetCountry = "BR"; break; } }
+                  if (!targetCountry) for (const ind of usIndicators) { if (allText.includes(ind)) { targetCountry = "US"; break; } }
+                  if (!targetCountry) targetCountry = "BR"; // Default to BR
+                }
+                console.log(`[webhook-webshare] Target country: ${targetCountry}`);
+
+                // Find unassigned proxies matching country
+                const available = allProxies.filter((p: any) =>
+                  p.valid && !assignedIds.has(p.id)
+                  && (!targetCountry || String(p.country_code).toUpperCase() === targetCountry)
+                );
+                console.log(`[webhook-webshare] ${available.length} ${targetCountry || 'ANY'} proxies available, need ${itemQty}`);
 
                 if (available.length < itemQty) {
                   console.error(`[webhook-webshare] Not enough proxies: ${available.length} available, ${itemQty} needed`);
