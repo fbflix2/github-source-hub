@@ -261,6 +261,10 @@ export default function AdminGestaoBMs() {
           : "Novo cofre Safe BM criado com sucesso!"
       );
       setProtectOpen(false);
+      // Update protected set immediately
+      if (protectItem) {
+        setProtectedBmTrackingIds(prev => new Set([...prev, protectItem.id]));
+      }
     } catch (err: any) {
       toast.error(err.message || "Erro ao proteger BM");
     } finally {
