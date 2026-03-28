@@ -496,7 +496,7 @@ Deno.serve(async (req) => {
 
     // Action: admin_protect_bm - admin creates/configures a safe_bm vault for a client's sold BM
     if (body.action === "admin_protect_bm") {
-      const { client_user_id, bm_name, bm_link } = body;
+      const { client_user_id, bm_name, bm_link, bm_tracking_id } = body;
       if (!client_user_id || !bm_name || !bm_link) {
         return new Response(JSON.stringify({ error: "client_user_id, bm_name e bm_link são obrigatórios" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -526,7 +526,7 @@ Deno.serve(async (req) => {
       // Check if client has any active safe_bm vault
       const { data: existingVaults } = await supabaseAdmin
         .from("safe_bm_vaults")
-        .select("id, status, bm_link")
+        .select("id, status, bm_link, bm_tracking_id")
         .eq("user_id", client_user_id);
 
       const hasAnySafeBm = existingVaults && existingVaults.length > 0;
@@ -566,6 +566,7 @@ Deno.serve(async (req) => {
             subscription_price: 9.99,
             purchase_date: new Date().toISOString(),
             protection_start: new Date().toISOString(),
+            bm_tracking_id: bm_tracking_id || null,
           })
           .select("id")
           .single();
@@ -592,6 +593,7 @@ Deno.serve(async (req) => {
           .update({
             bm_name: bm_name.trim(),
             bm_link: bm_link.trim(),
+            bm_tracking_id: bm_tracking_id || unconfigured.bm_tracking_id || null,
             updated_at: new Date().toISOString(),
           })
           .eq("id", unconfigured.id);
@@ -627,6 +629,7 @@ Deno.serve(async (req) => {
           subscription_price: 0,
           purchase_date: new Date().toISOString(),
           protection_start: new Date().toISOString(),
+          bm_tracking_id: bm_tracking_id || null,
         })
         .select("id")
         .single();

@@ -43,6 +43,15 @@ interface SafeBmVault {
   link_health_checked_at: string | null;
   created_at: string;
   updated_at: string;
+  bm_tracking_id: string | null;
+  // Joined from bm_tracking
+  bm_tracking?: {
+    product_name: string;
+    sale_price: number;
+    sold_at: string;
+    status: string;
+    stock_item_id: string | null;
+  } | null;
 }
 
 function getBackupLinkTimeLeft(setAt: string | null): { expired: boolean; text: string; percent: number } {
@@ -97,7 +106,7 @@ export default function AdminSafeBM() {
     setLoading(true);
     const { data, error } = await supabase
       .from("safe_bm_vaults" as any)
-      .select("*")
+      .select("*, bm_tracking:bm_tracking_id(product_name, sale_price, sold_at, status, stock_item_id)")
       .order("created_at", { ascending: false });
     if (error) {
       toast.error("Erro ao carregar cofre: " + error.message);
@@ -615,6 +624,7 @@ export default function AdminSafeBM() {
                     <TableRow className="border-border">
                       <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Nome da BM</TableHead>
                       <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Dono/Cliente</TableHead>
+                      <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Origem</TableHead>
                       <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Status</TableHead>
                       <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Saúde do Link</TableHead>
                       <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Link Backup</TableHead>
@@ -673,6 +683,23 @@ export default function AdminSafeBM() {
                           </div>
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">{v.client_name || "—"}</TableCell>
+                        <TableCell>
+                          {v.bm_tracking ? (
+                            <div className="space-y-0.5">
+                              <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-[9px] px-1.5 py-0">
+                                Gestão BMs
+                              </Badge>
+                              <p className="text-[10px] text-muted-foreground">
+                                {v.bm_tracking.product_name} — R$ {Number(v.bm_tracking.sale_price).toFixed(2)}
+                              </p>
+                              <p className="text-[9px] text-muted-foreground/60">
+                                Vendido {format(new Date(v.bm_tracking.sold_at), "dd/MM/yyyy")}
+                              </p>
+                            </div>
+                          ) : (
+                            <span className="text-[10px] text-muted-foreground/50 italic">Manual</span>
+                          )}
+                        </TableCell>
                         <TableCell>{getStatusBadge(v.status)}</TableCell>
                         <TableCell>
                           {checkingIds.has(v.id) ? (

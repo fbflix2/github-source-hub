@@ -117,6 +117,7 @@ export default function AdminGestaoBMs() {
   const [protectForm, setProtectForm] = useState({ bmName: "", bmLink: "" });
   const [protecting, setProtecting] = useState(false);
   const [safeBmClients, setSafeBmClients] = useState<Set<string>>(new Set());
+  const [protectedBmTrackingIds, setProtectedBmTrackingIds] = useState<Set<string>>(new Set());
   const fetchItems = async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -142,9 +143,16 @@ export default function AdminGestaoBMs() {
       // Fetch clients who have Safe BM subscriptions (vaults + order purchases)
       const safeBmSet = new Set<string>();
       
-      // Check safe_bm_vaults
-      supabase.from("safe_bm_vaults").select("user_id").then(({ data }) => {
-        if (data) data.forEach(v => safeBmSet.add(v.user_id));
+      // Check safe_bm_vaults - also get bm_tracking_id for cross-reference
+      supabase.from("safe_bm_vaults").select("user_id, bm_tracking_id").then(({ data }) => {
+        const protectedIds = new Set<string>();
+        if (data) {
+          data.forEach((v: any) => {
+            safeBmSet.add(v.user_id);
+            if (v.bm_tracking_id) protectedIds.add(v.bm_tracking_id);
+          });
+        }
+        setProtectedBmTrackingIds(protectedIds);
       });
 
       // Also check order_items for Safe BM product purchases (vault may not have been created)
@@ -239,6 +247,7 @@ export default function AdminGestaoBMs() {
           client_user_id: protectItem.client_user_id,
           bm_name: protectForm.bmName.trim(),
           bm_link: protectForm.bmLink.trim(),
+          bm_tracking_id: protectItem.id,
         },
       });
 
@@ -252,6 +261,10 @@ export default function AdminGestaoBMs() {
           : "Novo cofre Safe BM criado com sucesso!"
       );
       setProtectOpen(false);
+      // Update protected set immediately
+      if (protectItem) {
+        setProtectedBmTrackingIds(prev => new Set([...prev, protectItem.id]));
+      }
     } catch (err: any) {
       toast.error(err.message || "Erro ao proteger BM");
     } finally {
@@ -535,14 +548,20 @@ export default function AdminGestaoBMs() {
                         {(item.status === "active" || item.status === "notified") && 
                          item.client_user_id !== "00000000-0000-0000-0000-000000000000" &&
                          safeBmClients.has(item.client_user_id) && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-purple-400 border-purple-500/30 hover:bg-purple-500/10 h-7 text-xs"
-                            onClick={() => handleOpenProtect(item)}
-                          >
-                            <Shield className="size-3 mr-1" /> Proteger
-                          </Button>
+                          protectedBmTrackingIds.has(item.id) ? (
+                            <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30 text-[10px] px-2 py-1">
+                              <Shield className="size-3 mr-1" /> Protegido
+                            </Badge>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-purple-400 border-purple-500/30 hover:bg-purple-500/10 h-7 text-xs"
+                              onClick={() => handleOpenProtect(item)}
+                            >
+                              <Shield className="size-3 mr-1" /> Proteger
+                            </Button>
+                          )
                         )}
                         {(item.status === "active") && (
                           <Button
