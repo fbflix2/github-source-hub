@@ -102,6 +102,7 @@ const allMenuItems: MenuItem[] = [
   { title: "Notificações", icon: Bell, path: "/admin/notificacoes" },
   { title: "Chat Equipe", icon: MessageCircle, path: "/admin/chat" },
   { title: "Configurações", icon: Settings, path: "/admin/configuracoes", subItems: [
+    { title: "Editor do Site", icon: Globe, path: "/admin/configuracoes/site" },
     { title: "Plataforma", icon: Palette, path: "/admin/configuracoes/plataforma" },
     { title: "Banners", icon: Image, path: "/admin/banners" },
     { title: "Tutoriais", icon: GraduationCap, path: "/admin/tutoriais" },
