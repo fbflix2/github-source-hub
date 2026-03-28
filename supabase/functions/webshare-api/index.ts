@@ -1222,10 +1222,30 @@ Deno.serve(async (req) => {
       if (!maintNewProxy) throw new Error("Não foi possível trocar o proxy. Sem disponibilidade.");
 
       // Update subscription WITHOUT deducting quota
+      // Also update the proxies.data array (used by ProxyBR-type subscriptions on client side)
+      const newProxyCode = `${maintNewProxy.proxy_address}:${maintNewProxy.port}:${maintNewProxy.username}:${maintNewProxy.password}`;
+      const newProxyParsed = {
+        ip: maintNewProxy.proxy_address,
+        port: String(maintNewProxy.port),
+        username: maintNewProxy.username,
+        password: maintNewProxy.password,
+      };
+
+      const existingProxies = maintRaw.proxies?.data || [];
+      const updatedProxiesData = existingProxies.length > 0
+        ? existingProxies.map((p: any, i: number) => {
+            if (i === 0 || String(p.id) === String(maintRaw.webshare_proxy_id)) {
+              return { ...p, code: newProxyCode, parsed: newProxyParsed, status: "USED" };
+            }
+            return p;
+          })
+        : [{ id: maintNewProxy.webshare_proxy_id, code: newProxyCode, parsed: newProxyParsed, status: "USED", notes: null }];
+
       const updatedMaintRaw = {
         ...maintRaw,
         ...maintNewProxy,
         provider: "webshare",
+        proxies: { ...maintRaw.proxies, data: updatedProxiesData, total: updatedProxiesData.length },
         last_maintenance_exchange: new Date().toISOString(),
         last_maintenance_method: maintMethod,
         maintenance_exchange_count: (maintRaw.maintenance_exchange_count || 0) + 1,
