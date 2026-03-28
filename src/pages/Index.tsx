@@ -363,14 +363,14 @@ const Index = () => {
 
       {/* ===== FLOATING CHAT ===== */}
       <a
-        href="https://wa.me/55000000000"
+        href={cfg.hero.whatsappUrl}
         target="_blank"
         rel="noopener noreferrer"
         className="fixed bottom-8 right-8 z-[100] bg-[#ff3131] text-white w-14 h-14 rounded-full flex items-center justify-center shadow-[0_0_25px_rgba(255,49,49,0.5)] hover:scale-110 transition-transform duration-300 group"
       >
         <span className="material-symbols-outlined text-3xl group-hover:rotate-12 transition-transform" style={{ fontVariationSettings: "'FILL' 1" }}>chat</span>
         <span className="absolute right-full mr-4 bg-[#111111] px-4 py-2 text-[10px] font-bold uppercase tracking-widest whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity border border-[#ff3131]/30 pointer-events-none">
-          Fale com um Especialista
+          {cfg.hero.whatsappLabel}
         </span>
       </a>
 
