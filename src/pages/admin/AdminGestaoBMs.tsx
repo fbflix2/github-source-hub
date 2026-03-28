@@ -112,7 +112,11 @@ export default function AdminGestaoBMs() {
     client_name: "", client_email: "", product_name: "", bm_link: "", sale_price: "", notes: ""
   });
   const [adding, setAdding] = useState(false);
-
+  const [protectOpen, setProtectOpen] = useState(false);
+  const [protectItem, setProtectItem] = useState<BmTracking | null>(null);
+  const [protectForm, setProtectForm] = useState({ bmName: "", bmLink: "" });
+  const [protecting, setProtecting] = useState(false);
+  const [safeBmClients, setSafeBmClients] = useState<Set<string>>(new Set());
   const fetchItems = async () => {
     setLoading(true);
     const { data, error } = await supabase
