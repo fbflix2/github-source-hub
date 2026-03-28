@@ -2373,6 +2373,7 @@ export type Database = {
           backup_link_set_at: string | null
           bm_link: string
           bm_name: string
+          bm_tracking_id: string | null
           client_name: string | null
           created_at: string
           id: string
@@ -2393,6 +2394,7 @@ export type Database = {
           backup_link_set_at?: string | null
           bm_link: string
           bm_name: string
+          bm_tracking_id?: string | null
           client_name?: string | null
           created_at?: string
           id?: string
@@ -2413,6 +2415,7 @@ export type Database = {
           backup_link_set_at?: string | null
           bm_link?: string
           bm_name?: string
+          bm_tracking_id?: string | null
           client_name?: string | null
           created_at?: string
           id?: string
@@ -2428,7 +2431,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "safe_bm_vaults_bm_tracking_id_fkey"
+            columns: ["bm_tracking_id"]
+            isOneToOne: false
+            referencedRelation: "bm_tracking"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       site_settings: {
         Row: {

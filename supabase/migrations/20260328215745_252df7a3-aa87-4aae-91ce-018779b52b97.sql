@@ -1,0 +1,1 @@
+ALTER TABLE public.safe_bm_vaults ADD COLUMN IF NOT EXISTS bm_tracking_id uuid REFERENCES public.bm_tracking(id) ON DELETE SET NULL;
