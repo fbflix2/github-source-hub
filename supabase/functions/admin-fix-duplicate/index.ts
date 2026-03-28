@@ -523,6 +523,109 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Action: admin_protect_bm - admin creates/configures a safe_bm vault for a client's sold BM
+    if (body.action === "admin_protect_bm") {
+      const { client_user_id, bm_name, bm_link } = body;
+      if (!client_user_id || !bm_name || !bm_link) {
+        return new Response(JSON.stringify({ error: "client_user_id, bm_name e bm_link são obrigatórios" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Verify caller is admin
+      let isCallerAdmin = false;
+      if (authHeader) {
+        const token = authHeader.replace("Bearer ", "");
+        const anonClient = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_ANON_KEY")!
+        );
+        const { data: { user } } = await anonClient.auth.getUser(token);
+        if (user) {
+          const { data: hasAdmin } = await supabaseAdmin.rpc("has_role", { _user_id: user.id, _role: "admin" });
+          isCallerAdmin = !!hasAdmin;
+        }
+      }
+      if (!isCallerAdmin) {
+        return new Response(JSON.stringify({ error: "Apenas administradores podem proteger BMs" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Check if client has any active safe_bm vault
+      const { data: existingVaults } = await supabaseAdmin
+        .from("safe_bm_vaults")
+        .select("id, status, bm_link")
+        .eq("user_id", client_user_id);
+
+      const hasAnySafeBm = existingVaults && existingVaults.length > 0;
+      if (!hasAnySafeBm) {
+        return new Response(JSON.stringify({ error: "Cliente não possui assinatura Safe BM" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Check for unconfigured vault (bm_link = generic)
+      const unconfigured = existingVaults?.find(v => v.bm_link === "https://business.facebook.com");
+
+      if (unconfigured) {
+        // Configure existing unconfigured vault
+        const { error: updateErr } = await supabaseAdmin
+          .from("safe_bm_vaults")
+          .update({
+            bm_name: bm_name.trim(),
+            bm_link: bm_link.trim(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", unconfigured.id);
+
+        if (updateErr) {
+          return new Response(JSON.stringify({ error: updateErr.message }), {
+            status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        return new Response(
+          JSON.stringify({ success: true, vault_id: unconfigured.id, mode: "configured_existing" }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // No unconfigured vault - create a new one based on existing vault data
+      const referenceVault = existingVaults?.[0];
+      const { data: clientProfile } = await supabaseAdmin
+        .from("profiles")
+        .select("full_name")
+        .eq("user_id", client_user_id)
+        .maybeSingle();
+
+      const { data: newVault, error: insertErr } = await supabaseAdmin
+        .from("safe_bm_vaults")
+        .insert({
+          user_id: client_user_id,
+          client_name: clientProfile?.full_name || null,
+          bm_name: bm_name.trim(),
+          bm_link: bm_link.trim(),
+          status: "active",
+          subscription_price: 0,
+          purchase_date: new Date().toISOString(),
+          protection_start: new Date().toISOString(),
+        })
+        .select("id")
+        .single();
+
+      if (insertErr) {
+        return new Response(JSON.stringify({ error: insertErr.message }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, vault_id: newVault.id, mode: "created_new" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Erro desconhecido";
     return new Response(JSON.stringify({ error: msg }), {
