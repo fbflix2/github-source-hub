@@ -354,7 +354,7 @@ export default function AdminSafeBM() {
               </div>
               {mrr > 0 && (
                 <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-[10px]">
-                  {activeCount} assinantes
+                  {uniqueClients} assinantes
                 </Badge>
               )}
             </div>
@@ -452,7 +452,7 @@ export default function AdminSafeBM() {
                 <p className="text-2xl font-bold text-primary">
                   R$ {mrr.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </p>
-                {mrr > 0 && <p className="text-xs text-emerald-400">baseado em {activeCount} assinantes</p>}
+                {mrr > 0 && <p className="text-xs text-emerald-400">baseado em {activeCount} BMs ({uniqueClients} assinantes)</p>}
               </div>
             </div>
             {activeCount === 0 ? (
