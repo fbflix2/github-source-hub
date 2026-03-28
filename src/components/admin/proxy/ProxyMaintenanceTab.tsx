@@ -263,13 +263,16 @@ export default function ProxyMaintenanceTab() {
                 ) : paginated.map((sub: any) => {
                   const raw = (sub.raw_data || {}) as Record<string, any>;
                   const clientName = profileMap.get(sub.user_id) || "—";
-                  const proxyIp = raw.proxy_address || "—";
+                  const isProxyBR = sub.type === "proxybr";
+                  const isRotating = sub.type === "webshare_rotating";
+                  // ProxyBR stores proxy data differently
+                  const proxyIp = raw.proxy_address || raw.ip || "—";
                   const proxyPort = raw.port || "—";
                   const product = sub.product_id ? productMap.get(sub.product_id) : null;
                   const statusInfo = getStatusInfo(sub);
                   const freeQuota = raw.exchange_quota_free ?? 0;
-                  const isRotating = sub.type === "webshare_rotating";
                   const maintCount = raw.maintenance_exchange_count || 0;
+                  const providerLabel = isProxyBR ? "ProxyBR" : "Webshare";
 
                   return (
                     <TableRow key={sub.id} className="border-border/20 hover:bg-muted/20">
@@ -290,7 +293,12 @@ export default function ProxyMaintenanceTab() {
                         )}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground max-w-[150px] truncate">
-                        {product?.name || "Proxy Webshare"}
+                        <div className="flex items-center gap-1.5">
+                          <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${isProxyBR ? "border-blue-500/30 text-blue-400" : "border-purple-500/30 text-purple-400"}`}>
+                            {providerLabel}
+                          </Badge>
+                          <span className="truncate">{product?.name || raw.product_name || "Proxy"}</span>
+                        </div>
                       </TableCell>
                       <TableCell>
                         <Badge className={`text-xs border-0 ${statusInfo.color}`}>{statusInfo.label}</Badge>
