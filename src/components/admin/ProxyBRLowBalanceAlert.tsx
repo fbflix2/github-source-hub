@@ -21,10 +21,21 @@ export function ProxyBRLowBalanceAlert() {
     return stored === "true";
   });
 
+  // Only show for admins, not moderators
+  const { data: isAdmin } = useQuery({
+    queryKey: ["proxybr-alert-is-admin"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return false;
+      const { data } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
+      return !!data;
+    },
+    staleTime: 600_000,
+  });
+
   const { data: meData } = useQuery({
     queryKey: ["proxybr-me"],
     queryFn: async () => {
-      // Check if user is authenticated before calling
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return null;
 
@@ -32,7 +43,6 @@ export function ProxyBRLowBalanceAlert() {
         body: { action: "get-me" },
       });
       if (error) {
-        // If token expired, try refreshing and retrying once
         if (error.message?.includes("401") || error.message?.includes("Token")) {
           const { error: refreshErr } = await supabase.auth.refreshSession();
           if (refreshErr) return null;
@@ -46,6 +56,7 @@ export function ProxyBRLowBalanceAlert() {
       }
       return data;
     },
+    enabled: !!isAdmin,
     staleTime: 300_000,
     refetchInterval: 600_000,
     retry: false,
@@ -55,7 +66,7 @@ export function ProxyBRLowBalanceAlert() {
 
   const balance = meData?.current_balance ?? meData?.data?.current_balance ?? null;
   const isLow = balance !== null && balance < THRESHOLD;
-  const showAlert = isLow && !dismissed;
+  const showAlert = isAdmin && isLow && !dismissed;
 
   const handleDismiss = () => {
     setDismissed(true);
