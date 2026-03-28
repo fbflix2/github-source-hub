@@ -1065,6 +1065,187 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ========== ADMIN: MAINTENANCE EXCHANGE (no quota deduction) ==========
+    if (action === "admin-maintenance-exchange") {
+      const { subscription_id: maintSubId } = params as { subscription_id: string };
+      if (!maintSubId) throw new Error("subscription_id é obrigatório");
+
+      // Only admins can do maintenance exchanges
+      const { data: isAdminMaint } = await supabaseAdmin.rpc("has_role", { _user_id: user.id, _role: "admin" });
+      if (!isAdminMaint) throw new Error("Acesso negado: apenas administradores");
+
+      const { data: maintSub, error: maintSubErr } = await supabaseAdmin
+        .from("subscriptions")
+        .select("*")
+        .eq("id", maintSubId)
+        .eq("type", "webshare")
+        .single();
+
+      if (maintSubErr || !maintSub) throw new Error("Assinatura não encontrada");
+
+      const maintRaw = (maintSub.raw_data || {}) as Record<string, any>;
+
+      // Determine country
+      let maintCountry = maintRaw.country_code ? String(maintRaw.country_code).toUpperCase() : null;
+      if (!maintCountry && maintSub.product_id) {
+        const { data: prodData } = await supabaseAdmin
+          .from("products")
+          .select("name, tags")
+          .eq("id", maintSub.product_id)
+          .maybeSingle();
+        if (prodData) maintCountry = detectCountryFromProduct(prodData);
+      }
+
+      const maintCurrentProxyId = maintRaw.webshare_proxy_id;
+      const maintOldProxy = `${maintRaw.proxy_address || ""}:${maintRaw.port || ""}`;
+      let maintNewProxy: Record<string, any> | null = null;
+      let maintMethod = "api";
+
+      // Try API replace first
+      if (maintCurrentProxyId && maintRaw.proxy_address) {
+        try {
+          const replacePayload = {
+            to_replace: { type: "ip_address", ip_addresses: [maintRaw.proxy_address], count: 1 },
+            replace_with: [maintCountry ? { type: "country", country_code: maintCountry, count: 1 } : { type: "any", count: 1 }],
+            dry_run: false,
+          };
+
+          const replaceResp = await webFetch("https://proxy.webshare.io/api/v3/proxy/replace/", WEBSHARE_API_KEY, "POST", JSON.stringify(replacePayload));
+          const replaceData = await replaceResp.json().catch(() => ({}));
+
+          if (replaceResp.ok) {
+            const replacementId = replaceData?.id;
+            let replacementState = replaceData?.state;
+
+            if (replacementId) {
+              for (let attempt = 0; attempt < 10; attempt++) {
+                if (replacementState === "completed" || replacementState === "failed") break;
+                await new Promise((r) => setTimeout(r, 1200));
+                const statusResp = await webFetch(`https://proxy.webshare.io/api/v3/proxy/replace/${replacementId}/`, WEBSHARE_API_KEY);
+                const statusData = await statusResp.json().catch(() => ({}));
+                if (!statusResp.ok) break;
+                replacementState = statusData?.state;
+              }
+            }
+
+            if (replacementState === "completed") {
+              const allCurrentProxies: any[] = [];
+              let page = 1;
+              while (true) {
+                const listResp = await webFetch(`/proxy/list/?mode=direct&page=${page}&page_size=250`, WEBSHARE_API_KEY);
+                const listData = await listResp.json().catch(() => ({}));
+                if (!listResp.ok) break;
+                if (listData.results?.length) allCurrentProxies.push(...listData.results);
+                if (!listData.next) break;
+                page++;
+              }
+
+              const { data: allActiveSubs } = await supabaseAdmin
+                .from("subscriptions")
+                .select("raw_data")
+                .eq("type", "webshare")
+                .in("status", ["active", "expiring"])
+                .neq("id", maintSubId);
+
+              const otherIds = new Set<string>();
+              for (const s of (allActiveSubs || [])) {
+                const r = (s.raw_data || {}) as Record<string, any>;
+                if (r.webshare_proxy_id) otherIds.add(r.webshare_proxy_id);
+              }
+
+              const candidates = allCurrentProxies.filter(
+                (p: any) => p.valid && !otherIds.has(p.id) && p.id !== maintCurrentProxyId && p.proxy_address !== maintRaw.proxy_address
+                  && (!maintCountry || String(p.country_code).toUpperCase() === maintCountry),
+              );
+
+              if (candidates.length > 0) {
+                const np = candidates[0];
+                maintNewProxy = {
+                  webshare_proxy_id: np.id, proxy_address: np.proxy_address,
+                  port: np.port, username: np.username, password: np.password,
+                  country_code: np.country_code, city_name: np.city_name,
+                };
+              }
+            }
+          }
+        } catch (e: any) {
+          console.warn(`[admin-maint-exchange] API replace error: ${e.message}`);
+        }
+      }
+
+      // Pool fallback
+      if (!maintNewProxy) {
+        try {
+          const allCurrentProxies: any[] = [];
+          let page = 1;
+          while (true) {
+            const listResp = await webFetch(`/proxy/list/?mode=direct&page=${page}&page_size=250`, WEBSHARE_API_KEY);
+            const listData = await listResp.json().catch(() => ({}));
+            if (!listResp.ok) break;
+            if (listData.results?.length) allCurrentProxies.push(...listData.results);
+            if (!listData.next) break;
+            page++;
+          }
+
+          const { data: allActiveSubs } = await supabaseAdmin
+            .from("subscriptions")
+            .select("raw_data")
+            .eq("type", "webshare")
+            .in("status", ["active", "expiring"])
+            .neq("id", maintSubId);
+
+          const assignedIds = new Set<string>();
+          for (const s of (allActiveSubs || [])) {
+            const r = (s.raw_data || {}) as Record<string, any>;
+            if (r.webshare_proxy_id) assignedIds.add(r.webshare_proxy_id);
+          }
+
+          const poolCandidates = allCurrentProxies.filter(
+            (p: any) => p.valid && !assignedIds.has(p.id) && p.id !== maintCurrentProxyId
+              && (!maintCountry || String(p.country_code).toUpperCase() === maintCountry),
+          );
+
+          if (poolCandidates.length > 0) {
+            const np = poolCandidates[0];
+            maintNewProxy = {
+              webshare_proxy_id: np.id, proxy_address: np.proxy_address,
+              port: np.port, username: np.username, password: np.password,
+              country_code: np.country_code, city_name: np.city_name,
+            };
+            maintMethod = "pool";
+          }
+        } catch (e: any) {
+          console.warn(`[admin-maint-exchange] Pool fallback error: ${e.message}`);
+        }
+      }
+
+      if (!maintNewProxy) throw new Error("Não foi possível trocar o proxy. Sem disponibilidade.");
+
+      // Update subscription WITHOUT deducting quota
+      const updatedMaintRaw = {
+        ...maintRaw,
+        ...maintNewProxy,
+        provider: "webshare",
+        last_maintenance_exchange: new Date().toISOString(),
+        last_maintenance_method: maintMethod,
+        maintenance_exchange_count: (maintRaw.maintenance_exchange_count || 0) + 1,
+      };
+
+      const { error: maintUpdateErr } = await supabaseAdmin
+        .from("subscriptions")
+        .update({ raw_data: updatedMaintRaw, updated_at: new Date().toISOString() })
+        .eq("id", maintSubId);
+
+      if (maintUpdateErr) throw new Error(`Erro ao atualizar: ${maintUpdateErr.message}`);
+
+      console.log(`[admin-maint-exchange] Admin ${user.id} maintenance-exchanged sub ${maintSubId}. Method=${maintMethod}`);
+      return new Response(JSON.stringify({
+        success: true, method: maintMethod,
+        old_proxy: maintOldProxy,
+        new_proxy: `${maintNewProxy.proxy_address}:${maintNewProxy.port}`,
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     // ========== ADMIN: UPDATE SUBSCRIPTION RAW_DATA ==========
     if (action === "admin-update-subscription") {
       const { subscription_id: updSubId, raw_data: newRawData, status: newStatus } = params as {
