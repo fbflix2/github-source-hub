@@ -139,10 +139,30 @@ export default function AdminGestaoBMs() {
   useEffect(() => {
     if (isAdmin !== null) {
       fetchItems();
-      // Fetch clients who have Safe BM subscriptions
+      // Fetch clients who have Safe BM subscriptions (vaults + order purchases)
+      const safeBmSet = new Set<string>();
+      
+      // Check safe_bm_vaults
       supabase.from("safe_bm_vaults").select("user_id").then(({ data }) => {
-        if (data) setSafeBmClients(new Set(data.map(v => v.user_id)));
+        if (data) data.forEach(v => safeBmSet.add(v.user_id));
       });
+
+      // Also check order_items for Safe BM product purchases (vault may not have been created)
+      const SAFE_BM_PRODUCT_ID = "e5118c63-ed52-4f4e-8983-f44c1ba0d17b";
+      supabase
+        .from("order_items")
+        .select("orders!inner(user_id, status)")
+        .eq("product_id", SAFE_BM_PRODUCT_ID)
+        .eq("orders.status", "completed")
+        .then(({ data }) => {
+          if (data) {
+            data.forEach((oi: any) => {
+              const uid = oi.orders?.user_id;
+              if (uid) safeBmSet.add(uid);
+            });
+          }
+          setSafeBmClients(new Set(safeBmSet));
+        });
     }
   }, [isAdmin]);
 

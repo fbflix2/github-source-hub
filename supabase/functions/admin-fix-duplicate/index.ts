@@ -559,10 +559,56 @@ Deno.serve(async (req) => {
         .eq("user_id", client_user_id);
 
       const hasAnySafeBm = existingVaults && existingVaults.length > 0;
+      
+      // If no vault exists, check if client purchased Safe BM product
       if (!hasAnySafeBm) {
-        return new Response(JSON.stringify({ error: "Cliente não possui assinatura Safe BM" }), {
-          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        const SAFE_BM_PRODUCT_ID = "e5118c63-ed52-4f4e-8983-f44c1ba0d17b";
+        const { data: safeBmPurchase } = await supabaseAdmin
+          .from("order_items")
+          .select("id, order_id, orders!inner(user_id, status)")
+          .eq("product_id", SAFE_BM_PRODUCT_ID)
+          .eq("orders.user_id", client_user_id)
+          .eq("orders.status", "completed")
+          .limit(1);
+        
+        if (!safeBmPurchase || safeBmPurchase.length === 0) {
+          return new Response(JSON.stringify({ error: "Cliente não possui assinatura Safe BM" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Client purchased Safe BM but vault wasn't created — create it now
+        const { data: clientProfile } = await supabaseAdmin
+          .from("profiles")
+          .select("full_name")
+          .eq("user_id", client_user_id)
+          .maybeSingle();
+
+        const { data: newVault, error: createErr } = await supabaseAdmin
+          .from("safe_bm_vaults")
+          .insert({
+            user_id: client_user_id,
+            client_name: clientProfile?.full_name || null,
+            bm_name: bm_name.trim(),
+            bm_link: bm_link.trim(),
+            status: "active",
+            subscription_price: 9.99,
+            purchase_date: new Date().toISOString(),
+            protection_start: new Date().toISOString(),
+          })
+          .select("id")
+          .single();
+
+        if (createErr) {
+          return new Response(JSON.stringify({ error: createErr.message }), {
+            status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        return new Response(
+          JSON.stringify({ success: true, vault_id: newVault.id, mode: "created_from_purchase" }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
 
       // Check for unconfigured vault (bm_link = generic)
