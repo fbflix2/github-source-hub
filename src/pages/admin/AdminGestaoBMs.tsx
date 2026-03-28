@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { 
   Search, ExternalLink, Bell, CheckCircle, Clock, AlertTriangle, 
-  ShieldAlert, Plus, Loader2, RefreshCw
+  ShieldAlert, Plus, Loader2, RefreshCw, Shield
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription
@@ -112,7 +112,11 @@ export default function AdminGestaoBMs() {
     client_name: "", client_email: "", product_name: "", bm_link: "", sale_price: "", notes: ""
   });
   const [adding, setAdding] = useState(false);
-
+  const [protectOpen, setProtectOpen] = useState(false);
+  const [protectItem, setProtectItem] = useState<BmTracking | null>(null);
+  const [protectForm, setProtectForm] = useState({ bmName: "", bmLink: "" });
+  const [protecting, setProtecting] = useState(false);
+  const [safeBmClients, setSafeBmClients] = useState<Set<string>>(new Set());
   const fetchItems = async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -133,7 +137,13 @@ export default function AdminGestaoBMs() {
   };
 
   useEffect(() => {
-    if (isAdmin !== null) fetchItems();
+    if (isAdmin !== null) {
+      fetchItems();
+      // Fetch clients who have Safe BM subscriptions
+      supabase.from("safe_bm_vaults").select("user_id").then(({ data }) => {
+        if (data) setSafeBmClients(new Set(data.map(v => v.user_id)));
+      });
+    }
   }, [isAdmin]);
 
   // Auto-expire items past 8 days that are still active/notified
@@ -187,6 +197,47 @@ export default function AdminGestaoBMs() {
       removed: items.filter(i => i.status === "removed").length,
     };
   }, [items]);
+
+  const handleOpenProtect = (item: BmTracking) => {
+    // Extract BM name from bm_link field
+    const bmNameFromLink = item.bm_link.match(/^(.*?)https?:\/\//)?.[1]?.replace(/[\s|:\-]+$/, '').trim() || "";
+    setProtectItem(item);
+    setProtectForm({ bmName: bmNameFromLink, bmLink: "" });
+    setProtectOpen(true);
+  };
+
+  const handleProtect = async () => {
+    if (!protectItem) return;
+    if (!protectForm.bmName.trim()) return toast.error("Digite o nome da BM");
+    if (!protectForm.bmLink.trim()) return toast.error("Cole o link de convite da BM");
+
+    setProtecting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-fix-duplicate", {
+        body: {
+          action: "admin_protect_bm",
+          client_user_id: protectItem.client_user_id,
+          bm_name: protectForm.bmName.trim(),
+          bm_link: protectForm.bmLink.trim(),
+        },
+      });
+
+      if (error || data?.error) {
+        throw new Error(data?.error || error?.message || "Erro ao proteger");
+      }
+
+      toast.success(
+        data.mode === "configured_existing"
+          ? "Cofre existente configurado com sucesso!"
+          : "Novo cofre Safe BM criado com sucesso!"
+      );
+      setProtectOpen(false);
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao proteger BM");
+    } finally {
+      setProtecting(false);
+    }
+  };
 
   const handleNotify = async (item: BmTracking) => {
     // Insert notification for client
@@ -460,6 +511,19 @@ export default function AdminGestaoBMs() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
+                        {/* Proteger BM - only for sold BMs where client has Safe BM */}
+                        {(item.status === "active" || item.status === "notified") && 
+                         item.client_user_id !== "00000000-0000-0000-0000-000000000000" &&
+                         safeBmClients.has(item.client_user_id) && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-purple-400 border-purple-500/30 hover:bg-purple-500/10 h-7 text-xs"
+                            onClick={() => handleOpenProtect(item)}
+                          >
+                            <Shield className="size-3 mr-1" /> Proteger
+                          </Button>
+                        )}
                         {(item.status === "active") && (
                           <Button
                             size="sm"
@@ -530,6 +594,49 @@ export default function AdminGestaoBMs() {
             <Button onClick={handleAdd} disabled={adding}>
               {adding && <Loader2 className="size-4 mr-1 animate-spin" />}
               Adicionar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Protect BM Dialog */}
+      <Dialog open={protectOpen} onOpenChange={setProtectOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Shield className="size-5 text-purple-400" />
+              Proteger BM via Safe BM
+            </DialogTitle>
+            <DialogDescription>
+              Configure o cofre Safe BM para a BM vendida ao cliente <strong>{protectItem?.client_name}</strong>.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nome da BM</Label>
+              <Input
+                value={protectForm.bmName}
+                onChange={e => setProtectForm(f => ({ ...f, bmName: e.target.value }))}
+                placeholder="Ex: BM Principal"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Link de Convite da BM</Label>
+              <Input
+                value={protectForm.bmLink}
+                onChange={e => setProtectForm(f => ({ ...f, bmLink: e.target.value }))}
+                placeholder="https://business.facebook.com/settings/..."
+              />
+              <p className="text-xs text-muted-foreground">
+                Cole o link de convite de admin da BM para configurar o cofre seguro.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setProtectOpen(false)}>Cancelar</Button>
+            <Button onClick={handleProtect} disabled={protecting} className="bg-purple-600 hover:bg-purple-500">
+              {protecting ? <Loader2 className="size-4 mr-1 animate-spin" /> : <Shield className="size-4 mr-1" />}
+              Proteger BM
             </Button>
           </DialogFooter>
         </DialogContent>
