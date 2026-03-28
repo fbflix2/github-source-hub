@@ -1,67 +1,58 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import logoFbflix from "@/assets/logo-fbflix.webp";
+import { supabase } from "@/integrations/supabase/client";
 
-/* ---------- constants ---------- */
-const PROFILE_PRICE = 47;
-const PROXY_PRICE = 129;
-const PAGE_PRICE = 15;
-const BM_PRICE = 197;
-
-const partners = ["Natália Torres", "Conta Simples", "Utmify", "Lauth", "Alan Benites"];
-
-const steps = [
-  { num: "01", icon: "shopping_cart", title: "Escolha o produto", desc: "Selecione entre Perfis, Proxies ou BM de acordo com sua estratégia de tráfego." },
-  { num: "02", icon: "bolt", title: "Receba instantaneamente", desc: "Entrega automatizada via e-mail e painel em menos de 60 segundos após o PIX." },
-  { num: "03", icon: "rocket_launch", title: "Escala sem banimento", desc: "Aqueça, suba suas campanhas e escale seu ROI com a segurança de IPs residenciais." },
-];
-
-const products = [
-  {
-    title: "Perfis Premium", sub: "Instagram + TikTok",
-    img: "https://lh3.googleusercontent.com/aida-public/AB6AXuAe_KntvbU6rPvrronnRaNIEbxUcs-Cqtn_k_YUtg0ShQP1F9xKhw4BFxwRf1SLq070qar43LIP4nMrRD9wVXI4oBANGXhzCUxMI_sTgvR1I9IL8l7CsZTSjp26FnkK6QjptSZ-1PnAAKhCIPFs9RbwHFRc1a1SceBcQUwQIdostfeDpOSIYuvSlBG025IsoFowEKrAI9SvmTC6oS9MUxLGnUEnigAqj19030Q7e2PHwUOA7k84A15dkY65Py4mdLeV2tq7poVAi1ow",
-    features: ["Aquecidos 15+ dias", "Foto e Bio reais", "Cookies inclusos"],
-    price: "47", unit: "/unid", featured: false,
+/* ---------- DEFAULT constants (fallback) ---------- */
+const DEFAULTS = {
+  hero: {
+    title: "CONTINGÊNCIA QUE", titleHighlight: "ESCALA",
+    subtitle: "Perfis Premium • Proxies Residenciais • BM • Escala real sem banimento",
+    ctaText: "COMPRAR AGORA", ctaSecondary: "VER PACOTES",
+    liveCounter: "+4.872 contas rodando agora",
+    backgroundImage: "https://lh3.googleusercontent.com/aida-public/AB6AXuA6mgEPPp3A8WfZQmpvovGnq8PM9WQg_VkbqFOpX5utcy7JW7eYKsAV9pckAiLW4HXkTuCnkbHEzSZ3XgxxuKvKwpUukxRYguy3lK19izWDcioO08gGeV0zOD1FeiHJuxT3A2T4eviHN7giUTucvUtz0X1X_fv8_p0lyBhXQVoaXqw_kB8a3XkhmnWhIp7aJXlzHp8a8L3FttZWD1Bx6gMZA2n-sMXVQZ-CsESvtzVWY7V9EgAY2K_iL9-Ydu2XDyUc2mCIhqxA_Pc3",
+    whatsappUrl: "https://wa.me/55000000000", whatsappLabel: "Fale com um Especialista",
   },
-  {
-    title: "Proxies Residencial", sub: "4G / 5G Mobile",
-    img: "https://lh3.googleusercontent.com/aida-public/AB6AXuD5ZhArplK1PvXPuC1gMxXEKC7jFymbwp-YmIOYu3WvhhVoIDT4fG8sfpe7bx8kynpzQuBckd3DBWaEayUg4cKCCgwLfOfVf-mQN-35VXRB9z--uH9xfmrlffr7LP3EODJAVFTesuTOg_ur1kYusUW3-1wGQzEDwyBhLicfkMzJsc8TRynBjlQSnufDpsLaHQKzbDt6rrhlgWzTNH5xSkNxY4qJCxJQ23ONSnLY8ISY0KprLLjWz2mnXGBcB6pRnAk8WIQL-FXWgDCs",
-    features: ["IPs de operadoras reais", "Rotação automática", "Zero blacklist"],
-    price: "129", unit: "/mês", featured: false,
+  partners: ["Natália Torres", "Conta Simples", "Utmify", "Lauth", "Alan Benites"],
+  steps: [
+    { icon: "shopping_cart", title: "Escolha o produto", desc: "Selecione entre Perfis, Proxies ou BM de acordo com sua estratégia de tráfego." },
+    { icon: "bolt", title: "Receba instantaneamente", desc: "Entrega automatizada via e-mail e painel em menos de 60 segundos após o PIX." },
+    { icon: "rocket_launch", title: "Escala sem banimento", desc: "Aqueça, suba suas campanhas e escale seu ROI com a segurança de IPs residenciais." },
+  ],
+  stepsTitle: "Sua contingência em", stepsTitleHighlight: "3 passos",
+  stepsSubtitle: "Engenharia de alta precisão para afiliados e gestores que buscam o topo.",
+  products: [
+    { title: "Perfis Premium", sub: "Instagram + TikTok", img: "https://lh3.googleusercontent.com/aida-public/AB6AXuAe_KntvbU6rPvrronnRaNIEbxUcs-Cqtn_k_YUtg0ShQP1F9xKhw4BFxwRf1SLq070qar43LIP4nMrRD9wVXI4oBANGXhzCUxMI_sTgvR1I9IL8l7CsZTSjp26FnkK6QjptSZ-1PnAAKhCIPFs9RbwHFRc1a1SceBcQUwQIdostfeDpOSIYuvSlBG025IsoFowEKrAI9SvmTC6oS9MUxLGnUEnigAqj19030Q7e2PHwUOA7k84A15dkY65Py4mdLeV2tq7poVAi1ow", features: ["Aquecidos 15+ dias", "Foto e Bio reais", "Cookies inclusos"], price: "47", unit: "/unid", featured: false },
+    { title: "Proxies Residencial", sub: "4G / 5G Mobile", img: "https://lh3.googleusercontent.com/aida-public/AB6AXuD5ZhArplK1PvXPuC1gMxXEKC7jFymbwp-YmIOYu3WvhhVoIDT4fG8sfpe7bx8kynpzQuBckd3DBWaEayUg4cKCCgwLfOfVf-mQN-35VXRB9z--uH9xfmrlffr7LP3EODJAVFTesuTOg_ur1kYusUW3-1wGQzEDwyBhLicfkMzJsc8TRynBjlQSnufDpsLaHQKzbDt6rrhlgWzTNH5xSkNxY4qJCxJQ23ONSnLY8ISY0KprLLjWz2mnXGBcB6pRnAk8WIQL-FXWgDCs", features: ["IPs de operadoras reais", "Rotação automática", "Zero blacklist"], price: "129", unit: "/mês", featured: false },
+    { title: "Bulk Messaging", sub: "WhatsApp / BM", img: "https://lh3.googleusercontent.com/aida-public/AB6AXuDuOpsfJ57lH1sDAzKnHxnS1tmHsCcYVtAMnp3Q6dM5YKrP713ZmmmRMPrIniVJG2OyFiUqsXW4OEE-pKwSpBIi0kTCoQ7y3BWgDhvOtDKEAYGWAPs-ZzMMILSgZMB41E_23Thwtn6juVyQjxpQRoFh1hmG5mG3tg_oAHtAdnIMjmH4GYjyZXlUMKGp8HZRmOSdB45pdcpiLPPgfnbglucGgrlDKjrXkppUlmepJt_jHBNsTbOwSc9LazMZZvxK3yJKcjopvAbikrhs", features: ["API de alta performance", "Delay anti-ban", "Suporte a variáveis"], price: "197", unit: "/camp", featured: false },
+    { title: "Pacote Completo", sub: "Estratégia Full", img: "https://lh3.googleusercontent.com/aida-public/AB6AXuDBHtsx0N9hlnapvr_eARhpwUGeQHuJenA6V139WpurnDdc5yh9kvaBUSB1NdXvPKr3Zau62tmkJh3vlBc1KYODu46oD9VhPpbVTb0QfLMMYNdnF6KILOHesHzC5d51amprFa-JVV7Ohlf0_XoPfF5rJRwzgfEn2sFtg1Hh66Sy2JsNdTuUusO2fdZgANaKzwgEEM6Y09DLFQd4c5cxlJ7uT4gtfV8-m5HIEO8KR0VQsoI3X4pg02bYGwy0x5LL8lwpSGItXGlLGFfx", features: ["10 Perfis Premium", "Proxy 5G Ilimitado", "Consultoria de Setup"], price: "497", unit: "/setup", featured: true },
+  ],
+  productsTitle: "Escolha sua arma de", productsTitleHighlight: "contingência",
+  benefits: [
+    { icon: "location_on", title: "IP Residencial Real", desc: "Conexões autênticas que o Facebook confia." },
+    { icon: "timer", title: "Entrega < 60s", desc: "Processamento automático instantâneo." },
+    { icon: "support_agent", title: "Suporte 24h", desc: "Especialistas prontos para te ajudar a escalar." },
+    { icon: "verified_user", title: "Garantia Total", desc: "Reposição imediata em caso de falha técnica." },
+  ],
+  benefitsTitle: "Por que milhares de usuários escolhem a", benefitsTitleHighlight: "FBFLIX",
+  testimonials: [
+    { name: "Ricardo Mendes", role: "Afiliado Black", img: "https://lh3.googleusercontent.com/aida-public/AB6AXuCUsS26R4V-9ieauNjiLBM58xWx7-XK2lqjxaxaObILCHd1PajMPL_Cq7wPRVsIJJJ1qIXjqiOV0Vr7bluMSj_Pfk2W7gZCR2X0QqnAIzmvMk3WQuPw7oBw1NR8ypQZW153UeiAGmw7zlR2WZeiM8zEzPv2x1V7LvrTT0U8BYyTQpc3JilicYnzTuWuCafui8WXpJ4JEZoUDfSbYZI-FDJSD8GWv3M2U7xbiE3HXra8HIvyF-p9lo4NSthSn-5EJBDCZ3TEDH2gqQ7X", text: '"Depois que migrei para os proxies da FBFLIX, parei de tomar checkpoint em cascata. Escala garantida."' },
+    { name: "Amanda Souza", role: "Gestora de Tráfego", img: "https://lh3.googleusercontent.com/aida-public/AB6AXuA5QWtGBu4iTXnpf_eDSnru2VV8RlEWYG7CAspTvbPqafRUit1JuHkR4yIVG7sOVenAa06Mj9etc-mh2uoamzDEOVdpHZlbaNn4u9e2aDbGGxcFedGYJXLyTIo-sf4Gp8HbkJmXf5pk1KxzTSpGLzcTkge1OC4e_bXE5D1zlJSXQc7f_OoQ-fbijzEUC4lagZ2rjkT48sRgyHC-F5NCrn145azBcrtMdjaga0c76Ps5w19LUA_VGL9TSr7H1kTKv9qZmARHwF3P-JBs", text: '"A entrega é surreal de rápida. Em 1 minuto já estava com os perfis logados e subindo campanha."' },
+  ],
+  simulator: {
+    title: "Monte seu pacote e veja o preço na hora",
+    items: [
+      { label: "Quantidade de Perfis", key: "profiles", price: 47, min: 1, max: 50, default: 10 },
+      { label: "Proxies Residenciais", key: "proxies", price: 129, min: 0, max: 10, default: 2 },
+      { label: "Quantidade de Páginas", key: "pages", price: 15, min: 1, max: 20, default: 5 },
+      { label: "Campanhas Bulk BM", key: "bm", price: 197, min: 0, max: 10, default: 1 },
+    ],
   },
-  {
-    title: "Bulk Messaging", sub: "WhatsApp / BM",
-    img: "https://lh3.googleusercontent.com/aida-public/AB6AXuDuOpsfJ57lH1sDAzKnHxnS1tmHsCcYVtAMnp3Q6dM5YKrP713ZmmmRMPrIniVJG2OyFiUqsXW4OEE-pKwSpBIi0kTCoQ7y3BWgDhvOtDKEAYGWAPs-ZzMMILSgZMB41E_23Thwtn6juVyQjxpQRoFh1hmG5mG3tg_oAHtAdnIMjmH4GYjyZXlUMKGp8HZRmOSdB45pdcpiLPPgfnbglucGgrlDKjrXkppUlmepJt_jHBNsTbOwSc9LazMZZvxK3yJKcjopvAbikrhs",
-    features: ["API de alta performance", "Delay anti-ban", "Suporte a variáveis"],
-    price: "197", unit: "/camp", featured: false,
+  footer: {
+    cnpj: "40.122.096/0001-85",
+    description: "© 2026 FBFLIX. Todos os direitos reservados. Engenharia de precisão para contingência e escala profissional no mercado de tráfego pago.",
   },
-  {
-    title: "Pacote Completo", sub: "Estratégia Full",
-    img: "https://lh3.googleusercontent.com/aida-public/AB6AXuDBHtsx0N9hlnapvr_eARhpwUGeQHuJenA6V139WpurnDdc5yh9kvaBUSB1NdXvPKr3Zau62tmkJh3vlBc1KYODu46oD9VhPpbVTb0QfLMMYNdnF6KILOHesHzC5d51amprFa-JVV7Ohlf0_XoPfF5rJRwzgfEn2sFtg1Hh66Sy2JsNdTuUusO2fdZgANaKzwgEEM6Y09DLFQd4c5cxlJ7uT4gtfV8-m5HIEO8KR0VQsoI3X4pg02bYGwy0x5LL8lwpSGItXGlLGFfx",
-    features: ["10 Perfis Premium", "Proxy 5G Ilimitado", "Consultoria de Setup"],
-    price: "497", unit: "/setup", featured: true,
-  },
-];
-
-const benefits = [
-  { icon: "location_on", title: "IP Residencial Real", desc: "Conexões autênticas que o Facebook confia." },
-  { icon: "timer", title: "Entrega < 60s", desc: "Processamento automático instantâneo." },
-  { icon: "support_agent", title: "Suporte 24h", desc: "Especialistas prontos para te ajudar a escalar." },
-  { icon: "verified_user", title: "Garantia Total", desc: "Reposição imediata em caso de falha técnica." },
-];
-
-const testimonials = [
-  {
-    name: "Ricardo Mendes", role: "Afiliado Black",
-    img: "https://lh3.googleusercontent.com/aida-public/AB6AXuCUsS26R4V-9ieauNjiLBM58xWx7-XK2lqjxaxaObILCHd1PajMPL_Cq7wPRVsIJJJ1qIXjqiOV0Vr7bluMSj_Pfk2W7gZCR2X0QqnAIzmvMk3WQuPw7oBw1NR8ypQZW153UeiAGmw7zlR2WZeiM8zEzPv2x1V7LvrTT0U8BYyTQpc3JilicYnzTuWuCafui8WXpJ4JEZoUDfSbYZI-FDJSD8GWv3M2U7xbiE3HXra8HIvyF-p9lo4NSthSn-5EJBDCZ3TEDH2gqQ7X",
-    text: '"Depois que migrei para os proxies da FBFLIX, parei de tomar checkpoint em cascata. Escala garantida."',
-  },
-  {
-    name: "Amanda Souza", role: "Gestora de Tráfego",
-    img: "https://lh3.googleusercontent.com/aida-public/AB6AXuA5QWtGBu4iTXnpf_eDSnru2VV8RlEWYG7CAspTvbPqafRUit1JuHkR4yIVG7sOVenAa06Mj9etc-mh2uoamzDEOVdpHZlbaNn4u9e2aDbGGxcFedGYJXLyTIo-sf4Gp8HbkJmXf5pk1KxzTSpGLzcTkge1OC4e_bXE5D1zlJSXQc7f_OoQ-fbijzEUC4lagZ2rjkT48sRgyHC-F5NCrn145azBcrtMdjaga0c76Ps5w19LUA_VGL9TSr7H1kTKv9qZmARHwF3P-JBs",
-    text: '"A entrega é surreal de rápida. Em 1 minuto já estava com os perfis logados e subindo campanha."',
-  },
-];
+};
 
 /* ---------- Scroll reveal hook ---------- */
 function useReveal() {
@@ -83,12 +74,30 @@ const Index = () => {
   const navigate = useNavigate();
   useReveal();
 
-  const [profiles, setProfiles] = useState(10);
-  const [proxies, setProxies] = useState(2);
-  const [pages, setPages] = useState(5);
-  const [bm, setBm] = useState(1);
+  // Load config from DB
+  const [cfg, setCfg] = useState(DEFAULTS);
+  useEffect(() => {
+    supabase
+      .from("site_settings")
+      .select("value")
+      .eq("key", "landing_page_config")
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.value) {
+          try { setCfg({ ...DEFAULTS, ...JSON.parse(data.value) }); } catch {}
+        }
+      });
+  }, []);
 
-  const total = profiles * PROFILE_PRICE + proxies * PROXY_PRICE + pages * PAGE_PRICE + bm * BM_PRICE;
+  // Simulator state
+  const [simValues, setSimValues] = useState<Record<string, number>>({});
+  useEffect(() => {
+    const init: Record<string, number> = {};
+    cfg.simulator.items.forEach((item) => { init[item.key] = item.default; });
+    setSimValues(init);
+  }, [cfg.simulator.items]);
+
+  const total = cfg.simulator.items.reduce((sum, item) => sum + (simValues[item.key] || 0) * item.price, 0);
 
   const goAuth = () => navigate("/auth");
 
