@@ -168,11 +168,29 @@ export default function Orders() {
         }
       });
 
-      // Filter out proxy-only orders
+      // Filter out proxy-only orders and duplicate processing orders
+      // If a "processing" order has the same items as a "completed" order, hide the processing one
+      const completedItemKeys = new Set<string>();
+      ordersData
+        .filter(o => o.status === "completed")
+        .forEach(order => {
+          const items = (itemsData || []).filter((i: any) => i.order_id === order.id);
+          const key = items.map((i: any) => i.product_id).sort().join("|");
+          if (key) completedItemKeys.add(key);
+        });
+
       const nonProxyOrders = ordersData.filter((order) => {
         const items = (itemsData || []).filter((i: any) => i.order_id === order.id);
         const allProxy = items.length > 0 && items.every((i: any) => i.products?.icon_type === 'proxy');
-        return !allProxy;
+        if (allProxy) return false;
+
+        // Hide processing orders that have a completed equivalent
+        if (order.status === "processing") {
+          const key = items.map((i: any) => i.product_id).sort().join("|");
+          if (key && completedItemKeys.has(key)) return false;
+        }
+
+        return true;
       });
 
       const enriched: Order[] = nonProxyOrders.map((order) => ({
