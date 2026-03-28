@@ -338,9 +338,9 @@ const Index = () => {
           <div className="col-span-1 md:col-span-2">
             <span className="text-2xl font-black text-[#ff3131] mb-6 block italic">FBFLIX</span>
             <p className="text-sm text-white/50 max-w-sm mb-8 leading-relaxed">
-              © 2026 FBFLIX. Todos os direitos reservados. Engenharia de precisão para contingência e escala profissional no mercado de tráfego pago.
+              {cfg.footer.description}
             </p>
-            <p className="text-xs text-white/50">CNPJ: 40.122.096/0001-85</p>
+            <p className="text-xs text-white/50">CNPJ: {cfg.footer.cnpj}</p>
           </div>
           <div>
             <h3 className="text-white font-bold text-sm mb-6 uppercase tracking-widest">Links Rápidos</h3>
