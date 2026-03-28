@@ -43,6 +43,15 @@ interface SafeBmVault {
   link_health_checked_at: string | null;
   created_at: string;
   updated_at: string;
+  bm_tracking_id: string | null;
+  // Joined from bm_tracking
+  bm_tracking?: {
+    product_name: string;
+    sale_price: number;
+    sold_at: string;
+    status: string;
+    stock_item_id: string | null;
+  } | null;
 }
 
 function getBackupLinkTimeLeft(setAt: string | null): { expired: boolean; text: string; percent: number } {
@@ -97,7 +106,7 @@ export default function AdminSafeBM() {
     setLoading(true);
     const { data, error } = await supabase
       .from("safe_bm_vaults" as any)
-      .select("*")
+      .select("*, bm_tracking:bm_tracking_id(product_name, sale_price, sold_at, status, stock_item_id)")
       .order("created_at", { ascending: false });
     if (error) {
       toast.error("Erro ao carregar cofre: " + error.message);
