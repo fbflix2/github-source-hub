@@ -137,7 +137,13 @@ export default function AdminGestaoBMs() {
   };
 
   useEffect(() => {
-    if (isAdmin !== null) fetchItems();
+    if (isAdmin !== null) {
+      fetchItems();
+      // Fetch clients who have Safe BM subscriptions
+      supabase.from("safe_bm_vaults").select("user_id").then(({ data }) => {
+        if (data) setSafeBmClients(new Set(data.map(v => v.user_id)));
+      });
+    }
   }, [isAdmin]);
 
   // Auto-expire items past 8 days that are still active/notified
