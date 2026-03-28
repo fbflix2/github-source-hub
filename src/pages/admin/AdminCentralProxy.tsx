@@ -1,5 +1,7 @@
-import { Globe } from "lucide-react";
+import { Globe, Wrench } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import WebshareProxyTab from "@/components/admin/proxy/WebshareProxyTab";
+import ProxyMaintenanceTab from "@/components/admin/proxy/ProxyMaintenanceTab";
 
 export default function AdminCentralProxy() {
   return (
@@ -15,7 +17,24 @@ export default function AdminCentralProxy() {
         </div>
       </div>
 
-      <WebshareProxyTab />
+      <Tabs defaultValue="dashboard" className="space-y-6">
+        <TabsList className="bg-card/60 border border-border/40">
+          <TabsTrigger value="dashboard">
+            <Globe className="size-4 mr-1.5" />Dashboard
+          </TabsTrigger>
+          <TabsTrigger value="maintenance">
+            <Wrench className="size-4 mr-1.5" />Manutenção
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="dashboard">
+          <WebshareProxyTab />
+        </TabsContent>
+
+        <TabsContent value="maintenance">
+          <ProxyMaintenanceTab />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
