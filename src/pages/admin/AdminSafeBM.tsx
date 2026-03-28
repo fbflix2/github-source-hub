@@ -245,11 +245,15 @@ export default function AdminSafeBM() {
 
   const openAdd = () => { resetForm(); setModalOpen(true); };
   const openEdit = (v: SafeBmVault) => {
+    const resolvedBmLink = (v.bm_link && v.bm_link !== "https://business.facebook.com")
+      ? v.bm_link
+      : v.bm_tracking?.bm_link || "";
+
     setEditingVault(v);
     setFormClientName(v.client_name || "");
     setFormUserId(v.user_id);
     setFormBmName(v.bm_name);
-    setFormBmLink(v.bm_link);
+    setFormBmLink(resolvedBmLink);
     setFormPerfilBackup(v.perfil_backup || "");
     setFormPurchaseDate(v.purchase_date ? v.purchase_date.slice(0, 10) : "");
     setFormNotes(v.notes || "");
@@ -778,6 +782,18 @@ export default function AdminSafeBM() {
                                 <Copy className="size-2.5" /> Copiar link
                               </button>
                             </div>
+                          ) : v.bm_tracking?.bm_link ? (
+                            <div className="space-y-1">
+                              <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 text-[9px] px-1.5 py-0 w-fit">
+                                Link da Gestão BMs
+                              </Badge>
+                              <button
+                                onClick={() => { navigator.clipboard.writeText(v.bm_tracking!.bm_link!); toast.success("Link da BM copiado!"); }}
+                                className="flex items-center gap-1 text-[10px] text-primary/60 hover:text-primary"
+                              >
+                                <Copy className="size-2.5" /> Copiar link da BM
+                              </button>
+                            </div>
                           ) : (
                             <span className="text-xs text-muted-foreground/50 italic">Não configurado</span>
                           )}
@@ -857,6 +873,21 @@ export default function AdminSafeBM() {
                 <Label>Perfil Backup</Label>
                 <Input value={formPerfilBackup} onChange={e => setFormPerfilBackup(e.target.value)} placeholder="Nome do perfil" />
               </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Link da BM</Label>
+              <Input
+                value={formBmLink}
+                onChange={e => setFormBmLink(e.target.value)}
+                placeholder="https://business.facebook.com/..."
+                className="font-mono text-xs"
+              />
+              {editingVault?.bm_tracking?.bm_link && (
+                <p className="text-[10px] text-muted-foreground">
+                  Preenchido automaticamente da Gestão BMs quando disponível.
+                </p>
+              )}
             </div>
 
             {/* ─── LINK BACKUP (Novo Acesso) ─── */}
