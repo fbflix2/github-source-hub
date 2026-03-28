@@ -198,6 +198,47 @@ export default function AdminGestaoBMs() {
     };
   }, [items]);
 
+  const handleOpenProtect = (item: BmTracking) => {
+    // Extract BM name from bm_link field
+    const bmNameFromLink = item.bm_link.match(/^(.*?)https?:\/\//)?.[1]?.replace(/[\s|:\-]+$/, '').trim() || "";
+    setProtectItem(item);
+    setProtectForm({ bmName: bmNameFromLink, bmLink: "" });
+    setProtectOpen(true);
+  };
+
+  const handleProtect = async () => {
+    if (!protectItem) return;
+    if (!protectForm.bmName.trim()) return toast.error("Digite o nome da BM");
+    if (!protectForm.bmLink.trim()) return toast.error("Cole o link de convite da BM");
+
+    setProtecting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-fix-duplicate", {
+        body: {
+          action: "admin_protect_bm",
+          client_user_id: protectItem.client_user_id,
+          bm_name: protectForm.bmName.trim(),
+          bm_link: protectForm.bmLink.trim(),
+        },
+      });
+
+      if (error || data?.error) {
+        throw new Error(data?.error || error?.message || "Erro ao proteger");
+      }
+
+      toast.success(
+        data.mode === "configured_existing"
+          ? "Cofre existente configurado com sucesso!"
+          : "Novo cofre Safe BM criado com sucesso!"
+      );
+      setProtectOpen(false);
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao proteger BM");
+    } finally {
+      setProtecting(false);
+    }
+  };
+
   const handleNotify = async (item: BmTracking) => {
     // Insert notification for client
     const { error: notifErr } = await supabase.from("notifications").insert({
