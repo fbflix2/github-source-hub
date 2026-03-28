@@ -511,6 +511,19 @@ export default function AdminGestaoBMs() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-1">
+                        {/* Proteger BM - only for sold BMs where client has Safe BM */}
+                        {(item.status === "active" || item.status === "notified") && 
+                         item.client_user_id !== "00000000-0000-0000-0000-000000000000" &&
+                         safeBmClients.has(item.client_user_id) && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-purple-400 border-purple-500/30 hover:bg-purple-500/10 h-7 text-xs"
+                            onClick={() => handleOpenProtect(item)}
+                          >
+                            <Shield className="size-3 mr-1" /> Proteger
+                          </Button>
+                        )}
                         {(item.status === "active") && (
                           <Button
                             size="sm"
