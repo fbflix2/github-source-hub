@@ -626,6 +626,36 @@ export default function AdminImageViewer() {
                     maxLength={50}
                   />
                   <p className="text-[10px] text-muted-foreground mt-1">Este valor será preenchido automaticamente em novos documentos.</p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="text-[10px] text-muted-foreground whitespace-nowrap">Posição X:</span>
+                    <Slider value={[docIdentidadePos.xPct]} onValueChange={([v]) => {
+                      setDocIdentidadePos(prev => ({ ...prev, xPct: v }));
+                      if (docIdLockTimer.current) clearTimeout(docIdLockTimer.current);
+                      docIdLockTimer.current = setTimeout(() => {
+                        setDocIdentidadePos(current => {
+                          const sanitized = sanitizeTextPoint(current, FIXED_DOC_IDENTIDADE_POSITION);
+                          saveDocIdentidadePosition(sanitized);
+                          return sanitized;
+                        });
+                      }, 3000);
+                    }} min={0} max={100} step={0.1} className="flex-1" />
+                    <span className="text-[10px] text-muted-foreground w-10">{docIdentidadePos.xPct.toFixed(1)}%</span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-[10px] text-muted-foreground whitespace-nowrap">Altura:</span>
+                    <Slider value={[docIdentidadePos.yPct]} onValueChange={([v]) => {
+                      setDocIdentidadePos(prev => ({ ...prev, yPct: v }));
+                      if (docIdLockTimer.current) clearTimeout(docIdLockTimer.current);
+                      docIdLockTimer.current = setTimeout(() => {
+                        setDocIdentidadePos(current => {
+                          const sanitized = sanitizeTextPoint(current, FIXED_DOC_IDENTIDADE_POSITION);
+                          saveDocIdentidadePosition(sanitized);
+                          return sanitized;
+                        });
+                      }, 3000);
+                    }} min={0} max={100} step={0.1} className="flex-1" />
+                    <span className="text-[10px] text-muted-foreground w-10">{docIdentidadePos.yPct.toFixed(1)}%</span>
+                  </div>
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Posicione os textos e a foto no preview arrastando-os, ajuste fontes e contraste, depois clique abaixo para salvar as posições permanentemente.
