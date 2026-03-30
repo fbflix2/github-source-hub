@@ -291,7 +291,7 @@ export default function AdminImageViewer() {
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
     autoSaveTimer.current = setTimeout(() => {
       savePositions(true);
-    }, 1500);
+    }, 3000);
     return () => { if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current); };
   }, [textPos, fontSizes, photoPos, signatureFont, contrast, selectedImage, templateLoading, savePositions]);
 
