@@ -303,11 +303,17 @@ function ProxiesPanel() {
     const baseName = (sub.name || sub.code).replace(/#\d+$/, "").replace(/__proxy_\d+$/, "");
     setRenewingCode(sub.code);
     const isProxyBR = !sub.provider || sub.provider === "proxybr";
-    // All ProxyBR renewals now migrate to Webshare
-    const mutation = isProxyBR ? migrateMutation : renewMutation;
-    mutation.mutate(baseName, {
-      onSettled: () => setRenewingCode(null),
-    });
+    if (isProxyBR) {
+      // Pass proxy_index for multi-proxy subs so migration creates individual subs
+      migrateMutation.mutate(
+        { subscriptionName: baseName, proxyIndex: sub.proxyIndex, totalProxies: sub.totalProxies },
+        { onSettled: () => setRenewingCode(null) },
+      );
+    } else {
+      renewMutation.mutate(baseName, {
+        onSettled: () => setRenewingCode(null),
+      });
+    }
   };
 
   if (!isLoading && !error && subscriptions.length === 0) {
