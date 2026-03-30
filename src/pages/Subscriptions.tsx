@@ -265,6 +265,7 @@ function ProxiesPanel() {
   const { data: webshareRaw, isLoading: wsLoading, error: wsError } = useWebshareSubscriptions();
   const renewMutation = useRenewSubscription();
   const migrateMutation = useMigrateProxyBRToWebshare();
+  const [renewingCode, setRenewingCode] = useState<string | null>(null);
 
   const isLoading = proxyLoading || wsLoading;
   const error = proxyError || wsError;
