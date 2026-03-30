@@ -128,7 +128,7 @@ export default function Subscriptions() {
 
   const activeServices: Record<SubscriptionCategory, boolean> = {
     proxies: hasActiveProxy === true,
-    safebm: hasSafeBm === true,
+    safebm: hasSafeBm === true || hasPurchasedSafeBm === true,
     contingencia: hasContingencia === true,
   };
 
