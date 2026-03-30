@@ -86,6 +86,7 @@ export default function Subscriptions() {
   const [hasSafeBm, setHasSafeBm] = useState<boolean | null>(null);
   const [hasContingencia, setHasContingencia] = useState<boolean | null>(null);
   const [hasActiveProxy, setHasActiveProxy] = useState<boolean | null>(null);
+  const [hasPurchasedSafeBm, setHasPurchasedSafeBm] = useState<boolean | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
