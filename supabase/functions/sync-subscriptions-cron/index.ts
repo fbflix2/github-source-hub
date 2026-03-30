@@ -405,6 +405,87 @@ Deno.serve(async (req) => {
           console.log(`Deleted ${toDelete.length} cancelled subscriptions (10+ days old)`);
         }
 
+        // 7. Auto-renewal: renew subscriptions with auto_renew=true expiring within 1 day
+        try {
+          const now = new Date();
+          const oneDayFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+          const { data: autoRenewSubs } = await sb
+            .from("subscriptions")
+            .select("id, name, user_id, product_id, end_date, type, raw_data")
+            .eq("auto_renew", true)
+            .in("type", ["proxybr", "webshare"])
+            .in("status", ["active", "expiring", "pending_renewal"])
+            .lte("end_date", oneDayFromNow.toISOString())
+            .gte("end_date", new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString());
+
+          if (autoRenewSubs && autoRenewSubs.length > 0) {
+            console.log(`Auto-renewal: found ${autoRenewSubs.length} subscriptions to auto-renew`);
+            const PROXYBR_API_KEY = Deno.env.get("PROXYBR_API_KEY") || "";
+
+            for (const sub of autoRenewSubs) {
+              try {
+                const rawData = (sub.raw_data || {}) as Record<string, any>;
+                const proxyCount = rawData?.proxies?.data?.length || rawData?.subscription?.proxies?.data?.length || 1;
+
+                // Get renewal price
+                let unitPrice = 0;
+                if (sub.product_id) {
+                  const { data: product } = await sb.from("products").select("price").eq("id", sub.product_id).maybeSingle();
+                  if (product?.price != null) unitPrice = Number(product.price);
+                }
+                const totalPrice = unitPrice * proxyCount;
+
+                // Check balance
+                const { data: profile } = await sb.from("profiles").select("balance").eq("user_id", sub.user_id).single();
+                const balance = Number(profile?.balance || 0);
+                if (balance < totalPrice) {
+                  console.log(`Auto-renewal SKIP ${sub.name}: insufficient balance (need R$${totalPrice}, have R$${balance})`);
+                  continue;
+                }
+
+                if (sub.type === "proxybr") {
+                  // Call ProxyBR API to renew
+                  const renewUrl = `${PROXYBR_BASE}/subscriptions/${sub.name}/renew`;
+                  const renewResp = await fetch(renewUrl, {
+                    method: "POST",
+                    headers: { "Accept": "application/json", "X-API-Key": PROXYBR_API_KEY },
+                  });
+                  if (!renewResp.ok) {
+                    console.error(`Auto-renewal FAILED ${sub.name}: ProxyBR API returned ${renewResp.status}`);
+                    continue;
+                  }
+                }
+
+                // Debit balance
+                if (totalPrice > 0) {
+                  await sb.from("profiles").update({ balance: balance - totalPrice }).eq("user_id", sub.user_id);
+                  await sb.from("wallet_transactions").insert({
+                    user_id: sub.user_id,
+                    type: "renewal",
+                    amount: -totalPrice,
+                    description: `Renovação automática: ${sub.name}`,
+                    balance_after: balance - totalPrice,
+                  });
+                }
+
+                // Update subscription dates
+                const currentEnd = new Date(sub.end_date!);
+                const newEnd = new Date(Math.max(currentEnd.getTime(), now.getTime()) + 30 * 24 * 60 * 60 * 1000);
+                await sb.from("subscriptions").update({
+                  status: "active",
+                  end_date: newEnd.toISOString(),
+                }).eq("id", sub.id);
+
+                console.log(`Auto-renewal SUCCESS ${sub.name}: R$${totalPrice} debited, new end: ${newEnd.toISOString()}`);
+              } catch (err: any) {
+                console.error(`Auto-renewal error for ${sub.name}:`, err.message);
+              }
+            }
+          }
+        } catch (autoErr: any) {
+          console.error("Auto-renewal check error:", autoErr.message);
+        }
+
         if (reachedEnd) {
           // Full sync complete — reset progress to page 1
           console.log(`Cron sync COMPLETE: ${synced} synced, ${linked} linked (started from page ${startPage})`);
