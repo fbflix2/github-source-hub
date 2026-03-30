@@ -86,6 +86,7 @@ export default function Subscriptions() {
   const [hasSafeBm, setHasSafeBm] = useState<boolean | null>(null);
   const [hasContingencia, setHasContingencia] = useState<boolean | null>(null);
   const [hasActiveProxy, setHasActiveProxy] = useState<boolean | null>(null);
+  const [hasPurchasedSafeBm, setHasPurchasedSafeBm] = useState<boolean | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -128,7 +129,7 @@ export default function Subscriptions() {
 
   const activeServices: Record<SubscriptionCategory, boolean> = {
     proxies: hasActiveProxy === true,
-    safebm: hasSafeBm === true,
+    safebm: hasSafeBm === true || hasPurchasedSafeBm === true,
     contingencia: hasContingencia === true,
   };
 
@@ -139,6 +140,23 @@ export default function Subscriptions() {
     }
     setActiveCategory(key);
   };
+
+  // Check if user has purchased BM Safe (for showing subscription panel vs promo)
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setHasPurchasedSafeBm(false); return; }
+      const SAFEBM_PRODUCT_ID = "e5118c63-ed52-4f4e-8983-f44c1ba0d17b";
+      const { count } = await supabase
+        .from("order_items")
+        .select("id", { count: "exact", head: true })
+        .eq("product_id", SAFEBM_PRODUCT_ID)
+        .in("order_id", 
+          (await supabase.from("orders").select("id").eq("user_id", user.id).eq("status", "completed")).data?.map(o => o.id) || []
+        );
+      setHasPurchasedSafeBm((count ?? 0) > 0);
+    })();
+  }, []);
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -177,7 +195,7 @@ export default function Subscriptions() {
 
       {/* Content based on active category */}
       {activeCategory === "proxies" && <ProxiesPanel />}
-      {activeCategory === "safebm" && <SafeBmPromoPanel />}
+      {activeCategory === "safebm" && (hasPurchasedSafeBm ? <SafeBmPanel /> : <SafeBmPromoPanel />)}
       {activeCategory === "contingencia" && <ContingenciaPanel />}
     </div>
   );
@@ -437,87 +455,158 @@ function ProxiesPanel() {
   );
 }
 
-/* ─── SAFE BM PANEL ─── */
+/* ─── SAFE BM PANEL (for users who purchased BM Safe) ─── */
 function SafeBmPanel() {
+  const navigate = useNavigate();
   const [vaults, setVaults] = useState<any[]>([]);
+  const [bmTracking, setBmTracking] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setLoading(false); return; }
-      const { data } = await supabase
-        .from("safe_bm_vaults" as any)
-        .select("*")
-        .eq("user_id", user.id);
-      setVaults(data || []);
+
+      const [vaultsRes, bmTrackingRes] = await Promise.all([
+        supabase
+          .from("safe_bm_vaults" as any)
+          .select("*")
+          .eq("user_id", user.id),
+        supabase
+          .from("bm_tracking")
+          .select("id, product_name, bm_link, status")
+          .eq("client_user_id", user.id)
+          .in("status", ["active", "em_estoque"]),
+      ]);
+      setVaults(vaultsRes.data || []);
+      setBmTracking(bmTrackingRes.data || []);
       setLoading(false);
     })();
   }, []);
 
   if (loading) return <div className="space-y-4">{[1, 2].map(i => <Skeleton key={i} className="h-24 rounded-xl" />)}</div>;
 
-  if (vaults.length === 0) {
+  // Case 1: User has active vaults → show vault summary + link to full dashboard
+  if (vaults.length > 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 px-4">
-        <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-5">
-          <Shield className="text-primary size-6" />
+      <div className="space-y-6">
+        <div className="glass-panel rounded-xl p-5 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center text-green-500">
+            <ShieldCheck className="size-5" />
+          </div>
+          <div>
+            <p className="text-text-secondary text-xs uppercase font-semibold tracking-wider">Cofres Ativos</p>
+            <p className="text-foreground text-2xl font-bold">{vaults.length} BM{vaults.length !== 1 ? "s" : ""} protegida{vaults.length !== 1 ? "s" : ""}</p>
+          </div>
         </div>
-        <h2 className="text-xl font-bold text-foreground mb-2">Configure seu cofre Safe BM</h2>
-        <p className="text-text-secondary text-sm text-center max-w-md mb-6">Adicione suas BMs ao cofre para ativar a proteção com backup automático e acesso seguro.</p>
-        <a href="/safe-bm" className="bg-primary hover:bg-[#00c968] text-background h-11 px-6 rounded-xl text-sm font-bold transition-all shadow-glow flex items-center gap-2">
-          <Shield className="size-4" />
-          Configurar Cofre
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {vaults.map((v: any) => (
+            <div key={v.id} className="glass-card rounded-xl p-5 border border-glass-border hover:border-primary/30 transition-all">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Shield className="size-4 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-foreground">{v.bm_name || "BM Protegida"}</p>
+                  <Badge variant="outline" className="text-[10px] bg-green-500/10 text-green-500 border-green-500/20">Protegido</Badge>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <a
+          href="/safe-bm"
+          className="block w-full rounded-xl glass-panel border border-primary/20 p-5 hover:border-primary/40 transition-all group"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <Shield className="size-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-foreground">Acessar Painel Safe BM</h3>
+                <p className="text-xs text-muted-foreground">Painel completo das suas BMs protegidas</p>
+              </div>
+            </div>
+            <span className="text-primary group-hover:translate-x-1 transition-transform">→</span>
+          </div>
         </a>
       </div>
     );
   }
 
+  // Case 2: No vaults, but user has BMs in bm_tracking → show "aguarde" state
+  if (bmTracking.length > 0) {
+    return (
+      <div className="space-y-6">
+        <Card className="bg-gradient-to-br from-primary/5 via-card to-card border-primary/20 overflow-hidden relative">
+          <CardContent className="p-8 md:p-10">
+            <div className="flex flex-col items-center text-center space-y-5">
+              <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center animate-pulse">
+                <Shield className="size-8 text-primary" />
+              </div>
+              <div className="space-y-2">
+                <h2 className="text-2xl font-bold text-foreground">Aguarde, estamos protegendo suas BMs</h2>
+                <p className="text-muted-foreground max-w-lg">
+                  Identificamos <strong className="text-foreground">{bmTracking.length} BM{bmTracking.length !== 1 ? "s" : ""}</strong> vinculada{bmTracking.length !== 1 ? "s" : ""} à sua conta. 
+                  Nossa equipe está configurando a blindagem de cada uma. Você será notificado assim que a proteção estiver ativa.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-md">
+                {bmTracking.slice(0, 4).map((bm: any) => (
+                  <div key={bm.id} className="glass-card rounded-xl p-4 border border-glass-border text-left">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                        <Shield className="size-4 text-amber-500" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-foreground truncate">{bm.product_name}</p>
+                        <Badge variant="outline" className="text-[9px] bg-amber-500/10 text-amber-500 border-amber-500/20 mt-0.5">
+                          Configurando
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {bmTracking.length > 4 && (
+                <p className="text-xs text-muted-foreground">+ {bmTracking.length - 4} outra{bmTracking.length - 4 !== 1 ? "s" : ""} BM{bmTracking.length - 4 !== 1 ? "s" : ""}</p>
+              )}
+
+              <div className="rounded-xl bg-accent/10 border border-accent/20 p-4 max-w-md w-full">
+                <div className="flex items-center gap-2 text-xs text-accent-foreground">
+                  <Zap className="size-4 flex-shrink-0" />
+                  <span>A configuração geralmente leva até <strong>24 horas</strong>. Fique tranquilo!</span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Case 3: No vaults, no BMs in tracking → BM not bought with us, let user configure
   return (
-    <div className="space-y-6">
-      <div className="glass-panel rounded-xl p-5 flex items-center gap-4">
-        <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center text-green-500">
-          <ShieldCheck className="size-5" />
-        </div>
-        <div>
-          <p className="text-text-secondary text-xs uppercase font-semibold tracking-wider">Cofres Ativos</p>
-          <p className="text-foreground text-2xl font-bold">{vaults.length} BM{vaults.length !== 1 ? "s" : ""} protegida{vaults.length !== 1 ? "s" : ""}</p>
-        </div>
+    <div className="flex flex-col items-center justify-center py-16 px-4">
+      <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-5">
+        <Shield className="text-primary size-6" />
       </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {vaults.map((v: any) => (
-          <div key={v.id} className="glass-card rounded-xl p-5 border border-glass-border hover:border-primary/30 transition-all">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Shield className="size-4 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-foreground">{v.bm_name || "BM Protegida"}</p>
-                <Badge variant="outline" className="text-[10px] bg-green-500/10 text-green-500 border-green-500/20">Protegido</Badge>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <a
-        href="/safe-bm"
-        className="block w-full rounded-xl glass-panel border border-primary/20 p-5 hover:border-primary/40 transition-all group"
+      <h2 className="text-xl font-bold text-foreground mb-2">Configure seu cofre Safe BM</h2>
+      <p className="text-text-secondary text-sm text-center max-w-md mb-6">
+        Sua BM não foi identificada em nosso sistema. Configure seu cofre manualmente para ativar a proteção com backup automático.
+      </p>
+      <Button
+        onClick={() => navigate("/safe-bm")}
+        className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold"
       >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Shield className="size-5 text-primary" />
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-foreground">Acessar Painel Safe BM</h3>
-              <p className="text-xs text-muted-foreground">Painel completo das suas BMs protegidas</p>
-            </div>
-          </div>
-          <span className="text-primary group-hover:translate-x-1 transition-transform">→</span>
-        </div>
-      </a>
+        <Shield className="size-4" />
+        Configurar Cofre
+      </Button>
     </div>
   );
 }
