@@ -112,6 +112,10 @@ export function useProxyBRSubscriptions() {
         const productInfo = (sub as any).products as any;
         const proxies = raw.proxies?.data || raw.subscription?.proxies?.data || [];
         const isMulti = proxies.length > 1;
+        const migratedProxies: number[] = raw.migrated_proxies || [];
+
+        // Skip fully migrated subs
+        if (sub.status === "migrated") continue;
 
         const buildProxyInfo = (proxy: any) => {
           const parsed = proxy.parsed || (() => {
@@ -161,6 +165,8 @@ export function useProxyBRSubscriptions() {
           const perProxyPaid = Math.floor(rawPaidQuota / proxies.length);
 
           proxies.forEach((proxy: any, index: number) => {
+            // Skip proxies already migrated to Webshare
+            if (migratedProxies.includes(index + 1)) return;
             const proxyTagKey = `profile_tag_${proxy.id}`;
             const parsed = buildProxyInfo(proxy);
             const proxyDisplayName = `${sub.name}#${index + 1}`;

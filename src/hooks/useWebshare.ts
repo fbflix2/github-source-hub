@@ -250,8 +250,12 @@ export function useExchangeWebshareProxy() {
 export function useMigrateProxyBRToWebshare() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (subscriptionName: string) => {
-      const result = await callWebshare("migrate-proxybr-renewal", { subscription_name: subscriptionName });
+    mutationFn: async ({ subscriptionName, proxyIndex, totalProxies }: { subscriptionName: string; proxyIndex?: number; totalProxies?: number }) => {
+      const result = await callWebshare("migrate-proxybr-renewal", {
+        subscription_name: subscriptionName,
+        proxy_index: proxyIndex,
+        total_proxies: totalProxies,
+      });
       return result;
     },
     onSuccess: (result: any) => {
