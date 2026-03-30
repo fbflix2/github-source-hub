@@ -1,0 +1,1 @@
+UPDATE subscriptions SET name = '2512296940#1' WHERE id = 'c28b6da6-0cba-40a1-86e6-376cdf1888ca';
