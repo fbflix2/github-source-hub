@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useProxyBRSubscriptions, useExchangeProxy, useRenewSubscription, useToggleAutoRenew, getExchangeHistory } from "@/hooks/useProxyBR";
-import { useWebshareSubscriptions, useExchangeWebshareProxy, getWebshareExchangeHistory } from "@/hooks/useWebshare";
+import { useWebshareSubscriptions, useExchangeWebshareProxy, getWebshareExchangeHistory, useToggleWebshareAutoRenew } from "@/hooks/useWebshare";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
@@ -34,6 +34,7 @@ export default function SubscriptionManage() {
   const wsExchangeMutation = useExchangeWebshareProxy();
   const renewMutation = useRenewSubscription();
   const autoRenewMutation = useToggleAutoRenew();
+  const wsAutoRenewMutation = useToggleWebshareAutoRenew();
   const queryClient = useQueryClient();
   const [showExchangeHistory, setShowExchangeHistory] = useState(false);
   const [extraQuotaQty, setExtraQuotaQty] = useState(1);
@@ -429,21 +430,23 @@ export default function SubscriptionManage() {
                 </div>
               ))}
             </div>
-            {!isWebshare && (
-              <div className="flex items-center justify-between pt-2 border-t border-border">
+            <div className="flex items-center justify-between pt-2 border-t border-border">
                 <div className="flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-primary text-sm">autorenew</span>
                   <span className="text-xs text-text-secondary">Renovação automática</span>
                 </div>
                 <Switch
                   checked={!!sub.auto_renew}
-                  disabled={autoRenewMutation.isPending}
-                  onCheckedChange={(checked) =>
-                    autoRenewMutation.mutate({ subscriptionCode: sub.name, auto_renew: checked })
-                  }
+                  disabled={isWebshare ? wsAutoRenewMutation.isPending : autoRenewMutation.isPending}
+                  onCheckedChange={(checked) => {
+                    if (isWebshare) {
+                      wsAutoRenewMutation.mutate({ subscriptionId: (sub as any).id || sub.code, auto_renew: checked });
+                    } else {
+                      autoRenewMutation.mutate({ subscriptionCode: sub.name, auto_renew: checked });
+                    }
+                  }}
                 />
               </div>
-            )}
           </div>
 
           {/* Exchange - hidden for rotating proxies */}
