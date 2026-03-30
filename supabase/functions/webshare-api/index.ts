@@ -1609,66 +1609,68 @@ Deno.serve(async (req) => {
 
     // ========== MIGRATE PROXYBR RENEWAL → WEBSHARE ==========
     if (action === "migrate-proxybr-renewal") {
-      const { subscription_name } = params as { subscription_name: string };
+      const { subscription_name, proxy_index, total_proxies, auto_renew_user_id } = params as {
+        subscription_name: string;
+        proxy_index?: number;
+        total_proxies?: number;
+        auto_renew_user_id?: string;
+      };
       if (!subscription_name) throw new Error("subscription_name é obrigatório");
+
+      const targetUserId = auto_renew_user_id || user?.id;
+      if (!targetUserId) throw new Error("Usuário não identificado");
 
       // 1. Find the ProxyBR subscription in DB
       const { data: existingSub, error: subFetchErr } = await supabaseAdmin
         .from("subscriptions")
         .select("*, products:product_id(name, price, tags)")
-        .eq("user_id", user.id)
+        .eq("user_id", targetUserId)
         .eq("name", subscription_name)
         .eq("type", "proxybr")
         .single();
 
       if (subFetchErr || !existingSub) throw new Error("Assinatura ProxyBR não encontrada");
-      if (!["expired", "cancelled"].includes(existingSub.status) && existingSub.end_date) {
-        const endDate = new Date(existingSub.end_date);
-        if (endDate > new Date()) throw new Error("Esta assinatura ainda está ativa");
+
+      // For single-proxy subs or non-exploded, check if still active
+      const isMultiProxy = (total_proxies || 0) > 1;
+      if (!isMultiProxy) {
+        if (!["expired", "cancelled"].includes(existingSub.status) && existingSub.end_date) {
+          const endDate = new Date(existingSub.end_date);
+          if (endDate > new Date()) throw new Error("Esta assinatura ainda está ativa");
+        }
       }
 
       // 2. Detect country from raw_data or product
       const raw = (existingSub.raw_data || {}) as Record<string, any>;
       const productInfo = existingSub.products as any;
-      let targetCountry = "BR"; // default
+      let targetCountry = "BR";
       const productName = (productInfo?.name || raw.product?.name || raw.product_name || existingSub.name || "").toLowerCase();
       if (productName.includes("us") || productName.includes("estados unidos") || productName.includes("usa")) {
         targetCountry = "US";
       }
-      // Also check raw_data proxy country
       const rawCountry = raw.proxies?.data?.[0]?.country_code || raw.country_code;
       if (rawCountry) targetCountry = rawCountry.toUpperCase();
 
-      console.log(`[migrate-proxybr] Sub=${subscription_name} country=${targetCountry}`);
+      console.log(`[migrate-proxybr] Sub=${subscription_name} country=${targetCountry} multiProxy=${isMultiProxy} proxyIndex=${proxy_index}`);
 
-      // 3. Find Webshare product price for equivalent product
+      // 3. Find Webshare product price
       const { data: wsProducts } = await supabaseAdmin
         .from("products")
         .select("id, name, price, tags")
         .eq("available", true)
         .ilike("name", "%proxy%");
 
-      // Match by country
       let matchedProduct: any = null;
       for (const p of (wsProducts || [])) {
         const pName = p.name.toLowerCase();
         const pTags = (p.tags || []) as string[];
         const isWebshare = pName.includes("residencial") || pName.includes("webshare") || pTags.some((t: string) => t.toLowerCase() === "webshare");
         if (!isWebshare) continue;
-        
         const pCountry = detectCountryFromProduct(p);
-        if (pCountry === targetCountry) {
-          matchedProduct = p;
-          break;
-        }
+        if (pCountry === targetCountry) { matchedProduct = p; break; }
       }
-
-      // Fallback: any webshare proxy product
       if (!matchedProduct) {
-        matchedProduct = (wsProducts || []).find((p: any) => {
-          const pName = p.name.toLowerCase();
-          return pName.includes("residencial") || pName.includes("webshare");
-        });
+        matchedProduct = (wsProducts || []).find((p: any) => p.name.toLowerCase().includes("residencial") || p.name.toLowerCase().includes("webshare"));
       }
 
       const renewalPrice = matchedProduct?.price || productInfo?.price || 25;
@@ -1678,7 +1680,7 @@ Deno.serve(async (req) => {
       const { data: profile } = await supabaseAdmin
         .from("profiles")
         .select("balance, full_name")
-        .eq("user_id", user.id)
+        .eq("user_id", targetUserId)
         .single();
 
       if (!profile) throw new Error("Perfil não encontrado");
@@ -1711,51 +1713,87 @@ Deno.serve(async (req) => {
       if (countryFiltered.length === 0) throw new Error(`Nenhum proxy ${targetCountry} disponível no momento`);
       const assignedProxy = countryFiltered[0];
 
-      // 6. Update the subscription: change type to webshare, new dates, new proxy
       const startDate = new Date();
       const endDate = new Date(startDate);
       endDate.setDate(endDate.getDate() + 30);
 
-      const { error: updateErr } = await supabaseAdmin
-        .from("subscriptions")
-        .update({
-          type: "webshare",
-          status: "active",
-          start_date: startDate.toISOString(),
-          end_date: endDate.toISOString(),
-          product_id: matchedProduct?.id || existingSub.product_id,
-          cancelled_at: null,
-          updated_at: new Date().toISOString(),
-          raw_data: {
-            webshare_proxy_id: assignedProxy.id,
-            proxy_address: assignedProxy.proxy_address,
-            port: assignedProxy.port,
-            username: assignedProxy.username,
-            password: assignedProxy.password,
-            country_code: assignedProxy.country_code,
-            city_name: assignedProxy.city_name,
-            provider: "webshare",
-            exchange_quota_free: 2,
-            exchange_quota_pay: 0,
-            migrated_from: "proxybr",
-            original_name: existingSub.name,
-            original_raw_data: raw,
-            profile_tag: raw.profile_tag || null,
-          },
-        })
-        .eq("id", existingSub.id);
+      const newRawData = {
+        webshare_proxy_id: assignedProxy.id,
+        proxy_address: assignedProxy.proxy_address,
+        port: assignedProxy.port,
+        username: assignedProxy.username,
+        password: assignedProxy.password,
+        country_code: assignedProxy.country_code,
+        city_name: assignedProxy.city_name,
+        provider: "webshare",
+        exchange_quota_free: 2,
+        exchange_quota_pay: 0,
+        migrated_from: "proxybr",
+        original_name: existingSub.name,
+        profile_tag: raw.profile_tag || null,
+      };
 
-      if (updateErr) throw new Error(`Erro ao atualizar assinatura: ${updateErr.message}`);
+      // 6. For multi-proxy subs, CREATE a new row; for single-proxy, UPDATE the existing row
+      if (isMultiProxy) {
+        // Create a new Webshare subscription for this specific proxy
+        const newSubName = `${subscription_name}#${proxy_index || 1}`;
+        const { error: insertErr } = await supabaseAdmin
+          .from("subscriptions")
+          .insert({
+            user_id: targetUserId,
+            name: newSubName,
+            type: "webshare",
+            status: "active",
+            start_date: startDate.toISOString(),
+            end_date: endDate.toISOString(),
+            auto_renew: existingSub.auto_renew,
+            product_id: matchedProduct?.id || existingSub.product_id,
+            raw_data: { ...newRawData, proxy_index: proxy_index },
+          });
+
+        if (insertErr) throw new Error(`Erro ao criar assinatura: ${insertErr.message}`);
+
+        // Track migrated proxies on the original sub
+        const migratedProxies = raw.migrated_proxies || [];
+        migratedProxies.push(proxy_index || 1);
+        const allMigrated = migratedProxies.length >= (total_proxies || 1);
+
+        await supabaseAdmin
+          .from("subscriptions")
+          .update({
+            raw_data: { ...raw, migrated_proxies: migratedProxies },
+            ...(allMigrated ? { status: "migrated" } : {}),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", existingSub.id);
+      } else {
+        // Single proxy: update in-place
+        const { error: updateErr } = await supabaseAdmin
+          .from("subscriptions")
+          .update({
+            type: "webshare",
+            status: "active",
+            start_date: startDate.toISOString(),
+            end_date: endDate.toISOString(),
+            product_id: matchedProduct?.id || existingSub.product_id,
+            cancelled_at: null,
+            updated_at: new Date().toISOString(),
+            raw_data: { ...newRawData, original_raw_data: raw },
+          })
+          .eq("id", existingSub.id);
+
+        if (updateErr) throw new Error(`Erro ao atualizar assinatura: ${updateErr.message}`);
+      }
 
       // 7. Debit wallet
       const newBalance = profile.balance - renewalPrice;
-      await supabaseAdmin.from("profiles").update({ balance: newBalance }).eq("user_id", user.id);
+      await supabaseAdmin.from("profiles").update({ balance: newBalance }).eq("user_id", targetUserId);
 
       // 8. Record wallet transaction
       await supabaseAdmin.from("wallet_transactions").insert({
-        user_id: user.id,
+        user_id: targetUserId,
         type: "purchase",
-        title: `Renovação Proxy ${subscription_name}`,
+        title: `Renovação Proxy ${subscription_name}${isMultiProxy ? `#${proxy_index || 1}` : ''}`,
         amount: -renewalPrice,
         balance_after: newBalance,
         reference_id: existingSub.id,
@@ -1765,7 +1803,7 @@ Deno.serve(async (req) => {
       const clientName = profile.full_name || "Cliente";
       await supabaseAdmin.from("notifications").insert({
         title: "Migração ProxyBR → Webshare",
-        message: `${clientName} renovou ${subscription_name} • R$ ${renewalPrice.toFixed(2)} • ${assignedProxy.proxy_address}:${assignedProxy.port} (${targetCountry})`,
+        message: `${clientName} renovou ${subscription_name}${isMultiProxy ? `#${proxy_index || 1}` : ''} • R$ ${renewalPrice.toFixed(2)} • ${assignedProxy.proxy_address}:${assignedProxy.port} (${targetCountry})`,
         type: "order",
         global: true,
       });
