@@ -1626,16 +1626,32 @@ Deno.serve(async (req) => {
       const targetUserId = auto_renew_user_id || user?.id;
       if (!targetUserId) throw new Error("Usuário não identificado");
 
-      // 1. Find the ProxyBR subscription in DB
-      const { data: existingSub, error: subFetchErr } = await supabaseAdmin
-        .from("subscriptions")
-        .select("*, products:product_id(name, price, tags)")
-        .eq("user_id", targetUserId)
-        .eq("name", subscription_name)
-        .eq("type", "proxybr")
-        .single();
-
-      if (subFetchErr || !existingSub) throw new Error("Assinatura ProxyBR não encontrada");
+      // 1. Find the ProxyBR subscription in DB (search by name across all users since sync may assign to admin)
+      let existingSub: any = null;
+      {
+        const { data: directSub } = await supabaseAdmin
+          .from("subscriptions")
+          .select("*, products:product_id(name, price, tags)")
+          .eq("user_id", targetUserId)
+          .eq("name", subscription_name)
+          .eq("type", "proxybr")
+          .maybeSingle();
+        
+        if (directSub) {
+          existingSub = directSub;
+        } else {
+          // Fallback: search across all users (sync-cron may have assigned to admin user)
+          const { data: anySub } = await supabaseAdmin
+            .from("subscriptions")
+            .select("*, products:product_id(name, price, tags)")
+            .eq("name", subscription_name)
+            .eq("type", "proxybr")
+            .limit(1)
+            .maybeSingle();
+          existingSub = anySub;
+        }
+      }
+      if (!existingSub) throw new Error("Assinatura ProxyBR não encontrada");
 
       // For single-proxy subs or non-exploded, check if still active
       const isMultiProxy = (total_proxies || 0) > 1;
