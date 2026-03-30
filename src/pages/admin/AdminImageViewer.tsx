@@ -819,6 +819,11 @@ export default function AdminImageViewer() {
                   <Slider value={[fontSizes.assinatura]} onValueChange={([v]) => setFontSizes((sf) => ({ ...sf, assinatura: v }))} min={8} max={24} step={0.5} className="flex-1" />
                   <span className="text-[10px] text-white/50 w-8">{fontSizes.assinatura}px</span>
                 </div>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-[10px] text-white/40">Altura:</span>
+                  <Slider value={[safeTextPos.assinatura.yPct]} onValueChange={([v]) => setTextPos((prev) => ({ ...prev, assinatura: { ...prev.assinatura, yPct: v } }))} min={0} max={100} step={0.1} className="flex-1" />
+                  <span className="text-[10px] text-white/50 w-10">{safeTextPos.assinatura.yPct.toFixed(1)}%</span>
+                </div>
               </div>
 
               <div className="pt-2 border-t border-white/10">
