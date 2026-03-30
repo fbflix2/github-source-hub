@@ -265,7 +265,6 @@ Deno.serve(async (req) => {
     const token = authHeader.replace("Bearer ", "").trim();
     const serviceRoleKey = (Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "").trim();
     const isServiceRole = serviceRoleKey.length > 0 && token === serviceRoleKey;
-    console.log(`[webshare-api] auth: isServiceRole=${isServiceRole} tokenLen=${token.length} srkLen=${serviceRoleKey.length}`);
     let user: any = null;
     if (!isServiceRole) {
       const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
