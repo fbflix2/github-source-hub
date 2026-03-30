@@ -262,17 +262,24 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Token inválido" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const token = authHeader.replace("Bearer ", "").trim();
+    const serviceRoleKey = (Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "").trim();
+    const isServiceRole = serviceRoleKey.length > 0 && token === serviceRoleKey;
+    console.log(`[webshare-api] auth: isServiceRole=${isServiceRole} tokenLen=${token.length} srkLen=${serviceRoleKey.length}`);
+    let user: any = null;
+    if (!isServiceRole) {
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
+      if (authError || !authUser) {
+        return new Response(JSON.stringify({ error: "Token inválido" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      user = authUser;
     }
 
     const { action, ...params } = bodyClone;
-    console.log(`[webshare-api] action=${action} user=${user.id}`);
+    console.log(`[webshare-api] action=${action} user=${user?.id || 'service-role'}`);
 
     // ========== GET PROFILE ==========
     if (action === "get-profile") {
@@ -1620,16 +1627,32 @@ Deno.serve(async (req) => {
       const targetUserId = auto_renew_user_id || user?.id;
       if (!targetUserId) throw new Error("Usuário não identificado");
 
-      // 1. Find the ProxyBR subscription in DB
-      const { data: existingSub, error: subFetchErr } = await supabaseAdmin
-        .from("subscriptions")
-        .select("*, products:product_id(name, price, tags)")
-        .eq("user_id", targetUserId)
-        .eq("name", subscription_name)
-        .eq("type", "proxybr")
-        .single();
-
-      if (subFetchErr || !existingSub) throw new Error("Assinatura ProxyBR não encontrada");
+      // 1. Find the ProxyBR subscription in DB (search by name across all users since sync may assign to admin)
+      let existingSub: any = null;
+      {
+        const { data: directSub } = await supabaseAdmin
+          .from("subscriptions")
+          .select("*, products:product_id(name, price, tags)")
+          .eq("user_id", targetUserId)
+          .eq("name", subscription_name)
+          .eq("type", "proxybr")
+          .maybeSingle();
+        
+        if (directSub) {
+          existingSub = directSub;
+        } else {
+          // Fallback: search across all users (sync-cron may have assigned to admin user)
+          const { data: anySub } = await supabaseAdmin
+            .from("subscriptions")
+            .select("*, products:product_id(name, price, tags)")
+            .eq("name", subscription_name)
+            .eq("type", "proxybr")
+            .limit(1)
+            .maybeSingle();
+          existingSub = anySub;
+        }
+      }
+      if (!existingSub) throw new Error("Assinatura ProxyBR não encontrada");
 
       // For single-proxy subs or non-exploded, check if still active
       const isMultiProxy = (total_proxies || 0) > 1;
