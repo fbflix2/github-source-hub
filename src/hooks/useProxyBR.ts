@@ -112,6 +112,10 @@ export function useProxyBRSubscriptions() {
         const productInfo = (sub as any).products as any;
         const proxies = raw.proxies?.data || raw.subscription?.proxies?.data || [];
         const isMulti = proxies.length > 1;
+        const migratedProxies: number[] = raw.migrated_proxies || [];
+
+        // Skip fully migrated subs
+        if (sub.status === "migrated") continue;
 
         const buildProxyInfo = (proxy: any) => {
           const parsed = proxy.parsed || (() => {
