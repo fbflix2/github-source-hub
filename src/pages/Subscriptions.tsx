@@ -142,7 +142,6 @@ export default function Subscriptions() {
   };
 
   // Check if user has purchased BM Safe (for showing subscription panel vs promo)
-  const [hasPurchasedSafeBm, setHasPurchasedSafeBm] = useState<boolean | null>(null);
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
