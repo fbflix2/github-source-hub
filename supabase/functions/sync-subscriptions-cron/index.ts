@@ -446,16 +446,16 @@ Deno.serve(async (req) => {
                 if (sub.type === "proxybr") {
                   // Migrate ProxyBR to Webshare on renewal
                   const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+                  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
                   const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
-                  const WEBSHARE_API_KEY = Deno.env.get("WEBSHARE_API_KEY") || "";
                   
-                  // Call webshare-api migrate-proxybr-renewal via internal invoke
+                  // Call webshare-api migrate-proxybr-renewal via internal invoke (service role for auth)
                   const migrateResp = await fetch(`${SUPABASE_URL}/functions/v1/webshare-api`, {
                     method: "POST",
                     headers: {
                       "Content-Type": "application/json",
-                      "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
-                      "x-auto-renewal": "true",
+                      "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+                      "apikey": SUPABASE_ANON_KEY,
                     },
                     body: JSON.stringify({
                       action: "migrate-proxybr-renewal",
@@ -483,6 +483,7 @@ Deno.serve(async (req) => {
                   await sb.from("wallet_transactions").insert({
                     user_id: sub.user_id,
                     type: "renewal",
+                    title: `Renovação automática: ${sub.name}`,
                     amount: -totalPrice,
                     description: `Renovação automática: ${sub.name}`,
                     balance_after: balance - totalPrice,

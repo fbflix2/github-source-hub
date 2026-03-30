@@ -246,6 +246,27 @@ export function useExchangeWebshareProxy() {
   });
 }
 
+/** Toggle auto-renew for a Webshare subscription (direct DB update) */
+export function useToggleWebshareAutoRenew() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ subscriptionId, auto_renew }: { subscriptionId: string; auto_renew: boolean }) => {
+      const { error } = await supabase
+        .from("subscriptions")
+        .update({ auto_renew })
+        .eq("id", subscriptionId);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      toast.success("Renovação automática atualizada!");
+      queryClient.invalidateQueries({ queryKey: ["webshare-subscriptions"] });
+    },
+    onError: (err: Error) => {
+      toast.error(`Erro ao atualizar: ${err.message}`);
+    },
+  });
+}
+
 /** Migrate a ProxyBR expired/cancelled subscription to Webshare on renewal */
 export function useMigrateProxyBRToWebshare() {
   const queryClient = useQueryClient();
