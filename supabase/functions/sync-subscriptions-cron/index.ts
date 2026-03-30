@@ -483,6 +483,7 @@ Deno.serve(async (req) => {
                   await sb.from("wallet_transactions").insert({
                     user_id: sub.user_id,
                     type: "renewal",
+                    title: `Renovação automática: ${sub.name}`,
                     amount: -totalPrice,
                     description: `Renovação automática: ${sub.name}`,
                     balance_after: balance - totalPrice,
