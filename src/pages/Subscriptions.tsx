@@ -140,6 +140,24 @@ export default function Subscriptions() {
     setActiveCategory(key);
   };
 
+  // Check if user has purchased BM Safe (for showing subscription panel vs promo)
+  const [hasPurchasedSafeBm, setHasPurchasedSafeBm] = useState<boolean | null>(null);
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setHasPurchasedSafeBm(false); return; }
+      const SAFEBM_PRODUCT_ID = "e5118c63-ed52-4f4e-8983-f44c1ba0d17b";
+      const { count } = await supabase
+        .from("order_items")
+        .select("id", { count: "exact", head: true })
+        .eq("product_id", SAFEBM_PRODUCT_ID)
+        .in("order_id", 
+          (await supabase.from("orders").select("id").eq("user_id", user.id).eq("status", "completed")).data?.map(o => o.id) || []
+        );
+      setHasPurchasedSafeBm((count ?? 0) > 0);
+    })();
+  }, []);
+
   return (
     <div className="space-y-8 animate-fade-in">
       <div className="flex flex-col gap-2">
