@@ -12,8 +12,8 @@ export default function AdminCentralProxy() {
           <Globe className="text-primary-foreground size-5" />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-foreground">Proxy WebShare</h1>
-          <p className="text-xs text-muted-foreground">Gestão de proxies do fornecedor Webshare</p>
+          <h1 className="text-xl font-bold text-foreground">Proxy Fbflix</h1>
+          <p className="text-xs text-muted-foreground">Gestão de proxies do fornecedor Fbflix</p>
         </div>
       </div>
 
