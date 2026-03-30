@@ -278,7 +278,7 @@ Deno.serve(async (req) => {
     }
 
     const { action, ...params } = bodyClone;
-    console.log(`[webshare-api] action=${action} user=${user.id}`);
+    console.log(`[webshare-api] action=${action} user=${user?.id || 'service-role'}`);
 
     // ========== GET PROFILE ==========
     if (action === "get-profile") {
