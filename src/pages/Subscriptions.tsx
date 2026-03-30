@@ -303,8 +303,8 @@ function ProxiesPanel() {
     const baseName = (sub.name || sub.code).replace(/#\d+$/, "").replace(/__proxy_\d+$/, "");
     setRenewingCode(sub.code);
     const isProxyBR = !sub.provider || sub.provider === "proxybr";
-    const isExpiredOrCancelled = sub.mappedStatus === "expired" || sub.mappedStatus === "cancelled";
-    const mutation = isProxyBR && isExpiredOrCancelled ? migrateMutation : renewMutation;
+    // All ProxyBR renewals now migrate to Webshare
+    const mutation = isProxyBR ? migrateMutation : renewMutation;
     mutation.mutate(baseName, {
       onSettled: () => setRenewingCode(null),
     });

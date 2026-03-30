@@ -444,18 +444,39 @@ Deno.serve(async (req) => {
                 }
 
                 if (sub.type === "proxybr") {
-                  // Call ProxyBR API to renew
-                  const renewUrl = `${PROXYBR_BASE}/subscriptions/${sub.name}/renew`;
-                  const renewResp = await fetch(renewUrl, {
+                  // Migrate ProxyBR to Webshare on renewal
+                  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+                  const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+                  const WEBSHARE_API_KEY = Deno.env.get("WEBSHARE_API_KEY") || "";
+                  
+                  // Call webshare-api migrate-proxybr-renewal via internal invoke
+                  const migrateResp = await fetch(`${SUPABASE_URL}/functions/v1/webshare-api`, {
                     method: "POST",
-                    headers: { "Accept": "application/json", "X-API-Key": PROXYBR_API_KEY },
+                    headers: {
+                      "Content-Type": "application/json",
+                      "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+                      "x-auto-renewal": "true",
+                    },
+                    body: JSON.stringify({
+                      action: "migrate-proxybr-renewal",
+                      subscription_name: sub.name,
+                      auto_renew_user_id: sub.user_id,
+                    }),
                   });
-                  if (!renewResp.ok) {
-                    console.error(`Auto-renewal FAILED ${sub.name}: ProxyBR API returned ${renewResp.status}`);
+                  
+                  if (!migrateResp.ok) {
+                    const errText = await migrateResp.text().catch(() => "unknown");
+                    console.error(`Auto-renewal MIGRATE FAILED ${sub.name}: ${migrateResp.status} - ${errText.substring(0, 200)}`);
                     continue;
                   }
+                  
+                  const migrateResult = await migrateResp.json().catch(() => ({}));
+                  console.log(`Auto-renewal MIGRATE SUCCESS ${sub.name} to Webshare: ${JSON.stringify(migrateResult).substring(0, 200)}`);
+                  // Migration handles balance debit and subscription creation internally
+                  continue;
                 }
 
+                // For Webshare subs, just extend dates
                 // Debit balance
                 if (totalPrice > 0) {
                   await sb.from("profiles").update({ balance: balance - totalPrice }).eq("user_id", sub.user_id);
@@ -475,6 +496,8 @@ Deno.serve(async (req) => {
                   status: "active",
                   end_date: newEnd.toISOString(),
                 }).eq("id", sub.id);
+
+                console.log(`Auto-renewal SUCCESS ${sub.name}: R$${totalPrice} debited, new end: ${newEnd.toISOString()}`);
 
                 console.log(`Auto-renewal SUCCESS ${sub.name}: R$${totalPrice} debited, new end: ${newEnd.toISOString()}`);
               } catch (err: any) {
