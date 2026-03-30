@@ -299,13 +299,15 @@ function ProxiesPanel() {
   const filtered = enriched.filter((s) => activeFilter === "all" || s.mappedStatus === activeFilter);
 
   const handleRenew = (sub: ProxySubscription & { mappedStatus: SubscriptionStatus }) => {
+    // Extract base subscription name (strip #N suffix and __proxy_ suffix)
+    const baseName = (sub.name || sub.code).replace(/#\d+$/, "").replace(/__proxy_\d+$/, "");
+    setRenewingCode(sub.code);
     const isProxyBR = !sub.provider || sub.provider === "proxybr";
     const isExpiredOrCancelled = sub.mappedStatus === "expired" || sub.mappedStatus === "cancelled";
-    if (isProxyBR && isExpiredOrCancelled) {
-      migrateMutation.mutate(sub.name);
-    } else {
-      renewMutation.mutate(sub.name);
-    }
+    const mutation = isProxyBR && isExpiredOrCancelled ? migrateMutation : renewMutation;
+    mutation.mutate(baseName, {
+      onSettled: () => setRenewingCode(null),
+    });
   };
 
   if (!isLoading && !error && subscriptions.length === 0) {
