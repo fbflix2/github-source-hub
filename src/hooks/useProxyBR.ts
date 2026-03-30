@@ -165,6 +165,8 @@ export function useProxyBRSubscriptions() {
           const perProxyPaid = Math.floor(rawPaidQuota / proxies.length);
 
           proxies.forEach((proxy: any, index: number) => {
+            // Skip proxies already migrated to Webshare
+            if (migratedProxies.includes(index + 1)) return;
             const proxyTagKey = `profile_tag_${proxy.id}`;
             const parsed = buildProxyInfo(proxy);
             const proxyDisplayName = `${sub.name}#${index + 1}`;
