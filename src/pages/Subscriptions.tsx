@@ -195,7 +195,7 @@ export default function Subscriptions() {
 
       {/* Content based on active category */}
       {activeCategory === "proxies" && <ProxiesPanel />}
-      {activeCategory === "safebm" && <SafeBmPromoPanel />}
+      {activeCategory === "safebm" && (hasPurchasedSafeBm ? <SafeBmPanel /> : <SafeBmPromoPanel />)}
       {activeCategory === "contingencia" && <ContingenciaPanel />}
     </div>
   );
