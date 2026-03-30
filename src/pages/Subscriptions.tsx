@@ -609,21 +609,6 @@ function SafeBmPanel() {
       </Button>
     </div>
   );
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Shield className="size-5 text-primary" />
-            </div>
-            <div>
-              <h3 className="text-base font-bold text-foreground">Acessar Painel Safe BM</h3>
-              <p className="text-xs text-muted-foreground">Painel completo das suas BMs protegidas</p>
-            </div>
-          </div>
-          <span className="text-primary group-hover:translate-x-1 transition-transform">→</span>
-        </div>
-      </a>
-    </div>
-  );
 }
 
 /* ─── CONTINGÊNCIA TOTAL PANEL ─── */
