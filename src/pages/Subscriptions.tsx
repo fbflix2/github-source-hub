@@ -402,7 +402,7 @@ function ProxiesPanel() {
               formattedStart={sub.formattedStart}
               formattedEnd={sub.formattedEnd}
               onRenew={() => handleRenew(sub)}
-              isRenewing={renewMutation.isPending || migrateMutation.isPending}
+              isRenewing={renewingCode === sub.code}
               profileTag={sub.profile_tag}
             />
           ))}
