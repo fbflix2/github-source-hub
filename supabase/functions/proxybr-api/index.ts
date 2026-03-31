@@ -276,7 +276,6 @@ Deno.serve(async (req) => {
 
     if (bodyClone.action === "admin-replace-proxybr-subscription") {
       const token = authHeader?.replace("Bearer ", "") || "";
-      console.log(`[admin-replace-proxybr-subscription] token length=${token.length}`);
       const isInternalAdminCall = token.length > 100;
       if (!isInternalAdminCall) {
         throw new Error("Não autorizado");
