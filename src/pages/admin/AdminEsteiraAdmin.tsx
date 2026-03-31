@@ -322,30 +322,43 @@ export default function AdminEsteiraAdmin() {
           description: task.description,
         }));
 
-        const operations: Promise<unknown>[] = [];
-
-        if (updateRows.length > 0) {
-          operations.push(supabase.from("warming_tasks").upsert(updateRows as { id: string; day_number: number; title: string; description: string }[]));
-        }
+        const operations: Promise<unknown>[] = [
+          ...updateRows.map((task) =>
+            (async () => {
+              await supabase
+                .from("warming_tasks")
+                .update({
+                  day_number: task.day_number,
+                  title: task.title,
+                  description: task.description,
+                })
+                .eq("id", task.id);
+            })()
+          ),
+        ];
 
         if (extraTaskIds.length > 0) {
-          operations.push(supabase.from("warming_tasks").delete().in("id", extraTaskIds));
+          operations.push((async () => {
+            await supabase.from("warming_tasks").delete().in("id", extraTaskIds);
+          })());
         }
 
         if (insertRows.length > 0) {
-          operations.push(supabase.from("warming_tasks").insert(insertRows));
+          operations.push((async () => {
+            await supabase.from("warming_tasks").insert(insertRows);
+          })());
         }
 
-        operations.push(
-          supabase
+        operations.push((async () => {
+          await supabase
             .from("warming_profiles")
             .update({
               track_days: desiredTaskCount,
               current_day: Math.min(profile.current_day, desiredTaskCount),
               updated_at: new Date().toISOString(),
             })
-            .eq("id", profile.id)
-        );
+            .eq("id", profile.id);
+        })());
 
         await Promise.all(operations);
       }));
