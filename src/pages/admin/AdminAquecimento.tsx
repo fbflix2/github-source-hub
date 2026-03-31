@@ -6,6 +6,12 @@ import WarmingSessionTimer from "@/components/admin/warming/WarmingSessionTimer"
 import ProfileQualityMeter from "@/components/admin/warming/ProfileQualityMeter";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import {
+  DEFAULT_PROFILE_QUALITY_DATA,
+  DEFAULT_READY_CRITERIA,
+  isProfileReadyForSale,
+  parseReadyCriteria,
+} from "@/lib/warming-ready";
 
 // ── Track definitions ──────────────────────────────────────────
 interface TrackDay {
@@ -163,6 +169,7 @@ export default function AdminAquecimento() {
     "30_days": TRACKS["30_days"].tasks.map(t => ({ title: t.title, description: t.description })),
   });
   const [configLoaded, setConfigLoaded] = useState(false);
+  const [readyCriteria, setReadyCriteria] = useState(DEFAULT_READY_CRITERIA);
   const configSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasLoadedProfilesRef = useRef(false);
 
@@ -198,6 +205,11 @@ export default function AdminAquecimento() {
         const row = payload.new as any;
         if (row?.key === "warming_track_config") {
           loadConfigFromDB();
+        }
+        if (row?.key === "warming_ready_criteria") {
+          try {
+            setReadyCriteria(parseReadyCriteria(JSON.parse(row.value)));
+          } catch {}
         }
       })
       .subscribe();
@@ -240,6 +252,13 @@ export default function AdminAquecimento() {
       if (data?.value) {
         const parsed = parseFloat(data.value);
         if (!isNaN(parsed)) setCommissionRate(parsed);
+      }
+    });
+    supabase.from("site_settings").select("value").eq("key", "warming_ready_criteria").maybeSingle().then(({ data }) => {
+      if (data?.value) {
+        try {
+          setReadyCriteria(parseReadyCriteria(JSON.parse(data.value)));
+        } catch {}
       }
     });
     return () => {
@@ -383,6 +402,31 @@ export default function AdminAquecimento() {
       .eq("profile_id", profileId)
       .order("day_number", { ascending: true });
     if (data) setTasks((prev) => ({ ...prev, [profileId]: data }));
+  };
+
+  const checkAndMoveProfileToReady = async (profileId: string) => {
+    const profile = profiles.find((p) => p.id === profileId);
+    if (!profile || profile.status === "completed") return false;
+
+    const { data: qualityRow } = await supabase
+      .from("site_settings")
+      .select("value")
+      .eq("key", `warming_quality_${profileId}`)
+      .maybeSingle();
+
+    const quality = qualityRow?.value
+      ? { ...DEFAULT_PROFILE_QUALITY_DATA, ...JSON.parse(qualityRow.value) }
+      : DEFAULT_PROFILE_QUALITY_DATA;
+
+    if (!isProfileReadyForSale(profile, quality, readyCriteria)) return false;
+
+    await supabase
+      .from("warming_profiles")
+      .update({ status: "completed", updated_at: new Date().toISOString() })
+      .eq("id", profileId);
+
+    toast.success(`✅ Perfil "${profile.profile_code}" movido para Perfis Prontos.`);
+    return true;
   };
 
   const handleCreate = async () => {
@@ -1195,6 +1239,10 @@ export default function AdminAquecimento() {
                   setCurrentElapsed(elapsedVal);
                 }}
                 onTaskCompleted={async () => {
+                  if (selectedProfileId) {
+                    await checkAndMoveProfileToReady(selectedProfileId);
+                  }
+
                   const nextProfile = sortedActiveQueue.find((profile) => profile.id !== selectedProfileId) || null;
 
                   setIsTimerActive(false);
