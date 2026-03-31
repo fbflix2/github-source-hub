@@ -1245,6 +1245,13 @@ export default function AdminAquecimento() {
                 }}
               />
             )}
+            {/* Quality Meter - always show when a profile is selected */}
+            {selectedProfile && (
+              <ProfileQualityMeter
+                profileId={selectedProfile.id}
+                profileCode={selectedProfile.profile_code}
+              />
+            )}
           </section>
         </div>
       )}
