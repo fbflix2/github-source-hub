@@ -92,6 +92,39 @@ export default function AdminEsteiraAdmin() {
   };
   const [configTasks, setConfigTasks] = useState<Record<string, { title: string; description: string }[]>>(defaultConfigTasks);
   const configSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  const handleDragStart = (index: number) => {
+    setDragIndex(index);
+  };
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    setDragOverIndex(index);
+  };
+  const handleDrop = (index: number) => {
+    if (dragIndex === null || dragIndex === index) {
+      setDragIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
+    updateConfigTasks(prev => {
+      const updated = { ...prev };
+      const items = [...updated[configTrack]];
+      const [moved] = items.splice(dragIndex, 1);
+      items.splice(index, 0, moved);
+      updated[configTrack] = items;
+      return updated;
+    });
+    setDragIndex(null);
+    setDragOverIndex(null);
+    toast.success("Ordem atualizada!");
+  };
+  const handleDragEnd = () => {
+    setDragIndex(null);
+    setDragOverIndex(null);
+  };
+
   const [trustTiers, setTrustTiers] = useState([
     { label: "Nível 1 (Confiança Baixa)", color: "bg-red-100 text-red-700", range: "0 - 30", criteria: "Contas novas, sem histórico." },
     { label: "Nível 2 (Confiança Média)", color: "bg-amber-100 text-amber-700", range: "31 - 75", criteria: "7+ dias, 2FA ativa." },
