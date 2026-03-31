@@ -324,19 +324,29 @@ export default function AdminAquecimento() {
       setProfiles(data || []);
       // Fetch tasks for ALL profiles (needed for avg time calculation)
       if (data && data.length > 0) {
-        const { data: allTasks } = await supabase
-          .from("warming_tasks")
-          .select("*")
-          .in("profile_id", data.map((p: any) => p.id))
-          .order("day_number", { ascending: true });
-        if (allTasks) {
-          const grouped: Record<string, WarmingTask[]> = {};
-          allTasks.forEach((t: any) => {
-            if (!grouped[t.profile_id]) grouped[t.profile_id] = [];
-            grouped[t.profile_id].push(t);
-          });
-          setTasks(grouped);
+        // Paginate tasks to avoid 1000 row limit
+        const profileIds = data.map((p: any) => p.id);
+        const allTasks: any[] = [];
+        const pageSize = 1000;
+        let from = 0;
+        while (true) {
+          const { data: batch } = await supabase
+            .from("warming_tasks")
+            .select("*")
+            .in("profile_id", profileIds)
+            .order("day_number", { ascending: true })
+            .range(from, from + pageSize - 1);
+          if (!batch || batch.length === 0) break;
+          allTasks.push(...batch);
+          if (batch.length < pageSize) break;
+          from += pageSize;
         }
+        const grouped: Record<string, WarmingTask[]> = {};
+        allTasks.forEach((t: any) => {
+          if (!grouped[t.profile_id]) grouped[t.profile_id] = [];
+          grouped[t.profile_id].push(t);
+        });
+        setTasks(grouped);
         // Auto-selection will be handled by the useEffect with sortedActiveQueue
       }
       // Fetch creator names
