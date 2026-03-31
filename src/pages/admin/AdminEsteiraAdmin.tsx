@@ -125,11 +125,35 @@ export default function AdminEsteiraAdmin() {
     setDragOverIndex(null);
   };
 
-  const [trustTiers, setTrustTiers] = useState([
+  const defaultTiers = [
     { label: "Nível 1 (Confiança Baixa)", color: "bg-red-100 text-red-700", range: "0 - 30", criteria: "Contas novas, sem histórico." },
     { label: "Nível 2 (Confiança Média)", color: "bg-amber-100 text-amber-700", range: "31 - 75", criteria: "7+ dias, 2FA ativa." },
     { label: "Nível 3 (Confiança Alta)", color: "bg-green-100 text-green-700", range: "76 - 100", criteria: "Esteira completa, 30+ dias." },
-  ]);
+  ];
+  const [trustTiers, setTrustTiers] = useState(() => {
+    try {
+      const saved = localStorage.getItem("warming_trust_tiers");
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return defaultTiers;
+  });
+  const [trustTiersSaved, setTrustTiersSaved] = useState(true);
+  const [trustTiersSaving, setTrustTiersSaving] = useState(false);
+
+  const updateTrustTiers = (newTiers: typeof defaultTiers) => {
+    setTrustTiers(newTiers);
+    setTrustTiersSaved(false);
+  };
+
+  const saveTrustTiers = () => {
+    setTrustTiersSaving(true);
+    localStorage.setItem("warming_trust_tiers", JSON.stringify(trustTiers));
+    setTimeout(() => {
+      setTrustTiersSaving(false);
+      setTrustTiersSaved(true);
+      toast.success("Níveis de confiança salvos com sucesso!");
+    }, 400);
+  };
 
   useEffect(() => {
     if (!document.querySelector('link[href*="Material+Symbols+Outlined"]')) {
