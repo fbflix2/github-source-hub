@@ -1,16 +1,16 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import {
+  DEFAULT_PROFILE_QUALITY_DATA,
+  DEFAULT_READY_CRITERIA,
+  isProfileReadyForSale,
+  parseReadyCriteria,
+  type ProfileQualityData,
+} from "@/lib/warming-ready";
 
 function MIcon({ name, className = "" }: { name: string; className?: string }) {
   return <span className={`material-symbols-outlined ${className}`}>{name}</span>;
-}
-
-interface ProfileQualityData {
-  has2FA: boolean;
-  hasBM: boolean;
-  hasPage: boolean;
-  friendRange: string; // "0-5" | "5-19" | "20-50" | "50-100+"
 }
 
 interface Props {
@@ -25,12 +25,7 @@ const FRIEND_RANGES = [
   { value: "50-100+", label: "50 a +100", score: 3 },
 ];
 
-const DEFAULT_DATA: ProfileQualityData = {
-  has2FA: false,
-  hasBM: false,
-  hasPage: false,
-  friendRange: "0-5",
-};
+const DEFAULT_DATA: ProfileQualityData = DEFAULT_PROFILE_QUALITY_DATA;
 
 // Trust tiers config from localStorage (same key as AdminEsteiraAdmin)
 function getTrustTiers() {
@@ -67,6 +62,7 @@ export default function ProfileQualityMeter({ profileId, profileCode }: Props) {
   const [data, setData] = useState<ProfileQualityData>(DEFAULT_DATA);
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [readyCriteria, setReadyCriteria] = useState(DEFAULT_READY_CRITERIA);
 
   // Load from site_settings per profile
   useEffect(() => {
@@ -86,6 +82,21 @@ export default function ProfileQualityMeter({ profileId, profileCode }: Props) {
       });
   }, [profileId]);
 
+  useEffect(() => {
+    supabase
+      .from("site_settings")
+      .select("value")
+      .eq("key", "warming_ready_criteria")
+      .maybeSingle()
+      .then(({ data: row }) => {
+        if (row?.value) {
+          try {
+            setReadyCriteria(parseReadyCriteria(JSON.parse(row.value)));
+          } catch {}
+        }
+      });
+  }, []);
+
   const save = async (newData: ProfileQualityData) => {
     setData(newData);
     setSaving(true);
@@ -101,6 +112,23 @@ export default function ProfileQualityMeter({ profileId, profileCode }: Props) {
         await supabase.from("site_settings").update({ value: jsonValue }).eq("key", key);
       } else {
         await supabase.from("site_settings").insert({ key, value: jsonValue });
+      }
+
+      const [{ data: profileRow }, { data: criteriaRow }] = await Promise.all([
+        supabase.from("warming_profiles").select("id, created_at, start_date, status").eq("id", profileId).maybeSingle(),
+        supabase.from("site_settings").select("value").eq("key", "warming_ready_criteria").maybeSingle(),
+      ]);
+
+      const criteria = criteriaRow?.value
+        ? parseReadyCriteria(JSON.parse(criteriaRow.value))
+        : readyCriteria;
+
+      if (profileRow && isProfileReadyForSale(profileRow, newData, criteria) && profileRow.status !== "completed") {
+        await supabase
+          .from("warming_profiles")
+          .update({ status: "completed", updated_at: new Date().toISOString() })
+          .eq("id", profileId);
+        toast.success(`Perfil ${profileCode} movido para Perfis Prontos.`);
       }
     } catch (err) {
       console.error("Erro ao salvar qualidade:", err);

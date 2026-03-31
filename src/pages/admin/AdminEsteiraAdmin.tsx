@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import WarmingOperatorDashboard from "@/components/admin/warming/WarmingOperatorDashboard";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { toast } from "sonner";
+import { DEFAULT_READY_CRITERIA, parseReadyCriteria } from "@/lib/warming-ready";
 
 // ── Track definitions (shared) ──
 const TRACKS: Record<string, { label: string; days: number }> = {
@@ -140,18 +141,11 @@ export default function AdminEsteiraAdmin() {
   });
   const [trustTiersSaved, setTrustTiersSaved] = useState(true);
   const [trustTiersSaving, setTrustTiersSaving] = useState(false);
-  const defaultReadyCriteria = {
-    minFriends: 20,
-    require2FA: true,
-    optionalBmMin: 1,
-    optionalBmMax: 2,
-    optionalPage: true,
-    minWarmingDays: 7,
-  };
+  const defaultReadyCriteria = DEFAULT_READY_CRITERIA;
   const [readyCriteria, setReadyCriteria] = useState(() => {
     try {
       const saved = localStorage.getItem("warming_ready_criteria");
-      if (saved) return { ...defaultReadyCriteria, ...JSON.parse(saved) };
+      if (saved) return parseReadyCriteria(JSON.parse(saved));
     } catch {}
     return defaultReadyCriteria;
   });
@@ -178,14 +172,30 @@ export default function AdminEsteiraAdmin() {
     setReadyCriteriaSaved(false);
   };
 
-  const saveReadyCriteria = () => {
+  const saveReadyCriteria = async () => {
     setReadyCriteriaSaving(true);
-    localStorage.setItem("warming_ready_criteria", JSON.stringify(readyCriteria));
-    setTimeout(() => {
-      setReadyCriteriaSaving(false);
+    const jsonValue = JSON.stringify(readyCriteria);
+    localStorage.setItem("warming_ready_criteria", jsonValue);
+    try {
+      const { data: existing } = await supabase
+        .from("site_settings")
+        .select("id")
+        .eq("key", "warming_ready_criteria")
+        .maybeSingle();
+
+      if (existing) {
+        await supabase.from("site_settings").update({ value: jsonValue }).eq("key", "warming_ready_criteria");
+      } else {
+        await supabase.from("site_settings").insert({ key: "warming_ready_criteria", value: jsonValue });
+      }
+
       setReadyCriteriaSaved(true);
       toast.success("Critérios de perfil pronto salvos com sucesso!");
-    }, 400);
+    } catch {
+      toast.error("Erro ao salvar critérios de perfil pronto.");
+    } finally {
+      setReadyCriteriaSaving(false);
+    }
   };
 
   useEffect(() => {
@@ -225,6 +235,12 @@ export default function AdminEsteiraAdmin() {
         const row = payload.new as any;
         if (row?.key === "warming_track_config") {
           loadConfigFromDB();
+        }
+        if (row?.key === "warming_ready_criteria") {
+          try {
+            setReadyCriteria(parseReadyCriteria(JSON.parse(row.value)));
+            setReadyCriteriaSaved(true);
+          } catch {}
         }
       })
       .subscribe();
