@@ -172,29 +172,30 @@ export default function AdminEsteiraAdmin() {
     setReadyCriteriaSaved(false);
   };
 
-  const saveReadyCriteria = () => {
+  const saveReadyCriteria = async () => {
     setReadyCriteriaSaving(true);
     const jsonValue = JSON.stringify(readyCriteria);
     localStorage.setItem("warming_ready_criteria", jsonValue);
-    supabase
-      .from("site_settings")
-      .select("id")
-      .eq("key", "warming_ready_criteria")
-      .maybeSingle()
-      .then(async ({ data: existing }) => {
-        if (existing) {
-          await supabase.from("site_settings").update({ value: jsonValue }).eq("key", "warming_ready_criteria");
-        } else {
-          await supabase.from("site_settings").insert({ key: "warming_ready_criteria", value: jsonValue });
-        }
-        setReadyCriteriaSaving(false);
-        setReadyCriteriaSaved(true);
-        toast.success("Critérios de perfil pronto salvos com sucesso!");
-      })
-      .catch(() => {
-        setReadyCriteriaSaving(false);
-        toast.error("Erro ao salvar critérios de perfil pronto.");
-      });
+    try {
+      const { data: existing } = await supabase
+        .from("site_settings")
+        .select("id")
+        .eq("key", "warming_ready_criteria")
+        .maybeSingle();
+
+      if (existing) {
+        await supabase.from("site_settings").update({ value: jsonValue }).eq("key", "warming_ready_criteria");
+      } else {
+        await supabase.from("site_settings").insert({ key: "warming_ready_criteria", value: jsonValue });
+      }
+
+      setReadyCriteriaSaved(true);
+      toast.success("Critérios de perfil pronto salvos com sucesso!");
+    } catch {
+      toast.error("Erro ao salvar critérios de perfil pronto.");
+    } finally {
+      setReadyCriteriaSaving(false);
+    }
   };
 
   useEffect(() => {
