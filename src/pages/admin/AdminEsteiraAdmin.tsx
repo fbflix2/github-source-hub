@@ -963,7 +963,7 @@ export default function AdminEsteiraAdmin() {
                       <td className="px-6 py-4 text-right">
                         {trustTiers.length > 1 && (
                           <button
-                            onClick={() => setTrustTiers(trustTiers.filter((_, idx) => idx !== i))}
+                            onClick={() => updateTrustTiers(trustTiers.filter((_, idx) => idx !== i))}
                             className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 transition-all"
                           >
                             <MIcon name="delete" className="text-base" />
