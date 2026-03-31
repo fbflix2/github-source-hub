@@ -273,6 +273,145 @@ Deno.serve(async (req) => {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    if (bodyClone.action === "admin-replace-proxybr-subscription") {
+      const token = authHeader?.replace("Bearer ", "") || "";
+      const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+      if (!token || token !== serviceRoleKey) {
+        throw new Error("Não autorizado");
+      }
+
+      const { subscriptionCode, user_id, notes } = bodyClone as {
+        subscriptionCode: string;
+        user_id: string;
+        notes?: string;
+      };
+
+      if (!subscriptionCode || !user_id) {
+        throw new Error("subscriptionCode e user_id são obrigatórios");
+      }
+
+      const supabaseAdmin = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        serviceRoleKey,
+      );
+
+      const detailUrl = `${PROXYBR_BASE}/subscriptions/${subscriptionCode}`;
+      const initialResp = await proxyFetch(detailUrl, PROXYBR_API_KEY);
+      const initialText = await initialResp.text();
+      if (!initialResp.ok) {
+        return new Response(
+          JSON.stringify({ error: `ProxyBR API error [${initialResp.status}]`, details: initialText }),
+          { status: initialResp.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      let initialData: any;
+      try { initialData = JSON.parse(initialText); } catch { initialData = {}; }
+      const previousProxy = initialData?.proxies?.data?.[0]?.code || null;
+
+      const renewUrl = `${PROXYBR_BASE}/subscriptions/${subscriptionCode}/renew`;
+      const renewResp = await proxyFetch(renewUrl, PROXYBR_API_KEY, "POST");
+      const renewText = await renewResp.text();
+      if (!renewResp.ok) {
+        return new Response(
+          JSON.stringify({ error: `ProxyBR API error [${renewResp.status}]`, details: renewText }),
+          { status: renewResp.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      await sleep(1500);
+
+      const renewedResp = await proxyFetch(detailUrl, PROXYBR_API_KEY);
+      const renewedText = await renewedResp.text();
+      if (!renewedResp.ok) {
+        return new Response(
+          JSON.stringify({ error: `ProxyBR API error [${renewedResp.status}]`, details: renewedText }),
+          { status: renewedResp.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      let renewedData: any;
+      try { renewedData = JSON.parse(renewedText); } catch { renewedData = {}; }
+      const freshProxyId = renewedData?.proxies?.data?.[0]?.id;
+
+      const exchangeUrl = `${PROXYBR_BASE}/subscriptions/${subscriptionCode}/exchange-proxy`;
+      const exchangeResp = await proxyFetch(
+        exchangeUrl,
+        PROXYBR_API_KEY,
+        "PUT",
+        freshProxyId ? JSON.stringify({ proxy_id: freshProxyId }) : JSON.stringify({}),
+      );
+      const exchangeText = await exchangeResp.text();
+      if (!exchangeResp.ok) {
+        return new Response(
+          JSON.stringify({ error: `ProxyBR API error [${exchangeResp.status}]`, details: exchangeText }),
+          { status: exchangeResp.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      if (typeof notes === "string" && notes.trim()) {
+        await proxyFetch(detailUrl, PROXYBR_API_KEY, "PUT", JSON.stringify({ notes: notes.trim() }));
+      }
+
+      await sleep(1500);
+
+      const finalResp = await proxyFetch(detailUrl, PROXYBR_API_KEY);
+      const finalText = await finalResp.text();
+      if (!finalResp.ok) {
+        return new Response(
+          JSON.stringify({ error: `ProxyBR API error [${finalResp.status}]`, details: finalText }),
+          { status: finalResp.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      let finalData: any;
+      try { finalData = JSON.parse(finalText); } catch { finalData = {}; }
+
+      const { data: existingRow } = await supabaseAdmin
+        .from("subscriptions")
+        .select("raw_data")
+        .eq("name", subscriptionCode)
+        .eq("type", "proxybr")
+        .maybeSingle();
+
+      const existingRaw = (existingRow?.raw_data || {}) as Record<string, any>;
+      const preservedKeys = Object.fromEntries(
+        Object.entries(existingRaw).filter(([key]) => key.startsWith("profile_tag"))
+      );
+      const dueDate = finalData?.due_date
+        ? new Date(finalData.due_date).toISOString()
+        : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
+      const { error: updateError } = await supabaseAdmin
+        .from("subscriptions")
+        .update({
+          user_id,
+          raw_data: { ...finalData, ...preservedKeys },
+          status: "active",
+          auto_renew: finalData?.auto_renew_active ?? false,
+          end_date: dueDate,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("name", subscriptionCode)
+        .eq("type", "proxybr");
+
+      if (updateError) {
+        throw new Error(updateError.message);
+      }
+
+      return new Response(JSON.stringify({
+        success: true,
+        subscriptionCode,
+        previousProxy,
+        newProxy: finalData?.proxies?.data?.[0]?.code || null,
+        due_date: dueDate,
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Missing authorization" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" }
