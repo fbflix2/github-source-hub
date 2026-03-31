@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 import WarmingOperatorDashboard from "@/components/admin/warming/WarmingOperatorDashboard";
 import WarmingSessionTimer from "@/components/admin/warming/WarmingSessionTimer";
+import ProfileQualityMeter from "@/components/admin/warming/ProfileQualityMeter";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
@@ -1242,6 +1243,13 @@ export default function AdminAquecimento() {
                   setSelectedProfileId(null);
                   setProfileCode("");
                 }}
+              />
+            )}
+            {/* Quality Meter - always show when a profile is selected */}
+            {selectedProfile && (
+              <ProfileQualityMeter
+                profileId={selectedProfile.id}
+                profileCode={selectedProfile.profile_code}
               />
             )}
           </section>
