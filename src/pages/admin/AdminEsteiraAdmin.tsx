@@ -1345,6 +1345,121 @@ export default function AdminEsteiraAdmin() {
             </div>
           </section>
 
+          <section className="bg-white dark:bg-white/5 rounded-xl shadow-sm border border-slate-200 dark:border-white/10 overflow-hidden mt-4">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-white/10 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <MIcon name="task_alt" className="text-[#1876f2]" />
+                <div>
+                  <h2 className="text-lg font-bold">Critérios para Perfil Pronto para Venda</h2>
+                  <p className="text-xs text-slate-500 dark:text-white/50">Configure as regras mínimas para considerar o perfil pronto.</p>
+                </div>
+              </div>
+              <button
+                onClick={saveReadyCriteria}
+                disabled={readyCriteriaSaved || readyCriteriaSaving}
+                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  readyCriteriaSaved
+                    ? "bg-emerald-500/20 text-emerald-400 cursor-default"
+                    : "bg-[#1876f2] text-white hover:bg-[#1876f2]/90"
+                }`}
+              >
+                <MIcon name={readyCriteriaSaved ? "check_circle" : "save"} className="!text-sm" />
+                {readyCriteriaSaving ? "Salvando..." : readyCriteriaSaved ? "Salvo" : "Salvar"}
+              </button>
+            </div>
+
+            <div className="p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 p-4 space-y-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-white/50">Amizade mínima</label>
+                <input
+                  type="number"
+                  min={0}
+                  className="w-full rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-white/10 px-3 py-2 text-sm"
+                  value={readyCriteria.minFriends}
+                  onChange={(e) => updateReadyCriteria({ minFriends: Number(e.target.value) || 0 })}
+                />
+                <p className="text-xs text-slate-500 dark:text-white/50">Mínimo recomendado: 20 amigos.</p>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 p-4 space-y-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-white/50">Segurança</label>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white mt-1">Exigir 2FA ativo</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={readyCriteria.require2FA}
+                    onChange={(e) => updateReadyCriteria({ require2FA: e.target.checked })}
+                    className="mt-1 h-4 w-4"
+                  />
+                </div>
+                <p className="text-xs text-slate-500 dark:text-white/50">Se ativo, o perfil só fica pronto com 2FA ligado.</p>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 p-4 space-y-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-white/50">Dias mínimos de aquecimento</label>
+                <input
+                  type="number"
+                  min={1}
+                  className="w-full rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-white/10 px-3 py-2 text-sm"
+                  value={readyCriteria.minWarmingDays}
+                  onChange={(e) => updateReadyCriteria({ minWarmingDays: Number(e.target.value) || 1 })}
+                />
+                <p className="text-xs text-slate-500 dark:text-white/50">Base atual: mais de 7 dias.</p>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 p-4 space-y-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-white/50">BM opcional</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="number"
+                    min={0}
+                    className="w-full rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-white/10 px-3 py-2 text-sm"
+                    value={readyCriteria.optionalBmMin}
+                    onChange={(e) => updateReadyCriteria({ optionalBmMin: Number(e.target.value) || 0 })}
+                  />
+                  <input
+                    type="number"
+                    min={readyCriteria.optionalBmMin}
+                    className="w-full rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-white/10 px-3 py-2 text-sm"
+                    value={readyCriteria.optionalBmMax}
+                    onChange={(e) => updateReadyCriteria({ optionalBmMax: Number(e.target.value) || 0 })}
+                  />
+                </div>
+                <p className="text-xs text-slate-500 dark:text-white/50">Faixa sugerida: 1 a 2 BM.</p>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 p-4 space-y-3 md:col-span-2 xl:col-span-1">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-white/50">Página</label>
+                    <p className="text-sm font-semibold text-slate-900 dark:text-white mt-1">Página como item opcional</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={readyCriteria.optionalPage}
+                    onChange={(e) => updateReadyCriteria({ optionalPage: e.target.checked })}
+                    className="mt-1 h-4 w-4"
+                  />
+                </div>
+                <p className="text-xs text-slate-500 dark:text-white/50">Mantém página como recomendação, sem obrigatoriedade.</p>
+              </div>
+
+              <div className="rounded-xl border border-dashed border-slate-200 dark:border-white/15 bg-white dark:bg-white/5 p-4 md:col-span-2 xl:col-span-3">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-white/50 mb-2">Resumo atual</p>
+                <p className="text-sm text-slate-700 dark:text-white/70 leading-relaxed">
+                  Perfil pronto para venda com pelo menos <span className="font-bold text-slate-900 dark:text-white">{readyCriteria.minFriends} amigos</span>,
+                  {readyCriteria.require2FA ? <span className="font-bold text-slate-900 dark:text-white"> 2FA ativo</span> : <span> 2FA opcional</span>},
+                  <span> BM opcional entre </span>
+                  <span className="font-bold text-slate-900 dark:text-white">{readyCriteria.optionalBmMin} e {readyCriteria.optionalBmMax}</span>,
+                  readyCriteria.optionalPage ? <span> com <span className="font-bold text-slate-900 dark:text-white">página opcional</span> e </span> : <span> sem página nos critérios e </span>
+                  <span className="font-bold text-slate-900 dark:text-white">mais de {readyCriteria.minWarmingDays} dias de aquecimento</span>.
+                </p>
+              </div>
+            </div>
+          </section>
+
           {/* Danger Zone */}
           <section className="bg-white dark:bg-white/5 rounded-xl shadow-sm border border-red-200 dark:border-red-500/20 overflow-hidden">
             <div className="px-6 py-4 border-b border-red-100 dark:border-red-500/20 flex items-center gap-3">
