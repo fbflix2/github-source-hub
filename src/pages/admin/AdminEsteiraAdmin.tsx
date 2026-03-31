@@ -786,7 +786,19 @@ export default function AdminEsteiraAdmin() {
             </div>
             <div className="p-6 space-y-3 max-h-[400px] overflow-y-auto">
               {configTasks[configTrack].map((task, i) => (
-                <div key={i} className="flex items-center gap-4 p-3 bg-slate-50 dark:bg-white/5 rounded-lg border border-slate-100 dark:border-white/10">
+                <div
+                  key={`${configTrack}-${i}`}
+                  draggable
+                  onDragStart={() => handleDragStart(i)}
+                  onDragOver={(e) => handleDragOver(e, i)}
+                  onDrop={() => handleDrop(i)}
+                  onDragEnd={handleDragEnd}
+                  className={`flex items-center gap-4 p-3 bg-slate-50 dark:bg-white/5 rounded-lg border transition-all ${
+                    dragOverIndex === i ? "border-[#1876f2] bg-blue-50 dark:bg-blue-500/10" :
+                    dragIndex === i ? "opacity-50 border-slate-100 dark:border-white/10" :
+                    "border-slate-100 dark:border-white/10"
+                  }`}
+                >
                   <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-blue-100 dark:bg-blue-500/20 text-[#1876f2] font-bold text-xs rounded-full">
                     {String(i + 1).padStart(2, "0")}
                   </span>
@@ -804,7 +816,19 @@ export default function AdminEsteiraAdmin() {
                       });
                     }}
                   />
-                  <MIcon name="drag_indicator" className="text-slate-400 dark:text-white/40 text-sm cursor-move" />
+                  <button
+                    onClick={() => {
+                      updateConfigTasks(prev => {
+                        const updated = { ...prev };
+                        updated[configTrack] = updated[configTrack].filter((_, idx) => idx !== i);
+                        return updated;
+                      });
+                    }}
+                    className="text-slate-300 hover:text-red-500 dark:text-white/20 dark:hover:text-red-400 transition-colors"
+                  >
+                    <MIcon name="close" className="text-base" />
+                  </button>
+                  <MIcon name="drag_indicator" className="text-slate-400 dark:text-white/40 text-sm cursor-grab active:cursor-grabbing" />
                 </div>
               ))}
               <div className="flex items-center gap-4 p-3 bg-slate-50 dark:bg-white/5 rounded-lg border border-slate-100 dark:border-white/10">
