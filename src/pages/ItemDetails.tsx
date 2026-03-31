@@ -206,10 +206,17 @@ export default function ItemDetails() {
           if (mainStockItem.identification_link && !baseData.linkPerfil) baseData.linkPerfil = mainStockItem.identification_link;
           if (mainStockItem.identification && !baseData.idPerfil) baseData.idPerfil = mainStockItem.identification;
 
-          setStockData({
-            ...baseData,
-            ...(orderItemDeliveryData || {}),
-          });
+          const mergedData = { ...baseData } as StockData & Record<string, any>;
+
+          if (orderItemDeliveryData) {
+            Object.entries(orderItemDeliveryData).forEach(([key, value]) => {
+              if (value !== undefined && value !== null && value !== "") {
+                mergedData[key] = value;
+              }
+            });
+          }
+
+          setStockData(mergedData);
 
           if (mainStockItem.type === "combo" || children.length > 0) {
             setIsCombo(true);
@@ -458,10 +465,16 @@ export default function ItemDetails() {
 
     if (tpl && (tpl as any).content) {
       // Use template with placeholder replacement
+      const alternateEmail =
+        stockData.emailAlternativo ||
+        (stockData as Record<string, any>).alternateEmail ||
+        (stockData as Record<string, any>).alternative_email ||
+        "—";
+
       const replacements: Record<string, string> = {
         "{{nomePerfil}}": stockData.nomePerfil || "—",
         "{{emailAcesso}}": email,
-        "{{emailAlternativo}}": stockData.emailAlternativo || "—",
+        "{{emailAlternativo}}": alternateEmail,
         "{{senha}}": senha,
         "{{senhaEmail}}": stockData.senhaEmail || "—",
         "{{token2fa}}": token2fa,
@@ -494,7 +507,13 @@ export default function ItemDetails() {
         `Senha: ${senha}`,
         `Código 2FA: ${token2fa}`,
       ];
-      if (stockData.emailAlternativo) lines.push(`Email Alternativo: ${stockData.emailAlternativo}`);
+      const alternateEmail =
+        stockData.emailAlternativo ||
+        (stockData as Record<string, any>).alternateEmail ||
+        (stockData as Record<string, any>).alternative_email ||
+        "";
+
+      if (alternateEmail) lines.push(`Email Alternativo: ${alternateEmail}`);
       if (stockData.nomePerfil) lines.push(`Nome do Perfil: ${stockData.nomePerfil}`);
       if (stockData.dataNascimento) lines.push(`Data de Nascimento: ${stockData.dataNascimento}`);
       if (stockData.genero) lines.push(`Gênero: ${stockData.genero}`);
