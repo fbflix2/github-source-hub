@@ -276,8 +276,10 @@ Deno.serve(async (req) => {
 
     if (bodyClone.action === "admin-replace-proxybr-subscription") {
       const token = authHeader?.replace("Bearer ", "") || "";
+      const apiKeyHeader = req.headers.get("apikey") || "";
       const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-      if (!token || token !== serviceRoleKey) {
+      const isInternalAdminCall = !!serviceRoleKey && (token === serviceRoleKey || apiKeyHeader === serviceRoleKey);
+      if (!isInternalAdminCall) {
         throw new Error("Não autorizado");
       }
 
