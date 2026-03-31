@@ -164,6 +164,7 @@ export default function AdminAquecimento() {
   });
   const [configLoaded, setConfigLoaded] = useState(false);
   const configSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasLoadedProfilesRef = useRef(false);
 
   useEffect(() => {
     if (!document.querySelector('link[href*="Material+Symbols+Outlined"]')) {
@@ -314,7 +315,9 @@ export default function AdminAquecimento() {
   };
 
   const fetchProfiles = async () => {
-    setLoading(true);
+    if (!hasLoadedProfilesRef.current) {
+      setLoading(true);
+    }
     const { data, error } = await supabase
       .from("warming_profiles")
       .select("*")
@@ -369,6 +372,7 @@ export default function AdminAquecimento() {
         }
       }
     }
+    hasLoadedProfilesRef.current = true;
     setLoading(false);
   };
 
@@ -690,22 +694,29 @@ export default function AdminAquecimento() {
     return [...available, ...doneToday];
   }, [visibleProfiles, tasks, operationMode, currentQueueTrack]);
 
-  // Auto-deselect profile that was already worked today (execute mode)
+  // Keep the operator pinned to a valid queue item without clearing the right panel first
   useEffect(() => {
-    if (selectedProfileId && operationMode === "execute" && wasWorkedToday(selectedProfileId)) {
-      // Profile was completed for today — clear selection so it doesn't keep showing
-      setSelectedProfileId(null);
-    }
-  }, [selectedProfileId, operationMode, tasks]);
+    if (operationMode !== "execute") return;
 
-  // Auto-select first profile in queue when none is selected (execute mode)
-  useEffect(() => {
-    if (!selectedProfileId && operationMode === "execute" && sortedActiveQueue.length > 0) {
-      const next = sortedActiveQueue[0];
-      setSelectedProfileId(next.id);
-      if (!tasks[next.id]) fetchTasks(next.id);
+    if (sortedActiveQueue.length === 0) {
+      if (!isTimerActive && selectedProfileId) {
+        setSelectedProfileId(null);
+      }
+      return;
     }
-  }, [selectedProfileId, sortedActiveQueue, operationMode]);
+
+    const selectedStillInQueue = selectedProfileId
+      ? sortedActiveQueue.some((profile) => profile.id === selectedProfileId)
+      : false;
+
+    if (!selectedProfileId || !selectedStillInQueue) {
+      const next = sortedActiveQueue[0];
+      if (next && next.id !== selectedProfileId) {
+        setSelectedProfileId(next.id);
+        if (!tasks[next.id]) fetchTasks(next.id);
+      }
+    }
+  }, [selectedProfileId, sortedActiveQueue, operationMode, tasks, isTimerActive]);
 
   // Dashboard stats from visible profiles
   const totalProfiles = visibleProfiles.length;
@@ -1184,20 +1195,20 @@ export default function AdminAquecimento() {
                   setCurrentElapsed(elapsedVal);
                 }}
                 onTaskCompleted={async () => {
-                  await fetchProfiles();
-                  // Auto-select next profile in queue (current profile goes to end after refresh)
+                  const nextProfile = sortedActiveQueue.find((profile) => profile.id !== selectedProfileId) || null;
+
                   setIsTimerActive(false);
                   setProfileCode("");
-                  // After refresh, the sortedActiveQueue will reorder; pick the first that isn't current
-                  const currentId = selectedProfileId;
-                  setTimeout(() => {
-                    // Re-read the updated queue after state settles
-                    setSelectedProfileId(prev => {
-                      // Will be recalculated by the next render with updated tasks/profiles
-                      return null; 
-                    });
-                    toast.success("✅ Tarefa concluída! Próximo perfil selecionado automaticamente.");
-                  }, 300);
+
+                  if (nextProfile) {
+                    setSelectedProfileId(nextProfile.id);
+                    if (!tasks[nextProfile.id]) {
+                      await fetchTasks(nextProfile.id);
+                    }
+                  }
+
+                  await fetchProfiles();
+                  toast.success("✅ Tarefa concluída! Próximo perfil selecionado automaticamente.");
                 }}
                 onTrackCompleted={async (prof) => {
                   const NEXT_TRACK: Record<string, string> = { "7_days": "15_days", "15_days": "30_days" };
