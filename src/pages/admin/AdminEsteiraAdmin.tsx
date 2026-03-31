@@ -950,7 +950,7 @@ export default function AdminEsteiraAdmin() {
                         <input
                           className="bg-slate-50 dark:bg-white/10 border border-slate-200 dark:border-white/10 rounded px-2 py-1 text-xs w-20 dark:text-white"
                           value={tier.range}
-                          onChange={(e) => { const t = [...trustTiers]; t[i] = { ...t[i], range: e.target.value }; setTrustTiers(t); }}
+                          onChange={(e) => { const t = [...trustTiers]; t[i] = { ...t[i], range: e.target.value }; updateTrustTiers(t); }}
                         />
                       </td>
                       <td className="px-6 py-4">
