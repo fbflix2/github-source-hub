@@ -94,6 +94,7 @@ export default function AdminEsteiraAdmin() {
   const configSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const trackKeys = ["7_days", "15_days", "30_days"] as const;
 
   const handleDragStart = (index: number) => {
     setDragIndex(index);
@@ -234,6 +235,125 @@ export default function AdminEsteiraAdmin() {
     } catch {}
   };
 
+  const syncActiveProfilesWithConfig = async (updatedConfig: Record<string, { title: string; description: string }[]>) => {
+    const pageSize = 1000;
+
+    const syncTrack = async (trackKey: typeof trackKeys[number]) => {
+      const configuredTasks = updatedConfig[trackKey] || [];
+      const desiredTaskCount = configuredTasks.length;
+      if (desiredTaskCount === 0) return;
+
+      const allProfiles: Array<Pick<WarmingProfile, "id" | "current_day">> = [];
+      let profileFrom = 0;
+
+      while (true) {
+        const { data: profileBatch, error: profileError } = await supabase
+          .from("warming_profiles")
+          .select("id, current_day")
+          .eq("track_type", trackKey)
+          .neq("status", "completed")
+          .range(profileFrom, profileFrom + pageSize - 1);
+
+        if (profileError) throw profileError;
+        if (!profileBatch || profileBatch.length === 0) break;
+
+        allProfiles.push(...profileBatch);
+        if (profileBatch.length < pageSize) break;
+        profileFrom += pageSize;
+      }
+
+      if (allProfiles.length === 0) return;
+
+      const profileIds = allProfiles.map((profile) => profile.id);
+      const allExistingTasks: Array<Pick<WarmingTask, "id" | "profile_id" | "day_number" | "title" | "description">> = [];
+      let taskFrom = 0;
+
+      while (true) {
+        const { data: taskBatch, error: taskError } = await supabase
+          .from("warming_tasks")
+          .select("id, profile_id, day_number, title, description")
+          .in("profile_id", profileIds)
+          .order("day_number", { ascending: true })
+          .range(taskFrom, taskFrom + pageSize - 1);
+
+        if (taskError) throw taskError;
+        if (!taskBatch || taskBatch.length === 0) break;
+
+        allExistingTasks.push(...taskBatch);
+        if (taskBatch.length < pageSize) break;
+        taskFrom += pageSize;
+      }
+
+      const tasksByProfile = allExistingTasks.reduce<Record<string, typeof allExistingTasks>>((acc, task) => {
+        if (!acc[task.profile_id]) acc[task.profile_id] = [];
+        acc[task.profile_id].push(task);
+        return acc;
+      }, {});
+
+      await Promise.all(allProfiles.map(async (profile) => {
+        const existingTasks = tasksByProfile[profile.id] || [];
+        const updateRows = existingTasks
+          .slice(0, desiredTaskCount)
+          .map((task, index) => {
+            const configTask = configuredTasks[index];
+            if (!configTask) return null;
+
+            const nextDay = index + 1;
+            const sameTitle = task.title === configTask.title;
+            const sameDescription = (task.description || "") === (configTask.description || "");
+            const sameDay = task.day_number === nextDay;
+
+            if (sameTitle && sameDescription && sameDay) return null;
+
+            return {
+              id: task.id,
+              day_number: nextDay,
+              title: configTask.title,
+              description: configTask.description,
+            };
+          })
+          .filter(Boolean);
+
+        const extraTaskIds = existingTasks.slice(desiredTaskCount).map((task) => task.id);
+        const insertRows = configuredTasks.slice(existingTasks.length).map((task, index) => ({
+          profile_id: profile.id,
+          day_number: existingTasks.length + index + 1,
+          title: task.title,
+          description: task.description,
+        }));
+
+        const operations: Promise<unknown>[] = [];
+
+        if (updateRows.length > 0) {
+          operations.push(supabase.from("warming_tasks").upsert(updateRows as { id: string; day_number: number; title: string; description: string }[]));
+        }
+
+        if (extraTaskIds.length > 0) {
+          operations.push(supabase.from("warming_tasks").delete().in("id", extraTaskIds));
+        }
+
+        if (insertRows.length > 0) {
+          operations.push(supabase.from("warming_tasks").insert(insertRows));
+        }
+
+        operations.push(
+          supabase
+            .from("warming_profiles")
+            .update({
+              track_days: desiredTaskCount,
+              current_day: Math.min(profile.current_day, desiredTaskCount),
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", profile.id)
+        );
+
+        await Promise.all(operations);
+      }));
+    };
+
+    await Promise.all(trackKeys.map((trackKey) => syncTrack(trackKey)));
+  };
+
   const saveConfigToDB = (updatedConfig: Record<string, { title: string; description: string }[]>) => {
     if (configSaveTimer.current) clearTimeout(configSaveTimer.current);
     configSaveTimer.current = setTimeout(async () => {
@@ -249,6 +369,7 @@ export default function AdminEsteiraAdmin() {
         } else {
           await supabase.from("site_settings").insert({ key: "warming_track_config", value: jsonValue });
         }
+        await syncActiveProfilesWithConfig(updatedConfig);
       } catch (err) {
         console.error("Erro ao salvar config:", err);
       }
