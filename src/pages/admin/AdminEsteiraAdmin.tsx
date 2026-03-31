@@ -140,6 +140,23 @@ export default function AdminEsteiraAdmin() {
   });
   const [trustTiersSaved, setTrustTiersSaved] = useState(true);
   const [trustTiersSaving, setTrustTiersSaving] = useState(false);
+  const defaultReadyCriteria = {
+    minFriends: 20,
+    require2FA: true,
+    optionalBmMin: 1,
+    optionalBmMax: 2,
+    optionalPage: true,
+    minWarmingDays: 7,
+  };
+  const [readyCriteria, setReadyCriteria] = useState(() => {
+    try {
+      const saved = localStorage.getItem("warming_ready_criteria");
+      if (saved) return { ...defaultReadyCriteria, ...JSON.parse(saved) };
+    } catch {}
+    return defaultReadyCriteria;
+  });
+  const [readyCriteriaSaved, setReadyCriteriaSaved] = useState(true);
+  const [readyCriteriaSaving, setReadyCriteriaSaving] = useState(false);
 
   const updateTrustTiers = (newTiers: typeof defaultTiers) => {
     setTrustTiers(newTiers);
@@ -153,6 +170,21 @@ export default function AdminEsteiraAdmin() {
       setTrustTiersSaving(false);
       setTrustTiersSaved(true);
       toast.success("Níveis de confiança salvos com sucesso!");
+    }, 400);
+  };
+
+  const updateReadyCriteria = (updates: Partial<typeof defaultReadyCriteria>) => {
+    setReadyCriteria(prev => ({ ...prev, ...updates }));
+    setReadyCriteriaSaved(false);
+  };
+
+  const saveReadyCriteria = () => {
+    setReadyCriteriaSaving(true);
+    localStorage.setItem("warming_ready_criteria", JSON.stringify(readyCriteria));
+    setTimeout(() => {
+      setReadyCriteriaSaving(false);
+      setReadyCriteriaSaved(true);
+      toast.success("Critérios de perfil pronto salvos com sucesso!");
     }, 400);
   };
 
