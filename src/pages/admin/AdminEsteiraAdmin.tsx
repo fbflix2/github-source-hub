@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { useNavigate } from "react-router-dom";
@@ -61,7 +61,7 @@ export default function AdminEsteiraAdmin() {
   const [tasks, setTasks] = useState<Record<string, WarmingTask[]>>({});
   const [loading, setLoading] = useState(true);
   const [creatorNames, setCreatorNames] = useState<Record<string, string>>({});
-  const [activeTab, setActiveTab] = useState<"gestao" | "relatorios" | "bd_perfis" | "configuracoes">("gestao");
+  const [activeTab, setActiveTab] = useState<"gestao" | "relatorios" | "prontos" | "bd_perfis" | "configuracoes">("gestao");
   const [reportFilter, setReportFilter] = useState("");
   const [configTrack, setConfigTrack] = useState<"7_days" | "15_days" | "30_days">("7_days");
   const [profileCode, setProfileCode] = useState("");
@@ -535,6 +535,55 @@ export default function AdminEsteiraAdmin() {
 
   const totalProfiles = profiles.length;
   const completedProfiles = profiles.filter(p => p.status === "completed").length;
+  const readyProfiles = useMemo(
+    () => profiles.filter((p) => p.status === "completed"),
+    [profiles],
+  );
+
+  const activeProfiles = useMemo(
+    () => profiles.filter((p) => p.status !== "completed"),
+    [profiles],
+  );
+
+  const readySummary = useMemo(() => {
+    const totals = readyProfiles.reduce(
+      (acc, profile) => {
+        const profileTasks = tasks[profile.id] || [];
+        const completedTasks = profileTasks.filter((task) => task.completed).length;
+        const totalSeconds = profileTasks.reduce((sum, task) => sum + (task.duration_seconds || 0), 0);
+        const completedAt = profileTasks
+          .filter((task) => task.completed_at)
+          .reduce<number>((latest, task) => {
+            const value = new Date(task.completed_at as string).getTime();
+            return value > latest ? value : latest;
+          }, 0);
+
+        acc.totalDuration += totalSeconds;
+        acc.totalChecklist += completedTasks;
+        acc.totalExpectedChecklist += profileTasks.length;
+        if (completedAt > acc.latestCompletion) acc.latestCompletion = completedAt;
+
+        return acc;
+      },
+      {
+        totalDuration: 0,
+        totalChecklist: 0,
+        totalExpectedChecklist: 0,
+        latestCompletion: 0,
+      },
+    );
+
+    return {
+      count: readyProfiles.length,
+      averageDuration:
+        readyProfiles.length > 0 ? Math.round(totals.totalDuration / readyProfiles.length) : 0,
+      checklistCompletion:
+        totals.totalExpectedChecklist > 0
+          ? Math.round((totals.totalChecklist / totals.totalExpectedChecklist) * 100)
+          : 0,
+      latestCompletion: totals.latestCompletion,
+    };
+  }, [readyProfiles, tasks]);
 
   const filteredReportProfiles = profiles.filter(p =>
     !reportFilter || p.profile_code.toLowerCase().includes(reportFilter.toLowerCase())
@@ -543,6 +592,7 @@ export default function AdminEsteiraAdmin() {
   const tabs = [
     { key: "gestao" as const, label: "Gestão", icon: "supervisor_account" },
     { key: "relatorios" as const, label: "Relatórios", icon: "analytics" },
+    { key: "prontos" as const, label: "Perfis Prontos", icon: "inventory_2" },
     { key: "bd_perfis" as const, label: "BD Perfis", icon: "database" },
     { key: "configuracoes" as const, label: "Configurações", icon: "settings" },
   ];
@@ -703,6 +753,158 @@ export default function AdminEsteiraAdmin() {
         </main>
       )}
 
+      {activeTab === "prontos" && (
+        <main className="flex-1 px-6 md:px-8 lg:px-12 py-8 max-w-6xl mx-auto w-full space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="bg-white dark:bg-white/5 p-6 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm">
+              <p className="text-slate-500 dark:text-white/50 text-sm font-medium mb-1">Perfis prontos</p>
+              <h3 className="text-3xl font-black">{readySummary.count.toLocaleString()}</h3>
+            </div>
+            <div className="bg-white dark:bg-white/5 p-6 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm">
+              <p className="text-slate-500 dark:text-white/50 text-sm font-medium mb-1">Tempo médio de aquecimento</p>
+              <h3 className="text-3xl font-black">{readySummary.averageDuration ? formatDuration(readySummary.averageDuration) : "—"}</h3>
+            </div>
+            <div className="bg-white dark:bg-white/5 p-6 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm">
+              <p className="text-slate-500 dark:text-white/50 text-sm font-medium mb-1">Checklist concluído</p>
+              <h3 className="text-3xl font-black">{readySummary.checklistCompletion}%</h3>
+            </div>
+            <div className="bg-white dark:bg-white/5 p-6 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm">
+              <p className="text-slate-500 dark:text-white/50 text-sm font-medium mb-1">Última finalização</p>
+              <h3 className="text-xl font-black">
+                {readySummary.latestCompletion
+                  ? new Date(readySummary.latestCompletion).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" })
+                  : "—"}
+              </h3>
+            </div>
+          </div>
+
+          <section className="bg-white dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm overflow-hidden">
+            <div className="p-6 border-b border-slate-200 dark:border-white/10 flex items-center justify-between gap-4">
+              <div>
+                <h4 className="font-bold text-lg">Estoque de perfis prontos para venda</h4>
+                <p className="text-sm text-slate-500 dark:text-white/50 mt-1">
+                  Todo perfil concluído sai da esteira ativa e fica listado aqui com o histórico completo do aquecimento.
+                </p>
+              </div>
+              <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">
+                {readyProfiles.length} disponíveis
+              </span>
+            </div>
+
+            <div className="p-6 space-y-5">
+              {readyProfiles.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-slate-200 dark:border-white/10 p-10 text-center text-slate-500 dark:text-white/50">
+                  Nenhum perfil pronto ainda.
+                </div>
+              ) : (
+                readyProfiles.map((profile) => {
+                  const profileTasks = tasks[profile.id] || [];
+                  const completedTasks = profileTasks.filter((task) => task.completed).length;
+                  const totalSeconds = profileTasks.reduce((sum, task) => sum + (task.duration_seconds || 0), 0);
+                  const operatorName = profile.created_by ? creatorNames[profile.created_by] || "—" : "—";
+                  const latestCompletedTask = [...profileTasks]
+                    .filter((task) => task.completed_at)
+                    .sort((a, b) => new Date(b.completed_at || 0).getTime() - new Date(a.completed_at || 0).getTime())[0];
+
+                  return (
+                    <article
+                      key={profile.id}
+                      className="rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50/80 dark:bg-white/[0.03] overflow-hidden"
+                    >
+                      <div className="p-5 border-b border-slate-200 dark:border-white/10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2 mb-2">
+                            <h5 className="text-lg font-black text-slate-900 dark:text-white">{profile.profile_code}</h5>
+                            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300 uppercase tracking-wider">
+                              Pronto para venda
+                            </span>
+                            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-200 text-slate-600 dark:bg-white/10 dark:text-white/60 uppercase tracking-wider">
+                              {TRACKS[profile.track_type]?.label || profile.track_type}
+                            </span>
+                          </div>
+                          <p className="text-sm text-slate-500 dark:text-white/50">
+                            Operador: <span className="font-semibold text-slate-700 dark:text-white/80">{operatorName}</span>
+                            {profile.trust_tier ? (
+                              <>
+                                {" "}• Nível: <span className="font-semibold text-slate-700 dark:text-white/80">{profile.trust_tier}</span>
+                              </>
+                            ) : null}
+                          </p>
+                        </div>
+
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+                          <div className="rounded-lg bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 px-3 py-2">
+                            <p className="text-slate-400 dark:text-white/40 text-[11px] uppercase font-bold">Checklist</p>
+                            <p className="font-black text-slate-900 dark:text-white">{completedTasks}/{profileTasks.length}</p>
+                          </div>
+                          <div className="rounded-lg bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 px-3 py-2">
+                            <p className="text-slate-400 dark:text-white/40 text-[11px] uppercase font-bold">Tempo total</p>
+                            <p className="font-black text-slate-900 dark:text-white">{totalSeconds ? formatDuration(totalSeconds) : "—"}</p>
+                          </div>
+                          <div className="rounded-lg bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 px-3 py-2 col-span-2 md:col-span-1">
+                            <p className="text-slate-400 dark:text-white/40 text-[11px] uppercase font-bold">Finalizado em</p>
+                            <p className="font-black text-slate-900 dark:text-white">
+                              {latestCompletedTask?.completed_at
+                                ? new Date(latestCompletedTask.completed_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" })
+                                : "—"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="p-5 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-white/50">
+                            Checklist do aquecimento
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-white/50">
+                            Início {new Date(profile.start_date).toLocaleDateString("pt-BR")}
+                          </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                          {profileTasks.map((task) => (
+                            <div
+                              key={task.id}
+                              className={`rounded-xl border px-4 py-3 ${
+                                task.completed
+                                  ? "border-emerald-200 bg-emerald-50 dark:border-emerald-500/20 dark:bg-emerald-500/10"
+                                  : "border-slate-200 bg-white dark:border-white/10 dark:bg-white/[0.03]"
+                              }`}
+                            >
+                              <div className="flex items-start gap-3">
+                                <span className={`mt-0.5 material-symbols-outlined text-lg ${task.completed ? "text-emerald-600 dark:text-emerald-300" : "text-slate-300 dark:text-white/20"}`}>
+                                  {task.completed ? "check_circle" : "radio_button_unchecked"}
+                                </span>
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-sm font-bold text-slate-900 dark:text-white">
+                                    Dia {task.day_number} • {task.title}
+                                  </p>
+                                  {task.description ? (
+                                    <p className="text-xs text-slate-500 dark:text-white/50 mt-1">{task.description}</p>
+                                  ) : null}
+                                  <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 text-[11px] text-slate-500 dark:text-white/50">
+                                    <span>{task.completed ? "Concluído" : "Pendente"}</span>
+                                    {task.duration_seconds ? <span>Tempo: {formatDuration(task.duration_seconds)}</span> : null}
+                                    {task.completed_at ? (
+                                      <span>{new Date(task.completed_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}</span>
+                                    ) : null}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })
+              )}
+            </div>
+          </section>
+        </main>
+      )}
+
       {/* BD Perfis Tab */}
       {activeTab === "bd_perfis" && (
         <main className="flex-1 px-6 md:px-8 lg:px-12 py-8 max-w-3xl mx-auto w-full space-y-6">
@@ -794,14 +996,14 @@ export default function AdminEsteiraAdmin() {
                 <h2 className="text-base font-bold text-slate-900 dark:text-white">Perfis Cadastrados</h2>
               </div>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/10 text-slate-500 dark:text-white/50">
-                {profiles.length} total
+                {activeProfiles.length} ativos
               </span>
             </div>
             <div className="max-h-[400px] overflow-y-auto divide-y divide-slate-100 dark:divide-white/10">
-              {profiles.length === 0 ? (
+              {activeProfiles.length === 0 ? (
                 <div className="p-6 text-center text-xs text-slate-500">Nenhum perfil cadastrado ainda.</div>
               ) : (
-                profiles.slice(0, 50).map(p => {
+                activeProfiles.slice(0, 50).map(p => {
                   const prog = getProgress(p);
                   const operatorName = p.created_by ? creatorNames[p.created_by] || "—" : "—";
                   return (
