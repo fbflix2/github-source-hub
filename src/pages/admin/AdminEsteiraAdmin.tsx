@@ -957,7 +957,7 @@ export default function AdminEsteiraAdmin() {
                         <input
                           className="w-full bg-transparent border-none p-0 text-xs text-slate-700 dark:text-white/70 focus:ring-0 outline-none"
                           value={tier.criteria}
-                          onChange={(e) => { const t = [...trustTiers]; t[i] = { ...t[i], criteria: e.target.value }; setTrustTiers(t); }}
+                          onChange={(e) => { const t = [...trustTiers]; t[i] = { ...t[i], criteria: e.target.value }; updateTrustTiers(t); }}
                         />
                       </td>
                       <td className="px-6 py-4 text-right">
