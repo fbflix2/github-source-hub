@@ -905,12 +905,26 @@ export default function AdminEsteiraAdmin() {
                 <MIcon name="verified_user" className="text-[#1876f2]" />
                 <h2 className="text-lg font-bold">Definição de Níveis de Confiança</h2>
               </div>
-              <button
-                onClick={() => setTrustTiers([...trustTiers, { label: `Nível ${trustTiers.length + 1}`, color: "bg-slate-100 text-slate-700", range: "0 - 0", criteria: "" }])}
-                className="flex items-center gap-1 text-[#1876f2] text-sm font-bold hover:underline"
-              >
-                <MIcon name="add_circle" className="text-sm" /> Adicionar
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => updateTrustTiers([...trustTiers, { label: `Nível ${trustTiers.length + 1}`, color: "bg-slate-100 text-slate-700", range: "0 - 0", criteria: "" }])}
+                  className="flex items-center gap-1 text-[#1876f2] text-sm font-bold hover:underline"
+                >
+                  <MIcon name="add_circle" className="text-sm" /> Adicionar
+                </button>
+                <button
+                  onClick={saveTrustTiers}
+                  disabled={trustTiersSaved || trustTiersSaving}
+                  className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    trustTiersSaved
+                      ? "bg-emerald-500/20 text-emerald-400 cursor-default"
+                      : "bg-[#1876f2] text-white hover:bg-[#1876f2]/90"
+                  }`}
+                >
+                  <MIcon name={trustTiersSaved ? "check_circle" : "save"} className="!text-sm" />
+                  {trustTiersSaving ? "Salvando..." : trustTiersSaved ? "Salvo" : "Salvar"}
+                </button>
+              </div>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
