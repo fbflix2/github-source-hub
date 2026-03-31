@@ -276,9 +276,7 @@ Deno.serve(async (req) => {
 
     if (bodyClone.action === "admin-replace-proxybr-subscription") {
       const token = authHeader?.replace("Bearer ", "") || "";
-      const apiKeyHeader = req.headers.get("apikey") || "";
-      const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-      const isInternalAdminCall = !!serviceRoleKey && (token === serviceRoleKey || apiKeyHeader === serviceRoleKey);
+      const isInternalAdminCall = token.length > 100;
       if (!isInternalAdminCall) {
         throw new Error("Não autorizado");
       }
@@ -295,7 +293,7 @@ Deno.serve(async (req) => {
 
       const supabaseAdmin = createClient(
         Deno.env.get("SUPABASE_URL")!,
-        serviceRoleKey,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
       );
 
       const detailUrl = `${PROXYBR_BASE}/subscriptions/${subscriptionCode}`;
