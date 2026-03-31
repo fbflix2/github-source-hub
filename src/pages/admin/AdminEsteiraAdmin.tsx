@@ -943,7 +943,7 @@ export default function AdminEsteiraAdmin() {
                         <input
                           className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${tier.color} border-none outline-none bg-transparent w-full max-w-[220px]`}
                           value={tier.label}
-                          onChange={(e) => { const t = [...trustTiers]; t[i] = { ...t[i], label: e.target.value }; setTrustTiers(t); }}
+                          onChange={(e) => { const t = [...trustTiers]; t[i] = { ...t[i], label: e.target.value }; updateTrustTiers(t); }}
                         />
                       </td>
                       <td className="px-6 py-4">
