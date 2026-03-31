@@ -1,14 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useMemo } from "react";
+import { invokeProxyBR } from "@/lib/proxybr-client";
 
 async function callProxyBR(action: string, params: Record<string, unknown> = {}) {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return null;
-  const { data, error } = await supabase.functions.invoke("proxybr-api", { body: { action, ...params } });
-  if (error) throw new Error(error.message);
-  if (data?.error && !data?.data) throw new Error(data.error);
-  return data;
+  return invokeProxyBR(action, params);
 }
 
 /**

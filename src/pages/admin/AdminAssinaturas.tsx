@@ -30,6 +30,7 @@ import { Button } from "@/components/ui/button";
 import { useRenewSubscription, useCheckSubscriptionCount } from "@/hooks/useProxyBR";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeProxyBR } from "@/lib/proxybr-client";
 import { differenceInDays, parseISO, format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -391,10 +392,7 @@ export default function AdminAssinaturas() {
     try {
       await supabase.auth.refreshSession();
       
-      const { data, error } = await supabase.functions.invoke("proxybr-api", {
-        body: { action: "sync-subscriptions" },
-      });
-      if (error) throw new Error(error.message || "Erro ao sincronizar");
+      const data = await invokeProxyBR("sync-subscriptions");
       if (data?.error) throw new Error(data.error);
       
       toast.info("Sincronização iniciada em segundo plano...");
@@ -442,10 +440,7 @@ export default function AdminAssinaturas() {
     setRelinking(true);
     try {
       await supabase.auth.refreshSession();
-      const { data, error } = await supabase.functions.invoke("proxybr-api", {
-        body: { action: "relink-all-subscriptions" },
-      });
-      if (error) throw new Error(error.message);
+      const data = await invokeProxyBR("relink-all-subscriptions");
       if (data?.error) throw new Error(data.error);
       toast.success(`${data.relinked} assinaturas re-vinculadas de ${data.total} no admin!`);
       queryClient.invalidateQueries({ queryKey: ["admin-subscriptions-cached"] });
@@ -613,9 +608,7 @@ export default function AdminAssinaturas() {
       // Try to get email via edge function (uses service role)
       const clientLabel = profileData?.full_name || userId;
       try {
-        await supabase.functions.invoke("proxybr-api", {
-          body: { action: "update-subscription-notes", subscriptionCode: subCode, notes: clientLabel },
-        });
+        await invokeProxyBR("update-subscription-notes", { subscriptionCode: subCode, notes: clientLabel });
       } catch (e) {
         console.error("Failed to update ProxyBR notes:", e);
       }

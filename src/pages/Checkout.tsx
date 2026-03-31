@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Wallet, QrCode, CreditCard, Lock, ChevronLeft, User, Calendar, Flame, Loader2, Check, Copy, Share2, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeProxyBR } from "@/lib/proxybr-client";
 import { toast } from "sonner";
 import { useCart } from "@/contexts/CartContext";
 import { useQueryClient } from "@tanstack/react-query";
@@ -803,9 +804,7 @@ export default function Checkout() {
           // If no variant from sessionStorage, fetch first available variant from ProxyBR
           if (!variantId && product?.external_id) {
             toast.info("Buscando variante do proxy...");
-            const { data: productsResult } = await supabase.functions.invoke("proxybr-api", {
-              body: { action: "get-products" },
-            });
+            const productsResult = await invokeProxyBR("get-products");
             if (productsResult && Array.isArray(productsResult)) {
               const apiProduct = productsResult.find((p: any) => String(p.id) === String(product.external_id));
               if (apiProduct?.variant?.length > 0) {
@@ -825,16 +824,19 @@ export default function Checkout() {
           await supabase.from("orders").update(updateData).eq("id", orderId);
 
           toast.info("Ativando seu proxy...");
-          const { data: proxyResult, error: proxyError } = await supabase.functions.invoke("proxybr-api", {
-            body: {
-              action: "purchase-proxy-with-balance",
+          let proxyResult: any;
+          let proxyError: Error | null = null;
+          try {
+            proxyResult = await invokeProxyBR("purchase-proxy-with-balance", {
               order_id: orderId,
               product_variant_id: variantId,
               quantity: proxyQuantity,
               interval: proxyInterval,
               total,
-            },
-          });
+            });
+          } catch (error: any) {
+            proxyError = error;
+          }
 
           if (proxyError || proxyResult?.error) {
             console.error("Proxy purchase error:", proxyError || proxyResult?.error);
@@ -963,9 +965,7 @@ export default function Checkout() {
           let pixVariantId = proxyDataForPix?.product_variant_id;
           // Fallback: fetch variant from ProxyBR products API
           if (!pixVariantId && product?.external_id) {
-            const { data: productsResult } = await supabase.functions.invoke("proxybr-api", {
-              body: { action: "get-products" },
-            });
+            const productsResult = await invokeProxyBR("get-products");
             if (productsResult && Array.isArray(productsResult)) {
               const apiProduct = productsResult.find((p: any) => String(p.id) === String(product.external_id));
               if (apiProduct?.variant?.length > 0) {
@@ -1050,9 +1050,7 @@ export default function Checkout() {
         if (proxyDataForCard?.product_variant_id || isProxyBRCard) {
           let cardVariantId = proxyDataForCard?.product_variant_id;
           if (!cardVariantId && product?.external_id) {
-            const { data: productsResult } = await supabase.functions.invoke("proxybr-api", {
-              body: { action: "get-products" },
-            });
+            const productsResult = await invokeProxyBR("get-products");
             if (productsResult && Array.isArray(productsResult)) {
               const apiProduct = productsResult.find((p: any) => String(p.id) === String(product.external_id));
               if (apiProduct?.variant?.length > 0) {
