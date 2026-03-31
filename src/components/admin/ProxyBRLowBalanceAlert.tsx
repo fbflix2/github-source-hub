@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeProxyBR } from "@/lib/proxybr-client";
 import { AlertTriangle, Wallet, ExternalLink } from "lucide-react";
 import {
   AlertDialog,
@@ -36,25 +37,11 @@ export function ProxyBRLowBalanceAlert() {
   const { data: meData } = useQuery({
     queryKey: ["proxybr-me"],
     queryFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return null;
-
-      const { data, error } = await supabase.functions.invoke("proxybr-api", {
-        body: { action: "get-me" },
-      });
-      if (error) {
-        if (error.message?.includes("401") || error.message?.includes("Token")) {
-          const { error: refreshErr } = await supabase.auth.refreshSession();
-          if (refreshErr) return null;
-          const retry = await supabase.functions.invoke("proxybr-api", {
-            body: { action: "get-me" },
-          });
-          if (retry.error) return null;
-          return retry.data;
-        }
+      try {
+        return await invokeProxyBR("get-me");
+      } catch {
         return null;
       }
-      return data;
     },
     enabled: !!isAdmin,
     staleTime: 300_000,

@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useProxyRevenue } from "@/hooks/useProxyRevenue";
+import { invokeProxyBR } from "@/lib/proxybr-client";
 import { Wallet, TrendingUp, TrendingDown, ShoppingBag, BarChart3, RefreshCw, ExternalLink, DollarSign } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -32,11 +33,7 @@ export default function ProxyFinancialOverview() {
   // ProxyBR account balance
   const { data: meData, isLoading: meLoading, refetch: refetchMe } = useQuery({
     queryKey: ["proxybr-me"],
-    queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke("proxybr-api", { body: { action: "get-me" } });
-      if (error) throw new Error(error.message);
-      return data;
-    },
+    queryFn: () => invokeProxyBR("get-me"),
     staleTime: 120_000,
   });
 

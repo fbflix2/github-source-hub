@@ -1,33 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useState, useCallback, useRef, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { invokeProxyBR } from "@/lib/proxybr-client";
 
 async function callProxyBR(action: string, params: Record<string, unknown> = {}) {
-  const { data, error } = await supabase.functions.invoke("proxybr-api", {
-    body: { action, ...params },
-  });
-
-  // If token expired, refresh session and retry once
-  if (error && (error.message?.includes("401") || data?.error?.includes("Token inválido"))) {
-    const { error: refreshError } = await supabase.auth.refreshSession();
-    if (!refreshError) {
-      const retry = await supabase.functions.invoke("proxybr-api", {
-        body: { action, ...params },
-      });
-      if (retry.error) throw new Error(retry.error.message || "Erro ao chamar ProxyBR API");
-      if (retry.data?.error && !retry.data?.data) throw new Error(retry.data.error);
-      return retry.data;
-    }
-    // Session fully expired - redirect to login
-    console.warn("[ProxyBR] Session expired, redirecting to login");
-    window.location.href = "/auth";
-    throw new Error("Sessão expirada. Redirecionando para login...");
-  }
-
-  if (error) throw new Error(error.message || "Erro ao chamar ProxyBR API");
-  if (data?.error && !data?.data) throw new Error(data.error);
-  return data;
+  return invokeProxyBR(action, params);
 }
 
 /** Fetches all subscriptions in paginated batches to avoid edge function timeouts */

@@ -286,15 +286,18 @@ Deno.serve(async (req) => {
     );
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !authUser) {
-      console.error("proxybr-api auth error:", authError?.message || "No user");
+    const { data: claimsData, error: authError } = await supabase.auth.getClaims(token);
+    if (authError || !claimsData?.claims?.sub) {
+      console.error("proxybr-api auth error:", authError?.message || "No claims");
       return new Response(JSON.stringify({ error: "Token inválido ou expirado. Faça login novamente." }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
     }
 
-    const user = { id: authUser.id, email: authUser.email || "" };
+    const user = {
+      id: claimsData.claims.sub,
+      email: typeof claimsData.claims.email === "string" ? claimsData.claims.email : "",
+    };
 
     const { action, ...params } = await req.json();
 

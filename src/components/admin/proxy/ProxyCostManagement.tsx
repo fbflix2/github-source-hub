@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/hooks/use-toast";
+import { invokeProxyBR } from "@/lib/proxybr-client";
 
 interface ApiVariant { id: number; price: number; stocks: number; location?: string; name?: string; }
 interface ApiProduct { id: number; name: string; type?: string; variant?: ApiVariant[]; variants?: ApiVariant[]; }
@@ -16,10 +17,7 @@ interface LocalProduct { id: string; name: string; price: number; external_id: s
 interface MergedRow { productName: string; productType: string; variantName: string; apiPrice: number; salePrice: number | null; stock: number; apiProductId: number; localProductId: string | null; }
 
 async function callProxyBR(action: string, params: Record<string, unknown> = {}) {
-  const { data, error } = await supabase.functions.invoke("proxybr-api", { body: { action, ...params } });
-  if (error) throw new Error(error.message);
-  if (data?.error && !data?.data) throw new Error(data.error);
-  return data;
+  return invokeProxyBR(action, params);
 }
 
 export default function ProxyCostManagement() {
