@@ -125,11 +125,35 @@ export default function AdminEsteiraAdmin() {
     setDragOverIndex(null);
   };
 
-  const [trustTiers, setTrustTiers] = useState([
+  const defaultTiers = [
     { label: "Nível 1 (Confiança Baixa)", color: "bg-red-100 text-red-700", range: "0 - 30", criteria: "Contas novas, sem histórico." },
     { label: "Nível 2 (Confiança Média)", color: "bg-amber-100 text-amber-700", range: "31 - 75", criteria: "7+ dias, 2FA ativa." },
     { label: "Nível 3 (Confiança Alta)", color: "bg-green-100 text-green-700", range: "76 - 100", criteria: "Esteira completa, 30+ dias." },
-  ]);
+  ];
+  const [trustTiers, setTrustTiers] = useState(() => {
+    try {
+      const saved = localStorage.getItem("warming_trust_tiers");
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return defaultTiers;
+  });
+  const [trustTiersSaved, setTrustTiersSaved] = useState(true);
+  const [trustTiersSaving, setTrustTiersSaving] = useState(false);
+
+  const updateTrustTiers = (newTiers: typeof defaultTiers) => {
+    setTrustTiers(newTiers);
+    setTrustTiersSaved(false);
+  };
+
+  const saveTrustTiers = () => {
+    setTrustTiersSaving(true);
+    localStorage.setItem("warming_trust_tiers", JSON.stringify(trustTiers));
+    setTimeout(() => {
+      setTrustTiersSaving(false);
+      setTrustTiersSaved(true);
+      toast.success("Níveis de confiança salvos com sucesso!");
+    }, 400);
+  };
 
   useEffect(() => {
     if (!document.querySelector('link[href*="Material+Symbols+Outlined"]')) {
@@ -881,12 +905,26 @@ export default function AdminEsteiraAdmin() {
                 <MIcon name="verified_user" className="text-[#1876f2]" />
                 <h2 className="text-lg font-bold">Definição de Níveis de Confiança</h2>
               </div>
-              <button
-                onClick={() => setTrustTiers([...trustTiers, { label: `Nível ${trustTiers.length + 1}`, color: "bg-slate-100 text-slate-700", range: "0 - 0", criteria: "" }])}
-                className="flex items-center gap-1 text-[#1876f2] text-sm font-bold hover:underline"
-              >
-                <MIcon name="add_circle" className="text-sm" /> Adicionar
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => updateTrustTiers([...trustTiers, { label: `Nível ${trustTiers.length + 1}`, color: "bg-slate-100 text-slate-700", range: "0 - 0", criteria: "" }])}
+                  className="flex items-center gap-1 text-[#1876f2] text-sm font-bold hover:underline"
+                >
+                  <MIcon name="add_circle" className="text-sm" /> Adicionar
+                </button>
+                <button
+                  onClick={saveTrustTiers}
+                  disabled={trustTiersSaved || trustTiersSaving}
+                  className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    trustTiersSaved
+                      ? "bg-emerald-500/20 text-emerald-400 cursor-default"
+                      : "bg-[#1876f2] text-white hover:bg-[#1876f2]/90"
+                  }`}
+                >
+                  <MIcon name={trustTiersSaved ? "check_circle" : "save"} className="!text-sm" />
+                  {trustTiersSaving ? "Salvando..." : trustTiersSaved ? "Salvo" : "Salvar"}
+                </button>
+              </div>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
@@ -905,27 +943,27 @@ export default function AdminEsteiraAdmin() {
                         <input
                           className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${tier.color} border-none outline-none bg-transparent w-full max-w-[220px]`}
                           value={tier.label}
-                          onChange={(e) => { const t = [...trustTiers]; t[i] = { ...t[i], label: e.target.value }; setTrustTiers(t); }}
+                          onChange={(e) => { const t = [...trustTiers]; t[i] = { ...t[i], label: e.target.value }; updateTrustTiers(t); }}
                         />
                       </td>
                       <td className="px-6 py-4">
                         <input
                           className="bg-slate-50 dark:bg-white/10 border border-slate-200 dark:border-white/10 rounded px-2 py-1 text-xs w-20 dark:text-white"
                           value={tier.range}
-                          onChange={(e) => { const t = [...trustTiers]; t[i] = { ...t[i], range: e.target.value }; setTrustTiers(t); }}
+                          onChange={(e) => { const t = [...trustTiers]; t[i] = { ...t[i], range: e.target.value }; updateTrustTiers(t); }}
                         />
                       </td>
                       <td className="px-6 py-4">
                         <input
                           className="w-full bg-transparent border-none p-0 text-xs text-slate-700 dark:text-white/70 focus:ring-0 outline-none"
                           value={tier.criteria}
-                          onChange={(e) => { const t = [...trustTiers]; t[i] = { ...t[i], criteria: e.target.value }; setTrustTiers(t); }}
+                          onChange={(e) => { const t = [...trustTiers]; t[i] = { ...t[i], criteria: e.target.value }; updateTrustTiers(t); }}
                         />
                       </td>
                       <td className="px-6 py-4 text-right">
                         {trustTiers.length > 1 && (
                           <button
-                            onClick={() => setTrustTiers(trustTiers.filter((_, idx) => idx !== i))}
+                            onClick={() => updateTrustTiers(trustTiers.filter((_, idx) => idx !== i))}
                             className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 transition-all"
                           >
                             <MIcon name="delete" className="text-base" />
