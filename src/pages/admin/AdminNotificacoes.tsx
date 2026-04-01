@@ -300,7 +300,25 @@ export default function AdminNotificacoes() {
 
     let sendError;
     if (isGlobal) {
-      ({ error: sendError } = await supabase.from("notifications").insert({ ...notifBase, global: true } as any));
+      // Fetch all active user IDs to create individual notifications for tracking
+      const { data: activeUsers, error: usersError } = await supabase
+        .from("profiles")
+        .select("user_id")
+        .eq("status", "active");
+      
+      if (usersError || !activeUsers?.length) {
+        toast.error("Erro ao buscar usuários ativos");
+        return;
+      }
+
+      // Insert in batches of 500 to avoid payload limits
+      const batchSize = 500;
+      for (let i = 0; i < activeUsers.length; i += batchSize) {
+        const batch = activeUsers.slice(i, i + batchSize);
+        const notifs = batch.map((u: any) => ({ ...notifBase, global: true, user_id: u.user_id }));
+        const { error } = await supabase.from("notifications").insert(notifs as any);
+        if (error) { sendError = error; break; }
+      }
     } else if (targetIds && targetIds.length > 0) {
       const notifs = targetIds.map((uid: string) => ({ ...notifBase, global: false, user_id: uid }));
       ({ error: sendError } = await supabase.from("notifications").insert(notifs as any));
@@ -393,7 +411,24 @@ export default function AdminNotificacoes() {
       const notifs = n.target_user_ids.map(uid => ({ ...notifBase, global: false, user_id: uid }));
       ({ error: sendError } = await supabase.from("notifications").insert(notifs as any));
     } else {
-      ({ error: sendError } = await supabase.from("notifications").insert({ ...notifBase, global: true } as any));
+      // Fetch all active user IDs to create individual notifications for tracking
+      const { data: activeUsers, error: usersError } = await supabase
+        .from("profiles")
+        .select("user_id")
+        .eq("status", "active");
+      
+      if (usersError || !activeUsers?.length) {
+        toast.error("Erro ao buscar usuários ativos");
+        return;
+      }
+
+      const batchSize = 500;
+      for (let i = 0; i < activeUsers.length; i += batchSize) {
+        const batch = activeUsers.slice(i, i + batchSize);
+        const notifs = batch.map((u: any) => ({ ...notifBase, global: true, user_id: u.user_id }));
+        const { error } = await supabase.from("notifications").insert(notifs as any);
+        if (error) { sendError = error; break; }
+      }
     }
 
     if (sendError) {
