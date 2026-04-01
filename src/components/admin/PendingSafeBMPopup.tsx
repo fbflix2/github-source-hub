@@ -30,9 +30,10 @@ export function PendingSafeBMPopup() {
   const fetchPending = useCallback(async () => {
     const { data } = await supabase
       .from("safe_bm_vaults")
-      .select("id, client_name, bm_name, bm_link, created_at")
+      .select("id, client_name, bm_name, bm_link, created_at, bm_tracking_id")
       .eq("status", "active")
       .eq("bm_link", GENERIC_BM_LINK)
+      .is("bm_tracking_id", null)
       .order("created_at", { ascending: false });
 
     if (data && data.length > 0) {
