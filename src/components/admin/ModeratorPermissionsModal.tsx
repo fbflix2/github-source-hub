@@ -43,9 +43,8 @@ const allMenuOptions = [
   { path: "/admin/termos", label: "Configurações > Termos de uso" },
   { path: "/admin/api", label: "Configurações > API | Token" },
   { path: "/admin/aquecimento", label: "Aquecimento" },
-  { path: "/admin/ferramentas", label: "Ferramentas" },
-  { path: "/admin/ferramentas/2fa", label: "Ferramentas > 2FA" },
-  { path: "/admin/ferramentas/imagens", label: "Ferramentas > Imagens" },
+  { path: "/admin/ferramentas-2fa", label: "Ferramentas > 2FA" },
+  { path: "/admin/imagens", label: "Ferramentas > Imagens" },
 ];
 
 interface ModeratorPermissionsModalProps {

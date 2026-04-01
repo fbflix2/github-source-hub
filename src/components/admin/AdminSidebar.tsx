@@ -4,6 +4,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useTeamChatNotifications } from "@/hooks/useTeamChatNotifications";
+import { normalizeAdminAllowedPaths } from "@/lib/admin-permissions";
 import { 
   LayoutDashboard, 
   Package, 
@@ -152,21 +153,7 @@ export function AdminSidebar() {
         return;
       }
 
-      const allowed = new Set(perms.allowed_paths as string[]);
-      // Blocagem and Reciclagem are sub-features of estoque
-      if (allowed.has("/admin/estoque")) {
-        allowed.add("/admin/blocagem");
-        allowed.add("/admin/reciclagem");
-      }
-      // Chat is available to all staff
-      allowed.add("/admin/chat");
-      // Auto-grant parent paths when child paths are allowed
-      for (const p of [...allowed]) {
-        const parts = p.split("/").filter(Boolean);
-        for (let i = 2; i < parts.length; i++) {
-          allowed.add("/" + parts.slice(0, i).join("/"));
-        }
-      }
+      const allowed = normalizeAdminAllowedPaths(perms.allowed_paths as string[]);
 
       // Filter menu items
       const filtered = allMenuItems

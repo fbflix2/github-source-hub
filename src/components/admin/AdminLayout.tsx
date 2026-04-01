@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { AdminMobileHeader } from "./mobile/AdminMobileHeader";
 import { AdminMobileBottomNav } from "./mobile/AdminMobileBottomNav";
+import { normalizeAdminAllowedPaths } from "@/lib/admin-permissions";
 
 export function AdminLayout() {
   const { isAdmin, loading, role } = useAdminAuth();
@@ -47,26 +48,11 @@ export function AdminLayout() {
           return;
         }
 
-        const allowed = perms.allowed_paths as string[];
-        const effectiveAllowed = [...allowed];
-        if (allowed.includes("/admin/estoque") && !allowed.includes("/admin/blocagem")) {
-          effectiveAllowed.push("/admin/blocagem");
-        }
-        if (!effectiveAllowed.includes("/admin/chat")) {
-          effectiveAllowed.push("/admin/chat");
-        }
-        // Auto-grant parent paths when child paths are allowed
-        for (const p of [...effectiveAllowed]) {
-          const parts = p.split("/").filter(Boolean);
-          for (let i = 2; i < parts.length; i++) {
-            const parent = "/" + parts.slice(0, i).join("/");
-            if (!effectiveAllowed.includes(parent)) effectiveAllowed.push(parent);
-          }
-        }
+        const effectiveAllowed = [...normalizeAdminAllowedPaths(perms.allowed_paths as string[])];
         const currentAllowed = effectiveAllowed.some(p => location.pathname === p || location.pathname.startsWith(p + "/"));
 
         if (!currentAllowed) {
-          navigate(allowed[0], { replace: true });
+          navigate(effectiveAllowed[0], { replace: true });
         }
       } catch (err) {
         console.error("Error checking mod permissions:", err);
