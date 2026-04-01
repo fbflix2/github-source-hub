@@ -24,6 +24,7 @@ interface SafeBmVault {
   notes: string | null;
   created_at: string;
   updated_at: string;
+  bm_tracking_id: string | null;
 }
 
 const MaterialIcon = ({ name, className = "" }: { name: string; className?: string }) => (
@@ -85,7 +86,7 @@ export default function SafeBMClient() {
     );
   }
 
-  const unconfiguredVaults = vaults.filter(v => v.bm_link === GENERIC_BM_LINK);
+  const unconfiguredVaults = vaults.filter(v => v.bm_link === GENERIC_BM_LINK && !v.bm_tracking_id);
 
   if (!loading && vaults.length === 0) {
     return (
