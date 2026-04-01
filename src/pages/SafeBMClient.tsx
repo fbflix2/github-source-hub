@@ -88,7 +88,7 @@ export default function SafeBMClient() {
     );
   }
 
-  const unconfiguredVaults = vaults.filter(v => v.bm_link === GENERIC_BM_LINK && !v.bm_tracking_id);
+  const unconfiguredVaults = vaults.filter(v => v.bm_link === GENERIC_BM_LINK && !v.bm_tracking_id && !v.backup_link);
 
   if (!loading && vaults.length === 0) {
     return (
