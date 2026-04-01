@@ -25,6 +25,8 @@ interface SafeBmVault {
   created_at: string;
   updated_at: string;
   bm_tracking_id: string | null;
+  backup_link: string | null;
+  link_health: string | null;
 }
 
 const MaterialIcon = ({ name, className = "" }: { name: string; className?: string }) => (
