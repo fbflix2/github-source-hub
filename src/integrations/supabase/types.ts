@@ -1411,6 +1411,7 @@ export type Database = {
       }
       notifications: {
         Row: {
+          campaign_id: string | null
           created_at: string
           cta_color: string | null
           cta_text: string | null
@@ -1425,6 +1426,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          campaign_id?: string | null
           created_at?: string
           cta_color?: string | null
           cta_text?: string | null
@@ -1439,6 +1441,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          campaign_id?: string | null
           created_at?: string
           cta_color?: string | null
           cta_text?: string | null
@@ -1452,7 +1455,15 @@ export type Database = {
           type?: string
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "notifications_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "admin_notifications"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       order_bumps: {
         Row: {
