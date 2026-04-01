@@ -55,6 +55,14 @@ export function AdminLayout() {
         if (!effectiveAllowed.includes("/admin/chat")) {
           effectiveAllowed.push("/admin/chat");
         }
+        // Auto-grant parent paths when child paths are allowed
+        for (const p of [...effectiveAllowed]) {
+          const parts = p.split("/").filter(Boolean);
+          for (let i = 2; i < parts.length; i++) {
+            const parent = "/" + parts.slice(0, i).join("/");
+            if (!effectiveAllowed.includes(parent)) effectiveAllowed.push(parent);
+          }
+        }
         const currentAllowed = effectiveAllowed.some(p => location.pathname === p || location.pathname.startsWith(p + "/"));
 
         if (!currentAllowed) {
