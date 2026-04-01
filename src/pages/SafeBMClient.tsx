@@ -27,6 +27,9 @@ interface SafeBmVault {
   bm_tracking_id: string | null;
   backup_link: string | null;
   link_health: string | null;
+  bm_tracking?: {
+    bm_link: string;
+  } | null;
 }
 
 const MaterialIcon = ({ name, className = "" }: { name: string; className?: string }) => (
@@ -47,7 +50,7 @@ export default function SafeBMClient() {
     if (!user) { setLoading(false); return; }
     const { data, error } = await supabase
       .from("safe_bm_vaults" as any)
-      .select("*")
+      .select("*, bm_tracking:bm_tracking_id(bm_link)")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false });
     if (error) toast.error("Erro ao carregar cofre: " + error.message);
@@ -222,8 +225,13 @@ export default function SafeBMClient() {
             const daysSinceProtection = differenceInDays(new Date(), new Date(v.protection_start));
             const isExpiringSoon = isActive && daysSinceProtection > 25;
             const progressPercent = Math.min(100, (daysSinceProtection / 30) * 100);
+            const effectiveBmLink =
+              v.backup_link ||
+              (v.bm_link !== GENERIC_BM_LINK ? v.bm_link : "") ||
+              v.bm_tracking?.bm_link ||
+              v.bm_link;
 
-            const bmIdMatch = v.bm_link.match(/(\d{10,})/);
+            const bmIdMatch = effectiveBmLink.match(/(\d{10,})/);
             const bmId = bmIdMatch ? bmIdMatch[1] : v.id.slice(0, 12);
 
             const iconName = isExpiringSoon ? "warning" : isActive ? "verified_user" : "shield";
@@ -299,7 +307,7 @@ export default function SafeBMClient() {
                       Renovar Agora
                     </button>
                   ) : isActive ? (
-                    <RequestAccessButton bmLink={v.bm_link} bmName={v.bm_name} monitorRef={monitorRef} />
+                    <RequestAccessButton bmLink={effectiveBmLink} bmName={v.bm_name} monitorRef={monitorRef} />
                   ) : (
                     <button className="w-full py-2 bg-[#31353b] rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 text-[#c6c6c7]/50 cursor-not-allowed" disabled>
                       <MaterialIcon name="shield" className="!text-sm" />
