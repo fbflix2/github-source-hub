@@ -1,0 +1,1 @@
+ALTER TABLE public.notifications ADD COLUMN campaign_id uuid REFERENCES public.admin_notifications(id) ON DELETE SET NULL DEFAULT NULL;

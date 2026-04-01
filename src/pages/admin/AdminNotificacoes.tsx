@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { validateImageFile } from "@/lib/file-validation";
 import { supabase } from "@/integrations/supabase/client";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
   Bell,
@@ -19,6 +20,9 @@ import {
   Globe,
   UserPlus,
   Palette,
+  BarChart3,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -93,6 +97,72 @@ export default function AdminNotificacoes() {
   const [userResults, setUserResults] = useState<UserOption[]>([]);
   const [searchingUsers, setSearchingUsers] = useState(false);
   const userSearchTimeout = useRef<ReturnType<typeof setTimeout>>();
+
+  const [activeTab, setActiveTab] = useState("campanhas");
+
+  // Metrics state
+  interface CampaignMetric {
+    id: string;
+    title: string;
+    type: string;
+    sent_at: string;
+    global: boolean;
+    target_count: number;
+    total_sent: number;
+    total_read: number;
+  }
+  const [metrics, setMetrics] = useState<CampaignMetric[]>([]);
+  const [metricsLoading, setMetricsLoading] = useState(false);
+
+  const fetchMetrics = useCallback(async () => {
+    setMetricsLoading(true);
+    // Get sent campaigns
+    const { data: campaigns } = await supabase
+      .from("admin_notifications")
+      .select("*")
+      .eq("status", "sent")
+      .order("updated_at", { ascending: false });
+
+    if (!campaigns || campaigns.length === 0) {
+      setMetrics([]);
+      setMetricsLoading(false);
+      return;
+    }
+
+    const campaignIds = campaigns.map(c => c.id);
+
+    // Get notification stats grouped by campaign_id
+    const { data: notifs } = await supabase
+      .from("notifications")
+      .select("campaign_id, read")
+      .in("campaign_id", campaignIds);
+
+    const statsMap: Record<string, { total: number; read: number }> = {};
+    (notifs || []).forEach((n: any) => {
+      if (!n.campaign_id) return;
+      if (!statsMap[n.campaign_id]) statsMap[n.campaign_id] = { total: 0, read: 0 };
+      statsMap[n.campaign_id].total++;
+      if (n.read) statsMap[n.campaign_id].read++;
+    });
+
+    const result: CampaignMetric[] = campaigns.map((c: any) => ({
+      id: c.id,
+      title: c.title,
+      type: c.type,
+      sent_at: c.updated_at,
+      global: c.global,
+      target_count: c.target_user_ids?.length || 0,
+      total_sent: statsMap[c.id]?.total || 0,
+      total_read: statsMap[c.id]?.read || 0,
+    }));
+
+    setMetrics(result);
+    setMetricsLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === "metricas") fetchMetrics();
+  }, [activeTab, fetchMetrics]);
 
   const searchUsers = async (query: string) => {
     if (query.length < 2) { setUserResults([]); return; }
@@ -225,6 +295,7 @@ export default function AdminNotificacoes() {
       image_url: n.image_url || null,
       cta_text: n.cta_text || null,
       cta_color: n.cta_color || null,
+      campaign_id: n.id,
     };
 
     let sendError;
@@ -314,6 +385,7 @@ export default function AdminNotificacoes() {
       image_url: n.image_url || null,
       cta_text: n.cta_text || null,
       cta_color: (n as any).cta_color || null,
+      campaign_id: n.id,
     };
 
     let sendError;
@@ -366,6 +438,17 @@ export default function AdminNotificacoes() {
         <p className="text-white/50 text-sm">Crie, agende e monitore alertas e pop-ups.</p>
       </header>
 
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="bg-black/40 border border-white/10 mb-4">
+          <TabsTrigger value="campanhas" className="data-[state=active]:bg-primary data-[state=active]:text-white text-white/60 text-xs gap-1.5">
+            <Megaphone className="w-3.5 h-3.5" /> Campanhas
+          </TabsTrigger>
+          <TabsTrigger value="metricas" className="data-[state=active]:bg-primary data-[state=active]:text-white text-white/60 text-xs gap-1.5">
+            <BarChart3 className="w-3.5 h-3.5" /> Métricas
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="campanhas">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
         {/* Left: Form + Preview stacked */}
         <div className="lg:col-span-5 xl:col-span-4 flex flex-col gap-4 sticky top-4">
@@ -705,6 +788,89 @@ export default function AdminNotificacoes() {
           )}
         </div>
       </div>
+        </TabsContent>
+
+        <TabsContent value="metricas">
+          {metricsLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-5 h-5 animate-spin text-white/40" />
+            </div>
+          ) : metrics.length === 0 ? (
+            <div className="text-center py-12 text-white/40">
+              <BarChart3 className="w-10 h-10 mx-auto mb-3 opacity-30" />
+              <p className="text-sm font-medium">Nenhuma campanha enviada</p>
+              <p className="text-xs mt-1">Envie uma notificação para ver as métricas aqui.</p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {/* Summary cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="rounded-xl border border-white/10 bg-[rgba(20,20,20,0.4)] p-4">
+                  <p className="text-[10px] uppercase tracking-wider text-white/40 mb-1">Campanhas Enviadas</p>
+                  <p className="text-2xl font-black text-white">{metrics.length}</p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-[rgba(20,20,20,0.4)] p-4">
+                  <p className="text-[10px] uppercase tracking-wider text-white/40 mb-1">Total Notificações</p>
+                  <p className="text-2xl font-black text-white">{metrics.reduce((s, m) => s + m.total_sent, 0)}</p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-[rgba(20,20,20,0.4)] p-4">
+                  <p className="text-[10px] uppercase tracking-wider text-white/40 mb-1">Total Lidas</p>
+                  <p className="text-2xl font-black text-green-400">{metrics.reduce((s, m) => s + m.total_read, 0)}</p>
+                </div>
+              </div>
+
+              {/* Campaign list */}
+              <div className="rounded-xl border border-white/10 bg-[rgba(20,20,20,0.4)] overflow-hidden">
+                <div className="grid grid-cols-[1fr_80px_80px_80px_100px] gap-2 px-4 py-2.5 border-b border-white/10 text-[10px] uppercase tracking-wider text-white/40 font-medium">
+                  <span>Campanha</span>
+                  <span className="text-center">Enviadas</span>
+                  <span className="text-center">Lidas</span>
+                  <span className="text-center">Taxa</span>
+                  <span className="text-right">Data</span>
+                </div>
+                {metrics.map(m => {
+                  const rate = m.total_sent > 0 ? Math.round((m.total_read / m.total_sent) * 100) : 0;
+                  return (
+                    <div key={m.id} className="grid grid-cols-[1fr_80px_80px_80px_100px] gap-2 px-4 py-3 border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors items-center">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className={`shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${m.type === "push" ? "bg-primary/20 text-primary" : "bg-white/10 text-white/70"}`}>
+                          {m.type === "push" ? "Push" : "Pop-up"}
+                        </span>
+                        <span className="text-sm font-medium text-white truncate">{m.title}</span>
+                        {m.global ? (
+                          <Globe className="w-3 h-3 text-white/30 shrink-0" />
+                        ) : (
+                          <span className="text-[10px] text-white/30 shrink-0">{m.target_count}u</span>
+                        )}
+                      </div>
+                      <span className="text-center text-sm text-white/70 font-medium">{m.total_sent}</span>
+                      <span className="text-center text-sm font-medium flex items-center justify-center gap-1">
+                        <Eye className="w-3 h-3 text-green-400" />
+                        <span className="text-green-400">{m.total_read}</span>
+                      </span>
+                      <div className="flex flex-col items-center gap-0.5">
+                        <span className={`text-sm font-bold ${rate >= 70 ? "text-green-400" : rate >= 40 ? "text-yellow-400" : "text-white/50"}`}>
+                          {rate}%
+                        </span>
+                        <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+                          <div className={`h-full rounded-full transition-all ${rate >= 70 ? "bg-green-500" : rate >= 40 ? "bg-yellow-500" : "bg-white/30"}`} style={{ width: `${rate}%` }} />
+                        </div>
+                      </div>
+                      <span className="text-right text-[11px] text-white/40">
+                        {format(new Date(m.sent_at), "dd/MM HH:mm")}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <p className="text-[10px] text-white/30 italic">
+                * Notificações globais aparecem como 1 envio. Notificações direcionadas mostram 1 por usuário.
+              </p>
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
