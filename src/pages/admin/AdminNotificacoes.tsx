@@ -450,6 +450,13 @@ export default function AdminNotificacoes() {
 
         <TabsContent value="campanhas">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+        {/* Left: Form + Preview stacked */}
+        <div className="lg:col-span-5 xl:col-span-4 flex flex-col gap-4 sticky top-4">
+          {/* Preview */}
+          <div className="rounded-xl border border-white/10 bg-black/40 p-4">
+            <p className="text-[11px] font-medium text-white/40 mb-3 uppercase tracking-wider">Preview</p>
+            <div className="w-full max-w-xs mx-auto bg-card border border-border rounded-xl shadow-xl overflow-hidden">
+              {formImageUrl && (
                 <div className="w-full h-28 overflow-hidden bg-muted">
                   <img
                     src={formImageUrl}
