@@ -98,6 +98,72 @@ export default function AdminNotificacoes() {
   const [searchingUsers, setSearchingUsers] = useState(false);
   const userSearchTimeout = useRef<ReturnType<typeof setTimeout>>();
 
+  const [activeTab, setActiveTab] = useState("campanhas");
+
+  // Metrics state
+  interface CampaignMetric {
+    id: string;
+    title: string;
+    type: string;
+    sent_at: string;
+    global: boolean;
+    target_count: number;
+    total_sent: number;
+    total_read: number;
+  }
+  const [metrics, setMetrics] = useState<CampaignMetric[]>([]);
+  const [metricsLoading, setMetricsLoading] = useState(false);
+
+  const fetchMetrics = useCallback(async () => {
+    setMetricsLoading(true);
+    // Get sent campaigns
+    const { data: campaigns } = await supabase
+      .from("admin_notifications")
+      .select("*")
+      .eq("status", "sent")
+      .order("updated_at", { ascending: false });
+
+    if (!campaigns || campaigns.length === 0) {
+      setMetrics([]);
+      setMetricsLoading(false);
+      return;
+    }
+
+    const campaignIds = campaigns.map(c => c.id);
+
+    // Get notification stats grouped by campaign_id
+    const { data: notifs } = await supabase
+      .from("notifications")
+      .select("campaign_id, read")
+      .in("campaign_id", campaignIds);
+
+    const statsMap: Record<string, { total: number; read: number }> = {};
+    (notifs || []).forEach((n: any) => {
+      if (!n.campaign_id) return;
+      if (!statsMap[n.campaign_id]) statsMap[n.campaign_id] = { total: 0, read: 0 };
+      statsMap[n.campaign_id].total++;
+      if (n.read) statsMap[n.campaign_id].read++;
+    });
+
+    const result: CampaignMetric[] = campaigns.map((c: any) => ({
+      id: c.id,
+      title: c.title,
+      type: c.type,
+      sent_at: c.updated_at,
+      global: c.global,
+      target_count: c.target_user_ids?.length || 0,
+      total_sent: statsMap[c.id]?.total || 0,
+      total_read: statsMap[c.id]?.read || 0,
+    }));
+
+    setMetrics(result);
+    setMetricsLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === "metricas") fetchMetrics();
+  }, [activeTab, fetchMetrics]);
+
   const searchUsers = async (query: string) => {
     if (query.length < 2) { setUserResults([]); return; }
     setSearchingUsers(true);
