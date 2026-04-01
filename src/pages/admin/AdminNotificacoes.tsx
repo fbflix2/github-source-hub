@@ -781,6 +781,89 @@ export default function AdminNotificacoes() {
           )}
         </div>
       </div>
+        </TabsContent>
+
+        <TabsContent value="metricas">
+          {metricsLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-5 h-5 animate-spin text-white/40" />
+            </div>
+          ) : metrics.length === 0 ? (
+            <div className="text-center py-12 text-white/40">
+              <BarChart3 className="w-10 h-10 mx-auto mb-3 opacity-30" />
+              <p className="text-sm font-medium">Nenhuma campanha enviada</p>
+              <p className="text-xs mt-1">Envie uma notificação para ver as métricas aqui.</p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {/* Summary cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="rounded-xl border border-white/10 bg-[rgba(20,20,20,0.4)] p-4">
+                  <p className="text-[10px] uppercase tracking-wider text-white/40 mb-1">Campanhas Enviadas</p>
+                  <p className="text-2xl font-black text-white">{metrics.length}</p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-[rgba(20,20,20,0.4)] p-4">
+                  <p className="text-[10px] uppercase tracking-wider text-white/40 mb-1">Total Notificações</p>
+                  <p className="text-2xl font-black text-white">{metrics.reduce((s, m) => s + m.total_sent, 0)}</p>
+                </div>
+                <div className="rounded-xl border border-white/10 bg-[rgba(20,20,20,0.4)] p-4">
+                  <p className="text-[10px] uppercase tracking-wider text-white/40 mb-1">Total Lidas</p>
+                  <p className="text-2xl font-black text-green-400">{metrics.reduce((s, m) => s + m.total_read, 0)}</p>
+                </div>
+              </div>
+
+              {/* Campaign list */}
+              <div className="rounded-xl border border-white/10 bg-[rgba(20,20,20,0.4)] overflow-hidden">
+                <div className="grid grid-cols-[1fr_80px_80px_80px_100px] gap-2 px-4 py-2.5 border-b border-white/10 text-[10px] uppercase tracking-wider text-white/40 font-medium">
+                  <span>Campanha</span>
+                  <span className="text-center">Enviadas</span>
+                  <span className="text-center">Lidas</span>
+                  <span className="text-center">Taxa</span>
+                  <span className="text-right">Data</span>
+                </div>
+                {metrics.map(m => {
+                  const rate = m.total_sent > 0 ? Math.round((m.total_read / m.total_sent) * 100) : 0;
+                  return (
+                    <div key={m.id} className="grid grid-cols-[1fr_80px_80px_80px_100px] gap-2 px-4 py-3 border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors items-center">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className={`shrink-0 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${m.type === "push" ? "bg-primary/20 text-primary" : "bg-white/10 text-white/70"}`}>
+                          {m.type === "push" ? "Push" : "Pop-up"}
+                        </span>
+                        <span className="text-sm font-medium text-white truncate">{m.title}</span>
+                        {m.global ? (
+                          <Globe className="w-3 h-3 text-white/30 shrink-0" />
+                        ) : (
+                          <span className="text-[10px] text-white/30 shrink-0">{m.target_count}u</span>
+                        )}
+                      </div>
+                      <span className="text-center text-sm text-white/70 font-medium">{m.total_sent}</span>
+                      <span className="text-center text-sm font-medium flex items-center justify-center gap-1">
+                        <Eye className="w-3 h-3 text-green-400" />
+                        <span className="text-green-400">{m.total_read}</span>
+                      </span>
+                      <div className="flex flex-col items-center gap-0.5">
+                        <span className={`text-sm font-bold ${rate >= 70 ? "text-green-400" : rate >= 40 ? "text-yellow-400" : "text-white/50"}`}>
+                          {rate}%
+                        </span>
+                        <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+                          <div className={`h-full rounded-full transition-all ${rate >= 70 ? "bg-green-500" : rate >= 40 ? "bg-yellow-500" : "bg-white/30"}`} style={{ width: `${rate}%` }} />
+                        </div>
+                      </div>
+                      <span className="text-right text-[11px] text-white/40">
+                        {format(new Date(m.sent_at), "dd/MM HH:mm")}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <p className="text-[10px] text-white/30 italic">
+                * Notificações globais aparecem como 1 envio. Notificações direcionadas mostram 1 por usuário.
+              </p>
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
