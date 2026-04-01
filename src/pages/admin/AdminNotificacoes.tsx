@@ -316,6 +316,7 @@ export default function AdminNotificacoes() {
       image_url: n.image_url || null,
       cta_text: n.cta_text || null,
       cta_color: (n as any).cta_color || null,
+      campaign_id: n.id,
     };
 
     let sendError;
