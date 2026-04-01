@@ -122,6 +122,8 @@ export function AdminHeader() {
       ticket: "new_ticket",
       success: "order_completed",
     };
+    // Campaign/promo notifications should NOT have sound
+    if (type === "info" || type === "promo") return "__silent__";
     return map[type] || "order_completed";
   }, []);
 

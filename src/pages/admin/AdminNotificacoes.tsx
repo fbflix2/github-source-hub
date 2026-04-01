@@ -420,21 +420,29 @@ export default function AdminNotificacoes() {
       const notifs = n.target_user_ids.map(uid => ({ ...notifBase, global: false, user_id: uid }));
       ({ error: sendError } = await supabase.from("notifications").insert(notifs as any));
     } else {
-      // Fetch all active user IDs to create individual notifications for tracking
-      const { data: activeUsers, error: usersError } = await supabase
-        .from("profiles")
-        .select("user_id")
-        .eq("status", "active");
-      
-      if (usersError || !activeUsers?.length) {
-        toast.error("Erro ao buscar usuários ativos");
-        return;
+      // Fetch ALL active user IDs (paginate past 1000 limit)
+      let allUserIds: string[] = [];
+      let from = 0;
+      const pageSize = 1000;
+      while (true) {
+        const { data: page, error: usersError } = await supabase
+          .from("profiles")
+          .select("user_id")
+          .eq("status", "active")
+          .range(from, from + pageSize - 1);
+        if (usersError) { toast.error("Erro ao buscar usuários ativos"); return; }
+        if (!page || page.length === 0) break;
+        allUserIds.push(...page.map((u: any) => u.user_id));
+        if (page.length < pageSize) break;
+        from += pageSize;
       }
+      const uniqueUserIds = [...new Set(allUserIds)];
+      if (uniqueUserIds.length === 0) { toast.error("Nenhum usuário ativo encontrado"); return; }
 
       const batchSize = 500;
-      for (let i = 0; i < activeUsers.length; i += batchSize) {
-        const batch = activeUsers.slice(i, i + batchSize);
-        const notifs = batch.map((u: any) => ({ ...notifBase, global: true, user_id: u.user_id }));
+      for (let i = 0; i < uniqueUserIds.length; i += batchSize) {
+        const batch = uniqueUserIds.slice(i, i + batchSize);
+        const notifs = batch.map((uid: string) => ({ ...notifBase, global: false, user_id: uid }));
         const { error } = await supabase.from("notifications").insert(notifs as any);
         if (error) { sendError = error; break; }
       }
