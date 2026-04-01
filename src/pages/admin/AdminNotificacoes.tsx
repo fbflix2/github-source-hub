@@ -438,14 +438,18 @@ export default function AdminNotificacoes() {
         <p className="text-white/50 text-sm">Crie, agende e monitore alertas e pop-ups.</p>
       </header>
 
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="bg-black/40 border border-white/10 mb-4">
+          <TabsTrigger value="campanhas" className="data-[state=active]:bg-primary data-[state=active]:text-white text-white/60 text-xs gap-1.5">
+            <Megaphone className="w-3.5 h-3.5" /> Campanhas
+          </TabsTrigger>
+          <TabsTrigger value="metricas" className="data-[state=active]:bg-primary data-[state=active]:text-white text-white/60 text-xs gap-1.5">
+            <BarChart3 className="w-3.5 h-3.5" /> Métricas
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="campanhas">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-        {/* Left: Form + Preview stacked */}
-        <div className="lg:col-span-5 xl:col-span-4 flex flex-col gap-4 sticky top-4">
-          {/* Preview */}
-          <div className="rounded-xl border border-white/10 bg-black/40 p-4">
-            <p className="text-[11px] font-medium text-white/40 mb-3 uppercase tracking-wider">Preview</p>
-            <div className="w-full max-w-xs mx-auto bg-card border border-border rounded-xl shadow-xl overflow-hidden">
-              {formImageUrl && (
                 <div className="w-full h-28 overflow-hidden bg-muted">
                   <img
                     src={formImageUrl}
