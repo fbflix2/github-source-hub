@@ -122,10 +122,13 @@ export function AdminHeader() {
       ticket: "new_ticket",
       success: "order_completed",
     };
+    // Campaign/promo notifications should NOT have sound
+    if (type === "info" || type === "promo") return "__silent__";
     return map[type] || "order_completed";
   }, []);
 
   const playNotificationSound = useCallback((eventKey: string) => {
+    if (eventKey === "__silent__") return;
     const url = soundCacheRef.current[eventKey];
     console.log("[NotifSounds] Playing sound for", eventKey, "url:", url ? "found" : "NOT FOUND", "cache keys:", Object.keys(soundCacheRef.current));
     if (url) {

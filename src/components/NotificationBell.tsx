@@ -42,7 +42,7 @@ export function NotificationPopup() {
       const { data } = await supabase
         .from("notifications")
         .select("*")
-        .or(`user_id.eq.${user.id},global.eq.true`)
+        .eq("user_id", user.id)
         .eq("read", false)
         .not("type", "in", "(order,wallet,admin,ticket)")
         .order("created_at", { ascending: false })
