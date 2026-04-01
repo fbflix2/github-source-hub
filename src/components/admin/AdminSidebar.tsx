@@ -160,6 +160,13 @@ export function AdminSidebar() {
       }
       // Chat is available to all staff
       allowed.add("/admin/chat");
+      // Auto-grant parent paths when child paths are allowed
+      for (const p of [...allowed]) {
+        const parts = p.split("/").filter(Boolean);
+        for (let i = 2; i < parts.length; i++) {
+          allowed.add("/" + parts.slice(0, i).join("/"));
+        }
+      }
 
       // Filter menu items
       const filtered = allMenuItems
