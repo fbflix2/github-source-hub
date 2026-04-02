@@ -321,7 +321,6 @@ export default function ClientWarming() {
               );
             })}
 
-            <TipsCarousel />
           </div>
 
           {/* Main Content */}
