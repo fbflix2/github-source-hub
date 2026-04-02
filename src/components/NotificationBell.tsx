@@ -32,6 +32,33 @@ export function NotificationPopup() {
     }
   }, []);
 
+  // Load client notification sound
+  useEffect(() => {
+    const loadSound = async () => {
+      const { data } = await supabase
+        .from("notification_sounds")
+        .select("sound_url")
+        .eq("event_key", "client_notification")
+        .eq("active", true)
+        .maybeSingle();
+      if (data?.sound_url) {
+        soundUrlRef.current = data.sound_url;
+        try { const a = new Audio(data.sound_url); a.preload = "auto"; a.load(); } catch {}
+      }
+    };
+    loadSound();
+  }, []);
+
+  const playSound = useCallback(() => {
+    const url = soundUrlRef.current;
+    if (!url) return;
+    try {
+      const audio = new Audio(url);
+      audio.volume = 0.7;
+      audio.play().catch(() => {});
+    } catch {}
+  }, []);
+
   useEffect(() => {
     let mounted = true;
 
