@@ -117,6 +117,68 @@ export default function AdminNotificacoes() {
   const [metrics, setMetrics] = useState<CampaignMetric[]>([]);
   const [metricsLoading, setMetricsLoading] = useState(false);
 
+  // Readers modal state
+  interface ReaderUser {
+    user_id: string;
+    full_name: string | null;
+    read: boolean;
+  }
+  const [readersModalOpen, setReadersModalOpen] = useState(false);
+  const [readersModalTitle, setReadersModalTitle] = useState("");
+  const [readers, setReaders] = useState<ReaderUser[]>([]);
+  const [readersLoading, setReadersLoading] = useState(false);
+  const [readersFilter, setReadersFilter] = useState<"all" | "read" | "unread">("all");
+
+  const openReadersModal = useCallback(async (campaignId: string, title: string) => {
+    setReadersModalTitle(title);
+    setReadersModalOpen(true);
+    setReadersLoading(true);
+    setReadersFilter("all");
+
+    // Fetch all notifications for this campaign with user_id and read status
+    let allNotifs: { user_id: string; read: boolean }[] = [];
+    let from = 0;
+    const pageSize = 1000;
+    while (true) {
+      const { data, error } = await supabase
+        .from("notifications")
+        .select("user_id, read")
+        .eq("campaign_id", campaignId)
+        .not("user_id", "is", null)
+        .range(from, from + pageSize - 1);
+      if (error || !data || data.length === 0) break;
+      allNotifs.push(...(data as any));
+      if (data.length < pageSize) break;
+      from += pageSize;
+    }
+
+    // Get unique user IDs
+    const userIds = [...new Set(allNotifs.map(n => n.user_id).filter(Boolean))] as string[];
+
+    // Fetch profiles in batches
+    const profiles: Record<string, string | null> = {};
+    for (let i = 0; i < userIds.length; i += 500) {
+      const batch = userIds.slice(i, i + 500);
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", batch);
+      (profileData || []).forEach((p: any) => { profiles[p.user_id] = p.full_name; });
+    }
+
+    const readersList: ReaderUser[] = allNotifs.map(n => ({
+      user_id: n.user_id,
+      full_name: profiles[n.user_id] || null,
+      read: n.read,
+    }));
+
+    // Sort: read first, then unread
+    readersList.sort((a, b) => (a.read === b.read ? 0 : a.read ? -1 : 1));
+
+    setReaders(readersList);
+    setReadersLoading(false);
+  }, []);
+
   const fetchMetrics = useCallback(async () => {
     setMetricsLoading(true);
     // Get sent campaigns
