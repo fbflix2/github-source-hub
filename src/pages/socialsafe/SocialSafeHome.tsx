@@ -18,10 +18,10 @@ const IMG = {
 };
 
 const MOCK_ACCOUNTS = [
-  { id: "1", initials: "LS", name: "@lifesty***", niche: "Beleza & Estilo", followers: "124k", engagement: "4.8%", price: "R$ 4.200", color: "text-[#00dce5]", img: IMG.card1 },
-  { id: "2", initials: "DEV", name: "@codema***", niche: "Tecnologia", followers: "45k", engagement: "12.2%", price: "R$ 1.850", color: "text-[#c9bfff]", img: IMG.card2 },
+  { id: "1", initials: "LS", name: "@lifesty***", niche: "Beleza & Estilo", followers: "124k", engagement: "4.8%", price: "R$ 4.200", color: "text-[#2ae500]", img: IMG.card1 },
+  { id: "2", initials: "DEV", name: "@codema***", niche: "Tecnologia", followers: "45k", engagement: "12.2%", price: "R$ 1.850", color: "text-[#2ae500]", img: IMG.card2 },
   { id: "3", initials: "FT", name: "@fitnes***", niche: "Saúde & Bem-estar", followers: "210k", engagement: "3.1%", price: "R$ 8.900", color: "text-[#2ae500]", img: IMG.card3 },
-  { id: "4", initials: "TR", name: "@travel***", niche: "Viagens & Explorar", followers: "88k", engagement: "5.5%", price: "R$ 3.500", color: "text-[#00dce5]", img: IMG.card4 },
+  { id: "4", initials: "TR", name: "@travel***", niche: "Viagens & Explorar", followers: "88k", engagement: "5.5%", price: "R$ 3.500", color: "text-[#2ae500]", img: IMG.card4 },
 ];
 
 const NICHES = [
@@ -73,13 +73,13 @@ export default function SocialSafeHome() {
   const platforms = ["Instagram", "YouTube", "Facebook", "TikTok"];
 
   return (
-    <div className="min-h-screen bg-black text-[#dae2fd] overflow-x-hidden" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="min-h-screen bg-black text-[#ffffff] overflow-x-hidden" style={{ fontFamily: "'Inter', sans-serif" }}>
 
       {/* ═══════════════════ HEADER ═══════════════════ */}
       <header className="fixed top-0 w-full z-50 bg-black/60 backdrop-blur-xl shadow-2xl shadow-black/40">
         <div className="flex justify-between items-center w-full px-6 h-16 max-w-[1920px] mx-auto">
           {/* Brand */}
-          <button onClick={() => navigate("/socialsafe")} className="text-2xl font-black tracking-tighter text-[#00dce5]" style={{ fontFamily: "'Manrope', sans-serif" }}>
+          <button onClick={() => navigate("/socialsafe")} className="text-2xl font-black tracking-tighter text-[#2ae500]" style={{ fontFamily: "'Manrope', sans-serif" }}>
             Social Safe
           </button>
 
@@ -89,11 +89,11 @@ export default function SocialSafeHome() {
               <input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="w-full bg-[#1a1a1a] border-none rounded-lg py-2 px-4 text-sm focus:ring-2 focus:ring-[#00dce5]/20 text-[#cbc3d9] placeholder-[#948da2] outline-none"
+                className="w-full bg-[#1a1a1a] border-none rounded-lg py-2 px-4 text-sm focus:ring-2 focus:ring-[#2ae500]/20 text-[#b0b0b0] placeholder-[#808080] outline-none"
                 placeholder="Buscar contas de Instagram, YouTube..."
                 type="text"
               />
-              <button className="absolute right-3 top-1/2 -translate-y-1/2 text-[#00dce5]">
+              <button className="absolute right-3 top-1/2 -translate-y-1/2 text-[#2ae500]">
                 <Search className="w-5 h-5" />
               </button>
             </div>
@@ -105,7 +105,7 @@ export default function SocialSafeHome() {
               <button
                 key={p}
                 onClick={() => setActivePlatform(p)}
-                className={`transition-colors ${activePlatform === p ? "text-[#00dce5] border-b-2 border-[#00dce5] pb-1" : "text-slate-400 hover:text-slate-100"}`}
+                className={`transition-colors ${activePlatform === p ? "text-[#2ae500] border-b-2 border-[#2ae500] pb-1" : "text-slate-400 hover:text-slate-100"}`}
               >
                 {p}
               </button>
@@ -116,17 +116,17 @@ export default function SocialSafeHome() {
           <div className="flex items-center gap-4 ml-6">
             <button
               onClick={() => navigate("/socialsafe/criar-anuncio")}
-              className="hidden sm:block bg-[#00dce5] px-4 py-1.5 rounded-lg text-[#003739] font-bold text-sm active:scale-95 duration-150"
+              className="hidden sm:block bg-[#2ae500] px-4 py-1.5 rounded-lg text-[#0a3300] font-bold text-sm active:scale-95 duration-150"
             >
               Vender
             </button>
             <div className="flex gap-3">
-              <span className="cursor-pointer hover:text-[#00dce5] transition-all text-xl text-slate-400">🔔</span>
+              <span className="cursor-pointer hover:text-[#2ae500] transition-all text-xl text-slate-400">🔔</span>
               <span className="w-8 h-8 bg-white rounded-full flex items-center justify-center cursor-pointer hover:scale-110 transition-transform text-base">🛒</span>
             </div>
             <button
               onClick={() => navigate("/socialsafe/minha-conta")}
-              className="w-8 h-8 rounded-full overflow-hidden border border-[#00dce5]/20"
+              className="w-8 h-8 rounded-full overflow-hidden border border-[#2ae500]/20"
             >
               <img src={IMG.avatar} alt="Perfil" className="w-full h-full object-cover" />
             </button>
@@ -142,21 +142,21 @@ export default function SocialSafeHome() {
           <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent z-10" />
           <img src={IMG.hero} alt="Hero Banner" className="w-full h-full object-cover" />
           <div className="absolute inset-0 z-20 flex flex-col justify-center px-6 lg:px-20 max-w-[1920px] mx-auto">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#4720ca] text-[#baaeff] rounded-full text-xs font-bold w-fit mb-6 uppercase tracking-widest">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#1a6b00] text-[#90ee90] rounded-full text-xs font-bold w-fit mb-6 uppercase tracking-widest">
               <ShieldCheck className="w-3.5 h-3.5" />
               Oportunidade Premium
             </div>
-            <h1 className="text-5xl lg:text-7xl font-black tracking-tighter text-[#dae2fd] max-w-2xl leading-[0.95]" style={{ fontFamily: "'Manrope', sans-serif" }}>
-              ELEVE SEU <span className="text-[#00dce5]">ALCANCE</span> HOJE.
+            <h1 className="text-5xl lg:text-7xl font-black tracking-tighter text-[#ffffff] max-w-2xl leading-[0.95]" style={{ fontFamily: "'Manrope', sans-serif" }}>
+              ELEVE SEU <span className="text-[#2ae500]">ALCANCE</span> HOJE.
             </h1>
-            <p className="mt-6 text-lg text-[#cbc3d9] max-w-lg leading-relaxed">
+            <p className="mt-6 text-lg text-[#b0b0b0] max-w-lg leading-relaxed">
               Contas verificadas do Instagram e canais monetizados do YouTube com garantia de transferência Social Safe.
             </p>
             <div className="mt-10 flex gap-4">
-              <button className="bg-gradient-to-r from-[#00dce5] to-[#005d62] text-[#003739] font-bold px-8 py-4 rounded-xl text-lg shadow-lg shadow-[#00dce5]/20 hover:scale-105 transition-transform">
+              <button className="bg-gradient-to-r from-[#2ae500] to-[#1a8f00] text-[#0a3300] font-bold px-8 py-4 rounded-xl text-lg shadow-lg shadow-[#2ae500]/20 hover:scale-105 transition-transform">
                 Ver Ofertas
               </button>
-              <button className="bg-white/5 backdrop-blur-md border border-white/10 text-[#dae2fd] font-bold px-8 py-4 rounded-xl text-lg hover:bg-white/10 transition-all">
+              <button className="bg-white/5 backdrop-blur-md border border-white/10 text-[#ffffff] font-bold px-8 py-4 rounded-xl text-lg hover:bg-white/10 transition-all">
                 Como Funciona
               </button>
             </div>
@@ -191,11 +191,11 @@ export default function SocialSafeHome() {
           <div className="flex items-end justify-between mb-12">
             <div>
               <h2 className="text-3xl font-black tracking-tighter" style={{ fontFamily: "'Manrope', sans-serif" }}>
-                NICHOS <span className="text-[#00dce5]">EM ALTA</span>
+                NICHOS <span className="text-[#2ae500]">EM ALTA</span>
               </h2>
-              <p className="text-[#cbc3d9]">Explore audiências prontas para converter</p>
+              <p className="text-[#b0b0b0]">Explore audiências prontas para converter</p>
             </div>
-            <button className="text-[#00dce5] font-bold flex items-center gap-2 hover:underline">
+            <button className="text-[#2ae500] font-bold flex items-center gap-2 hover:underline">
               Ver tudo <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -223,7 +223,7 @@ export default function SocialSafeHome() {
               <h2 className="text-3xl font-black tracking-tighter" style={{ fontFamily: "'Manrope', sans-serif" }}>
                 MAIS <span className="text-[#2ae500]">VENDIDOS</span>
               </h2>
-              <p className="text-[#cbc3d9]">As contas com maior taxa de engajamento da semana</p>
+              <p className="text-[#b0b0b0]">As contas com maior taxa de engajamento da semana</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -242,33 +242,33 @@ export default function SocialSafeHome() {
                     )}
                     {listing.is_verified && (
                       <div className="absolute top-4 right-4 bg-black/40 backdrop-blur-md p-1.5 rounded-lg">
-                        <ShieldCheck className="w-4 h-4 text-[#00dce5]" />
+                        <ShieldCheck className="w-4 h-4 text-[#2ae500]" />
                       </div>
                     )}
                   </div>
                   <div className="p-6">
                     <div className="flex items-center gap-3 mb-4">
-                      <div className="w-10 h-10 rounded-full bg-[#1a1a1a] flex items-center justify-center font-bold text-[#00dce5] text-xs">
+                      <div className="w-10 h-10 rounded-full bg-[#1a1a1a] flex items-center justify-center font-bold text-[#2ae500] text-xs">
                         {listing.title.substring(0, 2).toUpperCase()}
                       </div>
                       <div>
-                        <h4 className="font-bold text-[#dae2fd] text-sm">{listing.title}</h4>
-                        <p className="text-xs text-[#cbc3d9]">{listing.niche || listing.platform}</p>
+                        <h4 className="font-bold text-[#ffffff] text-sm">{listing.title}</h4>
+                        <p className="text-xs text-[#b0b0b0]">{listing.niche || listing.platform}</p>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4 mb-6">
                       <div>
-                        <p className="text-[10px] uppercase tracking-wider text-[#948da2]">Seguidores</p>
-                        <p className="font-black text-[#dae2fd]">{formatFollowers(listing.followers)}</p>
+                        <p className="text-[10px] uppercase tracking-wider text-[#808080]">Seguidores</p>
+                        <p className="font-black text-[#ffffff]">{formatFollowers(listing.followers)}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] uppercase tracking-wider text-[#948da2]">Engajamento</p>
+                        <p className="text-[10px] uppercase tracking-wider text-[#808080]">Engajamento</p>
                         <p className="font-black text-[#2ae500]">{listing.engagement_rate?.toFixed(1) || "0"}%</p>
                       </div>
                     </div>
                     <div className="flex items-center justify-between pt-4 border-t border-[#494456]/10">
-                      <p className="text-2xl font-black text-[#dae2fd]">R$ {listing.price.toLocaleString("pt-BR")}</p>
-                      <div className="w-10 h-10 bg-[#00dce5] text-[#003739] rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <p className="text-2xl font-black text-[#ffffff]">R$ {listing.price.toLocaleString("pt-BR")}</p>
+                      <div className="w-10 h-10 bg-[#2ae500] text-[#0a3300] rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
                         <ShoppingBag className="w-5 h-5" />
                       </div>
                     </div>
@@ -285,7 +285,7 @@ export default function SocialSafeHome() {
                   <div className="relative h-48">
                     <img src={acc.img} alt={acc.name} className="w-full h-full object-cover" loading="lazy" />
                     <div className="absolute top-4 right-4 bg-black/40 backdrop-blur-md p-1.5 rounded-lg">
-                      <ShieldCheck className="w-4 h-4 text-[#00dce5]" />
+                      <ShieldCheck className="w-4 h-4 text-[#2ae500]" />
                     </div>
                   </div>
                   <div className="p-6">
@@ -294,23 +294,23 @@ export default function SocialSafeHome() {
                         {acc.initials}
                       </div>
                       <div>
-                        <h4 className="font-bold text-[#dae2fd] text-sm">{acc.name}</h4>
-                        <p className="text-xs text-[#cbc3d9]">{acc.niche}</p>
+                        <h4 className="font-bold text-[#ffffff] text-sm">{acc.name}</h4>
+                        <p className="text-xs text-[#b0b0b0]">{acc.niche}</p>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4 mb-6">
                       <div>
-                        <p className="text-[10px] uppercase tracking-wider text-[#948da2]">Seguidores</p>
-                        <p className="font-black text-[#dae2fd]">{acc.followers}</p>
+                        <p className="text-[10px] uppercase tracking-wider text-[#808080]">Seguidores</p>
+                        <p className="font-black text-[#ffffff]">{acc.followers}</p>
                       </div>
                       <div>
-                        <p className="text-[10px] uppercase tracking-wider text-[#948da2]">Engajamento</p>
+                        <p className="text-[10px] uppercase tracking-wider text-[#808080]">Engajamento</p>
                         <p className="font-black text-[#2ae500]">{acc.engagement}</p>
                       </div>
                     </div>
                     <div className="flex items-center justify-between pt-4 border-t border-[#494456]/10">
-                      <p className="text-2xl font-black text-[#dae2fd]">{acc.price}</p>
-                      <div className="w-10 h-10 bg-[#00dce5] text-[#003739] rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <p className="text-2xl font-black text-[#ffffff]">{acc.price}</p>
+                      <div className="w-10 h-10 bg-[#2ae500] text-[#0a3300] rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
                         <ShoppingBag className="w-5 h-5" />
                       </div>
                     </div>
@@ -324,18 +324,18 @@ export default function SocialSafeHome() {
         {/* ═══════════════════ ESCROW SECTION ═══════════════════ */}
         <section className="max-w-[1200px] mx-auto py-24 px-6">
           <div className="bg-gradient-to-br from-[#171f33] to-[#131b2e] rounded-[2.5rem] p-8 lg:p-16 relative overflow-hidden">
-            <div className="absolute -right-20 -top-20 w-96 h-96 bg-[#00dce5]/10 blur-[120px] rounded-full" />
-            <div className="absolute -left-20 -bottom-20 w-96 h-96 bg-[#c9bfff]/10 blur-[120px] rounded-full" />
+            <div className="absolute -right-20 -top-20 w-96 h-96 bg-[#2ae500]/10 blur-[120px] rounded-full" />
+            <div className="absolute -left-20 -bottom-20 w-96 h-96 bg-[#2ae500]/10 blur-[120px] rounded-full" />
             <div className="flex flex-col lg:flex-row items-center gap-12 relative z-10">
               <div className="flex-1 text-center lg:text-left">
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#00dce5]/10 text-[#00dce5] rounded-full text-sm font-bold mb-6">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#2ae500]/10 text-[#2ae500] rounded-full text-sm font-bold mb-6">
                   <ShieldCheck className="w-4 h-4" />
                   SEGURANÇA EM PRIMEIRO LUGAR
                 </div>
-                <h2 className="text-4xl lg:text-5xl font-black tracking-tighter mb-6 leading-tight text-[#dae2fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>
-                  Transações Protegidas por <span className="text-[#00dce5]">Escrow</span>
+                <h2 className="text-4xl lg:text-5xl font-black tracking-tighter mb-6 leading-tight text-[#ffffff]" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                  Transações Protegidas por <span className="text-[#2ae500]">Escrow</span>
                 </h2>
-                <p className="text-[#cbc3d9] text-lg mb-8 leading-relaxed max-w-xl">
+                <p className="text-[#b0b0b0] text-lg mb-8 leading-relaxed max-w-xl">
                   Seu dinheiro só é liberado ao vendedor após você confirmar a posse total da conta. Sem fraudes, sem riscos. O Social Safe atua como o mediador confiável da sua negociação.
                 </p>
                 <div className="flex flex-wrap justify-center lg:justify-start gap-8">
@@ -351,8 +351,8 @@ export default function SocialSafeHome() {
               </div>
               <div className="flex-shrink-0">
                 <div className="relative">
-                  <div className="w-64 h-64 bg-[#222a3d] rounded-full flex items-center justify-center border-4 border-[#00dce5]/20 shadow-[0_0_80px_rgba(0,220,229,0.2)]">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="#00dce5" strokeWidth="0.5" strokeLinecap="round" strokeLinejoin="round">
+                  <div className="w-64 h-64 bg-[#1a1a1a] rounded-full flex items-center justify-center border-4 border-[#2ae500]/20 shadow-[0_0_80px_rgba(0,220,229,0.2)]">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="#2ae500" strokeWidth="0.5" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                       <rect x="9" y="10" width="6" height="6" rx="1"/>
                       <path d="M12 10v-2a2 2 0 0 1 4 0"/>
@@ -372,15 +372,15 @@ export default function SocialSafeHome() {
       <footer className="bg-black border-t border-[#494456]/10 pt-20 pb-10">
         <div className="max-w-[1200px] mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12 mb-20">
           <div>
-            <div className="text-2xl font-black tracking-tighter text-[#00dce5] mb-6" style={{ fontFamily: "'Manrope', sans-serif" }}>
+            <div className="text-2xl font-black tracking-tighter text-[#2ae500] mb-6" style={{ fontFamily: "'Manrope', sans-serif" }}>
               Social Safe
             </div>
-            <p className="text-[#cbc3d9] text-sm leading-relaxed mb-6">
+            <p className="text-[#b0b0b0] text-sm leading-relaxed mb-6">
               O maior marketplace de ativos digitais da América Latina. Segurança absoluta para compradores e vendedores de contas sociais.
             </p>
             <div className="flex gap-4">
               {[Globe, MessageSquare, Share2].map((Icon, i) => (
-                <div key={i} className="w-10 h-10 bg-[#0d0d0d] flex items-center justify-center rounded-lg hover:text-[#00dce5] cursor-pointer transition-colors text-[#cbc3d9]">
+                <div key={i} className="w-10 h-10 bg-[#0d0d0d] flex items-center justify-center rounded-lg hover:text-[#2ae500] cursor-pointer transition-colors text-[#b0b0b0]">
                   <Icon className="w-5 h-5" />
                 </div>
               ))}
@@ -388,40 +388,40 @@ export default function SocialSafeHome() {
           </div>
           <div>
             <h4 className="font-bold mb-6">Marketplace</h4>
-            <ul className="space-y-4 text-sm text-[#cbc3d9]">
+            <ul className="space-y-4 text-sm text-[#b0b0b0]">
               {["Instagram", "YouTube", "TikTok", "Twitter / X"].map(p => (
-                <li key={p}><button className="hover:text-[#00dce5] transition-colors">{p}</button></li>
+                <li key={p}><button className="hover:text-[#2ae500] transition-colors">{p}</button></li>
               ))}
             </ul>
           </div>
           <div>
             <h4 className="font-bold mb-6">Suporte</h4>
-            <ul className="space-y-4 text-sm text-[#cbc3d9]">
+            <ul className="space-y-4 text-sm text-[#b0b0b0]">
               {["Central de Ajuda", "Taxas & Prazos", "Como Comprar", "Política de Reembolso"].map(s => (
-                <li key={s}><button className="hover:text-[#00dce5] transition-colors">{s}</button></li>
+                <li key={s}><button className="hover:text-[#2ae500] transition-colors">{s}</button></li>
               ))}
             </ul>
           </div>
           <div>
             <h4 className="font-bold mb-6">Newsletter</h4>
-            <p className="text-sm text-[#cbc3d9] mb-4">Receba as melhores ofertas de contas diretamente no seu e-mail.</p>
+            <p className="text-sm text-[#b0b0b0] mb-4">Receba as melhores ofertas de contas diretamente no seu e-mail.</p>
             <div className="relative">
               <input
-                className="w-full bg-[#0d0d0d] border-none rounded-lg py-3 px-4 text-sm focus:ring-2 focus:ring-[#00dce5]/20 text-[#dae2fd] outline-none"
+                className="w-full bg-[#0d0d0d] border-none rounded-lg py-3 px-4 text-sm focus:ring-2 focus:ring-[#2ae500]/20 text-[#ffffff] outline-none"
                 placeholder="Seu melhor e-mail"
                 type="email"
               />
-              <button className="absolute right-2 top-1.5 bg-[#00dce5] text-[#003739] px-3 py-1.5 rounded-md text-xs font-bold">
+              <button className="absolute right-2 top-1.5 bg-[#2ae500] text-[#0a3300] px-3 py-1.5 rounded-md text-xs font-bold">
                 Assinar
               </button>
             </div>
           </div>
         </div>
         <div className="max-w-[1200px] mx-auto px-6 pt-10 border-t border-[#494456]/10 flex flex-col md:flex-row justify-between items-center gap-6">
-          <p className="text-xs text-[#948da2]">© 2024 Social Safe Marketplace. Todos os direitos reservados.</p>
-          <div className="flex gap-8 text-xs text-[#948da2]">
-            <button className="hover:text-[#dae2fd]">Termos de Uso</button>
-            <button className="hover:text-[#dae2fd]">Privacidade</button>
+          <p className="text-xs text-[#808080]">© 2024 Social Safe Marketplace. Todos os direitos reservados.</p>
+          <div className="flex gap-8 text-xs text-[#808080]">
+            <button className="hover:text-[#ffffff]">Termos de Uso</button>
+            <button className="hover:text-[#ffffff]">Privacidade</button>
           </div>
         </div>
       </footer>
@@ -436,7 +436,7 @@ export default function SocialSafeHome() {
             { icon: "🛒", label: "Pedidos", active: false },
             { icon: "👤", label: "Perfil", active: false },
           ].map(item => (
-            <button key={item.label} className={`flex flex-col items-center gap-1 ${item.active ? "text-[#00dce5]" : "text-slate-400"}`}>
+            <button key={item.label} className={`flex flex-col items-center gap-1 ${item.active ? "text-[#2ae500]" : "text-slate-400"}`}>
               <span className="text-lg">{item.icon}</span>
               <span className="text-[10px] font-medium">{item.label}</span>
             </button>
