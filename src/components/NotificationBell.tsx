@@ -178,7 +178,7 @@ export function NotificationPopup() {
         {/* Content */}
         <div className="p-5 space-y-3">
           <h3 className="text-base font-bold text-foreground leading-tight">{current.title}</h3>
-          <p className="text-sm text-muted-foreground leading-relaxed">{current.message}</p>
+          <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{current.message}</p>
 
           <div className="flex items-center gap-3 pt-2">
             <button
