@@ -45,6 +45,12 @@ import ClientContingencia from "./pages/ClientContingencia";
 import ClientWarming from "./pages/ClientWarming";
 import PagarInvoice from "./pages/PagarInvoice";
 
+// SocialSafe Pages
+import SocialSafeHome from "./pages/socialsafe/SocialSafeHome";
+import SocialSafeListingDetail from "./pages/socialsafe/SocialSafeListingDetail";
+import SocialSafeCreateListing from "./pages/socialsafe/SocialSafeCreateListing";
+import SocialSafeAccount from "./pages/socialsafe/SocialSafeAccount";
+
 // Admin Pages
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -164,6 +170,12 @@ function AuthenticatedApp({ user, onLogout }: { user: User; onLogout: () => void
         <Route path="/esteira-aquecimento" element={<ClientWarming />} />
         <Route path="/" element={<Navigate to="/loja" replace />} />
       </Route>
+
+      {/* SocialSafe Routes - outside MainLayout */}
+      <Route path="/socialsafe" element={<SocialSafeHome />} />
+      <Route path="/socialsafe/anuncio/:id" element={<SocialSafeListingDetail />} />
+      <Route path="/socialsafe/criar-anuncio" element={<SocialSafeCreateListing />} />
+      <Route path="/socialsafe/minha-conta" element={<SocialSafeAccount />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

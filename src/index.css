@@ -81,6 +81,33 @@
   }
 }
 
+/* SocialSafe Design Tokens */
+:root {
+  --ss-bg: 0 0% 96%;
+  --ss-header: 0 0% 100%;
+  --ss-card: 0 0% 100%;
+  --ss-foreground: 0 0% 10%;
+  --ss-muted-fg: 0 0% 45%;
+  --ss-border: 0 0% 0% / 0.1;
+  --ss-input: 0 0% 95%;
+  --ss-primary: 145 100% 39%;
+  --ss-secondary: 207 90% 54%;
+  --ss-accent: 45 93% 47%;
+}
+
+.dark {
+  --ss-bg: 0 0% 4%;
+  --ss-header: 0 0% 7%;
+  --ss-card: 0 0% 8%;
+  --ss-foreground: 0 0% 95%;
+  --ss-muted-fg: 0 0% 55%;
+  --ss-border: 0 0% 100% / 0.08;
+  --ss-input: 0 0% 12%;
+  --ss-primary: 145 100% 39%;
+  --ss-secondary: 207 90% 54%;
+  --ss-accent: 45 93% 47%;
+}
+
 @layer base {
   * {
     @apply border-border;

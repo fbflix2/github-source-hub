@@ -2559,6 +2559,263 @@ export type Database = {
         }
         Relationships: []
       }
+      ss_favorites: {
+        Row: {
+          created_at: string
+          id: string
+          listing_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          listing_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          listing_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ss_favorites_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "ss_listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ss_listings: {
+        Row: {
+          account_age_months: number | null
+          created_at: string
+          currency: string
+          description: string | null
+          engagement_rate: number | null
+          featured: boolean
+          followers: number
+          has_original_email: boolean
+          id: string
+          is_monetized: boolean
+          is_verified: boolean
+          metrics: Json | null
+          niche: string | null
+          platform: string
+          price: number
+          screenshots: Json | null
+          seller_id: string
+          slug: string | null
+          status: string
+          title: string
+          updated_at: string
+          views_count: number
+        }
+        Insert: {
+          account_age_months?: number | null
+          created_at?: string
+          currency?: string
+          description?: string | null
+          engagement_rate?: number | null
+          featured?: boolean
+          followers?: number
+          has_original_email?: boolean
+          id?: string
+          is_monetized?: boolean
+          is_verified?: boolean
+          metrics?: Json | null
+          niche?: string | null
+          platform?: string
+          price?: number
+          screenshots?: Json | null
+          seller_id: string
+          slug?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          views_count?: number
+        }
+        Update: {
+          account_age_months?: number | null
+          created_at?: string
+          currency?: string
+          description?: string | null
+          engagement_rate?: number | null
+          featured?: boolean
+          followers?: number
+          has_original_email?: boolean
+          id?: string
+          is_monetized?: boolean
+          is_verified?: boolean
+          metrics?: Json | null
+          niche?: string | null
+          platform?: string
+          price?: number
+          screenshots?: Json | null
+          seller_id?: string
+          slug?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          views_count?: number
+        }
+        Relationships: []
+      }
+      ss_messages: {
+        Row: {
+          attachment_url: string | null
+          content: string
+          created_at: string
+          id: string
+          read: boolean
+          sender_id: string
+          transaction_id: string
+        }
+        Insert: {
+          attachment_url?: string | null
+          content: string
+          created_at?: string
+          id?: string
+          read?: boolean
+          sender_id: string
+          transaction_id: string
+        }
+        Update: {
+          attachment_url?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+          read?: boolean
+          sender_id?: string
+          transaction_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ss_messages_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "ss_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ss_reviews: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          rating: number
+          reviewed_user_id: string
+          reviewer_id: string
+          transaction_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rating: number
+          reviewed_user_id: string
+          reviewer_id: string
+          transaction_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          rating?: number
+          reviewed_user_id?: string
+          reviewer_id?: string
+          transaction_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ss_reviews_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "ss_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ss_transactions: {
+        Row: {
+          account_credentials: Json | null
+          amount: number
+          buyer_id: string
+          confirmed_at: string | null
+          created_at: string
+          delivered_at: string | null
+          dispute_reason: string | null
+          dispute_resolution: string | null
+          disputed_at: string | null
+          fee_rate: number
+          id: string
+          listing_id: string
+          notes: string | null
+          platform_fee: number
+          seller_id: string
+          status: string
+          updated_at: string
+          validated_at: string | null
+          validated_by: string | null
+          validation_checklist: Json | null
+        }
+        Insert: {
+          account_credentials?: Json | null
+          amount?: number
+          buyer_id: string
+          confirmed_at?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          dispute_reason?: string | null
+          dispute_resolution?: string | null
+          disputed_at?: string | null
+          fee_rate?: number
+          id?: string
+          listing_id: string
+          notes?: string | null
+          platform_fee?: number
+          seller_id: string
+          status?: string
+          updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
+          validation_checklist?: Json | null
+        }
+        Update: {
+          account_credentials?: Json | null
+          amount?: number
+          buyer_id?: string
+          confirmed_at?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          dispute_reason?: string | null
+          dispute_resolution?: string | null
+          disputed_at?: string | null
+          fee_rate?: number
+          id?: string
+          listing_id?: string
+          notes?: string | null
+          platform_fee?: number
+          seller_id?: string
+          status?: string
+          updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
+          validation_checklist?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ss_transactions_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "ss_listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stock_folders: {
         Row: {
           created_at: string
