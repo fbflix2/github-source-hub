@@ -266,7 +266,7 @@ export default function ClientWarming() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:max-h-[calc(100vh-200px)]">
           {/* Sidebar - Profile List */}
-          <div className="space-y-3">
+          <div className="space-y-3 lg:overflow-y-auto lg:max-h-full lg:pr-2">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-bold text-foreground uppercase tracking-wider">Meus Perfis</h2>
               <Button size="sm" variant="outline" onClick={() => setShowAddProfile(!showAddProfile)} className="gap-1">
