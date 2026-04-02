@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Volume2, Upload, Trash2, Play, Pause, Loader2, ShoppingCart, Wallet, Headphones, MessageCircle } from "lucide-react";
+import { Volume2, Upload, Trash2, Play, Pause, Loader2, ShoppingCart, Wallet, Headphones, MessageCircle, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 
