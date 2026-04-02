@@ -1534,14 +1534,31 @@ Deno.serve(async (req) => {
         console.warn("[get-internal-proxy-config] Auto-fetch error:", e.message);
       }
 
-      // 3. Fetch bandwidth
+      // 3. Fetch bandwidth from subscription + aggregate stats
       let bandwidth: Record<string, any> = {};
       try {
         const subResp = await webFetch("/subscription/", WEBSHARE_API_KEY);
         const subData = await subResp.json();
+        const limitBytes = subData.bandwidth_limit || 0;
+
+        // Also fetch aggregate stats for actual usage in the current billing cycle
+        let usedBytes = subData.bandwidth || subData.bandwidth_used || 0;
+        if (subData.start_date && subData.end_date) {
+          try {
+            const aggResp = await webFetch(
+              `/stats/aggregate/?timestamp__gte=${subData.start_date}&timestamp__lte=${subData.end_date}`,
+              WEBSHARE_API_KEY
+            );
+            const aggData = await aggResp.json();
+            if (aggResp.ok && aggData.bandwidth_total) {
+              usedBytes = aggData.bandwidth_total;
+            }
+          } catch {}
+        }
+
         bandwidth = {
-          used_bytes: subData.bandwidth_used || 0,
-          limit_bytes: subData.bandwidth_limit || 0,
+          used_bytes: usedBytes,
+          limit_bytes: limitBytes,
         };
       } catch {}
 
