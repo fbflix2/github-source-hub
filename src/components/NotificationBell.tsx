@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { X, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,6 +22,7 @@ export function NotificationPopup() {
   const [current, setCurrent] = useState<Notification | null>(null);
   const [queue, setQueue] = useState<Notification[]>([]);
   const [seenIds, setSeenIds] = useState<Set<string>>(new Set());
+  const soundUrlRef = useRef<string | null>(null);
   const navigate = useNavigate();
 
   const showNext = useCallback((q: Notification[]) => {
