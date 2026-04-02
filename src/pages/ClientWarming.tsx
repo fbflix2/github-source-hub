@@ -242,13 +242,13 @@ export default function ClientWarming() {
   }
 
   return (
-    <div className="relative overflow-hidden pt-4 pb-6 px-4 sm:px-6 lg:px-12">
+    <div className="relative overflow-hidden pt-4 pb-6 px-4 sm:px-6 lg:px-12 lg:h-screen lg:flex lg:flex-col">
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-full -z-10 pointer-events-none opacity-20">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-orange-500/20 blur-[120px] rounded-full" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-primary/10 blur-[120px] rounded-full" />
       </div>
 
-      <main className="max-w-5xl mx-auto">
+      <main className="max-w-5xl mx-auto lg:flex lg:flex-col lg:flex-1 lg:min-h-0">
         <header className="mb-6">
           <button onClick={() => navigate("/ferramentas")} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors">
             <ArrowLeft className="size-4" /> Voltar para Ferramentas
@@ -264,16 +264,17 @@ export default function ClientWarming() {
           </div>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:max-h-[calc(100vh-200px)]">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:flex-1 lg:min-h-0">
           {/* Sidebar - Profile List */}
-          <div className="space-y-3 lg:overflow-y-auto lg:max-h-full lg:pr-2">
-            <div className="flex items-center justify-between">
+          <div className="lg:flex lg:flex-col lg:min-h-0">
+            <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-bold text-foreground uppercase tracking-wider">Meus Perfis</h2>
               <Button size="sm" variant="outline" onClick={() => setShowAddProfile(!showAddProfile)} className="gap-1">
                 <Plus className="size-3.5" /> Novo
               </Button>
             </div>
 
+            <div className="lg:flex-1 lg:overflow-y-auto lg:min-h-0 space-y-3 lg:pr-1">
             {showAddProfile && (
               <div className="p-4 rounded-xl bg-card border border-border space-y-3">
                 <Input placeholder="Código do perfil (ex: 1234)" value={newProfileCode} onChange={e => setNewProfileCode(e.target.value)} />
@@ -320,11 +321,12 @@ export default function ClientWarming() {
                 </div>
               );
             })}
+            </div>
 
           </div>
 
           {/* Main Content */}
-          <div className="lg:col-span-2 lg:overflow-y-auto lg:max-h-full lg:pr-2">
+          <div className="lg:col-span-2">
             {!selectedProfile ? (
               <div className="flex items-center justify-center h-64 text-muted-foreground text-sm">
                 Selecione um perfil para ver as tarefas
