@@ -82,6 +82,7 @@ export function NotificationPopup() {
         setSeenIds(ids);
         setCurrent(unread[0]);
         setQueue(unread.slice(1));
+        playSound();
       }
 
       // Listen for new notifications in real-time
