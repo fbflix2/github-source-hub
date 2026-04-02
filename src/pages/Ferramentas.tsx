@@ -272,7 +272,7 @@ export default function Ferramentas() {
         </header>
 
         {/* Tools Grid - 4 columns */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
           {/* Tool 1: Gerador de 2FA */}
           <GlassCard bgImage={BG_IMAGES["2fa"]} onClick={() => setActiveTool("2fa")}>
             <div className="w-11 h-11 bg-primary/10 text-primary rounded-lg flex items-center justify-center mb-3 group-hover:bg-primary group-hover:text-white transition-colors duration-300">
@@ -353,6 +353,21 @@ export default function Ferramentas() {
                 <MaterialIcon name="arrow_forward" className="text-lg group-hover/btn:translate-x-1 transition-transform" />
               </button>
             )}
+          </GlassCard>
+
+          {/* Tool 5: Esteira de Aquecimento */}
+          <GlassCard bgImage={BG_IMAGES["2fa"]} onClick={() => navigate("/esteira-aquecimento")}>
+            <div className="w-11 h-11 bg-orange-500/10 text-orange-400 rounded-lg flex items-center justify-center mb-3 group-hover:bg-orange-500 group-hover:text-white transition-colors duration-300">
+              <MaterialIcon name="local_fire_department" className="text-2xl" />
+            </div>
+            <h3 className="text-base font-bold mb-1.5 text-white">Esteira Aquecimento</h3>
+            <p className="text-slate-400 mb-4 flex-grow leading-relaxed text-xs">
+              Aqueça seus perfis comprados com tarefas diárias guiadas durante 7 dias para máxima performance.
+            </p>
+            <button className="w-full py-2.5 px-4 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2 text-sm group/btn">
+              <span>Acessar Esteira</span>
+              <MaterialIcon name="arrow_forward" className="text-lg group-hover/btn:translate-x-1 transition-transform" />
+            </button>
           </GlassCard>
         </div>
 

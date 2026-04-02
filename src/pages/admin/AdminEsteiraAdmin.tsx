@@ -97,6 +97,21 @@ export default function AdminEsteiraAdmin() {
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const trackKeys = ["7_days", "15_days", "30_days"] as const;
 
+  // Client warming config state
+  const defaultClientTasks: { title: string; description: string }[] = [
+    { title: "Completar perfil", description: "Preencha foto, capa e bio do perfil." },
+    { title: "Navegar organicamente", description: "Role o feed por 5-10 minutos, curta 3-5 posts." },
+    { title: "Adicionar 5-10 amigos", description: "Envie solicitações de amizade para pessoas do seu nicho." },
+    { title: "Engajar em grupos", description: "Comente em 2-3 grupos relacionados ao seu nicho." },
+    { title: "Criar página", description: "Crie uma página comercial e publique 1-2 posts." },
+    { title: "Ativar 2FA", description: "Configure autenticação de dois fatores para segurança." },
+    { title: "Verificar restrições", description: "Verifique se a conta está sem restrições e pronta para uso." },
+  ];
+  const [clientConfigTasks, setClientConfigTasks] = useState<{ title: string; description: string }[]>(defaultClientTasks);
+  const clientConfigSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [clientDragIndex, setClientDragIndex] = useState<number | null>(null);
+  const [clientDragOverIndex, setClientDragOverIndex] = useState<number | null>(null);
+
   const handleDragStart = (index: number) => {
     setDragIndex(index);
   };
@@ -281,7 +296,69 @@ export default function AdminEsteiraAdmin() {
         } catch {}
       }
     } catch {}
+    // Also load client warming config
+    try {
+      const { data: clientData } = await supabase
+        .from("site_settings")
+        .select("value")
+        .eq("key", "client_warming_track_config")
+        .maybeSingle();
+      if (clientData?.value) {
+        try {
+          const parsed = JSON.parse(clientData.value);
+          if (Array.isArray(parsed)) {
+            setClientConfigTasks(parsed);
+          } else if (parsed?.["7_days"]) {
+            setClientConfigTasks(parsed["7_days"]);
+          }
+        } catch {}
+      }
+    } catch {}
   };
+
+  const saveClientConfigToDB = (updatedTasks: { title: string; description: string }[]) => {
+    if (clientConfigSaveTimer.current) clearTimeout(clientConfigSaveTimer.current);
+    clientConfigSaveTimer.current = setTimeout(async () => {
+      try {
+        const jsonValue = JSON.stringify({ "7_days": updatedTasks });
+        const { data: existing } = await supabase
+          .from("site_settings")
+          .select("id")
+          .eq("key", "client_warming_track_config")
+          .maybeSingle();
+        if (existing) {
+          await supabase.from("site_settings").update({ value: jsonValue }).eq("key", "client_warming_track_config");
+        } else {
+          await supabase.from("site_settings").insert({ key: "client_warming_track_config", value: jsonValue });
+        }
+      } catch (err) {
+        console.error("Erro ao salvar config da esteira do cliente:", err);
+      }
+    }, 800);
+  };
+
+  const updateClientConfigTasks = (updater: (prev: { title: string; description: string }[]) => { title: string; description: string }[]) => {
+    setClientConfigTasks(prev => {
+      const next = updater(prev);
+      saveClientConfigToDB(next);
+      return next;
+    });
+  };
+
+  const handleClientDragStart = (index: number) => setClientDragIndex(index);
+  const handleClientDragOver = (e: React.DragEvent, index: number) => { e.preventDefault(); setClientDragOverIndex(index); };
+  const handleClientDrop = (index: number) => {
+    if (clientDragIndex === null || clientDragIndex === index) { setClientDragIndex(null); setClientDragOverIndex(null); return; }
+    updateClientConfigTasks(prev => {
+      const items = [...prev];
+      const [moved] = items.splice(clientDragIndex, 1);
+      items.splice(index, 0, moved);
+      return items;
+    });
+    setClientDragIndex(null);
+    setClientDragOverIndex(null);
+  };
+  const handleClientDragEnd = () => { setClientDragIndex(null); setClientDragOverIndex(null); };
 
   const syncActiveProfilesWithConfig = async (updatedConfig: Record<string, { title: string; description: string }[]>) => {
     const pageSize = 1000;
@@ -1472,6 +1549,110 @@ export default function AdminEsteiraAdmin() {
                   readyCriteria.optionalPage ? <span> com <span className="font-bold text-slate-900 dark:text-white">página opcional</span> e </span> : <span> sem página nos critérios e </span>
                   <span className="font-bold text-slate-900 dark:text-white">mais de {readyCriteria.minWarmingDays} dias de aquecimento</span>.
                 </p>
+              </div>
+            </div>
+          </section>
+
+          {/* Client Warming Config */}
+          <section className="bg-white dark:bg-white/5 rounded-xl shadow-sm border border-orange-200 dark:border-orange-500/20 overflow-hidden">
+            <div className="px-6 py-4 border-b border-orange-100 dark:border-orange-500/10 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <MIcon name="local_fire_department" className="text-orange-500" />
+                <div>
+                  <h2 className="text-lg font-bold">Esteira do Cliente (7 Dias)</h2>
+                  <p className="text-xs text-slate-500 dark:text-white/40">Tarefas que aparecem na esteira de aquecimento do cliente</p>
+                </div>
+              </div>
+            </div>
+            <div className="p-6 space-y-3 max-h-[400px] overflow-y-auto">
+              {clientConfigTasks.map((task, i) => (
+                <div
+                  key={`client-${i}`}
+                  draggable
+                  onDragStart={() => handleClientDragStart(i)}
+                  onDragOver={(e) => handleClientDragOver(e, i)}
+                  onDrop={() => handleClientDrop(i)}
+                  onDragEnd={handleClientDragEnd}
+                  className={`flex items-start gap-4 p-3 bg-slate-50 dark:bg-white/5 rounded-lg border transition-all ${
+                    clientDragOverIndex === i ? "border-orange-500 bg-orange-50 dark:bg-orange-500/10" :
+                    clientDragIndex === i ? "opacity-50 border-slate-100 dark:border-white/10" :
+                    "border-slate-100 dark:border-white/10"
+                  }`}
+                >
+                  <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-orange-100 dark:bg-orange-500/20 text-orange-600 font-bold text-xs rounded-full mt-1">
+                    D{i + 1}
+                  </span>
+                  <div className="flex-1 space-y-1">
+                    <input
+                      className="w-full bg-transparent border-none p-0 text-sm font-bold focus:ring-0 outline-none dark:text-white"
+                      type="text"
+                      value={task.title}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        updateClientConfigTasks(prev => {
+                          const updated = [...prev];
+                          updated[i] = { ...updated[i], title: val };
+                          return updated;
+                        });
+                      }}
+                    />
+                    <input
+                      className="w-full bg-transparent border-none p-0 text-xs text-slate-500 dark:text-white/50 focus:ring-0 outline-none"
+                      type="text"
+                      placeholder="Descrição..."
+                      value={task.description}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        updateClientConfigTasks(prev => {
+                          const updated = [...prev];
+                          updated[i] = { ...updated[i], description: val };
+                          return updated;
+                        });
+                      }}
+                    />
+                  </div>
+                  <button
+                    onClick={() => {
+                      updateClientConfigTasks(prev => prev.filter((_, idx) => idx !== i));
+                    }}
+                    className="text-slate-300 hover:text-red-500 dark:text-white/20 dark:hover:text-red-400 transition-colors mt-1"
+                  >
+                    <MIcon name="close" className="text-base" />
+                  </button>
+                  <MIcon name="drag_indicator" className="text-slate-400 dark:text-white/40 text-sm cursor-grab active:cursor-grabbing mt-1" />
+                </div>
+              ))}
+              <div className="flex items-center gap-4 p-3 bg-slate-50 dark:bg-white/5 rounded-lg border border-slate-100 dark:border-white/10">
+                <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-orange-100 dark:bg-orange-500/20 text-orange-600 font-bold text-xs rounded-full">
+                  D{clientConfigTasks.length + 1}
+                </span>
+                <input
+                  id="admin-new-client-track-action"
+                  className="flex-1 bg-transparent border-none p-0 text-sm focus:ring-0 outline-none placeholder:text-slate-400 placeholder:italic dark:text-white"
+                  type="text"
+                  placeholder={`Adicionar tarefa para o Dia ${clientConfigTasks.length + 1}...`}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && (e.target as HTMLInputElement).value.trim()) {
+                      const newTitle = (e.target as HTMLInputElement).value.trim();
+                      updateClientConfigTasks(prev => [...prev, { title: newTitle, description: "" }]);
+                      (e.target as HTMLInputElement).value = "";
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const input = document.getElementById("admin-new-client-track-action") as HTMLInputElement;
+                    if (input && input.value.trim()) {
+                      const newTitle = input.value.trim();
+                      updateClientConfigTasks(prev => [...prev, { title: newTitle, description: "" }]);
+                      input.value = "";
+                    }
+                  }}
+                  className="text-orange-500 hover:text-orange-600 transition-colors"
+                >
+                  <MIcon name="add_circle" className="text-xl" />
+                </button>
               </div>
             </div>
           </section>

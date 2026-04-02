@@ -42,6 +42,7 @@ import Ferramentas from "./pages/Ferramentas";
 import SafeBMClient from "./pages/SafeBMClient";
 import SafeBMLanding from "./pages/SafeBMLanding";
 import ClientContingencia from "./pages/ClientContingencia";
+import ClientWarming from "./pages/ClientWarming";
 import PagarInvoice from "./pages/PagarInvoice";
 
 // Admin Pages
@@ -160,6 +161,7 @@ function AuthenticatedApp({ user, onLogout }: { user: User; onLogout: () => void
         <Route path="/ferramentas" element={<Ferramentas />} />
         <Route path="/safe-bm" element={<SafeBMClient />} />
         <Route path="/contingencia" element={<ClientContingencia />} />
+        <Route path="/esteira-aquecimento" element={<ClientWarming />} />
         <Route path="/" element={<Navigate to="/loja" replace />} />
       </Route>
       <Route path="*" element={<NotFound />} />
