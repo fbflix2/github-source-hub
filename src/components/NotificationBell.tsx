@@ -66,6 +66,44 @@ export function NotificationPopup() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user || !mounted) return;
 
+      // Backfill: check for active campaigns the user hasn't received yet
+      try {
+        const { data: campaigns } = await supabase
+          .from("admin_notifications")
+          .select("id, title, message, type, link, image_url, cta_text, cta_color")
+          .eq("status", "sent")
+          .eq("is_active", true);
+
+        if (campaigns && campaigns.length > 0) {
+          // Get campaign_ids this user already has
+          const { data: existing } = await supabase
+            .from("notifications")
+            .select("campaign_id")
+            .eq("user_id", user.id)
+            .in("campaign_id", campaigns.map((c: any) => c.id));
+
+          const existingCampaignIds = new Set((existing || []).map((e: any) => e.campaign_id));
+          const missing = campaigns.filter((c: any) => !existingCampaignIds.has(c.id));
+
+          if (missing.length > 0) {
+            const toInsert = missing.map((c: any) => ({
+              title: c.title,
+              message: c.message,
+              type: c.type === "push" ? "info" : "promo",
+              link: c.link || null,
+              image_url: c.image_url || null,
+              cta_text: c.cta_text || null,
+              cta_color: c.cta_color || null,
+              campaign_id: c.id,
+              global: false,
+              user_id: user.id,
+              read: false,
+            }));
+            await supabase.from("notifications").insert(toInsert as any);
+          }
+        }
+      } catch {}
+
       // Fetch recent unread notifications
       const { data } = await supabase
         .from("notifications")
