@@ -103,6 +103,7 @@ export function NotificationPopup() {
             return next;
           });
 
+          playSound();
           setCurrent(prev => {
             if (!prev) return n;
             setQueue(q => [...q, n]);
