@@ -1553,6 +1553,110 @@ export default function AdminEsteiraAdmin() {
             </div>
           </section>
 
+          {/* Client Warming Config */}
+          <section className="bg-white dark:bg-white/5 rounded-xl shadow-sm border border-orange-200 dark:border-orange-500/20 overflow-hidden">
+            <div className="px-6 py-4 border-b border-orange-100 dark:border-orange-500/10 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <MIcon name="local_fire_department" className="text-orange-500" />
+                <div>
+                  <h2 className="text-lg font-bold">Esteira do Cliente (7 Dias)</h2>
+                  <p className="text-xs text-slate-500 dark:text-white/40">Tarefas que aparecem na esteira de aquecimento do cliente</p>
+                </div>
+              </div>
+            </div>
+            <div className="p-6 space-y-3 max-h-[400px] overflow-y-auto">
+              {clientConfigTasks.map((task, i) => (
+                <div
+                  key={`client-${i}`}
+                  draggable
+                  onDragStart={() => handleClientDragStart(i)}
+                  onDragOver={(e) => handleClientDragOver(e, i)}
+                  onDrop={() => handleClientDrop(i)}
+                  onDragEnd={handleClientDragEnd}
+                  className={`flex items-start gap-4 p-3 bg-slate-50 dark:bg-white/5 rounded-lg border transition-all ${
+                    clientDragOverIndex === i ? "border-orange-500 bg-orange-50 dark:bg-orange-500/10" :
+                    clientDragIndex === i ? "opacity-50 border-slate-100 dark:border-white/10" :
+                    "border-slate-100 dark:border-white/10"
+                  }`}
+                >
+                  <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-orange-100 dark:bg-orange-500/20 text-orange-600 font-bold text-xs rounded-full mt-1">
+                    D{i + 1}
+                  </span>
+                  <div className="flex-1 space-y-1">
+                    <input
+                      className="w-full bg-transparent border-none p-0 text-sm font-bold focus:ring-0 outline-none dark:text-white"
+                      type="text"
+                      value={task.title}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        updateClientConfigTasks(prev => {
+                          const updated = [...prev];
+                          updated[i] = { ...updated[i], title: val };
+                          return updated;
+                        });
+                      }}
+                    />
+                    <input
+                      className="w-full bg-transparent border-none p-0 text-xs text-slate-500 dark:text-white/50 focus:ring-0 outline-none"
+                      type="text"
+                      placeholder="Descrição..."
+                      value={task.description}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        updateClientConfigTasks(prev => {
+                          const updated = [...prev];
+                          updated[i] = { ...updated[i], description: val };
+                          return updated;
+                        });
+                      }}
+                    />
+                  </div>
+                  <button
+                    onClick={() => {
+                      updateClientConfigTasks(prev => prev.filter((_, idx) => idx !== i));
+                    }}
+                    className="text-slate-300 hover:text-red-500 dark:text-white/20 dark:hover:text-red-400 transition-colors mt-1"
+                  >
+                    <MIcon name="close" className="text-base" />
+                  </button>
+                  <MIcon name="drag_indicator" className="text-slate-400 dark:text-white/40 text-sm cursor-grab active:cursor-grabbing mt-1" />
+                </div>
+              ))}
+              <div className="flex items-center gap-4 p-3 bg-slate-50 dark:bg-white/5 rounded-lg border border-slate-100 dark:border-white/10">
+                <span className="flex-shrink-0 w-8 h-8 flex items-center justify-center bg-orange-100 dark:bg-orange-500/20 text-orange-600 font-bold text-xs rounded-full">
+                  D{clientConfigTasks.length + 1}
+                </span>
+                <input
+                  id="admin-new-client-track-action"
+                  className="flex-1 bg-transparent border-none p-0 text-sm focus:ring-0 outline-none placeholder:text-slate-400 placeholder:italic dark:text-white"
+                  type="text"
+                  placeholder={`Adicionar tarefa para o Dia ${clientConfigTasks.length + 1}...`}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && (e.target as HTMLInputElement).value.trim()) {
+                      const newTitle = (e.target as HTMLInputElement).value.trim();
+                      updateClientConfigTasks(prev => [...prev, { title: newTitle, description: "" }]);
+                      (e.target as HTMLInputElement).value = "";
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const input = document.getElementById("admin-new-client-track-action") as HTMLInputElement;
+                    if (input && input.value.trim()) {
+                      const newTitle = input.value.trim();
+                      updateClientConfigTasks(prev => [...prev, { title: newTitle, description: "" }]);
+                      input.value = "";
+                    }
+                  }}
+                  className="text-orange-500 hover:text-orange-600 transition-colors"
+                >
+                  <MIcon name="add_circle" className="text-xl" />
+                </button>
+              </div>
+            </div>
+          </section>
+
           {/* Danger Zone */}
           <section className="bg-white dark:bg-white/5 rounded-xl shadow-sm border border-red-200 dark:border-red-500/20 overflow-hidden">
             <div className="px-6 py-4 border-b border-red-100 dark:border-red-500/20 flex items-center gap-3">
