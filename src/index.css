@@ -82,30 +82,23 @@
 }
 
 /* SocialSafe Design Tokens */
+/* SocialSafe Design System - "The Secure Luminary" */
 :root {
-  --ss-bg: 0 0% 96%;
-  --ss-header: 0 0% 100%;
-  --ss-card: 0 0% 100%;
-  --ss-foreground: 0 0% 10%;
-  --ss-muted-fg: 0 0% 45%;
-  --ss-border: 0 0% 0% / 0.1;
-  --ss-input: 0 0% 95%;
-  --ss-primary: 145 100% 39%;
-  --ss-secondary: 207 90% 54%;
-  --ss-accent: 45 93% 47%;
-}
-
-.dark {
-  --ss-bg: 0 0% 4%;
-  --ss-header: 0 0% 7%;
-  --ss-card: 0 0% 8%;
-  --ss-foreground: 0 0% 95%;
-  --ss-muted-fg: 0 0% 55%;
-  --ss-border: 0 0% 100% / 0.08;
-  --ss-input: 0 0% 12%;
-  --ss-primary: 145 100% 39%;
-  --ss-secondary: 207 90% 54%;
-  --ss-accent: 45 93% 47%;
+  --ss-primary: 183 100% 45%;
+  --ss-primary-container: 183 100% 19%;
+  --ss-secondary: 252 100% 87%;
+  --ss-secondary-container: 260 73% 46%;
+  --ss-tertiary: 110 100% 45%;
+  --ss-surface: 220 40% 7%;
+  --ss-surface-container-low: 222 36% 13%;
+  --ss-surface-container: 222 30% 15%;
+  --ss-surface-container-high: 222 25% 19%;
+  --ss-on-surface: 225 76% 93%;
+  --ss-on-surface-variant: 264 18% 80%;
+  --ss-outline: 262 10% 60%;
+  --ss-outline-variant: 261 12% 30%;
+  --ss-on-primary: 183 100% 11%;
+  --ss-on-tertiary: 120 100% 11%;
 }
 
 @layer base {
