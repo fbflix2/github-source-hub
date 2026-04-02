@@ -2,24 +2,33 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Search, ShieldCheck, Tag, CreditCard, Star, HeartHandshake, ShoppingBag, CheckCircle2, Globe, MessageSquare, Share2, ArrowRight } from "lucide-react";
-import heroBanner from "@/assets/socialsafe/hero-banner.jpg";
-import nicheLifestyle from "@/assets/socialsafe/niche-lifestyle.jpg";
-import nicheTech from "@/assets/socialsafe/niche-tech.jpg";
-import nicheFitness from "@/assets/socialsafe/niche-fitness.jpg";
-import nicheEntertainment from "@/assets/socialsafe/niche-entertainment.jpg";
+
+/* ── Image URLs (exact from reference design) ── */
+const IMG = {
+  hero: "https://lh3.googleusercontent.com/aida-public/AB6AXuDCyIYAoCMX1SI6Gr4X_uk9t82-idViW9nvFFR149uAijtttQI5PsugthZFjR85gEKkQexZyJLgCBH_NXIKSnEeMgKaUZ5EH0Efws3JkAHry-6LIidy-gFyImbEAeQflWi5Eq8721c0K6Fmg3HMJ63vueTDLfZBqd7pLsQah6DXvbwi9QQfrz9V8b9QRXcEXmM6EswkMBC_dMo_R5UVHvrv9i7a-Ptzv0n_qlmDLs5efnhcfAHuaD7qlV7VOchRwrfJ51WClCp0zfY",
+  avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuDW1h9vN1uO0yEF5ow7y6DNDKyY0fpYq7Rs0vPZ5cqtB93KV11_zPwMYbtug-a0t009Bdd2aByGr9qDicf1YKj3pgdRsMa7BETHz4Nh4FIOX_RH3nLhEnG0pzS_VBgVEuuvRKftB_GeogdibqqyzpWbV_lxnM4j5cDh-6BdEzM7q7MPQtr5mxpt2WQysk6EvHvxS9j4xjuCUs8reoPWvJcErUyY1O1hxGGteDbeT90HgSGukmpnKXAgRzF1n8f5J0jl1D71t5yvUUQ",
+  nicheLifestyle: "https://lh3.googleusercontent.com/aida-public/AB6AXuCfVmkk42zJNl2g2WrksOZkn3oKCNnomtL3QU7MBLoC9x69tNRqiHjgYAZqybdX1KjrJwpzpXYuQF1F6bFvL8rKDh1M-GxdlLlQ0JzNd5dXJ1P9IQ5Z3_HzGXeeZveiFJkOzexasgpo68MYKAhPpbSyaVkwrofqNz-vNcWIuAI0U6C3VZU000qvUWjEvVAzarOaZJ7GUGxSZJGZ3iSxh-z6b_7At-y4WMKDlvxV5Ji051JAmVb67EbSDKjFZqG1qDtTiMEpJEFD8NA",
+  nicheTech: "https://lh3.googleusercontent.com/aida-public/AB6AXuDH1_rvMhC_fg_iMyOSG3Xh3tk_9bG8qdwhSb9V5I6i19NsjAfcEVveZ3yaksty1tgf-xDTvh1jXPsfkA9Jtjp3wvsdr8mPppm8uOp5iClg2RmS62OtUbAMG0B1Ag7paY9ao7uyZpjqqr9h3elPuv2IdG4GBrQdyTPYJbI0UmKigBHjytzV-lAm2TwjwZ501CMVyP9g3BW7k2-meB7hssnOjxU1AtIZtxxbJKy8n9XoHpL1Ra2dpRZBwn6WpKHR1CGeW8pqepDytYM",
+  nicheFitness: "https://lh3.googleusercontent.com/aida-public/AB6AXuCp8oXHE-tYDRy8WMkjBTA40TGg8Qbcq93KKe_8BvWieH0Ye0-Njh9uMAlPJ13j6sckKOMuL3Ejxd8EZMevWfyfS1Mxev-atbIqdPfcD6tLTE16Vaq4pbvYG1FP3jl_CxNNKOOTCK48tx_ENNeD_XwaXU13Q24KDk79HeJOPgTsmpzpQGXeP28c8R4G4rYbs6Pyby4IYUN2m0DNC8GW6BbKK_2NmwJM6gjOTmaMyn8cJMmdii5aY25Gb0WgCYS0m7ZmHY9UouyqsmU",
+  nicheEntertainment: "https://lh3.googleusercontent.com/aida-public/AB6AXuCWAqkGku9yOS9gxUFRcBN3gv98qlbDo5K-MVBoMNPX_0lm2cCuiZs2HWrBN56_ACqsA_T1hyKmkV-F9H1Ao0yFSbqcI1RWERIfVkZ8c-Y63L77DTSegDExKgmxNBN75FAcd9_eGS60MdddxbdGVfY9A1KAttvMFETMCKPb-X66CePtRUxRkZGHvjSGu3DrUeSFo5xBglhMGKpV7EVVuK3LI08AaX9ci7gmQwF4Cz-8xOjDv5vsdauA73tXKuGOK3iFq_x7vHyDclg",
+  card1: "https://lh3.googleusercontent.com/aida-public/AB6AXuD-arlaNPBiMCY8zI57s5rQ1kKwp1XcJUWrUaQwM_x3oB3zzmFACqP0Up3diKr54IlmsD9mtH1xDyD06NzaR_uugd9YDY-RHjlSP4AFpEbD5YcKPnjuPvl2sDeJ-kdpbsUiIM5N2MKZQD6-5kMoZ6hG3xohTdzmC8VOIclLtRgO5UxK3Rx7HvE3Xad2QoHnahX1SIKzRm__8MAXUMCuUnd2Mu-L8iTZ7VUWGVkp7buritDceiMhUmFMnQcepbC1xZVcvWoJ-DbmBL0",
+  card2: "https://lh3.googleusercontent.com/aida-public/AB6AXuDXOT5JZiIWkJDTFrmPtX5sLf8KbRwEsbLUekXe3sMxc3CkaD8h07ZIS7c-c6CDzrXc5kAuweF9AZvtQRzVLxH1S-7EPFo8IjfDdr5OYqM_pjYaiR1fdNgChKDe3q314jdPrymdqbXzDr8BUhlHBP4OfP7322fZmaj3kAZJ03wbg794bWcnskoILj5Twd-J9b4X1TBRMhA0vHbIXP7a2Qk_dfiDzWZYBbJMHx-4F3bwQRGIwr7rFXvPS0k_eUvfzFPmAgEVktcNPGU",
+  card3: "https://lh3.googleusercontent.com/aida-public/AB6AXuAZlgfyN3Mjzw8YqAsivc-T5_ecwLx0FxbXkNddiW7QfzTNBKrM5BtwTfTtkHPDDuO53T3j_XtBGLgt76mk94dropVHnbXxT55sfgfjfQ5KJKWCfkGcp3i_9K22mOVm1HG4xkHeLjjMYjX61rg5MCig99RipMoFig2FN75zPlc9qFBADmaLDfSMSTjDdi-I-fkZ__CvX_h2s7g0lnfBTNlQo5-TsvYeE3q-VqRb4lo8L67rJnjrJY7b6Tg9jDEVxpgiEy4UdcMfVNU",
+  card4: "https://lh3.googleusercontent.com/aida-public/AB6AXuB7VWazNcevOVc88Ugxa7aTB2Ke0Dna_t4G-w0ILr_1_U170pT5a9uPQfS1YyWFDve9Qii7vDKEqjbfVLRq8nie3FAOcTDgU7LYZWSzeoAOIp5WpRyPo8DMIFZxYpn6pqe-rNqQztwcesqI6kJsKcBN4Kgc3KODn4f3RTJsn1no6Nf5bxWpg9QsSLojfV1y_As6h0cmQpm7U9Hh0Vp6X3x69_O8oXWXTBYjKvgEsiGUGbxtQuGuI23Ek31L73-rRbwBIl-LHQMjqhI",
+};
 
 const MOCK_ACCOUNTS = [
-  { id: "1", initials: "LS", name: "@lifesty***", niche: "Beleza & Estilo", followers: "124k", engagement: "4.8%", price: "R$ 4.200", color: "text-[#00dce5]" },
-  { id: "2", initials: "DEV", name: "@codema***", niche: "Tecnologia", followers: "45k", engagement: "12.2%", price: "R$ 1.850", color: "text-[#c9bfff]" },
-  { id: "3", initials: "FT", name: "@fitnes***", niche: "Saúde & Bem-estar", followers: "210k", engagement: "3.1%", price: "R$ 8.900", color: "text-[#2ae500]" },
-  { id: "4", initials: "TR", name: "@travel***", niche: "Viagens & Explorar", followers: "88k", engagement: "5.5%", price: "R$ 3.500", color: "text-[#00dce5]" },
+  { id: "1", initials: "LS", name: "@lifesty***", niche: "Beleza & Estilo", followers: "124k", engagement: "4.8%", price: "R$ 4.200", color: "text-[#00dce5]", img: IMG.card1 },
+  { id: "2", initials: "DEV", name: "@codema***", niche: "Tecnologia", followers: "45k", engagement: "12.2%", price: "R$ 1.850", color: "text-[#c9bfff]", img: IMG.card2 },
+  { id: "3", initials: "FT", name: "@fitnes***", niche: "Saúde & Bem-estar", followers: "210k", engagement: "3.1%", price: "R$ 8.900", color: "text-[#2ae500]", img: IMG.card3 },
+  { id: "4", initials: "TR", name: "@travel***", niche: "Viagens & Explorar", followers: "88k", engagement: "5.5%", price: "R$ 3.500", color: "text-[#00dce5]", img: IMG.card4 },
 ];
 
 const NICHES = [
-  { name: "Lifestyle & Luxo", img: nicheLifestyle },
-  { name: "Tecnologia", img: nicheTech },
-  { name: "Fitness", img: nicheFitness },
-  { name: "Entretenimento", img: nicheEntertainment },
+  { name: "Lifestyle & Luxo", img: IMG.nicheLifestyle },
+  { name: "Tecnologia", img: IMG.nicheTech },
+  { name: "Fitness", img: IMG.nicheFitness },
+  { name: "Entretenimento", img: IMG.nicheEntertainment },
 ];
 
 interface Listing {
@@ -64,20 +73,23 @@ export default function SocialSafeHome() {
   const platforms = ["Instagram", "YouTube", "Facebook", "TikTok"];
 
   return (
-    <div className="min-h-screen bg-[#000000] text-[#dae2fd] overflow-x-hidden" style={{ fontFamily: "'Inter', sans-serif" }}>
-      {/* ===== HEADER ===== */}
+    <div className="min-h-screen bg-black text-[#dae2fd] overflow-x-hidden" style={{ fontFamily: "'Inter', sans-serif" }}>
+
+      {/* ═══════════════════ HEADER ═══════════════════ */}
       <header className="fixed top-0 w-full z-50 bg-black/60 backdrop-blur-xl shadow-2xl shadow-black/40">
         <div className="flex justify-between items-center w-full px-6 h-16 max-w-[1920px] mx-auto">
+          {/* Brand */}
           <button onClick={() => navigate("/socialsafe")} className="text-2xl font-black tracking-tighter text-[#00dce5]" style={{ fontFamily: "'Manrope', sans-serif" }}>
             Social Safe
           </button>
 
+          {/* Search */}
           <div className="hidden md:flex flex-1 max-w-xl mx-8">
             <div className="relative w-full">
               <input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="w-full bg-[#1a1a1a] border-none rounded-lg py-2 px-4 text-sm focus:ring-2 focus:ring-[#00dce5]/20 text-[#cbc3d9] placeholder-[#948da2]"
+                className="w-full bg-[#1a1a1a] border-none rounded-lg py-2 px-4 text-sm focus:ring-2 focus:ring-[#00dce5]/20 text-[#cbc3d9] placeholder-[#948da2] outline-none"
                 placeholder="Buscar contas de Instagram, YouTube..."
                 type="text"
               />
@@ -87,6 +99,7 @@ export default function SocialSafeHome() {
             </div>
           </div>
 
+          {/* Nav Links */}
           <nav className="hidden lg:flex items-center gap-6 tracking-wide text-sm font-medium" style={{ fontFamily: "'Manrope', sans-serif" }}>
             {platforms.map(p => (
               <button
@@ -99,6 +112,7 @@ export default function SocialSafeHome() {
             ))}
           </nav>
 
+          {/* Actions */}
           <div className="flex items-center gap-4 ml-6">
             <button
               onClick={() => navigate("/socialsafe/criar-anuncio")}
@@ -106,28 +120,33 @@ export default function SocialSafeHome() {
             >
               Vender
             </button>
+            <div className="flex gap-3 text-slate-400">
+              <span className="cursor-pointer hover:text-[#00dce5] transition-all text-xl">🔔</span>
+              <span className="cursor-pointer hover:text-[#00dce5] transition-all text-xl">🛒</span>
+            </div>
             <button
               onClick={() => navigate("/socialsafe/minha-conta")}
-              className="w-8 h-8 rounded-full overflow-hidden border border-[#00dce5]/20 bg-[#1a1a1a] flex items-center justify-center text-xs font-bold text-[#00dce5]"
+              className="w-8 h-8 rounded-full overflow-hidden border border-[#00dce5]/20"
             >
-              SS
+              <img src={IMG.avatar} alt="Perfil" className="w-full h-full object-cover" />
             </button>
           </div>
         </div>
       </header>
 
       <main className="pt-16">
-        {/* ===== HERO BANNER ===== */}
+
+        {/* ═══════════════════ HERO BANNER ═══════════════════ */}
         <section className="relative w-full h-[480px] overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-black via-transparent to-transparent z-10" />
           <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent z-10" />
-          <img src={heroBanner} alt="Social Safe Hero" className="w-full h-full object-cover" width={1920} height={1080} />
+          <img src={IMG.hero} alt="Hero Banner" className="w-full h-full object-cover" />
           <div className="absolute inset-0 z-20 flex flex-col justify-center px-6 lg:px-20 max-w-[1920px] mx-auto">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#4720ca] text-[#baaeff] rounded-full text-xs font-bold w-fit mb-6 uppercase tracking-widest">
               <ShieldCheck className="w-3.5 h-3.5" />
               Oportunidade Premium
             </div>
-            <h1 className="text-5xl lg:text-7xl font-black tracking-tighter max-w-2xl leading-[0.95]" style={{ fontFamily: "'Manrope', sans-serif" }}>
+            <h1 className="text-5xl lg:text-7xl font-black tracking-tighter text-[#dae2fd] max-w-2xl leading-[0.95]" style={{ fontFamily: "'Manrope', sans-serif" }}>
               ELEVE SEU <span className="text-[#00dce5]">ALCANCE</span> HOJE.
             </h1>
             <p className="mt-6 text-lg text-[#cbc3d9] max-w-lg leading-relaxed">
@@ -137,14 +156,14 @@ export default function SocialSafeHome() {
               <button className="bg-gradient-to-r from-[#00dce5] to-[#005d62] text-[#003739] font-bold px-8 py-4 rounded-xl text-lg shadow-lg shadow-[#00dce5]/20 hover:scale-105 transition-transform">
                 Ver Ofertas
               </button>
-              <button className="bg-white/5 backdrop-blur-md border border-white/10 font-bold px-8 py-4 rounded-xl text-lg hover:bg-white/10 transition-all">
+              <button className="bg-white/5 backdrop-blur-md border border-white/10 text-[#dae2fd] font-bold px-8 py-4 rounded-xl text-lg hover:bg-white/10 transition-all">
                 Como Funciona
               </button>
             </div>
           </div>
         </section>
 
-        {/* ===== QUICK LINKS ===== */}
+        {/* ═══════════════════ QUICK LINKS ═══════════════════ */}
         <section className="max-w-[1200px] mx-auto -mt-16 relative z-30 px-6">
           <div className="bg-[#131b2e] rounded-2xl p-6 shadow-2xl grid grid-cols-2 md:grid-cols-5 gap-4">
             {[
@@ -161,13 +180,13 @@ export default function SocialSafeHome() {
                 <div className={`w-12 h-12 ${item.bg} rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
                   {item.icon}
                 </div>
-                <span className="text-xs font-semibold leading-tight">{item.label}</span>
+                <span className="text-xs font-semibold text-[#dae2fd] leading-tight">{item.label}</span>
               </div>
             ))}
           </div>
         </section>
 
-        {/* ===== NICHOS EM ALTA ===== */}
+        {/* ═══════════════════ NICHOS EM ALTA ═══════════════════ */}
         <section className="max-w-[1200px] mx-auto py-24 px-6">
           <div className="flex items-end justify-between mb-12">
             <div>
@@ -188,8 +207,6 @@ export default function SocialSafeHome() {
                   alt={niche.name}
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                   loading="lazy"
-                  width={800}
-                  height={800}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent flex items-end p-6">
                   <h3 className="text-xl font-bold" style={{ fontFamily: "'Manrope', sans-serif" }}>{niche.name}</h3>
@@ -199,7 +216,7 @@ export default function SocialSafeHome() {
           </div>
         </section>
 
-        {/* ===== MAIS VENDIDOS ===== */}
+        {/* ═══════════════════ MAIS VENDIDOS ═══════════════════ */}
         <section className="bg-black py-24 px-6">
           <div className="max-w-[1200px] mx-auto">
             <div className="mb-12">
@@ -210,8 +227,8 @@ export default function SocialSafeHome() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-              {/* Show real listings if available, otherwise mock data */}
-              {(listings.length > 0 ? listings.slice(0, 4) : []).map(listing => (
+              {/* Real listings from DB */}
+              {listings.length > 0 && listings.slice(0, 4).map(listing => (
                 <div
                   key={listing.id}
                   onClick={() => navigate(`/socialsafe/anuncio/${listing.id}`)}
@@ -235,14 +252,14 @@ export default function SocialSafeHome() {
                         {listing.title.substring(0, 2).toUpperCase()}
                       </div>
                       <div>
-                        <h4 className="font-bold text-sm">{listing.title}</h4>
+                        <h4 className="font-bold text-[#dae2fd] text-sm">{listing.title}</h4>
                         <p className="text-xs text-[#cbc3d9]">{listing.niche || listing.platform}</p>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4 mb-6">
                       <div>
                         <p className="text-[10px] uppercase tracking-wider text-[#948da2]">Seguidores</p>
-                        <p className="font-black">{formatFollowers(listing.followers)}</p>
+                        <p className="font-black text-[#dae2fd]">{formatFollowers(listing.followers)}</p>
                       </div>
                       <div>
                         <p className="text-[10px] uppercase tracking-wider text-[#948da2]">Engajamento</p>
@@ -250,7 +267,7 @@ export default function SocialSafeHome() {
                       </div>
                     </div>
                     <div className="flex items-center justify-between pt-4 border-t border-[#494456]/10">
-                      <p className="text-2xl font-black">R$ {listing.price.toLocaleString("pt-BR")}</p>
+                      <p className="text-2xl font-black text-[#dae2fd]">R$ {listing.price.toLocaleString("pt-BR")}</p>
                       <div className="w-10 h-10 bg-[#00dce5] text-[#003739] rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
                         <ShoppingBag className="w-5 h-5" />
                       </div>
@@ -259,14 +276,14 @@ export default function SocialSafeHome() {
                 </div>
               ))}
 
-              {/* Mock cards when no real listings */}
+              {/* Mock cards (same images as reference) */}
               {listings.length === 0 && MOCK_ACCOUNTS.map(acc => (
                 <div
                   key={acc.id}
                   className="bg-[#0d0d0d] rounded-2xl overflow-hidden hover:shadow-[0_0_40px_rgba(0,220,229,0.15)] transition-all group border border-[#494456]/10 cursor-pointer"
                 >
-                  <div className="relative h-48 bg-[#171f33] flex items-center justify-center">
-                    <span className="text-5xl opacity-30">📸</span>
+                  <div className="relative h-48">
+                    <img src={acc.img} alt={acc.name} className="w-full h-full object-cover" loading="lazy" />
                     <div className="absolute top-4 right-4 bg-black/40 backdrop-blur-md p-1.5 rounded-lg">
                       <ShieldCheck className="w-4 h-4 text-[#00dce5]" />
                     </div>
@@ -277,14 +294,14 @@ export default function SocialSafeHome() {
                         {acc.initials}
                       </div>
                       <div>
-                        <h4 className="font-bold text-sm">{acc.name}</h4>
+                        <h4 className="font-bold text-[#dae2fd] text-sm">{acc.name}</h4>
                         <p className="text-xs text-[#cbc3d9]">{acc.niche}</p>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4 mb-6">
                       <div>
                         <p className="text-[10px] uppercase tracking-wider text-[#948da2]">Seguidores</p>
-                        <p className="font-black">{acc.followers}</p>
+                        <p className="font-black text-[#dae2fd]">{acc.followers}</p>
                       </div>
                       <div>
                         <p className="text-[10px] uppercase tracking-wider text-[#948da2]">Engajamento</p>
@@ -292,7 +309,7 @@ export default function SocialSafeHome() {
                       </div>
                     </div>
                     <div className="flex items-center justify-between pt-4 border-t border-[#494456]/10">
-                      <p className="text-2xl font-black">{acc.price}</p>
+                      <p className="text-2xl font-black text-[#dae2fd]">{acc.price}</p>
                       <div className="w-10 h-10 bg-[#00dce5] text-[#003739] rounded-full flex items-center justify-center group-hover:scale-110 transition-transform">
                         <ShoppingBag className="w-5 h-5" />
                       </div>
@@ -304,7 +321,7 @@ export default function SocialSafeHome() {
           </div>
         </section>
 
-        {/* ===== ESCROW SECTION ===== */}
+        {/* ═══════════════════ ESCROW SECTION ═══════════════════ */}
         <section className="max-w-[1200px] mx-auto py-24 px-6">
           <div className="bg-gradient-to-br from-[#171f33] to-[#131b2e] rounded-[2.5rem] p-8 lg:p-16 relative overflow-hidden">
             <div className="absolute -right-20 -top-20 w-96 h-96 bg-[#00dce5]/10 blur-[120px] rounded-full" />
@@ -315,7 +332,7 @@ export default function SocialSafeHome() {
                   <ShieldCheck className="w-4 h-4" />
                   SEGURANÇA EM PRIMEIRO LUGAR
                 </div>
-                <h2 className="text-4xl lg:text-5xl font-black tracking-tighter mb-6 leading-tight" style={{ fontFamily: "'Manrope', sans-serif" }}>
+                <h2 className="text-4xl lg:text-5xl font-black tracking-tighter mb-6 leading-tight text-[#dae2fd]" style={{ fontFamily: "'Manrope', sans-serif" }}>
                   Transações Protegidas por <span className="text-[#00dce5]">Escrow</span>
                 </h2>
                 <p className="text-[#cbc3d9] text-lg mb-8 leading-relaxed max-w-xl">
@@ -335,7 +352,11 @@ export default function SocialSafeHome() {
               <div className="flex-shrink-0">
                 <div className="relative">
                   <div className="w-64 h-64 bg-[#222a3d] rounded-full flex items-center justify-center border-4 border-[#00dce5]/20 shadow-[0_0_80px_rgba(0,220,229,0.2)]">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="#00dce5" strokeWidth="0.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><rect x="9" y="10" width="6" height="6" rx="1"/><path d="M12 10v-2a2 2 0 0 1 4 0"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="#00dce5" strokeWidth="0.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                      <rect x="9" y="10" width="6" height="6" rx="1"/>
+                      <path d="M12 10v-2a2 2 0 0 1 4 0"/>
+                    </svg>
                   </div>
                   <div className="absolute -bottom-4 -right-4 bg-[#2ae500] text-[#053900] px-6 py-3 rounded-2xl font-black text-sm shadow-xl" style={{ fontFamily: "'Manrope', sans-serif" }}>
                     ESCROW PROTECTED
@@ -347,7 +368,7 @@ export default function SocialSafeHome() {
         </section>
       </main>
 
-      {/* ===== FOOTER ===== */}
+      {/* ═══════════════════ FOOTER ═══════════════════ */}
       <footer className="bg-black border-t border-[#494456]/10 pt-20 pb-10">
         <div className="max-w-[1200px] mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12 mb-20">
           <div>
@@ -386,7 +407,7 @@ export default function SocialSafeHome() {
             <p className="text-sm text-[#cbc3d9] mb-4">Receba as melhores ofertas de contas diretamente no seu e-mail.</p>
             <div className="relative">
               <input
-                className="w-full bg-[#0d0d0d] border-none rounded-lg py-3 px-4 text-sm focus:ring-2 focus:ring-[#00dce5]/20 text-[#dae2fd]"
+                className="w-full bg-[#0d0d0d] border-none rounded-lg py-3 px-4 text-sm focus:ring-2 focus:ring-[#00dce5]/20 text-[#dae2fd] outline-none"
                 placeholder="Seu melhor e-mail"
                 type="email"
               />
@@ -397,7 +418,7 @@ export default function SocialSafeHome() {
           </div>
         </div>
         <div className="max-w-[1200px] mx-auto px-6 pt-10 border-t border-[#494456]/10 flex flex-col md:flex-row justify-between items-center gap-6">
-          <p className="text-xs text-[#948da2]">© 2026 Social Safe Marketplace. Todos os direitos reservados.</p>
+          <p className="text-xs text-[#948da2]">© 2024 Social Safe Marketplace. Todos os direitos reservados.</p>
           <div className="flex gap-8 text-xs text-[#948da2]">
             <button className="hover:text-[#dae2fd]">Termos de Uso</button>
             <button className="hover:text-[#dae2fd]">Privacidade</button>
@@ -405,7 +426,7 @@ export default function SocialSafeHome() {
         </div>
       </footer>
 
-      {/* ===== MOBILE BOTTOM NAV ===== */}
+      {/* ═══════════════════ MOBILE BOTTOM NAV ═══════════════════ */}
       <nav className="md:hidden fixed bottom-0 left-0 w-full bg-[#0d0d0d]/80 backdrop-blur-xl border-t border-white/5 z-50">
         <div className="flex justify-around items-center h-16">
           {[
