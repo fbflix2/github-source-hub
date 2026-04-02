@@ -1652,18 +1652,24 @@ export default function AdminEsteiraAdmin() {
                         });
                       }}
                     />
-                    <input
-                      className="w-full bg-transparent border-none p-0 text-xs text-slate-500 dark:text-white/50 focus:ring-0 outline-none"
-                      type="text"
+                    <textarea
+                      className="w-full bg-transparent border-none p-0 text-xs text-slate-500 dark:text-white/50 focus:ring-0 outline-none resize-none overflow-hidden"
                       placeholder="Descrição..."
+                      rows={1}
                       value={task.description}
                       onChange={(e) => {
                         const val = e.target.value;
+                        e.target.style.height = "auto";
+                        e.target.style.height = e.target.scrollHeight + "px";
                         updateClientConfigTasks(prev => {
                           const updated = [...prev];
                           updated[i] = { ...updated[i], description: val };
                           return updated;
                         });
+                      }}
+                      onFocus={(e) => {
+                        e.target.style.height = "auto";
+                        e.target.style.height = e.target.scrollHeight + "px";
                       }}
                     />
                   </div>
