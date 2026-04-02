@@ -274,6 +274,7 @@ export default function ClientWarming() {
               </Button>
             </div>
 
+            <div className="lg:flex-1 lg:overflow-y-auto lg:min-h-0 space-y-3 lg:pr-1">
             {showAddProfile && (
               <div className="p-4 rounded-xl bg-card border border-border space-y-3">
                 <Input placeholder="Código do perfil (ex: 1234)" value={newProfileCode} onChange={e => setNewProfileCode(e.target.value)} />
@@ -320,6 +321,7 @@ export default function ClientWarming() {
                 </div>
               );
             })}
+            </div>
 
           </div>
 
