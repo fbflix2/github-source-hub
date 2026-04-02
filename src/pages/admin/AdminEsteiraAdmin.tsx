@@ -295,6 +295,7 @@ export default function AdminEsteiraAdmin() {
           }
         } catch {}
       }
+    } catch {}
     // Also load client warming config
     try {
       const { data: clientData } = await supabase
