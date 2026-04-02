@@ -313,17 +313,19 @@ export default function Ferramentas() {
           </GlassCard>
 
           {/* Tool 3: Verificador de Perfis */}
-          <GlassCard bgImage={BG_IMAGES.verificador} onClick={() => setActiveTool("verificador")}>
-            <div className="w-11 h-11 bg-primary/10 text-primary rounded-lg flex items-center justify-center mb-3 group-hover:bg-primary group-hover:text-white transition-colors duration-300">
+          <GlassCard bgImage={BG_IMAGES.verificador} className="opacity-80 cursor-default pointer-events-none">
+            <div className="w-11 h-11 bg-primary/10 text-primary rounded-lg flex items-center justify-center mb-3">
               <MaterialIcon name="how_to_reg" className="text-2xl" />
             </div>
-            <h3 className="text-base font-bold mb-1.5 text-white">Verificador de Perfis</h3>
+            <div className="flex items-center gap-2 mb-1.5">
+              <h3 className="text-base font-bold text-white">Verificador de Perfis</h3>
+              <span className="px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 text-[10px] font-bold uppercase tracking-wider">Em breve</span>
+            </div>
             <p className="text-slate-400 mb-4 flex-grow leading-relaxed text-xs">
               Verifique o status de múltiplas contas simultaneamente e identifique restrições em tempo real.
             </p>
-            <button className="w-full py-2.5 px-4 bg-primary hover:bg-red-700 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2 text-sm group/btn">
-              <span>Acessar Ferramenta</span>
-              <MaterialIcon name="arrow_forward" className="text-lg group-hover/btn:translate-x-1 transition-transform" />
+            <button disabled className="w-full py-2.5 px-4 bg-muted text-muted-foreground font-bold rounded-lg flex items-center justify-center gap-2 text-sm cursor-not-allowed">
+              <span>Em breve</span>
             </button>
           </GlassCard>
 
