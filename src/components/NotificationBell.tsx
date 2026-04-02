@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { X, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,6 +22,7 @@ export function NotificationPopup() {
   const [current, setCurrent] = useState<Notification | null>(null);
   const [queue, setQueue] = useState<Notification[]>([]);
   const [seenIds, setSeenIds] = useState<Set<string>>(new Set());
+  const soundUrlRef = useRef<string | null>(null);
   const navigate = useNavigate();
 
   const showNext = useCallback((q: Notification[]) => {
@@ -29,6 +30,33 @@ export function NotificationPopup() {
       setCurrent(q[0]);
       setQueue(q.slice(1));
     }
+  }, []);
+
+  // Load client notification sound
+  useEffect(() => {
+    const loadSound = async () => {
+      const { data } = await supabase
+        .from("notification_sounds")
+        .select("sound_url")
+        .eq("event_key", "client_notification")
+        .eq("active", true)
+        .maybeSingle();
+      if (data?.sound_url) {
+        soundUrlRef.current = data.sound_url;
+        try { const a = new Audio(data.sound_url); a.preload = "auto"; a.load(); } catch {}
+      }
+    };
+    loadSound();
+  }, []);
+
+  const playSound = useCallback(() => {
+    const url = soundUrlRef.current;
+    if (!url) return;
+    try {
+      const audio = new Audio(url);
+      audio.volume = 0.7;
+      audio.play().catch(() => {});
+    } catch {}
   }, []);
 
   useEffect(() => {
@@ -54,6 +82,7 @@ export function NotificationPopup() {
         setSeenIds(ids);
         setCurrent(unread[0]);
         setQueue(unread.slice(1));
+        playSound();
       }
 
       // Listen for new notifications in real-time
@@ -74,6 +103,7 @@ export function NotificationPopup() {
             return next;
           });
 
+          playSound();
           setCurrent(prev => {
             if (!prev) return n;
             setQueue(q => [...q, n]);
