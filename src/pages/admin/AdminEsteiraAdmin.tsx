@@ -316,6 +316,60 @@ export default function AdminEsteiraAdmin() {
     } catch {}
   };
 
+  const syncClientProfilesTasks = async (updatedTasks: { title: string; description: string }[]) => {
+    try {
+      // Fetch all active client warming profiles
+      const { data: activeProfiles } = await supabase
+        .from("client_warming_profiles")
+        .select("id")
+        .eq("status", "ativo");
+
+      if (!activeProfiles || activeProfiles.length === 0) return;
+
+      const profileIds = activeProfiles.map(p => p.id);
+
+      // For each profile, delete existing tasks and re-create with new config
+      for (const profileId of profileIds) {
+        // Get existing tasks to preserve completion status
+        const { data: existingTasks } = await supabase
+          .from("client_warming_tasks")
+          .select("*")
+          .eq("profile_id", profileId)
+          .order("day_number", { ascending: true });
+
+        const completionMap = new Map<number, { completed: boolean; completed_at: string | null }>();
+        (existingTasks || []).forEach(t => {
+          completionMap.set(t.day_number, { completed: t.completed, completed_at: t.completed_at });
+        });
+
+        // Delete old tasks
+        await supabase.from("client_warming_tasks").delete().eq("profile_id", profileId);
+
+        // Insert new tasks preserving completion state
+        const newTasks = updatedTasks.map((t, idx) => {
+          const dayNum = idx + 1;
+          const prev = completionMap.get(dayNum);
+          return {
+            profile_id: profileId,
+            day_number: dayNum,
+            title: t.title,
+            description: t.description,
+            completed: prev?.completed ?? false,
+            completed_at: prev?.completed_at ?? null,
+          };
+        });
+
+        if (newTasks.length > 0) {
+          await supabase.from("client_warming_tasks").insert(newTasks);
+        }
+      }
+
+      toast.success(`Tarefas atualizadas para ${profileIds.length} perfil(is) ativo(s)`);
+    } catch (err) {
+      console.error("Erro ao sincronizar tarefas dos clientes:", err);
+    }
+  };
+
   const saveClientConfigToDB = (updatedTasks: { title: string; description: string }[]) => {
     if (clientConfigSaveTimer.current) clearTimeout(clientConfigSaveTimer.current);
     clientConfigSaveTimer.current = setTimeout(async () => {
@@ -331,6 +385,8 @@ export default function AdminEsteiraAdmin() {
         } else {
           await supabase.from("site_settings").insert({ key: "client_warming_track_config", value: jsonValue });
         }
+        // Sync all active client profiles with updated tasks
+        await syncClientProfilesTasks(updatedTasks);
       } catch (err) {
         console.error("Erro ao salvar config da esteira do cliente:", err);
       }
