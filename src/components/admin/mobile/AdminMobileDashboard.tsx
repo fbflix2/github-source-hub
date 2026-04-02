@@ -93,7 +93,9 @@ export function AdminMobileDashboard() {
         supabase.from("orders").select("id, status, total, created_at"),
         supabase.from("order_items").select("product_id, price, quantity, order_id, name"),
         supabase.from("product_categories").select("id, name, slug"),
-        supabase.from("replacements").select("id", { count: "exact", head: true }),
+        supabase.from("replacements").select("id", { count: "exact", head: true })
+          .gte("created_at", new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString())
+          .lte("created_at", new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 23, 59, 59).toISOString()),
         // Fetch ALL payments for chart (approved/paid in last 7 days)
         supabase.from("payments").select("amount, created_at, status").in("status", ["approved", "paid"]).gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()).order("created_at", { ascending: true }),
         supabase.from("invoice_links").select("id, amount, paid_at").eq("status", "paid").not("paid_at", "is", null),
