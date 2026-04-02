@@ -1534,33 +1534,51 @@ Deno.serve(async (req) => {
         console.warn("[get-internal-proxy-config] Auto-fetch error:", e.message);
       }
 
-      // 3. Fetch bandwidth from subscription + aggregate stats
+      // 3. Fetch bandwidth — use backbone-specific stats for rotating proxy
       let bandwidth: Record<string, any> = {};
       try {
         const subResp = await webFetch("/subscription/", WEBSHARE_API_KEY);
         const subData = await subResp.json();
-        const limitBytes = subData.bandwidth_limit || 0;
 
-        // Also fetch aggregate stats for actual usage in the current billing cycle
-        let usedBytes = subData.bandwidth || subData.bandwidth_used || 0;
+        // Get the backbone (rotating) bandwidth limit specifically
+        const backboneLimitBytes = subData.bandwidth_limit_backbone || 0;
+        const totalLimitBytes = subData.bandwidth_limit || 0;
+        // Use backbone-specific limit if available, otherwise fall back to total
+        const limitBytes = backboneLimitBytes > 0 ? backboneLimitBytes : totalLimitBytes;
+
+        // Fetch backbone-specific aggregate stats for actual rotating proxy usage
+        let usedBytes = 0;
         if (subData.start_date && subData.end_date) {
           try {
+            // Filter by mode=backbone to get ONLY rotating proxy bandwidth
             const aggResp = await webFetch(
-              `/stats/aggregate/?timestamp__gte=${subData.start_date}&timestamp__lte=${subData.end_date}`,
+              `/stats/aggregate/?mode=backbone&timestamp__gte=${subData.start_date}&timestamp__lte=${subData.end_date}`,
               WEBSHARE_API_KEY
             );
             const aggData = await aggResp.json();
-            if (aggResp.ok && aggData.bandwidth_total) {
-              usedBytes = aggData.bandwidth_total;
+            console.log(`[get-internal-proxy-config] backbone aggregate stats:`, JSON.stringify(aggData));
+            if (aggResp.ok && (aggData.bandwidth_total !== undefined || aggData.bandwidth !== undefined)) {
+              usedBytes = aggData.bandwidth_total || aggData.bandwidth || 0;
             }
-          } catch {}
+          } catch (e: any) {
+            console.warn(`[get-internal-proxy-config] backbone stats error:`, e.message);
+          }
         }
+
+        // Fallback: if backbone stats returned 0, try bandwidth_used_backbone from subscription
+        if (usedBytes === 0) {
+          usedBytes = subData.bandwidth_used_backbone || subData.bandwidth_backbone || 0;
+        }
+
+        console.log(`[get-internal-proxy-config] bandwidth: used=${usedBytes}, limit=${limitBytes}, backbone_limit=${backboneLimitBytes}`);
 
         bandwidth = {
           used_bytes: usedBytes,
           limit_bytes: limitBytes,
         };
-      } catch {}
+      } catch (e: any) {
+        console.warn(`[get-internal-proxy-config] bandwidth fetch error:`, e.message);
+      }
 
       // 4. Determine active config
       const useManual = savedConfig?.source === "manual_override" && savedConfig?.username && savedConfig?.password;
