@@ -181,7 +181,12 @@ export function AdminMobileDashboard() {
         }
       });
 
-      const totalNonProxyItems = (orderItemsRes.data ?? []).filter(item => completedOrderIds.has(item.order_id)).reduce((sum, item) => sum + (item.quantity || 1), 0);
+      const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+      const monthEnd = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 23, 59, 59).toISOString();
+      const monthCompletedOrderIds = new Set(
+        ords.filter(o => completedStatuses.includes(o.status) && o.created_at >= monthStart && o.created_at <= monthEnd).map(o => o.id)
+      );
+      const totalNonProxyItems = (orderItemsRes.data ?? []).filter(item => monthCompletedOrderIds.has(item.order_id)).reduce((sum, item) => sum + (item.quantity || 1), 0);
       const totalReplacements = replacementsRes.count ?? 0;
       const replRate = totalNonProxyItems > 0 ? (totalReplacements / totalNonProxyItems) * 100 : 0;
 
