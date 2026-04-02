@@ -19,6 +19,7 @@ const eventIcons: Record<string, typeof ShoppingCart> = {
   wallet_deposit: Wallet,
   new_ticket: Headphones,
   team_chat: MessageCircle,
+  client_notification: Bell,
 };
 
 const eventColors: Record<string, string> = {
@@ -26,6 +27,7 @@ const eventColors: Record<string, string> = {
   wallet_deposit: "text-yellow-400 bg-yellow-500/15",
   new_ticket: "text-blue-400 bg-blue-500/15",
   team_chat: "text-purple-400 bg-purple-500/15",
+  client_notification: "text-red-400 bg-red-500/15",
 };
 
 export default function NotificationSoundsTab() {
