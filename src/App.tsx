@@ -42,6 +42,7 @@ import Ferramentas from "./pages/Ferramentas";
 import SafeBMClient from "./pages/SafeBMClient";
 import SafeBMLanding from "./pages/SafeBMLanding";
 import ClientContingencia from "./pages/ClientContingencia";
+import ClientWarming from "./pages/ClientWarming";
 import PagarInvoice from "./pages/PagarInvoice";
 
 // Admin Pages
