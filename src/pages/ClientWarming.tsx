@@ -57,9 +57,9 @@ function TipsCarousel() {
   const TipIcon = tip.icon;
 
   return (
-    <div className="mt-4 pt-4 border-t border-border">
-      <h3 className="text-xs font-bold text-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5">
-        <Lightbulb className="size-3.5 text-yellow-400" /> Dicas de Farm
+    <div className="pt-4">
+      <h3 className="text-xs font-bold text-foreground uppercase tracking-wider mb-3 flex items-center justify-center gap-1.5">
+        <Lightbulb className="size-3.5 text-yellow-400" /> Dicas e boas práticas
       </h3>
       <div className="relative overflow-hidden">
         <div
@@ -321,7 +321,6 @@ export default function ClientWarming() {
               );
             })}
 
-            <TipsCarousel />
           </div>
 
           {/* Main Content */}
@@ -440,6 +439,8 @@ export default function ClientWarming() {
                     </p>
                   </div>
                 )}
+
+                <TipsCarousel />
               </div>
             )}
           </div>
