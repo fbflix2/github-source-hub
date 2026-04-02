@@ -89,7 +89,7 @@ export function AdminMobileDashboard() {
         supabase.from("profiles").select("id", { count: "exact", head: true }).not("first_login_at", "is", null),
         supabase.from("wallet_transactions").select("id", { count: "exact", head: true }),
         supabase.rpc("get_total_wallet_balance"),
-        supabase.from("products").select("id, available"),
+        supabase.from("products").select("id, available, icon_type"),
         supabase.from("orders").select("id, status, total, created_at"),
         supabase.from("order_items").select("product_id, price, quantity, order_id, name"),
         supabase.from("product_categories").select("id, name, slug"),
