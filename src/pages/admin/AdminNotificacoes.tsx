@@ -690,7 +690,7 @@ export default function AdminNotificacoes() {
                     <div className="p-3 flex flex-col gap-2 flex-1">
                       <div>
                         <h3 className="text-sm font-bold text-white leading-tight line-clamp-1">{n.title}</h3>
-                        <p className="text-xs text-white/50 line-clamp-2 mt-0.5">{n.message}</p>
+                        <p className="text-xs text-white/50 line-clamp-2 mt-0.5 whitespace-pre-wrap">{n.message}</p>
                       </div>
 
                       <div className="mt-auto flex flex-col gap-1.5">
