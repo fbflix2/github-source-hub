@@ -1,0 +1,1 @@
+UPDATE notification_sounds SET sound_url = 'https://assets.mixkit.co/active_storage/sfx/2354/2354-preview.mp3', file_name = 'notification-bell.mp3' WHERE event_key = 'client_notification';
