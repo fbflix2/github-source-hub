@@ -1341,35 +1341,40 @@ Deno.serve(async (req) => {
 
       console.log(`[get-rotating-credentials] Rotating username resolved for country ${countryCode}`);
 
-      // Get subscription info for bandwidth limits
-      const subResp = await webFetch("/subscription/", WEBSHARE_API_KEY);
-      const subData = await subResp.json();
+      // Get bandwidth limits from the residential plan specifically
+      const plansResp = await webFetch("/subscription/plan/", WEBSHARE_API_KEY);
+      const plansData = await plansResp.json();
+      const residentialPlan = (plansData.results || []).find((p: any) => p.status === "active" && p.proxy_subtype === "residential");
 
-      // Use backbone-specific bandwidth fields (rotating proxy only)
-      const bandwidthLimit = subData.bandwidth_limit_backbone > 0
-        ? subData.bandwidth_limit_backbone
-        : (subData.bandwidth_limit || 0);
-      const bandwidthUsed = subData.bandwidth_used_backbone ?? subData.bandwidth_used ?? 0;
+      let bandwidthLimit = 0;
+      let aggregateUsed = 0;
 
-      // Also fetch stats/aggregate with mode=backbone for accurate usage in current cycle
-      let aggregateUsed = bandwidthUsed;
-      try {
-        const startDate = subData.start_date || "";
-        const endDate = subData.end_date || "";
-        if (startDate && endDate) {
+      if (residentialPlan) {
+        // bandwidth_limit is in GB from the plan object
+        bandwidthLimit = (residentialPlan.bandwidth_limit || 0) * 1024 * 1024 * 1024;
+        
+        // Fetch stats filtered by this plan_id for accurate usage
+        try {
           const aggResp = await webFetch(
-            `/stats/aggregate/?mode=backbone&timestamp__gte=${startDate}&timestamp__lte=${endDate}`,
+            `/stats/aggregate/?plan_id=${residentialPlan.id}`,
             WEBSHARE_API_KEY
           );
           if (aggResp.ok) {
             const aggData = await aggResp.json();
-            const totalBw = (aggData.download_bytes || 0) + (aggData.upload_bytes || 0);
-            if (totalBw > 0) aggregateUsed = totalBw;
-            console.log(`[get-rotating-credentials] Backbone aggregate bandwidth: ${totalBw} bytes`);
+            aggregateUsed = aggData.bandwidth_total || 0;
+            console.log(`[get-rotating-credentials] Residential plan ${residentialPlan.id} bandwidth: ${aggregateUsed} bytes`);
           }
+        } catch (e) {
+          console.warn("[get-rotating-credentials] Failed to fetch plan stats:", e);
         }
-      } catch (e) {
-        console.warn("[get-rotating-credentials] Failed to fetch aggregate stats:", e);
+      } else {
+        // Fallback to subscription endpoint
+        const subResp = await webFetch("/subscription/", WEBSHARE_API_KEY);
+        const subData = await subResp.json();
+        bandwidthLimit = subData.bandwidth_limit_backbone > 0
+          ? subData.bandwidth_limit_backbone
+          : (subData.bandwidth_limit || 0);
+        aggregateUsed = subData.bandwidth_used_backbone ?? subData.bandwidth_used ?? 0;
       }
 
       console.log(`[get-rotating-credentials] Bandwidth: used=${aggregateUsed}, limit=${bandwidthLimit}`);
