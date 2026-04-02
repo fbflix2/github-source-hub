@@ -120,9 +120,9 @@ export default function SocialSafeHome() {
             >
               Vender
             </button>
-            <div className="flex gap-3 text-slate-400">
-              <span className="cursor-pointer hover:text-[#00dce5] transition-all text-xl">🔔</span>
-              <span className="cursor-pointer hover:text-[#00dce5] transition-all text-xl">🛒</span>
+            <div className="flex gap-3">
+              <span className="cursor-pointer hover:text-[#00dce5] transition-all text-xl text-slate-400">🔔</span>
+              <span className="w-8 h-8 bg-white rounded-full flex items-center justify-center cursor-pointer hover:scale-110 transition-transform text-base">🛒</span>
             </div>
             <button
               onClick={() => navigate("/socialsafe/minha-conta")}
