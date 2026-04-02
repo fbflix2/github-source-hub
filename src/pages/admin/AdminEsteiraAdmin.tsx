@@ -295,8 +295,69 @@ export default function AdminEsteiraAdmin() {
           }
         } catch {}
       }
+    // Also load client warming config
+    try {
+      const { data: clientData } = await supabase
+        .from("site_settings")
+        .select("value")
+        .eq("key", "client_warming_track_config")
+        .maybeSingle();
+      if (clientData?.value) {
+        try {
+          const parsed = JSON.parse(clientData.value);
+          if (Array.isArray(parsed)) {
+            setClientConfigTasks(parsed);
+          } else if (parsed?.["7_days"]) {
+            setClientConfigTasks(parsed["7_days"]);
+          }
+        } catch {}
+      }
     } catch {}
   };
+
+  const saveClientConfigToDB = (updatedTasks: { title: string; description: string }[]) => {
+    if (clientConfigSaveTimer.current) clearTimeout(clientConfigSaveTimer.current);
+    clientConfigSaveTimer.current = setTimeout(async () => {
+      try {
+        const jsonValue = JSON.stringify({ "7_days": updatedTasks });
+        const { data: existing } = await supabase
+          .from("site_settings")
+          .select("id")
+          .eq("key", "client_warming_track_config")
+          .maybeSingle();
+        if (existing) {
+          await supabase.from("site_settings").update({ value: jsonValue }).eq("key", "client_warming_track_config");
+        } else {
+          await supabase.from("site_settings").insert({ key: "client_warming_track_config", value: jsonValue });
+        }
+      } catch (err) {
+        console.error("Erro ao salvar config da esteira do cliente:", err);
+      }
+    }, 800);
+  };
+
+  const updateClientConfigTasks = (updater: (prev: { title: string; description: string }[]) => { title: string; description: string }[]) => {
+    setClientConfigTasks(prev => {
+      const next = updater(prev);
+      saveClientConfigToDB(next);
+      return next;
+    });
+  };
+
+  const handleClientDragStart = (index: number) => setClientDragIndex(index);
+  const handleClientDragOver = (e: React.DragEvent, index: number) => { e.preventDefault(); setClientDragOverIndex(index); };
+  const handleClientDrop = (index: number) => {
+    if (clientDragIndex === null || clientDragIndex === index) { setClientDragIndex(null); setClientDragOverIndex(null); return; }
+    updateClientConfigTasks(prev => {
+      const items = [...prev];
+      const [moved] = items.splice(clientDragIndex, 1);
+      items.splice(index, 0, moved);
+      return items;
+    });
+    setClientDragIndex(null);
+    setClientDragOverIndex(null);
+  };
+  const handleClientDragEnd = () => { setClientDragIndex(null); setClientDragOverIndex(null); };
 
   const syncActiveProfilesWithConfig = async (updatedConfig: Record<string, { title: string; description: string }[]>) => {
     const pageSize = 1000;
