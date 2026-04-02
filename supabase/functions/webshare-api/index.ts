@@ -1563,43 +1563,49 @@ Deno.serve(async (req) => {
         console.warn("[get-internal-proxy-config] Auto-fetch error:", e.message);
       }
 
-      // 3. Fetch bandwidth — use backbone-specific stats for rotating proxy
+      // 3. Fetch bandwidth — find the residential plan and use plan_id for accurate stats
       let bandwidth: Record<string, any> = {};
       try {
-        const subResp = await webFetch("/subscription/", WEBSHARE_API_KEY);
-        const subData = await subResp.json();
+        // List all plans to find the residential (rotating) one
+        const plansResp = await webFetch("/subscription/plan/", WEBSHARE_API_KEY);
+        const plansData = await plansResp.json();
+        const plans = plansData.results || [];
 
-        // Get the backbone (rotating) bandwidth limit specifically
-        const backboneLimitBytes = subData.bandwidth_limit_backbone || 0;
-        const totalLimitBytes = subData.bandwidth_limit || 0;
-        // Use backbone-specific limit if available, otherwise fall back to total
-        const limitBytes = backboneLimitBytes > 0 ? backboneLimitBytes : totalLimitBytes;
-
-        // Fetch backbone-specific aggregate stats for actual rotating proxy usage
+        // Find the active residential plan (backbone/rotating proxy)
+        const residentialPlan = plans.find((p: any) => p.status === "active" && p.proxy_subtype === "residential");
+        
+        let limitBytes = 0;
         let usedBytes = 0;
-        if (subData.start_date && subData.end_date) {
+
+        if (residentialPlan) {
+          // bandwidth_limit is in GB from the plan
+          const limitGB = residentialPlan.bandwidth_limit || 0;
+          limitBytes = limitGB * 1024 * 1024 * 1024;
+          console.log(`[get-internal-proxy-config] Found residential plan ${residentialPlan.id}, limit: ${limitGB} GB`);
+
+          // Fetch aggregate stats filtered by this specific plan_id
           try {
-            // Filter by mode=backbone to get ONLY rotating proxy bandwidth
             const aggResp = await webFetch(
-              `/stats/aggregate/?mode=backbone&timestamp__gte=${subData.start_date}&timestamp__lte=${subData.end_date}`,
+              `/stats/aggregate/?plan_id=${residentialPlan.id}`,
               WEBSHARE_API_KEY
             );
             const aggData = await aggResp.json();
-            console.log(`[get-internal-proxy-config] backbone aggregate stats:`, JSON.stringify(aggData));
-            if (aggResp.ok && (aggData.bandwidth_total !== undefined || aggData.bandwidth !== undefined)) {
-              usedBytes = aggData.bandwidth_total || aggData.bandwidth || 0;
+            console.log(`[get-internal-proxy-config] residential plan stats:`, JSON.stringify(aggData));
+            if (aggResp.ok && aggData.bandwidth_total !== undefined) {
+              usedBytes = aggData.bandwidth_total || 0;
             }
           } catch (e: any) {
-            console.warn(`[get-internal-proxy-config] backbone stats error:`, e.message);
+            console.warn(`[get-internal-proxy-config] residential plan stats error:`, e.message);
           }
+        } else {
+          console.warn(`[get-internal-proxy-config] No active residential plan found, falling back to subscription`);
+          // Fallback to subscription endpoint
+          const subResp = await webFetch("/subscription/", WEBSHARE_API_KEY);
+          const subData = await subResp.json();
+          limitBytes = (subData.bandwidth_limit_backbone || subData.bandwidth_limit || 0);
         }
 
-        // Fallback: if backbone stats returned 0, try bandwidth_used_backbone from subscription
-        if (usedBytes === 0) {
-          usedBytes = subData.bandwidth_used_backbone || subData.bandwidth_backbone || 0;
-        }
-
-        console.log(`[get-internal-proxy-config] bandwidth: used=${usedBytes}, limit=${limitBytes}, backbone_limit=${backboneLimitBytes}`);
+        console.log(`[get-internal-proxy-config] bandwidth: used=${usedBytes}, limit=${limitBytes}`);
 
         bandwidth = {
           used_bytes: usedBytes,
