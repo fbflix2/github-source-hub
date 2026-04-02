@@ -242,7 +242,7 @@ export default function ClientWarming() {
   }
 
   return (
-    <div className="relative overflow-hidden pt-4 pb-6 px-4 sm:px-6 lg:px-12">
+    <div className="relative overflow-hidden pt-4 pb-6 px-4 sm:px-6 lg:px-12 lg:h-screen lg:flex lg:flex-col">
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-full -z-10 pointer-events-none opacity-20">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-orange-500/20 blur-[120px] rounded-full" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-primary/10 blur-[120px] rounded-full" />
