@@ -170,6 +170,12 @@ function AuthenticatedApp({ user, onLogout }: { user: User; onLogout: () => void
         <Route path="/esteira-aquecimento" element={<ClientWarming />} />
         <Route path="/" element={<Navigate to="/loja" replace />} />
       </Route>
+
+      {/* SocialSafe Routes - outside MainLayout */}
+      <Route path="/socialsafe" element={<SocialSafeHome />} />
+      <Route path="/socialsafe/anuncio/:id" element={<SocialSafeListingDetail />} />
+      <Route path="/socialsafe/criar-anuncio" element={<SocialSafeCreateListing />} />
+      <Route path="/socialsafe/minha-conta" element={<SocialSafeAccount />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
