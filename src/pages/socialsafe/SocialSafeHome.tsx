@@ -2,14 +2,14 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Search, ShieldCheck, Tag, CreditCard, Star, HeartHandshake, ShoppingBag, CheckCircle2, Globe, MessageSquare, Share2, ArrowRight } from "lucide-react";
-
+import nicheFitnessImg from "@/assets/socialsafe/niche-fitness-v2.jpg";
 /* ── Image URLs (exact from reference design) ── */
 const IMG = {
   hero: "https://lh3.googleusercontent.com/aida-public/AB6AXuDCyIYAoCMX1SI6Gr4X_uk9t82-idViW9nvFFR149uAijtttQI5PsugthZFjR85gEKkQexZyJLgCBH_NXIKSnEeMgKaUZ5EH0Efws3JkAHry-6LIidy-gFyImbEAeQflWi5Eq8721c0K6Fmg3HMJ63vueTDLfZBqd7pLsQah6DXvbwi9QQfrz9V8b9QRXcEXmM6EswkMBC_dMo_R5UVHvrv9i7a-Ptzv0n_qlmDLs5efnhcfAHuaD7qlV7VOchRwrfJ51WClCp0zfY",
   avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuDW1h9vN1uO0yEF5ow7y6DNDKyY0fpYq7Rs0vPZ5cqtB93KV11_zPwMYbtug-a0t009Bdd2aByGr9qDicf1YKj3pgdRsMa7BETHz4Nh4FIOX_RH3nLhEnG0pzS_VBgVEuuvRKftB_GeogdibqqyzpWbV_lxnM4j5cDh-6BdEzM7q7MPQtr5mxpt2WQysk6EvHvxS9j4xjuCUs8reoPWvJcErUyY1O1hxGGteDbeT90HgSGukmpnKXAgRzF1n8f5J0jl1D71t5yvUUQ",
   nicheLifestyle: "https://lh3.googleusercontent.com/aida-public/AB6AXuCfVmkk42zJNl2g2WrksOZkn3oKCNnomtL3QU7MBLoC9x69tNRqiHjgYAZqybdX1KjrJwpzpXYuQF1F6bFvL8rKDh1M-GxdlLlQ0JzNd5dXJ1P9IQ5Z3_HzGXeeZveiFJkOzexasgpo68MYKAhPpbSyaVkwrofqNz-vNcWIuAI0U6C3VZU000qvUWjEvVAzarOaZJ7GUGxSZJGZ3iSxh-z6b_7At-y4WMKDlvxV5Ji051JAmVb67EbSDKjFZqG1qDtTiMEpJEFD8NA",
   nicheTech: "https://lh3.googleusercontent.com/aida-public/AB6AXuDH1_rvMhC_fg_iMyOSG3Xh3tk_9bG8qdwhSb9V5I6i19NsjAfcEVveZ3yaksty1tgf-xDTvh1jXPsfkA9Jtjp3wvsdr8mPppm8uOp5iClg2RmS62OtUbAMG0B1Ag7paY9ao7uyZpjqqr9h3elPuv2IdG4GBrQdyTPYJbI0UmKigBHjytzV-lAm2TwjwZ501CMVyP9g3BW7k2-meB7hssnOjxU1AtIZtxxbJKy8n9XoHpL1Ra2dpRZBwn6WpKHR1CGeW8pqepDytYM",
-  nicheFitness: "https://lh3.googleusercontent.com/aida-public/AB6AXuCp8oXHE-tYDRy8WMkjBTA40TGg8Qbcq93KKe_8BvWieH0Ye0-Njh9uMAlPJ13j6sckKOMuL3Ejxd8EZMevWfyfS1Mxev-atbIqdPfcD6tLTE16Vaq4pbvYG1FP3jl_CxNNKOOTCK48tx_ENNeD_XwaXU13Q24KDk79HeJOPgTsmpzpQGXeP28c8R4G4rYbs6Pyby4IYUN2m0DNC8GW6BbKK_2NmwJM6gjOTmaMyn8cJMmdii5aY25Gb0WgCYS0m7ZmHY9UouyqsmU",
+  nicheFitness: nicheFitnessImg,
   nicheEntertainment: "https://lh3.googleusercontent.com/aida-public/AB6AXuCWAqkGku9yOS9gxUFRcBN3gv98qlbDo5K-MVBoMNPX_0lm2cCuiZs2HWrBN56_ACqsA_T1hyKmkV-F9H1Ao0yFSbqcI1RWERIfVkZ8c-Y63L77DTSegDExKgmxNBN75FAcd9_eGS60MdddxbdGVfY9A1KAttvMFETMCKPb-X66CePtRUxRkZGHvjSGu3DrUeSFo5xBglhMGKpV7EVVuK3LI08AaX9ci7gmQwF4Cz-8xOjDv5vsdauA73tXKuGOK3iFq_x7vHyDclg",
   card1: "https://lh3.googleusercontent.com/aida-public/AB6AXuD-arlaNPBiMCY8zI57s5rQ1kKwp1XcJUWrUaQwM_x3oB3zzmFACqP0Up3diKr54IlmsD9mtH1xDyD06NzaR_uugd9YDY-RHjlSP4AFpEbD5YcKPnjuPvl2sDeJ-kdpbsUiIM5N2MKZQD6-5kMoZ6hG3xohTdzmC8VOIclLtRgO5UxK3Rx7HvE3Xad2QoHnahX1SIKzRm__8MAXUMCuUnd2Mu-L8iTZ7VUWGVkp7buritDceiMhUmFMnQcepbC1xZVcvWoJ-DbmBL0",
   card2: "https://lh3.googleusercontent.com/aida-public/AB6AXuDXOT5JZiIWkJDTFrmPtX5sLf8KbRwEsbLUekXe3sMxc3CkaD8h07ZIS7c-c6CDzrXc5kAuweF9AZvtQRzVLxH1S-7EPFo8IjfDdr5OYqM_pjYaiR1fdNgChKDe3q314jdPrymdqbXzDr8BUhlHBP4OfP7322fZmaj3kAZJ03wbg794bWcnskoILj5Twd-J9b4X1TBRMhA0vHbIXP7a2Qk_dfiDzWZYBbJMHx-4F3bwQRGIwr7rFXvPS0k_eUvfzFPmAgEVktcNPGU",
@@ -165,7 +165,7 @@ export default function SocialSafeHome() {
 
         {/* ═══════════════════ QUICK LINKS ═══════════════════ */}
         <section className="max-w-[1200px] mx-auto -mt-16 relative z-30 px-6">
-          <div className="bg-[#131b2e] rounded-2xl p-6 shadow-2xl grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="bg-gradient-to-b from-black/60 via-[#131b2e] to-[#131b2e] rounded-2xl p-6 shadow-2xl grid grid-cols-2 md:grid-cols-5 gap-4">
             {[
               { icon: <ShieldCheck className="w-6 h-6 text-[#00dce5]" />, label: "Contas Verificadas", bg: "bg-[#00dce5]/10" },
               { icon: <Tag className="w-6 h-6 text-[#2ae500]" />, label: "Venda sua Conta", bg: "bg-[#2ae500]/10" },
