@@ -45,6 +45,12 @@ import ClientContingencia from "./pages/ClientContingencia";
 import ClientWarming from "./pages/ClientWarming";
 import PagarInvoice from "./pages/PagarInvoice";
 
+// SocialSafe Pages
+import SocialSafeHome from "./pages/socialsafe/SocialSafeHome";
+import SocialSafeListingDetail from "./pages/socialsafe/SocialSafeListingDetail";
+import SocialSafeCreateListing from "./pages/socialsafe/SocialSafeCreateListing";
+import SocialSafeAccount from "./pages/socialsafe/SocialSafeAccount";
+
 // Admin Pages
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminDashboard from "./pages/admin/AdminDashboard";
