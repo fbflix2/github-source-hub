@@ -376,7 +376,7 @@ export default function ClientWarming() {
                           : <Circle className="size-5 text-orange-400 shrink-0 mt-0.5" />}
                         <div className="flex-1 min-w-0">
                           <p className={`text-sm font-semibold ${task.completed ? "line-through text-muted-foreground" : "text-foreground"}`}>{task.title}</p>
-                          {task.description && <p className="text-xs text-muted-foreground mt-0.5">{task.description}</p>}
+                          {task.description && <p className="text-xs text-muted-foreground mt-0.5 whitespace-pre-line">{task.description}</p>}
                         </div>
                       </div>
                     )) : (
