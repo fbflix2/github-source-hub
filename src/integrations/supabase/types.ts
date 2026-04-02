@@ -494,6 +494,92 @@ export type Database = {
         }
         Relationships: []
       }
+      client_warming_profiles: {
+        Row: {
+          created_at: string
+          current_day: number
+          id: string
+          notes: string | null
+          profile_code: string
+          profile_name: string | null
+          start_date: string
+          status: string
+          track_days: number
+          track_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_day?: number
+          id?: string
+          notes?: string | null
+          profile_code: string
+          profile_name?: string | null
+          start_date?: string
+          status?: string
+          track_days?: number
+          track_type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_day?: number
+          id?: string
+          notes?: string | null
+          profile_code?: string
+          profile_name?: string | null
+          start_date?: string
+          status?: string
+          track_days?: number
+          track_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      client_warming_tasks: {
+        Row: {
+          completed: boolean
+          completed_at: string | null
+          created_at: string
+          day_number: number
+          description: string | null
+          id: string
+          profile_id: string
+          title: string
+        }
+        Insert: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          day_number: number
+          description?: string | null
+          id?: string
+          profile_id: string
+          title: string
+        }
+        Update: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          day_number?: number
+          description?: string | null
+          id?: string
+          profile_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_warming_tasks_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "client_warming_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cost_center: {
         Row: {
           active: boolean
