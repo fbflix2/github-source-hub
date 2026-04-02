@@ -264,10 +264,10 @@ export default function ClientWarming() {
           </div>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:max-h-[calc(100vh-200px)]">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:flex-1 lg:min-h-0">
           {/* Sidebar - Profile List */}
-          <div className="space-y-3 lg:overflow-y-auto lg:max-h-full lg:pr-2">
-            <div className="flex items-center justify-between">
+          <div className="lg:flex lg:flex-col lg:min-h-0">
+            <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-bold text-foreground uppercase tracking-wider">Meus Perfis</h2>
               <Button size="sm" variant="outline" onClick={() => setShowAddProfile(!showAddProfile)} className="gap-1">
                 <Plus className="size-3.5" /> Novo
