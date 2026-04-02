@@ -961,10 +961,14 @@ export default function AdminNotificacoes() {
                         )}
                       </div>
                       <span className="text-center text-sm text-white/70 font-medium">{m.total_sent}</span>
-                      <span className="text-center text-sm font-medium flex items-center justify-center gap-1">
+                      <button
+                        onClick={() => openReadersModal(m.id, m.title)}
+                        className="text-center text-sm font-medium flex items-center justify-center gap-1 hover:bg-white/5 rounded-md px-1 py-0.5 transition-colors cursor-pointer"
+                        title="Ver lista de leitores"
+                      >
                         <Eye className="w-3 h-3 text-green-400" />
                         <span className="text-green-400">{m.total_read}</span>
-                      </span>
+                      </button>
                       <div className="flex flex-col items-center gap-0.5">
                         <span className={`text-sm font-bold ${rate >= 70 ? "text-green-400" : rate >= 40 ? "text-yellow-400" : "text-white/50"}`}>
                           {rate}%
