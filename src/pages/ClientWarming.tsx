@@ -321,25 +321,7 @@ export default function ClientWarming() {
               );
             })}
 
-            {/* Tips Section - Sidebar */}
-            <div className="mt-4 pt-4 border-t border-border">
-              <h3 className="text-xs font-bold text-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                <Lightbulb className="size-3.5 text-yellow-400" /> Dicas de Farm
-              </h3>
-              <div className="space-y-2.5">
-                {FARMING_TIPS.map((tip, i) => (
-                  <div key={i} className="p-2.5 rounded-lg bg-card border border-border">
-                    <div className="flex items-start gap-2">
-                      <tip.icon className="size-3.5 text-muted-foreground shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-[11px] font-semibold text-foreground leading-tight">{tip.title}</p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5 leading-snug">{tip.tip}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <TipsCarousel />
           </div>
 
           {/* Main Content */}
