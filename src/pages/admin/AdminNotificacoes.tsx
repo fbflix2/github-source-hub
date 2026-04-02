@@ -599,7 +599,7 @@ export default function AdminNotificacoes() {
                     <h3 className="text-base font-bold text-foreground leading-tight">
                       {formTitle || "Título da notificação"}
                     </h3>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
+                    <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
                       {formMessage || "Mensagem da notificação..."}
                     </p>
 
