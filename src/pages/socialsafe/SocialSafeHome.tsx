@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Search, ShieldCheck, Tag, CreditCard, Star, HeartHandshake, ShoppingBag, CheckCircle2, Globe, MessageSquare, Share2, ArrowRight } from "lucide-react";
-
+import nicheFitnessImg from "@/assets/socialsafe/niche-fitness-v2.jpg";
 /* ── Image URLs (exact from reference design) ── */
 const IMG = {
   hero: "https://lh3.googleusercontent.com/aida-public/AB6AXuDCyIYAoCMX1SI6Gr4X_uk9t82-idViW9nvFFR149uAijtttQI5PsugthZFjR85gEKkQexZyJLgCBH_NXIKSnEeMgKaUZ5EH0Efws3JkAHry-6LIidy-gFyImbEAeQflWi5Eq8721c0K6Fmg3HMJ63vueTDLfZBqd7pLsQah6DXvbwi9QQfrz9V8b9QRXcEXmM6EswkMBC_dMo_R5UVHvrv9i7a-Ptzv0n_qlmDLs5efnhcfAHuaD7qlV7VOchRwrfJ51WClCp0zfY",
