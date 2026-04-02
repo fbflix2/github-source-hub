@@ -167,10 +167,10 @@ export default function SocialSafeHome() {
         <section className="max-w-[1200px] mx-auto -mt-10 relative z-30 px-6">
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             {[
-              { icon: <ShieldCheck className="w-6 h-6 text-[#00dce5]" />, label: "Contas Verificadas", bg: "bg-[#00dce5]/10" },
+              { icon: <ShieldCheck className="w-6 h-6 text-[#2ae500]" />, label: "Contas Verificadas", bg: "bg-[#2ae500]/10" },
               { icon: <Tag className="w-6 h-6 text-[#2ae500]" />, label: "Venda sua Conta", bg: "bg-[#2ae500]/10" },
-              { icon: <CreditCard className="w-6 h-6 text-[#c9bfff]" />, label: "Meios Seguros", bg: "bg-[#c9bfff]/10" },
-              { icon: <Star className="w-6 h-6 text-[#00dce5]" />, label: "Melhores do Mês", bg: "bg-[#00dce5]/10" },
+              { icon: <CreditCard className="w-6 h-6 text-[#2ae500]" />, label: "Meios Seguros", bg: "bg-[#2ae500]/10" },
+              { icon: <Star className="w-6 h-6 text-[#2ae500]" />, label: "Melhores do Mês", bg: "bg-[#2ae500]/10" },
               { icon: <HeartHandshake className="w-6 h-6 text-[#2ae500]" />, label: "Garantia Social Safe", bg: "bg-[#2ae500]/10", hideOnMobile: true },
             ].map((item, i) => (
               <div
@@ -180,7 +180,7 @@ export default function SocialSafeHome() {
                 <div className={`w-12 h-12 ${item.bg} rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
                   {item.icon}
                 </div>
-                <span className="text-xs font-semibold text-[#dae2fd] leading-tight">{item.label}</span>
+                <span className="text-xs font-semibold text-white leading-tight">{item.label}</span>
               </div>
             ))}
           </div>
