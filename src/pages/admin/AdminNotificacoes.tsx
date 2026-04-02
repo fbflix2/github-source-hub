@@ -23,7 +23,10 @@ import {
   BarChart3,
   Eye,
   EyeOff,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -113,6 +116,68 @@ export default function AdminNotificacoes() {
   }
   const [metrics, setMetrics] = useState<CampaignMetric[]>([]);
   const [metricsLoading, setMetricsLoading] = useState(false);
+
+  // Readers modal state
+  interface ReaderUser {
+    user_id: string;
+    full_name: string | null;
+    read: boolean;
+  }
+  const [readersModalOpen, setReadersModalOpen] = useState(false);
+  const [readersModalTitle, setReadersModalTitle] = useState("");
+  const [readers, setReaders] = useState<ReaderUser[]>([]);
+  const [readersLoading, setReadersLoading] = useState(false);
+  const [readersFilter, setReadersFilter] = useState<"all" | "read" | "unread">("all");
+
+  const openReadersModal = useCallback(async (campaignId: string, title: string) => {
+    setReadersModalTitle(title);
+    setReadersModalOpen(true);
+    setReadersLoading(true);
+    setReadersFilter("all");
+
+    // Fetch all notifications for this campaign with user_id and read status
+    let allNotifs: { user_id: string; read: boolean }[] = [];
+    let from = 0;
+    const pageSize = 1000;
+    while (true) {
+      const { data, error } = await supabase
+        .from("notifications")
+        .select("user_id, read")
+        .eq("campaign_id", campaignId)
+        .not("user_id", "is", null)
+        .range(from, from + pageSize - 1);
+      if (error || !data || data.length === 0) break;
+      allNotifs.push(...(data as any));
+      if (data.length < pageSize) break;
+      from += pageSize;
+    }
+
+    // Get unique user IDs
+    const userIds = [...new Set(allNotifs.map(n => n.user_id).filter(Boolean))] as string[];
+
+    // Fetch profiles in batches
+    const profiles: Record<string, string | null> = {};
+    for (let i = 0; i < userIds.length; i += 500) {
+      const batch = userIds.slice(i, i + 500);
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", batch);
+      (profileData || []).forEach((p: any) => { profiles[p.user_id] = p.full_name; });
+    }
+
+    const readersList: ReaderUser[] = allNotifs.map(n => ({
+      user_id: n.user_id,
+      full_name: profiles[n.user_id] || null,
+      read: n.read,
+    }));
+
+    // Sort: read first, then unread
+    readersList.sort((a, b) => (a.read === b.read ? 0 : a.read ? -1 : 1));
+
+    setReaders(readersList);
+    setReadersLoading(false);
+  }, []);
 
   const fetchMetrics = useCallback(async () => {
     setMetricsLoading(true);
@@ -896,10 +961,14 @@ export default function AdminNotificacoes() {
                         )}
                       </div>
                       <span className="text-center text-sm text-white/70 font-medium">{m.total_sent}</span>
-                      <span className="text-center text-sm font-medium flex items-center justify-center gap-1">
+                      <button
+                        onClick={() => openReadersModal(m.id, m.title)}
+                        className="text-center text-sm font-medium flex items-center justify-center gap-1 hover:bg-white/5 rounded-md px-1 py-0.5 transition-colors cursor-pointer"
+                        title="Ver lista de leitores"
+                      >
                         <Eye className="w-3 h-3 text-green-400" />
                         <span className="text-green-400">{m.total_read}</span>
-                      </span>
+                      </button>
                       <div className="flex flex-col items-center gap-0.5">
                         <span className={`text-sm font-bold ${rate >= 70 ? "text-green-400" : rate >= 40 ? "text-yellow-400" : "text-white/50"}`}>
                           {rate}%
@@ -923,6 +992,69 @@ export default function AdminNotificacoes() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Readers Modal */}
+      <Dialog open={readersModalOpen} onOpenChange={setReadersModalOpen}>
+        <DialogContent className="bg-[#111] border-white/10 max-w-lg max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="text-white text-sm font-bold truncate">
+              Leitores — {readersModalTitle}
+            </DialogTitle>
+          </DialogHeader>
+
+          {readersLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-5 h-5 animate-spin text-white/40" />
+            </div>
+          ) : (
+            <>
+              {/* Filter tabs */}
+              <div className="flex items-center gap-1 p-0.5 bg-black/40 rounded-lg mb-3">
+                {([
+                  { key: "all", label: `Todos (${readers.length})` },
+                  { key: "read", label: `Lidas (${readers.filter(r => r.read).length})` },
+                  { key: "unread", label: `Não lidas (${readers.filter(r => !r.read).length})` },
+                ] as const).map(f => (
+                  <button
+                    key={f.key}
+                    onClick={() => setReadersFilter(f.key)}
+                    className={`flex-1 py-1.5 rounded-md text-[10px] font-medium transition-all ${
+                      readersFilter === f.key ? "bg-primary text-white" : "text-white/50 hover:text-white/70"
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* List */}
+              <div className="flex-1 overflow-y-auto max-h-[50vh] space-y-0.5">
+                {readers
+                  .filter(r => readersFilter === "all" ? true : readersFilter === "read" ? r.read : !r.read)
+                  .map((r, i) => (
+                    <div key={`${r.user_id}-${i}`} className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-white/[0.03] transition-colors">
+                      {r.read ? (
+                        <CheckCircle className="w-3.5 h-3.5 text-green-400 shrink-0" />
+                      ) : (
+                        <XCircle className="w-3.5 h-3.5 text-white/20 shrink-0" />
+                      )}
+                      <span className="text-xs text-white/80 truncate flex-1">
+                        {r.full_name || "Sem nome"}
+                      </span>
+                      <span className={`text-[10px] font-medium ${r.read ? "text-green-400" : "text-white/30"}`}>
+                        {r.read ? "Leu" : "Pendente"}
+                      </span>
+                    </div>
+                  ))
+                }
+                {readers.filter(r => readersFilter === "all" ? true : readersFilter === "read" ? r.read : !r.read).length === 0 && (
+                  <p className="text-center text-white/30 text-xs py-8">Nenhum resultado</p>
+                )}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
