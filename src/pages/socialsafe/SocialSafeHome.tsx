@@ -165,7 +165,7 @@ export default function SocialSafeHome() {
 
         {/* ═══════════════════ QUICK LINKS ═══════════════════ */}
         <section className="max-w-[1200px] mx-auto -mt-16 relative z-30 px-6">
-          <div className="rounded-2xl p-6 shadow-2xl grid grid-cols-2 md:grid-cols-5 gap-4" style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.95) 0%, rgba(19,27,46,0.6) 40%, #131b2e 100%)" }}>
+          <div className="rounded-2xl p-6 shadow-2xl grid grid-cols-2 md:grid-cols-5 gap-4" style={{ background: "linear-gradient(to bottom, black 0%, rgba(0,0,0,0.85) 50%, rgba(0,0,0,0.4) 100%)" }}>
             {[
               { icon: <ShieldCheck className="w-6 h-6 text-[#00dce5]" />, label: "Contas Verificadas", bg: "bg-[#00dce5]/10" },
               { icon: <Tag className="w-6 h-6 text-[#2ae500]" />, label: "Venda sua Conta", bg: "bg-[#2ae500]/10" },
