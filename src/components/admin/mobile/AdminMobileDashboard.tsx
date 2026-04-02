@@ -186,9 +186,15 @@ export function AdminMobileDashboard() {
       const monthCompletedOrderIds = new Set(
         ords.filter(o => completedStatuses.includes(o.status) && o.created_at >= monthStart && o.created_at <= monthEnd).map(o => o.id)
       );
-      const totalNonProxyItems = (orderItemsRes.data ?? []).filter(item => monthCompletedOrderIds.has(item.order_id)).reduce((sum, item) => sum + (item.quantity || 1), 0);
+      // Only count items of replaceable types (perfil, bm, page) - exclude proxies
+      const replaceableTypes = new Set(["perfil", "bm", "page"]);
+      const prodIconMap: Record<string, string> = {};
+      prods.forEach((p: any) => { if (p.icon_type) prodIconMap[p.id] = p.icon_type; });
+      const totalReplaceableItems = (orderItemsRes.data ?? [])
+        .filter(item => monthCompletedOrderIds.has(item.order_id) && item.product_id && replaceableTypes.has(prodIconMap[item.product_id] || ""))
+        .reduce((sum, item) => sum + (item.quantity || 1), 0);
       const totalReplacements = replacementsRes.count ?? 0;
-      const replRate = totalNonProxyItems > 0 ? (totalReplacements / totalNonProxyItems) * 100 : 0;
+      const replRate = totalReplaceableItems > 0 ? (totalReplacements / totalReplaceableItems) * 100 : 0;
 
       setData({
         totalClients: loggedInRes.count ?? 0,
