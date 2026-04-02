@@ -439,6 +439,8 @@ export default function ClientWarming() {
                     </p>
                   </div>
                 )}
+
+                <TipsCarousel />
               </div>
             )}
           </div>
