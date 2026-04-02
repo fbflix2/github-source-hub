@@ -326,7 +326,7 @@ export default function ClientWarming() {
           </div>
 
           {/* Main Content */}
-          <div className="lg:col-span-2 lg:overflow-y-auto lg:max-h-full lg:pr-2">
+          <div className="lg:col-span-2">
             {!selectedProfile ? (
               <div className="flex items-center justify-center h-64 text-muted-foreground text-sm">
                 Selecione um perfil para ver as tarefas
