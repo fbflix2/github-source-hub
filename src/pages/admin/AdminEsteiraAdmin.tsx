@@ -97,6 +97,21 @@ export default function AdminEsteiraAdmin() {
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const trackKeys = ["7_days", "15_days", "30_days"] as const;
 
+  // Client warming config state
+  const defaultClientTasks: { title: string; description: string }[] = [
+    { title: "Completar perfil", description: "Preencha foto, capa e bio do perfil." },
+    { title: "Navegar organicamente", description: "Role o feed por 5-10 minutos, curta 3-5 posts." },
+    { title: "Adicionar 5-10 amigos", description: "Envie solicitações de amizade para pessoas do seu nicho." },
+    { title: "Engajar em grupos", description: "Comente em 2-3 grupos relacionados ao seu nicho." },
+    { title: "Criar página", description: "Crie uma página comercial e publique 1-2 posts." },
+    { title: "Ativar 2FA", description: "Configure autenticação de dois fatores para segurança." },
+    { title: "Verificar restrições", description: "Verifique se a conta está sem restrições e pronta para uso." },
+  ];
+  const [clientConfigTasks, setClientConfigTasks] = useState<{ title: string; description: string }[]>(defaultClientTasks);
+  const clientConfigSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [clientDragIndex, setClientDragIndex] = useState<number | null>(null);
+  const [clientDragOverIndex, setClientDragOverIndex] = useState<number | null>(null);
+
   const handleDragStart = (index: number) => {
     setDragIndex(index);
   };
