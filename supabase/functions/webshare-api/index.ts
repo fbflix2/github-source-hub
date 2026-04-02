@@ -1341,9 +1341,38 @@ Deno.serve(async (req) => {
 
       console.log(`[get-rotating-credentials] Rotating username resolved for country ${countryCode}`);
 
-      // Get subscription info for bandwidth
+      // Get subscription info for bandwidth limits
       const subResp = await webFetch("/subscription/", WEBSHARE_API_KEY);
       const subData = await subResp.json();
+
+      // Use backbone-specific bandwidth fields (rotating proxy only)
+      const bandwidthLimit = subData.bandwidth_limit_backbone > 0
+        ? subData.bandwidth_limit_backbone
+        : (subData.bandwidth_limit || 0);
+      const bandwidthUsed = subData.bandwidth_used_backbone ?? subData.bandwidth_used ?? 0;
+
+      // Also fetch stats/aggregate with mode=backbone for accurate usage in current cycle
+      let aggregateUsed = bandwidthUsed;
+      try {
+        const startDate = subData.start_date || "";
+        const endDate = subData.end_date || "";
+        if (startDate && endDate) {
+          const aggResp = await webFetch(
+            `/stats/aggregate/?mode=backbone&timestamp__gte=${startDate}&timestamp__lte=${endDate}`,
+            WEBSHARE_API_KEY
+          );
+          if (aggResp.ok) {
+            const aggData = await aggResp.json();
+            const totalBw = (aggData.download_bytes || 0) + (aggData.upload_bytes || 0);
+            if (totalBw > 0) aggregateUsed = totalBw;
+            console.log(`[get-rotating-credentials] Backbone aggregate bandwidth: ${totalBw} bytes`);
+          }
+        }
+      } catch (e) {
+        console.warn("[get-rotating-credentials] Failed to fetch aggregate stats:", e);
+      }
+
+      console.log(`[get-rotating-credentials] Bandwidth: used=${aggregateUsed}, limit=${bandwidthLimit}`);
 
       return new Response(JSON.stringify({
         proxy_host: "p.webshare.io",
@@ -1352,9 +1381,9 @@ Deno.serve(async (req) => {
         username: rotatingUsernameBase,
         password: rotatingPassword,
         country_suffix: buildRotatingCountrySuffix(countryCode),
-        bandwidth_limit_gb: subData.bandwidth_limit ? subData.bandwidth_limit / (1024 * 1024 * 1024) : null,
-        bandwidth_used_bytes: subData.bandwidth_used || 0,
-        bandwidth_limit_bytes: subData.bandwidth_limit || 0,
+        bandwidth_limit_gb: bandwidthLimit ? bandwidthLimit / (1024 * 1024 * 1024) : null,
+        bandwidth_used_bytes: aggregateUsed,
+        bandwidth_limit_bytes: bandwidthLimit,
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
