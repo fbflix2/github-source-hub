@@ -260,7 +260,7 @@ export default function AdminSafeBM() {
     // Default purchase date to created_at (subscription date)
     setFormPurchaseDate(v.purchase_date ? v.purchase_date.slice(0, 10) : v.created_at.slice(0, 10));
     setFormNotes(v.notes || "");
-    setFormBackupLink("");
+    
     setModalOpen(true);
   };
 
