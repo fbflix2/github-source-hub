@@ -58,11 +58,11 @@ interface SafeBmVault {
 function getBackupLinkTimeLeft(setAt: string | null): { expired: boolean; text: string; percent: number } {
   if (!setAt) return { expired: true, text: "Sem link", percent: 0 };
   const set = new Date(setAt).getTime();
-  const expires = set + 7 * 24 * 60 * 60 * 1000;
+  const expires = set + 15 * 24 * 60 * 60 * 1000;
   const now = Date.now();
   const remaining = expires - now;
   if (remaining <= 0) return { expired: true, text: "Expirado", percent: 0 };
-  const totalMs = 7 * 24 * 60 * 60 * 1000;
+  const totalMs = 15 * 24 * 60 * 60 * 1000;
   const percent = Math.round((remaining / totalMs) * 100);
   const days = Math.floor(remaining / (24 * 60 * 60 * 1000));
   const hours = Math.floor((remaining % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
@@ -92,7 +92,7 @@ export default function AdminSafeBM() {
   const [formPerfilBackup, setFormPerfilBackup] = useState("");
   const [formPurchaseDate, setFormPurchaseDate] = useState("");
   const [formNotes, setFormNotes] = useState("");
-  const [formBackupLink, setFormBackupLink] = useState("");
+  
   const [tickCount, setTickCount] = useState(0);
   const [checkingHealth, setCheckingHealth] = useState(false);
   const [checkingIds, setCheckingIds] = useState<Set<string>>(new Set());
@@ -239,25 +239,28 @@ export default function AdminSafeBM() {
   const resetForm = () => {
     setFormClientEmail(""); setFormClientName(""); setFormUserId("");
     setFormBmName(""); setFormBmLink(""); setFormPerfilBackup("");
-    setFormPurchaseDate(""); setFormNotes(""); setFormBackupLink("");
+    setFormPurchaseDate(""); setFormNotes("");
     setEditingVault(null);
   };
 
   const openAdd = () => { resetForm(); setModalOpen(true); };
   const openEdit = (v: SafeBmVault) => {
-    const resolvedBmLink = (v.bm_link && v.bm_link !== "https://business.facebook.com")
-      ? v.bm_link
-      : v.bm_tracking?.bm_link || "";
+    // Resolve single access link: backup_link > bm_link (non-generic) > bm_tracking.bm_link
+    const resolvedLink = v.backup_link
+      || ((v.bm_link && v.bm_link !== "https://business.facebook.com") ? v.bm_link : null)
+      || v.bm_tracking?.bm_link
+      || "";
 
     setEditingVault(v);
     setFormClientName(v.client_name || "");
     setFormUserId(v.user_id);
     setFormBmName(v.bm_name);
-    setFormBmLink(resolvedBmLink);
+    setFormBmLink(resolvedLink);
     setFormPerfilBackup(v.perfil_backup || "");
-    setFormPurchaseDate(v.purchase_date ? v.purchase_date.slice(0, 10) : "");
+    // Default purchase date to created_at (subscription date)
+    setFormPurchaseDate(v.purchase_date ? v.purchase_date.slice(0, 10) : v.created_at.slice(0, 10));
     setFormNotes(v.notes || "");
-    setFormBackupLink(v.backup_link || "");
+    
     setModalOpen(true);
   };
 
@@ -265,20 +268,25 @@ export default function AdminSafeBM() {
     if (!formBmName || !formBmLink) { toast.error("Nome e link da BM são obrigatórios"); return; }
     if (!editingVault && !formUserId) { toast.error("Busque o cliente pelo email primeiro"); return; }
     setSaving(true);
+    // Single link field: save as both bm_link and backup_link
     const payload: any = {
-      bm_name: formBmName, bm_link: formBmLink,
+      bm_name: formBmName,
+      bm_link: formBmLink,
+      backup_link: formBmLink,
       perfil_backup: formPerfilBackup || null,
       purchase_date: formPurchaseDate || null,
       notes: formNotes || null,
       client_name: formClientName || null,
-      backup_link: formBackupLink || null,
     };
-    // If backup_link changed, update set_at timestamp
+    // Update backup_link_set_at if link changed
     if (editingVault) {
-      if (formBackupLink && formBackupLink !== (editingVault.backup_link || "")) {
+      const oldLink = editingVault.backup_link
+        || ((editingVault.bm_link && editingVault.bm_link !== "https://business.facebook.com") ? editingVault.bm_link : null)
+        || editingVault.bm_tracking?.bm_link || "";
+      if (formBmLink && formBmLink !== oldLink) {
         payload.backup_link_set_at = new Date().toISOString();
       }
-    } else if (formBackupLink) {
+    } else {
       payload.backup_link_set_at = new Date().toISOString();
     }
     if (editingVault) {
@@ -729,6 +737,14 @@ export default function AdminSafeBM() {
                                   <Wifi className="size-2.5" /> Saudável
                                 </Badge>
                               )}
+                              {v.link_health === "expired" && (
+                                <div className="space-y-0.5">
+                                  <Badge className="bg-red-500/20 text-red-400 border-red-500/30 text-[10px] px-2 py-0.5 gap-1 w-fit">
+                                    <AlertTriangle className="size-2.5" /> Convite Expirado
+                                  </Badge>
+                                  <p className="text-[9px] text-red-400">Gere um novo link de acesso</p>
+                                </div>
+                              )}
                               {v.link_health === "error" && (
                                 <Badge className="bg-red-500/20 text-red-400 border-red-500/30 text-[10px] px-2 py-0.5 gap-1 w-fit">
                                   <WifiOff className="size-2.5" /> Indisponível
@@ -875,33 +891,18 @@ export default function AdminSafeBM() {
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label>Link da BM</Label>
-              <Input
-                value={formBmLink}
-                onChange={e => setFormBmLink(e.target.value)}
-                placeholder="https://business.facebook.com/..."
-                className="font-mono text-xs"
-              />
-              {editingVault?.bm_tracking?.bm_link && (
-                <p className="text-[10px] text-muted-foreground">
-                  Preenchido automaticamente da Gestão BMs quando disponível.
-                </p>
-              )}
-            </div>
-
-            {/* ─── LINK BACKUP (Novo Acesso) ─── */}
+            {/* ─── LINK DE ACESSO (único campo) ─── */}
             <div className="space-y-1.5 p-3 rounded-lg border border-primary/20 bg-primary/5">
               <div className="flex items-center gap-2 mb-1">
                 <Link2 className="size-4 text-primary" />
-                <Label className="text-primary font-semibold text-sm">Link de Backup (Novo Acesso)</Label>
+                <Label className="text-primary font-semibold text-sm">Link de Acesso</Label>
               </div>
               <p className="text-[10px] text-muted-foreground mb-2">
-                Este é o link de convite que o cliente receberá ao solicitar novo acesso. Validade: 7 dias a partir do cadastro.
+                Link de convite da BM que o cliente usará para acessar. Validade: 15 dias a partir do cadastro.
               </p>
               <Input
-                value={formBackupLink}
-                onChange={e => setFormBackupLink(e.target.value)}
+                value={formBmLink}
+                onChange={e => setFormBmLink(e.target.value)}
                 placeholder="https://business.facebook.com/invitation/?token=..."
                 className="font-mono text-xs"
               />

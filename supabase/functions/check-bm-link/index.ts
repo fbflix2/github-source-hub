@@ -31,7 +31,7 @@ const LOGIN_PATTERNS = [
   "login_form",
 ];
 
-type LinkHealth = "healthy" | "error" | "login_required" | "timeout" | "unknown";
+type LinkHealth = "healthy" | "error" | "expired" | "login_required" | "timeout" | "unknown";
 
 interface CheckResult {
   vault_id: string;
@@ -79,12 +79,20 @@ async function checkSingleLink(vaultId: string, url: string): Promise<CheckResul
         "este convite expirou",
         "invitation is no longer valid",
         "convite não é mais válido",
+        "convite expirou",
+      ];
+      const DISABLED_PATTERNS = [
         "account has been disabled",
         "conta foi desativada",
       ];
       for (const pattern of INVITATION_ERROR_PATTERNS) {
         if (lower.includes(pattern)) {
-          return { vault_id: vaultId, health: "error", detail: `Detectado: "${pattern}"` };
+          return { vault_id: vaultId, health: "expired", detail: `Convite expirado` };
+        }
+      }
+      for (const pattern of DISABLED_PATTERNS) {
+        if (lower.includes(pattern)) {
+          return { vault_id: vaultId, health: "error", detail: `Conta desativada` };
         }
       }
       // Otherwise treat as healthy — login redirect is expected
