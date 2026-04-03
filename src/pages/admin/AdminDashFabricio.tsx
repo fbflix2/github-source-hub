@@ -6,15 +6,23 @@ import { Lock, Eye, EyeOff, KeyRound } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { FbFinanceDashboard } from "@/components/admin/fb-finance/FbFinanceDashboard";
 
+const FB_FINANCE_SESSION_KEY = "fb_finance_authenticated";
+
 export default function AdminDashFabricio() {
   const [authenticated, setAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isFirstAccess, setIsFirstAccess] = useState<boolean | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [stayConnected, setStayConnected] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Check if already authenticated via session/local storage
+    const stored = localStorage.getItem(FB_FINANCE_SESSION_KEY) || sessionStorage.getItem(FB_FINANCE_SESSION_KEY);
+    if (stored === "1") {
+      setAuthenticated(true);
+    }
     checkConfig();
   }, []);
 
@@ -53,6 +61,11 @@ export default function AdminDashFabricio() {
       return;
     }
     setAuthenticated(true);
+    if (stayConnected) {
+      localStorage.setItem(FB_FINANCE_SESSION_KEY, "1");
+    } else {
+      sessionStorage.setItem(FB_FINANCE_SESSION_KEY, "1");
+    }
     toast({ title: "Senha cadastrada com sucesso!" });
   };
 
@@ -65,6 +78,11 @@ export default function AdminDashFabricio() {
       .single();
     if ((data as any)?.password_hash === hash) {
       setAuthenticated(true);
+      if (stayConnected) {
+        localStorage.setItem(FB_FINANCE_SESSION_KEY, "1");
+      } else {
+        sessionStorage.setItem(FB_FINANCE_SESSION_KEY, "1");
+      }
     } else {
       toast({ title: "Senha incorreta", variant: "destructive" });
     }
@@ -129,6 +147,16 @@ export default function AdminDashFabricio() {
               />
             </div>
           )}
+
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={stayConnected}
+              onChange={(e) => setStayConnected(e.target.checked)}
+              className="rounded border-blue-900/30 bg-[#0a1420] text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
+            />
+            <span className="text-sm text-blue-300/60">Manter-me conectado</span>
+          </label>
 
           <Button
             onClick={isFirstAccess ? handleSetPassword : handleLogin}
