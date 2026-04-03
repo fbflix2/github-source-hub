@@ -84,6 +84,7 @@ function CountdownBadge({ expiresAt, status }: { expiresAt: string; status: stri
 const statusConfig: Record<string, { label: string; color: string; bg: string; border: string }> = {
   em_estoque: { label: "Na Loja", color: "text-purple-400", bg: "bg-purple-500/15", border: "border-purple-500/30" },
   active: { label: "Vendido", color: "text-green-400", bg: "bg-green-500/15", border: "border-green-500/30" },
+  pending_setup: { label: "Aguardando Config", color: "text-blue-400", bg: "bg-blue-500/15", border: "border-blue-500/30" },
   notified: { label: "Notificado", color: "text-yellow-400", bg: "bg-yellow-500/15", border: "border-yellow-500/30" },
   removed: { label: "Removido", color: "text-emerald-400", bg: "bg-emerald-500/15", border: "border-emerald-500/30" },
   expired: { label: "Expirado", color: "text-red-400", bg: "bg-red-500/15", border: "border-red-500/30" },
