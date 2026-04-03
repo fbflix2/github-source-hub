@@ -257,10 +257,23 @@ export default function AdminProxyInterno() {
             {/* Bandwidth */}
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Database className="size-4 text-amber-500" />
-                  Consumo de Banda
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Database className="size-4 text-amber-500" />
+                    Consumo de Banda
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    {dataUpdatedAt > 0 && (
+                      <span className="text-[10px] text-muted-foreground">
+                        Atualizado {new Date(dataUpdatedAt).toLocaleTimeString("pt-BR")}
+                      </span>
+                    )}
+                    <Badge variant="secondary" className="text-[10px] gap-1">
+                      <Wifi className="size-2.5" />
+                      Auto-refresh 60s
+                    </Badge>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
