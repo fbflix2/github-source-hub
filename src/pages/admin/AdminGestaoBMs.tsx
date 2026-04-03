@@ -206,7 +206,14 @@ export default function AdminGestaoBMs() {
 
   const filtered = useMemo(() => {
     return items.filter(item => {
-      if (statusFilter !== "all" && item.status !== statusFilter) return false;
+      if (statusFilter !== "all") {
+        if (statusFilter === "vendidos") {
+          // "Vendidos" includes active + notified (both are sold BMs)
+          if (item.status !== "active" && item.status !== "notified") return false;
+        } else {
+          if (item.status !== statusFilter) return false;
+        }
+      }
       if (clientFilter && (item.client_name || "").trim() !== clientFilter) return false;
       if (search) {
         const q = search.toLowerCase();
