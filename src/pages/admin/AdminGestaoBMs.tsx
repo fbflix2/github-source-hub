@@ -400,7 +400,7 @@ export default function AdminGestaoBMs() {
       <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
         {[
           { label: "Na Loja", count: stats.emEstoque, color: "purple", onClick: () => setStatusFilter(statusFilter === "em_estoque" ? "all" : "em_estoque") },
-          { label: "Vendidos", count: stats.active, color: "green", onClick: () => setStatusFilter(statusFilter === "active" ? "all" : "active") },
+          { label: "Vendidos", count: stats.vendidos, color: "green", onClick: () => setStatusFilter(statusFilter === "vendidos" ? "all" : "vendidos") },
           { label: "Expirando", count: stats.expiringToday, color: "yellow", onClick: undefined },
           { label: "Expirados", count: stats.expired, color: "red", onClick: () => setStatusFilter(statusFilter === "expired" ? "all" : "expired") },
           { label: "Removidos", count: stats.removed, color: "emerald", onClick: () => setStatusFilter(statusFilter === "removed" ? "all" : "removed") },
