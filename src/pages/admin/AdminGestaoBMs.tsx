@@ -206,7 +206,14 @@ export default function AdminGestaoBMs() {
 
   const filtered = useMemo(() => {
     return items.filter(item => {
-      if (statusFilter !== "all" && item.status !== statusFilter) return false;
+      if (statusFilter !== "all") {
+        if (statusFilter === "vendidos") {
+          // "Vendidos" includes active + notified (both are sold BMs)
+          if (item.status !== "active" && item.status !== "notified") return false;
+        } else {
+          if (item.status !== statusFilter) return false;
+        }
+      }
       if (clientFilter && (item.client_name || "").trim() !== clientFilter) return false;
       if (search) {
         const q = search.toLowerCase();
@@ -227,7 +234,7 @@ export default function AdminGestaoBMs() {
     return {
       total: items.length,
       emEstoque: items.filter(i => i.status === "em_estoque").length,
-      active: items.filter(i => i.status === "active").length,
+      vendidos: items.filter(i => i.status === "active" || i.status === "notified").length,
       expiringToday: items.filter(i => {
         const diff = new Date(i.expires_at).getTime() - now;
         return (i.status === "active" || i.status === "notified") && diff > 0 && diff < 86400000;
@@ -393,7 +400,7 @@ export default function AdminGestaoBMs() {
       <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
         {[
           { label: "Na Loja", count: stats.emEstoque, color: "purple", onClick: () => setStatusFilter(statusFilter === "em_estoque" ? "all" : "em_estoque") },
-          { label: "Vendidos", count: stats.active, color: "green", onClick: () => setStatusFilter(statusFilter === "active" ? "all" : "active") },
+          { label: "Vendidos", count: stats.vendidos, color: "green", onClick: () => setStatusFilter(statusFilter === "vendidos" ? "all" : "vendidos") },
           { label: "Expirando", count: stats.expiringToday, color: "yellow", onClick: undefined },
           { label: "Expirados", count: stats.expired, color: "red", onClick: () => setStatusFilter(statusFilter === "expired" ? "all" : "expired") },
           { label: "Removidos", count: stats.removed, color: "emerald", onClick: () => setStatusFilter(statusFilter === "removed" ? "all" : "removed") },
@@ -436,7 +443,8 @@ export default function AdminGestaoBMs() {
               <SelectContent>
                 <SelectItem value="all">Todos os Status</SelectItem>
                 <SelectItem value="em_estoque">Na Loja</SelectItem>
-                <SelectItem value="active">Vendidos</SelectItem>
+                <SelectItem value="vendidos">Vendidos (todos)</SelectItem>
+                <SelectItem value="active">Vendidos (s/ notificar)</SelectItem>
                 <SelectItem value="notified">Notificados</SelectItem>
                 <SelectItem value="expired">Expirados</SelectItem>
                 <SelectItem value="removed">Removidos</SelectItem>
