@@ -234,7 +234,7 @@ export function FbCaixas() {
                   </button>
                   {menuOpenId === c.id && (
                     <div ref={menuRef} className="absolute right-0 top-8 bg-[#122031] border border-[#414752]/30 rounded-lg shadow-2xl py-1 z-50 min-w-[140px]">
-                      <button onClick={() => { setEditCaixa(c); setEditForm({ nome: c.nome, tipo: c.tipo, alvo_percent: String(c.alvo_percent) }); setMenuOpenId(null); }}
+                      <button onClick={() => { setEditCaixa(c); setEditForm({ nome: c.nome, tipo: c.tipo, alvo_percent: String(c.alvo_percent), meta: String(Number(c.meta) || 0) }); setMenuOpenId(null); }}
                         className="w-full text-left px-4 py-2 text-xs text-[#d5e4fa] hover:bg-white/5 flex items-center gap-2">
                         <span className="material-symbols-outlined text-sm">edit</span> Editar
                       </button>
