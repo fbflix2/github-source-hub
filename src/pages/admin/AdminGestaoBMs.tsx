@@ -447,6 +447,7 @@ export default function AdminGestaoBMs() {
                 <SelectItem value="vendidos">Vendidos (todos)</SelectItem>
                 <SelectItem value="active">Vendidos (s/ notificar)</SelectItem>
                 <SelectItem value="notified">Notificados</SelectItem>
+                <SelectItem value="pending_setup">Aguardando Config</SelectItem>
                 <SelectItem value="expired">Expirados</SelectItem>
                 <SelectItem value="removed">Removidos</SelectItem>
               </SelectContent>
