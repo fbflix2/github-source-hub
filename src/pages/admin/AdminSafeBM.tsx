@@ -891,33 +891,18 @@ export default function AdminSafeBM() {
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label>Link da BM</Label>
-              <Input
-                value={formBmLink}
-                onChange={e => setFormBmLink(e.target.value)}
-                placeholder="https://business.facebook.com/..."
-                className="font-mono text-xs"
-              />
-              {editingVault?.bm_tracking?.bm_link && (
-                <p className="text-[10px] text-muted-foreground">
-                  Preenchido automaticamente da Gestão BMs quando disponível.
-                </p>
-              )}
-            </div>
-
-            {/* ─── LINK BACKUP (Novo Acesso) ─── */}
+            {/* ─── LINK DE ACESSO (único campo) ─── */}
             <div className="space-y-1.5 p-3 rounded-lg border border-primary/20 bg-primary/5">
               <div className="flex items-center gap-2 mb-1">
                 <Link2 className="size-4 text-primary" />
-                <Label className="text-primary font-semibold text-sm">Link de Backup (Novo Acesso)</Label>
+                <Label className="text-primary font-semibold text-sm">Link de Acesso</Label>
               </div>
               <p className="text-[10px] text-muted-foreground mb-2">
-                Este é o link de convite que o cliente receberá ao solicitar novo acesso. Validade: 7 dias a partir do cadastro.
+                Link de convite da BM que o cliente usará para acessar. Validade: 15 dias a partir do cadastro.
               </p>
               <Input
-                value={formBackupLink}
-                onChange={e => setFormBackupLink(e.target.value)}
+                value={formBmLink}
+                onChange={e => setFormBmLink(e.target.value)}
                 placeholder="https://business.facebook.com/invitation/?token=..."
                 className="font-mono text-xs"
               />
