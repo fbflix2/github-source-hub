@@ -737,6 +737,14 @@ export default function AdminSafeBM() {
                                   <Wifi className="size-2.5" /> Saudável
                                 </Badge>
                               )}
+                              {v.link_health === "expired" && (
+                                <div className="space-y-0.5">
+                                  <Badge className="bg-red-500/20 text-red-400 border-red-500/30 text-[10px] px-2 py-0.5 gap-1 w-fit">
+                                    <AlertTriangle className="size-2.5" /> Convite Expirado
+                                  </Badge>
+                                  <p className="text-[9px] text-red-400">Gere um novo link de acesso</p>
+                                </div>
+                              )}
                               {v.link_health === "error" && (
                                 <Badge className="bg-red-500/20 text-red-400 border-red-500/30 text-[10px] px-2 py-0.5 gap-1 w-fit">
                                   <WifiOff className="size-2.5" /> Indisponível
