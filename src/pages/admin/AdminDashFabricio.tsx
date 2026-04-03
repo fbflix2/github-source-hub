@@ -78,6 +78,11 @@ export default function AdminDashFabricio() {
       .single();
     if ((data as any)?.password_hash === hash) {
       setAuthenticated(true);
+      if (stayConnected) {
+        localStorage.setItem(FB_FINANCE_SESSION_KEY, "1");
+      } else {
+        sessionStorage.setItem(FB_FINANCE_SESSION_KEY, "1");
+      }
     } else {
       toast({ title: "Senha incorreta", variant: "destructive" });
     }
