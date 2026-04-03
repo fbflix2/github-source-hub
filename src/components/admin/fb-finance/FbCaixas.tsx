@@ -125,7 +125,7 @@ export function FbCaixas() {
   const handleEditCaixa = async () => {
     if (!editCaixa || !editForm.nome.trim()) return;
     await supabase.from("fb_finance_caixas" as any).update({
-      nome: editForm.nome, tipo: editForm.tipo, alvo_percent: parseFloat(editForm.alvo_percent) || 0,
+      nome: editForm.nome, tipo: editForm.tipo, alvo_percent: parseFloat(editForm.alvo_percent) || 0, meta: parseFloat(editForm.meta) || 0,
     } as any).eq("id", editCaixa.id);
     toast({ title: "Caixa atualizada!" });
     setEditCaixa(null);
