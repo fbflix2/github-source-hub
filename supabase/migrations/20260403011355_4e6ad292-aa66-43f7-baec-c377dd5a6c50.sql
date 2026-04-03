@@ -1,0 +1,1 @@
+UPDATE fb_finance_lancamentos SET categoria = 'Capital de Giro' WHERE descricao ILIKE '%capital de giro%' AND categoria = 'Outros';
