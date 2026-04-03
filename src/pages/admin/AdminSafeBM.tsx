@@ -58,11 +58,11 @@ interface SafeBmVault {
 function getBackupLinkTimeLeft(setAt: string | null): { expired: boolean; text: string; percent: number } {
   if (!setAt) return { expired: true, text: "Sem link", percent: 0 };
   const set = new Date(setAt).getTime();
-  const expires = set + 7 * 24 * 60 * 60 * 1000;
+  const expires = set + 15 * 24 * 60 * 60 * 1000;
   const now = Date.now();
   const remaining = expires - now;
   if (remaining <= 0) return { expired: true, text: "Expirado", percent: 0 };
-  const totalMs = 7 * 24 * 60 * 60 * 1000;
+  const totalMs = 15 * 24 * 60 * 60 * 1000;
   const percent = Math.round((remaining / totalMs) * 100);
   const days = Math.floor(remaining / (24 * 60 * 60 * 1000));
   const hours = Math.floor((remaining % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
