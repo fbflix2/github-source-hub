@@ -239,7 +239,7 @@ export default function AdminSafeBM() {
   const resetForm = () => {
     setFormClientEmail(""); setFormClientName(""); setFormUserId("");
     setFormBmName(""); setFormBmLink(""); setFormPerfilBackup("");
-    setFormPurchaseDate(""); setFormNotes(""); setFormBackupLink("");
+    setFormPurchaseDate(""); setFormNotes("");
     setEditingVault(null);
   };
 
