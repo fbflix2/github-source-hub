@@ -64,7 +64,7 @@ function useSaveInternalProxyConfig() {
 }
 
 export default function AdminProxyInterno() {
-  const { data, isLoading, refetch, isFetching } = useInternalProxyConfig();
+  const { data, isLoading, refetch, isFetching, dataUpdatedAt } = useInternalProxyConfig();
   const saveMutation = useSaveInternalProxyConfig();
 
   const [editMode, setEditMode] = useState(false);
