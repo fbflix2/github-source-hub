@@ -1,16 +1,15 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { 
   Search, ExternalLink, Bell, CheckCircle, Clock, AlertTriangle, 
-  ShieldAlert, Plus, Loader2, RefreshCw, Shield
+  ShieldAlert, Plus, Loader2, RefreshCw, Shield, Filter, X
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription
@@ -57,48 +56,56 @@ function useCountdown(expiresAt: string) {
 function CountdownBadge({ expiresAt, status }: { expiresAt: string; status: string }) {
   const { expired, text, days } = useCountdown(expiresAt);
 
-  if (status === "em_estoque") {
-    return <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">Na Loja</Badge>;
-  }
-  if (status === "removed") {
-    return <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">Removido</Badge>;
-  }
-  if (status === "expired") {
-    return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">Expirado</Badge>;
-  }
+  if (status === "em_estoque") return null;
+  if (status === "removed" || status === "expired") return null;
+
   if (expired || days === 0) {
     return (
-      <Badge className="bg-red-500/20 text-red-400 border-red-500/30 animate-pulse">
-        <AlertTriangle className="size-3 mr-1" />
+      <span className="inline-flex items-center gap-1 text-xs font-medium text-red-400 animate-pulse">
+        <AlertTriangle className="size-3" />
         {expired ? "Expirado" : text}
-      </Badge>
+      </span>
     );
   }
   if (days <= 1) {
     return (
-      <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30">
-        <Clock className="size-3 mr-1" />{text}
-      </Badge>
+      <span className="inline-flex items-center gap-1 text-xs font-medium text-yellow-400">
+        <Clock className="size-3" />{text}
+      </span>
     );
   }
   return (
-    <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
-      <Clock className="size-3 mr-1" />{text}
-    </Badge>
+    <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-400">
+      <Clock className="size-3" />{text}
+    </span>
   );
 }
 
+const statusConfig: Record<string, { label: string; color: string; bg: string; border: string }> = {
+  em_estoque: { label: "Na Loja", color: "text-purple-400", bg: "bg-purple-500/15", border: "border-purple-500/30" },
+  active: { label: "Vendido", color: "text-green-400", bg: "bg-green-500/15", border: "border-green-500/30" },
+  notified: { label: "Notificado", color: "text-yellow-400", bg: "bg-yellow-500/15", border: "border-yellow-500/30" },
+  removed: { label: "Removido", color: "text-emerald-400", bg: "bg-emerald-500/15", border: "border-emerald-500/30" },
+  expired: { label: "Expirado", color: "text-red-400", bg: "bg-red-500/15", border: "border-red-500/30" },
+};
+
 function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { label: string; className: string }> = {
-    em_estoque: { label: "Na Loja", className: "bg-purple-500/20 text-purple-400 border-purple-500/30" },
-    active: { label: "Vendido", className: "bg-green-500/20 text-green-400 border-green-500/30" },
-    notified: { label: "Notificado", className: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
-    removed: { label: "Removido", className: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" },
-    expired: { label: "Expirado", className: "bg-red-500/20 text-red-400 border-red-500/30" },
-  };
-  const s = map[status] || map.active;
-  return <Badge className={s.className}>{s.label}</Badge>;
+  const s = statusConfig[status] || statusConfig.active;
+  return <Badge className={`${s.bg} ${s.color} ${s.border} text-[11px] font-semibold`}>{s.label}</Badge>;
 }
+
+function extractBmName(bmLink: string) {
+  return bmLink.match(/^(.*?)https?:\/\//)?.[1]?.replace(/[\s|:\-]+$/, '').trim() || "";
+}
+
+function extractBmUrl(bmLink: string) {
+  return bmLink.match(/https?:\/\/\S+/)?.[0] || bmLink;
+}
+
+const formatPrice = (v: number) => {
+  if (!v || v === 0) return null;
+  return `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+};
 
 export default function AdminGestaoBMs() {
   const { isAdmin, loading: authLoading } = useAdminAuth();
@@ -106,7 +113,7 @@ export default function AdminGestaoBMs() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [dateFilter, setDateFilter] = useState<"all" | "hoje">("all");
+  const [clientFilter, setClientFilter] = useState("");
   const [addOpen, setAddOpen] = useState(false);
   const [addForm, setAddForm] = useState({
     client_name: "", client_email: "", product_name: "", bm_link: "", sale_price: "", notes: ""
@@ -118,6 +125,7 @@ export default function AdminGestaoBMs() {
   const [protecting, setProtecting] = useState(false);
   const [safeBmClients, setSafeBmClients] = useState<Set<string>>(new Set());
   const [protectedBmTrackingIds, setProtectedBmTrackingIds] = useState<Set<string>>(new Set());
+
   const fetchItems = async () => {
     setLoading(true);
     const { data, error } = await supabase
@@ -140,10 +148,8 @@ export default function AdminGestaoBMs() {
   useEffect(() => {
     if (isAdmin !== null) {
       fetchItems();
-      // Fetch clients who have Safe BM subscriptions (vaults + order purchases)
       const safeBmSet = new Set<string>();
       
-      // Check safe_bm_vaults - also get bm_tracking_id for cross-reference
       supabase.from("safe_bm_vaults").select("user_id, bm_tracking_id").then(({ data }) => {
         const protectedIds = new Set<string>();
         if (data) {
@@ -155,7 +161,6 @@ export default function AdminGestaoBMs() {
         setProtectedBmTrackingIds(protectedIds);
       });
 
-      // Also check order_items for Safe BM product purchases (vault may not have been created)
       const SAFE_BM_PRODUCT_ID = "e5118c63-ed52-4f4e-8983-f44c1ba0d17b";
       supabase
         .from("order_items")
@@ -174,13 +179,12 @@ export default function AdminGestaoBMs() {
     }
   }, [isAdmin]);
 
-  // Auto-expire items past 8 days that are still active/notified
   useEffect(() => {
     const expireOld = async () => {
       const now = new Date();
       const toExpire = items.filter(i => 
         (i.status === "active" || i.status === "notified") && 
-        new Date(i.expires_at).getTime() < now.getTime() - 86400000 // 1 day past expiry = day 8
+        new Date(i.expires_at).getTime() < now.getTime() - 86400000
       );
       if (toExpire.length === 0) return;
       for (const item of toExpire) {
@@ -191,30 +195,37 @@ export default function AdminGestaoBMs() {
     if (items.length > 0) expireOld();
   }, [items.length]);
 
+  // Unique client names for filter
+  const uniqueClients = useMemo(() => {
+    const names = new Set<string>();
+    items.forEach(i => {
+      if (i.client_name && i.client_name.trim()) names.add(i.client_name.trim());
+    });
+    return Array.from(names).sort();
+  }, [items]);
+
   const filtered = useMemo(() => {
-    const todayStr = new Date().toLocaleDateString("pt-BR");
     return items.filter(item => {
       if (statusFilter !== "all" && item.status !== statusFilter) return false;
-      if (dateFilter === "hoje") {
-        const itemDate = new Date(item.created_at).toLocaleDateString("pt-BR");
-        if (itemDate !== todayStr) return false;
-      }
+      if (clientFilter && (item.client_name || "").trim() !== clientFilter) return false;
       if (search) {
         const q = search.toLowerCase();
         return (
           (item.client_name || "").toLowerCase().includes(q) ||
           (item.client_email || "").toLowerCase().includes(q) ||
           item.bm_link.toLowerCase().includes(q) ||
-          item.product_name.toLowerCase().includes(q)
+          item.product_name.toLowerCase().includes(q) ||
+          extractBmName(item.bm_link).toLowerCase().includes(q)
         );
       }
       return true;
     });
-  }, [items, search, statusFilter, dateFilter]);
+  }, [items, search, statusFilter, clientFilter]);
 
   const stats = useMemo(() => {
     const now = Date.now();
     return {
+      total: items.length,
       emEstoque: items.filter(i => i.status === "em_estoque").length,
       active: items.filter(i => i.status === "active").length,
       expiringToday: items.filter(i => {
@@ -227,8 +238,7 @@ export default function AdminGestaoBMs() {
   }, [items]);
 
   const handleOpenProtect = (item: BmTracking) => {
-    // Extract BM name from bm_link field
-    const bmNameFromLink = item.bm_link.match(/^(.*?)https?:\/\//)?.[1]?.replace(/[\s|:\-]+$/, '').trim() || "";
+    const bmNameFromLink = extractBmName(item.bm_link);
     setProtectItem(item);
     setProtectForm({ bmName: bmNameFromLink, bmLink: "" });
     setProtectOpen(true);
@@ -261,7 +271,6 @@ export default function AdminGestaoBMs() {
           : "Novo cofre Safe BM criado com sucesso!"
       );
       setProtectOpen(false);
-      // Update protected set immediately
       if (protectItem) {
         setProtectedBmTrackingIds(prev => new Set([...prev, protectItem.id]));
       }
@@ -273,7 +282,6 @@ export default function AdminGestaoBMs() {
   };
 
   const handleNotify = async (item: BmTracking) => {
-    // Insert notification for client
     const { error: notifErr } = await supabase.from("notifications").insert({
       user_id: item.client_user_id,
       title: "Remoção de Perfil Backup - BM",
@@ -284,7 +292,6 @@ export default function AdminGestaoBMs() {
       toast.error("Erro ao notificar: " + notifErr.message);
       return;
     }
-    // Update status
     const { error } = await supabase
       .from("bm_tracking")
       .update({ status: "notified", notified_at: new Date().toISOString() } as any)
@@ -316,7 +323,6 @@ export default function AdminGestaoBMs() {
       return;
     }
     setAdding(true);
-    // We need a client_user_id - for manual adds, we'll search by email
     let clientUserId = "00000000-0000-0000-0000-000000000000";
     if (addForm.client_email) {
       const { data: profile } = await supabase
@@ -349,6 +355,14 @@ export default function AdminGestaoBMs() {
     setAdding(false);
   };
 
+  const hasActiveFilters = statusFilter !== "all" || clientFilter !== "" || search !== "";
+
+  const clearFilters = () => {
+    setStatusFilter("all");
+    setClientFilter("");
+    setSearch("");
+  };
+
   if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -359,10 +373,11 @@ export default function AdminGestaoBMs() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Gestão de BMs</h1>
-          <p className="text-sm text-muted-foreground">Controle de backup e remoção de perfil admin nas BMs vendidas</p>
+          <p className="text-sm text-muted-foreground">Controle de backup e remoção de perfil admin</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={fetchItems}>
@@ -374,224 +389,281 @@ export default function AdminGestaoBMs() {
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <Card className="border-purple-500/20 bg-purple-500/5">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-purple-500/20">
-              <ShieldAlert className="size-5 text-purple-400" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">{stats.emEstoque}</p>
-              <p className="text-xs text-muted-foreground">Na Loja</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-blue-500/20 bg-blue-500/5">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-blue-500/20">
-              <Clock className="size-5 text-blue-400" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">{stats.active}</p>
-              <p className="text-xs text-muted-foreground">Ativos</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-yellow-500/20 bg-yellow-500/5">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-yellow-500/20">
-              <AlertTriangle className="size-5 text-yellow-400" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">{stats.expiringToday}</p>
-              <p className="text-xs text-muted-foreground">Expirando Hoje</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-red-500/20 bg-red-500/5">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-red-500/20">
-              <ShieldAlert className="size-5 text-red-400" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">{stats.expired}</p>
-              <p className="text-xs text-muted-foreground">Expirados (8d+)</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-emerald-500/20 bg-emerald-500/5">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-emerald-500/20">
-              <CheckCircle className="size-5 text-emerald-400" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-foreground">{stats.removed}</p>
-              <p className="text-xs text-muted-foreground">Removidos</p>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Stats - compact */}
+      <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
+        {[
+          { label: "Na Loja", count: stats.emEstoque, color: "purple", onClick: () => setStatusFilter(statusFilter === "em_estoque" ? "all" : "em_estoque") },
+          { label: "Vendidos", count: stats.active, color: "green", onClick: () => setStatusFilter(statusFilter === "active" ? "all" : "active") },
+          { label: "Expirando", count: stats.expiringToday, color: "yellow", onClick: undefined },
+          { label: "Expirados", count: stats.expired, color: "red", onClick: () => setStatusFilter(statusFilter === "expired" ? "all" : "expired") },
+          { label: "Removidos", count: stats.removed, color: "emerald", onClick: () => setStatusFilter(statusFilter === "removed" ? "all" : "removed") },
+        ].map(s => (
+          <button
+            key={s.label}
+            onClick={s.onClick}
+            className={`p-3 rounded-lg border transition-all text-left ${
+              s.color === "purple" ? "border-purple-500/20 bg-purple-500/5 hover:bg-purple-500/10" :
+              s.color === "green" ? "border-green-500/20 bg-green-500/5 hover:bg-green-500/10" :
+              s.color === "yellow" ? "border-yellow-500/20 bg-yellow-500/5 hover:bg-yellow-500/10" :
+              s.color === "red" ? "border-red-500/20 bg-red-500/5 hover:bg-red-500/10" :
+              "border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/10"
+            }`}
+          >
+            <p className="text-2xl font-bold text-foreground">{s.count}</p>
+            <p className="text-xs text-muted-foreground">{s.label}</p>
+          </button>
+        ))}
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por cliente, link ou produto..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-        <div className="flex gap-2">
-          <Button
-            variant={dateFilter === "hoje" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setDateFilter(d => d === "hoje" ? "all" : "hoje")}
-            className="h-10"
-          >
-            Hoje
-          </Button>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="em_estoque">Na Loja</SelectItem>
-              <SelectItem value="active">Ativos</SelectItem>
-              <SelectItem value="notified">Notificados</SelectItem>
-              <SelectItem value="expired">Expirados</SelectItem>
-              <SelectItem value="removed">Removidos</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      {/* Table */}
       <Card>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="size-6 animate-spin text-primary" />
+        <CardContent className="p-4">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por cliente, BM, produto..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="pl-9"
+              />
             </div>
-          ) : filtered.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              Nenhuma BM encontrada
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-               <TableRow>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Produto</TableHead>
-                  <TableHead>Nome BM</TableHead>
-                  <TableHead>Perfil Matriz</TableHead>
-                  <TableHead>Link BM</TableHead>
-                  <TableHead>Preço</TableHead>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Contagem</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map(item => (
-                  <TableRow key={item.id} className={
-                    item.status === "expired" ? "bg-red-500/5" :
-                    item.status === "removed" ? "bg-emerald-500/5 opacity-60" : ""
-                  }>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium text-foreground text-sm">{item.client_name || "—"}</p>
-                        <p className="text-xs text-muted-foreground">{item.client_email || ""}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm">{item.product_name}</TableCell>
-                    <TableCell className="text-sm font-medium">
-                      {item.bm_link.match(/^(.*?)https?:\/\//)?.[1]?.replace(/[\s|:\-]+$/, '').trim() || "—"}
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-sm font-medium text-purple-400">{item.perfil_matriz || "—"}</span>
-                    </TableCell>
-                    <TableCell>
-                      <a
-                        href={item.bm_link.match(/https?:\/\/\S+/)?.[0] || item.bm_link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline text-sm flex items-center gap-1"
-                      >
-                        <ExternalLink className="size-3" />
-                        Abrir BM
-                      </a>
-                    </TableCell>
-                    <TableCell className="text-sm font-medium">
-                      R$ {Number(item.sale_price).toFixed(2)}
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {item.status === "em_estoque" ? (
-                        <span>Enviado {new Date(item.created_at).toLocaleDateString("pt-BR")}</span>
-                      ) : (
-                        <span>Vendido {new Date(item.sold_at).toLocaleDateString("pt-BR")}</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <CountdownBadge expiresAt={item.expires_at} status={item.status} />
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge status={item.status} />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        {/* Proteger BM - only for sold BMs where client has Safe BM */}
-                        {(item.status === "active" || item.status === "notified") && 
-                         item.client_user_id !== "00000000-0000-0000-0000-000000000000" &&
-                         safeBmClients.has(item.client_user_id) && (
-                          protectedBmTrackingIds.has(item.id) ? (
-                            <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30 text-[10px] px-2 py-1">
-                              <Shield className="size-3 mr-1" /> Protegido
-                            </Badge>
-                          ) : (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-purple-400 border-purple-500/30 hover:bg-purple-500/10 h-7 text-xs"
-                              onClick={() => handleOpenProtect(item)}
-                            >
-                              <Shield className="size-3 mr-1" /> Proteger
-                            </Button>
-                          )
-                        )}
-                        {(item.status === "active") && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/10 h-7 text-xs"
-                            onClick={() => handleNotify(item)}
-                          >
-                            <Bell className="size-3 mr-1" /> Notificar
-                          </Button>
-                        )}
-                        {(item.status === "active" || item.status === "notified") && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10 h-7 text-xs"
-                            onClick={() => handleMarkRemoved(item)}
-                          >
-                            <CheckCircle className="size-3 mr-1" /> Removido
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full sm:w-[160px]">
+                <Filter className="size-3.5 mr-1.5 text-muted-foreground" />
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os Status</SelectItem>
+                <SelectItem value="em_estoque">Na Loja</SelectItem>
+                <SelectItem value="active">Vendidos</SelectItem>
+                <SelectItem value="notified">Notificados</SelectItem>
+                <SelectItem value="expired">Expirados</SelectItem>
+                <SelectItem value="removed">Removidos</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={clientFilter || "all"} onValueChange={v => setClientFilter(v === "all" ? "" : v)}>
+              <SelectTrigger className="w-full sm:w-[200px]">
+                <SelectValue placeholder="Filtrar por Cliente" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os Clientes</SelectItem>
+                {uniqueClients.map(name => (
+                  <SelectItem key={name} value={name}>{name}</SelectItem>
                 ))}
-              </TableBody>
-            </Table>
+              </SelectContent>
+            </Select>
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" onClick={clearFilters} className="h-10 px-3 text-muted-foreground">
+                <X className="size-4 mr-1" /> Limpar
+              </Button>
+            )}
+          </div>
+          {hasActiveFilters && (
+            <p className="text-xs text-muted-foreground mt-2">
+              Mostrando {filtered.length} de {items.length} registros
+            </p>
           )}
         </CardContent>
       </Card>
+
+      {/* BM Cards / List */}
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="size-6 animate-spin text-primary" />
+        </div>
+      ) : filtered.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center text-muted-foreground">
+            Nenhuma BM encontrada
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-2">
+          {/* Table header - desktop only */}
+          <div className="hidden lg:grid lg:grid-cols-[1fr_120px_1fr_100px_80px_100px_120px] gap-4 px-4 py-2 text-xs text-muted-foreground uppercase tracking-wider font-medium">
+            <span>Cliente / BM</span>
+            <span>Produto</span>
+            <span>Nome BM</span>
+            <span>Preço</span>
+            <span>Prazo</span>
+            <span>Status</span>
+            <span className="text-right">Ações</span>
+          </div>
+
+          {filtered.map(item => {
+            const bmName = extractBmName(item.bm_link);
+            const bmUrl = extractBmUrl(item.bm_link);
+            const price = formatPrice(Number(item.sale_price));
+            const dateStr = item.status === "em_estoque"
+              ? new Date(item.created_at).toLocaleDateString("pt-BR")
+              : new Date(item.sold_at).toLocaleDateString("pt-BR");
+            const isProtected = protectedBmTrackingIds.has(item.id);
+            const canProtect = (item.status === "active" || item.status === "notified") &&
+              item.client_user_id !== "00000000-0000-0000-0000-000000000000" &&
+              safeBmClients.has(item.client_user_id) && !isProtected;
+
+            return (
+              <Card key={item.id} className={`transition-all ${
+                item.status === "expired" ? "border-red-500/20 bg-red-500/5" :
+                item.status === "removed" ? "opacity-60" : ""
+              }`}>
+                <CardContent className="p-4">
+                  {/* Desktop layout */}
+                  <div className="hidden lg:grid lg:grid-cols-[1fr_120px_1fr_100px_80px_100px_120px] gap-4 items-center">
+                    {/* Client */}
+                    <div className="min-w-0">
+                      <p className="font-medium text-foreground text-sm truncate">{item.client_name || "—"}</p>
+                      {item.client_email && (
+                        <p className="text-xs text-muted-foreground truncate">{item.client_email}</p>
+                      )}
+                      <p className="text-[10px] text-muted-foreground/60 mt-0.5">{dateStr}</p>
+                    </div>
+
+                    {/* Product */}
+                    <div className="min-w-0">
+                      <p className="text-xs text-muted-foreground truncate">{item.product_name}</p>
+                      {item.perfil_matriz && (
+                        <p className="text-[10px] text-purple-400 truncate">{item.perfil_matriz}</p>
+                      )}
+                    </div>
+
+                    {/* BM Name + Link */}
+                    <div className="min-w-0 flex items-center gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-foreground truncate">{bmName || "—"}</p>
+                      </div>
+                      <a
+                        href={bmUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:text-primary/80 transition-colors shrink-0"
+                        title="Abrir BM"
+                      >
+                        <ExternalLink className="size-3.5" />
+                      </a>
+                    </div>
+
+                    {/* Price */}
+                    <p className={`text-sm font-semibold ${price ? "text-foreground" : "text-muted-foreground/40"}`}>
+                      {price || "—"}
+                    </p>
+
+                    {/* Countdown */}
+                    <div>
+                      <CountdownBadge expiresAt={item.expires_at} status={item.status} />
+                    </div>
+
+                    {/* Status */}
+                    <StatusBadge status={item.status} />
+
+                    {/* Actions */}
+                    <div className="flex items-center justify-end gap-1 flex-wrap">
+                      {isProtected && (
+                        <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30 text-[10px] px-2 py-0.5">
+                          <Shield className="size-3 mr-0.5" /> Protegido
+                        </Badge>
+                      )}
+                      {canProtect && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-purple-400 border-purple-500/30 hover:bg-purple-500/10 h-6 text-[10px] px-2"
+                          onClick={() => handleOpenProtect(item)}
+                        >
+                          <Shield className="size-3 mr-0.5" /> Proteger
+                        </Button>
+                      )}
+                      {item.status === "active" && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/10 h-6 text-[10px] px-2"
+                          onClick={() => handleNotify(item)}
+                        >
+                          <Bell className="size-3 mr-0.5" /> Notificar
+                        </Button>
+                      )}
+                      {(item.status === "active" || item.status === "notified") && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10 h-6 text-[10px] px-2"
+                          onClick={() => handleMarkRemoved(item)}
+                        >
+                          <CheckCircle className="size-3 mr-0.5" /> Removido
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Mobile layout */}
+                  <div className="lg:hidden space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="font-medium text-foreground text-sm truncate">{item.client_name || "Sem cliente"}</p>
+                          <StatusBadge status={item.status} />
+                        </div>
+                        {item.client_email && (
+                          <p className="text-xs text-muted-foreground truncate">{item.client_email}</p>
+                        )}
+                      </div>
+                      <a
+                        href={bmUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:text-primary/80 p-1"
+                      >
+                        <ExternalLink className="size-4" />
+                      </a>
+                    </div>
+
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
+                      <span className="text-muted-foreground">
+                        <span className="font-medium text-foreground">{item.product_name}</span>
+                      </span>
+                      {bmName && (
+                        <span className="text-muted-foreground">
+                          BM: <span className="font-medium text-foreground">{bmName}</span>
+                        </span>
+                      )}
+                      {price && (
+                        <span className="font-semibold text-foreground">{price}</span>
+                      )}
+                      <span className="text-muted-foreground">{dateStr}</span>
+                      <CountdownBadge expiresAt={item.expires_at} status={item.status} />
+                    </div>
+
+                    <div className="flex items-center gap-1 flex-wrap">
+                      {isProtected && (
+                        <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30 text-[10px] px-2 py-0.5">
+                          <Shield className="size-3 mr-0.5" /> Protegido
+                        </Badge>
+                      )}
+                      {canProtect && (
+                        <Button size="sm" variant="outline" className="text-purple-400 border-purple-500/30 hover:bg-purple-500/10 h-7 text-xs" onClick={() => handleOpenProtect(item)}>
+                          <Shield className="size-3 mr-1" /> Proteger
+                        </Button>
+                      )}
+                      {item.status === "active" && (
+                        <Button size="sm" variant="outline" className="text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/10 h-7 text-xs" onClick={() => handleNotify(item)}>
+                          <Bell className="size-3 mr-1" /> Notificar
+                        </Button>
+                      )}
+                      {(item.status === "active" || item.status === "notified") && (
+                        <Button size="sm" variant="outline" className="text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10 h-7 text-xs" onClick={() => handleMarkRemoved(item)}>
+                          <CheckCircle className="size-3 mr-1" /> Removido
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
       {/* Add BM Dialog */}
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
