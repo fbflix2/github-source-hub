@@ -37,6 +37,8 @@ export function FbCaixas() {
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [editCaixa, setEditCaixa] = useState<Caixa | null>(null);
+  const [editSaldoCaixa, setEditSaldoCaixa] = useState<Caixa | null>(null);
+  const [editSaldoValue, setEditSaldoValue] = useState("");
   const menuRef = useRef<HTMLDivElement>(null);
 
   const [newForm, setNewForm] = useState({ nome: "", tipo: "empresa", alvo_percent: "0" });
