@@ -443,7 +443,8 @@ export default function AdminGestaoBMs() {
               <SelectContent>
                 <SelectItem value="all">Todos os Status</SelectItem>
                 <SelectItem value="em_estoque">Na Loja</SelectItem>
-                <SelectItem value="active">Vendidos</SelectItem>
+                <SelectItem value="vendidos">Vendidos (todos)</SelectItem>
+                <SelectItem value="active">Vendidos (s/ notificar)</SelectItem>
                 <SelectItem value="notified">Notificados</SelectItem>
                 <SelectItem value="expired">Expirados</SelectItem>
                 <SelectItem value="removed">Removidos</SelectItem>
