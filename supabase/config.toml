@@ -77,3 +77,6 @@ verify_jwt = false
 
 [functions.check-bm-link]
 verify_jwt = false
+
+[functions.check-bm-link-cron]
+verify_jwt = false
