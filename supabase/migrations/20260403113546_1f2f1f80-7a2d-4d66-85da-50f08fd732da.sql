@@ -1,0 +1,1 @@
+ALTER TABLE public.fb_finance_caixas ADD COLUMN meta numeric NOT NULL DEFAULT 0;

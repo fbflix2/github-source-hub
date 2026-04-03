@@ -6,7 +6,7 @@ import { buildDisplayCaixaBalanceMap } from "@/lib/fb-finance";
 const formatBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const formatCompact = (v: number) => formatBRL(v);
 
-interface Caixa { id: string; nome: string; saldo_atual: number; alvo_percent: number; tipo: string }
+interface Caixa { id: string; nome: string; saldo_atual: number; alvo_percent: number; tipo: string; meta: number }
 interface Lancamento { id: string; data: string; descricao: string | null; entrada: number; saida: number; categoria: string; caixa_destino_id: string | null }
 
 const caixaIcons: Record<string, { icon: string; color: string; bg: string }> = {
