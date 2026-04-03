@@ -84,6 +84,7 @@ function CountdownBadge({ expiresAt, status }: { expiresAt: string; status: stri
 const statusConfig: Record<string, { label: string; color: string; bg: string; border: string }> = {
   em_estoque: { label: "Na Loja", color: "text-purple-400", bg: "bg-purple-500/15", border: "border-purple-500/30" },
   active: { label: "Vendido", color: "text-green-400", bg: "bg-green-500/15", border: "border-green-500/30" },
+  pending_setup: { label: "Aguardando Config", color: "text-blue-400", bg: "bg-blue-500/15", border: "border-blue-500/30" },
   notified: { label: "Notificado", color: "text-yellow-400", bg: "bg-yellow-500/15", border: "border-yellow-500/30" },
   removed: { label: "Removido", color: "text-emerald-400", bg: "bg-emerald-500/15", border: "border-emerald-500/30" },
   expired: { label: "Expirado", color: "text-red-400", bg: "bg-red-500/15", border: "border-red-500/30" },
@@ -208,8 +209,8 @@ export default function AdminGestaoBMs() {
     return items.filter(item => {
       if (statusFilter !== "all") {
         if (statusFilter === "vendidos") {
-          // "Vendidos" includes active + notified (both are sold BMs)
-          if (item.status !== "active" && item.status !== "notified") return false;
+          // "Vendidos" includes active + notified + pending_setup (all sold BMs)
+          if (item.status !== "active" && item.status !== "notified" && item.status !== "pending_setup") return false;
         } else {
           if (item.status !== statusFilter) return false;
         }
@@ -234,7 +235,7 @@ export default function AdminGestaoBMs() {
     return {
       total: items.length,
       emEstoque: items.filter(i => i.status === "em_estoque").length,
-      vendidos: items.filter(i => i.status === "active" || i.status === "notified").length,
+      vendidos: items.filter(i => i.status === "active" || i.status === "notified" || i.status === "pending_setup").length,
       expiringToday: items.filter(i => {
         const diff = new Date(i.expires_at).getTime() - now;
         return (i.status === "active" || i.status === "notified") && diff > 0 && diff < 86400000;
@@ -446,6 +447,7 @@ export default function AdminGestaoBMs() {
                 <SelectItem value="vendidos">Vendidos (todos)</SelectItem>
                 <SelectItem value="active">Vendidos (s/ notificar)</SelectItem>
                 <SelectItem value="notified">Notificados</SelectItem>
+                <SelectItem value="pending_setup">Aguardando Config</SelectItem>
                 <SelectItem value="expired">Expirados</SelectItem>
                 <SelectItem value="removed">Removidos</SelectItem>
               </SelectContent>
