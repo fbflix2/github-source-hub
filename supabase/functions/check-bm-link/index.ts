@@ -31,7 +31,7 @@ const LOGIN_PATTERNS = [
   "login_form",
 ];
 
-type LinkHealth = "healthy" | "error" | "login_required" | "timeout" | "unknown";
+type LinkHealth = "healthy" | "error" | "expired" | "login_required" | "timeout" | "unknown";
 
 interface CheckResult {
   vault_id: string;
