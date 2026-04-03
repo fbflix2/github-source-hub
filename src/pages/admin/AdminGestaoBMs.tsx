@@ -209,8 +209,8 @@ export default function AdminGestaoBMs() {
     return items.filter(item => {
       if (statusFilter !== "all") {
         if (statusFilter === "vendidos") {
-          // "Vendidos" includes active + notified (both are sold BMs)
-          if (item.status !== "active" && item.status !== "notified") return false;
+          // "Vendidos" includes active + notified + pending_setup (all sold BMs)
+          if (item.status !== "active" && item.status !== "notified" && item.status !== "pending_setup") return false;
         } else {
           if (item.status !== statusFilter) return false;
         }
