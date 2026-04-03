@@ -43,7 +43,7 @@ export function FbCaixas() {
 
   const [newForm, setNewForm] = useState({ nome: "", tipo: "empresa", alvo_percent: "0" });
   const [transferForm, setTransferForm] = useState({ from: "", to: "", valor: "" });
-  const [editForm, setEditForm] = useState({ nome: "", tipo: "empresa", alvo_percent: "0" });
+  const [editForm, setEditForm] = useState({ nome: "", tipo: "empresa", alvo_percent: "0", meta: "0" });
 
   useEffect(() => { fetchCaixas(); }, []);
 
