@@ -1610,11 +1610,31 @@ Deno.serve(async (req) => {
           limitBytes = (subData.bandwidth_limit_backbone || subData.bandwidth_limit || 0);
         }
 
-        console.log(`[get-internal-proxy-config] bandwidth: used=${usedBytes}, limit=${limitBytes}`);
+        // Fetch today's usage
+        let todayBytes = 0;
+        try {
+          const now = new Date();
+          const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+          const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).toISOString();
+          const planFilter = residentialPlan ? `&plan_id=${residentialPlan.id}` : "";
+          const todayResp = await webFetch(
+            `/stats/aggregate/?timestamp__gte=${todayStart}&timestamp__lte=${todayEnd}${planFilter}`,
+            WEBSHARE_API_KEY
+          );
+          const todayData = await todayResp.json();
+          if (todayResp.ok && todayData.bandwidth_total !== undefined) {
+            todayBytes = todayData.bandwidth_total || 0;
+          }
+        } catch (e: any) {
+          console.warn(`[get-internal-proxy-config] today stats error:`, e.message);
+        }
+
+        console.log(`[get-internal-proxy-config] bandwidth: used=${usedBytes}, limit=${limitBytes}, today=${todayBytes}`);
 
         bandwidth = {
           used_bytes: usedBytes,
           limit_bytes: limitBytes,
+          today_bytes: todayBytes,
         };
       } catch (e: any) {
         console.warn(`[get-internal-proxy-config] bandwidth fetch error:`, e.message);
