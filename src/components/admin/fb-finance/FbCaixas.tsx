@@ -218,7 +218,7 @@ export function FbCaixas() {
         {caixas.map((c) => {
           const saldo = Number(c.saldo_atual);
           const iconCfg = caixaIcons[c.nome] || defaultIcon;
-          const meta = c.alvo_percent > 0 ? saldo / (c.alvo_percent / 100) : saldo * 1.5;
+          const meta = Number(c.meta) > 0 ? Number(c.meta) : (c.alvo_percent > 0 ? saldo / (c.alvo_percent / 100) : saldo * 1.5);
           const progress = meta > 0 ? Math.min((saldo / meta) * 100, 100) : 0;
           const metaAtingida = progress >= 100;
 
