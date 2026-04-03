@@ -148,6 +148,16 @@ export default function AdminDashFabricio() {
             </div>
           )}
 
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={stayConnected}
+              onChange={(e) => setStayConnected(e.target.checked)}
+              className="rounded border-blue-900/30 bg-[#0a1420] text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
+            />
+            <span className="text-sm text-blue-300/60">Manter-me conectado</span>
+          </label>
+
           <Button
             onClick={isFirstAccess ? handleSetPassword : handleLogin}
             className="w-full bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white font-semibold h-11"
