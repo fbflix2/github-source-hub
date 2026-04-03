@@ -234,7 +234,7 @@ export default function AdminGestaoBMs() {
     return {
       total: items.length,
       emEstoque: items.filter(i => i.status === "em_estoque").length,
-      active: items.filter(i => i.status === "active").length,
+      vendidos: items.filter(i => i.status === "active" || i.status === "notified").length,
       expiringToday: items.filter(i => {
         const diff = new Date(i.expires_at).getTime() - now;
         return (i.status === "active" || i.status === "notified") && diff > 0 && diff < 86400000;
