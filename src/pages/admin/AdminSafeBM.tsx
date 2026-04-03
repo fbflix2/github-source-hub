@@ -245,19 +245,22 @@ export default function AdminSafeBM() {
 
   const openAdd = () => { resetForm(); setModalOpen(true); };
   const openEdit = (v: SafeBmVault) => {
-    const resolvedBmLink = (v.bm_link && v.bm_link !== "https://business.facebook.com")
-      ? v.bm_link
-      : v.bm_tracking?.bm_link || "";
+    // Resolve single access link: backup_link > bm_link (non-generic) > bm_tracking.bm_link
+    const resolvedLink = v.backup_link
+      || ((v.bm_link && v.bm_link !== "https://business.facebook.com") ? v.bm_link : null)
+      || v.bm_tracking?.bm_link
+      || "";
 
     setEditingVault(v);
     setFormClientName(v.client_name || "");
     setFormUserId(v.user_id);
     setFormBmName(v.bm_name);
-    setFormBmLink(resolvedBmLink);
+    setFormBmLink(resolvedLink);
     setFormPerfilBackup(v.perfil_backup || "");
-    setFormPurchaseDate(v.purchase_date ? v.purchase_date.slice(0, 10) : "");
+    // Default purchase date to created_at (subscription date)
+    setFormPurchaseDate(v.purchase_date ? v.purchase_date.slice(0, 10) : v.created_at.slice(0, 10));
     setFormNotes(v.notes || "");
-    setFormBackupLink(v.backup_link || "");
+    setFormBackupLink("");
     setModalOpen(true);
   };
 
