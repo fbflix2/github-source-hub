@@ -268,20 +268,25 @@ export default function AdminSafeBM() {
     if (!formBmName || !formBmLink) { toast.error("Nome e link da BM são obrigatórios"); return; }
     if (!editingVault && !formUserId) { toast.error("Busque o cliente pelo email primeiro"); return; }
     setSaving(true);
+    // Single link field: save as both bm_link and backup_link
     const payload: any = {
-      bm_name: formBmName, bm_link: formBmLink,
+      bm_name: formBmName,
+      bm_link: formBmLink,
+      backup_link: formBmLink,
       perfil_backup: formPerfilBackup || null,
       purchase_date: formPurchaseDate || null,
       notes: formNotes || null,
       client_name: formClientName || null,
-      backup_link: formBackupLink || null,
     };
-    // If backup_link changed, update set_at timestamp
+    // Update backup_link_set_at if link changed
     if (editingVault) {
-      if (formBackupLink && formBackupLink !== (editingVault.backup_link || "")) {
+      const oldLink = editingVault.backup_link
+        || ((editingVault.bm_link && editingVault.bm_link !== "https://business.facebook.com") ? editingVault.bm_link : null)
+        || editingVault.bm_tracking?.bm_link || "";
+      if (formBmLink && formBmLink !== oldLink) {
         payload.backup_link_set_at = new Date().toISOString();
       }
-    } else if (formBackupLink) {
+    } else {
       payload.backup_link_set_at = new Date().toISOString();
     }
     if (editingVault) {
