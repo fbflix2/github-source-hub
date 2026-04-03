@@ -470,6 +470,12 @@ export function FbCaixas() {
                     className="w-full bg-[#051424] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-[#d5e4fa] outline-none" />
                 </div>
               </div>
+              <div>
+                <label className="text-[10px] text-[#8b919e] uppercase tracking-widest block mb-1">Meta (R$)</label>
+                <input type="number" step="0.01" value={editForm.meta} onChange={e => setEditForm({ ...editForm, meta: e.target.value })} placeholder="0.00"
+                  className="w-full bg-[#051424] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-[#d5e4fa] outline-none focus:ring-2 focus:ring-[#1976d2]" />
+                <p className="text-[9px] text-[#8b919e] mt-1">Defina o valor alvo em R$ para esta caixa. Se vazio, será calculado pelo % alvo.</p>
+              </div>
               <button onClick={handleEditCaixa} className="w-full bg-[#1976d2] text-white py-3 rounded-lg font-bold text-sm mt-2 active:scale-[0.98] transition-transform">
                 Salvar Alterações
               </button>
