@@ -6,7 +6,7 @@ import { buildDisplayCaixaBalanceMap } from "@/lib/fb-finance";
 const formatBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const formatCompact = (v: number) => formatBRL(v);
 
-interface Caixa { id: string; nome: string; saldo_atual: number; alvo_percent: number; tipo: string }
+interface Caixa { id: string; nome: string; saldo_atual: number; alvo_percent: number; tipo: string; meta: number }
 interface Lancamento { id: string; data: string; descricao: string | null; entrada: number; saida: number; categoria: string; caixa_destino_id: string | null }
 
 const caixaIcons: Record<string, { icon: string; color: string; bg: string }> = {
@@ -43,7 +43,7 @@ export function FbCaixas() {
 
   const [newForm, setNewForm] = useState({ nome: "", tipo: "empresa", alvo_percent: "0" });
   const [transferForm, setTransferForm] = useState({ from: "", to: "", valor: "" });
-  const [editForm, setEditForm] = useState({ nome: "", tipo: "empresa", alvo_percent: "0" });
+  const [editForm, setEditForm] = useState({ nome: "", tipo: "empresa", alvo_percent: "0", meta: "0" });
 
   useEffect(() => { fetchCaixas(); }, []);
 
@@ -125,7 +125,7 @@ export function FbCaixas() {
   const handleEditCaixa = async () => {
     if (!editCaixa || !editForm.nome.trim()) return;
     await supabase.from("fb_finance_caixas" as any).update({
-      nome: editForm.nome, tipo: editForm.tipo, alvo_percent: parseFloat(editForm.alvo_percent) || 0,
+      nome: editForm.nome, tipo: editForm.tipo, alvo_percent: parseFloat(editForm.alvo_percent) || 0, meta: parseFloat(editForm.meta) || 0,
     } as any).eq("id", editCaixa.id);
     toast({ title: "Caixa atualizada!" });
     setEditCaixa(null);
@@ -218,7 +218,7 @@ export function FbCaixas() {
         {caixas.map((c) => {
           const saldo = Number(c.saldo_atual);
           const iconCfg = caixaIcons[c.nome] || defaultIcon;
-          const meta = c.alvo_percent > 0 ? saldo / (c.alvo_percent / 100) : saldo * 1.5;
+          const meta = Number(c.meta) > 0 ? Number(c.meta) : (c.alvo_percent > 0 ? saldo / (c.alvo_percent / 100) : saldo * 1.5);
           const progress = meta > 0 ? Math.min((saldo / meta) * 100, 100) : 0;
           const metaAtingida = progress >= 100;
 
@@ -234,7 +234,7 @@ export function FbCaixas() {
                   </button>
                   {menuOpenId === c.id && (
                     <div ref={menuRef} className="absolute right-0 top-8 bg-[#122031] border border-[#414752]/30 rounded-lg shadow-2xl py-1 z-50 min-w-[140px]">
-                      <button onClick={() => { setEditCaixa(c); setEditForm({ nome: c.nome, tipo: c.tipo, alvo_percent: String(c.alvo_percent) }); setMenuOpenId(null); }}
+                      <button onClick={() => { setEditCaixa(c); setEditForm({ nome: c.nome, tipo: c.tipo, alvo_percent: String(c.alvo_percent), meta: String(Number(c.meta) || 0) }); setMenuOpenId(null); }}
                         className="w-full text-left px-4 py-2 text-xs text-[#d5e4fa] hover:bg-white/5 flex items-center gap-2">
                         <span className="material-symbols-outlined text-sm">edit</span> Editar
                       </button>
@@ -469,6 +469,12 @@ export function FbCaixas() {
                   <input type="number" value={editForm.alvo_percent} onChange={e => setEditForm({ ...editForm, alvo_percent: e.target.value })}
                     className="w-full bg-[#051424] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-[#d5e4fa] outline-none" />
                 </div>
+              </div>
+              <div>
+                <label className="text-[10px] text-[#8b919e] uppercase tracking-widest block mb-1">Meta (R$)</label>
+                <input type="number" step="0.01" value={editForm.meta} onChange={e => setEditForm({ ...editForm, meta: e.target.value })} placeholder="0.00"
+                  className="w-full bg-[#051424] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-[#d5e4fa] outline-none focus:ring-2 focus:ring-[#1976d2]" />
+                <p className="text-[9px] text-[#8b919e] mt-1">Defina o valor alvo em R$ para esta caixa. Se vazio, será calculado pelo % alvo.</p>
               </div>
               <button onClick={handleEditCaixa} className="w-full bg-[#1976d2] text-white py-3 rounded-lg font-bold text-sm mt-2 active:scale-[0.98] transition-transform">
                 Salvar Alterações

@@ -938,6 +938,7 @@ export type Database = {
           alvo_percent: number
           created_at: string
           id: string
+          meta: number
           nome: string
           saldo_atual: number
           tipo: string
@@ -947,6 +948,7 @@ export type Database = {
           alvo_percent?: number
           created_at?: string
           id?: string
+          meta?: number
           nome: string
           saldo_atual?: number
           tipo?: string
@@ -956,6 +958,7 @@ export type Database = {
           alvo_percent?: number
           created_at?: string
           id?: string
+          meta?: number
           nome?: string
           saldo_atual?: number
           tipo?: string
