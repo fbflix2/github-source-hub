@@ -6,15 +6,23 @@ import { Lock, Eye, EyeOff, KeyRound } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { FbFinanceDashboard } from "@/components/admin/fb-finance/FbFinanceDashboard";
 
+const FB_FINANCE_SESSION_KEY = "fb_finance_authenticated";
+
 export default function AdminDashFabricio() {
   const [authenticated, setAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isFirstAccess, setIsFirstAccess] = useState<boolean | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [stayConnected, setStayConnected] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Check if already authenticated via session/local storage
+    const stored = localStorage.getItem(FB_FINANCE_SESSION_KEY) || sessionStorage.getItem(FB_FINANCE_SESSION_KEY);
+    if (stored === "1") {
+      setAuthenticated(true);
+    }
     checkConfig();
   }, []);
 
