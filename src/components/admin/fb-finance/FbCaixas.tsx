@@ -238,6 +238,10 @@ export function FbCaixas() {
                         className="w-full text-left px-4 py-2 text-xs text-[#d5e4fa] hover:bg-white/5 flex items-center gap-2">
                         <span className="material-symbols-outlined text-sm">edit</span> Editar
                       </button>
+                      <button onClick={() => { setEditSaldoCaixa(c); setEditSaldoValue(String(Number(c.saldo_atual))); setMenuOpenId(null); }}
+                        className="w-full text-left px-4 py-2 text-xs text-[#d5e4fa] hover:bg-white/5 flex items-center gap-2">
+                        <span className="material-symbols-outlined text-sm">attach_money</span> Editar Saldo
+                      </button>
                       <button onClick={() => handleDeleteCaixa(c.id)}
                         className="w-full text-left px-4 py-2 text-xs text-[#e71a0e] hover:bg-white/5 flex items-center gap-2">
                         <span className="material-symbols-outlined text-sm">delete</span> Excluir
