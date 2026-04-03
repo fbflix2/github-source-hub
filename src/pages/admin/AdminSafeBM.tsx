@@ -92,7 +92,7 @@ export default function AdminSafeBM() {
   const [formPerfilBackup, setFormPerfilBackup] = useState("");
   const [formPurchaseDate, setFormPurchaseDate] = useState("");
   const [formNotes, setFormNotes] = useState("");
-  const [formBackupLink, setFormBackupLink] = useState("");
+  
   const [tickCount, setTickCount] = useState(0);
   const [checkingHealth, setCheckingHealth] = useState(false);
   const [checkingIds, setCheckingIds] = useState<Set<string>>(new Set());
