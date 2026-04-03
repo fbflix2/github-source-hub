@@ -61,6 +61,11 @@ export default function AdminDashFabricio() {
       return;
     }
     setAuthenticated(true);
+    if (stayConnected) {
+      localStorage.setItem(FB_FINANCE_SESSION_KEY, "1");
+    } else {
+      sessionStorage.setItem(FB_FINANCE_SESSION_KEY, "1");
+    }
     toast({ title: "Senha cadastrada com sucesso!" });
   };
 
