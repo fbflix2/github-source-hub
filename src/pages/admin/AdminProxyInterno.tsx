@@ -273,7 +273,7 @@ export default function AdminProxyInterno() {
                   )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                   <div className="rounded-lg bg-muted/30 border border-border/50 p-3 text-center">
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Consumido</p>
                     <p className="text-lg font-bold text-foreground">{formatBytes(usedBytes)}</p>
@@ -283,6 +283,10 @@ export default function AdminProxyInterno() {
                     <p className="text-lg font-bold text-foreground">
                       {limitBytes > 0 ? formatBytes(Math.max(0, limitBytes - usedBytes)) : "∞"}
                     </p>
+                  </div>
+                  <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-3 text-center">
+                    <p className="text-[10px] uppercase tracking-wider text-amber-400 font-medium">Hoje</p>
+                    <p className="text-lg font-bold text-amber-400">{formatBytes(todayBytes)}</p>
                   </div>
                 </div>
 
