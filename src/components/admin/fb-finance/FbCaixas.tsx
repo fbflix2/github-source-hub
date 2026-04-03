@@ -4,7 +4,7 @@ import { toast } from "@/hooks/use-toast";
 import { buildDisplayCaixaBalanceMap } from "@/lib/fb-finance";
 
 const formatBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-const formatCompact = (v: number) => v >= 1000 ? `R$ ${(v / 1000).toFixed(0)}.000` : `R$ ${v.toFixed(0)}`;
+const formatCompact = (v: number) => formatBRL(v);
 
 interface Caixa { id: string; nome: string; saldo_atual: number; alvo_percent: number; tipo: string }
 interface Lancamento { id: string; data: string; descricao: string | null; entrada: number; saida: number; categoria: string; caixa_destino_id: string | null }
