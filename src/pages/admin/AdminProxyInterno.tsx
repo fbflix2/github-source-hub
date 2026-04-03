@@ -133,6 +133,7 @@ export default function AdminProxyInterno() {
   const bw = data?.bandwidth || {};
   const usedBytes = bw.used_bytes || 0;
   const limitBytes = bw.limit_bytes || 0;
+  const todayBytes = bw.today_bytes || 0;
   const usedPct = limitBytes > 0 ? (usedBytes / limitBytes) * 100 : 0;
 
   // Build connection strings from active config
