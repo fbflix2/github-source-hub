@@ -44,8 +44,9 @@ function useInternalProxyConfig() {
   return useQuery({
     queryKey: ["internal-proxy-config"],
     queryFn: () => callWebshare("get-internal-proxy-config"),
-    staleTime: 30_000,
-    refetchOnWindowFocus: false,
+    staleTime: 15_000,
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: true,
     retry: false,
   });
 }
