@@ -990,6 +990,45 @@ export type Database = {
         }
         Relationships: []
       }
+      fb_finance_custos_pessoais: {
+        Row: {
+          ativo: boolean
+          categoria: string
+          created_at: string
+          dia_vencimento: number
+          id: string
+          nome: string
+          notas: string | null
+          tipo: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          ativo?: boolean
+          categoria?: string
+          created_at?: string
+          dia_vencimento?: number
+          id?: string
+          nome: string
+          notas?: string | null
+          tipo?: string
+          updated_at?: string
+          valor?: number
+        }
+        Update: {
+          ativo?: boolean
+          categoria?: string
+          created_at?: string
+          dia_vencimento?: number
+          id?: string
+          nome?: string
+          notas?: string | null
+          tipo?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: []
+      }
       fb_finance_despesas_planejadas: {
         Row: {
           categoria: string
