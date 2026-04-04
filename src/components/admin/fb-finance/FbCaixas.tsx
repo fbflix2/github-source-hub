@@ -329,7 +329,7 @@ export function FbCaixas() {
 
       {/* Detail Modal */}
       {selectedCaixa && (
-        {renderModalOverlay(() => setSelectedCaixa(null),
+        {selectedCaixa && (<ModalOverlay onClose={() => setSelectedCaixa(null)}>
           <div className="max-h-[85vh] overflow-hidden flex flex-col">
             <div className="p-6 border-b border-[#414752]/20 flex items-center justify-between">
               <div className="flex items-center gap-4">
@@ -405,7 +405,7 @@ export function FbCaixas() {
 
       {/* Nova Caixa Modal */}
       {showNewModal && (
-        {renderModalOverlay(() => setShowNewModal(false),
+        {selectedCaixa && (<ModalOverlay onClose={() => setShowNewModal(false)}>
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
               <h3 className="font-['Manrope'] font-bold text-xl text-[#d5e4fa]">Nova Caixa</h3>
@@ -442,7 +442,7 @@ export function FbCaixas() {
 
       {/* Transferir Modal */}
       {showTransferModal && (
-        {renderModalOverlay(() => setShowTransferModal(false),
+        {selectedCaixa && (<ModalOverlay onClose={() => setShowTransferModal(false)}>
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
               <h3 className="font-['Manrope'] font-bold text-xl text-[#d5e4fa]">Transferir entre Caixas</h3>
@@ -483,7 +483,7 @@ export function FbCaixas() {
 
       {/* Edit Caixa Modal */}
       {editCaixa && (
-        {renderModalOverlay(() => setEditCaixa(null),
+        {selectedCaixa && (<ModalOverlay onClose={() => setEditCaixa(null)}>
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
               <h3 className="font-['Manrope'] font-bold text-xl text-[#d5e4fa]">Editar Caixa</h3>
@@ -526,7 +526,7 @@ export function FbCaixas() {
 
       {/* Edit Saldo Modal */}
       {editSaldoCaixa && (
-        {renderModalOverlay(() => setEditSaldoCaixa(null),
+        {selectedCaixa && (<ModalOverlay onClose={() => setEditSaldoCaixa(null)}>
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
               <h3 className="font-['Manrope'] font-bold text-xl text-[#d5e4fa]">Editar Saldo</h3>
