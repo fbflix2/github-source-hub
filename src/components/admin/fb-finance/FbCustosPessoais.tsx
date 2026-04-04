@@ -123,6 +123,7 @@ export function FbCustosPessoais() {
   const [addingCat, setAddingCat] = useState(false);
   const [newCatLabel, setNewCatLabel] = useState("");
   const [showCatManager, setShowCatManager] = useState(false);
+  const [paying, setPaying] = useState<string | null>(null);
 
   const categorias = buildCategorias(customCats);
   const getCat = (cat: string) => getCatFromList(cat, categorias);
@@ -205,6 +206,48 @@ export function FbCustosPessoais() {
   const handleToggle = async (c: CustoPessoal) => {
     await supabase.from("fb_finance_custos_pessoais" as any).update({ ativo: !c.ativo } as any).eq("id", c.id);
     fetchCustos();
+  };
+
+  const handlePayFromProLabore = async (c: CustoPessoal) => {
+    if (!confirm(`Pagar "${c.nome}" (${formatBRL(c.valor)}) debitando do caixa Pro Labore?`)) return;
+    setPaying(c.id);
+    try {
+      // Find Pro Labore caixa
+      const { data: caixas } = await supabase.from("fb_finance_caixas" as any).select("id, nome, saldo_atual");
+      const proLabore = (caixas as any[] || []).find((cx: any) => cx.nome === "Pro Labore");
+      if (!proLabore) {
+        toast({ title: "Caixa 'Pro Labore' não encontrado. Crie-o primeiro.", variant: "destructive" });
+        return;
+      }
+
+      const saldoAtual = Number(proLabore.saldo_atual || 0);
+      if (saldoAtual < c.valor) {
+        toast({ title: `Saldo insuficiente no Pro Labore (${formatBRL(saldoAtual)})`, variant: "destructive" });
+        return;
+      }
+
+      // Create a lancamento for the debit
+      await supabase.from("fb_finance_lancamentos" as any).insert({
+        data: new Date().toISOString().split("T")[0],
+        tipo: "pessoal",
+        categoria: c.categoria || "outros",
+        descricao: `Pagamento: ${c.nome}`,
+        entrada: 0,
+        saida: c.valor,
+        caixa_destino_id: proLabore.id,
+      } as any);
+
+      // Update Pro Labore balance
+      await supabase.from("fb_finance_caixas" as any)
+        .update({ saldo_atual: saldoAtual - c.valor } as any)
+        .eq("id", proLabore.id);
+
+      toast({ title: `"${c.nome}" pago com sucesso do Pro Labore!` });
+    } catch {
+      toast({ title: "Erro ao processar pagamento", variant: "destructive" });
+    } finally {
+      setPaying(null);
+    }
   };
 
   const filtered = custos.filter(c => filter === "all" || c.tipo === filter);
@@ -328,6 +371,18 @@ export function FbCustosPessoais() {
                 <div className="flex items-center gap-4">
                   <span className="text-sm font-bold text-[#e71a0e]">{formatBRL(c.valor)}</span>
                   <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handlePayFromProLabore(c)}
+                      disabled={paying === c.id}
+                      title="Pagar com Pro Labore"
+                      className="p-1.5 hover:bg-[#f5c542]/10 rounded-lg text-[#f5c542] hover:text-[#f5c542] transition-colors disabled:opacity-50"
+                    >
+                      {paying === c.id ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#f5c542]" />
+                      ) : (
+                        <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>payments</span>
+                      )}
+                    </button>
                     <button onClick={() => openEdit(c)} className="p-1.5 hover:bg-white/5 rounded-lg text-[#8b919e] hover:text-[#d5e4fa] transition-colors">
                       <span className="material-symbols-outlined text-sm">edit</span>
                     </button>

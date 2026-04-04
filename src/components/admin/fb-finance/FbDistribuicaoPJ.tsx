@@ -10,6 +10,7 @@ interface Percentuais {
   dividendos: number;
   operacional: number;
   dia_a_dia: number;
+  pro_labore: number;
 }
 
 interface Distribuicao {
@@ -17,13 +18,14 @@ interface Distribuicao {
   valores_alocados: Record<string, number>; aplicado: boolean; created_at: string;
 }
 
-const defaultPerc: Percentuais = { capital_giro: 2, fundos_reserva: 15, dividendos: 1, operacional: 80, dia_a_dia: 2 };
+const defaultPerc: Percentuais = { capital_giro: 2, fundos_reserva: 13, dividendos: 1, operacional: 72, dia_a_dia: 2, pro_labore: 10 };
 
 const percConfig: { key: keyof Percentuais; label: string; borderColor: string; percentColor: string; valueColor: string }[] = [
   { key: "capital_giro", label: "Capital Giro", borderColor: "border-[#a5c8ff]", percentColor: "text-[#a5c8ff]", valueColor: "text-[#a5c8ff]" },
   { key: "fundos_reserva", label: "Fundos", borderColor: "border-[#40e56c]", percentColor: "text-[#40e56c]", valueColor: "text-[#40e56c]" },
   { key: "dividendos", label: "Dividendos", borderColor: "border-[#ffb4a8]", percentColor: "text-[#ffb4a8]", valueColor: "text-[#ffb4a8]" },
   { key: "operacional", label: "Operacional", borderColor: "border-[#a5c8ff]/60", percentColor: "text-[#a5c8ff]/60", valueColor: "text-[#a5c8ff]/60" },
+  { key: "pro_labore", label: "Pro Labore", borderColor: "border-[#f5c542]", percentColor: "text-[#f5c542]", valueColor: "text-[#f5c542]" },
   { key: "dia_a_dia", label: "Dia a Dia", borderColor: "border-[#8b919e]", percentColor: "text-[#8b919e]", valueColor: "text-[#8b919e]" },
 ];
 
@@ -32,6 +34,7 @@ const caixaMap: Record<keyof Percentuais, string> = {
   fundos_reserva: "Fundos Reserva/Crise",
   dividendos: "Dividendos",
   operacional: "Operacional",
+  pro_labore: "Pro Labore",
   dia_a_dia: "Dia a Dia/Emergências",
 };
 
@@ -142,7 +145,7 @@ export function FbDistribuicaoPJ() {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
           {percConfig.map((cfg) => (
             <div key={cfg.key} className={`bg-[#0e1c2d] p-6 rounded-xl border-l-4 ${cfg.borderColor} shadow-lg transition-transform hover:-translate-y-1 duration-300`}>
               <p className="text-xs uppercase tracking-widest text-[#8b919e] mb-4">{cfg.label}</p>
