@@ -90,7 +90,11 @@ export function FbDistribuicaoPJ() {
   };
 
   const savePercToDb = async (newPerc: Record<string, number>) => {
-    await supabase.from("fb_finance_config" as any).update({ distribution_percentages: newPerc } as any).neq("id", "00000000-0000-0000-0000-000000000000");
+    const { error } = await supabase.from("fb_finance_config").update({ distribution_percentages: newPerc as any }).not("id", "is", null);
+    if (error) {
+      console.error("Erro ao salvar percentuais:", error);
+      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+    }
   };
 
   const handleRemoveCard = async (key: string) => {
