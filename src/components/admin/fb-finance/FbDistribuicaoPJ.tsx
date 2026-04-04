@@ -75,7 +75,7 @@ export function FbDistribuicaoPJ() {
     }
     const { data: dist } = await supabase.from("fb_finance_distribuicoes" as any).select("*").order("data", { ascending: false }).limit(30);
     if (dist) setDistribuicoes(dist as any);
-    const { data: caixas } = await supabase.from("fb_finance_caixas" as any).select("id, nome, saldo_atual, meta");
+    const { data: caixas } = await supabase.from("fb_finance_caixas" as any).select("id, nome, saldo_atual, meta, tipo");
     if (caixas) setCaixasList(caixas as any);
     setLoading(false);
   };
