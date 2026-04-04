@@ -27,6 +27,14 @@ const caixaIcons: Record<string, { icon: string; color: string; bg: string }> = 
 
 const defaultIcon = { icon: "savings", color: "text-[#ffb4a8]", bg: "bg-red-500/10" };
 
+const ModalOverlay = ({ children, onClose }: { children: React.ReactNode; onClose: () => void }) => (
+  <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className="bg-[#0e1c2d] rounded-2xl w-full max-w-lg shadow-2xl border border-[#414752]/20">
+      {children}
+    </div>
+  </div>
+);
+
 export function FbCaixas() {
   const [caixas, setCaixas] = useState<Caixa[]>([]);
   const [loading, setLoading] = useState(true);
@@ -145,14 +153,6 @@ export function FbCaixas() {
   const healthPercent = totalAlvo > 0 ? Math.min((totalPatrimonio / totalAlvo) * 100, 100) : 85;
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#a5c8ff]" /></div>;
-
-  const ModalOverlay = ({ children, onClose }: { children: React.ReactNode; onClose: () => void }) => (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-[#0e1c2d] rounded-2xl w-full max-w-lg shadow-2xl border border-[#414752]/20" onClick={e => e.stopPropagation()}>
-        {children}
-      </div>
-    </div>
-  );
 
   return (
     <section className="p-6 md:p-10 max-w-7xl mx-auto">
@@ -321,7 +321,7 @@ export function FbCaixas() {
       {/* Detail Modal */}
       {selectedCaixa && (
         <ModalOverlay onClose={() => setSelectedCaixa(null)}>
-          <div className="max-h-[85vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+          <div className="max-h-[85vh] overflow-hidden flex flex-col">
             <div className="p-6 border-b border-[#414752]/20 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 {(() => {
