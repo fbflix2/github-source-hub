@@ -321,7 +321,7 @@ export function FbCaixas() {
 
       {/* Detail Modal */}
       {selectedCaixa && (
-        <ModalOverlay onClose={() => setSelectedCaixa(null)}>
+        {renderModalOverlay(() => setSelectedCaixa(null),
           <div className="max-h-[85vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="p-6 border-b border-[#414752]/20 flex items-center justify-between">
               <div className="flex items-center gap-4">
@@ -392,12 +392,12 @@ export function FbCaixas() {
               )}
             </div>
           </div>
-        </ModalOverlay>
+        )}
       )}
 
       {/* Nova Caixa Modal */}
       {showNewModal && (
-        <ModalOverlay onClose={() => setShowNewModal(false)}>
+        {renderModalOverlay(() => setShowNewModal(false),
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
               <h3 className="font-['Manrope'] font-bold text-xl text-[#d5e4fa]">Nova Caixa</h3>
@@ -429,12 +429,12 @@ export function FbCaixas() {
               </button>
             </div>
           </div>
-        </ModalOverlay>
+        )}
       )}
 
       {/* Transferir Modal */}
       {showTransferModal && (
-        <ModalOverlay onClose={() => setShowTransferModal(false)}>
+        {renderModalOverlay(() => setShowTransferModal(false),
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
               <h3 className="font-['Manrope'] font-bold text-xl text-[#d5e4fa]">Transferir entre Caixas</h3>
@@ -470,12 +470,12 @@ export function FbCaixas() {
               </button>
             </div>
           </div>
-        </ModalOverlay>
+        )}
       )}
 
       {/* Edit Caixa Modal */}
       {editCaixa && (
-        <ModalOverlay onClose={() => setEditCaixa(null)}>
+        {renderModalOverlay(() => setEditCaixa(null),
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
               <h3 className="font-['Manrope'] font-bold text-xl text-[#d5e4fa]">Editar Caixa</h3>
@@ -513,12 +513,12 @@ export function FbCaixas() {
               </button>
             </div>
           </div>
-        </ModalOverlay>
+        )}
       )}
 
       {/* Edit Saldo Modal */}
       {editSaldoCaixa && (
-        <ModalOverlay onClose={() => setEditSaldoCaixa(null)}>
+        {renderModalOverlay(() => setEditSaldoCaixa(null),
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
               <h3 className="font-['Manrope'] font-bold text-xl text-[#d5e4fa]">Editar Saldo</h3>
@@ -554,7 +554,7 @@ export function FbCaixas() {
               </button>
             </div>
           </div>
-        </ModalOverlay>
+        )}
       )}
     </section>
   );
