@@ -73,15 +73,26 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
   const despesaDiff = despesaMensal - lastMonthDespesa;
   const patrimonioGrowth = lastMonthReceita > 0 ? (((patrimonio - (patrimonio - lucroLiquido)) / Math.max(patrimonio - lucroLiquido, 1)) * 100).toFixed(1) : "0.0";
 
-  // Allocation from config
+  // Allocation from config - dynamic
   const distPerc = config?.distribution_percentages || { operacional: 80, fundos_reserva: 15, capital_giro: 2, dia_a_dia: 2, dividendos: 1 };
-  const allocations = [
-    { name: "Operacional", percent: distPerc.operacional || 80, color: "#40e56c" },
-    { name: "Fundos", percent: distPerc.fundos_reserva || 15, color: "#1976d2" },
-    { name: "Capital Giro", percent: distPerc.capital_giro || 2, color: "#93c5fd" },
-    { name: "Dia a Dia", percent: distPerc.dia_a_dia || 2, color: "#94a3b8" },
-    { name: "Dividendos", percent: distPerc.dividendos || 1, color: "#eab308" },
-  ];
+  const allocColorMap: Record<string, string> = {
+    capital_giro: "#93c5fd", fundos_reserva: "#1976d2", dividendos: "#eab308", operacional: "#40e56c",
+    pro_labore: "#f5c542", dia_a_dia: "#94a3b8",
+  };
+  const fallbackColors = ["#c084fc", "#f97316", "#22d3ee", "#fb7185", "#a3e635", "#e879f9"];
+  const keyToLabel = (key: string): string => {
+    const map: Record<string, string> = { capital_giro: "Capital Giro", fundos_reserva: "Fundos", dividendos: "Dividendos", operacional: "Operacional", pro_labore: "Pro Labore", dia_a_dia: "Dia a Dia" };
+    return map[key] || key.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+  };
+  let colorIdx = 0;
+  const allocations = Object.entries(distPerc)
+    .filter(([_, v]) => Number(v) > 0)
+    .sort(([, a], [, b]) => Number(b) - Number(a))
+    .map(([key, val]) => ({
+      name: keyToLabel(key),
+      percent: Number(val) || 0,
+      color: allocColorMap[key] || fallbackColors[colorIdx++ % fallbackColors.length],
+    }));
 
   // Capital de Giro chart - real daily data
   const days = capitalGiroPeriod === "30" ? 30 : 90;
