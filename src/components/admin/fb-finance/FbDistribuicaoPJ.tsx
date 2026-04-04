@@ -34,6 +34,7 @@ const caixaMap: Record<keyof Percentuais, string> = {
   fundos_reserva: "Fundos Reserva/Crise",
   dividendos: "Dividendos",
   operacional: "Operacional",
+  pro_labore: "Pro Labore",
   dia_a_dia: "Dia a Dia/Emergências",
 };
 
