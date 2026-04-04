@@ -27,6 +27,14 @@ const caixaIcons: Record<string, { icon: string; color: string; bg: string }> = 
 
 const defaultIcon = { icon: "savings", color: "text-[#ffb4a8]", bg: "bg-red-500/10" };
 
+const ModalOverlay = ({ children, onClose }: { children: React.ReactNode; onClose: () => void }) => (
+  <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className="bg-[#0e1c2d] rounded-2xl w-full max-w-lg shadow-2xl border border-[#414752]/20">
+      {children}
+    </div>
+  </div>
+);
+
 export function FbCaixas() {
   const [caixas, setCaixas] = useState<Caixa[]>([]);
   const [loading, setLoading] = useState(true);
