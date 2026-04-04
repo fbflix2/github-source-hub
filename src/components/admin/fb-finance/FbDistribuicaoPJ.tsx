@@ -7,17 +7,8 @@ const formatBRL = (v: number) => {
   return safe.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 };
 
-interface Percentuais {
-  capital_giro: number;
-  fundos_reserva: number;
-  dividendos: number;
-  operacional: number;
-  dia_a_dia: number;
-  pro_labore: number;
-}
-
 interface Distribuicao {
-  id: string; data: string; entrada_dia: number; percentuais: Percentuais;
+  id: string; data: string; entrada_dia: number; percentuais: Record<string, number>;
   valores_alocados: Record<string, number>; aplicado: boolean; created_at: string;
 }
 
@@ -25,18 +16,27 @@ interface CaixaInfo {
   id: string; nome: string; saldo_atual: number; meta: number; tipo: string;
 }
 
-const defaultPerc: Percentuais = { capital_giro: 2, fundos_reserva: 13, dividendos: 1, operacional: 72, dia_a_dia: 2, pro_labore: 10 };
-
-const percConfig: { key: keyof Percentuais; label: string; borderColor: string; percentColor: string; valueColor: string }[] = [
-  { key: "capital_giro", label: "Capital Giro", borderColor: "border-[#a5c8ff]", percentColor: "text-[#a5c8ff]", valueColor: "text-[#a5c8ff]" },
-  { key: "fundos_reserva", label: "Fundos", borderColor: "border-[#40e56c]", percentColor: "text-[#40e56c]", valueColor: "text-[#40e56c]" },
-  { key: "dividendos", label: "Dividendos", borderColor: "border-[#ffb4a8]", percentColor: "text-[#ffb4a8]", valueColor: "text-[#ffb4a8]" },
-  { key: "operacional", label: "Operacional", borderColor: "border-[#a5c8ff]/60", percentColor: "text-[#a5c8ff]/60", valueColor: "text-[#a5c8ff]/60" },
-  { key: "pro_labore", label: "Pro Labore", borderColor: "border-[#f5c542]", percentColor: "text-[#f5c542]", valueColor: "text-[#f5c542]" },
-  { key: "dia_a_dia", label: "Dia a Dia", borderColor: "border-[#8b919e]", percentColor: "text-[#8b919e]", valueColor: "text-[#8b919e]" },
+const COLORS = [
+  "#a5c8ff", "#40e56c", "#ffb4a8", "#93c5fd", "#f5c542", "#8b919e",
+  "#c084fc", "#f97316", "#22d3ee", "#fb7185", "#a3e635", "#e879f9",
 ];
 
-const caixaMap: Record<keyof Percentuais, string> = {
+const getColor = (index: number) => COLORS[index % COLORS.length];
+
+const defaultPerc: Record<string, number> = {
+  capital_giro: 2, fundos_reserva: 13, dividendos: 1, operacional: 72, dia_a_dia: 2, pro_labore: 10,
+};
+
+const defaultLabels: Record<string, string> = {
+  capital_giro: "Capital Giro",
+  fundos_reserva: "Fundos",
+  dividendos: "Dividendos",
+  operacional: "Operacional",
+  pro_labore: "Pro Labore",
+  dia_a_dia: "Dia a Dia",
+};
+
+const caixaMap: Record<string, string> = {
   capital_giro: "Capital de Giro",
   fundos_reserva: "Fundos Reserva/Crise",
   dividendos: "Dividendos",
@@ -45,33 +45,32 @@ const caixaMap: Record<keyof Percentuais, string> = {
   dia_a_dia: "Dia a Dia/Emergências",
 };
 
-const ensureAllKeys = (saved: any): Percentuais => {
-  const result = { ...defaultPerc };
-  if (saved && typeof saved === "object") {
-    for (const key of Object.keys(defaultPerc) as (keyof Percentuais)[]) {
-      const v = Number(saved[key]);
-      if (!isNaN(v)) result[key] = v;
-    }
-  }
-  return result;
-};
+const keyToLabel = (key: string): string => defaultLabels[key] || key.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
 
 export function FbDistribuicaoPJ() {
-  const [percentuais, setPercentuais] = useState<Percentuais>(defaultPerc);
+  const [percentuais, setPercentuais] = useState<Record<string, number>>(defaultPerc);
   const [entradaHoje, setEntradaHoje] = useState("1000");
   const [distribuicoes, setDistribuicoes] = useState<Distribuicao[]>([]);
   const [loading, setLoading] = useState(true);
   const [detailDist, setDetailDist] = useState<Distribuicao | null>(null);
-  const [redirectPopup, setRedirectPopup] = useState<{ excedente: number; proLaborePerc: number; valores: Record<string, number> } | null>(null);
-  const [redirectTarget, setRedirectTarget] = useState<string>("");
+  const [redirectPopup, setRedirectPopup] = useState<{ excedente: number; valores: Record<string, number> } | null>(null);
+  const [redirectTarget, setRedirectTarget] = useState("");
   const [caixasList, setCaixasList] = useState<CaixaInfo[]>([]);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newCardName, setNewCardName] = useState("");
+  const [newCardPerc, setNewCardPerc] = useState("0");
 
   useEffect(() => { fetchData(); }, []);
 
   const fetchData = async () => {
     const { data: config } = await supabase.from("fb_finance_config" as any).select("distribution_percentages").limit(1).single();
     if (config && (config as any).distribution_percentages) {
-      setPercentuais(ensureAllKeys((config as any).distribution_percentages));
+      const saved = (config as any).distribution_percentages;
+      const clean: Record<string, number> = {};
+      for (const [k, v] of Object.entries(saved)) {
+        clean[k] = Number(v) || 0;
+      }
+      setPercentuais(clean);
     }
     const { data: dist } = await supabase.from("fb_finance_distribuicoes" as any).select("*").order("data", { ascending: false }).limit(30);
     if (dist) setDistribuicoes(dist as any);
@@ -80,17 +79,37 @@ export function FbDistribuicaoPJ() {
     setLoading(false);
   };
 
+  const keys = Object.keys(percentuais);
   const somaPerc = Object.values(percentuais).reduce((s, v) => s + (Number(v) || 0), 0);
   const isValid = Math.abs(somaPerc - 100) < 0.01;
   const entradaNum = parseFloat(entradaHoje) || 0;
 
-  const adjustPerc = (key: keyof Percentuais, delta: number) => {
+  const adjustPerc = (key: string, delta: number) => {
     const current = Number(percentuais[key]) || 0;
-    const newVal = Math.max(0, current + delta);
-    setPercentuais({ ...percentuais, [key]: newVal });
+    setPercentuais({ ...percentuais, [key]: Math.max(0, current + delta) });
   };
 
-  const handleResetDefaults = () => setPercentuais(defaultPerc);
+  const handleRemoveCard = (key: string) => {
+    if (keys.length <= 1) return;
+    const next = { ...percentuais };
+    delete next[key];
+    setPercentuais(next);
+  };
+
+  const handleAddCard = () => {
+    if (!newCardName.trim()) { toast({ title: "Informe o nome", variant: "destructive" }); return; }
+    const key = newCardName.trim().toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
+    if (percentuais[key] !== undefined) { toast({ title: "Já existe um card com esse nome", variant: "destructive" }); return; }
+    setPercentuais({ ...percentuais, [key]: Number(newCardPerc) || 0 });
+    // Also save label mapping
+    defaultLabels[key] = newCardName.trim();
+    caixaMap[key] = newCardName.trim();
+    setNewCardName("");
+    setNewCardPerc("0");
+    setShowAddModal(false);
+  };
+
+  const handleResetDefaults = () => setPercentuais({ ...defaultPerc });
 
   const handleSavePerc = async () => {
     if (!isValid) { toast({ title: "A soma dos % deve ser 100%", variant: "destructive" }); return; }
@@ -103,22 +122,19 @@ export function FbDistribuicaoPJ() {
     if (!isValid) { toast({ title: "A soma dos % deve ser 100%", variant: "destructive" }); return; }
 
     const valores: Record<string, number> = {};
-    for (const key of Object.keys(percentuais) as (keyof Percentuais)[]) {
+    for (const key of keys) {
       valores[key] = entradaNum * ((Number(percentuais[key]) || 0) / 100);
     }
 
-    // Check if Pro Labore will exceed its meta
+    // Check Pro Labore meta
     const proLaboreCaixa = caixasList.find(c => c.nome === "Pro Labore");
-    if (proLaboreCaixa && proLaboreCaixa.meta > 0) {
+    if (proLaboreCaixa && proLaboreCaixa.meta > 0 && valores.pro_labore) {
       const saldoAtual = Number(proLaboreCaixa.saldo_atual) || 0;
-      const valorProLabore = valores.pro_labore || 0;
-      const novoSaldo = saldoAtual + valorProLabore;
-
+      const novoSaldo = saldoAtual + valores.pro_labore;
       if (novoSaldo > proLaboreCaixa.meta) {
         const excedente = novoSaldo - proLaboreCaixa.meta;
-        // Adjust pro_labore value to only fill up to meta
         valores.pro_labore = Math.max(0, proLaboreCaixa.meta - saldoAtual);
-        setRedirectPopup({ excedente, proLaborePerc: Number(percentuais.pro_labore) || 0, valores });
+        setRedirectPopup({ excedente, valores });
         return;
       }
     }
@@ -136,10 +152,11 @@ export function FbDistribuicaoPJ() {
     const { data: caixas } = await supabase.from("fb_finance_caixas" as any).select("id, nome, saldo_atual");
     if (caixas) {
       await Promise.all(
-        Object.entries(caixaMap).map(async ([key, nome]) => {
+        Object.entries(valores).map(async ([key, val]) => {
+          const nome = caixaMap[key] || keyToLabel(key);
           const caixa = (caixas as any[]).find((c: any) => c.nome === nome);
-          if (!caixa) return;
-          const newBalance = Number(caixa.saldo_atual) + Number(valores[key] || 0);
+          if (!caixa || !val) return;
+          const newBalance = Number(caixa.saldo_atual) + Number(val);
           await supabase.from("fb_finance_caixas" as any).update({ saldo_atual: newBalance } as any).eq("id", caixa.id);
         })
       );
@@ -157,7 +174,6 @@ export function FbDistribuicaoPJ() {
       return;
     }
     const valores = { ...redirectPopup.valores };
-    // Add the excedente to the chosen target caixa key
     const targetKey = Object.entries(caixaMap).find(([_, nome]) => nome === redirectTarget)?.[0];
     if (targetKey) {
       valores[targetKey] = (valores[targetKey] || 0) + redirectPopup.excedente;
@@ -173,9 +189,10 @@ export function FbDistribuicaoPJ() {
     const { data: caixas } = await supabase.from("fb_finance_caixas" as any).select("id, nome, saldo_atual");
     if (caixas) {
       await Promise.all(
-        Object.entries(caixaMap).map(async ([key, nome]) => {
+        Object.entries(dist.valores_alocados || {}).map(async ([key, val]) => {
+          const nome = caixaMap[key] || keyToLabel(key);
           const caixa = (caixas as any[]).find((c: any) => c.nome === nome);
-          const valorAlocado = Number((dist.valores_alocados || {})[key] || 0);
+          const valorAlocado = Number(val) || 0;
           if (!caixa || !valorAlocado) return;
           await supabase.from("fb_finance_caixas" as any).update({ saldo_atual: Math.max(Number(caixa.saldo_atual) - valorAlocado, 0) } as any).eq("id", caixa.id);
         })
@@ -200,29 +217,47 @@ export function FbDistribuicaoPJ() {
             <span className="w-1.5 h-6 bg-[#1976d2] rounded-full"></span>
             Configuração de Percentuais
           </h3>
-          <button onClick={handleResetDefaults} className="text-[#a5c8ff] text-sm font-medium hover:underline">
-            Redefinir Padrões
-          </button>
+          <div className="flex items-center gap-4">
+            <button onClick={handleResetDefaults} className="text-[#a5c8ff] text-sm font-medium hover:underline">
+              Redefinir Padrões
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-          {percConfig.map((cfg) => (
-            <div key={cfg.key} className={`bg-[#0e1c2d] p-6 rounded-xl border-l-4 ${cfg.borderColor} shadow-lg transition-transform hover:-translate-y-1 duration-300`}>
-              <p className="text-xs uppercase tracking-widest text-[#8b919e] mb-4">{cfg.label}</p>
+          {keys.map((key, i) => (
+            <div key={key} className="bg-[#0e1c2d] p-6 rounded-xl border-l-4 shadow-lg transition-transform hover:-translate-y-1 duration-300 relative group/card" style={{ borderLeftColor: getColor(i) }}>
+              <button
+                onClick={() => handleRemoveCard(key)}
+                className="absolute top-2 right-2 opacity-0 group-hover/card:opacity-100 transition-opacity text-[#8b919e] hover:text-[#e71a0e]"
+                title="Remover"
+              >
+                <span className="material-symbols-outlined text-sm">close</span>
+              </button>
+              <p className="text-xs uppercase tracking-widest text-[#8b919e] mb-4">{keyToLabel(key)}</p>
               <div className="flex items-baseline gap-1">
-                <span className="text-3xl font-['Manrope'] font-extrabold text-[#d5e4fa]">{Number(percentuais[cfg.key]) || 0}</span>
-                <span className={`text-xl font-['Manrope'] font-bold ${cfg.percentColor}`}>%</span>
+                <span className="text-3xl font-['Manrope'] font-extrabold text-[#d5e4fa]">{Number(percentuais[key]) || 0}</span>
+                <span className="text-xl font-['Manrope'] font-bold" style={{ color: getColor(i) }}>%</span>
               </div>
               <div className="mt-4 flex gap-2">
-                <button onClick={() => adjustPerc(cfg.key, -1)} className="p-1 rounded bg-white/5 hover:bg-white/10 text-[#d5e4fa]">
+                <button onClick={() => adjustPerc(key, -1)} className="p-1 rounded bg-white/5 hover:bg-white/10 text-[#d5e4fa]">
                   <span className="material-symbols-outlined text-sm">remove</span>
                 </button>
-                <button onClick={() => adjustPerc(cfg.key, 1)} className="p-1 rounded bg-white/5 hover:bg-white/10 text-[#d5e4fa]">
+                <button onClick={() => adjustPerc(key, 1)} className="p-1 rounded bg-white/5 hover:bg-white/10 text-[#d5e4fa]">
                   <span className="material-symbols-outlined text-sm">add</span>
                 </button>
               </div>
             </div>
           ))}
+
+          {/* Add Card Button */}
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="bg-[#0e1c2d]/50 p-6 rounded-xl border-2 border-dashed border-white/10 hover:border-[#a5c8ff]/40 flex flex-col items-center justify-center gap-2 transition-all hover:-translate-y-1 duration-300 min-h-[140px]"
+          >
+            <span className="material-symbols-outlined text-2xl text-[#a5c8ff]/60">add_circle</span>
+            <span className="text-xs text-[#8b919e] font-medium">Adicionar</span>
+          </button>
         </div>
 
         <div className="flex items-center gap-4 mt-4">
@@ -236,7 +271,6 @@ export function FbDistribuicaoPJ() {
 
       {/* Prova Real + Histórico */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-        {/* Prova Real Calculator */}
         <div className="lg:col-span-1 bg-[#0e1c2d]/80 backdrop-blur-xl p-8 rounded-2xl border border-white/5 shadow-2xl">
           <h3 className="font-['Manrope'] text-lg font-bold mb-6 flex items-center gap-2 text-[#d5e4fa]">
             <span className="material-symbols-outlined text-[#a5c8ff]">calculate</span>
@@ -260,11 +294,11 @@ export function FbDistribuicaoPJ() {
             </div>
 
             <div className="pt-4 border-t border-white/10 space-y-3">
-              {percConfig.map((cfg) => (
-                <div key={cfg.key} className="flex justify-between items-center group">
-                  <span className="text-sm text-[#8b919e] group-hover:text-[#d5e4fa] transition-colors">{cfg.label}</span>
-                  <span className={`font-['Manrope'] font-bold ${cfg.valueColor}`}>
-                    {formatBRL(entradaNum * (Number(percentuais[cfg.key]) || 0) / 100)}
+              {keys.map((key, i) => (
+                <div key={key} className="flex justify-between items-center group">
+                  <span className="text-sm text-[#8b919e] group-hover:text-[#d5e4fa] transition-colors">{keyToLabel(key)}</span>
+                  <span className="font-['Manrope'] font-bold" style={{ color: getColor(i) }}>
+                    {formatBRL(entradaNum * (Number(percentuais[key]) || 0) / 100)}
                   </span>
                 </div>
               ))}
@@ -279,10 +313,7 @@ export function FbDistribuicaoPJ() {
 
         {/* Histórico */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="flex items-center justify-between">
-            <h3 className="font-['Manrope'] text-xl font-bold tracking-tight text-[#d5e4fa]">Histórico Recente</h3>
-          </div>
-
+          <h3 className="font-['Manrope'] text-xl font-bold tracking-tight text-[#d5e4fa]">Histórico Recente</h3>
           <div className="bg-[#0e1c2d] rounded-2xl overflow-hidden shadow-xl">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -351,14 +382,13 @@ export function FbDistribuicaoPJ() {
               </div>
               <div className="border-t border-white/10 pt-4 space-y-3">
                 <p className="text-xs text-[#8b919e] uppercase tracking-widest font-bold">Alocações</p>
-                {Object.entries(detailDist.valores_alocados || {}).map(([key, val]) => {
-                  const cfg = percConfig.find(p => p.key === key);
+                {Object.entries(detailDist.valores_alocados || {}).map(([key, val], i) => {
                   const perc = (detailDist.percentuais as any)?.[key] || 0;
                   return (
                     <div key={key} className="flex justify-between items-center">
                       <div className="flex items-center gap-2">
-                        <span className={`w-2 h-2 rounded-full ${cfg ? cfg.borderColor.replace("border-", "bg-") : "bg-[#8b919e]"}`}></span>
-                        <span className="text-sm text-[#c1c6d4]">{cfg?.label || key}</span>
+                        <span className="w-2 h-2 rounded-full" style={{ background: getColor(i) }}></span>
+                        <span className="text-sm text-[#c1c6d4]">{keyToLabel(key)}</span>
                         <span className="text-[10px] text-[#8b919e]">({perc}%)</span>
                       </div>
                       <span className="text-sm font-bold text-[#d5e4fa]">{formatBRL(Number(val))}</span>
@@ -366,6 +396,43 @@ export function FbDistribuicaoPJ() {
                   );
                 })}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Card Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowAddModal(false)}>
+          <div className="bg-[#0e1c2d] rounded-2xl w-full max-w-sm shadow-2xl border border-[#414752]/20 p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="font-['Manrope'] font-bold text-lg text-[#d5e4fa]">Novo Percentual</h3>
+              <button onClick={() => setShowAddModal(false)} className="text-[#8b919e] hover:text-white"><span className="material-symbols-outlined">close</span></button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs uppercase tracking-widest text-[#8b919e] mb-2">Nome do Caixa</label>
+                <input
+                  type="text"
+                  value={newCardName}
+                  onChange={e => setNewCardName(e.target.value)}
+                  placeholder="Ex: Investimentos"
+                  className="w-full bg-[#283647] border-none focus:ring-2 focus:ring-[#a5c8ff]/20 rounded-lg px-4 py-3 text-sm text-[#d5e4fa] outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs uppercase tracking-widest text-[#8b919e] mb-2">Percentual Inicial (%)</label>
+                <input
+                  type="number"
+                  value={newCardPerc}
+                  onChange={e => setNewCardPerc(e.target.value)}
+                  min="0" max="100"
+                  className="w-full bg-[#283647] border-none focus:ring-2 focus:ring-[#a5c8ff]/20 rounded-lg px-4 py-3 text-sm text-[#d5e4fa] outline-none"
+                />
+              </div>
+              <button onClick={handleAddCard} className="w-full py-3 bg-[#a5c8ff] text-[#0a1929] font-bold rounded-lg hover:brightness-110 transition-all">
+                Adicionar
+              </button>
             </div>
           </div>
         </div>
@@ -380,11 +447,8 @@ export function FbDistribuicaoPJ() {
               <h3 className="font-['Manrope'] font-bold text-lg text-[#d5e4fa]">Meta Pro Labore Atingida!</h3>
             </div>
             <p className="text-sm text-[#8b919e] mb-4">
-              O caixa de Pro Labore já atingiu (ou vai atingir) a meta mensal. O excedente de{" "}
-              <span className="font-bold text-[#f5c542]">{formatBRL(redirectPopup.excedente)}</span>{" "}
-              precisa ser redirecionado para outro caixa.
+              O excedente de <span className="font-bold text-[#f5c542]">{formatBRL(redirectPopup.excedente)}</span> precisa ser redirecionado para outro caixa.
             </p>
-
             <div className="space-y-2 mb-6">
               <label className="text-xs uppercase tracking-widest text-[#8b919e] font-bold">Enviar excedente para:</label>
               <div className="grid grid-cols-1 gap-2">
@@ -404,14 +468,9 @@ export function FbDistribuicaoPJ() {
                 ))}
               </div>
             </div>
-
             <div className="flex gap-3">
-              <button onClick={() => setRedirectPopup(null)} className="flex-1 py-3 rounded-lg border border-white/10 text-[#8b919e] text-sm font-medium hover:bg-white/5">
-                Cancelar
-              </button>
-              <button onClick={handleRedirectConfirm} className="flex-1 py-3 rounded-lg bg-[#f5c542] text-[#1a1400] text-sm font-black hover:brightness-110">
-                Confirmar Redirecionamento
-              </button>
+              <button onClick={() => setRedirectPopup(null)} className="flex-1 py-3 rounded-lg border border-white/10 text-[#8b919e] text-sm font-medium hover:bg-white/5">Cancelar</button>
+              <button onClick={handleRedirectConfirm} className="flex-1 py-3 rounded-lg bg-[#f5c542] text-[#1a1400] text-sm font-black hover:brightness-110">Confirmar</button>
             </div>
           </div>
         </div>
