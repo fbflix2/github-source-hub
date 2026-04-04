@@ -29,21 +29,70 @@ const defaultCategorias = [
 
 const CUSTOM_CATS_KEY = "fb_custos_pessoais_custom_cats";
 
-function loadCustomCats(): { value: string; label: string }[] {
+// Maps keywords in category names to Material Symbols icons
+const iconKeywords: [string[], string][] = [
+  [["casa", "lar", "moradia", "aluguel", "apartamento", "condominio", "iptu"], "home"],
+  [["carro", "moto", "transporte", "uber", "combustivel", "gasolina", "estacionamento", "pedagio", "onibus", "metro"], "directions_car"],
+  [["comida", "alimenta", "mercado", "supermercado", "restaurante", "ifood", "feira", "padaria"], "restaurant"],
+  [["saude", "medico", "farmacia", "hospital", "plano", "dentista", "academia", "gym", "pilates"], "favorite"],
+  [["escola", "curso", "faculdade", "educa", "livro", "estudo", "mensalidade", "aula"], "school"],
+  [["lazer", "viagem", "cinema", "teatro", "festa", "bar", "entretenimento", "hobby", "jogo"], "celebration"],
+  [["banco", "financ", "emprestimo", "parcela", "cartao", "credito", "investimento", "seguro", "previdencia", "poupanca"], "account_balance"],
+  [["assinatura", "streaming", "netflix", "spotify", "youtube", "amazon", "disney", "hbo", "internet", "celular", "telefone", "plano"], "subscriptions"],
+  [["roupa", "vestuario", "calcado", "sapato", "moda", "loja"], "checkroom"],
+  [["pet", "animal", "veterinario", "cachorro", "gato", "racao"], "pets"],
+  [["agua", "luz", "energia", "gas", "conta"], "bolt"],
+  [["doacao", "caridade", "igreja", "dizimo", "oferta"], "volunteer_activism"],
+  [["beleza", "cabelo", "estetica", "manicure", "barbeiro", "salao"], "spa"],
+  [["trabalho", "escritorio", "coworking", "material"], "work"],
+  [["crianca", "filho", "bebe", "fralda", "creche"], "child_care"],
+  [["presente", "gift"], "redeem"],
+];
+
+function guessIcon(label: string): string {
+  const normalized = label.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  for (const [keywords, icon] of iconKeywords) {
+    if (keywords.some(k => normalized.includes(k))) return icon;
+  }
+  return "category";
+}
+
+const colorPalette = [
+  { color: "text-sky-400", bg: "bg-sky-500/10" },
+  { color: "text-teal-400", bg: "bg-teal-500/10" },
+  { color: "text-indigo-400", bg: "bg-indigo-500/10" },
+  { color: "text-amber-400", bg: "bg-amber-500/10" },
+  { color: "text-lime-400", bg: "bg-lime-500/10" },
+  { color: "text-rose-400", bg: "bg-rose-500/10" },
+  { color: "text-violet-400", bg: "bg-violet-500/10" },
+  { color: "text-fuchsia-400", bg: "bg-fuchsia-500/10" },
+];
+
+interface CustomCat { value: string; label: string; icon: string; color: string; bg: string; }
+
+function loadCustomCats(): CustomCat[] {
   try {
-    return JSON.parse(localStorage.getItem(CUSTOM_CATS_KEY) || "[]");
+    const raw = JSON.parse(localStorage.getItem(CUSTOM_CATS_KEY) || "[]");
+    // Migrate old format (without icon)
+    return raw.map((c: any, i: number) => ({
+      value: c.value,
+      label: c.label,
+      icon: c.icon || guessIcon(c.label),
+      color: c.color || colorPalette[i % colorPalette.length].color,
+      bg: c.bg || colorPalette[i % colorPalette.length].bg,
+    }));
   } catch { return []; }
 }
 
-function saveCustomCats(cats: { value: string; label: string }[]) {
+function saveCustomCats(cats: CustomCat[]) {
   localStorage.setItem(CUSTOM_CATS_KEY, JSON.stringify(cats));
 }
 
-function buildCategorias(custom: { value: string; label: string }[]) {
+function buildCategorias(custom: CustomCat[]) {
   const all = [...defaultCategorias];
   custom.forEach(c => {
     if (!all.find(a => a.value === c.value)) {
-      all.splice(all.length - 1, 0, { value: c.value, label: c.label, icon: "label", color: "text-sky-400", bg: "bg-sky-500/10" });
+      all.splice(all.length - 1, 0, { value: c.value, label: c.label, icon: c.icon, color: c.color, bg: c.bg });
     }
   });
   return all;
@@ -86,7 +135,9 @@ export function FbCustosPessoais() {
       toast({ title: "Categoria já existe", variant: "destructive" });
       return;
     }
-    const updated = [...customCats, { value, label }];
+    const icon = guessIcon(label);
+    const palette = colorPalette[(customCats.length) % colorPalette.length];
+    const updated: CustomCat[] = [...customCats, { value, label, icon, color: palette.color, bg: palette.bg }];
     setCustomCats(updated);
     saveCustomCats(updated);
     setForm({ ...form, categoria: value });
@@ -396,7 +447,12 @@ export function FbCustosPessoais() {
                       <p className="text-[10px] text-[#8b919e] uppercase tracking-widest mb-1">Categorias personalizadas</p>
                       {customCats.map(c => (
                         <div key={c.value} className="flex items-center justify-between px-2 py-1.5 rounded hover:bg-white/5">
-                          <span className="text-xs text-[#d5e4fa]">{c.label}</span>
+                          <div className="flex items-center gap-2">
+                            <div className={`w-6 h-6 rounded ${c.bg} flex items-center justify-center`}>
+                              <span className={`material-symbols-outlined text-xs ${c.color}`} style={{ fontVariationSettings: "'FILL' 1" }}>{c.icon}</span>
+                            </div>
+                            <span className="text-xs text-[#d5e4fa]">{c.label}</span>
+                          </div>
                           <button onClick={() => handleRemoveCategory(c.value)} className="text-[#8b919e] hover:text-[#e71a0e] transition-colors">
                             <span className="material-symbols-outlined text-sm">delete</span>
                           </button>
