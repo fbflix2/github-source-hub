@@ -11,7 +11,7 @@ import { FbCalendarModal } from "./FbCalendarModal";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "@/hooks/use-toast";
 
-export type FbPage = "dashboard" | "lancamentos" | "caixas" | "distribuicao" | "planejamento" | "relatorios" | "mapa_fluxo";
+export type FbPage = "dashboard" | "lancamentos" | "caixas" | "distribuicao" | "planejamento" | "relatorios" | "mapa_fluxo" | "custos_pessoais";
 
 export function FbFinanceDashboard() {
   const [currentPage, setCurrentPage] = useState<FbPage>("dashboard");
