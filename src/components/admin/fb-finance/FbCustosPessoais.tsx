@@ -15,7 +15,7 @@ interface CustoPessoal {
   notas: string | null;
 }
 
-const categorias = [
+const defaultCategorias = [
   { value: "moradia", label: "Moradia", icon: "home", color: "text-blue-400", bg: "bg-blue-500/10" },
   { value: "transporte", label: "Transporte", icon: "directions_car", color: "text-cyan-400", bg: "bg-cyan-500/10" },
   { value: "alimentacao", label: "Alimentação", icon: "restaurant", color: "text-orange-400", bg: "bg-orange-500/10" },
@@ -27,8 +27,30 @@ const categorias = [
   { value: "outros", label: "Outros", icon: "more_horiz", color: "text-[#8b919e]", bg: "bg-[#8b919e]/10" },
 ];
 
-function getCat(cat: string) {
-  return categorias.find(c => c.value === cat) || categorias[categorias.length - 1];
+const CUSTOM_CATS_KEY = "fb_custos_pessoais_custom_cats";
+
+function loadCustomCats(): { value: string; label: string }[] {
+  try {
+    return JSON.parse(localStorage.getItem(CUSTOM_CATS_KEY) || "[]");
+  } catch { return []; }
+}
+
+function saveCustomCats(cats: { value: string; label: string }[]) {
+  localStorage.setItem(CUSTOM_CATS_KEY, JSON.stringify(cats));
+}
+
+function buildCategorias(custom: { value: string; label: string }[]) {
+  const all = [...defaultCategorias];
+  custom.forEach(c => {
+    if (!all.find(a => a.value === c.value)) {
+      all.splice(all.length - 1, 0, { value: c.value, label: c.label, icon: "label", color: "text-sky-400", bg: "bg-sky-500/10" });
+    }
+  });
+  return all;
+}
+
+function getCatFromList(cat: string, list: typeof defaultCategorias) {
+  return list.find(c => c.value === cat) || list[list.length - 1];
 }
 
 const ModalOverlay = ({ children, onClose }: { children: React.ReactNode; onClose: () => void }) => (
