@@ -31,6 +31,7 @@ export function FbFinanceDashboard() {
       case "planejamento": return <FbPlanejamentoPessoal />;
       case "relatorios": return <FbRelatorios />;
       case "mapa_fluxo": return <FbMapaFluxo onNavigate={setCurrentPage} />;
+      case "custos_pessoais": return <FbCustosPessoais />;
       default: return <FbDashboardHome onNavigate={setCurrentPage} />;
     }
   };
