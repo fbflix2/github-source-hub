@@ -7,6 +7,7 @@ import { FbDistribuicaoPJ } from "./FbDistribuicaoPJ";
 import { FbPlanejamentoPessoal } from "./FbPlanejamentoPessoal";
 import { FbRelatorios } from "./FbRelatorios";
 import { FbMapaFluxo } from "./FbMapaFluxo";
+import { FbCustosPessoais } from "./FbCustosPessoais";
 import { FbCalendarModal } from "./FbCalendarModal";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "@/hooks/use-toast";
