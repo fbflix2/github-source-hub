@@ -89,31 +89,43 @@ export function FbDistribuicaoPJ() {
     setPercentuais({ ...percentuais, [key]: Math.max(0, current + delta) });
   };
 
-  const handleRemoveCard = (key: string) => {
+  const savePercToDb = async (newPerc: Record<string, number>) => {
+    await supabase.from("fb_finance_config" as any).update({ distribution_percentages: newPerc } as any).neq("id", "00000000-0000-0000-0000-000000000000");
+  };
+
+  const handleRemoveCard = async (key: string) => {
     if (keys.length <= 1) return;
     const next = { ...percentuais };
     delete next[key];
     setPercentuais(next);
+    await savePercToDb(next);
+    toast({ title: `"${keyToLabel(key)}" removido` });
   };
 
-  const handleAddCard = () => {
+  const handleAddCard = async () => {
     if (!newCardName.trim()) { toast({ title: "Informe o nome", variant: "destructive" }); return; }
     const key = newCardName.trim().toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
     if (percentuais[key] !== undefined) { toast({ title: "Já existe um card com esse nome", variant: "destructive" }); return; }
-    setPercentuais({ ...percentuais, [key]: Number(newCardPerc) || 0 });
-    // Also save label mapping
+    const next = { ...percentuais, [key]: Number(newCardPerc) || 0 };
     defaultLabels[key] = newCardName.trim();
     caixaMap[key] = newCardName.trim();
+    setPercentuais(next);
+    await savePercToDb(next);
     setNewCardName("");
     setNewCardPerc("0");
     setShowAddModal(false);
+    toast({ title: `"${newCardName.trim()}" adicionado` });
   };
 
-  const handleResetDefaults = () => setPercentuais({ ...defaultPerc });
+  const handleResetDefaults = async () => {
+    setPercentuais({ ...defaultPerc });
+    await savePercToDb({ ...defaultPerc });
+    toast({ title: "Padrões restaurados" });
+  };
 
   const handleSavePerc = async () => {
     if (!isValid) { toast({ title: "A soma dos % deve ser 100%", variant: "destructive" }); return; }
-    await supabase.from("fb_finance_config" as any).update({ distribution_percentages: percentuais } as any).neq("id", "00000000-0000-0000-0000-000000000000");
+    await savePercToDb(percentuais);
     toast({ title: "Percentuais salvos!" });
   };
 
