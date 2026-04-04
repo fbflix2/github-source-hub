@@ -151,9 +151,11 @@ export function FbCustosPessoais() {
   };
 
   const handleRemoveCategory = (value: string) => {
-    const updated = customCats.filter(c => c.value !== value);
-    setCustomCats(updated);
-    saveCustomCats(updated);
+    setCustomCats(prev => {
+      const updated = prev.filter(c => c.value !== value);
+      saveCustomCats(updated);
+      return updated;
+    });
     toast({ title: "Categoria removida" });
   };
 
