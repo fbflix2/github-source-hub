@@ -47,6 +47,17 @@ const caixaMap: Record<string, string> = {
 
 const keyToLabel = (key: string): string => defaultLabels[key] || key.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
 
+const normalizePercentuais = (saved?: Record<string, unknown> | null) => {
+  const clean: Record<string, number> = {};
+
+  for (const [rawKey, value] of Object.entries(saved || {})) {
+    const normalizedKey = rawKey === "pr_labore" ? "pro_labore" : rawKey;
+    clean[normalizedKey] = Number(value) || 0;
+  }
+
+  return clean;
+};
+
 export function FbDistribuicaoPJ() {
   const [percentuais, setPercentuais] = useState<Record<string, number>>(defaultPerc);
   const [entradaHoje, setEntradaHoje] = useState("1000");
@@ -59,23 +70,28 @@ export function FbDistribuicaoPJ() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [newCardName, setNewCardName] = useState("");
   const [newCardPerc, setNewCardPerc] = useState("0");
+  const [configId, setConfigId] = useState<string | null>(null);
+  const [hasLoadedConfig, setHasLoadedConfig] = useState(false);
 
-  useEffect(() => { fetchData(); }, []);
+  useEffect(() => { void fetchData(); }, []);
 
   const fetchData = async () => {
-    const { data: config } = await supabase.from("fb_finance_config" as any).select("distribution_percentages").limit(1).single();
-    if (config && (config as any).distribution_percentages) {
-      const saved = (config as any).distribution_percentages;
-      const clean: Record<string, number> = {};
-      for (const [k, v] of Object.entries(saved)) {
-        clean[k] = Number(v) || 0;
-      }
-      setPercentuais(clean);
+    const [configRes, distRes, caixasRes] = await Promise.all([
+      supabase.from("fb_finance_config" as any).select("id, distribution_percentages").limit(1).maybeSingle(),
+      supabase.from("fb_finance_distribuicoes" as any).select("*").order("data", { ascending: false }).limit(30),
+      supabase.from("fb_finance_caixas" as any).select("id, nome, saldo_atual, meta, tipo"),
+    ]);
+
+    if (configRes.data) {
+      setConfigId((configRes.data as any).id);
+      const saved = normalizePercentuais((configRes.data as any).distribution_percentages);
+      setPercentuais(Object.keys(saved).length > 0 ? saved : { ...defaultPerc });
     }
-    const { data: dist } = await supabase.from("fb_finance_distribuicoes" as any).select("*").order("data", { ascending: false }).limit(30);
-    if (dist) setDistribuicoes(dist as any);
-    const { data: caixas } = await supabase.from("fb_finance_caixas" as any).select("id, nome, saldo_atual, meta, tipo");
-    if (caixas) setCaixasList(caixas as any);
+
+    if (distRes.data) setDistribuicoes(distRes.data as any);
+    if (caixasRes.data) setCaixasList(caixasRes.data as any);
+
+    setHasLoadedConfig(true);
     setLoading(false);
   };
 
@@ -84,17 +100,32 @@ export function FbDistribuicaoPJ() {
   const isValid = Math.abs(somaPerc - 100) < 0.01;
   const entradaNum = parseFloat(entradaHoje) || 0;
 
-  const adjustPerc = (key: string, delta: number) => {
-    const current = Number(percentuais[key]) || 0;
-    setPercentuais({ ...percentuais, [key]: Math.max(0, current + delta) });
-  };
-
   const savePercToDb = async (newPerc: Record<string, number>) => {
-    const { error } = await supabase.from("fb_finance_config").update({ distribution_percentages: newPerc as any }).not("id", "is", null);
+    const payload = normalizePercentuais(newPerc);
+    const query = supabase.from("fb_finance_config").update({ distribution_percentages: payload as any });
+    const { error } = configId
+      ? await query.eq("id", configId)
+      : await query.not("id", "is", null);
+
     if (error) {
       console.error("Erro ao salvar percentuais:", error);
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
     }
+  };
+
+  useEffect(() => {
+    if (!hasLoadedConfig) return;
+
+    const timeoutId = window.setTimeout(() => {
+      void savePercToDb(percentuais);
+    }, 400);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [percentuais, hasLoadedConfig, configId]);
+
+  const adjustPerc = (key: string, delta: number) => {
+    const current = Number(percentuais[key]) || 0;
+    setPercentuais({ ...percentuais, [key]: Math.max(0, current + delta) });
   };
 
   const handleRemoveCard = async (key: string) => {
@@ -102,7 +133,6 @@ export function FbDistribuicaoPJ() {
     const next = { ...percentuais };
     delete next[key];
     setPercentuais(next);
-    await savePercToDb(next);
     toast({ title: `"${keyToLabel(key)}" removido` });
   };
 
@@ -114,7 +144,6 @@ export function FbDistribuicaoPJ() {
     defaultLabels[key] = newCardName.trim();
     caixaMap[key] = newCardName.trim();
     setPercentuais(next);
-    await savePercToDb(next);
     setNewCardName("");
     setNewCardPerc("0");
     setShowAddModal(false);
@@ -123,7 +152,6 @@ export function FbDistribuicaoPJ() {
 
   const handleResetDefaults = async () => {
     setPercentuais({ ...defaultPerc });
-    await savePercToDb({ ...defaultPerc });
     toast({ title: "Padrões restaurados" });
   };
 
