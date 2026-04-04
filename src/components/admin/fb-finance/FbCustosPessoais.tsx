@@ -447,7 +447,12 @@ export function FbCustosPessoais() {
                       <p className="text-[10px] text-[#8b919e] uppercase tracking-widest mb-1">Categorias personalizadas</p>
                       {customCats.map(c => (
                         <div key={c.value} className="flex items-center justify-between px-2 py-1.5 rounded hover:bg-white/5">
-                          <span className="text-xs text-[#d5e4fa]">{c.label}</span>
+                          <div className="flex items-center gap-2">
+                            <div className={`w-6 h-6 rounded ${c.bg} flex items-center justify-center`}>
+                              <span className={`material-symbols-outlined text-xs ${c.color}`} style={{ fontVariationSettings: "'FILL' 1" }}>{c.icon}</span>
+                            </div>
+                            <span className="text-xs text-[#d5e4fa]">{c.label}</span>
+                          </div>
                           <button onClick={() => handleRemoveCategory(c.value)} className="text-[#8b919e] hover:text-[#e71a0e] transition-colors">
                             <span className="material-symbols-outlined text-sm">delete</span>
                           </button>
