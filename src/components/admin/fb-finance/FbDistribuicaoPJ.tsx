@@ -2,7 +2,10 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
-const formatBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const formatBRL = (v: number) => {
+  const safe = Number(v) || 0;
+  return safe.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+};
 
 interface Percentuais {
   capital_giro: number;
@@ -16,6 +19,10 @@ interface Percentuais {
 interface Distribuicao {
   id: string; data: string; entrada_dia: number; percentuais: Percentuais;
   valores_alocados: Record<string, number>; aplicado: boolean; created_at: string;
+}
+
+interface CaixaInfo {
+  id: string; nome: string; saldo_atual: number; meta: number;
 }
 
 const defaultPerc: Percentuais = { capital_giro: 2, fundos_reserva: 13, dividendos: 1, operacional: 72, dia_a_dia: 2, pro_labore: 10 };
@@ -38,31 +45,48 @@ const caixaMap: Record<keyof Percentuais, string> = {
   dia_a_dia: "Dia a Dia/Emergências",
 };
 
+const ensureAllKeys = (saved: any): Percentuais => {
+  const result = { ...defaultPerc };
+  if (saved && typeof saved === "object") {
+    for (const key of Object.keys(defaultPerc) as (keyof Percentuais)[]) {
+      const v = Number(saved[key]);
+      if (!isNaN(v)) result[key] = v;
+    }
+  }
+  return result;
+};
+
 export function FbDistribuicaoPJ() {
   const [percentuais, setPercentuais] = useState<Percentuais>(defaultPerc);
   const [entradaHoje, setEntradaHoje] = useState("1000");
   const [distribuicoes, setDistribuicoes] = useState<Distribuicao[]>([]);
   const [loading, setLoading] = useState(true);
   const [detailDist, setDetailDist] = useState<Distribuicao | null>(null);
+  const [redirectPopup, setRedirectPopup] = useState<{ excedente: number; proLaborePerc: number; valores: Record<string, number> } | null>(null);
+  const [redirectTarget, setRedirectTarget] = useState<string>("");
+  const [caixasList, setCaixasList] = useState<CaixaInfo[]>([]);
 
   useEffect(() => { fetchData(); }, []);
 
   const fetchData = async () => {
     const { data: config } = await supabase.from("fb_finance_config" as any).select("distribution_percentages").limit(1).single();
     if (config && (config as any).distribution_percentages) {
-      setPercentuais((config as any).distribution_percentages);
+      setPercentuais(ensureAllKeys((config as any).distribution_percentages));
     }
     const { data: dist } = await supabase.from("fb_finance_distribuicoes" as any).select("*").order("data", { ascending: false }).limit(30);
     if (dist) setDistribuicoes(dist as any);
+    const { data: caixas } = await supabase.from("fb_finance_caixas" as any).select("id, nome, saldo_atual, meta");
+    if (caixas) setCaixasList(caixas as any);
     setLoading(false);
   };
 
-  const somaPerc = Object.values(percentuais).reduce((s, v) => s + v, 0);
+  const somaPerc = Object.values(percentuais).reduce((s, v) => s + (Number(v) || 0), 0);
   const isValid = Math.abs(somaPerc - 100) < 0.01;
   const entradaNum = parseFloat(entradaHoje) || 0;
 
   const adjustPerc = (key: keyof Percentuais, delta: number) => {
-    const newVal = Math.max(0, percentuais[key] + delta);
+    const current = Number(percentuais[key]) || 0;
+    const newVal = Math.max(0, current + delta);
     setPercentuais({ ...percentuais, [key]: newVal });
   };
 
@@ -79,10 +103,30 @@ export function FbDistribuicaoPJ() {
     if (!isValid) { toast({ title: "A soma dos % deve ser 100%", variant: "destructive" }); return; }
 
     const valores: Record<string, number> = {};
-    for (const key of Object.keys(percentuais)) {
-      valores[key] = entradaNum * ((percentuais as any)[key] / 100);
+    for (const key of Object.keys(percentuais) as (keyof Percentuais)[]) {
+      valores[key] = entradaNum * ((Number(percentuais[key]) || 0) / 100);
     }
 
+    // Check if Pro Labore will exceed its meta
+    const proLaboreCaixa = caixasList.find(c => c.nome === "Pro Labore");
+    if (proLaboreCaixa && proLaboreCaixa.meta > 0) {
+      const saldoAtual = Number(proLaboreCaixa.saldo_atual) || 0;
+      const valorProLabore = valores.pro_labore || 0;
+      const novoSaldo = saldoAtual + valorProLabore;
+
+      if (novoSaldo > proLaboreCaixa.meta) {
+        const excedente = novoSaldo - proLaboreCaixa.meta;
+        // Adjust pro_labore value to only fill up to meta
+        valores.pro_labore = Math.max(0, proLaboreCaixa.meta - saldoAtual);
+        setRedirectPopup({ excedente, proLaborePerc: Number(percentuais.pro_labore) || 0, valores });
+        return;
+      }
+    }
+
+    await executeDistribution(valores);
+  };
+
+  const executeDistribution = async (valores: Record<string, number>) => {
     const hoje = new Date().toISOString().split("T")[0];
     const { error } = await supabase.from("fb_finance_distribuicoes" as any).insert({
       data: hoje, entrada_dia: entradaNum, percentuais, valores_alocados: valores, aplicado: true,
@@ -103,12 +147,26 @@ export function FbDistribuicaoPJ() {
 
     toast({ title: "Distribuição aplicada com sucesso!" });
     setEntradaHoje("1000");
+    setRedirectPopup(null);
     fetchData();
+  };
+
+  const handleRedirectConfirm = async () => {
+    if (!redirectPopup || !redirectTarget) {
+      toast({ title: "Selecione o caixa destino", variant: "destructive" });
+      return;
+    }
+    const valores = { ...redirectPopup.valores };
+    // Add the excedente to the chosen target caixa key
+    const targetKey = Object.entries(caixaMap).find(([_, nome]) => nome === redirectTarget)?.[0];
+    if (targetKey) {
+      valores[targetKey] = (valores[targetKey] || 0) + redirectPopup.excedente;
+    }
+    await executeDistribution(valores);
   };
 
   const handleDeleteDist = async (id: string) => {
     if (!confirm("Excluir esta distribuição?")) return;
-
     const dist = distribuicoes.find((item) => item.id === id);
     if (!dist) return;
 
@@ -131,6 +189,8 @@ export function FbDistribuicaoPJ() {
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#a5c8ff]" /></div>;
 
+  const otherCaixas = caixasList.filter(c => c.nome !== "Pro Labore" && c.tipo === "empresa");
+
   return (
     <section className="p-8 max-w-7xl mx-auto space-y-12">
       {/* Configuração de Percentuais */}
@@ -150,7 +210,7 @@ export function FbDistribuicaoPJ() {
             <div key={cfg.key} className={`bg-[#0e1c2d] p-6 rounded-xl border-l-4 ${cfg.borderColor} shadow-lg transition-transform hover:-translate-y-1 duration-300`}>
               <p className="text-xs uppercase tracking-widest text-[#8b919e] mb-4">{cfg.label}</p>
               <div className="flex items-baseline gap-1">
-                <span className="text-3xl font-['Manrope'] font-extrabold text-[#d5e4fa]">{percentuais[cfg.key]}</span>
+                <span className="text-3xl font-['Manrope'] font-extrabold text-[#d5e4fa]">{Number(percentuais[cfg.key]) || 0}</span>
                 <span className={`text-xl font-['Manrope'] font-bold ${cfg.percentColor}`}>%</span>
               </div>
               <div className="mt-4 flex gap-2">
@@ -204,7 +264,7 @@ export function FbDistribuicaoPJ() {
                 <div key={cfg.key} className="flex justify-between items-center group">
                   <span className="text-sm text-[#8b919e] group-hover:text-[#d5e4fa] transition-colors">{cfg.label}</span>
                   <span className={`font-['Manrope'] font-bold ${cfg.valueColor}`}>
-                    {formatBRL(entradaNum * percentuais[cfg.key] / 100)}
+                    {formatBRL(entradaNum * (Number(percentuais[cfg.key]) || 0) / 100)}
                   </span>
                 </div>
               ))}
@@ -306,6 +366,52 @@ export function FbDistribuicaoPJ() {
                   );
                 })}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Redirect Pro Labore Popup */}
+      {redirectPopup && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setRedirectPopup(null)}>
+          <div className="bg-[#0e1c2d] rounded-2xl w-full max-w-md shadow-2xl border border-[#f5c542]/30 p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-4">
+              <span className="material-symbols-outlined text-[#f5c542] text-2xl">account_balance_wallet</span>
+              <h3 className="font-['Manrope'] font-bold text-lg text-[#d5e4fa]">Meta Pro Labore Atingida!</h3>
+            </div>
+            <p className="text-sm text-[#8b919e] mb-4">
+              O caixa de Pro Labore já atingiu (ou vai atingir) a meta mensal. O excedente de{" "}
+              <span className="font-bold text-[#f5c542]">{formatBRL(redirectPopup.excedente)}</span>{" "}
+              precisa ser redirecionado para outro caixa.
+            </p>
+
+            <div className="space-y-2 mb-6">
+              <label className="text-xs uppercase tracking-widest text-[#8b919e] font-bold">Enviar excedente para:</label>
+              <div className="grid grid-cols-1 gap-2">
+                {otherCaixas.map(c => (
+                  <button
+                    key={c.id}
+                    onClick={() => setRedirectTarget(c.nome)}
+                    className={`flex items-center justify-between p-3 rounded-lg border transition-all ${
+                      redirectTarget === c.nome
+                        ? "border-[#f5c542] bg-[#f5c542]/10 text-[#f5c542]"
+                        : "border-white/10 bg-[#051424] text-[#8b919e] hover:border-white/20"
+                    }`}
+                  >
+                    <span className="text-sm font-medium">{c.nome}</span>
+                    <span className="text-xs">{formatBRL(Number(c.saldo_atual))}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button onClick={() => setRedirectPopup(null)} className="flex-1 py-3 rounded-lg border border-white/10 text-[#8b919e] text-sm font-medium hover:bg-white/5">
+                Cancelar
+              </button>
+              <button onClick={handleRedirectConfirm} className="flex-1 py-3 rounded-lg bg-[#f5c542] text-[#1a1400] text-sm font-black hover:brightness-110">
+                Confirmar Redirecionamento
+              </button>
             </div>
           </div>
         </div>
