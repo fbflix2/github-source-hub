@@ -56,18 +56,14 @@ export function FbCaixas() {
   useEffect(() => { fetchCaixas(); }, []);
 
   const fetchCaixas = async () => {
-    const [{ data: caixasData }, { data: lancamentosData }] = await Promise.all([
-      supabase.from("fb_finance_caixas" as any).select("*").order("tipo").order("nome"),
-      supabase.from("fb_finance_lancamentos" as any).select("id, caixa_destino_id, entrada, saida"),
-    ]);
+    const { data: caixasData } = await supabase.from("fb_finance_caixas" as any).select("*").order("tipo").order("nome");
 
     const caixaRows = (caixasData as any[]) || [];
-    const saldoMap = buildDisplayCaixaBalanceMap(caixaRows, (lancamentosData as any[]) || []);
 
     setCaixas(
       caixaRows.map((caixa) => ({
         ...caixa,
-        saldo_atual: saldoMap[caixa.id] ?? Number(caixa.saldo_atual || 0),
+        saldo_atual: Number(caixa.saldo_atual || 0),
       })) as any
     );
     setLoading(false);
