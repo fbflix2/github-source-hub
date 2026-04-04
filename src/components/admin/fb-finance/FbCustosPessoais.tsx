@@ -70,6 +70,37 @@ export function FbCustosPessoais() {
   const [editItem, setEditItem] = useState<CustoPessoal | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [filter, setFilter] = useState<"all" | "fixo" | "variavel">("all");
+  const [customCats, setCustomCats] = useState(loadCustomCats);
+  const [addingCat, setAddingCat] = useState(false);
+  const [newCatLabel, setNewCatLabel] = useState("");
+  const [showCatManager, setShowCatManager] = useState(false);
+
+  const categorias = buildCategorias(customCats);
+  const getCat = (cat: string) => getCatFromList(cat, categorias);
+
+  const handleAddCategory = () => {
+    const label = newCatLabel.trim();
+    if (!label) return;
+    const value = label.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
+    if (categorias.find(c => c.value === value)) {
+      toast({ title: "Categoria já existe", variant: "destructive" });
+      return;
+    }
+    const updated = [...customCats, { value, label }];
+    setCustomCats(updated);
+    saveCustomCats(updated);
+    setForm({ ...form, categoria: value });
+    setNewCatLabel("");
+    setAddingCat(false);
+    toast({ title: `Categoria "${label}" adicionada!` });
+  };
+
+  const handleRemoveCategory = (value: string) => {
+    const updated = customCats.filter(c => c.value !== value);
+    setCustomCats(updated);
+    saveCustomCats(updated);
+    toast({ title: "Categoria removida" });
+  };
 
   const fetchCustos = async () => {
     const { data } = await supabase.from("fb_finance_custos_pessoais" as any).select("*").order("dia_vencimento");
