@@ -208,14 +208,13 @@ export function FbCaixas() {
         </div>
       </div>
 
-      <h3 className="font-['Manrope'] font-bold text-xl text-[#d5e4fa] mb-8 flex items-center gap-3">
-        <span className="w-8 h-[2px] bg-[#a5c8ff]"></span>
-        Suas Caixas Ativas
-      </h3>
+      {/* PJ Section */}
+      {(() => {
+        const pjNames = ["Capital de Giro", "Dividendos", "Fundos Reserva/Crise", "Fundos Reserva", "Fundos Reserva/Colchão", "Operacional"];
+        const pjCaixas = caixas.filter(c => pjNames.some(n => c.nome.toLowerCase().includes(n.toLowerCase())) || (c.tipo === "empresa" && !["Dia a Dia", "Dia a Dia/Emergências", "Estilo de Vida", "Fundo Emergência", "Investimentos", "Janela Oportunidade", "Conta Corrente Pessoal"].some(n => c.nome.toLowerCase().includes(n.toLowerCase()))));
+        const pessoalCaixas = caixas.filter(c => !pjCaixas.includes(c));
 
-      {/* Envelope Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {caixas.map((c) => {
+        const renderCard = (c: Caixa) => {
           const saldo = Number(c.saldo_atual);
           const iconCfg = caixaIcons[c.nome] || defaultIcon;
           const meta = Number(c.meta) > 0 ? Number(c.meta) : (c.alvo_percent > 0 ? saldo / (c.alvo_percent / 100) : saldo * 1.5);
@@ -284,8 +283,40 @@ export function FbCaixas() {
               </button>
             </div>
           );
-        })}
-      </div>
+        };
+
+        return (
+          <>
+            {pjCaixas.length > 0 && (
+              <>
+                <h3 className="font-['Manrope'] font-bold text-xl text-[#d5e4fa] mb-6 flex items-center gap-3">
+                  <span className="w-8 h-[2px] bg-[#1976d2]"></span>
+                  <span className="material-symbols-outlined text-[#1976d2]" style={{ fontVariationSettings: "'FILL' 1" }}>business</span>
+                  Caixas PJ
+                  <span className="text-xs font-medium text-[#8b919e] ml-2">({pjCaixas.length})</span>
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+                  {pjCaixas.map(renderCard)}
+                </div>
+              </>
+            )}
+
+            {pessoalCaixas.length > 0 && (
+              <>
+                <h3 className="font-['Manrope'] font-bold text-xl text-[#d5e4fa] mb-6 flex items-center gap-3">
+                  <span className="w-8 h-[2px] bg-[#40e56c]"></span>
+                  <span className="material-symbols-outlined text-[#40e56c]" style={{ fontVariationSettings: "'FILL' 1" }}>person</span>
+                  Caixas Pessoal
+                  <span className="text-xs font-medium text-[#8b919e] ml-2">({pessoalCaixas.length})</span>
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {pessoalCaixas.map(renderCard)}
+                </div>
+              </>
+            )}
+          </>
+        );
+      })()}
 
       {/* Detail Modal */}
       {selectedCaixa && (
