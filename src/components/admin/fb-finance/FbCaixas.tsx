@@ -146,9 +146,10 @@ export function FbCaixas() {
 
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#a5c8ff]" /></div>;
 
-  const ModalOverlay = ({ children, onClose }: { children: React.ReactNode; onClose: () => void }) => (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-[#0e1c2d] rounded-2xl w-full max-w-lg shadow-2xl border border-[#414752]/20" onClick={e => e.stopPropagation()}>
+  // ModalOverlay extracted as stable function to avoid re-mount on every render
+  const renderModalOverlay = (onClose: () => void, children: React.ReactNode) => (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="bg-[#0e1c2d] rounded-2xl w-full max-w-lg shadow-2xl border border-[#414752]/20">
         {children}
       </div>
     </div>
