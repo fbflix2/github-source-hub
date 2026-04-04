@@ -10,6 +10,7 @@ interface Percentuais {
   dividendos: number;
   operacional: number;
   dia_a_dia: number;
+  pro_labore: number;
 }
 
 interface Distribuicao {
