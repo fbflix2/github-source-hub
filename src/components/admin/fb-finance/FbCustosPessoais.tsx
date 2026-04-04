@@ -15,7 +15,7 @@ interface CustoPessoal {
   notas: string | null;
 }
 
-const categorias = [
+const defaultCategorias = [
   { value: "moradia", label: "Moradia", icon: "home", color: "text-blue-400", bg: "bg-blue-500/10" },
   { value: "transporte", label: "Transporte", icon: "directions_car", color: "text-cyan-400", bg: "bg-cyan-500/10" },
   { value: "alimentacao", label: "Alimentação", icon: "restaurant", color: "text-orange-400", bg: "bg-orange-500/10" },
@@ -27,8 +27,30 @@ const categorias = [
   { value: "outros", label: "Outros", icon: "more_horiz", color: "text-[#8b919e]", bg: "bg-[#8b919e]/10" },
 ];
 
-function getCat(cat: string) {
-  return categorias.find(c => c.value === cat) || categorias[categorias.length - 1];
+const CUSTOM_CATS_KEY = "fb_custos_pessoais_custom_cats";
+
+function loadCustomCats(): { value: string; label: string }[] {
+  try {
+    return JSON.parse(localStorage.getItem(CUSTOM_CATS_KEY) || "[]");
+  } catch { return []; }
+}
+
+function saveCustomCats(cats: { value: string; label: string }[]) {
+  localStorage.setItem(CUSTOM_CATS_KEY, JSON.stringify(cats));
+}
+
+function buildCategorias(custom: { value: string; label: string }[]) {
+  const all = [...defaultCategorias];
+  custom.forEach(c => {
+    if (!all.find(a => a.value === c.value)) {
+      all.splice(all.length - 1, 0, { value: c.value, label: c.label, icon: "label", color: "text-sky-400", bg: "bg-sky-500/10" });
+    }
+  });
+  return all;
+}
+
+function getCatFromList(cat: string, list: typeof defaultCategorias) {
+  return list.find(c => c.value === cat) || list[list.length - 1];
 }
 
 const ModalOverlay = ({ children, onClose }: { children: React.ReactNode; onClose: () => void }) => (
@@ -48,6 +70,37 @@ export function FbCustosPessoais() {
   const [editItem, setEditItem] = useState<CustoPessoal | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [filter, setFilter] = useState<"all" | "fixo" | "variavel">("all");
+  const [customCats, setCustomCats] = useState(loadCustomCats);
+  const [addingCat, setAddingCat] = useState(false);
+  const [newCatLabel, setNewCatLabel] = useState("");
+  const [showCatManager, setShowCatManager] = useState(false);
+
+  const categorias = buildCategorias(customCats);
+  const getCat = (cat: string) => getCatFromList(cat, categorias);
+
+  const handleAddCategory = () => {
+    const label = newCatLabel.trim();
+    if (!label) return;
+    const value = label.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
+    if (categorias.find(c => c.value === value)) {
+      toast({ title: "Categoria já existe", variant: "destructive" });
+      return;
+    }
+    const updated = [...customCats, { value, label }];
+    setCustomCats(updated);
+    saveCustomCats(updated);
+    setForm({ ...form, categoria: value });
+    setNewCatLabel("");
+    setAddingCat(false);
+    toast({ title: `Categoria "${label}" adicionada!` });
+  };
+
+  const handleRemoveCategory = (value: string) => {
+    const updated = customCats.filter(c => c.value !== value);
+    setCustomCats(updated);
+    saveCustomCats(updated);
+    toast({ title: "Categoria removida" });
+  };
 
   const fetchCustos = async () => {
     const { data } = await supabase.from("fb_finance_custos_pessoais" as any).select("*").order("dia_vencimento");
@@ -308,10 +361,49 @@ export function FbCustosPessoais() {
                 </div>
                 <div>
                   <label className="text-[10px] text-[#8b919e] uppercase tracking-widest block mb-1">Categoria</label>
-                  <select value={form.categoria} onChange={e => setForm({ ...form, categoria: e.target.value })}
-                    className="w-full bg-[#051424] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-[#d5e4fa] outline-none">
-                    {categorias.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-                  </select>
+                  {addingCat ? (
+                    <div className="flex gap-2">
+                      <input value={newCatLabel} onChange={e => setNewCatLabel(e.target.value)} placeholder="Nome da categoria"
+                        autoFocus onKeyDown={e => e.key === "Enter" && handleAddCategory()}
+                        className="flex-1 bg-[#051424] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-[#d5e4fa] outline-none focus:ring-2 focus:ring-[#1976d2]" />
+                      <button onClick={handleAddCategory} className="px-3 py-2 bg-[#1976d2] rounded-lg text-white text-xs font-bold">
+                        <span className="material-symbols-outlined text-sm">check</span>
+                      </button>
+                      <button onClick={() => { setAddingCat(false); setNewCatLabel(""); }} className="px-3 py-2 bg-[#1d2b3c] rounded-lg text-[#8b919e] text-xs">
+                        <span className="material-symbols-outlined text-sm">close</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <select value={form.categoria} onChange={e => setForm({ ...form, categoria: e.target.value })}
+                        className="flex-1 bg-[#051424] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-[#d5e4fa] outline-none">
+                        {categorias.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                      </select>
+                      <button onClick={() => setAddingCat(true)} title="Nova categoria"
+                        className="px-3 py-2 bg-[#1d2b3c] hover:bg-[#283647] rounded-lg text-[#8b919e] hover:text-[#d5e4fa] transition-colors">
+                        <span className="material-symbols-outlined text-sm">add</span>
+                      </button>
+                      {customCats.length > 0 && (
+                        <button onClick={() => setShowCatManager(!showCatManager)} title="Gerenciar categorias"
+                          className="px-3 py-2 bg-[#1d2b3c] hover:bg-[#283647] rounded-lg text-[#8b919e] hover:text-[#d5e4fa] transition-colors">
+                          <span className="material-symbols-outlined text-sm">settings</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {showCatManager && customCats.length > 0 && (
+                    <div className="mt-2 bg-[#051424] border border-white/10 rounded-lg p-2 space-y-1">
+                      <p className="text-[10px] text-[#8b919e] uppercase tracking-widest mb-1">Categorias personalizadas</p>
+                      {customCats.map(c => (
+                        <div key={c.value} className="flex items-center justify-between px-2 py-1.5 rounded hover:bg-white/5">
+                          <span className="text-xs text-[#d5e4fa]">{c.label}</span>
+                          <button onClick={() => handleRemoveCategory(c.value)} className="text-[#8b919e] hover:text-[#e71a0e] transition-colors">
+                            <span className="material-symbols-outlined text-sm">delete</span>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
               <div>
