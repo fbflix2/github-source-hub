@@ -133,7 +133,6 @@ export function FbDistribuicaoPJ() {
     const next = { ...percentuais };
     delete next[key];
     setPercentuais(next);
-    await savePercToDb(next);
     toast({ title: `"${keyToLabel(key)}" removido` });
   };
 
@@ -145,7 +144,6 @@ export function FbDistribuicaoPJ() {
     defaultLabels[key] = newCardName.trim();
     caixaMap[key] = newCardName.trim();
     setPercentuais(next);
-    await savePercToDb(next);
     setNewCardName("");
     setNewCardPerc("0");
     setShowAddModal(false);
@@ -154,7 +152,6 @@ export function FbDistribuicaoPJ() {
 
   const handleResetDefaults = async () => {
     setPercentuais({ ...defaultPerc });
-    await savePercToDb({ ...defaultPerc });
     toast({ title: "Padrões restaurados" });
   };
 
