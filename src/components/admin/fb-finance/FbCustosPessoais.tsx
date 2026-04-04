@@ -135,7 +135,9 @@ export function FbCustosPessoais() {
       toast({ title: "Categoria já existe", variant: "destructive" });
       return;
     }
-    const updated = [...customCats, { value, label }];
+    const icon = guessIcon(label);
+    const palette = colorPalette[(customCats.length) % colorPalette.length];
+    const updated: CustomCat[] = [...customCats, { value, label, icon, color: palette.color, bg: palette.bg }];
     setCustomCats(updated);
     saveCustomCats(updated);
     setForm({ ...form, categoria: value });
