@@ -208,6 +208,48 @@ export function FbCustosPessoais() {
     fetchCustos();
   };
 
+  const handlePayFromProLabore = async (c: CustoPessoal) => {
+    if (!confirm(`Pagar "${c.nome}" (${formatBRL(c.valor)}) debitando do caixa Pro Labore?`)) return;
+    setPaying(c.id);
+    try {
+      // Find Pro Labore caixa
+      const { data: caixas } = await supabase.from("fb_finance_caixas" as any).select("id, nome, saldo_atual");
+      const proLabore = (caixas as any[] || []).find((cx: any) => cx.nome === "Pro Labore");
+      if (!proLabore) {
+        toast({ title: "Caixa 'Pro Labore' não encontrado. Crie-o primeiro.", variant: "destructive" });
+        return;
+      }
+
+      const saldoAtual = Number(proLabore.saldo_atual || 0);
+      if (saldoAtual < c.valor) {
+        toast({ title: `Saldo insuficiente no Pro Labore (${formatBRL(saldoAtual)})`, variant: "destructive" });
+        return;
+      }
+
+      // Create a lancamento for the debit
+      await supabase.from("fb_finance_lancamentos" as any).insert({
+        data: new Date().toISOString().split("T")[0],
+        tipo: "pessoal",
+        categoria: c.categoria || "outros",
+        descricao: `Pagamento: ${c.nome}`,
+        entrada: 0,
+        saida: c.valor,
+        caixa_destino_id: proLabore.id,
+      } as any);
+
+      // Update Pro Labore balance
+      await supabase.from("fb_finance_caixas" as any)
+        .update({ saldo_atual: saldoAtual - c.valor } as any)
+        .eq("id", proLabore.id);
+
+      toast({ title: `"${c.nome}" pago com sucesso do Pro Labore!` });
+    } catch {
+      toast({ title: "Erro ao processar pagamento", variant: "destructive" });
+    } finally {
+      setPaying(null);
+    }
+  };
+
   const filtered = custos.filter(c => filter === "all" || c.tipo === filter);
   const ativos = filtered.filter(c => c.ativo);
   const inativos = filtered.filter(c => !c.ativo);
