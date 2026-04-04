@@ -145,7 +145,7 @@ export function FbDistribuicaoPJ() {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
           {percConfig.map((cfg) => (
             <div key={cfg.key} className={`bg-[#0e1c2d] p-6 rounded-xl border-l-4 ${cfg.borderColor} shadow-lg transition-transform hover:-translate-y-1 duration-300`}>
               <p className="text-xs uppercase tracking-widest text-[#8b919e] mb-4">{cfg.label}</p>
