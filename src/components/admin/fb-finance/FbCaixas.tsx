@@ -318,7 +318,7 @@ export function FbCaixas() {
 
       {/* Detail Modal */}
       {selectedCaixa && (
-        {selectedCaixa && (<ModalOverlay onClose={() => setSelectedCaixa(null)}>
+        <ModalOverlay onClose={() => setSelectedCaixa(null)}>
           <div className="max-h-[85vh] overflow-hidden flex flex-col">
             <div className="p-6 border-b border-[#414752]/20 flex items-center justify-between">
               <div className="flex items-center gap-4">
@@ -389,12 +389,12 @@ export function FbCaixas() {
               )}
             </div>
           </div>
-        )}
+        </ModalOverlay>
       )}
 
       {/* Nova Caixa Modal */}
       {showNewModal && (
-        {selectedCaixa && (<ModalOverlay onClose={() => setShowNewModal(false)}>
+        <ModalOverlay onClose={() => setShowNewModal(false)}>
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
               <h3 className="font-['Manrope'] font-bold text-xl text-[#d5e4fa]">Nova Caixa</h3>
@@ -426,12 +426,12 @@ export function FbCaixas() {
               </button>
             </div>
           </div>
-        )}
+        </ModalOverlay>
       )}
 
       {/* Transferir Modal */}
       {showTransferModal && (
-        {selectedCaixa && (<ModalOverlay onClose={() => setShowTransferModal(false)}>
+        <ModalOverlay onClose={() => setShowTransferModal(false)}>
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
               <h3 className="font-['Manrope'] font-bold text-xl text-[#d5e4fa]">Transferir entre Caixas</h3>
@@ -467,12 +467,12 @@ export function FbCaixas() {
               </button>
             </div>
           </div>
-        )}
+        </ModalOverlay>
       )}
 
       {/* Edit Caixa Modal */}
       {editCaixa && (
-        {selectedCaixa && (<ModalOverlay onClose={() => setEditCaixa(null)}>
+        <ModalOverlay onClose={() => setEditCaixa(null)}>
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
               <h3 className="font-['Manrope'] font-bold text-xl text-[#d5e4fa]">Editar Caixa</h3>
@@ -510,9 +510,49 @@ export function FbCaixas() {
               </button>
             </div>
           </div>
-        )}
+        </ModalOverlay>
       )}
 
+      {/* Edit Saldo Modal */}
+      {editSaldoCaixa && (
+        <ModalOverlay onClose={() => setEditSaldoCaixa(null)}>
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="font-['Manrope'] font-bold text-xl text-[#d5e4fa]">Editar Saldo</h3>
+              <button onClick={() => setEditSaldoCaixa(null)} className="text-[#8b919e] hover:text-white"><span className="material-symbols-outlined">close</span></button>
+            </div>
+            <p className="text-sm text-[#c1c6d4] mb-4">
+              Caixa: <span className="font-bold text-[#d5e4fa]">{editSaldoCaixa.nome}</span>
+            </p>
+            <div className="space-y-4">
+              <div>
+                <label className="text-[10px] text-[#8b919e] uppercase tracking-widest block mb-1">Novo Saldo (R$)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={editSaldoValue}
+                  onChange={e => setEditSaldoValue(e.target.value)}
+                  className="w-full bg-[#051424] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-[#d5e4fa] outline-none focus:ring-2 focus:ring-[#1976d2]"
+                  autoFocus
+                />
+              </div>
+              <button
+                onClick={async () => {
+                  const val = parseFloat(editSaldoValue);
+                  if (isNaN(val)) { toast({ title: "Valor inválido", variant: "destructive" }); return; }
+                  await supabase.from("fb_finance_caixas" as any).update({ saldo_atual: val } as any).eq("id", editSaldoCaixa.id);
+                  toast({ title: `Saldo de "${editSaldoCaixa.nome}" atualizado para ${formatBRL(val)}` });
+                  setEditSaldoCaixa(null);
+                  fetchCaixas();
+                }}
+                className="w-full bg-[#1976d2] text-white py-3 rounded-lg font-bold text-sm mt-2 active:scale-[0.98] transition-transform"
+              >
+                Salvar Saldo
+              </button>
+            </div>
+          </div>
+        </ModalOverlay>
+      )}
       {/* Edit Saldo Modal */}
       {editSaldoCaixa && (
         {selectedCaixa && (<ModalOverlay onClose={() => setEditSaldoCaixa(null)}>
