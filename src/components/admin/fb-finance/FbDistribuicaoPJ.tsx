@@ -25,6 +25,7 @@ const percConfig: { key: keyof Percentuais; label: string; borderColor: string; 
   { key: "fundos_reserva", label: "Fundos", borderColor: "border-[#40e56c]", percentColor: "text-[#40e56c]", valueColor: "text-[#40e56c]" },
   { key: "dividendos", label: "Dividendos", borderColor: "border-[#ffb4a8]", percentColor: "text-[#ffb4a8]", valueColor: "text-[#ffb4a8]" },
   { key: "operacional", label: "Operacional", borderColor: "border-[#a5c8ff]/60", percentColor: "text-[#a5c8ff]/60", valueColor: "text-[#a5c8ff]/60" },
+  { key: "pro_labore", label: "Pro Labore", borderColor: "border-[#f5c542]", percentColor: "text-[#f5c542]", valueColor: "text-[#f5c542]" },
   { key: "dia_a_dia", label: "Dia a Dia", borderColor: "border-[#8b919e]", percentColor: "text-[#8b919e]", valueColor: "text-[#8b919e]" },
 ];
 
