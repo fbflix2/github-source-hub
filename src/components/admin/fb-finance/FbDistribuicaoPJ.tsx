@@ -22,7 +22,7 @@ interface Distribuicao {
 }
 
 interface CaixaInfo {
-  id: string; nome: string; saldo_atual: number; meta: number;
+  id: string; nome: string; saldo_atual: number; meta: number; tipo: string;
 }
 
 const defaultPerc: Percentuais = { capital_giro: 2, fundos_reserva: 13, dividendos: 1, operacional: 72, dia_a_dia: 2, pro_labore: 10 };
