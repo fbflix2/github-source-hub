@@ -361,10 +361,49 @@ export function FbCustosPessoais() {
                 </div>
                 <div>
                   <label className="text-[10px] text-[#8b919e] uppercase tracking-widest block mb-1">Categoria</label>
-                  <select value={form.categoria} onChange={e => setForm({ ...form, categoria: e.target.value })}
-                    className="w-full bg-[#051424] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-[#d5e4fa] outline-none">
-                    {categorias.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-                  </select>
+                  {addingCat ? (
+                    <div className="flex gap-2">
+                      <input value={newCatLabel} onChange={e => setNewCatLabel(e.target.value)} placeholder="Nome da categoria"
+                        autoFocus onKeyDown={e => e.key === "Enter" && handleAddCategory()}
+                        className="flex-1 bg-[#051424] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-[#d5e4fa] outline-none focus:ring-2 focus:ring-[#1976d2]" />
+                      <button onClick={handleAddCategory} className="px-3 py-2 bg-[#1976d2] rounded-lg text-white text-xs font-bold">
+                        <span className="material-symbols-outlined text-sm">check</span>
+                      </button>
+                      <button onClick={() => { setAddingCat(false); setNewCatLabel(""); }} className="px-3 py-2 bg-[#1d2b3c] rounded-lg text-[#8b919e] text-xs">
+                        <span className="material-symbols-outlined text-sm">close</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <select value={form.categoria} onChange={e => setForm({ ...form, categoria: e.target.value })}
+                        className="flex-1 bg-[#051424] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-[#d5e4fa] outline-none">
+                        {categorias.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                      </select>
+                      <button onClick={() => setAddingCat(true)} title="Nova categoria"
+                        className="px-3 py-2 bg-[#1d2b3c] hover:bg-[#283647] rounded-lg text-[#8b919e] hover:text-[#d5e4fa] transition-colors">
+                        <span className="material-symbols-outlined text-sm">add</span>
+                      </button>
+                      {customCats.length > 0 && (
+                        <button onClick={() => setShowCatManager(!showCatManager)} title="Gerenciar categorias"
+                          className="px-3 py-2 bg-[#1d2b3c] hover:bg-[#283647] rounded-lg text-[#8b919e] hover:text-[#d5e4fa] transition-colors">
+                          <span className="material-symbols-outlined text-sm">settings</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {showCatManager && customCats.length > 0 && (
+                    <div className="mt-2 bg-[#051424] border border-white/10 rounded-lg p-2 space-y-1">
+                      <p className="text-[10px] text-[#8b919e] uppercase tracking-widest mb-1">Categorias personalizadas</p>
+                      {customCats.map(c => (
+                        <div key={c.value} className="flex items-center justify-between px-2 py-1.5 rounded hover:bg-white/5">
+                          <span className="text-xs text-[#d5e4fa]">{c.label}</span>
+                          <button onClick={() => handleRemoveCategory(c.value)} className="text-[#8b919e] hover:text-[#e71a0e] transition-colors">
+                            <span className="material-symbols-outlined text-sm">delete</span>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
               <div>
