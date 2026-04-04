@@ -1,0 +1,1 @@
+UPDATE fb_finance_lancamentos SET entrada = 2500 WHERE id = '85018ff6-692f-429c-8fd1-14c3885c13dd';
