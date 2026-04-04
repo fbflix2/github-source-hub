@@ -371,6 +371,18 @@ export function FbCustosPessoais() {
                 <div className="flex items-center gap-4">
                   <span className="text-sm font-bold text-[#e71a0e]">{formatBRL(c.valor)}</span>
                   <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handlePayFromProLabore(c)}
+                      disabled={paying === c.id}
+                      title="Pagar com Pro Labore"
+                      className="p-1.5 hover:bg-[#f5c542]/10 rounded-lg text-[#f5c542] hover:text-[#f5c542] transition-colors disabled:opacity-50"
+                    >
+                      {paying === c.id ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#f5c542]" />
+                      ) : (
+                        <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>payments</span>
+                      )}
+                    </button>
                     <button onClick={() => openEdit(c)} className="p-1.5 hover:bg-white/5 rounded-lg text-[#8b919e] hover:text-[#d5e4fa] transition-colors">
                       <span className="material-symbols-outlined text-sm">edit</span>
                     </button>
