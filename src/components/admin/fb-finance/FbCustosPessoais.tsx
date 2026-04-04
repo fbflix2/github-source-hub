@@ -131,16 +131,20 @@ export function FbCustosPessoais() {
     const label = newCatLabel.trim();
     if (!label) return;
     const value = label.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
-    if (categorias.find(c => c.value === value)) {
+    // Check against current categories built from latest custom cats
+    const currentCats = buildCategorias(loadCustomCats());
+    if (currentCats.find(c => c.value === value)) {
       toast({ title: "Categoria já existe", variant: "destructive" });
       return;
     }
     const icon = guessIcon(label);
-    const palette = colorPalette[(customCats.length) % colorPalette.length];
-    const updated: CustomCat[] = [...customCats, { value, label, icon, color: palette.color, bg: palette.bg }];
-    setCustomCats(updated);
-    saveCustomCats(updated);
-    setForm({ ...form, categoria: value });
+    setCustomCats(prev => {
+      const palette = colorPalette[prev.length % colorPalette.length];
+      const updated: CustomCat[] = [...prev, { value, label, icon, color: palette.color, bg: palette.bg }];
+      saveCustomCats(updated);
+      return updated;
+    });
+    setForm(prev => ({ ...prev, categoria: value }));
     setNewCatLabel("");
     setAddingCat(false);
     toast({ title: `Categoria "${label}" adicionada!` });
