@@ -322,7 +322,7 @@ export function FbCaixas() {
       {/* Detail Modal */}
       {selectedCaixa && (
         {renderModalOverlay(() => setSelectedCaixa(null),
-          <div className="max-h-[85vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+          <div className="max-h-[85vh] overflow-hidden flex flex-col">
             <div className="p-6 border-b border-[#414752]/20 flex items-center justify-between">
               <div className="flex items-center gap-4">
                 {(() => {
