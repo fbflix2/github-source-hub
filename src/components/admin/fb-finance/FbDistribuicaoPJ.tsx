@@ -18,7 +18,7 @@ interface Distribuicao {
   valores_alocados: Record<string, number>; aplicado: boolean; created_at: string;
 }
 
-const defaultPerc: Percentuais = { capital_giro: 2, fundos_reserva: 15, dividendos: 1, operacional: 80, dia_a_dia: 2 };
+const defaultPerc: Percentuais = { capital_giro: 2, fundos_reserva: 13, dividendos: 1, operacional: 72, dia_a_dia: 2, pro_labore: 10 };
 
 const percConfig: { key: keyof Percentuais; label: string; borderColor: string; percentColor: string; valueColor: string }[] = [
   { key: "capital_giro", label: "Capital Giro", borderColor: "border-[#a5c8ff]", percentColor: "text-[#a5c8ff]", valueColor: "text-[#a5c8ff]" },
