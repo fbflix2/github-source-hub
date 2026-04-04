@@ -18,6 +18,13 @@ interface Lancamento {
   caixa_destino_id: string | null; created_at: string;
 }
 
+interface DistPreview {
+  caixaName: string;
+  caixaId: string;
+  percent: number;
+  valor: number;
+}
+
 export function FbLancamentos() {
   const [caixas, setCaixas] = useState<Caixa[]>([]);
   const [lancamentos, setLancamentos] = useState<Lancamento[]>([]);
@@ -26,6 +33,12 @@ export function FbLancamentos() {
   const [mesFilter, setMesFilter] = useState(new Date().toISOString().slice(0, 7));
   const [page, setPage] = useState(0);
   const perPage = 6;
+
+  // Distribution preview state
+  const [showDistPreview, setShowDistPreview] = useState(false);
+  const [distPreviews, setDistPreviews] = useState<DistPreview[]>([]);
+  const [pendingPayload, setPendingPayload] = useState<any>(null);
+  const [distributing, setDistributing] = useState(false);
 
   const [form, setForm] = useState({
     data: new Date().toISOString().split("T")[0],
@@ -75,6 +88,59 @@ export function FbLancamentos() {
   };
 
   const handleSubmit = async () => {
+    const entradaVal = parseFloat(form.entrada) || 0;
+    const saidaVal = parseFloat(form.saida) || 0;
+
+    // If it's an entrada and tipo is empresa, show distribution preview
+    if (entradaVal > 0 && saidaVal === 0 && form.tipo === "empresa") {
+      // Fetch distribution percentages
+      const { data: config } = await supabase.from("fb_finance_config" as any).select("distribution_percentages").limit(1).single();
+      const percs = config ? (config as any).distribution_percentages : null;
+
+      if (percs && Object.keys(percs).length > 0) {
+        const previews: DistPreview[] = [];
+        const allCaixas = caixas;
+
+        // Map from distribution key to caixa name
+        const caixaMap: Record<string, string> = {
+          capital_giro: "Capital de Giro",
+          fundos_reserva: "Fundos Reserva/Crise",
+          dividendos: "Dividendos",
+          operacional: "Operacional",
+          pro_labore: "Pro Labore",
+          dia_a_dia: "Dia a Dia/Emergências",
+        };
+
+        for (const [key, percent] of Object.entries(percs)) {
+          const nome = caixaMap[key] || key;
+          const caixa = allCaixas.find(c => c.nome === nome);
+          if (caixa && Number(percent) > 0) {
+            previews.push({
+              caixaName: nome,
+              caixaId: caixa.id,
+              percent: Number(percent),
+              valor: entradaVal * Number(percent) / 100,
+            });
+          }
+        }
+
+        if (previews.length > 0) {
+          setDistPreviews(previews);
+          setPendingPayload({
+            data: form.data,
+            tipo: form.tipo,
+            categoria: form.categoria,
+            descricao: form.descricao || null,
+            entrada: entradaVal,
+            saida: 0,
+          });
+          setShowDistPreview(true);
+          return;
+        }
+      }
+    }
+
+    // Normal flow (no distribution or saída)
     if (!form.caixa_destino_id) {
       toast({ title: "Selecione um caixa destino", variant: "destructive" });
       return;
@@ -83,8 +149,8 @@ export function FbLancamentos() {
     const payload = {
       data: form.data, tipo: form.tipo, categoria: form.categoria,
       descricao: form.descricao || null,
-      entrada: parseFloat(form.entrada) || 0,
-      saida: parseFloat(form.saida) || 0,
+      entrada: entradaVal,
+      saida: saidaVal,
       caixa_destino_id: form.caixa_destino_id,
     };
 
@@ -97,6 +163,71 @@ export function FbLancamentos() {
     setForm({ ...form, descricao: "", entrada: "", saida: "" });
     setShowForm(false);
     fetchAll();
+  };
+
+  const handleConfirmDistribution = async () => {
+    if (!pendingPayload || distPreviews.length === 0) return;
+    setDistributing(true);
+
+    try {
+      // Create one lancamento per caixa
+      for (const preview of distPreviews) {
+        const lancPayload = {
+          data: pendingPayload.data,
+          tipo: pendingPayload.tipo,
+          categoria: pendingPayload.categoria,
+          descricao: `${pendingPayload.descricao || pendingPayload.categoria} → ${preview.caixaName} (${preview.percent}%)`,
+          entrada: preview.valor,
+          saida: 0,
+          caixa_destino_id: preview.caixaId,
+        };
+
+        await supabase.from("fb_finance_lancamentos" as any).insert(lancPayload as any);
+
+        // Update caixa balance
+        const { data: caixa } = await supabase.from("fb_finance_caixas" as any).select("id, saldo_atual").eq("id", preview.caixaId).single();
+        if (caixa) {
+          const novoSaldo = Number((caixa as any).saldo_atual || 0) + preview.valor;
+          await supabase.from("fb_finance_caixas" as any).update({ saldo_atual: novoSaldo } as any).eq("id", preview.caixaId);
+        }
+      }
+
+      // Also create a distribuição record
+      const percObj: Record<string, number> = {};
+      const valoresObj: Record<string, number> = {};
+      distPreviews.forEach(p => {
+        const key = Object.entries({
+          capital_giro: "Capital de Giro",
+          fundos_reserva: "Fundos Reserva/Crise",
+          dividendos: "Dividendos",
+          operacional: "Operacional",
+          pro_labore: "Pro Labore",
+          dia_a_dia: "Dia a Dia/Emergências",
+        }).find(([, v]) => v === p.caixaName)?.[0] || p.caixaName;
+        percObj[key] = p.percent;
+        valoresObj[key] = p.valor;
+      });
+
+      await supabase.from("fb_finance_distribuicoes" as any).insert({
+        data: pendingPayload.data,
+        entrada_dia: pendingPayload.entrada,
+        percentuais: percObj,
+        valores_alocados: valoresObj,
+        aplicado: true,
+      } as any);
+
+      toast({ title: "Entrada distribuída entre os caixas!" });
+      setShowDistPreview(false);
+      setPendingPayload(null);
+      setDistPreviews([]);
+      setForm({ ...form, descricao: "", entrada: "", saida: "", caixa_destino_id: "" });
+      setShowForm(false);
+      fetchAll();
+    } catch {
+      toast({ title: "Erro ao distribuir", variant: "destructive" });
+    } finally {
+      setDistributing(false);
+    }
   };
 
   const handleDelete = async (id: string) => {
