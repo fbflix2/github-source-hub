@@ -123,6 +123,7 @@ export function FbCustosPessoais() {
   const [addingCat, setAddingCat] = useState(false);
   const [newCatLabel, setNewCatLabel] = useState("");
   const [showCatManager, setShowCatManager] = useState(false);
+  const [paying, setPaying] = useState<string | null>(null);
 
   const categorias = buildCategorias(customCats);
   const getCat = (cat: string) => getCatFromList(cat, categorias);

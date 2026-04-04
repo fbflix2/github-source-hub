@@ -516,6 +516,69 @@ export function FbLancamentos() {
           </div>
         </div>
       </div>
+
+      {/* Distribution Preview Modal */}
+      {showDistPreview && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => { setShowDistPreview(false); setPendingPayload(null); }}>
+          <div className="bg-[#0e1c2d] rounded-2xl w-full max-w-lg shadow-2xl border border-[#414752]/20 p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="font-['Manrope'] font-bold text-xl text-[#d5e4fa] flex items-center gap-2">
+                <span className="material-symbols-outlined text-[#f5c542]">account_balance_wallet</span>
+                Distribuir Entrada
+              </h3>
+              <button onClick={() => { setShowDistPreview(false); setPendingPayload(null); }} className="text-[#8b919e] hover:text-white">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <div className="bg-[#051424] p-4 rounded-lg mb-4 flex justify-between items-center">
+              <span className="text-xs text-[#8b919e] uppercase tracking-widest">Valor Total</span>
+              <span className="text-2xl font-['Manrope'] font-black text-[#40e56c]">{formatBRL(pendingPayload?.entrada || 0)}</span>
+            </div>
+
+            <div className="space-y-2 mb-6">
+              <p className="text-[10px] text-[#8b919e] uppercase tracking-widest font-bold">Distribuição nos Caixas</p>
+              {distPreviews.map(p => (
+                <div key={p.caixaId} className="flex justify-between items-center bg-[#051424] px-4 py-3 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-[#1976d2]/10 flex items-center justify-center">
+                      <span className="material-symbols-outlined text-sm text-[#a5c8ff]">account_balance</span>
+                    </div>
+                    <div>
+                      <span className="text-sm text-[#d5e4fa] font-medium">{p.caixaName}</span>
+                      <span className="text-[10px] text-[#8b919e] ml-2">({p.percent}%)</span>
+                    </div>
+                  </div>
+                  <span className="font-['Manrope'] font-bold text-[#40e56c]">{formatBRL(p.valor)}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={handleConfirmDistribution}
+                disabled={distributing}
+                className="flex-1 py-3 bg-[#40e56c] text-[#003912] font-black rounded-lg uppercase tracking-widest text-xs hover:brightness-110 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {distributing ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#003912]" />
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined text-sm">check_circle</span>
+                    Confirmar Distribuição
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => { setShowDistPreview(false); setPendingPayload(null); }}
+                className="px-6 py-3 border border-white/10 text-[#8b919e] font-bold rounded-lg text-xs hover:bg-white/5 transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
