@@ -14,6 +14,7 @@ const menuItems: { page: FbPage; label: string; icon: string }[] = [
   { page: "distribuicao", label: "Distribuição Diária PJ", icon: "share" },
   { page: "planejamento", label: "Planejamento Mensal", icon: "event_note" },
   { page: "relatorios", label: "Relatórios / Histórico", icon: "analytics" },
+  { page: "custos_pessoais", label: "Custos Pessoais", icon: "receipt_long" },
   { page: "mapa_fluxo", label: "Mapa do Fluxo", icon: "map" },
 ];
 
