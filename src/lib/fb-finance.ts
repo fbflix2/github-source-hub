@@ -1,4 +1,4 @@
-export const FB_FINANCE_NON_OPERATIONAL_CATEGORIES = ["Aporte Pessoal", "Transferência", "Capital de Giro"] as const;
+export const FB_FINANCE_NON_OPERATIONAL_CATEGORIES = ["Aporte Pessoal", "Transferência", "Capital de Giro", "Distribuição PJ"] as const;
 
 export interface FbFinanceLancamentoLike {
   caixa_destino_id?: string | null;
