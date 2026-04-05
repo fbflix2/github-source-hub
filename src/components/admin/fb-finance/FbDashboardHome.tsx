@@ -114,8 +114,14 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
   const maxCum = Math.max(...cumulativeValues.map(Math.abs), 1);
   const barHeights = cumulativeValues.map(v => Math.max(10, ((v + maxCum) / (2 * maxCum)) * 95));
 
-  // Personal budget from despesas_planejadas
-  const salarioLancs = lancamentos.filter(l => l.tipo === "pessoal" && l.entrada > 0);
+  // Personal budget: Pro Labore entries (by caixa name) count as personal income
+  const proLaboreCaixa = caixas.find(c => c.nome.toLowerCase().includes("pro labore") || c.nome.toLowerCase().includes("prolabore"));
+  const salarioLancs = lancamentos.filter(l => {
+    // Entries going to Pro Labore caixa OR personal-type entries with income
+    if (proLaboreCaixa && l.caixa_destino_id === proLaboreCaixa.id && Number(l.entrada) > 0) return true;
+    if (l.tipo === "pessoal" && Number(l.entrada) > 0) return true;
+    return false;
+  });
   const salario = salarioLancs.reduce((s, l) => s + Number(l.entrada), 0);
   const totalDespPessoal = despesas.reduce((s, d) => s + Number(d.valor), 0);
   const despPago = despesas.filter(d => d.pago).reduce((s, d) => s + Number(d.valor), 0);
