@@ -40,6 +40,10 @@ export function FbLancamentos() {
   const [pendingPayload, setPendingPayload] = useState<any>(null);
   const [distributing, setDistributing] = useState(false);
 
+  // Inline edit state
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ data: "", tipo: "", categoria: "", descricao: "", entrada: "", saida: "", caixa_destino_id: "" });
+
   const [form, setForm] = useState({
     data: new Date().toISOString().split("T")[0],
     tipo: "empresa",
@@ -228,6 +232,52 @@ export function FbLancamentos() {
     } finally {
       setDistributing(false);
     }
+  };
+
+  const startEdit = (l: Lancamento) => {
+    setEditingId(l.id);
+    setEditForm({
+      data: l.data,
+      tipo: l.tipo,
+      categoria: l.categoria,
+      descricao: l.descricao || "",
+      entrada: l.entrada > 0 ? String(l.entrada) : "",
+      saida: l.saida > 0 ? String(l.saida) : "",
+      caixa_destino_id: l.caixa_destino_id || "",
+    });
+  };
+
+  const handleSaveEdit = async (id: string) => {
+    const lancamento = lancamentos.find(l => l.id === id);
+    if (!lancamento) return;
+
+    const newEntrada = parseFloat(editForm.entrada) || 0;
+    const newSaida = parseFloat(editForm.saida) || 0;
+
+    const { error } = await supabase.from("fb_finance_lancamentos" as any).update({
+      data: editForm.data,
+      tipo: editForm.tipo,
+      categoria: editForm.categoria,
+      descricao: editForm.descricao || null,
+      entrada: newEntrada,
+      saida: newSaida,
+      caixa_destino_id: editForm.caixa_destino_id || null,
+    } as any).eq("id", id);
+
+    if (error) { toast({ title: "Erro ao salvar", variant: "destructive" }); return; }
+
+    // Recalculate old caixa balance
+    if (lancamento.caixa_destino_id) {
+      await syncCaixaSaldo(lancamento.caixa_destino_id, Number(lancamento.saida) - Number(lancamento.entrada));
+    }
+    // Apply new values to new caixa
+    if (editForm.caixa_destino_id) {
+      await syncCaixaSaldo(editForm.caixa_destino_id, newEntrada - newSaida);
+    }
+
+    toast({ title: "Lançamento atualizado!" });
+    setEditingId(null);
+    fetchAll();
   };
 
   const handleDelete = async (id: string) => {
@@ -423,6 +473,60 @@ export function FbLancamentos() {
               ) : paginatedLancamentos.map((l) => {
                 const isEntrada = Number(l.entrada) > 0;
                 const valor = isEntrada ? Number(l.entrada) : Number(l.saida);
+
+                if (editingId === l.id) {
+                  return (
+                    <tr key={l.id} className="bg-[#051424]">
+                      <td className="py-3 px-4">
+                        <input type="date" value={editForm.data} onChange={e => setEditForm(f => ({ ...f, data: e.target.value }))}
+                          className="w-full bg-[#0e1c2d] border border-white/10 rounded px-2 py-1.5 text-xs text-[#d5e4fa] outline-none focus:ring-1 focus:ring-[#1976d2]" />
+                      </td>
+                      <td className="py-3 px-4">
+                        <input value={editForm.descricao} onChange={e => setEditForm(f => ({ ...f, descricao: e.target.value }))} placeholder="Descrição..."
+                          className="w-full bg-[#0e1c2d] border border-white/10 rounded px-2 py-1.5 text-xs text-[#d5e4fa] outline-none focus:ring-1 focus:ring-[#1976d2]" />
+                      </td>
+                      <td className="py-3 px-4">
+                        <select value={editForm.categoria} onChange={e => setEditForm(f => ({ ...f, categoria: e.target.value }))}
+                          className="w-full bg-[#0e1c2d] border border-white/10 rounded px-2 py-1.5 text-xs text-[#d5e4fa] outline-none focus:ring-1 focus:ring-[#1976d2]">
+                          {categorias.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                      </td>
+                      <td className="py-3 px-4">
+                        <select value={editForm.tipo} onChange={e => setEditForm(f => ({ ...f, tipo: e.target.value }))}
+                          className="w-full bg-[#0e1c2d] border border-white/10 rounded px-2 py-1.5 text-xs text-[#d5e4fa] outline-none focus:ring-1 focus:ring-[#1976d2]">
+                          <option value="empresa">Empresa</option>
+                          <option value="pessoal">Pessoal</option>
+                        </select>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex gap-1">
+                          <input type="number" step="0.01" value={editForm.entrada} onChange={e => setEditForm(f => ({ ...f, entrada: e.target.value, saida: "" }))} placeholder="Entrada"
+                            className="w-20 bg-[#0e1c2d] border border-white/10 rounded px-2 py-1.5 text-xs text-[#40e56c] outline-none focus:ring-1 focus:ring-[#1976d2]" />
+                          <input type="number" step="0.01" value={editForm.saida} onChange={e => setEditForm(f => ({ ...f, saida: e.target.value, entrada: "" }))} placeholder="Saída"
+                            className="w-20 bg-[#0e1c2d] border border-white/10 rounded px-2 py-1.5 text-xs text-[#e71a0e] outline-none focus:ring-1 focus:ring-[#1976d2]" />
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <select value={editForm.caixa_destino_id} onChange={e => setEditForm(f => ({ ...f, caixa_destino_id: e.target.value }))}
+                          className="w-full bg-[#0e1c2d] border border-white/10 rounded px-2 py-1.5 text-xs text-[#d5e4fa] outline-none focus:ring-1 focus:ring-[#1976d2]">
+                          <option value="">-</option>
+                          {caixas.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+                        </select>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex gap-1">
+                          <button onClick={() => handleSaveEdit(l.id)} className="text-[#40e56c] hover:brightness-125 transition-colors">
+                            <span className="material-symbols-outlined text-lg">check</span>
+                          </button>
+                          <button onClick={() => setEditingId(null)} className="text-[#8b919e] hover:text-white transition-colors">
+                            <span className="material-symbols-outlined text-lg">close</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                }
+
                 return (
                   <tr key={l.id} className="hover:bg-white/5 transition-colors group">
                     <td className="py-5 px-6 text-sm text-[#c1c6d4]" style={{ fontFamily: "Inter" }}>
@@ -437,15 +541,12 @@ export function FbLancamentos() {
                       </span>
                     </td>
                     <td className="py-5 px-6 text-center">
-                      <span
-                        className={`material-symbols-outlined ${isEntrada ? "text-[#40e56c]" : "text-[#e71a0e]"}`}
-                        style={{ fontVariationSettings: "'FILL' 1" }}
-                      >
-                        {isEntrada ? "arrow_downward" : "arrow_upward"}
+                      <span className={`text-xs font-medium capitalize ${l.tipo === 'empresa' ? 'text-[#a5c8ff]' : 'text-[#c1c6d4]'}`}>
+                        {l.tipo === 'empresa' ? 'Empresa' : 'Pessoal'}
                       </span>
                     </td>
                     <td className={`py-5 px-6 text-right font-['Manrope'] font-bold ${isEntrada ? "text-[#40e56c]" : "text-[#e71a0e]"}`}>
-                      {formatBRL(valor)}
+                      {isEntrada ? "+ " : "- "}{formatBRL(valor)}
                     </td>
                     <td className="py-5 px-6">
                       <div className="flex items-center gap-2">
@@ -454,9 +555,14 @@ export function FbLancamentos() {
                       </div>
                     </td>
                     <td className="py-5 px-6">
-                      <button onClick={() => handleDelete(l.id)} className="text-[#8b919e]/40 hover:text-[#e71a0e] transition-colors opacity-0 group-hover:opacity-100">
-                        <span className="material-symbols-outlined text-lg">delete</span>
-                      </button>
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => startEdit(l)} className="text-[#8b919e]/60 hover:text-[#a5c8ff] transition-colors">
+                          <span className="material-symbols-outlined text-lg">edit</span>
+                        </button>
+                        <button onClick={() => handleDelete(l.id)} className="text-[#8b919e]/60 hover:text-[#e71a0e] transition-colors">
+                          <span className="material-symbols-outlined text-lg">delete</span>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
