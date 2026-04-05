@@ -164,8 +164,7 @@ export function FbRelatorios() {
 
   // Saldo uses ALL lancamentos (including transfers/pro labore) for accurate balance
   const { totalEntradas, totalSaidas, saldo: saldoPeriodo } = getLancamentoTotals(filtered);
-  // For charts, use operational only when no category filter
-  const summaryLancamentos = catFilter === "all" ? filterOperationalLancamentos(filtered) : filtered;
+  const summaryLancamentos = filtered;
   const growthPercent = (totalEntradas + totalSaidas) > 0 ? ((saldoPeriodo / (totalEntradas + totalSaidas)) * 100).toFixed(1) : "0";
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
