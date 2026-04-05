@@ -612,8 +612,8 @@ export function FbLancamentos() {
           <div>
             <h5 className="font-['Manrope'] font-bold text-lg mb-2 text-[#d5e4fa]">Insight da Vault IA</h5>
             <p className="text-sm text-[#c1c6d4] leading-relaxed">
-              {totalEntradas > totalSaidas
-                ? `Suas entradas superaram as saídas em ${((totalEntradas - totalSaidas) / Math.max(totalSaidas, 1) * 100).toFixed(0)}% neste mês. Recomendamos alocar ${formatBRL((totalEntradas - totalSaidas) * 0.3)} excedentes na sua carteira de investimentos para otimização de rendimento.`
+              {allTotalEntradas > allTotalSaidas
+                ? `Suas entradas superaram as saídas em ${((allTotalEntradas - allTotalSaidas) / Math.max(allTotalSaidas, 1) * 100).toFixed(0)}% neste mês. Recomendamos alocar ${formatBRL((allTotalEntradas - allTotalSaidas) * 0.3)} excedentes na sua carteira de investimentos para otimização de rendimento.`
                 : "Suas saídas estão superiores às entradas neste mês. Revise seus custos fixos para otimizar o fluxo de caixa."}
             </p>
           </div>
