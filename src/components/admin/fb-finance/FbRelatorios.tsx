@@ -162,9 +162,11 @@ export function FbRelatorios() {
   if (flowType === "receitas") filtered = filtered.filter((l) => Number(l.entrada) > 0);
   if (flowType === "despesas") filtered = filtered.filter((l) => Number(l.saida) > 0);
 
+  // Saldo uses ALL lancamentos (including transfers/pro labore) for accurate balance
+  const { totalEntradas, totalSaidas, saldo: saldoPeriodo } = getLancamentoTotals(filtered);
+  // For charts, use operational only when no category filter
   const summaryLancamentos = catFilter === "all" ? filterOperationalLancamentos(filtered) : filtered;
-  const { totalEntradas, totalSaidas, saldo: saldoPeriodo } = getLancamentoTotals(summaryLancamentos);
-  const growthPercent = totalSaidas > 0 ? ((totalEntradas / totalSaidas - 1) * 100).toFixed(1) : "0";
+  const growthPercent = (totalEntradas + totalSaidas) > 0 ? ((saldoPeriodo / (totalEntradas + totalSaidas)) * 100).toFixed(1) : "0";
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
   const paginated = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
