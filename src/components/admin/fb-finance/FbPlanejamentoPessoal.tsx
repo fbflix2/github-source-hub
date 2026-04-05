@@ -99,6 +99,10 @@ export function FbPlanejamentoPessoal() {
   const percentUsado = salario > 0 ? (total / salario) * 100 : 0;
   const economiaPercent = salario > 0 ? ((salario - total) / salario * 100) : 0;
 
+  // % comprometida do Pro Labore (meta) com custos pessoais
+  const pctComprometida = META_PRO_LABORE > 0 ? (totalCustosPessoais / META_PRO_LABORE) * 100 : 0;
+  const sobraParaEnvelopes = Math.max(0, META_PRO_LABORE - totalCustosPessoais);
+
   // Category aggregation for table
   const catMap: Record<string, { orcado: number; realizado: number }> = {};
   despesas.forEach(d => {
