@@ -1,8 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { filterOperationalLancamentos, getLancamentoTotals } from "@/lib/fb-finance";
+import { toast } from "@/hooks/use-toast";
 
 const formatBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+const categorias = [
+  "Salário", "Venda PJ", "Aluguel", "Energia", "Internet", "Gasolina", "Mercado",
+  "Transporte", "Lazer", "Educação", "Saúde", "Serviços", "Vendas", "Tecnologia",
+  "Suprimentos", "Fixo", "Aporte Pessoal", "Transferência", "Capital de Giro", "Outros"
+];
 
 interface Lancamento {
   id: string;
@@ -12,7 +19,10 @@ interface Lancamento {
   categoria: string;
   descricao: string | null;
   tipo: string;
+  caixa_destino_id: string | null;
 }
+
+interface Caixa { id: string; nome: string; tipo: string; saldo_atual: number }
 
 const ITEMS_PER_PAGE = 10;
 
