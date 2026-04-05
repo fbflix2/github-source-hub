@@ -234,6 +234,9 @@ export function FbPlanejamentoPessoal() {
         </div>
       </section>
 
+      {/* Personal Distribution */}
+      <FbPersonalDistribution salario={salario} />
+
       {/* Detailed Budget + Summary */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Category Table */}
