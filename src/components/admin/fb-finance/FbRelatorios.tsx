@@ -411,6 +411,7 @@ export function FbRelatorios() {
                 <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-[#8b919e]">Categoria</th>
                 <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-[#8b919e]">Tipo</th>
                 <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-[#8b919e] text-right">Valor</th>
+                <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-[#8b919e] w-20"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
@@ -418,8 +419,55 @@ export function FbRelatorios() {
                 const isReceita = Number(l.entrada) > 0;
                 const valor = isReceita ? Number(l.entrada) : Number(l.saida);
                 const style = getCatStyle(l.categoria);
+
+                if (editingId === l.id) {
+                  return (
+                    <tr key={l.id} className="bg-[#051424]">
+                      <td className="px-4 py-3">
+                        <input type="date" value={editForm.data} onChange={e => setEditForm(f => ({ ...f, data: e.target.value }))}
+                          className="w-full bg-[#0e1c2d] border border-white/10 rounded px-2 py-1.5 text-xs text-[#d5e4fa] outline-none focus:ring-1 focus:ring-[#1976d2]" />
+                      </td>
+                      <td className="px-4 py-3">
+                        <input value={editForm.descricao} onChange={e => setEditForm(f => ({ ...f, descricao: e.target.value }))} placeholder="Descrição..."
+                          className="w-full bg-[#0e1c2d] border border-white/10 rounded px-2 py-1.5 text-xs text-[#d5e4fa] outline-none focus:ring-1 focus:ring-[#1976d2]" />
+                      </td>
+                      <td className="px-4 py-3">
+                        <select value={editForm.categoria} onChange={e => setEditForm(f => ({ ...f, categoria: e.target.value }))}
+                          className="w-full bg-[#0e1c2d] border border-white/10 rounded px-2 py-1.5 text-xs text-[#d5e4fa] outline-none focus:ring-1 focus:ring-[#1976d2]">
+                          {categorias.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                      </td>
+                      <td className="px-4 py-3">
+                        <select value={editForm.tipo} onChange={e => setEditForm(f => ({ ...f, tipo: e.target.value }))}
+                          className="w-full bg-[#0e1c2d] border border-white/10 rounded px-2 py-1.5 text-xs text-[#d5e4fa] outline-none focus:ring-1 focus:ring-[#1976d2]">
+                          <option value="empresa">Empresa</option>
+                          <option value="pessoal">Pessoal</option>
+                        </select>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex gap-1">
+                          <input type="number" step="0.01" value={editForm.entrada} onChange={e => setEditForm(f => ({ ...f, entrada: e.target.value, saida: "" }))} placeholder="+"
+                            className="w-20 bg-[#0e1c2d] border border-white/10 rounded px-2 py-1.5 text-xs text-[#40e56c] outline-none focus:ring-1 focus:ring-[#1976d2]" />
+                          <input type="number" step="0.01" value={editForm.saida} onChange={e => setEditForm(f => ({ ...f, saida: e.target.value, entrada: "" }))} placeholder="-"
+                            className="w-20 bg-[#0e1c2d] border border-white/10 rounded px-2 py-1.5 text-xs text-[#e71a0e] outline-none focus:ring-1 focus:ring-[#1976d2]" />
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex gap-1">
+                          <button onClick={() => handleSaveEdit(l.id)} className="text-[#40e56c] hover:brightness-125 transition-colors">
+                            <span className="material-symbols-outlined text-lg">check</span>
+                          </button>
+                          <button onClick={() => setEditingId(null)} className="text-[#8b919e] hover:text-white transition-colors">
+                            <span className="material-symbols-outlined text-lg">close</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                }
+
                 return (
-                  <tr key={l.id} className="hover:bg-white/[0.02] transition-colors">
+                  <tr key={l.id} className="hover:bg-white/[0.02] transition-colors group">
                     <td className="px-6 py-4 text-sm font-medium text-[#c1c6d4]">
                       {new Date(l.data + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })}
                     </td>
@@ -447,12 +495,22 @@ export function FbRelatorios() {
                         {isReceita ? "+" : "-"} {formatBRL(valor)}
                       </span>
                     </td>
+                    <td className="px-6 py-4">
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => startEdit(l)} className="text-[#8b919e]/60 hover:text-[#a5c8ff] transition-colors">
+                          <span className="material-symbols-outlined text-lg">edit</span>
+                        </button>
+                        <button onClick={() => handleDelete(l.id)} className="text-[#8b919e]/60 hover:text-[#e71a0e] transition-colors">
+                          <span className="material-symbols-outlined text-lg">delete</span>
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 );
               })}
               {paginated.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-[#414752] text-sm">
+                  <td colSpan={6} className="px-6 py-12 text-center text-[#414752] text-sm">
                     Nenhum lançamento encontrado
                   </td>
                 </tr>
