@@ -295,11 +295,14 @@ export function FbLancamentos() {
     fetchAll();
   };
 
-  const { totalEntradas, totalSaidas, saldo: saldoAtual, uniqueDays } = getOperationalTotals(lancamentos);
-  const diasUnicos = Math.max(uniqueDays, 1);
-  const mediaEntradas = totalEntradas > 0 ? totalEntradas / diasUnicos : 0;
-  const mediaSaidas = totalSaidas > 0 ? totalSaidas / diasUnicos : 0;
-  const taxaConversao = totalEntradas > 0 ? ((totalEntradas - totalSaidas) / totalEntradas * 100) : 0;
+  // Use ALL lancamentos for stats (including distributions/transfers)
+  const allTotalEntradas = lancamentos.reduce((s, l) => s + Number(l.entrada || 0), 0);
+  const allTotalSaidas = lancamentos.reduce((s, l) => s + Number(l.saida || 0), 0);
+  const saldoAtual = allTotalEntradas - allTotalSaidas;
+  const diasUnicos = Math.max(new Set(lancamentos.map(l => l.data).filter(Boolean)).size, 1);
+  const mediaEntradas = allTotalEntradas > 0 ? allTotalEntradas / diasUnicos : 0;
+  const mediaSaidas = allTotalSaidas > 0 ? allTotalSaidas / diasUnicos : 0;
+  const taxaConversao = allTotalEntradas > 0 ? ((allTotalEntradas - allTotalSaidas) / allTotalEntradas * 100) : 0;
 
   const paginatedLancamentos = lancamentos.slice(page * perPage, (page + 1) * perPage);
   const totalPages = Math.ceil(lancamentos.length / perPage);
@@ -609,8 +612,8 @@ export function FbLancamentos() {
           <div>
             <h5 className="font-['Manrope'] font-bold text-lg mb-2 text-[#d5e4fa]">Insight da Vault IA</h5>
             <p className="text-sm text-[#c1c6d4] leading-relaxed">
-              {totalEntradas > totalSaidas
-                ? `Suas entradas superaram as saídas em ${((totalEntradas - totalSaidas) / Math.max(totalSaidas, 1) * 100).toFixed(0)}% neste mês. Recomendamos alocar ${formatBRL((totalEntradas - totalSaidas) * 0.3)} excedentes na sua carteira de investimentos para otimização de rendimento.`
+              {allTotalEntradas > allTotalSaidas
+                ? `Suas entradas superaram as saídas em ${((allTotalEntradas - allTotalSaidas) / Math.max(allTotalSaidas, 1) * 100).toFixed(0)}% neste mês. Recomendamos alocar ${formatBRL((allTotalEntradas - allTotalSaidas) * 0.3)} excedentes na sua carteira de investimentos para otimização de rendimento.`
                 : "Suas saídas estão superiores às entradas neste mês. Revise seus custos fixos para otimizar o fluxo de caixa."}
             </p>
           </div>
