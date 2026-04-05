@@ -38,7 +38,7 @@ const defaultLabels: Record<string, string> = {
 
 const caixaMap: Record<string, string> = {
   capital_giro: "Capital de Giro",
-  fundos_reserva: "Fundos Reserva/Crise",
+  fundos_reserva: "Fundos Fbflix",
   dividendos: "Dividendos",
   operacional: "Operacional",
   pro_labore: "Pro Labore",
