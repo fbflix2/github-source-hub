@@ -28,14 +28,22 @@ export function FbPersonalDistribution({ salario }: Props) {
   useEffect(() => { void fetchAll(); }, []);
 
   const fetchAll = async () => {
-    // Fetch personal caixas
+    // Fetch ALL caixas and filter personal ones using same logic as FbCaixas
     const { data: caixasData } = await supabase
       .from("fb_finance_caixas" as any)
       .select("id, nome, tipo")
-      .eq("tipo", "pessoal")
       .order("nome");
 
-    const boxes = ((caixasData || []) as unknown) as Caixa[];
+    const allBoxes = ((caixasData || []) as unknown) as Caixa[];
+
+    // Same PJ filter logic as FbCaixas to keep lists in sync
+    const pjNames = ["Capital de Giro", "Dividendos", "Fundos Fbflix", "Operacional", "Pro Labore"];
+    const pessoalNames = ["Dia a Dia", "Dia a Dia/Emergências", "Estilo de Vida", "Fundo Emergência", "Investimentos", "Janela Oportunidade", "Conta Corrente Pessoal", "Entrada Compra Casa"];
+    const pjCaixas = allBoxes.filter(c =>
+      pjNames.some(n => c.nome.toLowerCase().includes(n.toLowerCase())) ||
+      (c.tipo === "empresa" && !pessoalNames.some(n => c.nome.toLowerCase().includes(n.toLowerCase())))
+    );
+    const boxes = allBoxes.filter(c => !pjCaixas.includes(c));
     setCaixas(boxes);
 
     // Fetch saved percentages (keyed by caixa id)
