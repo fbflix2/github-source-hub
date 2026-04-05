@@ -58,9 +58,14 @@ export function FbLancamentos() {
 
   const fetchAll = async () => {
     setLoading(true);
+    // Calculate last day of month correctly
+    const [year, month] = mesFilter.split("-").map(Number);
+    const lastDay = new Date(year, month, 0).getDate();
+    const startDate = `${mesFilter}-01`;
+    const endDate = `${mesFilter}-${String(lastDay).padStart(2, "0")}`;
     const [caixasRes, lancRes] = await Promise.all([
       supabase.from("fb_finance_caixas" as any).select("id, nome, tipo, saldo_atual"),
-      supabase.from("fb_finance_lancamentos" as any).select("*").gte("data", `${mesFilter}-01`).lte("data", `${mesFilter}-31`).order("data", { ascending: false }),
+      supabase.from("fb_finance_lancamentos" as any).select("*").gte("data", startDate).lte("data", endDate).order("data", { ascending: false }),
     ]);
     if (caixasRes.data) setCaixas(caixasRes.data as any);
     if (lancRes.data) setLancamentos(lancRes.data as any);
