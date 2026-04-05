@@ -36,6 +36,20 @@ export function FbPlanejamentoPessoal() {
 
   useEffect(() => { fetchDespesas(); fetchProLabore(); }, [mesRef]);
 
+  const fetchProLabore = async () => {
+    // Get Pro Labore caixa balance as the salary/income
+    const { data } = await supabase
+      .from("fb_finance_caixas" as any)
+      .select("saldo_atual")
+      .ilike("nome", "%pro labore%")
+      .limit(1)
+      .maybeSingle();
+    if (data) {
+      const saldo = Number((data as any).saldo_atual) || 0;
+      setSalario(saldo);
+    }
+  };
+
   const fetchDespesas = async () => {
     setLoading(true);
     const { data } = await supabase.from("fb_finance_despesas_planejadas" as any).select("*").eq("mes_ref", mesRef).order("dia_vencimento");
