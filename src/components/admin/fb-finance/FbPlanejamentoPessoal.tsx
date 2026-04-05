@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { FbPersonalDistribution } from "./FbPersonalDistribution";
 
 const formatBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -232,6 +233,9 @@ export function FbPlanejamentoPessoal() {
           </div>
         </div>
       </section>
+
+      {/* Personal Distribution */}
+      <FbPersonalDistribution salario={salario} />
 
       {/* Detailed Budget + Summary */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">

@@ -972,6 +972,7 @@ export type Database = {
           distribution_percentages: Json
           id: string
           password_hash: string
+          personal_distribution_percentages: Json
           updated_at: string
         }
         Insert: {
@@ -979,6 +980,7 @@ export type Database = {
           distribution_percentages?: Json
           id?: string
           password_hash: string
+          personal_distribution_percentages?: Json
           updated_at?: string
         }
         Update: {
@@ -986,6 +988,7 @@ export type Database = {
           distribution_percentages?: Json
           id?: string
           password_hash?: string
+          personal_distribution_percentages?: Json
           updated_at?: string
         }
         Relationships: []

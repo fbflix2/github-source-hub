@@ -1,0 +1,1 @@
+ALTER TABLE public.fb_finance_config ADD COLUMN IF NOT EXISTS personal_distribution_percentages jsonb NOT NULL DEFAULT '{"dia_a_dia": 30, "estilo_vida": 15, "fundo_emergencia": 20, "investimentos": 20, "janela_oportunidade": 15}'::jsonb;
