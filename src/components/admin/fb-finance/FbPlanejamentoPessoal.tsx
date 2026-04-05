@@ -33,20 +33,32 @@ export function FbPlanejamentoPessoal() {
   const [form, setForm] = useState({ nome: "", valor: "", dia_vencimento: "1", categoria: "fixo" });
   const [salario, setSalario] = useState(0);
   const [salarioManual, setSalarioManual] = useState<number | null>(null);
+  const [totalCustosPessoais, setTotalCustosPessoais] = useState(0);
+  const META_PRO_LABORE = 10000;
 
-  useEffect(() => { fetchDespesas(); fetchProLabore(); }, [mesRef]);
+  useEffect(() => { fetchDespesas(); fetchProLabore(); fetchCustosPessoais(); }, [mesRef]);
 
   const fetchProLabore = async () => {
-    // Get Pro Labore caixa balance as the salary/income
     const { data } = await supabase
       .from("fb_finance_caixas" as any)
-      .select("saldo_atual")
+      .select("saldo_atual, meta")
       .ilike("nome", "%pro labore%")
       .limit(1)
       .maybeSingle();
     if (data) {
       const saldo = Number((data as any).saldo_atual) || 0;
       setSalario(saldo);
+    }
+  };
+
+  const fetchCustosPessoais = async () => {
+    const { data } = await supabase
+      .from("fb_finance_custos_pessoais" as any)
+      .select("valor")
+      .eq("ativo", true);
+    if (data) {
+      const total = (data as any[]).reduce((s: number, d: any) => s + Number(d.valor), 0);
+      setTotalCustosPessoais(total);
     }
   };
 
