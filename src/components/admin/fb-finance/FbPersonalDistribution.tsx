@@ -35,7 +35,7 @@ export function FbPersonalDistribution({ salario }: Props) {
       .eq("tipo", "pessoal")
       .order("nome");
 
-    const boxes = (caixasData || []) as Caixa[];
+    const boxes = ((caixasData || []) as unknown) as Caixa[];
     setCaixas(boxes);
 
     // Fetch saved percentages (keyed by caixa id)
