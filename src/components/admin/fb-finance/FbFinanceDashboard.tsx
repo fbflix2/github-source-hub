@@ -9,6 +9,7 @@ import { FbRelatorios } from "./FbRelatorios";
 import { FbMapaFluxo } from "./FbMapaFluxo";
 import { FbCustosPessoais } from "./FbCustosPessoais";
 import { FbCalendarModal } from "./FbCalendarModal";
+import { FbDueDateNotifier } from "./FbDueDateNotifier";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "@/hooks/use-toast";
 
@@ -116,6 +117,7 @@ export function FbFinanceDashboard() {
       </button>
 
       <FbCalendarModal open={calendarOpen} onClose={() => setCalendarOpen(false)} />
+      <FbDueDateNotifier />
     </div>
   );
 }
