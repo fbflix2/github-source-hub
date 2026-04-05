@@ -234,6 +234,52 @@ export function FbLancamentos() {
     }
   };
 
+  const startEdit = (l: Lancamento) => {
+    setEditingId(l.id);
+    setEditForm({
+      data: l.data,
+      tipo: l.tipo,
+      categoria: l.categoria,
+      descricao: l.descricao || "",
+      entrada: l.entrada > 0 ? String(l.entrada) : "",
+      saida: l.saida > 0 ? String(l.saida) : "",
+      caixa_destino_id: l.caixa_destino_id || "",
+    });
+  };
+
+  const handleSaveEdit = async (id: string) => {
+    const lancamento = lancamentos.find(l => l.id === id);
+    if (!lancamento) return;
+
+    const newEntrada = parseFloat(editForm.entrada) || 0;
+    const newSaida = parseFloat(editForm.saida) || 0;
+
+    const { error } = await supabase.from("fb_finance_lancamentos" as any).update({
+      data: editForm.data,
+      tipo: editForm.tipo,
+      categoria: editForm.categoria,
+      descricao: editForm.descricao || null,
+      entrada: newEntrada,
+      saida: newSaida,
+      caixa_destino_id: editForm.caixa_destino_id || null,
+    } as any).eq("id", id);
+
+    if (error) { toast({ title: "Erro ao salvar", variant: "destructive" }); return; }
+
+    // Recalculate old caixa balance
+    if (lancamento.caixa_destino_id) {
+      await syncCaixaSaldo(lancamento.caixa_destino_id, Number(lancamento.saida) - Number(lancamento.entrada));
+    }
+    // Apply new values to new caixa
+    if (editForm.caixa_destino_id) {
+      await syncCaixaSaldo(editForm.caixa_destino_id, newEntrada - newSaida);
+    }
+
+    toast({ title: "Lançamento atualizado!" });
+    setEditingId(null);
+    fetchAll();
+  };
+
   const handleDelete = async (id: string) => {
     const lancamento = lancamentos.find((item) => item.id === id);
     await supabase.from("fb_finance_lancamentos" as any).delete().eq("id", id);
