@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
@@ -14,6 +14,7 @@ interface DespesaRow {
   pago: boolean;
   mes_ref: string;
   categoria: string;
+  source: "planejada" | "custo_pessoal";
 }
 
 const formatBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -25,6 +26,10 @@ const catColors: Record<string, string> = {
   transporte: "#93c5fd",
   saude: "#e71a0e",
   educacao: "#a5c8ff",
+  moradia: "#1976d2",
+  financeiro: "#40e56c",
+  assinaturas: "#ec4899",
+  variavel: "#f59e0b",
   outros: "#94a3b8",
 };
 
@@ -37,16 +42,55 @@ export function FbCalendarModal({ open, onClose }: Props) {
 
   useEffect(() => {
     if (!open) return;
-    fetchDespesas();
+    fetchAll();
   }, [open, mesRef]);
 
-  const fetchDespesas = async () => {
-    const { data } = await supabase
+  const fetchAll = async () => {
+    // Fetch planned expenses for this month
+    const { data: planejadas } = await supabase
       .from("fb_finance_despesas_planejadas")
       .select("*")
       .eq("mes_ref", mesRef)
       .order("dia_vencimento");
-    if (data) setDespesas(data as any);
+
+    // Fetch active personal costs (recurring - shown every month)
+    const { data: custos } = await supabase
+      .from("fb_finance_custos_pessoais")
+      .select("*")
+      .eq("ativo", true)
+      .order("dia_vencimento");
+
+    const items: DespesaRow[] = [];
+
+    if (planejadas) {
+      for (const p of planejadas as any[]) {
+        items.push({ ...p, source: "planejada" });
+      }
+    }
+
+    if (custos) {
+      for (const c of custos as any[]) {
+        // Check if this custo pessoal already exists as a despesa planejada (by name match)
+        const alreadyPlanned = (planejadas || []).some(
+          (p: any) => p.nome.toLowerCase().trim() === c.nome.toLowerCase().trim() && p.dia_vencimento === c.dia_vencimento
+        );
+        if (!alreadyPlanned) {
+          items.push({
+            id: c.id,
+            nome: c.nome,
+            valor: c.valor,
+            dia_vencimento: c.dia_vencimento,
+            pago: false,
+            mes_ref: mesRef,
+            categoria: c.categoria,
+            source: "custo_pessoal",
+          });
+        }
+      }
+    }
+
+    items.sort((a, b) => a.dia_vencimento - b.dia_vencimento);
+    setDespesas(items);
   };
 
   if (!open) return null;
@@ -85,7 +129,7 @@ export function FbCalendarModal({ open, onClose }: Props) {
             </div>
             <div>
               <h2 className="font-['Manrope'] text-2xl font-bold text-[#d5e4fa]">Calendário Financeiro</h2>
-              <p className="text-sm text-slate-500">Compromissos e vencimentos</p>
+              <p className="text-sm text-slate-500">Compromissos, contas e vencimentos</p>
             </div>
           </div>
           <button onClick={onClose} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors">
@@ -151,7 +195,7 @@ export function FbCalendarModal({ open, onClose }: Props) {
                             style={{ background: d.pago ? "#40e56c" : hasPending && isPast ? "#e71a0e" : "#eab308" }}
                           />
                         ))}
-                        {dayDesp.length > 3 && <span className="text-[8px] text-slate-500">+</span>}
+                        {dayDesp.length > 3 && <span className="text-[8px] text-slate-500">+{dayDesp.length - 3}</span>}
                       </div>
                     )}
                   </button>
@@ -160,10 +204,11 @@ export function FbCalendarModal({ open, onClose }: Props) {
             </div>
 
             {/* Legend */}
-            <div className="flex gap-6 mt-6 justify-center">
+            <div className="flex flex-wrap gap-4 mt-6 justify-center">
               <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-[#40e56c]" /><span className="text-[10px] text-slate-500 uppercase font-bold">Pago</span></div>
               <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-[#eab308]" /><span className="text-[10px] text-slate-500 uppercase font-bold">Pendente</span></div>
               <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-[#e71a0e]" /><span className="text-[10px] text-slate-500 uppercase font-bold">Atrasado</span></div>
+              <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-[#ec4899]" /><span className="text-[10px] text-slate-500 uppercase font-bold">Custo Pessoal</span></div>
             </div>
           </div>
 
@@ -209,7 +254,10 @@ export function FbCalendarModal({ open, onClose }: Props) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-[#d5e4fa] truncate">{d.nome}</p>
-                    <p className="text-[10px] text-slate-500">Dia {d.dia_vencimento} • {d.categoria}</p>
+                    <p className="text-[10px] text-slate-500">
+                      Dia {d.dia_vencimento} • {d.categoria}
+                      {d.source === "custo_pessoal" && <span className="ml-1 text-[#ec4899]">• Pessoal</span>}
+                    </p>
                   </div>
                   <div className="text-right">
                     <span className={`text-sm font-bold ${d.pago ? "text-[#40e56c]" : "text-[#d5e4fa]"}`}>{formatBRL(Number(d.valor))}</span>
