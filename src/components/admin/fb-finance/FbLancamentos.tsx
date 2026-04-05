@@ -40,6 +40,10 @@ export function FbLancamentos() {
   const [pendingPayload, setPendingPayload] = useState<any>(null);
   const [distributing, setDistributing] = useState(false);
 
+  // Inline edit state
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ data: "", tipo: "", categoria: "", descricao: "", entrada: "", saida: "", caixa_destino_id: "" });
+
   const [form, setForm] = useState({
     data: new Date().toISOString().split("T")[0],
     tipo: "empresa",
