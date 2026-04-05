@@ -193,8 +193,10 @@ export function FbDistribuicaoPJ() {
     } as any);
     if (error) { toast({ title: "Erro ao distribuir", variant: "destructive" }); return; }
 
-    const { data: caixas } = await supabase.from("fb_finance_caixas" as any).select("id, nome, saldo_atual");
+    const { data: caixas } = await supabase.from("fb_finance_caixas" as any).select("id, nome, saldo_atual, tipo");
     if (caixas) {
+      // Update balances AND create lancamentos for each allocation
+      const lancamentosToInsert: any[] = [];
       await Promise.all(
         Object.entries(valores).map(async ([key, val]) => {
           const nome = caixaMap[key] || keyToLabel(key);
@@ -202,8 +204,23 @@ export function FbDistribuicaoPJ() {
           if (!caixa || !val) return;
           const newBalance = Number(caixa.saldo_atual) + Number(val);
           await supabase.from("fb_finance_caixas" as any).update({ saldo_atual: newBalance } as any).eq("id", caixa.id);
+          // Create a lancamento entry for this allocation
+          lancamentosToInsert.push({
+            data: hoje,
+            entrada: Number(val),
+            saida: 0,
+            categoria: "Distribuição PJ",
+            descricao: `Distribuição: ${keyToLabel(key)} (${Number(percentuais[key] || 0)}%)`,
+            tipo: (caixa as any).tipo || "empresa",
+            caixa_destino_id: caixa.id,
+          });
         })
       );
+
+      // Insert all lancamentos
+      if (lancamentosToInsert.length > 0) {
+        await supabase.from("fb_finance_lancamentos" as any).insert(lancamentosToInsert as any);
+      }
     }
 
     toast({ title: "Distribuição aplicada com sucesso!" });
@@ -242,6 +259,10 @@ export function FbDistribuicaoPJ() {
         })
       );
     }
+
+    // Remove associated lancamentos
+    const hoje = dist.data;
+    await supabase.from("fb_finance_lancamentos" as any).delete().eq("data", hoje).eq("categoria", "Distribuição PJ");
 
     await supabase.from("fb_finance_distribuicoes" as any).delete().eq("id", id);
     toast({ title: "Distribuição removida" });
