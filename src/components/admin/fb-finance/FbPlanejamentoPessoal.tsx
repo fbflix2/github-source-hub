@@ -265,8 +265,37 @@ export function FbPlanejamentoPessoal() {
         </div>
       </section>
 
-      {/* Personal Distribution */}
-      <FbPersonalDistribution salario={salario} />
+      {/* Compromisso vs Envelopes */}
+      <section className="bg-[#0e1c2d] rounded-xl p-6 border border-white/5 shadow-xl space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-['Manrope'] font-bold text-lg text-[#d5e4fa]">Comprometimento do Pro Labore</h3>
+            <p className="text-[#8b919e] text-xs mt-1">Meta mensal: {formatBRL(META_PRO_LABORE)} · Custos pessoais têm prioridade sobre distribuição</p>
+          </div>
+          <span className={`text-xs font-bold px-3 py-1 rounded-full ${pctComprometida <= 70 ? "bg-[#40e56c]/20 text-[#40e56c]" : pctComprometida <= 90 ? "bg-amber-400/20 text-amber-400" : "bg-[#e71a0e]/20 text-[#ffb4a8]"}`}>
+            {pctComprometida.toFixed(1)}% comprometido
+          </span>
+        </div>
+
+        {/* Visual bar */}
+        <div className="space-y-2">
+          <div className="h-4 rounded-full overflow-hidden flex bg-[#283647]">
+            <div className="h-full bg-[#e71a0e] transition-all flex items-center justify-center" style={{ width: `${Math.min(pctComprometida, 100)}%` }}>
+              {pctComprometida >= 15 && <span className="text-[9px] font-bold text-white">Custos {formatBRL(totalCustosPessoais)}</span>}
+            </div>
+            <div className="h-full bg-[#40e56c] transition-all flex items-center justify-center" style={{ width: `${Math.max(0, 100 - pctComprometida)}%` }}>
+              {(100 - pctComprometida) >= 15 && <span className="text-[9px] font-bold text-[#003912]">Envelopes {formatBRL(sobraParaEnvelopes)}</span>}
+            </div>
+          </div>
+          <div className="flex justify-between text-[10px] text-[#8b919e] font-bold uppercase tracking-widest">
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[#e71a0e]" /> Custos fixos + variáveis: {formatBRL(totalCustosPessoais)}</span>
+            <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[#40e56c]" /> Disponível p/ envelopes: {formatBRL(sobraParaEnvelopes)}</span>
+          </div>
+        </div>
+      </section>
+
+      {/* Personal Distribution - uses only the remaining after costs */}
+      <FbPersonalDistribution salario={sobraParaEnvelopes} />
 
       {/* Detailed Budget + Summary */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
