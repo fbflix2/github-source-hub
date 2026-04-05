@@ -31,9 +31,10 @@ export function FbPlanejamentoPessoal() {
   const [mesRef, setMesRef] = useState(new Date().toISOString().slice(0, 7));
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ nome: "", valor: "", dia_vencimento: "1", categoria: "fixo" });
-  const [salario, setSalario] = useState(7000);
+  const [salario, setSalario] = useState(0);
+  const [salarioManual, setSalarioManual] = useState<number | null>(null);
 
-  useEffect(() => { fetchDespesas(); }, [mesRef]);
+  useEffect(() => { fetchDespesas(); fetchProLabore(); }, [mesRef]);
 
   const fetchDespesas = async () => {
     setLoading(true);
