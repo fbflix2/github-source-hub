@@ -82,12 +82,16 @@ export function FbRelatorios() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
 
-  useEffect(() => {
+  const [caixas, setCaixas] = useState<Caixa[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ data: "", tipo: "", categoria: "", descricao: "", entrada: "", saida: "", caixa_destino_id: "" });
+
+  const fetchLancamentos = useCallback(() => {
     setPage(1);
     const { from, to } = getDateRange(period);
     supabase
       .from("fb_finance_lancamentos" as any)
-      .select("id, data, entrada, saida, categoria, descricao, tipo")
+      .select("id, data, entrada, saida, categoria, descricao, tipo, caixa_destino_id")
       .gte("data", from)
       .lte("data", to)
       .order("data", { ascending: false })
@@ -96,6 +100,62 @@ export function FbRelatorios() {
         setLoading(false);
       });
   }, [period]);
+
+  useEffect(() => { fetchLancamentos(); }, [fetchLancamentos]);
+
+  useEffect(() => {
+    supabase.from("fb_finance_caixas" as any).select("id, nome, tipo, saldo_atual").then(({ data }) => {
+      if (data) setCaixas(data as any);
+    });
+  }, []);
+
+  const syncCaixaSaldo = async (caixaId: string, delta: number) => {
+    const { data: caixa } = await supabase.from("fb_finance_caixas" as any).select("id, tipo, saldo_atual").eq("id", caixaId).single();
+    if (!caixa) return;
+    if ((caixa as any).tipo === "pessoal") {
+      const { data: caixaLancamentos } = await supabase.from("fb_finance_lancamentos" as any).select("entrada, saida").eq("caixa_destino_id", caixaId);
+      const saldo = ((caixaLancamentos as any[]) || []).reduce((sum, l) => sum + Number(l.entrada || 0) - Number(l.saida || 0), 0);
+      await supabase.from("fb_finance_caixas" as any).update({ saldo_atual: saldo } as any).eq("id", caixaId);
+      return;
+    }
+    const novoSaldo = Number((caixa as any).saldo_atual || 0) + delta;
+    await supabase.from("fb_finance_caixas" as any).update({ saldo_atual: novoSaldo } as any).eq("id", caixaId);
+  };
+
+  const startEdit = (l: Lancamento) => {
+    setEditingId(l.id);
+    setEditForm({
+      data: l.data, tipo: l.tipo, categoria: l.categoria, descricao: l.descricao || "",
+      entrada: l.entrada > 0 ? String(l.entrada) : "", saida: l.saida > 0 ? String(l.saida) : "",
+      caixa_destino_id: l.caixa_destino_id || "",
+    });
+  };
+
+  const handleSaveEdit = async (id: string) => {
+    const lancamento = lancamentos.find(l => l.id === id);
+    if (!lancamento) return;
+    const newEntrada = parseFloat(editForm.entrada) || 0;
+    const newSaida = parseFloat(editForm.saida) || 0;
+    const { error } = await supabase.from("fb_finance_lancamentos" as any).update({
+      data: editForm.data, tipo: editForm.tipo, categoria: editForm.categoria,
+      descricao: editForm.descricao || null, entrada: newEntrada, saida: newSaida,
+      caixa_destino_id: editForm.caixa_destino_id || null,
+    } as any).eq("id", id);
+    if (error) { toast({ title: "Erro ao salvar", variant: "destructive" }); return; }
+    if (lancamento.caixa_destino_id) await syncCaixaSaldo(lancamento.caixa_destino_id, Number(lancamento.saida) - Number(lancamento.entrada));
+    if (editForm.caixa_destino_id) await syncCaixaSaldo(editForm.caixa_destino_id, newEntrada - newSaida);
+    toast({ title: "Lançamento atualizado!" });
+    setEditingId(null);
+    fetchLancamentos();
+  };
+
+  const handleDelete = async (id: string) => {
+    const lancamento = lancamentos.find(l => l.id === id);
+    await supabase.from("fb_finance_lancamentos" as any).delete().eq("id", id);
+    if (lancamento?.caixa_destino_id) await syncCaixaSaldo(lancamento.caixa_destino_id, Number(lancamento.saida) - Number(lancamento.entrada));
+    toast({ title: "Lançamento removido" });
+    fetchLancamentos();
+  };
 
   let filtered = lancamentos;
   if (catFilter !== "all") filtered = filtered.filter((l) => l.categoria === catFilter);
