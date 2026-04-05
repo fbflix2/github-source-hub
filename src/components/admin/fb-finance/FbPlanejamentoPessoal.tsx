@@ -127,8 +127,7 @@ export function FbPlanejamentoPessoal() {
     return diff > (best?.diff || 0) ? { cat, diff } : best;
   }, null as { cat: string; diff: number } | null);
 
-  // Investimentos (soma de categoria investimentos ou 14% do salário como meta)
-  const investimentoMeta = salario * 0.14;
+  // (investimentoMeta removed - was confusing)
 
   // Status
   const status = percentUsado <= 80 ? "Saudável" : percentUsado <= 95 ? "Atenção" : "Crítico";
