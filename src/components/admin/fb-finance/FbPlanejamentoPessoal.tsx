@@ -127,8 +127,7 @@ export function FbPlanejamentoPessoal() {
     return diff > (best?.diff || 0) ? { cat, diff } : best;
   }, null as { cat: string; diff: number } | null);
 
-  // Investimentos (soma de categoria investimentos ou 14% do salário como meta)
-  const investimentoMeta = salario * 0.14;
+  // (investimentoMeta removed - was confusing)
 
   // Status
   const status = percentUsado <= 80 ? "Saudável" : percentUsado <= 95 ? "Atenção" : "Crítico";
@@ -215,52 +214,52 @@ export function FbPlanejamentoPessoal() {
       )}
 
       {/* Financial Summary Cards */}
-      <section className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        {/* Main Balance */}
-        <div className="md:col-span-2 bg-gradient-to-br from-[#1976d2] to-blue-900 p-8 rounded-xl shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[220px]">
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Main Balance - Pro Labore */}
+        <div className="bg-gradient-to-br from-[#1976d2] to-blue-900 p-8 rounded-xl shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[220px]">
           <div className="relative z-10">
             <div className="flex justify-between items-start mb-4">
-              <span className="text-[#d4e3ff] text-xs uppercase tracking-widest font-bold">Saldo Disponível</span>
+              <span className="text-[#d4e3ff] text-xs uppercase tracking-widest font-bold">Saldo Pro Labore</span>
               <span className="material-symbols-outlined text-[#d4e3ff] opacity-60">account_balance</span>
             </div>
             <h2 className="font-['Manrope'] font-bold text-5xl text-white tracking-tighter">{formatBRL(salario)}</h2>
           </div>
           <div className="relative z-10 flex gap-4 mt-6">
             <div className="bg-white/10 backdrop-blur-md px-4 py-2 rounded-lg">
-              <p className="text-[10px] text-white/60 uppercase font-bold">Projeção Final</p>
-              <p className="text-[#40e56c] font-bold">{formatBRL(margemLivre)}</p>
+              <p className="text-[10px] text-white/60 uppercase font-bold">Meta Mensal</p>
+              <p className="text-[#a5c8ff] font-bold">{formatBRL(META_PRO_LABORE)}</p>
             </div>
             <div className="bg-white/10 backdrop-blur-md px-4 py-2 rounded-lg">
-              <p className="text-[10px] text-white/60 uppercase font-bold">Rendimento Mês</p>
-              <p className="text-[#a5c8ff] font-bold">+ {economiaPercent.toFixed(1)}%</p>
+              <p className="text-[10px] text-white/60 uppercase font-bold">Após Custos</p>
+              <p className={`font-bold ${sobraParaEnvelopes > 0 ? "text-[#40e56c]" : "text-[#ffb4a8]"}`}>{formatBRL(sobraParaEnvelopes)}</p>
             </div>
           </div>
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -mr-20 -mt-20" />
         </div>
 
-        {/* Expenses */}
+        {/* Total Custos Pessoais (fixos + variáveis reais) */}
         <div className="bg-[#0e1c2d] p-6 rounded-xl flex flex-col justify-between border-l-4 border-[#e71a0e] shadow-lg">
           <div>
-            <span className="text-[#c1c6d4] text-xs uppercase tracking-widest font-bold">Total Despesas</span>
-            <h3 className="font-['Manrope'] font-bold text-3xl text-[#d5e4fa] mt-2">{formatBRL(total)}</h3>
+            <span className="text-[#c1c6d4] text-xs uppercase tracking-widest font-bold">Total Custos Pessoais</span>
+            <h3 className="font-['Manrope'] font-bold text-3xl text-[#d5e4fa] mt-2">{formatBRL(totalCustosPessoais)}</h3>
           </div>
           <div className="mt-4">
             <div className="w-full bg-[#283647] h-1 rounded-full overflow-hidden">
-              <div className="bg-[#e71a0e] h-full transition-all" style={{ width: `${Math.min(percentUsado, 100)}%` }} />
+              <div className="bg-[#e71a0e] h-full transition-all" style={{ width: `${Math.min(pctComprometida, 100)}%` }} />
             </div>
-            <p className="text-[11px] text-[#c1c6d4] mt-2">{percentUsado.toFixed(0)}% do orçamento atingido</p>
+            <p className="text-[11px] text-[#c1c6d4] mt-2">{pctComprometida.toFixed(0)}% da meta de Pro Labore</p>
           </div>
         </div>
 
-        {/* Investments */}
+        {/* Disponível para Envelopes */}
         <div className="bg-[#0e1c2d] p-6 rounded-xl flex flex-col justify-between border-l-4 border-[#40e56c] shadow-lg">
           <div>
-            <span className="text-[#c1c6d4] text-xs uppercase tracking-widest font-bold">Investimentos</span>
-            <h3 className="font-['Manrope'] font-bold text-3xl text-[#d5e4fa] mt-2">{formatBRL(investimentoMeta)}</h3>
+            <span className="text-[#c1c6d4] text-xs uppercase tracking-widest font-bold">Livre p/ Envelopes</span>
+            <h3 className={`font-['Manrope'] font-bold text-3xl mt-2 ${sobraParaEnvelopes > 0 ? "text-[#40e56c]" : "text-[#ffb4a8]"}`}>{formatBRL(sobraParaEnvelopes)}</h3>
           </div>
           <div className="mt-4 flex items-center gap-2">
-            <span className="material-symbols-outlined text-[#40e56c] text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>trending_up</span>
-            <p className="text-[11px] text-[#40e56c] font-bold">Meta: 14% do salário</p>
+            <span className="material-symbols-outlined text-[#40e56c] text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>savings</span>
+            <p className="text-[11px] text-[#40e56c] font-bold">{(100 - pctComprometida).toFixed(0)}% da meta disponível</p>
           </div>
         </div>
       </section>
