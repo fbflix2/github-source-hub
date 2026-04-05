@@ -260,6 +260,10 @@ export function FbDistribuicaoPJ() {
       );
     }
 
+    // Remove associated lancamentos
+    const hoje = dist.data;
+    await supabase.from("fb_finance_lancamentos" as any).delete().eq("data", hoje).eq("categoria", "Distribuição PJ");
+
     await supabase.from("fb_finance_distribuicoes" as any).delete().eq("id", id);
     toast({ title: "Distribuição removida" });
     fetchData();
