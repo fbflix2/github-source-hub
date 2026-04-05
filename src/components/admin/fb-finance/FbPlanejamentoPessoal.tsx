@@ -31,9 +31,24 @@ export function FbPlanejamentoPessoal() {
   const [mesRef, setMesRef] = useState(new Date().toISOString().slice(0, 7));
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ nome: "", valor: "", dia_vencimento: "1", categoria: "fixo" });
-  const [salario, setSalario] = useState(7000);
+  const [salario, setSalario] = useState(0);
+  const [salarioManual, setSalarioManual] = useState<number | null>(null);
 
-  useEffect(() => { fetchDespesas(); }, [mesRef]);
+  useEffect(() => { fetchDespesas(); fetchProLabore(); }, [mesRef]);
+
+  const fetchProLabore = async () => {
+    // Get Pro Labore caixa balance as the salary/income
+    const { data } = await supabase
+      .from("fb_finance_caixas" as any)
+      .select("saldo_atual")
+      .ilike("nome", "%pro labore%")
+      .limit(1)
+      .maybeSingle();
+    if (data) {
+      const saldo = Number((data as any).saldo_atual) || 0;
+      setSalario(saldo);
+    }
+  };
 
   const fetchDespesas = async () => {
     setLoading(true);
@@ -400,16 +415,20 @@ export function FbPlanejamentoPessoal() {
 
           {/* Salary config */}
           <div className="bg-[#0e1c2d] p-6 rounded-xl shadow-lg border border-white/5">
-            <label className="text-[10px] uppercase tracking-widest font-bold text-[#8b919e] mb-2 block">Salário / Renda Mensal</label>
+            <label className="text-[10px] uppercase tracking-widest font-bold text-[#8b919e] mb-2 block">
+              Salário / Renda Mensal
+              <span className="ml-2 text-[#40e56c] normal-case tracking-normal font-medium">• Sincronizado com Pro Labore</span>
+            </label>
             <div className="flex items-center gap-2">
               <span className="text-[#8b919e] text-sm">R$</span>
               <input
                 type="number"
                 value={salario}
-                onChange={e => setSalario(Number(e.target.value))}
-                className="bg-[#283647] border-none text-sm text-[#d5e4fa] px-3 py-2 rounded-lg outline-none flex-1"
+                readOnly
+                className="bg-[#283647] border-none text-sm text-[#d5e4fa] px-3 py-2 rounded-lg outline-none flex-1 opacity-70 cursor-default"
               />
             </div>
+            <p className="text-[9px] text-[#8b919e] mt-2">Atualizado automaticamente pelo saldo do caixa Pro Labore</p>
           </div>
         </div>
       </section>
