@@ -295,11 +295,14 @@ export function FbLancamentos() {
     fetchAll();
   };
 
-  const { totalEntradas, totalSaidas, saldo: saldoAtual, uniqueDays } = getOperationalTotals(lancamentos);
-  const diasUnicos = Math.max(uniqueDays, 1);
-  const mediaEntradas = totalEntradas > 0 ? totalEntradas / diasUnicos : 0;
-  const mediaSaidas = totalSaidas > 0 ? totalSaidas / diasUnicos : 0;
-  const taxaConversao = totalEntradas > 0 ? ((totalEntradas - totalSaidas) / totalEntradas * 100) : 0;
+  // Use ALL lancamentos for stats (including distributions/transfers)
+  const allTotalEntradas = lancamentos.reduce((s, l) => s + Number(l.entrada || 0), 0);
+  const allTotalSaidas = lancamentos.reduce((s, l) => s + Number(l.saida || 0), 0);
+  const saldoAtual = allTotalEntradas - allTotalSaidas;
+  const diasUnicos = Math.max(new Set(lancamentos.map(l => l.data).filter(Boolean)).size, 1);
+  const mediaEntradas = allTotalEntradas > 0 ? allTotalEntradas / diasUnicos : 0;
+  const mediaSaidas = allTotalSaidas > 0 ? allTotalSaidas / diasUnicos : 0;
+  const taxaConversao = allTotalEntradas > 0 ? ((allTotalEntradas - allTotalSaidas) / allTotalEntradas * 100) : 0;
 
   const paginatedLancamentos = lancamentos.slice(page * perPage, (page + 1) * perPage);
   const totalPages = Math.ceil(lancamentos.length / perPage);
