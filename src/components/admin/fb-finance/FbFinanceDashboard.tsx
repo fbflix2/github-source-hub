@@ -117,6 +117,7 @@ export function FbFinanceDashboard() {
       </button>
 
       <FbCalendarModal open={calendarOpen} onClose={() => setCalendarOpen(false)} />
+      <FbDueDateNotifier />
     </div>
   );
 }
