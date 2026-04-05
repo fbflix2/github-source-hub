@@ -172,7 +172,7 @@ export function FbRelatorios() {
   const paginated = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
   const monthlyMap: Record<string, { entradas: number; saidas: number }> = {};
-  filterOperationalLancamentos(lancamentos).forEach((l) => {
+  lancamentos.forEach((l) => {
     const m = l.data.slice(0, 7);
     if (!monthlyMap[m]) monthlyMap[m] = { entradas: 0, saidas: 0 };
     monthlyMap[m].entradas += Number(l.entrada);
