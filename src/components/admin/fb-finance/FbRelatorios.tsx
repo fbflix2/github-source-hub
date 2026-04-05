@@ -1,8 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { filterOperationalLancamentos, getLancamentoTotals } from "@/lib/fb-finance";
+import { toast } from "@/hooks/use-toast";
 
 const formatBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+const categorias = [
+  "Salário", "Venda PJ", "Aluguel", "Energia", "Internet", "Gasolina", "Mercado",
+  "Transporte", "Lazer", "Educação", "Saúde", "Serviços", "Vendas", "Tecnologia",
+  "Suprimentos", "Fixo", "Aporte Pessoal", "Transferência", "Capital de Giro", "Outros"
+];
 
 interface Lancamento {
   id: string;
@@ -12,7 +19,10 @@ interface Lancamento {
   categoria: string;
   descricao: string | null;
   tipo: string;
+  caixa_destino_id: string | null;
 }
+
+interface Caixa { id: string; nome: string; tipo: string; saldo_atual: number }
 
 const ITEMS_PER_PAGE = 10;
 
@@ -72,12 +82,16 @@ export function FbRelatorios() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
 
-  useEffect(() => {
+  const [caixas, setCaixas] = useState<Caixa[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ data: "", tipo: "", categoria: "", descricao: "", entrada: "", saida: "", caixa_destino_id: "" });
+
+  const fetchLancamentos = useCallback(() => {
     setPage(1);
     const { from, to } = getDateRange(period);
     supabase
       .from("fb_finance_lancamentos" as any)
-      .select("id, data, entrada, saida, categoria, descricao, tipo")
+      .select("id, data, entrada, saida, categoria, descricao, tipo, caixa_destino_id")
       .gte("data", from)
       .lte("data", to)
       .order("data", { ascending: false })
@@ -86,6 +100,62 @@ export function FbRelatorios() {
         setLoading(false);
       });
   }, [period]);
+
+  useEffect(() => { fetchLancamentos(); }, [fetchLancamentos]);
+
+  useEffect(() => {
+    supabase.from("fb_finance_caixas" as any).select("id, nome, tipo, saldo_atual").then(({ data }) => {
+      if (data) setCaixas(data as any);
+    });
+  }, []);
+
+  const syncCaixaSaldo = async (caixaId: string, delta: number) => {
+    const { data: caixa } = await supabase.from("fb_finance_caixas" as any).select("id, tipo, saldo_atual").eq("id", caixaId).single();
+    if (!caixa) return;
+    if ((caixa as any).tipo === "pessoal") {
+      const { data: caixaLancamentos } = await supabase.from("fb_finance_lancamentos" as any).select("entrada, saida").eq("caixa_destino_id", caixaId);
+      const saldo = ((caixaLancamentos as any[]) || []).reduce((sum, l) => sum + Number(l.entrada || 0) - Number(l.saida || 0), 0);
+      await supabase.from("fb_finance_caixas" as any).update({ saldo_atual: saldo } as any).eq("id", caixaId);
+      return;
+    }
+    const novoSaldo = Number((caixa as any).saldo_atual || 0) + delta;
+    await supabase.from("fb_finance_caixas" as any).update({ saldo_atual: novoSaldo } as any).eq("id", caixaId);
+  };
+
+  const startEdit = (l: Lancamento) => {
+    setEditingId(l.id);
+    setEditForm({
+      data: l.data, tipo: l.tipo, categoria: l.categoria, descricao: l.descricao || "",
+      entrada: l.entrada > 0 ? String(l.entrada) : "", saida: l.saida > 0 ? String(l.saida) : "",
+      caixa_destino_id: l.caixa_destino_id || "",
+    });
+  };
+
+  const handleSaveEdit = async (id: string) => {
+    const lancamento = lancamentos.find(l => l.id === id);
+    if (!lancamento) return;
+    const newEntrada = parseFloat(editForm.entrada) || 0;
+    const newSaida = parseFloat(editForm.saida) || 0;
+    const { error } = await supabase.from("fb_finance_lancamentos" as any).update({
+      data: editForm.data, tipo: editForm.tipo, categoria: editForm.categoria,
+      descricao: editForm.descricao || null, entrada: newEntrada, saida: newSaida,
+      caixa_destino_id: editForm.caixa_destino_id || null,
+    } as any).eq("id", id);
+    if (error) { toast({ title: "Erro ao salvar", variant: "destructive" }); return; }
+    if (lancamento.caixa_destino_id) await syncCaixaSaldo(lancamento.caixa_destino_id, Number(lancamento.saida) - Number(lancamento.entrada));
+    if (editForm.caixa_destino_id) await syncCaixaSaldo(editForm.caixa_destino_id, newEntrada - newSaida);
+    toast({ title: "Lançamento atualizado!" });
+    setEditingId(null);
+    fetchLancamentos();
+  };
+
+  const handleDelete = async (id: string) => {
+    const lancamento = lancamentos.find(l => l.id === id);
+    await supabase.from("fb_finance_lancamentos" as any).delete().eq("id", id);
+    if (lancamento?.caixa_destino_id) await syncCaixaSaldo(lancamento.caixa_destino_id, Number(lancamento.saida) - Number(lancamento.entrada));
+    toast({ title: "Lançamento removido" });
+    fetchLancamentos();
+  };
 
   let filtered = lancamentos;
   if (catFilter !== "all") filtered = filtered.filter((l) => l.categoria === catFilter);
@@ -341,6 +411,7 @@ export function FbRelatorios() {
                 <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-[#8b919e]">Categoria</th>
                 <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-[#8b919e]">Tipo</th>
                 <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-[#8b919e] text-right">Valor</th>
+                <th className="px-6 py-4 text-[10px] uppercase tracking-widest font-bold text-[#8b919e] w-20"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
@@ -348,8 +419,55 @@ export function FbRelatorios() {
                 const isReceita = Number(l.entrada) > 0;
                 const valor = isReceita ? Number(l.entrada) : Number(l.saida);
                 const style = getCatStyle(l.categoria);
+
+                if (editingId === l.id) {
+                  return (
+                    <tr key={l.id} className="bg-[#051424]">
+                      <td className="px-4 py-3">
+                        <input type="date" value={editForm.data} onChange={e => setEditForm(f => ({ ...f, data: e.target.value }))}
+                          className="w-full bg-[#0e1c2d] border border-white/10 rounded px-2 py-1.5 text-xs text-[#d5e4fa] outline-none focus:ring-1 focus:ring-[#1976d2]" />
+                      </td>
+                      <td className="px-4 py-3">
+                        <input value={editForm.descricao} onChange={e => setEditForm(f => ({ ...f, descricao: e.target.value }))} placeholder="Descrição..."
+                          className="w-full bg-[#0e1c2d] border border-white/10 rounded px-2 py-1.5 text-xs text-[#d5e4fa] outline-none focus:ring-1 focus:ring-[#1976d2]" />
+                      </td>
+                      <td className="px-4 py-3">
+                        <select value={editForm.categoria} onChange={e => setEditForm(f => ({ ...f, categoria: e.target.value }))}
+                          className="w-full bg-[#0e1c2d] border border-white/10 rounded px-2 py-1.5 text-xs text-[#d5e4fa] outline-none focus:ring-1 focus:ring-[#1976d2]">
+                          {categorias.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                      </td>
+                      <td className="px-4 py-3">
+                        <select value={editForm.tipo} onChange={e => setEditForm(f => ({ ...f, tipo: e.target.value }))}
+                          className="w-full bg-[#0e1c2d] border border-white/10 rounded px-2 py-1.5 text-xs text-[#d5e4fa] outline-none focus:ring-1 focus:ring-[#1976d2]">
+                          <option value="empresa">Empresa</option>
+                          <option value="pessoal">Pessoal</option>
+                        </select>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex gap-1">
+                          <input type="number" step="0.01" value={editForm.entrada} onChange={e => setEditForm(f => ({ ...f, entrada: e.target.value, saida: "" }))} placeholder="+"
+                            className="w-20 bg-[#0e1c2d] border border-white/10 rounded px-2 py-1.5 text-xs text-[#40e56c] outline-none focus:ring-1 focus:ring-[#1976d2]" />
+                          <input type="number" step="0.01" value={editForm.saida} onChange={e => setEditForm(f => ({ ...f, saida: e.target.value, entrada: "" }))} placeholder="-"
+                            className="w-20 bg-[#0e1c2d] border border-white/10 rounded px-2 py-1.5 text-xs text-[#e71a0e] outline-none focus:ring-1 focus:ring-[#1976d2]" />
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex gap-1">
+                          <button onClick={() => handleSaveEdit(l.id)} className="text-[#40e56c] hover:brightness-125 transition-colors">
+                            <span className="material-symbols-outlined text-lg">check</span>
+                          </button>
+                          <button onClick={() => setEditingId(null)} className="text-[#8b919e] hover:text-white transition-colors">
+                            <span className="material-symbols-outlined text-lg">close</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                }
+
                 return (
-                  <tr key={l.id} className="hover:bg-white/[0.02] transition-colors">
+                  <tr key={l.id} className="hover:bg-white/[0.02] transition-colors group">
                     <td className="px-6 py-4 text-sm font-medium text-[#c1c6d4]">
                       {new Date(l.data + "T12:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })}
                     </td>
@@ -377,12 +495,22 @@ export function FbRelatorios() {
                         {isReceita ? "+" : "-"} {formatBRL(valor)}
                       </span>
                     </td>
+                    <td className="px-6 py-4">
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => startEdit(l)} className="text-[#8b919e]/60 hover:text-[#a5c8ff] transition-colors">
+                          <span className="material-symbols-outlined text-lg">edit</span>
+                        </button>
+                        <button onClick={() => handleDelete(l.id)} className="text-[#8b919e]/60 hover:text-[#e71a0e] transition-colors">
+                          <span className="material-symbols-outlined text-lg">delete</span>
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 );
               })}
               {paginated.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-[#414752] text-sm">
+                  <td colSpan={6} className="px-6 py-12 text-center text-[#414752] text-sm">
                     Nenhum lançamento encontrado
                   </td>
                 </tr>
