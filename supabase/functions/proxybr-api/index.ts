@@ -1292,7 +1292,7 @@ Deno.serve(async (req) => {
 
         // 5. Update local subscription with fresh data from API
         try {
-          const freshUrl = `${PROXYBR_BASE}/subscriptions/${params.subscriptionCode}`;
+          const freshUrl = `${PROXYBR_BASE}/subscriptions/${encodeURIComponent(params.subscriptionCode)}`;
           const freshResp = await proxyFetch(freshUrl, PROXYBR_API_KEY);
           if (freshResp.ok) {
             const freshData = await freshResp.json();
