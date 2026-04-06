@@ -442,11 +442,12 @@ export function FbLancamentos() {
         <div className="bg-[#0e1c2d] p-6 rounded-2xl border border-white/5 flex flex-col justify-center">
           <div className="flex justify-between items-center">
             <div>
-              <p className="text-[10px] text-[#8b919e] uppercase tracking-widest mb-1" style={{ fontFamily: "Inter" }}>Taxa de Conversão</p>
-              <h3 className="font-['Manrope'] font-extrabold text-2xl text-[#d5e4fa]">{taxaConversao.toFixed(1)}%</h3>
+              <p className="text-[10px] text-[#8b919e] uppercase tracking-widest mb-1" style={{ fontFamily: "Inter" }}>Saldo do Período</p>
+              <h3 className={`font-['Manrope'] font-extrabold text-2xl ${saldoAtual >= 0 ? "text-[#40e56c]" : "text-[#ffb4a8]"}`}>{formatBRL(saldoAtual)}</h3>
             </div>
-            <div className="w-12 h-12 rounded-full border-4 border-[#a5c8ff]/20 border-t-[#a5c8ff] flex items-center justify-center">
-              <span className="text-[10px] font-bold text-[#d5e4fa]">ROI</span>
+            <div className="text-center">
+              <span className="block text-lg font-bold text-[#d5e4fa]">{totalMovimentacoes}</span>
+              <span className="text-[9px] text-[#8b919e] uppercase font-bold">lançamentos</span>
             </div>
           </div>
         </div>
