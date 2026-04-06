@@ -302,7 +302,7 @@ Deno.serve(async (req) => {
       }
 
       case "buy-resource": {
-        const { productId, amount, productName, folderName, itemType } = params;
+        const { productId, amount, productName, folderName, itemType, unitPriceBrl } = params;
         if (!productId || !amount) throw new Error("productId and amount are required");
 
         const url = `${ACCFACE_BASE}/BResource.php?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&id=${encodeURIComponent(String(productId))}&amount=${encodeURIComponent(String(amount))}`;
