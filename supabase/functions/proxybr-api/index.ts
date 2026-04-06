@@ -1218,7 +1218,7 @@ Deno.serve(async (req) => {
         }
 
         // 3. Call ProxyBR API to renew FIRST
-        const renewUrl = `${PROXYBR_BASE}/subscriptions/${params.subscriptionCode}/renew`;
+        const renewUrl = `${PROXYBR_BASE}/subscriptions/${encodeURIComponent(params.subscriptionCode)}/renew`;
         console.log(`ProxyBR API call: POST ${renewUrl}`);
         const renewResp = await proxyFetch(renewUrl, PROXYBR_API_KEY, "POST");
         const renewText = await renewResp.text();
