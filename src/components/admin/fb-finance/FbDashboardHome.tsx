@@ -51,6 +51,7 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
     if (lancMesRes.data) setLancamentos(lancMesRes.data as any);
     if (despesasRes.data) setDespesas(despesasRes.data as any);
     if (configRes.data) setConfig(configRes.data as any);
+    if (custosRes.data) setCustosPessoais(custosRes.data as any);
 
     const lastLanc = (lancLastRes.data || []) as any as LancamentoRow[];
     const lastMonthMetrics = getOperationalTotals(lastLanc);
