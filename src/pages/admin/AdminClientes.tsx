@@ -385,7 +385,7 @@ export default function AdminClientes() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
             <Input
               className="w-full h-12 pl-12 pr-4 bg-white/5 border-none rounded-xl text-white placeholder-white/30 focus:ring-2 focus:ring-primary focus:bg-white/10 transition-all text-sm font-medium"
-              placeholder="Pesquisar por nome, email ou telefone..."
+              placeholder="Pesquisar por nome, email, telefone ou nº do pedido..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
