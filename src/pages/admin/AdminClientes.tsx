@@ -54,6 +54,7 @@ export default function AdminClientes() {
   // Stats
   const [totalClients, setTotalClients] = useState(0);
   const [totalInBase, setTotalInBase] = useState(0);
+  const [orderCodeMap, setOrderCodeMap] = useState<Record<string, string[]>>({});
   const [clientsWithBalance, setClientsWithBalance] = useState(0);
   const [activeSubscriptions, setActiveSubscriptions] = useState(0);
   const [activeClients, setActiveClients] = useState(0);
