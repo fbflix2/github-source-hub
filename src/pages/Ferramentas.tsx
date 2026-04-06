@@ -366,7 +366,7 @@ export default function Ferramentas() {
             <p className="text-slate-400 mb-4 flex-grow leading-relaxed text-xs">
               Aqueça seus perfis comprados com tarefas diárias guiadas durante 7 dias para máxima performance.
             </p>
-            <button className="w-full py-2.5 px-4 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2 text-sm group/btn">
+            <button onClick={() => navigate("/esteira-aquecimento")} className="w-full py-2.5 px-4 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2 text-sm group/btn">
               <span>Acessar Esteira</span>
               <MaterialIcon name="arrow_forward" className="text-lg group-hover/btn:translate-x-1 transition-transform" />
             </button>
