@@ -36,13 +36,14 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
     const startLastMonth = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, "0")}-01`;
     const endLastMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
 
-    const [caixasRes, allLancRes, lancMesRes, lancLastRes, despesasRes, configRes] = await Promise.all([
+    const [caixasRes, allLancRes, lancMesRes, lancLastRes, despesasRes, configRes, custosRes] = await Promise.all([
       supabase.from("fb_finance_caixas").select("*"),
       supabase.from("fb_finance_lancamentos").select("*"),
       supabase.from("fb_finance_lancamentos").select("*").gte("data", startOfMonth),
       supabase.from("fb_finance_lancamentos").select("*").gte("data", startLastMonth).lt("data", endLastMonth),
       supabase.from("fb_finance_despesas_planejadas").select("*").eq("mes_ref", mesAtual),
       supabase.from("fb_finance_config").select("*").limit(1).single(),
+      supabase.from("fb_finance_custos_pessoais").select("*").eq("ativo", true),
     ]);
 
     if (caixasRes.data) setCaixas(caixasRes.data as any);
