@@ -1377,10 +1377,173 @@ Deno.serve(async (req) => {
       case "exchange-proxy": {
         if (!params.subscriptionCode) throw new Error("subscriptionCode é obrigatório");
 
-        // Fetch current subscription data from ProxyBR to get the real/fresh proxy_id
-        const encodedCode = encodeURIComponent(params.subscriptionCode);
+        const requestedCode = String(params.subscriptionCode);
+        const normalizedCode = normalizeSubscriptionCode(requestedCode);
+        const proxyIndex = getRequestedProxyIndex(requestedCode);
+        const encodedCode = encodeURIComponent(normalizedCode);
+        const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+        const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+        const WEBSHARE_API_KEY = Deno.env.get("WEBSHARE_API_KEY");
+        const supabaseAdmin = createClient(SUPABASE_URL!, SERVICE_KEY!);
+
+        const { data: localSub, error: localSubError } = await supabaseAdmin
+          .from("subscriptions")
+          .select("*")
+          .eq("name", normalizedCode)
+          .eq("type", "proxybr")
+          .maybeSingle();
+
+        if (localSubError) {
+          console.error(`Exchange: local subscription lookup failed: ${localSubError.message}`);
+        }
+
+        const localRaw = (localSub?.raw_data || {}) as Record<string, any>;
+
+        const updateLocalWithNewProxy = async (newProxyData: Record<string, any>, methodName: string) => {
+          if (!localSub?.id) return;
+
+          const existingProxies = localRaw.proxies?.data || localRaw.subscription?.proxies?.data || [];
+          const targetIndex = proxyIndex !== null ? proxyIndex : 0;
+          const newProxyCode = `${newProxyData.proxy_address}:${newProxyData.port}:${newProxyData.username}:${newProxyData.password}`;
+          const newProxyParsed = {
+            ip: newProxyData.proxy_address,
+            port: String(newProxyData.port),
+            username: newProxyData.username,
+            password: newProxyData.password,
+          };
+
+          const updatedProxiesData = existingProxies.length > 0
+            ? existingProxies.map((proxy: any, index: number) => {
+                if (index !== targetIndex) return proxy;
+                return {
+                  ...proxy,
+                  id: newProxyData.webshare_proxy_id || proxy.id,
+                  code: newProxyCode,
+                  parsed: newProxyParsed,
+                  status: "USED",
+                };
+              })
+            : [{ id: newProxyData.webshare_proxy_id, code: newProxyCode, parsed: newProxyParsed, status: "USED", notes: null }];
+
+          const nextFreeQuota = Math.max(0, Number(localRaw.exchange_quota_free ?? localRaw.subscription?.exchange_quota_free ?? 0) - 1);
+          const updatedRaw = {
+            ...localRaw,
+            provider: "webshare",
+            webshare_proxy_id: newProxyData.webshare_proxy_id || localRaw.webshare_proxy_id || null,
+            proxy_address: newProxyData.proxy_address,
+            port: newProxyData.port,
+            username: newProxyData.username,
+            password: newProxyData.password,
+            country_code: newProxyData.country_code || localRaw.country_code || "BR",
+            city_name: newProxyData.city_name || localRaw.city_name || "São Paulo",
+            exchange_quota_free: nextFreeQuota,
+            exchange_count: Number(localRaw.exchange_count || 0) + 1,
+            last_exchange: new Date().toISOString(),
+            last_exchange_method: methodName,
+            proxies: {
+              ...(localRaw.proxies || {}),
+              data: updatedProxiesData,
+              total: updatedProxiesData.length,
+            },
+          };
+
+          await supabaseAdmin
+            .from("subscriptions")
+            .update({ raw_data: updatedRaw, updated_at: new Date().toISOString() })
+            .eq("id", localSub.id);
+        };
+
+        const fallbackToWebsharePool = async () => {
+          if (!WEBSHARE_API_KEY) throw new Error("WEBSHARE_API_KEY não configurada");
+
+          let targetCountry: string | null = null;
+          if (localSub?.product_id) {
+            const { data: prodData } = await supabaseAdmin
+              .from("products")
+              .select("name, tags")
+              .eq("id", localSub.product_id)
+              .maybeSingle();
+            if (prodData) targetCountry = detectCountryFromProduct(prodData);
+          }
+          if (!targetCountry) {
+            targetCountry = detectCountryFromProduct({
+              name: localRaw.product?.name || localRaw.product_name || "",
+              tags: localRaw.product?.tags || null,
+            });
+          }
+          if (!targetCountry) targetCountry = "BR";
+
+          const allCurrentProxies: any[] = [];
+          let page = 1;
+          while (true) {
+            const listResp = await webshareFetch(`/proxy/list/?mode=direct&page=${page}&page_size=250`, WEBSHARE_API_KEY);
+            const listData = await listResp.json().catch(() => ({}));
+            if (!listResp.ok) throw new Error(`Webshare API error [${listResp.status}]`);
+            if (listData.results?.length) allCurrentProxies.push(...listData.results);
+            if (!listData.next) break;
+            page++;
+          }
+
+          const { data: allActiveSubs } = await supabaseAdmin
+            .from("subscriptions")
+            .select("id, raw_data")
+            .in("type", ["webshare", "proxybr"])
+            .in("status", ["active", "expiring"]);
+
+          const assignedIds = new Set<string>();
+          for (const sub of (allActiveSubs || [])) {
+            if (localSub?.id && sub.id === localSub.id) continue;
+            const raw = (sub.raw_data || {}) as Record<string, any>;
+            if (raw.webshare_proxy_id) assignedIds.add(String(raw.webshare_proxy_id));
+            const proxies = raw.proxies?.data || raw.subscription?.proxies?.data || [];
+            for (const proxy of proxies) {
+              if (proxy?.id) assignedIds.add(String(proxy.id));
+            }
+          }
+
+          const poolCandidates = allCurrentProxies.filter(
+            (proxy: any) => proxy.valid && !assignedIds.has(String(proxy.id))
+              && (!targetCountry || String(proxy.country_code).toUpperCase() === targetCountry),
+          );
+
+          if (poolCandidates.length === 0) {
+            throw new Error(`Não encontramos proxy ${targetCountry} disponível no pool interno`);
+          }
+
+          const selectedProxy = poolCandidates[0];
+          const fallbackProxy = {
+            webshare_proxy_id: selectedProxy.id,
+            proxy_address: selectedProxy.proxy_address,
+            port: selectedProxy.port,
+            username: selectedProxy.username,
+            password: selectedProxy.password,
+            country_code: selectedProxy.country_code,
+            city_name: selectedProxy.city_name,
+          };
+
+          await updateLocalWithNewProxy(fallbackProxy, "webshare_pool_fallback");
+
+          return new Response(
+            JSON.stringify({
+              success: true,
+              method: "webshare_pool_fallback",
+              old_proxy: localRaw.proxy_address ? `${localRaw.proxy_address}:${localRaw.port || ""}` : null,
+              new_proxy: `${fallbackProxy.proxy_address}:${fallbackProxy.port}:${fallbackProxy.username}:${fallbackProxy.password}`,
+              proxy: {
+                id: fallbackProxy.webshare_proxy_id,
+                ip: fallbackProxy.proxy_address,
+                port: fallbackProxy.port,
+                username: fallbackProxy.username,
+                password: fallbackProxy.password,
+              },
+              exchange_quota_free: Math.max(0, Number(localRaw.exchange_quota_free ?? localRaw.subscription?.exchange_quota_free ?? 0) - 1),
+            }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        };
+
         const subDetailUrl = `${PROXYBR_BASE}/subscriptions/${encodedCode}`;
-        console.log(`Exchange proxy: fetching fresh data for ${params.subscriptionCode}`);
+        console.log(`Exchange proxy: fetching fresh data for ${requestedCode} (normalized=${normalizedCode})`);
         const subDetailResp = await proxyFetch(subDetailUrl, PROXYBR_API_KEY);
         const subDetailText = await subDetailResp.text();
 
@@ -1389,15 +1552,11 @@ Deno.serve(async (req) => {
           try {
             const subDetail = JSON.parse(subDetailText);
             const proxies = subDetail?.proxies?.data || [];
-            if (proxies.length === 1) {
+            const targetIndex = proxyIndex !== null ? proxyIndex : 0;
+            if (proxies.length > targetIndex) {
+              freshProxyId = proxies[targetIndex].id;
+            } else if (proxies.length === 1) {
               freshProxyId = proxies[0].id;
-            } else if (proxies.length > 1 && params.proxy_id) {
-              // For multi-proxy, check if the provided proxy_id exists; if not, log warning
-              const match = proxies.find((p: any) => p.id === params.proxy_id);
-              if (!match) {
-                console.warn(`Provided proxy_id ${params.proxy_id} not found in subscription proxies, using first: ${proxies[0].id}`);
-                freshProxyId = proxies[0].id;
-              }
             } else if (proxies.length > 0) {
               freshProxyId = proxies[0].id;
             }
@@ -1412,9 +1571,6 @@ Deno.serve(async (req) => {
         url = `${PROXYBR_BASE}/subscriptions/${encodedCode}/exchange-proxy`;
         method = "PUT";
         body = freshProxyId ? JSON.stringify({ proxy_id: freshProxyId }) : JSON.stringify({});
-        console.log(`Exchange proxy: code=${params.subscriptionCode}, proxy_id=${freshProxyId || 'none'}`);
-
-        // Execute exchange inline so we can update local DB after success
         console.log(`ProxyBR API call: ${method} ${url}`);
         const exchangeResp = await proxyFetch(url, PROXYBR_API_KEY, method, body);
         const exchangeText = await exchangeResp.text();
@@ -1424,48 +1580,25 @@ Deno.serve(async (req) => {
         try { exchangeData = JSON.parse(exchangeText); } catch { exchangeData = { raw: exchangeText }; }
 
         if (!exchangeResp.ok) {
-          return new Response(
-            JSON.stringify({ error: `ProxyBR API error [${exchangeResp.status}]`, details: exchangeData }),
-            { status: exchangeResp.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
+          console.warn(`Exchange: ProxyBR failed for ${requestedCode}, trying internal fallback`);
+          return await fallbackToWebsharePool();
         }
 
-        // After successful exchange, fetch updated subscription and update local DB
-        // Small delay to let ProxyBR propagate the new proxy
         await sleep(1500);
-        console.log(`Exchange: fetching updated subscription data for ${params.subscriptionCode}`);
+        console.log(`Exchange: fetching updated subscription data for ${normalizedCode}`);
         try {
           const freshUrl = `${PROXYBR_BASE}/subscriptions/${encodedCode}`;
           const freshResp = await proxyFetch(freshUrl, PROXYBR_API_KEY);
           const freshText = await freshResp.text();
-          console.log(`Exchange: fresh data fetch status=${freshResp.status}, length=${freshText.length}`);
           if (freshResp.ok) {
             const freshData = JSON.parse(freshText);
-            const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-            const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-            console.log(`Exchange: SUPABASE_URL=${SUPABASE_URL ? 'set' : 'MISSING'}, SERVICE_KEY=${SERVICE_KEY ? 'set' : 'MISSING'}`);
-            const supabaseAdmin = createClient(SUPABASE_URL!, SERVICE_KEY!);
-            // Preserve profile_tag if it exists
-            const { data: existingRow } = await supabaseAdmin
-              .from("subscriptions")
-              .select("raw_data")
-              .eq("name", params.subscriptionCode)
-              .eq("type", "proxybr")
-              .maybeSingle();
-            const existingRaw = (existingRow?.raw_data || {}) as Record<string, any>;
-            const mergedData = { ...freshData, profile_tag: existingRaw.profile_tag || null };
-            const { error: updateErr, count } = await supabaseAdmin
+            const existingRaw = (localSub?.raw_data || {}) as Record<string, any>;
+            const mergedData = { ...freshData, ...Object.fromEntries(Object.entries(existingRaw).filter(([key]) => key.startsWith("profile_tag"))) };
+            await supabaseAdmin
               .from("subscriptions")
               .update({ raw_data: mergedData, updated_at: new Date().toISOString() })
-              .eq("name", params.subscriptionCode)
+              .eq("name", normalizedCode)
               .eq("type", "proxybr");
-            if (updateErr) {
-              console.error(`Exchange: DB update FAILED: ${updateErr.message}`);
-            } else {
-              console.log(`Exchange: DB updated successfully for ${params.subscriptionCode}`);
-            }
-          } else {
-            console.error(`Exchange: fresh data fetch failed: ${freshText.substring(0, 200)}`);
           }
         } catch (e: any) {
           console.error(`Exchange: error updating local DB: ${e.message || e}`);
