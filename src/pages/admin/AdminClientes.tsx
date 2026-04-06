@@ -54,6 +54,7 @@ export default function AdminClientes() {
   // Stats
   const [totalClients, setTotalClients] = useState(0);
   const [totalInBase, setTotalInBase] = useState(0);
+  const [orderCodeMap, setOrderCodeMap] = useState<Record<string, string[]>>({});
   const [clientsWithBalance, setClientsWithBalance] = useState(0);
   const [activeSubscriptions, setActiveSubscriptions] = useState(0);
   const [activeClients, setActiveClients] = useState(0);
@@ -160,6 +161,25 @@ export default function AdminClientes() {
     const activeUserIds = new Set(recent.map(o => o.user_id));
     setActiveClients(activeUserIds.size);
 
+    // Build order code -> user_id map for search by order number
+    const codeMap: Record<string, string[]> = {};
+    let ordFrom = 0;
+    let ordHasMore = true;
+    while (ordHasMore) {
+      const { data: ordBatch } = await supabase
+        .from("orders")
+        .select("code, user_id")
+        .range(ordFrom, ordFrom + 999);
+      if (!ordBatch || ordBatch.length === 0) { ordHasMore = false; break; }
+      for (const o of ordBatch) {
+        if (!codeMap[o.user_id]) codeMap[o.user_id] = [];
+        codeMap[o.user_id].push(o.code.toLowerCase());
+      }
+      ordFrom += 1000;
+      if (ordBatch.length < 1000) ordHasMore = false;
+    }
+    setOrderCodeMap(codeMap);
+
     setLoading(false);
   };
 
@@ -247,7 +267,8 @@ export default function AdminClientes() {
       (client.full_name || "").toLowerCase().includes(term) ||
       client.email.toLowerCase().includes(term) ||
       (client.phone || "").includes(term) ||
-      client.user_id.toLowerCase().includes(term);
+      client.user_id.toLowerCase().includes(term) ||
+      (orderCodeMap[client.user_id] || []).some(code => code.includes(term));
 
     switch (activeFilter) {
       case "subscribers":
@@ -364,7 +385,7 @@ export default function AdminClientes() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
             <Input
               className="w-full h-12 pl-12 pr-4 bg-white/5 border-none rounded-xl text-white placeholder-white/30 focus:ring-2 focus:ring-primary focus:bg-white/10 transition-all text-sm font-medium"
-              placeholder="Pesquisar por nome, email ou telefone..."
+              placeholder="Pesquisar por nome, email, telefone ou nº do pedido..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
