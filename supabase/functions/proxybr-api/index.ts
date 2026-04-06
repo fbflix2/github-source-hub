@@ -1049,7 +1049,7 @@ Deno.serve(async (req) => {
 
       case "get-subscription":
         if (!params.subscriptionCode) throw new Error("subscriptionCode é obrigatório");
-        url = `${PROXYBR_BASE}/subscriptions/${params.subscriptionCode}`;
+        url = `${PROXYBR_BASE}/subscriptions/${encodeURIComponent(params.subscriptionCode)}`;
         break;
 
       case "contract-subscription": {
@@ -1218,7 +1218,7 @@ Deno.serve(async (req) => {
         }
 
         // 3. Call ProxyBR API to renew FIRST
-        const renewUrl = `${PROXYBR_BASE}/subscriptions/${params.subscriptionCode}/renew`;
+        const renewUrl = `${PROXYBR_BASE}/subscriptions/${encodeURIComponent(params.subscriptionCode)}/renew`;
         console.log(`ProxyBR API call: POST ${renewUrl}`);
         const renewResp = await proxyFetch(renewUrl, PROXYBR_API_KEY, "POST");
         const renewText = await renewResp.text();
@@ -1292,7 +1292,7 @@ Deno.serve(async (req) => {
 
         // 5. Update local subscription with fresh data from API
         try {
-          const freshUrl = `${PROXYBR_BASE}/subscriptions/${params.subscriptionCode}`;
+          const freshUrl = `${PROXYBR_BASE}/subscriptions/${encodeURIComponent(params.subscriptionCode)}`;
           const freshResp = await proxyFetch(freshUrl, PROXYBR_API_KEY);
           if (freshResp.ok) {
             const freshData = await freshResp.json();
@@ -1341,7 +1341,8 @@ Deno.serve(async (req) => {
         if (!params.subscriptionCode) throw new Error("subscriptionCode é obrigatório");
 
         // Fetch current subscription data from ProxyBR to get the real/fresh proxy_id
-        const subDetailUrl = `${PROXYBR_BASE}/subscriptions/${params.subscriptionCode}`;
+        const encodedCode = encodeURIComponent(params.subscriptionCode);
+        const subDetailUrl = `${PROXYBR_BASE}/subscriptions/${encodedCode}`;
         console.log(`Exchange proxy: fetching fresh data for ${params.subscriptionCode}`);
         const subDetailResp = await proxyFetch(subDetailUrl, PROXYBR_API_KEY);
         const subDetailText = await subDetailResp.text();
@@ -1371,7 +1372,7 @@ Deno.serve(async (req) => {
           console.warn(`Failed to fetch subscription detail [${subDetailResp.status}], using client proxy_id: ${params.proxy_id}`);
         }
 
-        url = `${PROXYBR_BASE}/subscriptions/${params.subscriptionCode}/exchange-proxy`;
+        url = `${PROXYBR_BASE}/subscriptions/${encodedCode}/exchange-proxy`;
         method = "PUT";
         body = freshProxyId ? JSON.stringify({ proxy_id: freshProxyId }) : JSON.stringify({});
         console.log(`Exchange proxy: code=${params.subscriptionCode}, proxy_id=${freshProxyId || 'none'}`);
@@ -1397,7 +1398,7 @@ Deno.serve(async (req) => {
         await sleep(1500);
         console.log(`Exchange: fetching updated subscription data for ${params.subscriptionCode}`);
         try {
-          const freshUrl = `${PROXYBR_BASE}/subscriptions/${params.subscriptionCode}`;
+          const freshUrl = `${PROXYBR_BASE}/subscriptions/${encodedCode}`;
           const freshResp = await proxyFetch(freshUrl, PROXYBR_API_KEY);
           const freshText = await freshResp.text();
           console.log(`Exchange: fresh data fetch status=${freshResp.status}, length=${freshText.length}`);
