@@ -1341,7 +1341,8 @@ Deno.serve(async (req) => {
         if (!params.subscriptionCode) throw new Error("subscriptionCode é obrigatório");
 
         // Fetch current subscription data from ProxyBR to get the real/fresh proxy_id
-        const subDetailUrl = `${PROXYBR_BASE}/subscriptions/${params.subscriptionCode}`;
+        const encodedCode = encodeURIComponent(params.subscriptionCode);
+        const subDetailUrl = `${PROXYBR_BASE}/subscriptions/${encodedCode}`;
         console.log(`Exchange proxy: fetching fresh data for ${params.subscriptionCode}`);
         const subDetailResp = await proxyFetch(subDetailUrl, PROXYBR_API_KEY);
         const subDetailText = await subDetailResp.text();
