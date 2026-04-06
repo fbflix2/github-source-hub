@@ -299,10 +299,16 @@ export function FbLancamentos() {
   const allTotalEntradas = lancamentos.reduce((s, l) => s + Number(l.entrada || 0), 0);
   const allTotalSaidas = lancamentos.reduce((s, l) => s + Number(l.saida || 0), 0);
   const saldoAtual = allTotalEntradas - allTotalSaidas;
+  
+  // For averages, count only real income/expenses (exclude internal distribution transfers)
+  const nonTransferCategories = (l: Lancamento) => !["Distribuição PJ", "Capital de Giro", "Aportes", "Transferência"].includes(l.categoria);
+  const realEntradas = lancamentos.filter(l => Number(l.entrada) > 0 && nonTransferCategories(l)).reduce((s, l) => s + Number(l.entrada), 0);
+  const realSaidas = lancamentos.filter(l => Number(l.saida) > 0 && nonTransferCategories(l)).reduce((s, l) => s + Number(l.saida), 0);
   const diasUnicos = Math.max(new Set(lancamentos.map(l => l.data).filter(Boolean)).size, 1);
-  const mediaEntradas = allTotalEntradas > 0 ? allTotalEntradas / diasUnicos : 0;
-  const mediaSaidas = allTotalSaidas > 0 ? allTotalSaidas / diasUnicos : 0;
-  const taxaConversao = allTotalEntradas > 0 ? ((allTotalEntradas - allTotalSaidas) / allTotalEntradas * 100) : 0;
+  const mediaEntradas = realEntradas > 0 ? realEntradas / diasUnicos : 0;
+  const mediaSaidas = realSaidas > 0 ? realSaidas / diasUnicos : 0;
+  // Saldo do período (all movements)
+  const totalMovimentacoes = lancamentos.length;
 
   const paginatedLancamentos = lancamentos.slice(page * perPage, (page + 1) * perPage);
   const totalPages = Math.ceil(lancamentos.length / perPage);
