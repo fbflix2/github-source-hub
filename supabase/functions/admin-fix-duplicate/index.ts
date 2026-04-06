@@ -141,7 +141,75 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ========== ADMIN EXCHANGE PROXY (early return, no general auth check needed) ==========
+    if (body.action === "admin_exchange_proxy") {
+      const { subscription_id, target_country, new_product_id, new_product_name, order_item_id } = body;
+      if (!subscription_id) throw new Error("subscription_id required");
 
+      const WS_API_KEY = Deno.env.get("WEBSHARE_API_KEY")!;
+      const WS_BASE = "https://proxy.webshare.io/api/v2";
+
+      async function wsFetch(path: string, method = "GET", fetchBody?: string) {
+        const url = path.startsWith("http") ? path : `${WS_BASE}${path}`;
+        const hdrs: Record<string, string> = { Authorization: `Token ${WS_API_KEY}`, Accept: "application/json" };
+        if (fetchBody) hdrs["Content-Type"] = "application/json";
+        return fetch(url, { method, headers: hdrs, body: fetchBody });
+      }
+
+      const { data: sub } = await supabaseAdmin.from("subscriptions").select("*").eq("id", subscription_id).single();
+      if (!sub) throw new Error("Subscription not found");
+      const raw = (sub.raw_data || {}) as Record<string, any>;
+      const country = (target_country || "BR").toUpperCase();
+      console.log(`[admin-exchange] Replacing ${raw.proxy_address} (${raw.country_code}) -> ${country}`);
+
+      const replacePayload = {
+        to_replace: { type: "ip_address", ip_addresses: [raw.proxy_address], count: 1 },
+        replace_with: [{ type: "country", country_code: country, count: 1 }],
+        dry_run: false,
+      };
+      const replaceResp = await wsFetch("https://proxy.webshare.io/api/v3/proxy/replace/", "POST", JSON.stringify(replacePayload));
+      const replaceData = await replaceResp.json();
+      console.log("[admin-exchange] Replace response:", JSON.stringify(replaceData));
+      if (!replaceResp.ok) throw new Error(`Webshare replace failed: ${replaceResp.status} ${JSON.stringify(replaceData)}`);
+
+      let state = replaceData.state;
+      const replacementId = replaceData.id;
+      for (let i = 0; i < 15 && state !== "completed" && state !== "failed"; i++) {
+        await new Promise(r => setTimeout(r, 2000));
+        const sr = await wsFetch(`https://proxy.webshare.io/api/v3/proxy/replace/${replacementId}/`);
+        state = (await sr.json()).state;
+        console.log(`[admin-exchange] Poll ${i+1}: ${state}`);
+      }
+      if (state !== "completed") throw new Error(`Replace did not complete: ${state}`);
+
+      const { data: allSubs } = await supabaseAdmin.from("subscriptions").select("raw_data").eq("type", "webshare").in("status", ["active", "expiring"]).neq("id", subscription_id);
+      const assignedIds = new Set<string>();
+      for (const s of (allSubs || [])) { const r = (s.raw_data || {}) as Record<string, any>; if (r.webshare_proxy_id) assignedIds.add(r.webshare_proxy_id); }
+
+      const listResp = await wsFetch(`/proxy/list/?mode=direct&page_size=250&country_code__in=${country}`);
+      const listData = await listResp.json();
+      const candidates = (listData.results || []).filter((p: any) => p.valid && !assignedIds.has(p.id) && p.id !== raw.webshare_proxy_id);
+      if (candidates.length === 0) throw new Error("No proxy available for country " + country);
+
+      const np = candidates[0];
+      console.log(`[admin-exchange] New proxy: ${np.proxy_address}:${np.port} (${np.city_name}, ${np.country_code})`);
+
+      const updatedRaw = { ...raw, webshare_proxy_id: np.id, proxy_address: np.proxy_address, port: np.port, username: np.username, password: np.password, country_code: np.country_code, city_name: np.city_name, provider: "webshare", exchange_quota_free: Math.max(0, (raw.exchange_quota_free ?? 2) - 1), exchange_count: (raw.exchange_count ?? 0) + 1, last_exchange: new Date().toISOString(), last_exchange_method: "admin_api" };
+      await supabaseAdmin.from("subscriptions").update({ raw_data: updatedRaw, product_id: new_product_id || sub.product_id, updated_at: new Date().toISOString() }).eq("id", subscription_id);
+
+      if (order_item_id) {
+        await supabaseAdmin.from("order_items").update({
+          name: new_product_name || sub.name,
+          product_id: new_product_id || sub.product_id,
+          delivery_data: { proxy_address: np.proxy_address, port: np.port, username: np.username, password: np.password, country_code: np.country_code, city_name: np.city_name, provider: "webshare" },
+        }).eq("id", order_item_id);
+      }
+
+      return new Response(JSON.stringify({
+        success: true, old_proxy: `${raw.proxy_address}:${raw.port}`, new_proxy: `${np.proxy_address}:${np.port}`,
+        city: np.city_name, country: np.country_code, username: np.username, password: np.password,
+      }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
     const isServiceRole = authHeader?.replace("Bearer ", "") === Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
       || body.internal_key === Deno.env.get("PROXYBR_API_KEY");
