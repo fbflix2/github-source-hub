@@ -188,7 +188,8 @@ export function FbCaixas() {
           <div className="relative z-10">
             <span className="text-xs uppercase tracking-[0.2em] text-blue-100/70 font-bold mb-2 block">Patrimônio Reservado</span>
             <h3 className="text-5xl font-['Manrope'] font-black text-white mb-6 tracking-tighter">{formatBRL(totalPatrimonio)}</h3>
-            <span className="text-blue-200/60 text-xs">{caixas.length} caixas ativas</span>
+            <p className="text-blue-200/80 text-[10px] leading-relaxed mb-1">Fundos Fbflix · Dividendos · Fundo Emergência · Conta Corrente · Entrada Casa · Janela Oportunidade</p>
+            <span className="text-blue-200/60 text-xs">{caixas.filter(c => reservedNames.some(n => c.nome.toLowerCase().includes(n))).length} caixas reservadas</span>
           </div>
           <div className="absolute -right-12 -bottom-12 w-64 h-64 bg-white/5 rounded-full blur-3xl"></div>
           <div className="absolute right-8 top-8 opacity-20">
