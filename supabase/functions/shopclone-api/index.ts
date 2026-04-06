@@ -117,6 +117,8 @@ function buildStockItems(rawAccounts: string[], productId: string, productName: 
         source: "accface",
         accfaceProductId: String(productId),
         purchasedAt: new Date().toISOString(),
+        ...(unitPriceBrl && { precoCustoBRL: unitPriceBrl }),
+        descricao: `AccFace ID: ${productId} | Custo: R$ ${unitPriceBrl ? unitPriceBrl.toFixed(2) : '—'}`,
         // Map to Blocagem-compatible field names
         ...(parts[0] && { idPerfil: parts[0] }),
         ...(parts[1] && { senha: parts[1] }),
