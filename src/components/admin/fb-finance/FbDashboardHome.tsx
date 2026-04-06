@@ -8,6 +8,7 @@ const formatBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", 
 interface CaixaRow { id: string; nome: string; saldo_atual: number; tipo: string; alvo_percent: number }
 interface LancamentoRow { id: string; data: string; tipo: string; categoria: string; descricao: string | null; entrada: number; saida: number; caixa_destino_id: string | null }
 interface DespesaRow { id: string; nome: string; valor: number; pago: boolean; mes_ref: string; categoria: string }
+interface CustoPessoalRow { id: string; nome: string; valor: number; ativo: boolean; categoria: string }
 interface ConfigRow { distribution_percentages: Record<string, number> }
 
 export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => void }) {
