@@ -1049,7 +1049,7 @@ Deno.serve(async (req) => {
 
       case "get-subscription":
         if (!params.subscriptionCode) throw new Error("subscriptionCode é obrigatório");
-        url = `${PROXYBR_BASE}/subscriptions/${params.subscriptionCode}`;
+        url = `${PROXYBR_BASE}/subscriptions/${encodeURIComponent(params.subscriptionCode)}`;
         break;
 
       case "contract-subscription": {
