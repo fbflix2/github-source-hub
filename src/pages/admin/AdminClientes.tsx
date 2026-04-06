@@ -267,7 +267,8 @@ export default function AdminClientes() {
       (client.full_name || "").toLowerCase().includes(term) ||
       client.email.toLowerCase().includes(term) ||
       (client.phone || "").includes(term) ||
-      client.user_id.toLowerCase().includes(term);
+      client.user_id.toLowerCase().includes(term) ||
+      (orderCodeMap[client.user_id] || []).some(code => code.includes(term));
 
     switch (activeFilter) {
       case "subscribers":
