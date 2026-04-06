@@ -71,7 +71,7 @@ function extractRawAccounts(parsed: any): string[] {
   return [...new Set(cleaned)];
 }
 
-function buildStockItems(rawAccounts: string[], productId: string, productName: string | undefined, folder: string, itemType?: string) {
+function buildStockItems(rawAccounts: string[], productId: string, productName: string | undefined, folder: string, itemType?: string, unitPriceBrl?: number) {
   const resolvedType = itemType || "perfil";
 
   if (resolvedType === "bm") {
@@ -92,6 +92,8 @@ function buildStockItems(rawAccounts: string[], productId: string, productName: 
           source: "accface",
           accfaceProductId: String(productId),
           purchasedAt: new Date().toISOString(),
+          ...(unitPriceBrl && { precoCustoBRL: unitPriceBrl }),
+          descricao: `AccFace ID: ${productId} | Custo: R$ ${unitPriceBrl ? unitPriceBrl.toFixed(2) : '—'}`,
         },
       };
     });
@@ -115,6 +117,8 @@ function buildStockItems(rawAccounts: string[], productId: string, productName: 
         source: "accface",
         accfaceProductId: String(productId),
         purchasedAt: new Date().toISOString(),
+        ...(unitPriceBrl && { precoCustoBRL: unitPriceBrl }),
+        descricao: `AccFace ID: ${productId} | Custo: R$ ${unitPriceBrl ? unitPriceBrl.toFixed(2) : '—'}`,
         // Map to Blocagem-compatible field names
         ...(parts[0] && { idPerfil: parts[0] }),
         ...(parts[1] && { senha: parts[1] }),
@@ -298,7 +302,7 @@ Deno.serve(async (req) => {
       }
 
       case "buy-resource": {
-        const { productId, amount, productName, folderName, itemType } = params;
+        const { productId, amount, productName, folderName, itemType, unitPriceBrl } = params;
         if (!productId || !amount) throw new Error("productId and amount are required");
 
         const url = `${ACCFACE_BASE}/BResource.php?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&id=${encodeURIComponent(String(productId))}&amount=${encodeURIComponent(String(amount))}`;
@@ -335,7 +339,7 @@ Deno.serve(async (req) => {
           console.log("[shopclone-api] first account sample:", rawAccounts[0].substring(0, 200));
         }
 
-        const stockItems = buildStockItems(rawAccounts, String(productId), productName ? String(productName) : undefined, folder, itemType ? String(itemType) : undefined);
+        const stockItems = buildStockItems(rawAccounts, String(productId), productName ? String(productName) : undefined, folder, itemType ? String(itemType) : undefined, unitPriceBrl ? Number(unitPriceBrl) : undefined);
         const saveResult = await saveStockItems(adminClient, folder, stockItems);
 
         result = {
@@ -354,7 +358,7 @@ Deno.serve(async (req) => {
       }
 
       case "import-accounts": {
-        const { productId, productName, folderName, sourcePayload, accounts, itemType } = params;
+        const { productId, productName, folderName, sourcePayload, accounts, itemType, unitPriceBrl } = params;
         if (!productId) throw new Error("productId is required");
 
         const adminClient = createClient(
@@ -364,7 +368,7 @@ Deno.serve(async (req) => {
 
         const folder = String(folderName || "AccFace Import");
         const rawAccounts = extractRawAccounts(sourcePayload ?? { accounts });
-        const stockItems = buildStockItems(rawAccounts, String(productId), productName ? String(productName) : undefined, folder, itemType ? String(itemType) : undefined);
+        const stockItems = buildStockItems(rawAccounts, String(productId), productName ? String(productName) : undefined, folder, itemType ? String(itemType) : undefined, unitPriceBrl ? Number(unitPriceBrl) : undefined);
         const saveResult = await saveStockItems(adminClient, folder, stockItems);
 
         result = {

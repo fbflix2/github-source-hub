@@ -419,7 +419,7 @@ function ProductRow({ product, usdToBrl, onBuyResult }: { product: ShopCloneProd
     }
     setBuying(true);
     try {
-      const result = await buyShopCloneResource(product.id, buyQty, product.name, "AccFace Import");
+      const result = await buyShopCloneResource(product.id, buyQty, product.name, "AccFace Import", undefined, priceBrl);
       if (result?.error || result?.status === "error") {
         toast.error("Erro na compra: " + (result.error || result.raw || "Erro desconhecido"));
       } else {
