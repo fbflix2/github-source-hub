@@ -7,6 +7,45 @@ const corsHeaders = {
 };
 
 const PROXYBR_BASE = "https://painel.proxybr.com.br/api";
+const WEBSHARE_BASE = "https://proxy.webshare.io/api/v2";
+
+function normalizeSubscriptionCode(subscriptionCode: string) {
+  return String(subscriptionCode || "").trim().replace(/#\d+$/, "");
+}
+
+function getRequestedProxyIndex(subscriptionCode: string) {
+  const match = String(subscriptionCode || "").trim().match(/#(\d+)$/);
+  return match ? Math.max(0, Number(match[1]) - 1) : null;
+}
+
+function detectCountryFromProduct(product?: { name?: string; tags?: string[] | null } | null): string | null {
+  if (!product) return null;
+
+  const tags = (product.tags || []) as string[];
+  const name = (product.name || "").toLowerCase();
+  const allText = `${tags.map((tag) => tag.toLowerCase().trim()).join(" ")} ${name}`;
+
+  for (const tag of tags) {
+    const normalizedTag = tag.toLowerCase().trim();
+    if (["br", "brasil", "brazil"].includes(normalizedTag)) return "BR";
+    if (["us", "usa", "estados unidos", "americano", "americana"].includes(normalizedTag)) return "US";
+  }
+
+  if (["brasil", "brazil", "sudeste", "nordeste", "sul", "são paulo", "sao paulo"].some((term) => allText.includes(term))) return "BR";
+  if (["usa", "estados unidos", "americano", "americana"].some((term) => allText.includes(term))) return "US";
+
+  return "BR";
+}
+
+async function webshareFetch(path: string, apiKey: string, method = "GET", body?: string) {
+  const url = path.startsWith("http") ? path : `${WEBSHARE_BASE}${path}`;
+  const headers: Record<string, string> = {
+    Authorization: `Token ${apiKey}`,
+    Accept: "application/json",
+  };
+  if (body) headers["Content-Type"] = "application/json";
+  return fetch(url, { method, headers, body: body || undefined });
+}
 
 async function proxyFetch(url: string, apiKey: string, method = "GET", body?: string, maxRetries = 3) {
   const headers: Record<string, string> = {
@@ -22,16 +61,14 @@ async function proxyFetch(url: string, apiKey: string, method = "GET", body?: st
       const waitMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : 3000 * Math.pow(2, attempt - 1);
       console.warn(`proxyFetch 429 on ${method} ${url}, attempt ${attempt}/${maxRetries}. Waiting ${waitMs}ms`);
       if (attempt < maxRetries) {
-        // Consume body to prevent resource leak before retrying
         await response.text();
         await sleep(waitMs);
         continue;
       }
-      // Last attempt still 429 — return the response as-is for caller to handle
     }
     return response;
   }
-  // Fallback (shouldn't reach here)
+
   return fetch(url, { method, headers, body: body || undefined });
 }
 
