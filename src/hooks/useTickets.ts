@@ -151,6 +151,7 @@ export function useTickets() {
           if (payload.eventType === "INSERT") {
             const newMsg = payload.new as TicketMessage;
             if (newMsg.sender === "support") {
+              playSound();
               toast.info("Nova resposta do suporte!", {
                 description: "Você recebeu uma nova mensagem em um ticket.",
               });
