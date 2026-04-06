@@ -782,7 +782,7 @@ Deno.serve(async (req) => {
 
     // ========== EXCHANGE WEBSHARE PROXY ==========
     if (action === "exchange-webshare-proxy") {
-      const { subscription_id } = params as { subscription_id: string };
+      const { subscription_id, target_country: overrideCountry } = params as { subscription_id: string; target_country?: string };
       if (!subscription_id) throw new Error("subscription_id é obrigatório");
 
       // 1. Get subscription
@@ -794,9 +794,9 @@ Deno.serve(async (req) => {
         .single();
 
       if (subErr || !subRow) throw new Error("Assinatura não encontrada");
-      if (subRow.user_id !== user.id) {
+      if (!isServiceRole && subRow.user_id !== user?.id) {
         // Check if staff
-        const { data: isStaff } = await supabaseAdmin.rpc("is_staff", { _user_id: user.id });
+        const { data: isStaff } = await supabaseAdmin.rpc("is_staff", { _user_id: user?.id });
         if (!isStaff) throw new Error("Sem permissão");
       }
 
@@ -804,8 +804,8 @@ Deno.serve(async (req) => {
       const freeLeft = raw.exchange_quota_free ?? 0;
       if (freeLeft <= 0) throw new Error("Sem cotas de troca disponíveis");
 
-      // Determine country: from raw_data first, then from product tags/name
-      let targetCountry = raw.country_code ? String(raw.country_code).toUpperCase() : null;
+      // Determine country: override param first, then raw_data, then product tags/name
+      let targetCountry = overrideCountry ? overrideCountry.toUpperCase() : (raw.country_code ? String(raw.country_code).toUpperCase() : null);
       if (!targetCountry && subRow.product_id) {
         const { data: prodData } = await supabaseAdmin
           .from("products")
@@ -1076,9 +1076,11 @@ Deno.serve(async (req) => {
       const { subscription_id: maintSubId } = params as { subscription_id: string };
       if (!maintSubId) throw new Error("subscription_id é obrigatório");
 
-      // Only admins can do maintenance exchanges
-      const { data: isAdminMaint } = await supabaseAdmin.rpc("has_role", { _user_id: user.id, _role: "admin" });
-      if (!isAdminMaint) throw new Error("Acesso negado: apenas administradores");
+      // Only admins or service role can do maintenance exchanges
+      if (!isServiceRole) {
+        const { data: isAdminMaint } = await supabaseAdmin.rpc("has_role", { _user_id: user?.id, _role: "admin" });
+        if (!isAdminMaint) throw new Error("Acesso negado: apenas administradores");
+      }
 
       const { data: maintSub, error: maintSubErr } = await supabaseAdmin
         .from("subscriptions")
