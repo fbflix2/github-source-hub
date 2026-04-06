@@ -1372,7 +1372,7 @@ Deno.serve(async (req) => {
           console.warn(`Failed to fetch subscription detail [${subDetailResp.status}], using client proxy_id: ${params.proxy_id}`);
         }
 
-        url = `${PROXYBR_BASE}/subscriptions/${params.subscriptionCode}/exchange-proxy`;
+        url = `${PROXYBR_BASE}/subscriptions/${encodedCode}/exchange-proxy`;
         method = "PUT";
         body = freshProxyId ? JSON.stringify({ proxy_id: freshProxyId }) : JSON.stringify({});
         console.log(`Exchange proxy: code=${params.subscriptionCode}, proxy_id=${freshProxyId || 'none'}`);
