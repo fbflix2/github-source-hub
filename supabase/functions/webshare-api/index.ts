@@ -1076,9 +1076,11 @@ Deno.serve(async (req) => {
       const { subscription_id: maintSubId } = params as { subscription_id: string };
       if (!maintSubId) throw new Error("subscription_id é obrigatório");
 
-      // Only admins can do maintenance exchanges
-      const { data: isAdminMaint } = await supabaseAdmin.rpc("has_role", { _user_id: user.id, _role: "admin" });
-      if (!isAdminMaint) throw new Error("Acesso negado: apenas administradores");
+      // Only admins or service role can do maintenance exchanges
+      if (!isServiceRole) {
+        const { data: isAdminMaint } = await supabaseAdmin.rpc("has_role", { _user_id: user?.id, _role: "admin" });
+        if (!isAdminMaint) throw new Error("Acesso negado: apenas administradores");
+      }
 
       const { data: maintSub, error: maintSubErr } = await supabaseAdmin
         .from("subscriptions")
