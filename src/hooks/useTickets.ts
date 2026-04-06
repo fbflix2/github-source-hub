@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -27,6 +27,34 @@ export function useTickets() {
   const [tickets, setTickets] = useState<TicketData[]>([]);
   const [loading, setLoading] = useState(true);
   const [totalUnread, setTotalUnread] = useState(0);
+  const soundUrlRef = useRef<string | null>(null);
+
+  // Load notification sound
+  useEffect(() => {
+    const loadSound = async () => {
+      const { data } = await supabase
+        .from("notification_sounds")
+        .select("sound_url")
+        .eq("event_key", "client_notification")
+        .eq("active", true)
+        .maybeSingle();
+      if (data?.sound_url) {
+        soundUrlRef.current = data.sound_url;
+        try { const a = new Audio(data.sound_url); a.preload = "auto"; a.load(); } catch {}
+      }
+    };
+    loadSound();
+  }, []);
+
+  const playSound = useCallback(() => {
+    const url = soundUrlRef.current;
+    if (!url) return;
+    try {
+      const audio = new Audio(url);
+      audio.volume = 0.7;
+      audio.play().catch(() => {});
+    } catch {}
+  }, []);
 
   const fetchTickets = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -123,6 +151,7 @@ export function useTickets() {
           if (payload.eventType === "INSERT") {
             const newMsg = payload.new as TicketMessage;
             if (newMsg.sender === "support") {
+              playSound();
               toast.info("Nova resposta do suporte!", {
                 description: "Você recebeu uma nova mensagem em um ticket.",
               });
