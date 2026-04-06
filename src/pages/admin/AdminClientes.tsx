@@ -161,6 +161,25 @@ export default function AdminClientes() {
     const activeUserIds = new Set(recent.map(o => o.user_id));
     setActiveClients(activeUserIds.size);
 
+    // Build order code -> user_id map for search by order number
+    const codeMap: Record<string, string[]> = {};
+    let ordFrom = 0;
+    let ordHasMore = true;
+    while (ordHasMore) {
+      const { data: ordBatch } = await supabase
+        .from("orders")
+        .select("code, user_id")
+        .range(ordFrom, ordFrom + 999);
+      if (!ordBatch || ordBatch.length === 0) { ordHasMore = false; break; }
+      for (const o of ordBatch) {
+        if (!codeMap[o.user_id]) codeMap[o.user_id] = [];
+        codeMap[o.user_id].push(o.code.toLowerCase());
+      }
+      ordFrom += 1000;
+      if (ordBatch.length < 1000) ordHasMore = false;
+    }
+    setOrderCodeMap(codeMap);
+
     setLoading(false);
   };
 
