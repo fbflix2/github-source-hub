@@ -16,6 +16,7 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
   const [lancamentos, setLancamentos] = useState<LancamentoRow[]>([]);
   const [allLancamentos, setAllLancamentos] = useState<LancamentoRow[]>([]);
   const [despesas, setDespesas] = useState<DespesaRow[]>([]);
+  const [custosPessoais, setCustosPessoais] = useState<CustoPessoalRow[]>([]);
   const [config, setConfig] = useState<ConfigRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [capitalGiroPeriod, setCapitalGiroPeriod] = useState<"30" | "90">("30");
