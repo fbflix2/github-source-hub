@@ -73,15 +73,39 @@ function extractRawAccounts(parsed: any): string[] {
 
 function buildStockItems(rawAccounts: string[], productId: string, productName: string | undefined, folder: string, itemType?: string) {
   const resolvedType = itemType || "perfil";
+
+  if (resolvedType === "bm") {
+    // BM items: each raw account line is a BM link/URL
+    return rawAccounts.map((acc, i) => {
+      const trimmed = acc.trim();
+      // Check if it's a URL
+      const isUrl = /^https?:\/\//i.test(trimmed);
+      return {
+        name: productName || `BM #${i + 1}`,
+        type: "bm",
+        status: "aguardando",
+        folder,
+        identification: null,
+        identification_link: isUrl ? trimmed : trimmed,
+        data: {
+          raw: acc,
+          source: "accface",
+          accfaceProductId: String(productId),
+          purchasedAt: new Date().toISOString(),
+        },
+      };
+    });
+  }
+
+  // Perfil items: Format ID|senha_perfil|token2fa|email|senha_email|...
   return rawAccounts.map((acc) => {
     const parts = acc.split("|").map((p) => p.trim());
-    // Format: ID|senha_perfil|token2fa|email|senha_email|...
     const fbId = parts[0] || acc.substring(0, 100);
     const profileLink = /^\d+$/.test(fbId) ? `https://facebook.com/profile.php?id=${fbId}` : undefined;
 
     return {
       name: productName || `AccFace #${productId}`,
-      type: resolvedType,
+      type: "perfil",
       status: "aguardando",
       folder,
       identification: fbId,
@@ -97,6 +121,8 @@ function buildStockItems(rawAccounts: string[], productId: string, productName: 
         ...(parts[2] && { token2fa: parts[2] }),
         ...(parts[3] && { emailAcesso: parts[3] }),
         ...(parts[4] && { senhaEmail: parts[4] }),
+        // Additional fields if available
+        ...(parts[5] && { emailAlternativo: parts[5] }),
         // Also keep legacy keys for backwards compat
         ...(parts[0] && { uid: parts[0] }),
         ...(parts[1] && { pass: parts[1] }),
