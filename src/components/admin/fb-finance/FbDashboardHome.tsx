@@ -8,6 +8,7 @@ const formatBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", 
 interface CaixaRow { id: string; nome: string; saldo_atual: number; tipo: string; alvo_percent: number }
 interface LancamentoRow { id: string; data: string; tipo: string; categoria: string; descricao: string | null; entrada: number; saida: number; caixa_destino_id: string | null }
 interface DespesaRow { id: string; nome: string; valor: number; pago: boolean; mes_ref: string; categoria: string }
+interface CustoPessoalRow { id: string; nome: string; valor: number; ativo: boolean; categoria: string }
 interface ConfigRow { distribution_percentages: Record<string, number> }
 
 export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => void }) {
@@ -15,6 +16,7 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
   const [lancamentos, setLancamentos] = useState<LancamentoRow[]>([]);
   const [allLancamentos, setAllLancamentos] = useState<LancamentoRow[]>([]);
   const [despesas, setDespesas] = useState<DespesaRow[]>([]);
+  const [custosPessoais, setCustosPessoais] = useState<CustoPessoalRow[]>([]);
   const [config, setConfig] = useState<ConfigRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [capitalGiroPeriod, setCapitalGiroPeriod] = useState<"30" | "90">("30");
@@ -34,13 +36,14 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
     const startLastMonth = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, "0")}-01`;
     const endLastMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
 
-    const [caixasRes, allLancRes, lancMesRes, lancLastRes, despesasRes, configRes] = await Promise.all([
+    const [caixasRes, allLancRes, lancMesRes, lancLastRes, despesasRes, configRes, custosRes] = await Promise.all([
       supabase.from("fb_finance_caixas").select("*"),
       supabase.from("fb_finance_lancamentos").select("*"),
       supabase.from("fb_finance_lancamentos").select("*").gte("data", startOfMonth),
       supabase.from("fb_finance_lancamentos").select("*").gte("data", startLastMonth).lt("data", endLastMonth),
       supabase.from("fb_finance_despesas_planejadas").select("*").eq("mes_ref", mesAtual),
       supabase.from("fb_finance_config").select("*").limit(1).single(),
+      supabase.from("fb_finance_custos_pessoais").select("*").eq("ativo", true),
     ]);
 
     if (caixasRes.data) setCaixas(caixasRes.data as any);
@@ -48,6 +51,7 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
     if (lancMesRes.data) setLancamentos(lancMesRes.data as any);
     if (despesasRes.data) setDespesas(despesasRes.data as any);
     if (configRes.data) setConfig(configRes.data as any);
+    if (custosRes.data) setCustosPessoais(custosRes.data as any);
 
     const lastLanc = (lancLastRes.data || []) as any as LancamentoRow[];
     const lastMonthMetrics = getOperationalTotals(lastLanc);
@@ -114,17 +118,17 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
   const maxCum = Math.max(...cumulativeValues.map(Math.abs), 1);
   const barHeights = cumulativeValues.map(v => Math.max(10, ((v + maxCum) / (2 * maxCum)) * 95));
 
-  // Personal budget: Pro Labore entries (by caixa name) count as personal income
+  // Personal budget: Salário = saldo do Pro Labore (same as Planejamento Pessoal)
   const proLaboreCaixa = caixas.find(c => c.nome.toLowerCase().includes("pro labore") || c.nome.toLowerCase().includes("prolabore"));
-  const salarioLancs = lancamentos.filter(l => {
-    // Entries going to Pro Labore caixa OR personal-type entries with income
-    if (proLaboreCaixa && l.caixa_destino_id === proLaboreCaixa.id && Number(l.entrada) > 0) return true;
-    if (l.tipo === "pessoal" && Number(l.entrada) > 0) return true;
-    return false;
-  });
-  const salario = salarioLancs.reduce((s, l) => s + Number(l.entrada), 0);
-  const totalDespPessoal = despesas.reduce((s, d) => s + Number(d.valor), 0);
+  const salario = proLaboreCaixa ? Number(proLaboreCaixa.saldo_atual) : 0;
+
+  // Despesas = custos pessoais ativos (same as Planejamento Pessoal)
+  const totalDespPessoal = custosPessoais.reduce((s, d) => s + Number(d.valor), 0);
+
+  // Pago/Pendente from despesas_planejadas do mês
   const despPago = despesas.filter(d => d.pago).reduce((s, d) => s + Number(d.valor), 0);
+  const despPendente = despesas.filter(d => !d.pago).reduce((s, d) => s + Number(d.valor), 0);
+
   const disponivel = salario - totalDespPessoal;
   const percentUsado = salario > 0 ? ((totalDespPessoal / salario) * 100).toFixed(0) : "0";
 
@@ -311,7 +315,7 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
               </div>
               <div className="flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#e71a0e]"></span>
-                <span className="text-[9px] text-slate-500 uppercase font-bold">Pendente: {formatBRL(totalDespPessoal - despPago)}</span>
+                <span className="text-[9px] text-slate-500 uppercase font-bold">Pendente: {formatBRL(despPendente)}</span>
               </div>
             </div>
           </div>
