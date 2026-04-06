@@ -1398,7 +1398,7 @@ Deno.serve(async (req) => {
         await sleep(1500);
         console.log(`Exchange: fetching updated subscription data for ${params.subscriptionCode}`);
         try {
-          const freshUrl = `${PROXYBR_BASE}/subscriptions/${params.subscriptionCode}`;
+          const freshUrl = `${PROXYBR_BASE}/subscriptions/${encodedCode}`;
           const freshResp = await proxyFetch(freshUrl, PROXYBR_API_KEY);
           const freshText = await freshResp.text();
           console.log(`Exchange: fresh data fetch status=${freshResp.status}, length=${freshText.length}`);
