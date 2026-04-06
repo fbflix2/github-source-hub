@@ -358,7 +358,7 @@ Deno.serve(async (req) => {
       }
 
       case "import-accounts": {
-        const { productId, productName, folderName, sourcePayload, accounts, itemType } = params;
+        const { productId, productName, folderName, sourcePayload, accounts, itemType, unitPriceBrl } = params;
         if (!productId) throw new Error("productId is required");
 
         const adminClient = createClient(
@@ -368,7 +368,7 @@ Deno.serve(async (req) => {
 
         const folder = String(folderName || "AccFace Import");
         const rawAccounts = extractRawAccounts(sourcePayload ?? { accounts });
-        const stockItems = buildStockItems(rawAccounts, String(productId), productName ? String(productName) : undefined, folder, itemType ? String(itemType) : undefined);
+        const stockItems = buildStockItems(rawAccounts, String(productId), productName ? String(productName) : undefined, folder, itemType ? String(itemType) : undefined, unitPriceBrl ? Number(unitPriceBrl) : undefined);
         const saveResult = await saveStockItems(adminClient, folder, stockItems);
 
         result = {
