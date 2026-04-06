@@ -71,7 +71,7 @@ function extractRawAccounts(parsed: any): string[] {
   return [...new Set(cleaned)];
 }
 
-function buildStockItems(rawAccounts: string[], productId: string, productName: string | undefined, folder: string, itemType?: string) {
+function buildStockItems(rawAccounts: string[], productId: string, productName: string | undefined, folder: string, itemType?: string, unitPriceBrl?: number) {
   const resolvedType = itemType || "perfil";
 
   if (resolvedType === "bm") {
