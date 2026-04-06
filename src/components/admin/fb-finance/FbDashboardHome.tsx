@@ -315,7 +315,7 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
               </div>
               <div className="flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-[#e71a0e]"></span>
-                <span className="text-[9px] text-slate-500 uppercase font-bold">Pendente: {formatBRL(totalDespPessoal - despPago)}</span>
+                <span className="text-[9px] text-slate-500 uppercase font-bold">Pendente: {formatBRL(despPendente)}</span>
               </div>
             </div>
           </div>
