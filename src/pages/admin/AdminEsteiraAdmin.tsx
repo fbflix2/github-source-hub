@@ -1134,10 +1134,11 @@ export default function AdminEsteiraAdmin() {
                         </div>
 
                         {(() => {
+                          const completedOnly = profileTasks.filter(t => t.completed);
                           const MAX_VISIBLE = 4;
                           const isExpanded = expandedChecklists.has(profile.id);
-                          const visibleTasks = isExpanded ? profileTasks : profileTasks.slice(0, MAX_VISIBLE);
-                          const hasMore = profileTasks.length > MAX_VISIBLE;
+                          const visibleTasks = isExpanded ? completedOnly : completedOnly.slice(0, MAX_VISIBLE);
+                          const hasMore = completedOnly.length > MAX_VISIBLE;
                           return (
                             <>
                               <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
