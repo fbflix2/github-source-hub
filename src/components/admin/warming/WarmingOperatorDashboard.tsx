@@ -140,6 +140,7 @@ export default function WarmingOperatorDashboard({ profiles, tasks, creatorNames
         activeProfiles: opProfiles.filter(p => p.status === "active").length,
         completedProfiles: opProfiles.filter(p => p.status === "completed").length,
         restrictedProfiles: opProfiles.filter(p => p.status === "restricted").length,
+        checkpointProfiles: opProfiles.filter(p => p.status === "checkpoint").length,
         totalTaskTime,
         avgTimePerProfile: profilesWithTime.size > 0 ? Math.round(totalTaskTime / profilesWithTime.size) : 0,
         avgTimePerTask: totalTasks > 0 ? Math.round(totalTaskTime / totalTasks) : 0,

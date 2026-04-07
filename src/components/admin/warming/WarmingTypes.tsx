@@ -39,6 +39,7 @@ export interface OperatorStats {
   activeProfiles: number;
   completedProfiles: number;
   restrictedProfiles: number;
+  checkpointProfiles: number;
   totalTaskTime: number; // seconds
   avgTimePerProfile: number; // seconds
   avgTimePerTask: number; // seconds
