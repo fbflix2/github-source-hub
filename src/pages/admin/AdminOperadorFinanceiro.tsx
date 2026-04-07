@@ -44,12 +44,11 @@ export default function AdminOperadorFinanceiro() {
       if (!user) return;
 
       // Load financials, earnings, withdrawals, and warming profiles in parallel
-      const [finRes, earningsRes, wdRes, profilesRes, configRes] = await Promise.all([
+      const [finRes, earningsRes, wdRes, profilesRes] = await Promise.all([
         supabase.from("operator_financials").select("*").eq("user_id", user.id).maybeSingle(),
         supabase.from("operator_earnings").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
         supabase.from("operator_withdrawals").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(20),
-        supabase.from("warming_profiles").select("id, profile_code, status, created_at").eq("created_by", user.id),
-        supabase.from("warming_config").select("value").eq("key", "commission_rate").maybeSingle(),
+        supabase.from("warming_profiles" as any).select("id, profile_code, status, created_at").eq("created_by", user.id),
       ]);
 
       if (finRes.data) {
@@ -60,7 +59,7 @@ export default function AdminOperadorFinanceiro() {
         setHasRecord(true);
       }
 
-      const rate = configRes.data?.value ? parseFloat(configRes.data.value) : 0.25;
+      const rate = 0.25; // Default commission rate
       const existingEarnings = (earningsRes.data || []) as Earning[];
       const trackedProfileIds = new Set(existingEarnings.map(e => e.profile_id));
 
