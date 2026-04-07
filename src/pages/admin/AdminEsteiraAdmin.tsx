@@ -1520,6 +1520,24 @@ export default function AdminEsteiraAdmin() {
                 <MIcon name="person_add" className="text-lg" />
                 {creating ? "Cadastrando..." : "Cadastrar Perfil"}
               </button>
+              <div className="relative">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".txt"
+                  onChange={handleImportTxt}
+                  className="hidden"
+                />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={importing || !assignOperatorId}
+                  className="w-full bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/15 text-slate-700 dark:text-white/80 font-bold py-2.5 rounded-lg transition-all flex items-center justify-center gap-2 text-xs disabled:opacity-50 border border-slate-200 dark:border-white/10"
+                >
+                  <MIcon name="upload_file" className="text-base" />
+                  {importing ? "Importando..." : "Importar lista .txt"}
+                </button>
+                <p className="text-[10px] text-muted-foreground text-center mt-1">Um código por linha</p>
+              </div>
             </div>
           </div>
 
