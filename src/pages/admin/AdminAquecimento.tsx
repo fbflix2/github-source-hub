@@ -429,6 +429,13 @@ export default function AdminAquecimento() {
       .update({ status: "completed", updated_at: new Date().toISOString() })
       .eq("id", profileId);
 
+    // Mark earning as confirmed
+    await supabase.from("operator_earnings").update({
+      status: "confirmed",
+      confirmed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }).eq("profile_id", profileId);
+
     toast.success(`✅ Perfil "${profile.profile_code}" movido para Perfis Prontos.`);
     return true;
   };
@@ -1309,6 +1316,23 @@ export default function AdminAquecimento() {
                     status: newStatus,
                     updated_at: new Date().toISOString(),
                   }).eq("id", profileId);
+
+                  // Sync operator_earnings status
+                  const earningStatusMap: Record<string, { status: string; extra: Record<string, any> }> = {
+                    checkpoint: { status: "frozen", extra: { frozen_at: new Date().toISOString() } },
+                    blocked: { status: "cancelled", extra: { cancelled_at: new Date().toISOString() } },
+                    restricted: { status: "cancelled", extra: { cancelled_at: new Date().toISOString() } },
+                    active: { status: "pending", extra: { frozen_at: null, cancelled_at: null } },
+                  };
+                  const earningUpdate = earningStatusMap[newStatus];
+                  if (earningUpdate) {
+                    await supabase.from("operator_earnings").update({
+                      status: earningUpdate.status,
+                      ...earningUpdate.extra,
+                      updated_at: new Date().toISOString(),
+                    }).eq("profile_id", profileId);
+                  }
+
                   const labels: Record<string, string> = {
                     blocked: "🚫 Perfil marcado como Bloqueado",
                     checkpoint: "⚠️ Perfil marcado como Checkpoint",
