@@ -702,8 +702,9 @@ function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => voi
   const handleSave = async () => {
     if (urlLines.length === 0) { toast.error("Adicione ao menos uma URL"); return; }
     setSaving(true);
+    const baseName = bmData.nomeProduto || "BM";
     const items = urlLines.map((url, i) => ({
-      name: `BM #${i + 1}`,
+      name: urlLines.length > 1 ? `${baseName} #${i + 1}` : baseName,
       type: "bm",
       identification_link: url.trim(),
       status: "aguardando",
