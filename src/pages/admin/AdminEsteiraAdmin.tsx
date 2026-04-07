@@ -1502,7 +1502,7 @@ export default function AdminEsteiraAdmin() {
                 }
                 if (filtered.length === 0) return (
                   <div className="p-6 text-center text-xs text-slate-500">
-                    {searchTerm ? "Nenhum perfil encontrado." : "Nenhum perfil cadastrado ainda."}
+                    {searchTerm || assignOperatorId ? `Nenhum perfil encontrado.` : "Nenhum perfil cadastrado ainda."}
                   </div>
                 );
                 return filtered.slice(0, 50).map(p => {
