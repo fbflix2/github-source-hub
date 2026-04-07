@@ -76,6 +76,7 @@ export default function AdminTeamChat() {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) {
         setCurrentUserId(user.id);
+        // Fetch profile
         supabase
           .from("profiles")
           .select("user_id, full_name, avatar_url")
@@ -88,6 +89,18 @@ export default function AdminTeamChat() {
                 [data.user_id]: { full_name: data.full_name, avatar_url: data.avatar_url },
               }));
             }
+          });
+        // Fetch when user joined the team (role created_at)
+        supabase
+          .from("user_roles")
+          .select("created_at")
+          .eq("user_id", user.id)
+          .in("role", ["admin", "moderator"] as any)
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .maybeSingle()
+          .then(({ data }) => {
+            if (data) setUserJoinedAt(data.created_at);
           });
       }
     });
