@@ -176,7 +176,7 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, creatorNam
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="bg-white dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 p-4">
-          <p className="text-[11px] text-muted-foreground uppercase tracking-widest mb-1">Candidatos</p>
+          <p className="text-[11px] text-muted-foreground uppercase tracking-widest mb-1">PERFIS</p>
           <p className="text-2xl font-black">{totalFiltered}</p>
         </div>
         <div className="bg-white dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 p-4">
