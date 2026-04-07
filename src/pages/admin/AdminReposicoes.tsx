@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { NewReplacementModal } from "@/components/admin/NewReplacementModal";
+import { resolveBmDisplayName } from "@/lib/bm-link";
 
 interface Replacement {
   id: string;
@@ -154,8 +155,9 @@ export default function AdminReposicoes() {
     }
 
     const d = stockItem.data as Record<string, unknown> | null;
+    const resolvedName = resolveBmDisplayName({ name: stockItem.name, identificationLink: stockItem.identification_link, data: stockItem.data as any });
     const lines: string[] = [];
-    lines.push(`=== ${stockItem.name} ===`);
+    lines.push(`=== ${resolvedName} ===`);
     lines.push("");
     if (d) {
       if (d.nomePerfil) lines.push(`Nome do Perfil: ${d.nomePerfil}`);
