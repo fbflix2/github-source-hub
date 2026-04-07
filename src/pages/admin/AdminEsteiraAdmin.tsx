@@ -284,28 +284,22 @@ export default function AdminEsteiraAdmin() {
   // Redirect non-admins without permission
   useEffect(() => {
     if (role && role !== "admin") {
-      // Check if moderator has permission for esteira-admin
-      supabase
-        .from("moderator_permissions")
-        .select("allowed_paths")
-        .eq("user_id", (supabase.auth as any)._currentSession?.user?.id || "")
-        .maybeSingle()
-        .then(async ({ data }) => {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (!session) return;
-          const { data: permData } = await supabase
-            .from("moderator_permissions")
-            .select("allowed_paths")
-            .eq("user_id", session.user.id)
-            .maybeSingle();
-          const paths = permData?.allowed_paths || [];
-          const hasAccess = paths.some((p: string) =>
-            p === "/admin/esteira-admin" || p.startsWith("/admin/esteira-admin/")
-          );
-          if (!hasAccess) {
-            navigate("/admin/aquecimento");
-          }
-        });
+      (async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+        const { data: permData } = await supabase
+          .from("moderator_permissions")
+          .select("allowed_paths")
+          .eq("user_id", session.user.id)
+          .maybeSingle();
+        const paths = permData?.allowed_paths || [];
+        const hasAccess = paths.some((p: string) =>
+          p === "/admin/esteira-admin" || p.startsWith("/admin/esteira-admin/")
+        );
+        if (!hasAccess) {
+          navigate("/admin/aquecimento");
+        }
+      })();
     }
   }, [role, navigate]);
 
