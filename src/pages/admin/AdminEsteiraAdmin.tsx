@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { useNavigate } from "react-router-dom";
 import WarmingOperatorDashboard from "@/components/admin/warming/WarmingOperatorDashboard";
+import WarmingAuditDashboard from "@/components/admin/warming/WarmingAuditDashboard";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { toast } from "sonner";
 import { DEFAULT_READY_CRITERIA, parseReadyCriteria } from "@/lib/warming-ready";
@@ -62,10 +63,10 @@ export default function AdminEsteiraAdmin() {
   const [tasks, setTasks] = useState<Record<string, WarmingTask[]>>({});
   const [loading, setLoading] = useState(true);
   const [creatorNames, setCreatorNames] = useState<Record<string, string>>({});
-  const [activeTab, setActiveTab] = useState<"gestao" | "relatorios" | "prontos" | "bd_perfis" | "configuracoes">("gestao");
+  const [activeTab, setActiveTab] = useState<"gestao" | "relatorios" | "prontos" | "bd_perfis" | "configuracoes" | "auditoria">("gestao");
   const [reportFilter, setReportFilter] = useState("");
   const [report2faFilter, setReport2faFilter] = useState(false);
-  const [qualityMap, setQualityMap] = useState<Record<string, { has2FA: boolean }>>({});
+  const [qualityMap, setQualityMap] = useState<Record<string, { has2FA: boolean; hasBM?: boolean; hasPage?: boolean; friendRange?: string }>>({});
   const [configTrack, setConfigTrack] = useState<"7_days" | "15_days" | "30_days">("7_days");
   const [profileCode, setProfileCode] = useState("");
   const [creating, setCreating] = useState(false);
@@ -677,7 +678,7 @@ export default function AdminEsteiraAdmin() {
 
         // Load quality data (2FA status) for all profiles
         const qualityKeys = profileIds.map((id: string) => `warming_quality_${id}`);
-        const qMap: Record<string, { has2FA: boolean }> = {};
+        const qMap: Record<string, { has2FA: boolean; hasBM?: boolean; hasPage?: boolean; friendRange?: string }> = {};
         const qPageSize = 1000;
         let qFrom = 0;
         while (true) {
@@ -691,7 +692,7 @@ export default function AdminEsteiraAdmin() {
             const pid = row.key.replace("warming_quality_", "");
             try {
               const parsed = JSON.parse(row.value);
-              qMap[pid] = { has2FA: !!parsed.has2FA };
+              qMap[pid] = { has2FA: !!parsed.has2FA, hasBM: !!parsed.hasBM, hasPage: !!parsed.hasPage, friendRange: parsed.friendRange || "0-5" };
             } catch {}
           });
           if (qBatch.length < qPageSize) break;
@@ -818,6 +819,7 @@ export default function AdminEsteiraAdmin() {
   const tabs = [
     { key: "gestao" as const, label: "Gestão", icon: "supervisor_account" },
     { key: "relatorios" as const, label: "Relatórios", icon: "analytics" },
+    { key: "auditoria" as const, label: "Auditoria", icon: "fact_check" },
     { key: "prontos" as const, label: "Perfis Prontos", icon: "inventory_2" },
     { key: "bd_perfis" as const, label: "BD Perfis", icon: "database" },
     { key: "configuracoes" as const, label: "Configurações", icon: "settings" },
@@ -883,7 +885,16 @@ export default function AdminEsteiraAdmin() {
         />
       )}
 
-      {/* Relatórios Tab */}
+      {/* Auditoria Tab */}
+      {activeTab === "auditoria" && (
+        <WarmingAuditDashboard
+          profiles={profiles}
+          qualityMap={qualityMap as Record<string, { has2FA: boolean; hasBM: boolean; hasPage: boolean; friendRange: string }>}
+          creatorNames={creatorNames}
+          onRefresh={fetchProfiles}
+        />
+      )}
+
       {activeTab === "relatorios" && (
         <main className="flex-1 px-6 md:px-8 lg:px-12 py-8 max-w-6xl mx-auto w-full space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

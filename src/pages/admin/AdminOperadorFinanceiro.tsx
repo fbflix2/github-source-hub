@@ -98,13 +98,16 @@ export default function AdminOperadorFinanceiro() {
     }
   };
 
-  // Calculate balances
-  const confirmedTotal = earnings.filter(e => e.status === "confirmed").reduce((s, e) => s + Number(e.amount), 0);
+  // Calculate balances - confirmed earnings are only "available" after 72h from confirmed_at
+  const now72hAgo = Date.now() - (72 * 60 * 60 * 1000);
+  const confirmedAvailable = earnings.filter(e => e.status === "confirmed" && e.confirmed_at && new Date(e.confirmed_at).getTime() <= now72hAgo).reduce((s, e) => s + Number(e.amount), 0);
+  const confirmedPending72h = earnings.filter(e => e.status === "confirmed" && (!e.confirmed_at || new Date(e.confirmed_at).getTime() > now72hAgo)).reduce((s, e) => s + Number(e.amount), 0);
+  const confirmedTotal = confirmedAvailable + confirmedPending72h;
   const frozenTotal = earnings.filter(e => e.status === "frozen").reduce((s, e) => s + Number(e.amount), 0);
   const pendingTotal = earnings.filter(e => e.status === "pending").reduce((s, e) => s + Number(e.amount), 0);
   const cancelledTotal = earnings.filter(e => e.status === "cancelled").reduce((s, e) => s + Number(e.amount), 0);
   const paidWithdrawals = withdrawals.filter(w => w.status === "paid").reduce((s, w) => s + Number(w.amount), 0);
-  const availableBalance = confirmedTotal - paidWithdrawals;
+  const availableBalance = confirmedAvailable - paidWithdrawals;
 
   const savePix = async () => {
     if (!pixKey.trim() || !pixBank.trim() || !pixHolderName.trim()) {
@@ -204,7 +207,8 @@ export default function AdminOperadorFinanceiro() {
         <div className="space-y-2 text-sm text-muted-foreground">
           <p className="font-semibold text-yellow-400">Como funciona o pagamento</p>
           <ul className="space-y-1.5 list-disc list-inside text-xs leading-relaxed">
-            <li>O saque ocorre sempre após a <strong className="text-foreground">validação do processo aplicado na esteira de aquecimento</strong>.</li>
+            <li>O saque ocorre sempre após a <strong className="text-foreground">validação e aprovação do admin/chefe de operações</strong> na aba de Auditoria.</li>
+            <li>Após a aprovação, o saldo referente ao perfil fica em <strong className="text-emerald-400">aguardando 72 horas</strong> antes de ser liberado para saque.</li>
             <li>Perfis marcados como <strong className="text-foreground">Checkpoint</strong> entram em fila de análise do suporte interno — o saldo referente fica <strong className="text-yellow-400">congelado temporariamente</strong>.</li>
             <li>Se o perfil voltar para a esteira, o saldo é liberado normalmente.</li>
             <li>Caso o perfil seja classificado como <strong className="text-destructive">bloqueado/desabilitado</strong>, o operador <strong className="text-destructive">não recebe</strong> por aquele perfil — a FBFLIX também não terá lucro com ele.</li>
@@ -215,13 +219,20 @@ export default function AdminOperadorFinanceiro() {
       </div>
 
       {/* Balance Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <div className="rounded-xl border border-border bg-card p-4">
           <div className="flex items-center gap-2 mb-1">
             <TrendingUp className="size-4 text-green-400" />
             <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Disponível</p>
           </div>
           <p className="text-xl font-black text-green-400">{fmtBRL(Math.max(0, availableBalance))}</p>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <CheckCircle className="size-4 text-emerald-400" />
+            <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Aguardando 72h</p>
+          </div>
+          <p className="text-xl font-black text-emerald-400">{fmtBRL(confirmedPending72h)}</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-4">
           <div className="flex items-center gap-2 mb-1">
