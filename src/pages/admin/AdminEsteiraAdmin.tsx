@@ -81,6 +81,7 @@ export default function AdminEsteiraAdmin() {
   const [editingProfileId, setEditingProfileId] = useState<string | null>(null);
   const [editingCode, setEditingCode] = useState("");
   const [readyTaskFilter, setReadyTaskFilter] = useState("");
+  const [expandedChecklists, setExpandedChecklists] = useState<Set<string>>(new Set());
   const [approvedProfileIds, setApprovedProfileIds] = useState<Set<string>>(new Set());
 
   const defaultConfigTasks: Record<string, { title: string; description: string }[]> = {
@@ -1132,39 +1133,62 @@ export default function AdminEsteiraAdmin() {
                           </p>
                         </div>
 
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                          {profileTasks.map((task) => (
-                            <div
-                              key={task.id}
-                              className={`rounded-xl border px-4 py-3 ${
-                                task.completed
-                                  ? "border-emerald-200 bg-emerald-50 dark:border-emerald-500/20 dark:bg-emerald-500/10"
-                                  : "border-slate-200 bg-white dark:border-white/10 dark:bg-white/[0.03]"
-                              }`}
-                            >
-                              <div className="flex items-start gap-3">
-                                <span className={`mt-0.5 material-symbols-outlined text-lg ${task.completed ? "text-emerald-600 dark:text-emerald-300" : "text-slate-300 dark:text-white/20"}`}>
-                                  {task.completed ? "check_circle" : "radio_button_unchecked"}
-                                </span>
-                                <div className="min-w-0 flex-1">
-                                  <p className="text-sm font-bold text-slate-900 dark:text-white">
-                                    Dia {task.day_number} • {task.title}
-                                  </p>
-                                  {task.description ? (
-                                    <p className="text-xs text-slate-500 dark:text-white/50 mt-1">{task.description}</p>
-                                  ) : null}
-                                  <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 text-[11px] text-slate-500 dark:text-white/50">
-                                    <span>{task.completed ? "Concluído" : "Pendente"}</span>
-                                    {task.duration_seconds ? <span>Tempo: {formatDuration(task.duration_seconds)}</span> : null}
-                                    {task.completed_at ? (
-                                      <span>{new Date(task.completed_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}</span>
-                                    ) : null}
+                        {(() => {
+                          const MAX_VISIBLE = 4;
+                          const isExpanded = expandedChecklists.has(profile.id);
+                          const visibleTasks = isExpanded ? profileTasks : profileTasks.slice(0, MAX_VISIBLE);
+                          const hasMore = profileTasks.length > MAX_VISIBLE;
+                          return (
+                            <>
+                              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                                {visibleTasks.map((task) => (
+                                  <div
+                                    key={task.id}
+                                    className={`rounded-xl border px-4 py-3 ${
+                                      task.completed
+                                        ? "border-emerald-200 bg-emerald-50 dark:border-emerald-500/20 dark:bg-emerald-500/10"
+                                        : "border-slate-200 bg-white dark:border-white/10 dark:bg-white/[0.03]"
+                                    }`}
+                                  >
+                                    <div className="flex items-start gap-3">
+                                      <span className={`mt-0.5 material-symbols-outlined text-lg ${task.completed ? "text-emerald-600 dark:text-emerald-300" : "text-slate-300 dark:text-white/20"}`}>
+                                        {task.completed ? "check_circle" : "radio_button_unchecked"}
+                                      </span>
+                                      <div className="min-w-0 flex-1">
+                                        <p className="text-sm font-bold text-slate-900 dark:text-white">
+                                          Dia {task.day_number} • {task.title}
+                                        </p>
+                                        {task.description ? (
+                                          <p className="text-xs text-slate-500 dark:text-white/50 mt-1">{task.description}</p>
+                                        ) : null}
+                                        <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 text-[11px] text-slate-500 dark:text-white/50">
+                                          <span>{task.completed ? "Concluído" : "Pendente"}</span>
+                                          {task.duration_seconds ? <span>Tempo: {formatDuration(task.duration_seconds)}</span> : null}
+                                          {task.completed_at ? (
+                                            <span>{new Date(task.completed_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}</span>
+                                          ) : null}
+                                        </div>
+                                      </div>
+                                    </div>
                                   </div>
-                                </div>
+                                ))}
                               </div>
-                            </div>
-                          ))}
-                        </div>
+                              {hasMore && (
+                                <button
+                                  onClick={() => setExpandedChecklists(prev => {
+                                    const next = new Set(prev);
+                                    if (next.has(profile.id)) next.delete(profile.id);
+                                    else next.add(profile.id);
+                                    return next;
+                                  })}
+                                  className="w-full text-center py-2 text-xs font-semibold text-primary hover:underline"
+                                >
+                                  {isExpanded ? "Ver menos" : `Ver mais (${profileTasks.length - MAX_VISIBLE} restantes)`}
+                                </button>
+                              )}
+                            </>
+                          );
+                        })()}
                       </div>
                     </article>
                   );
