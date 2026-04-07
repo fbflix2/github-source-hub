@@ -1,12 +1,22 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 function MIcon({ name, className = "" }: { name: string; className?: string }) {
   return <span className={`material-symbols-outlined ${className}`}>{name}</span>;
 }
 
-const sections = [
+interface Section {
+  icon: string;
+  title: string;
+  content?: string;
+  items?: string[];
+  note?: string;
+}
+
+const sections: Section[] = [
   {
     icon: "info",
     title: "O que é o Aquecimento?",
@@ -32,7 +42,7 @@ const sections = [
   },
   {
     icon: "verified",
-    title: "Critérios de Qualidade (Perfil Pronto)",
+    title: "Critérios de Qualidade",
     items: [
       "✅ Mínimo de 20 amigos adicionados",
       "✅ 2FA (autenticação em duas etapas) ativado",
@@ -90,15 +100,24 @@ const sections = [
 
 export default function AdminAquecimentoGuia() {
   const navigate = useNavigate();
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
+
+  const selectedSection = openIndex !== null ? sections[openIndex] : null;
 
   return (
-    <div className="min-h-screen p-6 md:p-10 max-w-6xl mx-auto space-y-8">
+    <div className="min-h-screen p-6 md:p-10 max-w-5xl mx-auto space-y-8">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => navigate("/admin/aquecimento")}
+          onClick={() => {
+            if (openIndex !== null) {
+              setOpenIndex(null);
+            } else {
+              navigate("/admin/aquecimento");
+            }
+          }}
           className="shrink-0"
         >
           <ArrowLeft className="size-5" />
@@ -109,47 +128,86 @@ export default function AdminAquecimentoGuia() {
             Como Funciona o Aquecimento
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Guia completo para operadores — regras, fluxo, critérios e boas práticas.
+            {selectedSection
+              ? selectedSection.title
+              : "Selecione um tópico para saber mais."}
           </p>
         </div>
       </div>
 
-      {/* Sections Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {sections.map((section, idx) => (
-          <div
-            key={idx}
-            className="rounded-2xl border border-border bg-card p-5 space-y-3 flex flex-col"
-          >
-            <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
-              <MIcon name={section.icon} className="text-primary text-xl" />
-              {section.title}
-            </h2>
+      {/* Topic Grid or Detail View */}
+      {openIndex === null ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {sections.map((section, idx) => (
+            <button
+              key={idx}
+              onClick={() => setOpenIndex(idx)}
+              className="rounded-2xl border border-border bg-card p-5 text-left flex items-center gap-4 hover:border-primary/40 hover:bg-accent/30 transition-all group"
+            >
+              <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
+                <MIcon name={section.icon} className="text-primary text-xl" />
+              </div>
+              <span className="text-sm font-semibold text-foreground">{section.title}</span>
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-border bg-card p-8 space-y-5 animate-in fade-in-0 slide-in-from-bottom-2 duration-200">
+          <h2 className="text-xl font-bold text-foreground flex items-center gap-3">
+            <div className="size-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <MIcon name={selectedSection!.icon} className="text-primary text-2xl" />
+            </div>
+            {selectedSection!.title}
+          </h2>
 
-            {section.content && (
-              <p className="text-muted-foreground text-xs leading-relaxed flex-1">
-                {section.content}
-              </p>
-            )}
+          {selectedSection!.content && (
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              {selectedSection!.content}
+            </p>
+          )}
 
-            {section.items && (
-              <ul className="space-y-1 flex-1">
-                {section.items.map((item, i) => (
-                  <li key={i} className="text-muted-foreground text-xs leading-relaxed">
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            )}
+          {selectedSection!.items && (
+            <ul className="space-y-2">
+              {selectedSection!.items.map((item, i) => (
+                <li key={i} className="text-muted-foreground text-sm leading-relaxed">
+                  {item}
+                </li>
+              ))}
+            </ul>
+          )}
 
-            {section.note && (
-              <p className="text-[11px] text-primary/80 italic pt-1">
-                {section.note}
-              </p>
-            )}
+          {selectedSection!.note && (
+            <p className="text-xs text-primary/80 italic pt-2">
+              {selectedSection!.note}
+            </p>
+          )}
+
+          {/* Navigation between topics */}
+          <div className="flex items-center justify-between pt-4 border-t border-border">
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={openIndex === 0}
+              onClick={() => setOpenIndex((openIndex ?? 0) - 1)}
+              className="text-muted-foreground"
+            >
+              <ArrowLeft className="size-4 mr-1" /> Anterior
+            </Button>
+            <span className="text-xs text-muted-foreground">
+              {openIndex + 1} / {sections.length}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={openIndex === sections.length - 1}
+              onClick={() => setOpenIndex((openIndex ?? 0) + 1)}
+              className="text-muted-foreground"
+            >
+              Próximo <ArrowLeft className="size-4 ml-1 rotate-180" />
+            </Button>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
 
       {/* Footer */}
       <div className="text-center pb-8">
