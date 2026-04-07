@@ -63,7 +63,7 @@ export default function AdminEsteiraAdmin() {
   const [tasks, setTasks] = useState<Record<string, WarmingTask[]>>({});
   const [loading, setLoading] = useState(true);
   const [creatorNames, setCreatorNames] = useState<Record<string, string>>({});
-  const [activeTab, setActiveTab] = useState<"gestao" | "relatorios" | "prontos" | "bd_perfis" | "configuracoes" | "auditoria">("gestao");
+  const [activeTab, setActiveTab] = useState<"gestao" | "relatorios" | "prontos" | "bd_perfis" | "configuracoes" | "auditoria" | "analise_interna">("gestao");
   const [reportFilter, setReportFilter] = useState("");
   const [report2faFilter, setReport2faFilter] = useState(false);
   const [qualityMap, setQualityMap] = useState<Record<string, { has2FA: boolean; hasBM?: boolean; hasPage?: boolean; friendRange?: string }>>({});
@@ -829,10 +829,16 @@ export default function AdminEsteiraAdmin() {
     { key: "gestao" as const, label: "Gestão", icon: "supervisor_account" },
     { key: "relatorios" as const, label: "Relatórios", icon: "analytics" },
     { key: "auditoria" as const, label: "Auditoria", icon: "fact_check" },
+    { key: "analise_interna" as const, label: "Análise Interna", icon: "troubleshoot" },
     { key: "prontos" as const, label: "Perfis Prontos", icon: "inventory_2" },
     { key: "bd_perfis" as const, label: "BD Perfis", icon: "database" },
     { key: "configuracoes" as const, label: "Configurações", icon: "settings" },
   ];
+
+  const checkpointProfiles = useMemo(
+    () => profiles.filter((p) => p.status === "checkpoint"),
+    [profiles],
+  );
 
   if (role !== "admin") return null;
 
