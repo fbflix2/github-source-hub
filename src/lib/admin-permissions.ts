@@ -22,6 +22,7 @@ export function normalizeAdminAllowedPaths(paths: string[] | null | undefined): 
   }
 
   normalized.add("/admin/chat");
+  normalized.add("/admin/aquecimento-guia");
 
   for (const path of [...normalized]) {
     const parts = path.split("/").filter(Boolean);
