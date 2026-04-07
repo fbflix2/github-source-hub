@@ -64,8 +64,10 @@ export default function ProfileQualityMeter({ profileId, profileCode }: Props) {
   const [loaded, setLoaded] = useState(false);
   const [readyCriteria, setReadyCriteria] = useState(DEFAULT_READY_CRITERIA);
 
-  // Load from site_settings per profile
+  // Reset state when profile changes
   useEffect(() => {
+    setData(DEFAULT_DATA);
+    setLoaded(false);
     const key = `warming_quality_${profileId}`;
     supabase
       .from("site_settings")
