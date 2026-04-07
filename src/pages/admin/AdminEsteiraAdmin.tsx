@@ -83,6 +83,8 @@ export default function AdminEsteiraAdmin() {
   const [readyTaskFilter, setReadyTaskFilter] = useState("");
   const [expandedChecklists, setExpandedChecklists] = useState<Set<string>>(new Set());
   const [approvedProfileIds, setApprovedProfileIds] = useState<Set<string>>(new Set());
+  const [analiseSearch, setAnaliseSearch] = useState("");
+  const [analiseSelectedId, setAnaliseSelectedId] = useState<string | null>(null);
 
   const defaultConfigTasks: Record<string, { title: string; description: string }[]> = {
     "7_days": [
@@ -911,71 +913,207 @@ export default function AdminEsteiraAdmin() {
       )}
 
       {/* Análise Interna Tab - Perfis com Checkpoint */}
-      {activeTab === "analise_interna" && (
+      {activeTab === "analise_interna" && (() => {
+        const analiseProfiles = analiseSearch.trim()
+          ? profiles.filter(p => p.profile_code.toLowerCase().includes(analiseSearch.trim().toLowerCase()))
+          : checkpointProfiles;
+        const selectedProfile = analiseSelectedId ? profiles.find(p => p.id === analiseSelectedId) : null;
+        const selectedTasks = selectedProfile ? (tasks[selectedProfile.id] || []) : [];
+        const selectedQuality = selectedProfile ? qualityMap[selectedProfile.id] : null;
+
+        return (
         <main className="flex-1 px-6 md:px-8 lg:px-12 py-8 max-w-6xl mx-auto w-full space-y-6">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-xl font-black flex items-center gap-2">
                 <MIcon name="troubleshoot" className="text-amber-500" />
-                Análise Interna — Checkpoints
+                Análise Interna
               </h2>
-              <p className="text-sm text-muted-foreground mt-1">Perfis que deram checkpoint durante o aquecimento</p>
+              <p className="text-sm text-muted-foreground mt-1">Busque perfis por código para análise manual ou veja os checkpoints</p>
             </div>
             <span className="text-sm font-bold bg-amber-500/10 text-amber-500 px-3 py-1 rounded-full">
-              {checkpointProfiles.length} perfis
+              {checkpointProfiles.length} checkpoints
             </span>
           </div>
 
-          {checkpointProfiles.length === 0 ? (
-            <div className="text-center py-16 text-muted-foreground">
-              <MIcon name="check_circle" className="text-5xl mb-3 text-green-500" />
-              <p className="font-semibold">Nenhum perfil com checkpoint no momento</p>
-            </div>
-          ) : (
-            <div className="bg-white dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 divide-y divide-slate-100 dark:divide-white/5">
-              {checkpointProfiles.map((profile) => {
-                const profileTasks = tasks[profile.id] || [];
-                const completedTasks = profileTasks.filter((t) => t.completed);
-                const operatorName = profile.created_by ? creatorNames[profile.created_by] || "—" : "—";
-                const trackInfo = TRACKS[profile.track_type] || { label: profile.track_type, days: profile.track_days };
-                const daysPassed = Math.max(0, Math.floor((Date.now() - new Date(profile.start_date).getTime()) / 86400000));
-                const quality = qualityMap[profile.id];
+          {/* Search */}
+          <div className="relative">
+            <MIcon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-lg" />
+            <input
+              type="text"
+              placeholder="Buscar por código do perfil..."
+              value={analiseSearch}
+              onChange={e => { setAnaliseSearch(e.target.value); setAnaliseSelectedId(null); }}
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-sm focus:ring-2 focus:ring-amber-500/30 outline-none"
+            />
+          </div>
 
-                return (
-                  <div key={profile.id} className="flex items-center justify-between px-5 py-3 hover:bg-muted/50 transition-colors gap-4">
-                    <div className="flex flex-col gap-1 min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-black">{profile.profile_code}</span>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500">Checkpoint</span>
-                        <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{trackInfo.label}</span>
-                        {quality?.has2FA && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-500">2FA</span>}
-                        {quality?.hasBM && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-500">BM</span>}
+          {/* Selected profile detail panel */}
+          {selectedProfile && (
+            <div className="bg-white dark:bg-white/5 rounded-xl border border-amber-200 dark:border-amber-500/20 overflow-hidden">
+              <div className="px-5 py-3 border-b border-amber-100 dark:border-amber-500/10 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <button onClick={() => setAnaliseSelectedId(null)} className="text-muted-foreground hover:text-foreground transition-colors">
+                    <MIcon name="arrow_back" className="text-lg" />
+                  </button>
+                  <span className="text-base font-black">{selectedProfile.profile_code}</span>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                    selectedProfile.status === "checkpoint" ? "bg-amber-500/10 text-amber-500" :
+                    selectedProfile.status === "active" ? "bg-green-500/10 text-green-600" :
+                    selectedProfile.status === "completed" ? "bg-blue-500/10 text-blue-600" :
+                    "bg-muted text-muted-foreground"
+                  }`}>
+                    {selectedProfile.status === "checkpoint" ? "Checkpoint" :
+                     selectedProfile.status === "active" ? "Ativo" :
+                     selectedProfile.status === "completed" ? "Pronto" :
+                     selectedProfile.status}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {selectedProfile.status !== "completed" && (
+                    <button
+                      onClick={async () => {
+                        const { error } = await supabase.from("warming_profiles").update({ status: "completed", updated_at: new Date().toISOString() }).eq("id", selectedProfile.id);
+                        if (error) { toast.error("Erro ao aprovar"); return; }
+                        toast.success(`Perfil ${selectedProfile.profile_code} aprovado — movido para Perfis Prontos!`);
+                        setAnaliseSelectedId(null);
+                        fetchProfiles();
+                      }}
+                      className="text-xs font-bold px-4 py-1.5 rounded-lg bg-green-500/10 text-green-600 hover:bg-green-500/20 transition-colors flex items-center gap-1"
+                    >
+                      <MIcon name="check_circle" className="text-sm" />
+                      Aprovar
+                    </button>
+                  )}
+                  {selectedProfile.status === "checkpoint" && (
+                    <button
+                      onClick={async () => {
+                        const { error } = await supabase.from("warming_profiles").update({ status: "active" }).eq("id", selectedProfile.id);
+                        if (error) { toast.error("Erro ao reativar"); return; }
+                        toast.success("Perfil reativado!");
+                        setAnaliseSelectedId(null);
+                        fetchProfiles();
+                      }}
+                      className="text-xs font-bold px-4 py-1.5 rounded-lg bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 transition-colors flex items-center gap-1"
+                    >
+                      <MIcon name="play_arrow" className="text-sm" />
+                      Reativar
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="p-5 space-y-4">
+                {/* Info row */}
+                <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+                  <span>Operador: <strong className="text-foreground">{selectedProfile.created_by ? creatorNames[selectedProfile.created_by] || "—" : "—"}</strong></span>
+                  <span>Track: <strong className="text-foreground">{TRACKS[selectedProfile.track_type]?.label || selectedProfile.track_type}</strong></span>
+                  <span>Dia: <strong className="text-foreground">{Math.max(0, Math.floor((Date.now() - new Date(selectedProfile.start_date).getTime()) / 86400000))}/{selectedProfile.track_days}</strong></span>
+                  {selectedQuality?.has2FA && <span className="font-bold px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-500">2FA ✓</span>}
+                  {selectedQuality?.hasBM && <span className="font-bold px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-500">BM ✓</span>}
+                  {selectedQuality?.hasPage && <span className="font-bold px-1.5 py-0.5 rounded bg-pink-500/10 text-pink-500">Page ✓</span>}
+                </div>
+
+                {/* Tasks checklist */}
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Checklist de Tarefas ({selectedTasks.filter(t => t.completed).length}/{selectedTasks.length})</p>
+                  <div className="space-y-1.5">
+                    {selectedTasks.sort((a, b) => a.day_number - b.day_number).map(task => (
+                      <div key={task.id} className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm ${task.completed ? "bg-green-500/5" : "bg-muted/30"}`}>
+                        <MIcon
+                          name={task.completed ? "check_circle" : "radio_button_unchecked"}
+                          className={`text-base ${task.completed ? "text-green-500" : "text-muted-foreground/40"}`}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <span className={`font-medium ${task.completed ? "text-foreground" : "text-muted-foreground"}`}>
+                            D{task.day_number} — {task.title}
+                          </span>
+                          {task.description && <p className="text-[11px] text-muted-foreground mt-0.5">{task.description}</p>}
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0 text-[11px] text-muted-foreground">
+                          {task.duration_seconds ? <span>{formatDuration(task.duration_seconds)}</span> : null}
+                          {task.completed_at && (
+                            <span>{new Date(task.completed_at).toLocaleDateString("pt-BR")}</span>
+                          )}
+                        </div>
                       </div>
-                      <p className="text-[11px] text-muted-foreground">
-                        {operatorName} · Dia {daysPassed}/{trackInfo.days} · {completedTasks.length}/{profileTasks.length} tarefas
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        onClick={async () => {
-                          const { error } = await supabase.from("warming_profiles").update({ status: "active" }).eq("id", profile.id);
-                          if (error) { toast.error("Erro ao reativar"); return; }
-                          toast.success("Perfil reativado!");
-                          fetchProfiles();
-                        }}
-                        className="text-xs font-bold px-3 py-1.5 rounded-lg bg-green-500/10 text-green-600 hover:bg-green-500/20 transition-colors flex items-center gap-1"
-                      >
-                        <MIcon name="play_arrow" className="text-sm" />
-                        Reativar
-                      </button>
-                    </div>
+                    ))}
+                    {selectedTasks.length === 0 && (
+                      <p className="text-sm text-muted-foreground text-center py-4">Nenhuma tarefa registrada</p>
+                    )}
                   </div>
-                );
-              })}
+                </div>
+
+                {selectedProfile.notes && (
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Notas</p>
+                    <p className="text-sm text-muted-foreground bg-muted/30 rounded-lg px-3 py-2">{selectedProfile.notes}</p>
+                  </div>
+                )}
+              </div>
             </div>
           )}
+
+          {/* Profile list */}
+          {!analiseSelectedId && (
+            <>
+              {analiseProfiles.length === 0 ? (
+                <div className="text-center py-16 text-muted-foreground">
+                  <MIcon name={analiseSearch.trim() ? "search_off" : "check_circle"} className="text-5xl mb-3 text-muted-foreground/30" />
+                  <p className="font-semibold">{analiseSearch.trim() ? "Nenhum perfil encontrado" : "Nenhum perfil com checkpoint"}</p>
+                </div>
+              ) : (
+                <div className="bg-white dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 divide-y divide-slate-100 dark:divide-white/5">
+                  {analiseProfiles.map((profile) => {
+                    const profileTasks = tasks[profile.id] || [];
+                    const completedTasks = profileTasks.filter((t) => t.completed);
+                    const operatorName = profile.created_by ? creatorNames[profile.created_by] || "—" : "—";
+                    const trackInfo = TRACKS[profile.track_type] || { label: profile.track_type, days: profile.track_days };
+                    const daysPassed = Math.max(0, Math.floor((Date.now() - new Date(profile.start_date).getTime()) / 86400000));
+                    const quality = qualityMap[profile.id];
+
+                    return (
+                      <div
+                        key={profile.id}
+                        onClick={() => setAnaliseSelectedId(profile.id)}
+                        className="flex items-center justify-between px-5 py-3 hover:bg-muted/50 transition-colors gap-4 cursor-pointer"
+                      >
+                        <div className="flex flex-col gap-1 min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-black">{profile.profile_code}</span>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                              profile.status === "checkpoint" ? "bg-amber-500/10 text-amber-500" :
+                              profile.status === "active" ? "bg-green-500/10 text-green-600" :
+                              profile.status === "completed" ? "bg-blue-500/10 text-blue-600" :
+                              profile.status === "blocked" || profile.status === "restricted" ? "bg-red-500/10 text-red-500" :
+                              "bg-muted text-muted-foreground"
+                            }`}>
+                              {profile.status === "checkpoint" ? "Checkpoint" :
+                               profile.status === "active" ? "Ativo" :
+                               profile.status === "completed" ? "Pronto" :
+                               profile.status === "blocked" || profile.status === "restricted" ? "Restrito" :
+                               profile.status === "sent_to_store" ? "Enviado" :
+                               profile.status}
+                            </span>
+                            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{trackInfo.label}</span>
+                            {quality?.has2FA && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-500">2FA</span>}
+                            {quality?.hasBM && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-500">BM</span>}
+                          </div>
+                          <p className="text-[11px] text-muted-foreground">
+                            {operatorName} · Dia {daysPassed}/{trackInfo.days} · {completedTasks.length}/{profileTasks.length} tarefas
+                          </p>
+                        </div>
+                        <MIcon name="chevron_right" className="text-muted-foreground/40 text-lg" />
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          )}
         </main>
-      )}
+        );
+      })()}
 
       {activeTab === "relatorios" && (
         <main className="flex-1 px-6 md:px-8 lg:px-12 py-8 max-w-6xl mx-auto w-full space-y-8">
