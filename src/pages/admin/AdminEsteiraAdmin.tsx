@@ -680,7 +680,7 @@ export default function AdminEsteiraAdmin() {
       const skipped = codes.length - newCodes.length;
 
       if (newCodes.length === 0) {
-        toast.error(`Todos os ${codes.length} perfis já estão cadastrados.`);
+        toast.error(`Todos os ${codes.length} perfis já estão cadastrados.`, { duration: 5000 });
         setImporting(false);
         e.target.value = "";
         return;
@@ -699,7 +699,10 @@ export default function AdminEsteiraAdmin() {
         created++;
       }
 
-      toast.success(`✅ ${created} perfis importados!${skipped > 0 ? ` (${skipped} já existiam)` : ""}`);
+      const msg = skipped > 0
+        ? `✅ ${created} perfis importados!\n⚠️ ${skipped} já cadastrados (ignorados)`
+        : `✅ ${created} perfis importados com sucesso!`;
+      toast.success(msg, { duration: 5000 });
       fetchProfiles();
     } catch (err) {
       console.error(err);
