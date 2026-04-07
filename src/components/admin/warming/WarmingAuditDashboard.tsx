@@ -84,9 +84,15 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, creatorNam
 
   // Filter profiles that are active or completed (candidates for audit)
   const auditProfiles = useMemo(() => {
+    const searchTrimmed = search.trim().toLowerCase();
+
     return profiles.filter(p => {
-      // Only show active profiles for audit (not yet approved)
-      // Or completed (already approved) if showApproved
+      // When searching by code, bypass all other filters to find across all operators/statuses
+      if (searchTrimmed) {
+        return p.profile_code.toLowerCase().includes(searchTrimmed);
+      }
+
+      // Normal filtering (no search)
       if (!showApproved && p.status === "completed") return false;
       if (showApproved && p.status !== "completed") return false;
       if (!showApproved && p.status !== "active") return false;
@@ -94,7 +100,6 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, creatorNam
       const quality = qualityMap[p.id];
       const days = getProfileWarmingDays(p);
 
-      // Apply filters — exact match: selected filters define required AND excluded attributes
       if (minDays > 0 && days < minDays) return false;
       const anyQualityFilterActive = filter2FA || filterBM || filterPage;
       if (anyQualityFilterActive) {
@@ -110,7 +115,6 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, creatorNam
         if (friendMin < minFriends) return false;
       }
       if (filterOperator !== "all" && p.created_by !== filterOperator) return false;
-      if (search && !p.profile_code.toLowerCase().includes(search.toLowerCase())) return false;
 
       return true;
     });
