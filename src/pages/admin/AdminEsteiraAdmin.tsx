@@ -977,25 +977,37 @@ export default function AdminEsteiraAdmin() {
           </div>
 
           <section className="bg-white dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-slate-200 dark:border-white/10 flex items-center justify-between gap-4">
+            <div className="p-6 border-b border-slate-200 dark:border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <h4 className="font-bold text-lg">Estoque de perfis prontos para venda</h4>
                 <p className="text-sm text-slate-500 dark:text-white/50 mt-1">
                   Todo perfil concluído sai da esteira ativa e fica listado aqui com o histórico completo do aquecimento.
                 </p>
               </div>
-              <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">
-                {readyProfiles.length} disponíveis
-              </span>
+              <div className="flex items-center gap-3 flex-wrap">
+                <select
+                  value={readyTaskFilter}
+                  onChange={(e) => setReadyTaskFilter(e.target.value)}
+                  className="text-xs bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-slate-700 dark:text-white/80 focus:outline-none focus:ring-2 focus:ring-primary/40"
+                >
+                  <option value="">Todas as tarefas</option>
+                  {readyTaskTitles.map((title) => (
+                    <option key={title} value={title}>{title}</option>
+                  ))}
+                </select>
+                <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">
+                  {filteredReadyProfiles.length} disponíveis
+                </span>
+              </div>
             </div>
 
             <div className="p-6 space-y-5">
-              {readyProfiles.length === 0 ? (
+              {filteredReadyProfiles.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-slate-200 dark:border-white/10 p-10 text-center text-slate-500 dark:text-white/50">
-                  Nenhum perfil pronto ainda.
+                  {readyTaskFilter ? "Nenhum perfil encontrado com essa tarefa concluída." : "Nenhum perfil pronto ainda."}
                 </div>
               ) : (
-                readyProfiles.map((profile) => {
+                filteredReadyProfiles.map((profile) => {
                   const profileTasks = tasks[profile.id] || [];
                   const completedTasks = profileTasks.filter((task) => task.completed).length;
                   const totalSeconds = profileTasks.reduce((sum, task) => sum + (task.duration_seconds || 0), 0);
