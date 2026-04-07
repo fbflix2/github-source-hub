@@ -656,7 +656,61 @@ export default function AdminEsteiraAdmin() {
     setCreating(false);
   };
 
-  const getProgress = (profile: WarmingProfile) => {
+  const handleImportTxt = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!assignOperatorId) { toast.error("Selecione um operador primeiro"); e.target.value = ""; return; }
+    setImporting(true);
+    try {
+      const text = await file.text();
+      const codes = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      if (codes.length === 0) { toast.error("Arquivo vazio"); setImporting(false); e.target.value = ""; return; }
+
+      const trackKey = "7_days";
+      const customTasks = configTasks[trackKey] || [];
+      const tasksToUse = customTasks.length > 0 ? customTasks : defaultConfigTasks[trackKey];
+
+      // Check existing codes
+      const { data: existingProfiles } = await supabase
+        .from("warming_profiles")
+        .select("profile_code")
+        .in("profile_code", codes);
+      const existingSet = new Set((existingProfiles || []).map(p => p.profile_code));
+      const newCodes = codes.filter(c => !existingSet.has(c));
+      const skipped = codes.length - newCodes.length;
+
+      if (newCodes.length === 0) {
+        toast.error(`Todos os ${codes.length} perfis já estão cadastrados.`);
+        setImporting(false);
+        e.target.value = "";
+        return;
+      }
+
+      let created = 0;
+      for (const code of newCodes) {
+        const { data: profile, error } = await supabase
+          .from("warming_profiles")
+          .insert({ profile_code: code, track_type: trackKey, track_days: tasksToUse.length, created_by: assignOperatorId })
+          .select()
+          .single();
+        if (error || !profile) continue;
+        const taskRows = tasksToUse.map((t, i) => ({ profile_id: profile.id, day_number: i + 1, title: t.title, description: t.description }));
+        await supabase.from("warming_tasks").insert(taskRows);
+        created++;
+      }
+
+      toast.success(`✅ ${created} perfis importados!${skipped > 0 ? ` (${skipped} já existiam)` : ""}`);
+      fetchProfiles();
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao importar arquivo");
+    } finally {
+      setImporting(false);
+      e.target.value = "";
+    }
+  };
+
+
     const profileTaskList = tasks[profile.id];
     if (!profileTaskList) return Math.min(100, Math.round(((profile.current_day - 1) / profile.track_days) * 100));
     const completed = profileTaskList.filter((t) => t.completed).length;
