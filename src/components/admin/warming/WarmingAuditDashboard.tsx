@@ -202,7 +202,7 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, creatorNam
         <div className="bg-white dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 p-4">
           <p className="text-[11px] text-muted-foreground uppercase tracking-widest mb-1">Aprovados Total</p>
           <p className="text-2xl font-black text-amber-500">
-            {profiles.filter(p => p.status === "completed").length}
+            {approvedCount}
           </p>
         </div>
       </div>
