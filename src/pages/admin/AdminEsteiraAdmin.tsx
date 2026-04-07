@@ -83,6 +83,8 @@ export default function AdminEsteiraAdmin() {
   const [readyTaskFilter, setReadyTaskFilter] = useState("");
   const [expandedChecklists, setExpandedChecklists] = useState<Set<string>>(new Set());
   const [approvedProfileIds, setApprovedProfileIds] = useState<Set<string>>(new Set());
+  const [analiseSearch, setAnaliseSearch] = useState("");
+  const [analiseSelectedId, setAnaliseSelectedId] = useState<string | null>(null);
 
   const defaultConfigTasks: Record<string, { title: string; description: string }[]> = {
     "7_days": [
