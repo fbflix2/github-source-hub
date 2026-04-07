@@ -1596,6 +1596,81 @@ export type Database = {
           },
         ]
       }
+      operator_financials: {
+        Row: {
+          balance: number | null
+          created_at: string | null
+          id: string
+          pix_bank: string | null
+          pix_holder_name: string | null
+          pix_key: string | null
+          pix_key_type: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          balance?: number | null
+          created_at?: string | null
+          id?: string
+          pix_bank?: string | null
+          pix_holder_name?: string | null
+          pix_key?: string | null
+          pix_key_type?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          balance?: number | null
+          created_at?: string | null
+          id?: string
+          pix_bank?: string | null
+          pix_holder_name?: string | null
+          pix_key?: string | null
+          pix_key_type?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      operator_withdrawals: {
+        Row: {
+          amount: number
+          approved_at: string | null
+          created_at: string | null
+          id: string
+          notes: string | null
+          paid_at: string | null
+          requested_at: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          approved_at?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          requested_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          approved_at?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          paid_at?: string | null
+          requested_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       order_bumps: {
         Row: {
           active: boolean
