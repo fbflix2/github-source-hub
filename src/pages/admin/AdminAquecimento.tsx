@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import WarmingOperatorDashboard from "@/components/admin/warming/WarmingOperatorDashboard";
 import WarmingSessionTimer from "@/components/admin/warming/WarmingSessionTimer";
 import ProfileQualityMeter from "@/components/admin/warming/ProfileQualityMeter";
+import ProfileQuickNotes from "@/components/admin/warming/ProfileQuickNotes";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import {
@@ -1304,12 +1305,18 @@ export default function AdminAquecimento() {
                 }}
               />
             )}
-            {/* Quality Meter - always show when a profile is selected */}
+            {/* Quality Meter + Quick Notes side by side */}
             {selectedProfile && (
-              <ProfileQualityMeter
-                profileId={selectedProfile.id}
-                profileCode={selectedProfile.profile_code}
-              />
+              <div className="flex gap-3 mt-3">
+                <div className="flex-1 min-w-0">
+                  <ProfileQualityMeter
+                    key={selectedProfile.id}
+                    profileId={selectedProfile.id}
+                    profileCode={selectedProfile.profile_code}
+                  />
+                </div>
+                <ProfileQuickNotes profileId={selectedProfile.id} />
+              </div>
             )}
           </section>
         </div>
