@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getProfileWarmingDays, type ProfileQualityData } from "@/lib/warming-ready";
@@ -61,6 +61,18 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, creatorNam
   const [approving, setApproving] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [showApproved, setShowApproved] = useState(false);
+  const [approvedCount, setApprovedCount] = useState(0);
+
+  useEffect(() => {
+    const fetchApprovedCount = async () => {
+      const { count } = await supabase
+        .from("operator_earnings")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "confirmed");
+      setApprovedCount(count || 0);
+    };
+    fetchApprovedCount();
+  }, [profiles]);
 
   const operators = useMemo(() => {
     const map = new Map<string, string>();
@@ -190,7 +202,7 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, creatorNam
         <div className="bg-white dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 p-4">
           <p className="text-[11px] text-muted-foreground uppercase tracking-widest mb-1">Aprovados Total</p>
           <p className="text-2xl font-black text-amber-500">
-            {profiles.filter(p => p.status === "completed").length}
+            {approvedCount}
           </p>
         </div>
       </div>
