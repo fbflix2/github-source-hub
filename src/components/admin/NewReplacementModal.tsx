@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { RefreshCw, Loader2, Search, Package, ArrowRightLeft, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { resolveBmDisplayName } from "@/lib/bm-link";
 
 interface NewReplacementModalProps {
   open: boolean;
@@ -30,8 +31,10 @@ interface StockItemOption {
   id: string;
   name: string;
   identification: string | null;
+  identification_link?: string | null;
   product_id: string | null;
   product_name?: string;
+  data?: unknown;
 }
 
 export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplacementModalProps) {
@@ -96,7 +99,7 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
 
     let query = supabase
       .from("stock_items")
-      .select("id, name, identification, product_id, type")
+      .select("id, name, identification, identification_link, product_id, type, data")
       .eq("status", "revisado")
       .is("order_item_id", null)
       .is("deleted_at", null)
@@ -338,13 +341,20 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
     setSaving(false);
   };
 
-  const filteredStock = allStockItems.filter(si =>
-    si.id !== originalStockId && (
-      !stockFilter || si.name.toLowerCase().includes(stockFilter.toLowerCase()) ||
+  const filteredStock = allStockItems.filter(si => {
+    const resolvedName = resolveBmDisplayName({
+      name: si.name,
+      identificationLink: si.identification_link,
+      data: si.data as { nomeProduto?: string | null; rawBmInput?: string | null } | null,
+    });
+
+    return si.id !== originalStockId && (
+      !stockFilter || resolvedName.toLowerCase().includes(stockFilter.toLowerCase()) ||
+      si.name.toLowerCase().includes(stockFilter.toLowerCase()) ||
       (si.identification || "").toLowerCase().includes(stockFilter.toLowerCase()) ||
       (si.product_name || "").toLowerCase().includes(stockFilter.toLowerCase())
-    )
-  );
+    );
+  });
 
   const hasProductContext = !!matchedProductId || !!matchedCategoryId;
 
@@ -478,7 +488,7 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
               <div className="flex items-center gap-2 p-2 rounded-lg bg-zinc-800 border border-green-600/40">
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <p className="text-sm text-white">{selectedNewItem.name}</p>
+                    <p className="text-sm text-white">{resolveBmDisplayName({ name: selectedNewItem.name, identificationLink: selectedNewItem.identification_link, data: selectedNewItem.data as { nomeProduto?: string | null; rawBmInput?: string | null } | null })}</p>
                     <Badge className="bg-green-500/20 text-green-400 text-[10px]">NOVO</Badge>
                   </div>
                   {selectedNewItem.identification && <p className="text-xs text-zinc-400 font-mono">{selectedNewItem.identification}</p>}
@@ -503,7 +513,7 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
                     ) : filteredStock.slice(0, 30).map((si) => (
                       <button key={si.id} className="w-full text-left px-3 py-2 hover:bg-zinc-700 transition-colors border-b border-zinc-700/50 last:border-0"
                         onClick={() => setSelectedNewItem(si)}>
-                        <p className="text-sm text-zinc-300">{si.name}</p>
+                        <p className="text-sm text-zinc-300">{resolveBmDisplayName({ name: si.name, identificationLink: si.identification_link, data: si.data as { nomeProduto?: string | null; rawBmInput?: string | null } | null })}</p>
                         <div className="flex items-center gap-2">
                           {si.identification && <span className="text-[10px] text-zinc-500 font-mono">{si.identification}</span>}
                           {si.product_name && <Badge variant="outline" className="text-[10px] border-zinc-700 text-zinc-400">{si.product_name}</Badge>}
