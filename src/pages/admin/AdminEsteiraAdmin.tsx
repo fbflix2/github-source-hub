@@ -710,7 +710,7 @@ export default function AdminEsteiraAdmin() {
     }
   };
 
-
+  const getProgress = (profile: WarmingProfile) => {
     const profileTaskList = tasks[profile.id];
     if (!profileTaskList) return Math.min(100, Math.round(((profile.current_day - 1) / profile.track_days) * 100));
     const completed = profileTaskList.filter((t) => t.completed).length;
