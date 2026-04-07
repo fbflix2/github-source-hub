@@ -768,7 +768,8 @@ export default function AdminAquecimento() {
   const totalProfiles = visibleProfiles.length;
   const activeProfiles = visibleProfiles.filter(p => p.status === "active").length;
   const completedProfiles = visibleProfiles.filter(p => p.status === "completed").length;
-  const restrictedProfiles = visibleProfiles.filter(p => p.status === "restricted").length;
+  const checkpointProfiles = visibleProfiles.filter(p => p.status === "checkpoint").length;
+  const restrictedProfiles = visibleProfiles.filter(p => p.status === "restricted" || p.status === "blocked").length;
   const totalPct = totalProfiles > 0 ? Math.round((activeProfiles / totalProfiles) * 100) : 0;
 
   const newProfiles = visibleProfiles.filter(p => p.track_type === "7_days").length;
@@ -958,12 +959,13 @@ export default function AdminAquecimento() {
       {activeTab === "dashboard" && (
         <main className="flex-1 px-6 md:px-12 lg:px-40 py-5 max-w-[1200px] mx-auto w-full">
           {/* Stats Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-5">
             {[
               { label: "Total Perfis", value: totalProfiles, icon: "group", color: "text-[#1876f2]", sub: "Sem dados anteriores" },
               { label: "Em Aquecimento", value: activeProfiles, icon: "local_fire_department", color: "text-amber-500", sub: `${totalPct}% do total` },
               { label: "Prontos p/ Uso", value: completedProfiles, icon: "check_circle", color: "text-emerald-500", sub: "Alta maturidade", subIcon: "verified", subColor: "text-emerald-500" },
-              { label: "Perdas (24h)", value: restrictedProfiles, icon: "block", color: "text-rose-500", sub: "Sem dados anteriores" },
+              { label: "Checkpoint", value: checkpointProfiles, icon: "warning", color: "text-yellow-500", sub: checkpointProfiles > 0 ? "Requer atenção" : "Nenhum no momento", subIcon: checkpointProfiles > 0 ? "priority_high" : undefined, subColor: checkpointProfiles > 0 ? "text-yellow-500" : undefined },
+              { label: "Perdas (Mês)", value: restrictedProfiles, icon: "block", color: "text-rose-500", sub: restrictedProfiles > 0 ? `${restrictedProfiles} bloqueado(s)` : "Sem dados anteriores", subColor: restrictedProfiles > 0 ? "text-rose-500" : undefined },
             ].map(kpi => (
               <div key={kpi.label} className="bg-white dark:bg-white/5 px-4 py-3 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm">
                 <div className="flex items-center justify-between mb-0.5">
