@@ -13,6 +13,7 @@ const PIX_KEY_TYPES = [
 
 interface Earning {
   id: string;
+  profile_id: string;
   profile_code: string;
   amount: number;
   status: string;
