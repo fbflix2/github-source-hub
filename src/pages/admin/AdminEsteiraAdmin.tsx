@@ -682,77 +682,75 @@ export default function AdminEsteiraAdmin() {
       from += pageSize;
     }
     const data = allProfiles;
-    {
-      setProfiles(data || []);
-      if (data && data.length > 0) {
-      if (data && data.length > 0) {
-        // Paginate tasks to avoid 1000 row limit
-        const profileIds = data.map((p: any) => p.id);
-        const allTasks: any[] = [];
-        const pageSize = 1000;
-        let from = 0;
-        while (true) {
-          const { data: batch } = await supabase
-            .from("warming_tasks")
-            .select("*")
-            .in("profile_id", profileIds)
-            .order("day_number", { ascending: true })
-            .range(from, from + pageSize - 1);
-          if (!batch || batch.length === 0) break;
-          allTasks.push(...batch);
-          if (batch.length < pageSize) break;
-          from += pageSize;
-        }
-        const grouped: Record<string, WarmingTask[]> = {};
-        allTasks.forEach((t: any) => {
-          if (!grouped[t.profile_id]) grouped[t.profile_id] = [];
-          grouped[t.profile_id].push(t);
+    setProfiles(data || []);
+    if (data && data.length > 0) {
+      // Paginate tasks to avoid 1000 row limit
+      const profileIds = data.map((p: any) => p.id);
+      const allTasks: any[] = [];
+      const tPageSize = 1000;
+      let tFrom = 0;
+      while (true) {
+        const { data: batch } = await supabase
+          .from("warming_tasks")
+          .select("*")
+          .in("profile_id", profileIds)
+          .order("day_number", { ascending: true })
+          .range(tFrom, tFrom + tPageSize - 1);
+        if (!batch || batch.length === 0) break;
+        allTasks.push(...batch);
+        if (batch.length < tPageSize) break;
+        tFrom += tPageSize;
+      }
+      const grouped: Record<string, WarmingTask[]> = {};
+      allTasks.forEach((t: any) => {
+        if (!grouped[t.profile_id]) grouped[t.profile_id] = [];
+        grouped[t.profile_id].push(t);
+      });
+      setTasks(grouped);
+
+      // Load quality data (2FA status) for all profiles
+      const qualityKeys = profileIds.map((id: string) => `warming_quality_${id}`);
+      const qMap: Record<string, { has2FA: boolean; hasBM?: boolean; hasPage?: boolean; friendRange?: string }> = {};
+      const qPageSize = 1000;
+      let qFrom = 0;
+      while (true) {
+        const { data: qBatch } = await supabase
+          .from("site_settings")
+          .select("key, value")
+          .in("key", qualityKeys)
+          .range(qFrom, qFrom + qPageSize - 1);
+        if (!qBatch || qBatch.length === 0) break;
+        qBatch.forEach((row: any) => {
+          const pid = row.key.replace("warming_quality_", "");
+          try {
+            const parsed = JSON.parse(row.value);
+            qMap[pid] = { has2FA: !!parsed.has2FA, hasBM: !!parsed.hasBM, hasPage: !!parsed.hasPage, friendRange: parsed.friendRange || "0-5" };
+          } catch {}
         });
-        setTasks(grouped);
-
-        // Load quality data (2FA status) for all profiles
-        const qualityKeys = profileIds.map((id: string) => `warming_quality_${id}`);
-        const qMap: Record<string, { has2FA: boolean; hasBM?: boolean; hasPage?: boolean; friendRange?: string }> = {};
-        const qPageSize = 1000;
-        let qFrom = 0;
-        while (true) {
-          const { data: qBatch } = await supabase
-            .from("site_settings")
-            .select("key, value")
-            .in("key", qualityKeys)
-            .range(qFrom, qFrom + qPageSize - 1);
-          if (!qBatch || qBatch.length === 0) break;
-          qBatch.forEach((row: any) => {
-            const pid = row.key.replace("warming_quality_", "");
-            try {
-              const parsed = JSON.parse(row.value);
-              qMap[pid] = { has2FA: !!parsed.has2FA, hasBM: !!parsed.hasBM, hasPage: !!parsed.hasPage, friendRange: parsed.friendRange || "0-5" };
-            } catch {}
-          });
-          if (qBatch.length < qPageSize) break;
-          qFrom += qPageSize;
-        }
-        setQualityMap(qMap);
-
-        // Fetch approved profile IDs from operator_earnings
-        const { data: earningsData } = await supabase
-          .from("operator_earnings")
-          .select("profile_id")
-          .eq("status", "confirmed");
-        setApprovedProfileIds(new Set((earningsData || []).map(e => e.profile_id)));
+        if (qBatch.length < qPageSize) break;
+        qFrom += qPageSize;
       }
-      const creatorIds = [...new Set((data || []).map(p => p.created_by).filter(Boolean))] as string[];
-      if (creatorIds.length > 0) {
-        const { data: profilesData } = await supabase
-          .from("profiles")
-          .select("user_id, full_name")
-          .in("user_id", creatorIds);
-        if (profilesData) {
-          const nameMap: Record<string, string> = {};
-          profilesData.forEach(p => { nameMap[p.user_id] = p.full_name || "Sem nome"; });
-          setCreatorNames(nameMap);
-        }
+      setQualityMap(qMap);
+
+      // Fetch approved profile IDs from operator_earnings
+      const { data: earningsData } = await supabase
+        .from("operator_earnings")
+        .select("profile_id")
+        .eq("status", "confirmed");
+      setApprovedProfileIds(new Set((earningsData || []).map(e => e.profile_id)));
+    }
+    const creatorIds = [...new Set((data || []).map(p => p.created_by).filter(Boolean))] as string[];
+    if (creatorIds.length > 0) {
+      const { data: profilesData } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", creatorIds);
+      if (profilesData) {
+        const nameMap: Record<string, string> = {};
+        profilesData.forEach(p => { nameMap[p.user_id] = p.full_name || "Sem nome"; });
+        setCreatorNames(nameMap);
       }
+    }
     setLoading(false);
   };
 
