@@ -699,7 +699,10 @@ export default function AdminEsteiraAdmin() {
         created++;
       }
 
-      toast.success(`✅ ${created} perfis importados!${skipped > 0 ? ` (${skipped} já existiam)` : ""}`);
+      const msg = skipped > 0
+        ? `✅ ${created} perfis importados!\n⚠️ ${skipped} já cadastrados (ignorados)`
+        : `✅ ${created} perfis importados com sucesso!`;
+      toast.success(msg, { duration: 5000 });
       fetchProfiles();
     } catch (err) {
       console.error(err);
