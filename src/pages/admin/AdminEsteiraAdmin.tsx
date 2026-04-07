@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { useNavigate } from "react-router-dom";
 import WarmingOperatorDashboard from "@/components/admin/warming/WarmingOperatorDashboard";
+import WarmingAuditDashboard from "@/components/admin/warming/WarmingAuditDashboard";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { toast } from "sonner";
 import { DEFAULT_READY_CRITERIA, parseReadyCriteria } from "@/lib/warming-ready";
@@ -818,6 +819,7 @@ export default function AdminEsteiraAdmin() {
   const tabs = [
     { key: "gestao" as const, label: "Gestão", icon: "supervisor_account" },
     { key: "relatorios" as const, label: "Relatórios", icon: "analytics" },
+    { key: "auditoria" as const, label: "Auditoria", icon: "fact_check" },
     { key: "prontos" as const, label: "Perfis Prontos", icon: "inventory_2" },
     { key: "bd_perfis" as const, label: "BD Perfis", icon: "database" },
     { key: "configuracoes" as const, label: "Configurações", icon: "settings" },
