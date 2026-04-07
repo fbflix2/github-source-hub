@@ -1320,7 +1320,8 @@ export default function AdminAquecimento() {
 
           {/* Right sidebar: Notes */}
           {selectedProfile && (
-            <section className="lg:col-span-3">
+            <section className="lg:col-span-3 space-y-3">
+              <ProfileQuickInfo profileId={selectedProfile.id} />
               <ProfileQuickNotes profileId={selectedProfile.id} />
             </section>
           )}
