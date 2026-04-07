@@ -1570,7 +1570,7 @@ export default function AdminEsteiraAdmin() {
                     </div>
                   );
                 })
-              )}
+              })()}
             </div>
           </div>
         </main>
