@@ -754,7 +754,7 @@ export default function AdminEsteiraAdmin() {
   const totalProfiles = profiles.length;
   const completedProfiles = profiles.filter(p => p.status === "completed").length;
   const readyProfiles = useMemo(
-    () => profiles.filter((p) => p.status === "completed" && approvedProfileIds.has(p.id)),
+    () => profiles.filter((p) => (p.status === "completed" || p.status === "sent_to_store") && approvedProfileIds.has(p.id)),
     [profiles, approvedProfileIds],
   );
 
