@@ -34,7 +34,7 @@ interface StockItemOption {
   identification_link?: string | null;
   product_id: string | null;
   product_name?: string;
-  data?: Record<string, unknown> | null;
+  data?: unknown;
 }
 
 export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplacementModalProps) {
