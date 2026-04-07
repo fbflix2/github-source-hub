@@ -57,6 +57,7 @@ function playNotificationSound(type: "send" | "receive") {
 export default function AdminTeamChat() {
   const [message, setMessage] = useState("");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [userJoinedAt, setUserJoinedAt] = useState<string | null>(null);
   const [userProfiles, setUserProfiles] = useState<Record<string, UserInfo>>({});
   const [selectedChat, setSelectedChat] = useState<SelectedChat>({ type: "group" });
   const [showSidebar, setShowSidebar] = useState(true);
