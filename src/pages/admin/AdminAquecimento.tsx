@@ -484,6 +484,17 @@ export default function AdminAquecimento() {
     const taskRows = tasksToUse.map((t, i) => ({ profile_id: profile.id, day_number: i + 1, title: t.title, description: t.description }));
     await supabase.from("warming_tasks").insert(taskRows);
 
+    // Create earning record for this profile
+    if (assignTo) {
+      await supabase.from("operator_earnings").insert({
+        user_id: assignTo,
+        profile_id: profile.id,
+        profile_code: profileCode.trim(),
+        amount: commissionRate,
+        status: "pending",
+      }).then(({ error: eErr }) => { if (eErr) console.warn("Earning insert:", eErr); });
+    }
+
     // Both modes: register + auto-start (new profile has priority)
     toast.success(`✅ Perfil "${profileCode.trim()}" cadastrado e iniciando tarefas!`);
     setProfileCode("");
