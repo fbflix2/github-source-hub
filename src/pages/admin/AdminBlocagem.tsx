@@ -947,7 +947,7 @@ function FolderItemsView({ folder, onBack }: { folder: Folder; onBack: () => voi
                   {item.type === "bm" ? <Building2 className="h-4 w-4" /> : item.type === "perfil" ? <CircleUser className="h-4 w-4" /> : <PackageOpen className="h-4 w-4" />}
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-white">{item.name}</p>
+                  <p className="text-sm font-medium text-white">{item.data?.nomeProduto || item.name}</p>
                   <p className="text-xs text-zinc-500">{item.identification_link || item.identification || "Sem identificação"}</p>
                   {item.data?.accfaceProductId && (
                     <p className="text-[10px] text-primary/70 font-mono">AccFace ID: {item.data.accfaceProductId}</p>
