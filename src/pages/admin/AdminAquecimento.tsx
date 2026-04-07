@@ -5,6 +5,7 @@ import WarmingOperatorDashboard from "@/components/admin/warming/WarmingOperator
 import WarmingSessionTimer from "@/components/admin/warming/WarmingSessionTimer";
 import ProfileQualityMeter from "@/components/admin/warming/ProfileQualityMeter";
 import ProfileQuickNotes from "@/components/admin/warming/ProfileQuickNotes";
+import ProfileQuickInfo from "@/components/admin/warming/ProfileQuickInfo";
 import { toast } from "sonner";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import {
@@ -1319,7 +1320,8 @@ export default function AdminAquecimento() {
 
           {/* Right sidebar: Notes */}
           {selectedProfile && (
-            <section className="lg:col-span-3">
+            <section className="lg:col-span-3 space-y-3">
+              <ProfileQuickInfo profileId={selectedProfile.id} />
               <ProfileQuickNotes profileId={selectedProfile.id} />
             </section>
           )}
