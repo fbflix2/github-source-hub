@@ -90,7 +90,6 @@ const allMenuItems: MenuItem[] = [
   { title: "Contingência Total", icon: ShieldAlert, path: "/admin/contingencia" },
   { title: "Fornecedor AccFace", icon: Store, path: "/admin/fornecedor" },
   { title: "Aquecimento", icon: Flame, path: "/admin/aquecimento" },
-  { title: "Como Funciona?", icon: GraduationCap, path: "/admin/aquecimento-guia" },
   { title: "Ferramentas", icon: KeyRound, path: "/admin/ferramentas-2fa", subItems: [
     { title: "Ferramentas", icon: KeyRound, path: "/admin/ferramentas-2fa" },
     { title: "Esteira Admin", icon: Settings, path: "/admin/esteira-admin" },
@@ -103,6 +102,7 @@ const allMenuItems: MenuItem[] = [
   { title: "Anúncios", icon: Megaphone, path: "/admin/anuncios" },
   { title: "Notificações", icon: Bell, path: "/admin/notificacoes" },
   { title: "Chat Equipe", icon: MessageCircle, path: "/admin/chat" },
+  { title: "Como Funciona?", icon: GraduationCap, path: "/admin/aquecimento-guia" },
   { title: "Configurações", icon: Settings, path: "/admin/configuracoes", subItems: [
     { title: "Editor do Site", icon: Globe, path: "/admin/configuracoes/site" },
     { title: "Plataforma", icon: Palette, path: "/admin/configuracoes/plataforma" },
