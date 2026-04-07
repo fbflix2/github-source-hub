@@ -682,11 +682,9 @@ export default function AdminEsteiraAdmin() {
       from += pageSize;
     }
     const data = allProfiles;
-    const error = allProfiles.length === 0 && from === 0 ? null : null;
-    if (error) {
-      toast.error("Erro ao carregar perfis");
-    } else {
+    {
       setProfiles(data || []);
+      if (data && data.length > 0) {
       if (data && data.length > 0) {
         // Paginate tasks to avoid 1000 row limit
         const profileIds = data.map((p: any) => p.id);
