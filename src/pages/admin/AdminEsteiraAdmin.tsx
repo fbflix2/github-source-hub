@@ -1184,7 +1184,7 @@ export default function AdminEsteiraAdmin() {
                                   })}
                                   className="w-full text-center py-2 text-xs font-semibold text-primary hover:underline"
                                 >
-                                  {isExpanded ? "Ver menos" : `Ver mais (${profileTasks.length - MAX_VISIBLE} restantes)`}
+                                  {isExpanded ? "Ver menos" : `Ver mais (${completedOnly.length - MAX_VISIBLE} restantes)`}
                                 </button>
                               )}
                             </>
