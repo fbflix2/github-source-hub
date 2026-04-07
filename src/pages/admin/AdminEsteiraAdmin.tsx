@@ -906,16 +906,29 @@ export default function AdminEsteiraAdmin() {
           </div>
 
           <section className="bg-white dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-slate-200 dark:border-white/10 flex justify-between items-center">
+            <div className="p-6 border-b border-slate-200 dark:border-white/10 flex flex-wrap justify-between items-center gap-3">
               <h4 className="font-bold text-lg">Relatórios Recentes</h4>
-              <div className="relative">
-                <input
-                  className="pl-9 pr-4 py-2 text-sm bg-slate-100 dark:bg-white/10 border-none rounded-lg focus:ring-2 focus:ring-slate-400 w-64 dark:text-white"
-                  placeholder="Filtrar perfis..."
-                  value={reportFilter}
-                  onChange={(e) => setReportFilter(e.target.value)}
-                />
-                <MIcon name="search" className="absolute left-3 top-2 text-slate-400 dark:text-white/40 text-sm" />
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setReport2faFilter(!report2faFilter)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                    report2faFilter
+                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
+                      : "bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-white/50"
+                  }`}
+                >
+                  <MIcon name="verified_user" className="text-sm" />
+                  2FA Ativo
+                </button>
+                <div className="relative">
+                  <input
+                    className="pl-9 pr-4 py-2 text-sm bg-slate-100 dark:bg-white/10 border-none rounded-lg focus:ring-2 focus:ring-slate-400 w-64 dark:text-white"
+                    placeholder="Filtrar perfis..."
+                    value={reportFilter}
+                    onChange={(e) => setReportFilter(e.target.value)}
+                  />
+                  <MIcon name="search" className="absolute left-3 top-2 text-slate-400 dark:text-white/40 text-sm" />
+                </div>
               </div>
             </div>
             <div className="overflow-x-auto">
