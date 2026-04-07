@@ -84,7 +84,7 @@ export function AdminMobileDashboard() {
         if (profile?.full_name) setUserName(profile.full_name.split(" ")[0]);
       }
 
-      const [profilesRes, loggedInRes, transactionsRes, balanceRes, productsRes, ordersRes, orderItemsRes, categoriesRes, replacementsRes, paymentsRes, paidInvoicesRes] = await Promise.all([
+      const [profilesRes, loggedInRes, transactionsRes, balanceRes, productsRes, ordersRes, orderItemsRes, categoriesRes, replacementsRes, paymentsRes, paidInvoicesRes, walletPurchasesRes] = await Promise.all([
         supabase.from("profiles").select("id", { count: "exact", head: true }),
         supabase.from("profiles").select("id", { count: "exact", head: true }).not("first_login_at", "is", null),
         supabase.from("wallet_transactions").select("id", { count: "exact", head: true }),
@@ -96,9 +96,9 @@ export function AdminMobileDashboard() {
         supabase.from("replacements").select("id", { count: "exact", head: true })
           .gte("created_at", new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString())
           .lte("created_at", new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 23, 59, 59).toISOString()),
-        // Fetch ALL payments for chart (approved/paid in last 7 days)
         supabase.from("payments").select("amount, created_at, status").in("status", ["approved", "paid"]).gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()).order("created_at", { ascending: true }),
         supabase.from("invoice_links").select("id, amount, paid_at").eq("status", "paid").not("paid_at", "is", null),
+        supabase.from("wallet_transactions").select("id, amount, created_at").eq("type", "purchase").lt("amount", 0),
       ]);
 
       const prods = productsRes.data ?? [];
@@ -113,9 +113,16 @@ export function AdminMobileDashboard() {
         created_at: inv.paid_at as string,
       }));
 
+      // Wallet purchases (proxy renewals via wallet debit)
+      const walletPurchases = (walletPurchasesRes.data ?? []).map((wt: any) => ({
+        total: Math.abs(Number(wt.amount)) || 0,
+        created_at: wt.created_at as string,
+      }));
+
       const allRevenue = [
         ...completedOrds.map(o => ({ total: o.total || 0, created_at: o.created_at })),
         ...paidInvoices,
+        ...walletPurchases,
       ];
 
       const todayStart = new Date();

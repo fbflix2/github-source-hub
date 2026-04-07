@@ -103,7 +103,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     async function fetchStats() {
       try {
-      const [profilesRes, loggedInRes, transactionsRes, balanceRes, productsRes, ordersRes, orderItemsRes, categoriesRes, pendingPaymentsRes, paidInvoicesRes] = await Promise.all([
+      const [profilesRes, loggedInRes, transactionsRes, balanceRes, productsRes, ordersRes, orderItemsRes, categoriesRes, pendingPaymentsRes, paidInvoicesRes, walletPurchasesRes] = await Promise.all([
         supabase.from("profiles").select("id", { count: "exact", head: true }).limit(0),
         supabase.from("profiles").select("id", { count: "exact", head: true }).not("first_login_at", "is", null).limit(0),
         supabase.from("wallet_transactions").select("id", { count: "exact", head: true }),
@@ -114,6 +114,7 @@ export default function AdminDashboard() {
         supabase.from("product_categories").select("id, name, slug"),
         supabase.from("payments").select("id", { count: "exact", head: true }).eq("status", "pending"),
         supabase.from("invoice_links").select("id, amount, paid_at").eq("status", "paid").not("paid_at", "is", null),
+        supabase.from("wallet_transactions").select("id, amount, created_at").eq("type", "purchase").lt("amount", 0),
       ]);
 
       setTotalClients(loggedInRes.count ?? 0);
@@ -138,9 +139,16 @@ export default function AdminDashboard() {
         created_at: inv.paid_at as string,
       }));
 
+      // Wallet purchases (proxy renewals via wallet debit) - amount is negative, so Math.abs
+      const walletPurchases = (walletPurchasesRes.data ?? []).map((wt: any) => ({
+        total: Math.abs(Number(wt.amount)) || 0,
+        created_at: wt.created_at as string,
+      }));
+
       const allRevenue = [
         ...completedOrds.map(o => ({ total: o.total || 0, created_at: o.created_at })),
         ...paidInvoices,
+        ...walletPurchases,
       ];
 
       // Calculate today's revenue
