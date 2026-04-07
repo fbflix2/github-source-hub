@@ -94,11 +94,17 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, creatorNam
       const quality = qualityMap[p.id];
       const days = getProfileWarmingDays(p);
 
-      // Apply filters
+      // Apply filters — exact match: selected filters define required AND excluded attributes
       if (minDays > 0 && days < minDays) return false;
-      if (filter2FA && !quality?.has2FA) return false;
-      if (filterBM && !quality?.hasBM) return false;
-      if (filterPage && !quality?.hasPage) return false;
+      const anyQualityFilterActive = filter2FA || filterBM || filterPage;
+      if (anyQualityFilterActive) {
+        if (filter2FA && !quality?.has2FA) return false;
+        if (!filter2FA && quality?.has2FA) return false;
+        if (filterBM && !quality?.hasBM) return false;
+        if (!filterBM && quality?.hasBM) return false;
+        if (filterPage && !quality?.hasPage) return false;
+        if (!filterPage && quality?.hasPage) return false;
+      }
       if (minFriends > 0) {
         const friendMin = FRIEND_RANGE_MIN[quality?.friendRange || "0-5"] || 0;
         if (friendMin < minFriends) return false;
