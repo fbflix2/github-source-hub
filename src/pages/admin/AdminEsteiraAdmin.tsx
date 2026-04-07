@@ -86,6 +86,8 @@ export default function AdminEsteiraAdmin() {
   const [analiseSearch, setAnaliseSearch] = useState("");
   const [analiseSelectedId, setAnaliseSelectedId] = useState<string | null>(null);
   const [profileListSearch, setProfileListSearch] = useState("");
+  const [importing, setImporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const defaultConfigTasks: Record<string, { title: string; description: string }[]> = {
     "7_days": [
