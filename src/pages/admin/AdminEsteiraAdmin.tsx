@@ -85,6 +85,7 @@ export default function AdminEsteiraAdmin() {
   const [approvedProfileIds, setApprovedProfileIds] = useState<Set<string>>(new Set());
   const [analiseSearch, setAnaliseSearch] = useState("");
   const [analiseSelectedId, setAnaliseSelectedId] = useState<string | null>(null);
+  const [profileListSearch, setProfileListSearch] = useState("");
 
   const defaultConfigTasks: Record<string, { title: string; description: string }[]> = {
     "7_days": [
@@ -1468,20 +1469,39 @@ export default function AdminEsteiraAdmin() {
 
           {/* Profiles List */}
           <div className="bg-white dark:bg-white/5 rounded-xl shadow-sm border border-slate-200 dark:border-white/10 overflow-hidden">
-            <div className="px-5 py-3.5 border-b border-slate-100 dark:border-white/10 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <MIcon name="list" className="text-[#1876f2] text-xl" />
-                <h2 className="text-base font-bold text-slate-900 dark:text-white">Perfis Cadastrados</h2>
+            <div className="px-5 py-3.5 border-b border-slate-100 dark:border-white/10 flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <MIcon name="list" className="text-[#1876f2] text-xl" />
+                  <h2 className="text-base font-bold text-slate-900 dark:text-white">Perfis Cadastrados</h2>
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/10 text-slate-500 dark:text-white/50">
+                  {activeProfiles.length} ativos
+                </span>
               </div>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-white/10 text-slate-500 dark:text-white/50">
-                {activeProfiles.length} ativos
-              </span>
+              <div className="relative">
+                <MIcon name="search" className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-white/40 text-base" />
+                <input
+                  type="text"
+                  placeholder="Buscar por código do perfil..."
+                  value={profileListSearch}
+                  onChange={e => setProfileListSearch(e.target.value)}
+                  className="w-full pl-8 pr-3 py-1.5 text-xs rounded-lg bg-slate-100 dark:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-[#1876f2]"
+                />
+              </div>
             </div>
             <div className="max-h-[400px] overflow-y-auto divide-y divide-slate-100 dark:divide-white/10">
-              {activeProfiles.length === 0 ? (
-                <div className="p-6 text-center text-xs text-slate-500">Nenhum perfil cadastrado ainda.</div>
-              ) : (
-                activeProfiles.slice(0, 50).map(p => {
+              {(() => {
+                const searchTerm = profileListSearch.trim().toLowerCase();
+                const filtered = searchTerm
+                  ? activeProfiles.filter(p => p.profile_code.toLowerCase().includes(searchTerm))
+                  : activeProfiles;
+                if (filtered.length === 0) return (
+                  <div className="p-6 text-center text-xs text-slate-500">
+                    {searchTerm ? "Nenhum perfil encontrado." : "Nenhum perfil cadastrado ainda."}
+                  </div>
+                );
+                return filtered.slice(0, 50).map(p => {
                   const prog = getProgress(p);
                   const operatorName = p.created_by ? creatorNames[p.created_by] || "—" : "—";
                   return (
@@ -1550,7 +1570,7 @@ export default function AdminEsteiraAdmin() {
                     </div>
                   );
                 })
-              )}
+              })()}
             </div>
           </div>
         </main>
