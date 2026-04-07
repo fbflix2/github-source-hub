@@ -128,7 +128,7 @@ export default function AdminTeamChat() {
   // Fetch messages based on selected chat
   const chatKey = selectedChat.type === "group" ? "group" : `dm-${selectedChat.userId}`;
   const { data: messages = [], refetch } = useQuery({
-    queryKey: ["team-messages", chatKey],
+    queryKey: ["team-messages", chatKey, userJoinedAt],
     queryFn: async () => {
       let query = supabase
         .from("team_messages")
@@ -138,6 +138,10 @@ export default function AdminTeamChat() {
 
       if (selectedChat.type === "group") {
         query = query.is("recipient_id", null);
+        // Only show messages sent after the user joined the team
+        if (userJoinedAt) {
+          query = query.gte("created_at", userJoinedAt);
+        }
       } else {
         query = query.or(
           `and(user_id.eq.${currentUserId},recipient_id.eq.${selectedChat.userId}),and(user_id.eq.${selectedChat.userId},recipient_id.eq.${currentUserId})`
