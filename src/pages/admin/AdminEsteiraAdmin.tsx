@@ -1068,162 +1068,77 @@ export default function AdminEsteiraAdmin() {
                   {readyTaskFilter ? "Nenhum perfil encontrado com essa tarefa concluída." : "Nenhum perfil pronto ainda."}
                 </div>
               ) : (
-                filteredReadyProfiles.map((profile) => {
-                  const profileTasks = tasks[profile.id] || [];
-                  const completedTasks = profileTasks.filter((task) => task.completed).length;
-                  const totalSeconds = profileTasks.reduce((sum, task) => sum + (task.duration_seconds || 0), 0);
-                  const operatorName = profile.created_by ? creatorNames[profile.created_by] || "—" : "—";
-                  const latestCompletedTask = [...profileTasks]
-                    .filter((task) => task.completed_at)
-                    .sort((a, b) => new Date(b.completed_at || 0).getTime() - new Date(a.completed_at || 0).getTime())[0];
+                <div className="divide-y divide-slate-200 dark:divide-white/10">
+                  {filteredReadyProfiles.map((profile) => {
+                    const profileTasks = tasks[profile.id] || [];
+                    const completedTasks = profileTasks.filter((task) => task.completed).length;
+                    const totalSeconds = profileTasks.reduce((sum, task) => sum + (task.duration_seconds || 0), 0);
+                    const operatorName = profile.created_by ? creatorNames[profile.created_by] || "—" : "—";
+                    const latestCompletedTask = [...profileTasks]
+                      .filter((task) => task.completed_at)
+                      .sort((a, b) => new Date(b.completed_at || 0).getTime() - new Date(a.completed_at || 0).getTime())[0];
+                    const isSent = profile.status === "sent_to_store";
 
-                  return (
-                    <article
-                      key={profile.id}
-                      className="rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50/80 dark:bg-white/[0.03] overflow-hidden"
-                    >
-                      <div className="p-5 border-b border-slate-200 dark:border-white/10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                        <div>
-                          <div className="flex flex-wrap items-center gap-2 mb-2">
-                            <h5 className="text-lg font-black text-slate-900 dark:text-white">{profile.profile_code}</h5>
-                            {profile.status === "sent_to_store" ? (
-                              <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300 uppercase tracking-wider">
-                                Enviado para loja
+                    return (
+                      <div
+                        key={profile.id}
+                        className="flex items-center justify-between px-5 py-3 hover:bg-white/5 transition-colors gap-4"
+                      >
+                        {/* Left: code + badges + operator */}
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <span className="material-symbols-outlined text-xl text-muted-foreground">person</span>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-sm font-black text-foreground">{profile.profile_code}</span>
+                              {isSent ? (
+                                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 uppercase">Enviado</span>
+                              ) : (
+                                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 uppercase">Pronto</span>
+                              )}
+                              <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-white/10 text-muted-foreground uppercase">
+                                {TRACKS[profile.track_type]?.label || profile.track_type}
                               </span>
-                            ) : (
-                              <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300 uppercase tracking-wider">
-                                Pronto para venda
-                              </span>
-                            )}
-                            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-200 text-slate-600 dark:bg-white/10 dark:text-white/60 uppercase tracking-wider">
-                              {TRACKS[profile.track_type]?.label || profile.track_type}
-                            </span>
-                          </div>
-                          <p className="text-sm text-slate-500 dark:text-white/50">
-                            Operador: <span className="font-semibold text-slate-700 dark:text-white/80">{operatorName}</span>
-                            {profile.trust_tier ? (
-                              <>
-                                {" "}• Nível: <span className="font-semibold text-slate-700 dark:text-white/80">{profile.trust_tier}</span>
-                              </>
-                            ) : null}
-                          </p>
-                        </div>
-
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
-                          <div className="rounded-lg bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 px-3 py-2">
-                            <p className="text-slate-400 dark:text-white/40 text-[11px] uppercase font-bold">Checklist</p>
-                            <p className="font-black text-slate-900 dark:text-white">{completedTasks}/{profileTasks.length}</p>
-                          </div>
-                          <div className="rounded-lg bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 px-3 py-2">
-                            <p className="text-slate-400 dark:text-white/40 text-[11px] uppercase font-bold">Tempo total</p>
-                            <p className="font-black text-slate-900 dark:text-white">{totalSeconds ? formatDuration(totalSeconds) : "—"}</p>
-                          </div>
-                          <div className="rounded-lg bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 px-3 py-2 col-span-2 md:col-span-1">
-                            <p className="text-slate-400 dark:text-white/40 text-[11px] uppercase font-bold">Finalizado em</p>
-                            <p className="font-black text-slate-900 dark:text-white">
-                              {latestCompletedTask?.completed_at
+                            </div>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">
+                              {operatorName} · {completedTasks}/{profileTasks.length} tarefas · {totalSeconds ? formatDuration(totalSeconds) : "—"} · {latestCompletedTask?.completed_at
                                 ? new Date(latestCompletedTask.completed_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" })
                                 : "—"}
                             </p>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="p-5 space-y-4">
-                        <div className="flex items-center justify-between">
-                          <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-white/50">
-                            Checklist do aquecimento
-                          </p>
-                          <p className="text-xs text-slate-500 dark:text-white/50">
-                            Início {new Date(profile.start_date).toLocaleDateString("pt-BR")}
-                          </p>
+                        {/* Right: action */}
+                        <div className="shrink-0">
+                          {!isSent ? (
+                            <button
+                              onClick={async () => {
+                                const { error } = await supabase
+                                  .from("warming_profiles" as any)
+                                  .update({ status: "sent_to_store" })
+                                  .eq("id", profile.id);
+                                if (error) {
+                                  toast.error("Erro ao dar baixa");
+                                } else {
+                                  toast.success(`Perfil ${profile.profile_code} enviado para loja!`);
+                                  fetchProfiles();
+                                }
+                              }}
+                              className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-1.5"
+                            >
+                              <span className="material-symbols-outlined text-sm">storefront</span>
+                              Dar baixa
+                            </button>
+                          ) : (
+                            <span className="text-[11px] text-blue-400 font-semibold flex items-center gap-1">
+                              <span className="material-symbols-outlined text-sm">check</span>
+                              Enviado
+                            </span>
+                          )}
                         </div>
-
-                        {(() => {
-                          const completedOnly = profileTasks.filter(t => t.completed);
-                          const MAX_VISIBLE = 4;
-                          const isExpanded = expandedChecklists.has(profile.id);
-                          const visibleTasks = isExpanded ? completedOnly : completedOnly.slice(0, MAX_VISIBLE);
-                          const hasMore = completedOnly.length > MAX_VISIBLE;
-                          return (
-                            <>
-                              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                                {visibleTasks.map((task) => (
-                                  <div
-                                    key={task.id}
-                                    className={`rounded-xl border px-4 py-3 ${
-                                      task.completed
-                                        ? "border-emerald-200 bg-emerald-50 dark:border-emerald-500/20 dark:bg-emerald-500/10"
-                                        : "border-slate-200 bg-white dark:border-white/10 dark:bg-white/[0.03]"
-                                    }`}
-                                  >
-                                    <div className="flex items-start gap-3">
-                                      <span className={`mt-0.5 material-symbols-outlined text-lg ${task.completed ? "text-emerald-600 dark:text-emerald-300" : "text-slate-300 dark:text-white/20"}`}>
-                                        {task.completed ? "check_circle" : "radio_button_unchecked"}
-                                      </span>
-                                      <div className="min-w-0 flex-1">
-                                        <p className="text-sm font-bold text-slate-900 dark:text-white">
-                                          Dia {task.day_number} • {task.title}
-                                        </p>
-                                        {task.description ? (
-                                          <p className="text-xs text-slate-500 dark:text-white/50 mt-1">{task.description}</p>
-                                        ) : null}
-                                        <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 text-[11px] text-slate-500 dark:text-white/50">
-                                          <span>{task.completed ? "Concluído" : "Pendente"}</span>
-                                          {task.duration_seconds ? <span>Tempo: {formatDuration(task.duration_seconds)}</span> : null}
-                                          {task.completed_at ? (
-                                            <span>{new Date(task.completed_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}</span>
-                                          ) : null}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                              {hasMore && (
-                                <button
-                                  onClick={() => setExpandedChecklists(prev => {
-                                    const next = new Set(prev);
-                                    if (next.has(profile.id)) next.delete(profile.id);
-                                    else next.add(profile.id);
-                                    return next;
-                                  })}
-                                  className="w-full text-center py-2 text-xs font-semibold text-primary hover:underline"
-                                >
-                                  {isExpanded ? "Ver menos" : `Ver mais (${completedOnly.length - MAX_VISIBLE} restantes)`}
-                                </button>
-                              )}
-                            </>
-                          );
-                        })()}
                       </div>
-
-                      {/* Send to store button */}
-                      {profile.status !== "sent_to_store" && (
-                        <div className="px-5 pb-5">
-                          <button
-                            onClick={async () => {
-                              const { error } = await supabase
-                                .from("warming_profiles" as any)
-                                .update({ status: "sent_to_store" })
-                                .eq("id", profile.id);
-                              if (error) {
-                                toast.error("Erro ao dar baixa");
-                              } else {
-                                toast.success(`Perfil ${profile.profile_code} marcado como enviado para loja!`);
-                                fetchProfiles();
-                              }
-                            }}
-                            className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
-                          >
-                            <span className="material-symbols-outlined text-lg">storefront</span>
-                            Dar baixa — Enviado para loja
-                          </button>
-                        </div>
-                      )}
-                    </article>
-                  );
-                })
+                    );
+                  })}
+                </div>
               )}
             </div>
           </section>
