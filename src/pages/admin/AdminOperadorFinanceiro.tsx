@@ -98,13 +98,16 @@ export default function AdminOperadorFinanceiro() {
     }
   };
 
-  // Calculate balances
-  const confirmedTotal = earnings.filter(e => e.status === "confirmed").reduce((s, e) => s + Number(e.amount), 0);
+  // Calculate balances - confirmed earnings are only "available" after 72h from confirmed_at
+  const now72hAgo = Date.now() - (72 * 60 * 60 * 1000);
+  const confirmedAvailable = earnings.filter(e => e.status === "confirmed" && e.confirmed_at && new Date(e.confirmed_at).getTime() <= now72hAgo).reduce((s, e) => s + Number(e.amount), 0);
+  const confirmedPending72h = earnings.filter(e => e.status === "confirmed" && (!e.confirmed_at || new Date(e.confirmed_at).getTime() > now72hAgo)).reduce((s, e) => s + Number(e.amount), 0);
+  const confirmedTotal = confirmedAvailable + confirmedPending72h;
   const frozenTotal = earnings.filter(e => e.status === "frozen").reduce((s, e) => s + Number(e.amount), 0);
   const pendingTotal = earnings.filter(e => e.status === "pending").reduce((s, e) => s + Number(e.amount), 0);
   const cancelledTotal = earnings.filter(e => e.status === "cancelled").reduce((s, e) => s + Number(e.amount), 0);
   const paidWithdrawals = withdrawals.filter(w => w.status === "paid").reduce((s, w) => s + Number(w.amount), 0);
-  const availableBalance = confirmedTotal - paidWithdrawals;
+  const availableBalance = confirmedAvailable - paidWithdrawals;
 
   const savePix = async () => {
     if (!pixKey.trim() || !pixBank.trim() || !pixHolderName.trim()) {
