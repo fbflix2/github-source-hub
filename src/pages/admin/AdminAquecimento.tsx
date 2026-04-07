@@ -1304,12 +1304,18 @@ export default function AdminAquecimento() {
                 }}
               />
             )}
-            {/* Quality Meter - always show when a profile is selected */}
+            {/* Quality Meter + Quick Notes side by side */}
             {selectedProfile && (
-              <ProfileQualityMeter
-                profileId={selectedProfile.id}
-                profileCode={selectedProfile.profile_code}
-              />
+              <div className="flex gap-3 mt-3">
+                <div className="flex-1 min-w-0">
+                  <ProfileQualityMeter
+                    key={selectedProfile.id}
+                    profileId={selectedProfile.id}
+                    profileCode={selectedProfile.profile_code}
+                  />
+                </div>
+                <ProfileQuickNotes profileId={selectedProfile.id} />
+              </div>
             )}
           </section>
         </div>
