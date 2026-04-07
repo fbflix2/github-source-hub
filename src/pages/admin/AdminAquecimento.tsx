@@ -1048,9 +1048,9 @@ export default function AdminAquecimento() {
 
       {/* ── Esteiras Tab ── */}
       {activeTab === "esteiras" && (
-        <div id="form-section" className="max-w-5xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-12 gap-5 pb-8 pt-6 w-full">
+        <div id="form-section" className="max-w-7xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-12 gap-4 pb-8 pt-6 w-full">
           {/* ── Selection Form Section ── */}
-          <section className="lg:col-span-5">
+          <section className="lg:col-span-4">
             <div className="bg-white dark:bg-white/5 rounded-xl shadow-sm border border-slate-200 dark:border-white/10 overflow-hidden">
               <div className="px-5 py-3.5 border-b border-slate-100 dark:border-white/10 flex items-center gap-2.5">
                 <MIcon name="local_fire_department" className="text-[#1876f2] text-xl" />
@@ -1210,7 +1210,7 @@ export default function AdminAquecimento() {
             })()}
           </section>
 
-          <section className="lg:col-span-7">
+          <section className="lg:col-span-5">
             {loading ? (
               <div className="bg-white dark:bg-white/5 rounded-xl shadow-sm border border-slate-200 dark:border-white/10 p-8 text-center">
                 <MIcon name="hourglass_empty" className="text-slate-300 text-3xl" />
@@ -1305,20 +1305,19 @@ export default function AdminAquecimento() {
                 }}
               />
             )}
-            {/* Quality Meter + Quick Notes side by side */}
-            {selectedProfile && (
-              <div className="flex gap-3 mt-3">
-                <div className="flex-1 min-w-0">
-                  <ProfileQualityMeter
-                    key={selectedProfile.id}
-                    profileId={selectedProfile.id}
-                    profileCode={selectedProfile.profile_code}
-                  />
-                </div>
-                <ProfileQuickNotes profileId={selectedProfile.id} />
-              </div>
-            )}
           </section>
+
+          {/* Right sidebar: Quality Meter + Notes */}
+          {selectedProfile && (
+            <section className="lg:col-span-3 space-y-3">
+              <ProfileQualityMeter
+                key={selectedProfile.id}
+                profileId={selectedProfile.id}
+                profileCode={selectedProfile.profile_code}
+              />
+              <ProfileQuickNotes profileId={selectedProfile.id} />
+            </section>
+          )}
         </div>
       )}
 
