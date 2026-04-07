@@ -1197,6 +1197,30 @@ export default function AdminEsteiraAdmin() {
                           );
                         })()}
                       </div>
+
+                      {/* Send to store button */}
+                      {profile.status !== "sent_to_store" && (
+                        <div className="px-5 pb-5">
+                          <button
+                            onClick={async () => {
+                              const { error } = await supabase
+                                .from("warming_profiles" as any)
+                                .update({ status: "sent_to_store" })
+                                .eq("id", profile.id);
+                              if (error) {
+                                toast.error("Erro ao dar baixa");
+                              } else {
+                                toast.success(`Perfil ${profile.profile_code} marcado como enviado para loja!`);
+                                fetchProfiles();
+                              }
+                            }}
+                            className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+                          >
+                            <span className="material-symbols-outlined text-lg">storefront</span>
+                            Dar baixa — Enviado para loja
+                          </button>
+                        </div>
+                      )}
                     </article>
                   );
                 })
