@@ -938,20 +938,29 @@ export default function AdminAquecimento() {
 
       {/* ── Tab Navigation ── */}
       <nav className="sticky top-0 z-50 bg-white dark:bg-[#111] border-b border-slate-200 dark:border-white/10 px-6 md:px-12 lg:px-40">
-        <div className="max-w-[1200px] mx-auto flex gap-8">
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center gap-2 border-b-[3px] pb-4 pt-5 font-bold text-sm tracking-wide transition-colors ${
-                activeTab === tab.key
-                  ? "border-[#1876f2] text-slate-900 dark:text-white"
-                  : "border-transparent text-slate-500 dark:text-white/50 hover:text-slate-800 dark:hover:text-white/80"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+        <div className="max-w-[1200px] mx-auto flex items-center gap-8">
+          <div className="flex gap-8 flex-1">
+            {tabs.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`flex items-center gap-2 border-b-[3px] pb-4 pt-5 font-bold text-sm tracking-wide transition-colors ${
+                  activeTab === tab.key
+                    ? "border-[#1876f2] text-slate-900 dark:text-white"
+                    : "border-transparent text-slate-500 dark:text-white/50 hover:text-slate-800 dark:hover:text-white/80"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => navigate("/admin/aquecimento-guia")}
+            className="flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-primary/80 transition-colors shrink-0 pb-1"
+          >
+            <span className="material-symbols-outlined text-base">help</span>
+            Como Funciona?
+          </button>
         </div>
       </nav>
 
