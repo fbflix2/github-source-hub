@@ -61,6 +61,18 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, creatorNam
   const [approving, setApproving] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [showApproved, setShowApproved] = useState(false);
+  const [approvedCount, setApprovedCount] = useState(0);
+
+  useEffect(() => {
+    const fetchApprovedCount = async () => {
+      const { count } = await supabase
+        .from("operator_earnings")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "confirmed");
+      setApprovedCount(count || 0);
+    };
+    fetchApprovedCount();
+  }, [profiles]);
 
   const operators = useMemo(() => {
     const map = new Map<string, string>();
