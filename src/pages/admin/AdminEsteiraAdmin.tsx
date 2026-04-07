@@ -1086,9 +1086,15 @@ export default function AdminEsteiraAdmin() {
                         <div>
                           <div className="flex flex-wrap items-center gap-2 mb-2">
                             <h5 className="text-lg font-black text-slate-900 dark:text-white">{profile.profile_code}</h5>
-                            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300 uppercase tracking-wider">
-                              Pronto para venda
-                            </span>
+                            {profile.status === "sent_to_store" ? (
+                              <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300 uppercase tracking-wider">
+                                Enviado para loja
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300 uppercase tracking-wider">
+                                Pronto para venda
+                              </span>
+                            )}
                             <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-200 text-slate-600 dark:bg-white/10 dark:text-white/60 uppercase tracking-wider">
                               {TRACKS[profile.track_type]?.label || profile.track_type}
                             </span>
