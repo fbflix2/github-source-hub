@@ -140,6 +140,7 @@ export default function WarmingOperatorDashboard({ profiles, tasks, creatorNames
         activeProfiles: opProfiles.filter(p => p.status === "active").length,
         completedProfiles: opProfiles.filter(p => p.status === "completed").length,
         restrictedProfiles: opProfiles.filter(p => p.status === "restricted").length,
+        checkpointProfiles: opProfiles.filter(p => p.status === "checkpoint").length,
         totalTaskTime,
         avgTimePerProfile: profilesWithTime.size > 0 ? Math.round(totalTaskTime / profilesWithTime.size) : 0,
         avgTimePerTask: totalTasks > 0 ? Math.round(totalTaskTime / totalTasks) : 0,
@@ -161,6 +162,7 @@ export default function WarmingOperatorDashboard({ profiles, tasks, creatorNames
         activeProfiles: filteredProfiles.filter(p => p.status === "active").length,
         completedProfiles: filteredProfiles.filter(p => p.status === "completed").length,
         restrictedProfiles: filteredProfiles.filter(p => p.status === "restricted").length,
+        checkpointProfiles: filteredProfiles.filter(p => p.status === "checkpoint").length,
         totalTaskTime: operatorStats.reduce((a, s) => a + s.totalTaskTime, 0),
         avgTimePerProfile: 0,
         avgTimePerTask: 0,
@@ -277,11 +279,12 @@ export default function WarmingOperatorDashboard({ profiles, tasks, creatorNames
 
       {/* KPI Cards */}
       {displayStats && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4">
           {[
             { label: "Total Perfis", value: displayStats.totalProfiles, icon: "group", color: "text-[#1876f2]" },
             { label: "Em Aquecimento", value: displayStats.activeProfiles, icon: "local_fire_department", color: "text-amber-500" },
             { label: "Concluídos", value: displayStats.completedProfiles, icon: "check_circle", color: "text-emerald-500" },
+            { label: "Checkpoint", value: displayStats.checkpointProfiles, icon: "pause_circle", color: "text-yellow-500" },
             { label: "Restrições", value: displayStats.restrictedProfiles, icon: "block", color: "text-rose-500" },
             { label: "Perfis Hoje", value: displayStats.profilesToday, icon: "today", color: "text-purple-500" },
             { label: "Perfis Semana", value: displayStats.profilesThisWeek, icon: "date_range", color: "text-indigo-500" },
