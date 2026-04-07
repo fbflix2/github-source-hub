@@ -910,7 +910,73 @@ export default function AdminEsteiraAdmin() {
         />
       )}
 
-      {activeTab === "relatorios" && (
+      {/* Análise Interna Tab - Perfis com Checkpoint */}
+      {activeTab === "analise_interna" && (
+        <main className="flex-1 px-6 md:px-8 lg:px-12 py-8 max-w-6xl mx-auto w-full space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-black flex items-center gap-2">
+                <MIcon name="troubleshoot" className="text-amber-500" />
+                Análise Interna — Checkpoints
+              </h2>
+              <p className="text-sm text-muted-foreground mt-1">Perfis que deram checkpoint durante o aquecimento</p>
+            </div>
+            <span className="text-sm font-bold bg-amber-500/10 text-amber-500 px-3 py-1 rounded-full">
+              {checkpointProfiles.length} perfis
+            </span>
+          </div>
+
+          {checkpointProfiles.length === 0 ? (
+            <div className="text-center py-16 text-muted-foreground">
+              <MIcon name="check_circle" className="text-5xl mb-3 text-green-500" />
+              <p className="font-semibold">Nenhum perfil com checkpoint no momento</p>
+            </div>
+          ) : (
+            <div className="bg-white dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 divide-y divide-slate-100 dark:divide-white/5">
+              {checkpointProfiles.map((profile) => {
+                const profileTasks = tasks[profile.id] || [];
+                const completedTasks = profileTasks.filter((t) => t.completed);
+                const operatorName = profile.created_by ? creatorNames[profile.created_by] || "—" : "—";
+                const trackInfo = TRACKS[profile.track_type] || { label: profile.track_type, days: profile.track_days };
+                const daysPassed = Math.max(0, Math.floor((Date.now() - new Date(profile.start_date).getTime()) / 86400000));
+                const quality = qualityMap[profile.id];
+
+                return (
+                  <div key={profile.id} className="flex items-center justify-between px-5 py-3 hover:bg-muted/50 transition-colors gap-4">
+                    <div className="flex flex-col gap-1 min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-black">{profile.profile_code}</span>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500">Checkpoint</span>
+                        <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{trackInfo.label}</span>
+                        {quality?.has2FA && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-500">2FA</span>}
+                        {quality?.hasBM && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-500">BM</span>}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        {operatorName} · Dia {daysPassed}/{trackInfo.days} · {completedTasks.length}/{profileTasks.length} tarefas
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={async () => {
+                          const { error } = await supabase.from("warming_profiles").update({ status: "active" }).eq("id", profile.id);
+                          if (error) { toast.error("Erro ao reativar"); return; }
+                          toast.success("Perfil reativado!");
+                          fetchProfiles();
+                        }}
+                        className="text-xs font-bold px-3 py-1.5 rounded-lg bg-green-500/10 text-green-600 hover:bg-green-500/20 transition-colors flex items-center gap-1"
+                      >
+                        <MIcon name="play_arrow" className="text-sm" />
+                        Reativar
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </main>
+      )}
+
         <main className="flex-1 px-6 md:px-8 lg:px-12 py-8 max-w-6xl mx-auto w-full space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="bg-white dark:bg-white/5 p-6 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm">
