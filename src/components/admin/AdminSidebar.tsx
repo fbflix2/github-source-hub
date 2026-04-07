@@ -89,9 +89,9 @@ const allMenuItems: MenuItem[] = [
   ]},
   { title: "Contingência Total", icon: ShieldAlert, path: "/admin/contingencia" },
   { title: "Fornecedor AccFace", icon: Store, path: "/admin/fornecedor" },
+  { title: "Aquecimento", icon: Flame, path: "/admin/aquecimento" },
   { title: "Ferramentas", icon: KeyRound, path: "/admin/ferramentas-2fa", subItems: [
     { title: "Ferramentas", icon: KeyRound, path: "/admin/ferramentas-2fa" },
-    { title: "Aquecimento", icon: Flame, path: "/admin/aquecimento" },
     { title: "Esteira Admin", icon: Settings, path: "/admin/esteira-admin" },
     { title: "Imagens", icon: ImageIcon, path: "/admin/imagens" },
   ]},
