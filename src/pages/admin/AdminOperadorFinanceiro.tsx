@@ -13,6 +13,7 @@ const PIX_KEY_TYPES = [
 
 interface Earning {
   id: string;
+  profile_id: string;
   profile_code: string;
   amount: number;
   status: string;
@@ -42,11 +43,12 @@ export default function AdminOperadorFinanceiro() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Load financials, earnings, and withdrawals in parallel
-      const [finRes, earningsRes, wdRes] = await Promise.all([
+      // Load financials, earnings, withdrawals, and warming profiles in parallel
+      const [finRes, earningsRes, wdRes, profilesRes] = await Promise.all([
         supabase.from("operator_financials").select("*").eq("user_id", user.id).maybeSingle(),
         supabase.from("operator_earnings").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
         supabase.from("operator_withdrawals").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(20),
+        supabase.from("warming_profiles" as any).select("id, profile_code, status, created_at").eq("created_by", user.id),
       ]);
 
       if (finRes.data) {
@@ -57,7 +59,37 @@ export default function AdminOperadorFinanceiro() {
         setHasRecord(true);
       }
 
-      if (earningsRes.data) setEarnings(earningsRes.data as Earning[]);
+      const rate = 0.25; // Default commission rate
+      const existingEarnings = (earningsRes.data || []) as Earning[];
+      const trackedProfileIds = new Set(existingEarnings.map(e => e.profile_id));
+
+      // Build earnings from warming_profiles that don't have earnings records yet
+      const profiles = profilesRes.data || [];
+      const syntheticEarnings: Earning[] = profiles
+        .filter((p: any) => !trackedProfileIds.has(p.id))
+        .map((p: any) => {
+          const statusMap: Record<string, string> = {
+            active: "pending",
+            checkpoint: "frozen",
+            completed: "confirmed",
+            blocked: "cancelled",
+            restricted: "cancelled",
+            disabled: "cancelled",
+          };
+          return {
+            id: p.id,
+            profile_id: p.id,
+            profile_code: p.profile_code,
+            amount: rate,
+            status: statusMap[p.status] || "pending",
+            frozen_at: p.status === "checkpoint" ? p.created_at : null,
+            confirmed_at: p.status === "completed" ? p.created_at : null,
+            cancelled_at: ["blocked", "restricted", "disabled"].includes(p.status) ? p.created_at : null,
+            created_at: p.created_at,
+          } as Earning;
+        });
+
+      setEarnings([...existingEarnings, ...syntheticEarnings].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
       if (wdRes.data) setWithdrawals(wdRes.data);
     } catch (err) {
       console.error(err);
