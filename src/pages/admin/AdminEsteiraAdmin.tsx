@@ -64,6 +64,8 @@ export default function AdminEsteiraAdmin() {
   const [creatorNames, setCreatorNames] = useState<Record<string, string>>({});
   const [activeTab, setActiveTab] = useState<"gestao" | "relatorios" | "prontos" | "bd_perfis" | "configuracoes">("gestao");
   const [reportFilter, setReportFilter] = useState("");
+  const [report2faFilter, setReport2faFilter] = useState(false);
+  const [qualityMap, setQualityMap] = useState<Record<string, { has2FA: boolean }>>({});
   const [configTrack, setConfigTrack] = useState<"7_days" | "15_days" | "30_days">("7_days");
   const [profileCode, setProfileCode] = useState("");
   const [creating, setCreating] = useState(false);
