@@ -674,6 +674,30 @@ export default function AdminEsteiraAdmin() {
           grouped[t.profile_id].push(t);
         });
         setTasks(grouped);
+
+        // Load quality data (2FA status) for all profiles
+        const qualityKeys = profileIds.map((id: string) => `warming_quality_${id}`);
+        const qMap: Record<string, { has2FA: boolean }> = {};
+        const qPageSize = 1000;
+        let qFrom = 0;
+        while (true) {
+          const { data: qBatch } = await supabase
+            .from("site_settings")
+            .select("key, value")
+            .in("key", qualityKeys)
+            .range(qFrom, qFrom + qPageSize - 1);
+          if (!qBatch || qBatch.length === 0) break;
+          qBatch.forEach((row: any) => {
+            const pid = row.key.replace("warming_quality_", "");
+            try {
+              const parsed = JSON.parse(row.value);
+              qMap[pid] = { has2FA: !!parsed.has2FA };
+            } catch {}
+          });
+          if (qBatch.length < qPageSize) break;
+          qFrom += qPageSize;
+        }
+        setQualityMap(qMap);
       }
       const creatorIds = [...new Set((data || []).map(p => p.created_by).filter(Boolean))] as string[];
       if (creatorIds.length > 0) {
