@@ -139,9 +139,16 @@ export default function AdminDashboard() {
         created_at: inv.paid_at as string,
       }));
 
+      // Wallet purchases (proxy renewals via wallet debit) - amount is negative, so Math.abs
+      const walletPurchases = (walletPurchasesRes.data ?? []).map((wt: any) => ({
+        total: Math.abs(Number(wt.amount)) || 0,
+        created_at: wt.created_at as string,
+      }));
+
       const allRevenue = [
         ...completedOrds.map(o => ({ total: o.total || 0, created_at: o.created_at })),
         ...paidInvoices,
+        ...walletPurchases,
       ];
 
       // Calculate today's revenue
