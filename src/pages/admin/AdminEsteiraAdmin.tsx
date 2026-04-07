@@ -1493,9 +1493,13 @@ export default function AdminEsteiraAdmin() {
             <div className="max-h-[400px] overflow-y-auto divide-y divide-slate-100 dark:divide-white/10">
               {(() => {
                 const searchTerm = profileListSearch.trim().toLowerCase();
-                const filtered = searchTerm
-                  ? activeProfiles.filter(p => p.profile_code.toLowerCase().includes(searchTerm))
-                  : activeProfiles;
+                let filtered = activeProfiles;
+                if (assignOperatorId) {
+                  filtered = filtered.filter(p => p.created_by === assignOperatorId);
+                }
+                if (searchTerm) {
+                  filtered = filtered.filter(p => p.profile_code.toLowerCase().includes(searchTerm));
+                }
                 if (filtered.length === 0) return (
                   <div className="p-6 text-center text-xs text-slate-500">
                     {searchTerm ? "Nenhum perfil encontrado." : "Nenhum perfil cadastrado ainda."}
