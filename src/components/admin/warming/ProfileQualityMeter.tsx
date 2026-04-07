@@ -250,47 +250,6 @@ export default function ProfileQualityMeter({ profileId, profileCode }: Props) {
           </label>
         </div>
 
-        {/* Friend count */}
-        <div>
-          <p className="text-xs font-bold text-slate-700 dark:text-white/70 mb-2 flex items-center gap-1.5">
-            <MIcon name="group" className="text-sm text-[#1876f2]" />
-            Quantidade de Amigos
-          </p>
-          <div className="grid grid-cols-4 gap-2">
-            {FRIEND_RANGES.map((range) => {
-              const isActive = data.friendRange === range.value;
-              return (
-                <button
-                  key={range.value}
-                  onClick={() => save({ ...data, friendRange: range.value })}
-                  className={`py-2.5 px-2 rounded-lg border text-xs font-bold transition-all ${
-                    isActive
-                      ? "bg-[#1876f2] text-white border-[#1876f2] shadow-sm"
-                      : "bg-white dark:bg-white/5 text-slate-700 dark:text-white/70 border-slate-200 dark:border-white/10 hover:border-slate-300 dark:hover:border-white/20"
-                  }`}
-                >
-                  {range.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Summary */}
-        <div className="flex items-center gap-3 p-3 rounded-lg border border-dashed border-slate-200 dark:border-white/15 bg-slate-50 dark:bg-white/5">
-          <div
-            className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-black shrink-0"
-            style={{ backgroundColor: tier.color }}
-          >
-            {score}%
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-bold text-slate-900 dark:text-white">{tier.level} — {tier.criteria}</p>
-            <p className="text-[11px] text-slate-500 dark:text-white/50 mt-0.5">
-              {data.has2FA ? "✅ 2FA" : "❌ 2FA"} • {data.hasBM ? "✅ BM" : "❌ BM"} • {data.hasPage ? "✅ Página" : "❌ Página"} • 👥 {FRIEND_RANGES.find(f => f.value === data.friendRange)?.label || "?"} amigos
-            </p>
-          </div>
-        </div>
       </div>
     </div>
   );
