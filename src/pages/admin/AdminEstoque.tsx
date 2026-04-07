@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { EditStockItemModal } from "@/components/admin/EditStockItemModal";
+import { resolveBmDisplayName } from "@/lib/bm-link";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -431,7 +432,7 @@ export default function AdminEstoque() {
                           </div>
                         )}
                         <div>
-                          <p className="text-foreground font-medium">{item.name}</p>
+                          <p className="text-foreground font-medium">{item.type === "bm" ? resolveBmDisplayName({ name: item.name, identificationLink: item.identification_link, data: item.data }) : item.name}</p>
                           <p className="text-xs text-muted-foreground">{typeConfig.label}</p>
                         </div>
                       </div>
