@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { EditStockItemModal } from "@/components/admin/EditStockItemModal";
 import ComboForm from "@/components/admin/ComboForm";
+import { extractBmNameFromInput, extractBmUrlFromInput, resolveBmDisplayName } from "@/lib/bm-link";
 
 interface Folder {
   id: string;
@@ -702,23 +703,29 @@ function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => voi
   const handleSave = async () => {
     if (urlLines.length === 0) { toast.error("Adicione ao menos uma URL"); return; }
     setSaving(true);
-    const baseName = bmData.nomeProduto || "BM";
-    const items = urlLines.map((url, i) => ({
-      name: urlLines.length > 1 ? `${baseName} #${i + 1}` : baseName,
-      type: "bm",
-      identification_link: url.trim(),
-      status: "aguardando",
-      folder: folder.id,
-      data: {
-        descricao: bmData.descricao || undefined,
-        perfilBackup: bmData.perfilBackup || undefined,
-        preco: bmData.preco ? parseFloat(bmData.preco) : undefined,
-        categoryId: bmData.categoryId || undefined,
-        tags: bmData.tags.length > 0 ? bmData.tags : undefined,
-        foto_url: bmData.selectedImageUrl || undefined,
-        nomeProduto: bmData.nomeProduto || undefined,
-      },
-    }));
+    const items = urlLines.map((url) => {
+      const trimmedUrl = url.trim();
+      const extractedName = extractBmNameFromInput(trimmedUrl);
+      const extractedLink = extractBmUrlFromInput(trimmedUrl);
+
+      return {
+        name: extractedName || bmData.nomeProduto || "BM",
+        type: "bm",
+        identification_link: extractedLink,
+        status: "aguardando",
+        folder: folder.id,
+        data: {
+          descricao: bmData.descricao || undefined,
+          perfilBackup: bmData.perfilBackup || undefined,
+          preco: bmData.preco ? parseFloat(bmData.preco) : undefined,
+          categoryId: bmData.categoryId || undefined,
+          tags: bmData.tags.length > 0 ? bmData.tags : undefined,
+          foto_url: bmData.selectedImageUrl || undefined,
+          nomeProduto: bmData.nomeProduto || undefined,
+          rawBmInput: trimmedUrl,
+        },
+      };
+    });
     const { error } = await supabase.from("stock_items").insert(items);
     setSaving(false);
     if (error) { toast.error("Erro: " + error.message); return; }
@@ -947,7 +954,7 @@ function FolderItemsView({ folder, onBack }: { folder: Folder; onBack: () => voi
                   {item.type === "bm" ? <Building2 className="h-4 w-4" /> : item.type === "perfil" ? <CircleUser className="h-4 w-4" /> : <PackageOpen className="h-4 w-4" />}
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-white">{item.data?.nomeProduto || item.name}</p>
+                  <p className="text-sm font-medium text-white">{item.type === "bm" ? resolveBmDisplayName({ name: item.name, identificationLink: item.identification_link, data: item.data }) : item.name}</p>
                   <p className="text-xs text-zinc-500">{item.identification_link || item.identification || "Sem identificação"}</p>
                   {item.data?.accfaceProductId && (
                     <p className="text-[10px] text-primary/70 font-mono">AccFace ID: {item.data.accfaceProductId}</p>
