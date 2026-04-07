@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Wallet, AlertTriangle, Clock, CheckCircle, Ban } from "lucide-react";
+import { Wallet, AlertTriangle, Clock, CheckCircle, Ban, Snowflake, TrendingUp, XCircle } from "lucide-react";
 
 const PIX_KEY_TYPES = [
   { value: "cpf", label: "CPF" },
@@ -11,6 +11,17 @@ const PIX_KEY_TYPES = [
   { value: "random", label: "Chave Aleatória" },
 ];
 
+interface Earning {
+  id: string;
+  profile_code: string;
+  amount: number;
+  status: string;
+  frozen_at: string | null;
+  confirmed_at: string | null;
+  cancelled_at: string | null;
+  created_at: string;
+}
+
 export default function AdminOperadorFinanceiro() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -18,9 +29,9 @@ export default function AdminOperadorFinanceiro() {
   const [pixKeyType, setPixKeyType] = useState("cpf");
   const [pixBank, setPixBank] = useState("");
   const [pixHolderName, setPixHolderName] = useState("");
-  const [balance, setBalance] = useState(0);
   const [hasRecord, setHasRecord] = useState(false);
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
+  const [earnings, setEarnings] = useState<Earning[]>([]);
 
   useEffect(() => {
     loadData();
@@ -31,35 +42,37 @@ export default function AdminOperadorFinanceiro() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: fin } = await supabase
-        .from("operator_financials")
-        .select("*")
-        .eq("user_id", user.id)
-        .maybeSingle();
+      // Load financials, earnings, and withdrawals in parallel
+      const [finRes, earningsRes, wdRes] = await Promise.all([
+        supabase.from("operator_financials").select("*").eq("user_id", user.id).maybeSingle(),
+        supabase.from("operator_earnings").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
+        supabase.from("operator_withdrawals").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(20),
+      ]);
 
-      if (fin) {
-        setPixKey(fin.pix_key || "");
-        setPixKeyType(fin.pix_key_type || "cpf");
-        setPixBank(fin.pix_bank || "");
-        setPixHolderName(fin.pix_holder_name || "");
-        setBalance(Number(fin.balance) || 0);
+      if (finRes.data) {
+        setPixKey(finRes.data.pix_key || "");
+        setPixKeyType(finRes.data.pix_key_type || "cpf");
+        setPixBank(finRes.data.pix_bank || "");
+        setPixHolderName(finRes.data.pix_holder_name || "");
         setHasRecord(true);
       }
 
-      const { data: wds } = await supabase
-        .from("operator_withdrawals")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(20);
-
-      if (wds) setWithdrawals(wds);
+      if (earningsRes.data) setEarnings(earningsRes.data as Earning[]);
+      if (wdRes.data) setWithdrawals(wdRes.data);
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
     }
   };
+
+  // Calculate balances
+  const confirmedTotal = earnings.filter(e => e.status === "confirmed").reduce((s, e) => s + Number(e.amount), 0);
+  const frozenTotal = earnings.filter(e => e.status === "frozen").reduce((s, e) => s + Number(e.amount), 0);
+  const pendingTotal = earnings.filter(e => e.status === "pending").reduce((s, e) => s + Number(e.amount), 0);
+  const cancelledTotal = earnings.filter(e => e.status === "cancelled").reduce((s, e) => s + Number(e.amount), 0);
+  const paidWithdrawals = withdrawals.filter(w => w.status === "paid").reduce((s, w) => s + Number(w.amount), 0);
+  const availableBalance = confirmedTotal - paidWithdrawals;
 
   const savePix = async () => {
     if (!pixKey.trim() || !pixBank.trim() || !pixHolderName.trim()) {
@@ -71,26 +84,17 @@ export default function AdminOperadorFinanceiro() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      const payload = {
+        pix_key: pixKey.trim(),
+        pix_key_type: pixKeyType,
+        pix_bank: pixBank.trim(),
+        pix_holder_name: pixHolderName.trim(),
+      };
+
       if (hasRecord) {
-        await supabase
-          .from("operator_financials")
-          .update({
-            pix_key: pixKey.trim(),
-            pix_key_type: pixKeyType,
-            pix_bank: pixBank.trim(),
-            pix_holder_name: pixHolderName.trim(),
-          })
-          .eq("user_id", user.id);
+        await supabase.from("operator_financials").update(payload).eq("user_id", user.id);
       } else {
-        await supabase
-          .from("operator_financials")
-          .insert({
-            user_id: user.id,
-            pix_key: pixKey.trim(),
-            pix_key_type: pixKeyType,
-            pix_bank: pixBank.trim(),
-            pix_holder_name: pixHolderName.trim(),
-          });
+        await supabase.from("operator_financials").insert({ user_id: user.id, ...payload });
         setHasRecord(true);
       }
       toast.success("Dados PIX salvos com sucesso!");
@@ -102,7 +106,7 @@ export default function AdminOperadorFinanceiro() {
   };
 
   const requestWithdrawal = async () => {
-    if (balance <= 0) {
+    if (availableBalance <= 0) {
       toast.error("Saldo insuficiente para saque");
       return;
     }
@@ -122,7 +126,7 @@ export default function AdminOperadorFinanceiro() {
 
       await supabase.from("operator_withdrawals").insert({
         user_id: user.id,
-        amount: balance,
+        amount: availableBalance,
       });
       toast.success("Solicitação de saque enviada!");
       loadData();
@@ -131,11 +135,20 @@ export default function AdminOperadorFinanceiro() {
     }
   };
 
-  const statusMap: Record<string, { label: string; color: string; icon: any }> = {
+  const fmtBRL = (v: number) => `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+
+  const withdrawalStatusMap: Record<string, { label: string; color: string; icon: any }> = {
     pending: { label: "Pendente", color: "text-yellow-400", icon: Clock },
     approved: { label: "Aprovado", color: "text-blue-400", icon: CheckCircle },
     paid: { label: "Pago", color: "text-green-400", icon: CheckCircle },
-    rejected: { label: "Rejeitado", color: "text-red-400", icon: Ban },
+    rejected: { label: "Rejeitado", color: "text-destructive", icon: Ban },
+  };
+
+  const earningStatusConfig: Record<string, { label: string; color: string; icon: any }> = {
+    pending: { label: "Em andamento", color: "text-blue-400", icon: Clock },
+    frozen: { label: "Congelado", color: "text-yellow-400", icon: Snowflake },
+    confirmed: { label: "Confirmado", color: "text-green-400", icon: CheckCircle },
+    cancelled: { label: "Cancelado", color: "text-destructive", icon: XCircle },
   };
 
   if (loading) {
@@ -157,26 +170,60 @@ export default function AdminOperadorFinanceiro() {
       <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/5 p-5 flex gap-3">
         <AlertTriangle className="text-yellow-400 size-5 mt-0.5 shrink-0" />
         <div className="space-y-2 text-sm text-muted-foreground">
-          <p className="font-semibold text-yellow-400">Informações sobre saques</p>
+          <p className="font-semibold text-yellow-400">Como funciona o pagamento</p>
           <ul className="space-y-1.5 list-disc list-inside text-xs leading-relaxed">
             <li>O saque ocorre sempre após a <strong className="text-foreground">validação do processo aplicado na esteira de aquecimento</strong>.</li>
-            <li>Após a validação, o saldo disponível para saque será exibido abaixo.</li>
+            <li>Perfis marcados como <strong className="text-foreground">Checkpoint</strong> entram em fila de análise do suporte interno — o saldo referente fica <strong className="text-yellow-400">congelado temporariamente</strong>.</li>
+            <li>Se o perfil voltar para a esteira, o saldo é liberado normalmente.</li>
+            <li>Caso o perfil seja classificado como <strong className="text-destructive">bloqueado/desabilitado</strong>, o operador <strong className="text-destructive">não recebe</strong> por aquele perfil — a FBFLIX também não terá lucro com ele.</li>
             <li>Os saques são liberados de forma <strong className="text-foreground">automática pelo sistema em até 24h</strong> após a solicitação e aprovação.</li>
-            <li>Certifique-se de que sua chave PIX está correta e atualizada para evitar problemas no recebimento.</li>
+            <li>Certifique-se de que sua chave PIX está correta e atualizada.</li>
           </ul>
         </div>
       </div>
 
-      {/* Balance Card */}
-      <div className="rounded-xl border border-border bg-card p-6">
-        <p className="text-xs text-muted-foreground uppercase tracking-widest mb-1">Saldo Disponível</p>
-        <p className="text-3xl font-black text-foreground">
-          R$ {balance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-        </p>
+      {/* Balance Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="rounded-xl border border-border bg-card p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <TrendingUp className="size-4 text-green-400" />
+            <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Disponível</p>
+          </div>
+          <p className="text-xl font-black text-green-400">{fmtBRL(Math.max(0, availableBalance))}</p>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <Snowflake className="size-4 text-yellow-400" />
+            <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Congelado</p>
+          </div>
+          <p className="text-xl font-black text-yellow-400">{fmtBRL(frozenTotal)}</p>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <Clock className="size-4 text-blue-400" />
+            <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Em andamento</p>
+          </div>
+          <p className="text-xl font-black text-blue-400">{fmtBRL(pendingTotal)}</p>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <XCircle className="size-4 text-destructive" />
+            <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Perdas</p>
+          </div>
+          <p className="text-xl font-black text-destructive">{fmtBRL(cancelledTotal)}</p>
+        </div>
+      </div>
+
+      {/* Withdraw Button */}
+      <div className="rounded-xl border border-border bg-card p-5 flex items-center justify-between">
+        <div>
+          <p className="text-sm font-bold text-foreground">Saldo para saque</p>
+          <p className="text-2xl font-black text-foreground">{fmtBRL(Math.max(0, availableBalance))}</p>
+        </div>
         <button
           onClick={requestWithdrawal}
-          disabled={balance <= 0}
-          className="mt-4 bg-primary hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed text-primary-foreground font-bold py-2.5 px-6 rounded-lg text-sm transition-all"
+          disabled={availableBalance <= 0}
+          className="bg-primary hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed text-primary-foreground font-bold py-2.5 px-6 rounded-lg text-sm transition-all"
         >
           Solicitar Saque
         </button>
@@ -185,7 +232,6 @@ export default function AdminOperadorFinanceiro() {
       {/* PIX Key Form */}
       <div className="rounded-xl border border-border bg-card p-6 space-y-4">
         <h2 className="text-base font-bold text-foreground">Dados da Chave PIX</h2>
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1 block">Tipo de Chave</label>
@@ -199,7 +245,6 @@ export default function AdminOperadorFinanceiro() {
               ))}
             </select>
           </div>
-
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1 block">Chave PIX</label>
             <input
@@ -210,7 +255,6 @@ export default function AdminOperadorFinanceiro() {
               className="w-full bg-background border border-border rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
-
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1 block">Banco</label>
             <input
@@ -221,7 +265,6 @@ export default function AdminOperadorFinanceiro() {
               className="w-full bg-background border border-border rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
-
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1 block">Nome do Titular</label>
             <input
@@ -233,7 +276,6 @@ export default function AdminOperadorFinanceiro() {
             />
           </div>
         </div>
-
         <button
           onClick={savePix}
           disabled={saving}
@@ -243,22 +285,47 @@ export default function AdminOperadorFinanceiro() {
         </button>
       </div>
 
+      {/* Earnings per Profile */}
+      {earnings.length > 0 && (
+        <div className="rounded-xl border border-border bg-card p-6 space-y-3">
+          <h2 className="text-base font-bold text-foreground">Ganhos por Perfil</h2>
+          <div className="space-y-2 max-h-[300px] overflow-y-auto">
+            {earnings.map(e => {
+              const st = earningStatusConfig[e.status] || earningStatusConfig.pending;
+              const Icon = st.icon;
+              return (
+                <div key={e.id} className="flex items-center justify-between border border-border rounded-lg px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <Icon className={`size-4 ${st.color}`} />
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">{e.profile_code}</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {fmtBRL(Number(e.amount))} · {new Date(e.created_at).toLocaleDateString("pt-BR")}
+                      </p>
+                    </div>
+                  </div>
+                  <span className={`text-xs font-bold ${st.color}`}>{st.label}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Withdrawal History */}
       {withdrawals.length > 0 && (
         <div className="rounded-xl border border-border bg-card p-6 space-y-3">
           <h2 className="text-base font-bold text-foreground">Histórico de Saques</h2>
           <div className="space-y-2">
             {withdrawals.map(w => {
-              const st = statusMap[w.status] || statusMap.pending;
+              const st = withdrawalStatusMap[w.status] || withdrawalStatusMap.pending;
               const Icon = st.icon;
               return (
                 <div key={w.id} className="flex items-center justify-between border border-border rounded-lg px-4 py-3">
                   <div className="flex items-center gap-3">
                     <Icon className={`size-4 ${st.color}`} />
                     <div>
-                      <p className="text-sm font-semibold text-foreground">
-                        R$ {Number(w.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                      </p>
+                      <p className="text-sm font-semibold text-foreground">{fmtBRL(Number(w.amount))}</p>
                       <p className="text-[11px] text-muted-foreground">
                         {new Date(w.created_at).toLocaleDateString("pt-BR")}
                       </p>

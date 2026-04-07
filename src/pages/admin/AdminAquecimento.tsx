@@ -429,6 +429,13 @@ export default function AdminAquecimento() {
       .update({ status: "completed", updated_at: new Date().toISOString() })
       .eq("id", profileId);
 
+    // Mark earning as confirmed
+    await supabase.from("operator_earnings").update({
+      status: "confirmed",
+      confirmed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }).eq("profile_id", profileId);
+
     toast.success(`✅ Perfil "${profile.profile_code}" movido para Perfis Prontos.`);
     return true;
   };
@@ -483,6 +490,17 @@ export default function AdminAquecimento() {
     if (error || !profile) { toast.error("Erro ao criar perfil"); setCreating(false); return; }
     const taskRows = tasksToUse.map((t, i) => ({ profile_id: profile.id, day_number: i + 1, title: t.title, description: t.description }));
     await supabase.from("warming_tasks").insert(taskRows);
+
+    // Create earning record for this profile
+    if (assignTo) {
+      await supabase.from("operator_earnings").insert({
+        user_id: assignTo,
+        profile_id: profile.id,
+        profile_code: profileCode.trim(),
+        amount: commissionRate,
+        status: "pending",
+      }).then(({ error: eErr }) => { if (eErr) console.warn("Earning insert:", eErr); });
+    }
 
     // Both modes: register + auto-start (new profile has priority)
     toast.success(`✅ Perfil "${profileCode.trim()}" cadastrado e iniciando tarefas!`);
@@ -1298,6 +1316,23 @@ export default function AdminAquecimento() {
                     status: newStatus,
                     updated_at: new Date().toISOString(),
                   }).eq("id", profileId);
+
+                  // Sync operator_earnings status
+                  const earningStatusMap: Record<string, { status: string; extra: Record<string, any> }> = {
+                    checkpoint: { status: "frozen", extra: { frozen_at: new Date().toISOString() } },
+                    blocked: { status: "cancelled", extra: { cancelled_at: new Date().toISOString() } },
+                    restricted: { status: "cancelled", extra: { cancelled_at: new Date().toISOString() } },
+                    active: { status: "pending", extra: { frozen_at: null, cancelled_at: null } },
+                  };
+                  const earningUpdate = earningStatusMap[newStatus];
+                  if (earningUpdate) {
+                    await supabase.from("operator_earnings").update({
+                      status: earningUpdate.status,
+                      ...earningUpdate.extra,
+                      updated_at: new Date().toISOString(),
+                    }).eq("profile_id", profileId);
+                  }
+
                   const labels: Record<string, string> = {
                     blocked: "🚫 Perfil marcado como Bloqueado",
                     checkpoint: "⚠️ Perfil marcado como Checkpoint",

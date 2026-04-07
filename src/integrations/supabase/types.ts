@@ -1596,6 +1596,48 @@ export type Database = {
           },
         ]
       }
+      operator_earnings: {
+        Row: {
+          amount: number
+          cancelled_at: string | null
+          confirmed_at: string | null
+          created_at: string | null
+          frozen_at: string | null
+          id: string
+          profile_code: string
+          profile_id: string
+          status: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          cancelled_at?: string | null
+          confirmed_at?: string | null
+          created_at?: string | null
+          frozen_at?: string | null
+          id?: string
+          profile_code: string
+          profile_id: string
+          status?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          cancelled_at?: string | null
+          confirmed_at?: string | null
+          created_at?: string | null
+          frozen_at?: string | null
+          id?: string
+          profile_code?: string
+          profile_id?: string
+          status?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       operator_financials: {
         Row: {
           balance: number | null
