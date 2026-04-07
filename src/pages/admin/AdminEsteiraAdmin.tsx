@@ -64,6 +64,8 @@ export default function AdminEsteiraAdmin() {
   const [creatorNames, setCreatorNames] = useState<Record<string, string>>({});
   const [activeTab, setActiveTab] = useState<"gestao" | "relatorios" | "prontos" | "bd_perfis" | "configuracoes">("gestao");
   const [reportFilter, setReportFilter] = useState("");
+  const [report2faFilter, setReport2faFilter] = useState(false);
+  const [qualityMap, setQualityMap] = useState<Record<string, { has2FA: boolean }>>({});
   const [configTrack, setConfigTrack] = useState<"7_days" | "15_days" | "30_days">("7_days");
   const [profileCode, setProfileCode] = useState("");
   const [creating, setCreating] = useState(false);
@@ -672,6 +674,30 @@ export default function AdminEsteiraAdmin() {
           grouped[t.profile_id].push(t);
         });
         setTasks(grouped);
+
+        // Load quality data (2FA status) for all profiles
+        const qualityKeys = profileIds.map((id: string) => `warming_quality_${id}`);
+        const qMap: Record<string, { has2FA: boolean }> = {};
+        const qPageSize = 1000;
+        let qFrom = 0;
+        while (true) {
+          const { data: qBatch } = await supabase
+            .from("site_settings")
+            .select("key, value")
+            .in("key", qualityKeys)
+            .range(qFrom, qFrom + qPageSize - 1);
+          if (!qBatch || qBatch.length === 0) break;
+          qBatch.forEach((row: any) => {
+            const pid = row.key.replace("warming_quality_", "");
+            try {
+              const parsed = JSON.parse(row.value);
+              qMap[pid] = { has2FA: !!parsed.has2FA };
+            } catch {}
+          });
+          if (qBatch.length < qPageSize) break;
+          qFrom += qPageSize;
+        }
+        setQualityMap(qMap);
       }
       const creatorIds = [...new Set((data || []).map(p => p.created_by).filter(Boolean))] as string[];
       if (creatorIds.length > 0) {
@@ -783,9 +809,11 @@ export default function AdminEsteiraAdmin() {
     };
   }, [readyProfiles, tasks]);
 
-  const filteredReportProfiles = profiles.filter(p =>
-    !reportFilter || p.profile_code.toLowerCase().includes(reportFilter.toLowerCase())
-  );
+  const filteredReportProfiles = profiles.filter(p => {
+    if (reportFilter && !p.profile_code.toLowerCase().includes(reportFilter.toLowerCase())) return false;
+    if (report2faFilter && !qualityMap[p.id]?.has2FA) return false;
+    return true;
+  });
 
   const tabs = [
     { key: "gestao" as const, label: "Gestão", icon: "supervisor_account" },
@@ -878,16 +906,29 @@ export default function AdminEsteiraAdmin() {
           </div>
 
           <section className="bg-white dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 shadow-sm overflow-hidden">
-            <div className="p-6 border-b border-slate-200 dark:border-white/10 flex justify-between items-center">
+            <div className="p-6 border-b border-slate-200 dark:border-white/10 flex flex-wrap justify-between items-center gap-3">
               <h4 className="font-bold text-lg">Relatórios Recentes</h4>
-              <div className="relative">
-                <input
-                  className="pl-9 pr-4 py-2 text-sm bg-slate-100 dark:bg-white/10 border-none rounded-lg focus:ring-2 focus:ring-slate-400 w-64 dark:text-white"
-                  placeholder="Filtrar perfis..."
-                  value={reportFilter}
-                  onChange={(e) => setReportFilter(e.target.value)}
-                />
-                <MIcon name="search" className="absolute left-3 top-2 text-slate-400 dark:text-white/40 text-sm" />
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setReport2faFilter(!report2faFilter)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                    report2faFilter
+                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
+                      : "bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-white/50"
+                  }`}
+                >
+                  <MIcon name="verified_user" className="text-sm" />
+                  2FA Ativo
+                </button>
+                <div className="relative">
+                  <input
+                    className="pl-9 pr-4 py-2 text-sm bg-slate-100 dark:bg-white/10 border-none rounded-lg focus:ring-2 focus:ring-slate-400 w-64 dark:text-white"
+                    placeholder="Filtrar perfis..."
+                    value={reportFilter}
+                    onChange={(e) => setReportFilter(e.target.value)}
+                  />
+                  <MIcon name="search" className="absolute left-3 top-2 text-slate-400 dark:text-white/40 text-sm" />
+                </div>
               </div>
             </div>
             <div className="overflow-x-auto">
