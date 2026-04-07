@@ -57,6 +57,7 @@ function playNotificationSound(type: "send" | "receive") {
 export default function AdminTeamChat() {
   const [message, setMessage] = useState("");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [userJoinedAt, setUserJoinedAt] = useState<string | null>(null);
   const [userProfiles, setUserProfiles] = useState<Record<string, UserInfo>>({});
   const [selectedChat, setSelectedChat] = useState<SelectedChat>({ type: "group" });
   const [showSidebar, setShowSidebar] = useState(true);
@@ -75,6 +76,7 @@ export default function AdminTeamChat() {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user) {
         setCurrentUserId(user.id);
+        // Fetch profile
         supabase
           .from("profiles")
           .select("user_id, full_name, avatar_url")
@@ -87,6 +89,18 @@ export default function AdminTeamChat() {
                 [data.user_id]: { full_name: data.full_name, avatar_url: data.avatar_url },
               }));
             }
+          });
+        // Fetch when user joined the team (role created_at)
+        supabase
+          .from("user_roles")
+          .select("created_at")
+          .eq("user_id", user.id)
+          .in("role", ["admin", "moderator"] as any)
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .maybeSingle()
+          .then(({ data }) => {
+            if (data) setUserJoinedAt(data.created_at);
           });
       }
     });
@@ -114,7 +128,7 @@ export default function AdminTeamChat() {
   // Fetch messages based on selected chat
   const chatKey = selectedChat.type === "group" ? "group" : `dm-${selectedChat.userId}`;
   const { data: messages = [], refetch } = useQuery({
-    queryKey: ["team-messages", chatKey],
+    queryKey: ["team-messages", chatKey, userJoinedAt],
     queryFn: async () => {
       let query = supabase
         .from("team_messages")
@@ -124,6 +138,10 @@ export default function AdminTeamChat() {
 
       if (selectedChat.type === "group") {
         query = query.is("recipient_id", null);
+        // Only show messages sent after the user joined the team
+        if (userJoinedAt) {
+          query = query.gte("created_at", userJoinedAt);
+        }
       } else {
         query = query.or(
           `and(user_id.eq.${currentUserId},recipient_id.eq.${selectedChat.userId}),and(user_id.eq.${selectedChat.userId},recipient_id.eq.${currentUserId})`
