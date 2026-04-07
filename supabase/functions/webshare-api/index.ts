@@ -1912,7 +1912,7 @@ Deno.serve(async (req) => {
       await supabaseAdmin.from("wallet_transactions").insert({
         user_id: targetUserId,
         type: "purchase",
-        title: `Renovação Proxy ${subscription_name}${isMultiProxy ? `#${proxy_index || 1}` : ''}`,
+        title: `Renovação Proxy FBFlix ${subscription_name}${isMultiProxy ? `#${proxy_index || 1}` : ''}`,
         amount: -renewalPrice,
         balance_after: newBalance,
         reference_id: existingSub.id,
@@ -1921,7 +1921,7 @@ Deno.serve(async (req) => {
       // 9. Admin notification
       const clientName = profile.full_name || "Cliente";
       await supabaseAdmin.from("notifications").insert({
-        title: "Migração ProxyBR → Webshare",
+        title: "Renovação Proxy FBFlix",
         message: `${clientName} renovou ${subscription_name}${isMultiProxy ? `#${proxy_index || 1}` : ''} • R$ ${renewalPrice.toFixed(2)} • ${assignedProxy.proxy_address}:${assignedProxy.port} (${targetCountry})`,
         type: "order",
         global: true,
