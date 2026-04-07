@@ -41,6 +41,7 @@ const allMenuItems = [
   { title: "Anúncios", icon: Megaphone, path: "/admin/anuncios" },
   { title: "Notificações", icon: Bell, path: "/admin/notificacoes" },
   { title: "Chat Equipe", icon: MessageCircle, path: "/admin/chat" },
+  { title: "Financeiro", icon: Coins, path: "/admin/operador-financeiro" },
   { title: "Configurações", icon: Settings, path: "/admin/configuracoes" },
 ];
 
