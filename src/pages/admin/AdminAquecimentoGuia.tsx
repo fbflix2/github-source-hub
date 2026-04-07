@@ -92,7 +92,7 @@ export default function AdminAquecimentoGuia() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen p-6 md:p-10 max-w-4xl mx-auto space-y-8">
+    <div className="min-h-screen p-6 md:p-10 max-w-6xl mx-auto space-y-8">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button
