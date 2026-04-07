@@ -869,7 +869,7 @@ export default function AdminEsteiraAdmin() {
     [profiles],
   );
 
-  if (role !== "admin") return null;
+  if (!role) return null;
 
   return (
     <div className="flex flex-col min-h-full bg-[#f5f7f8] dark:bg-[#0a0505] text-slate-900 dark:text-white" style={{ fontFamily: "'Inter', sans-serif" }}>
