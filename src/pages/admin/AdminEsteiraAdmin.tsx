@@ -662,10 +662,27 @@ export default function AdminEsteiraAdmin() {
 
   const fetchProfiles = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("warming_profiles")
-      .select("*")
-      .order("created_at", { ascending: false });
+    // Paginate profiles to avoid 1000 row limit
+    const allProfiles: any[] = [];
+    const pageSize = 1000;
+    let from = 0;
+    while (true) {
+      const { data: batch, error } = await supabase
+        .from("warming_profiles")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .range(from, from + pageSize - 1);
+      if (error) {
+        toast.error("Erro ao carregar perfis");
+        break;
+      }
+      if (!batch || batch.length === 0) break;
+      allProfiles.push(...batch);
+      if (batch.length < pageSize) break;
+      from += pageSize;
+    }
+    const data = allProfiles;
+    const error = allProfiles.length === 0 && from === 0 ? null : null;
     if (error) {
       toast.error("Erro ao carregar perfis");
     } else {
