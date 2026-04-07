@@ -1305,16 +1305,21 @@ export default function AdminAquecimento() {
                 }}
               />
             )}
+            {/* Quality Meter below tasks */}
+            {selectedProfile && (
+              <div className="mt-3">
+                <ProfileQualityMeter
+                  key={selectedProfile.id}
+                  profileId={selectedProfile.id}
+                  profileCode={selectedProfile.profile_code}
+                />
+              </div>
+            )}
           </section>
 
-          {/* Right sidebar: Quality Meter + Notes */}
+          {/* Right sidebar: Notes */}
           {selectedProfile && (
-            <section className="lg:col-span-3 space-y-3">
-              <ProfileQualityMeter
-                key={selectedProfile.id}
-                profileId={selectedProfile.id}
-                profileCode={selectedProfile.profile_code}
-              />
+            <section className="lg:col-span-3">
               <ProfileQuickNotes profileId={selectedProfile.id} />
             </section>
           )}
