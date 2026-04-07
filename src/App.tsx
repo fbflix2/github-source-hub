@@ -97,6 +97,7 @@ import AdminProjecaoLucro from "./pages/admin/AdminProjecaoLucro";
 import AdminMetodologia from "./pages/admin/AdminMetodologia";
 import AdminAquecimento from "./pages/admin/AdminAquecimento";
 import AdminEsteiraAdmin from "./pages/admin/AdminEsteiraAdmin";
+import AdminAquecimentoGuia from "./pages/admin/AdminAquecimentoGuia";
 import AdminShopClone from "./pages/admin/AdminShopClone";
 import AdminFerramentas2FA from "./pages/admin/AdminFerramentas2FA";
 import AdminImageViewer from "./pages/admin/AdminImageViewer";
