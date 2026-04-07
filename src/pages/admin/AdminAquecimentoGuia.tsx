@@ -92,7 +92,7 @@ export default function AdminAquecimentoGuia() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen p-6 md:p-10 max-w-4xl mx-auto space-y-8">
+    <div className="min-h-screen p-6 md:p-10 max-w-6xl mx-auto space-y-8">
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button
@@ -114,28 +114,28 @@ export default function AdminAquecimentoGuia() {
         </div>
       </div>
 
-      {/* Sections */}
-      <div className="space-y-6">
+      {/* Sections Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {sections.map((section, idx) => (
           <div
             key={idx}
-            className="rounded-2xl border border-border bg-card p-6 space-y-3"
+            className="rounded-2xl border border-border bg-card p-5 space-y-3 flex flex-col"
           >
-            <h2 className="text-lg font-bold text-foreground flex items-center gap-3">
-              <MIcon name={section.icon} className="text-primary" />
+            <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
+              <MIcon name={section.icon} className="text-primary text-xl" />
               {section.title}
             </h2>
 
             {section.content && (
-              <p className="text-muted-foreground text-sm leading-relaxed pl-9">
+              <p className="text-muted-foreground text-xs leading-relaxed flex-1">
                 {section.content}
               </p>
             )}
 
             {section.items && (
-              <ul className="space-y-1.5 pl-9">
+              <ul className="space-y-1 flex-1">
                 {section.items.map((item, i) => (
-                  <li key={i} className="text-muted-foreground text-sm leading-relaxed">
+                  <li key={i} className="text-muted-foreground text-xs leading-relaxed">
                     {item}
                   </li>
                 ))}
@@ -143,7 +143,7 @@ export default function AdminAquecimentoGuia() {
             )}
 
             {section.note && (
-              <p className="text-xs text-primary/80 italic pl-9 pt-1">
+              <p className="text-[11px] text-primary/80 italic pt-1">
                 {section.note}
               </p>
             )}
