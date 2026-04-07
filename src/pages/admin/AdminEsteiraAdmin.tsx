@@ -885,7 +885,16 @@ export default function AdminEsteiraAdmin() {
         />
       )}
 
-      {/* Relatórios Tab */}
+      {/* Auditoria Tab */}
+      {activeTab === "auditoria" && (
+        <WarmingAuditDashboard
+          profiles={profiles}
+          qualityMap={qualityMap as Record<string, { has2FA: boolean; hasBM: boolean; hasPage: boolean; friendRange: string }>}
+          creatorNames={creatorNames}
+          onRefresh={fetchProfiles}
+        />
+      )}
+
       {activeTab === "relatorios" && (
         <main className="flex-1 px-6 md:px-8 lg:px-12 py-8 max-w-6xl mx-auto w-full space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
