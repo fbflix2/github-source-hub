@@ -81,6 +81,7 @@ export default function AdminEsteiraAdmin() {
   const [editingProfileId, setEditingProfileId] = useState<string | null>(null);
   const [editingCode, setEditingCode] = useState("");
   const [readyTaskFilter, setReadyTaskFilter] = useState("");
+  const [approvedProfileIds, setApprovedProfileIds] = useState<Set<string>>(new Set());
 
   const defaultConfigTasks: Record<string, { title: string; description: string }[]> = {
     "7_days": [
@@ -699,6 +700,13 @@ export default function AdminEsteiraAdmin() {
           qFrom += qPageSize;
         }
         setQualityMap(qMap);
+
+        // Fetch approved profile IDs from operator_earnings
+        const { data: earningsData } = await supabase
+          .from("operator_earnings")
+          .select("profile_id")
+          .eq("status", "confirmed");
+        setApprovedProfileIds(new Set((earningsData || []).map(e => e.profile_id)));
       }
       const creatorIds = [...new Set((data || []).map(p => p.created_by).filter(Boolean))] as string[];
       if (creatorIds.length > 0) {
@@ -745,8 +753,8 @@ export default function AdminEsteiraAdmin() {
   const totalProfiles = profiles.length;
   const completedProfiles = profiles.filter(p => p.status === "completed").length;
   const readyProfiles = useMemo(
-    () => profiles.filter((p) => p.status === "completed"),
-    [profiles],
+    () => profiles.filter((p) => p.status === "completed" && approvedProfileIds.has(p.id)),
+    [profiles, approvedProfileIds],
   );
 
   const readyTaskTitles = useMemo(() => {
