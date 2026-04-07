@@ -809,9 +809,11 @@ export default function AdminEsteiraAdmin() {
     };
   }, [readyProfiles, tasks]);
 
-  const filteredReportProfiles = profiles.filter(p =>
-    !reportFilter || p.profile_code.toLowerCase().includes(reportFilter.toLowerCase())
-  );
+  const filteredReportProfiles = profiles.filter(p => {
+    if (reportFilter && !p.profile_code.toLowerCase().includes(reportFilter.toLowerCase())) return false;
+    if (report2faFilter && !qualityMap[p.id]?.has2FA) return false;
+    return true;
+  });
 
   const tabs = [
     { key: "gestao" as const, label: "Gestão", icon: "supervisor_account" },
