@@ -753,7 +753,6 @@ export default function AdminEsteiraAdmin() {
           setCreatorNames(nameMap);
         }
       }
-    }
     setLoading(false);
   };
 
