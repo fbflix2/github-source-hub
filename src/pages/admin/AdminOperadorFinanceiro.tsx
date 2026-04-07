@@ -207,7 +207,8 @@ export default function AdminOperadorFinanceiro() {
         <div className="space-y-2 text-sm text-muted-foreground">
           <p className="font-semibold text-yellow-400">Como funciona o pagamento</p>
           <ul className="space-y-1.5 list-disc list-inside text-xs leading-relaxed">
-            <li>O saque ocorre sempre após a <strong className="text-foreground">validação do processo aplicado na esteira de aquecimento</strong>.</li>
+            <li>O saque ocorre sempre após a <strong className="text-foreground">validação e aprovação do admin/chefe de operações</strong> na aba de Auditoria.</li>
+            <li>Após a aprovação, o saldo referente ao perfil fica em <strong className="text-emerald-400">aguardando 72 horas</strong> antes de ser liberado para saque.</li>
             <li>Perfis marcados como <strong className="text-foreground">Checkpoint</strong> entram em fila de análise do suporte interno — o saldo referente fica <strong className="text-yellow-400">congelado temporariamente</strong>.</li>
             <li>Se o perfil voltar para a esteira, o saldo é liberado normalmente.</li>
             <li>Caso o perfil seja classificado como <strong className="text-destructive">bloqueado/desabilitado</strong>, o operador <strong className="text-destructive">não recebe</strong> por aquele perfil — a FBFLIX também não terá lucro com ele.</li>
