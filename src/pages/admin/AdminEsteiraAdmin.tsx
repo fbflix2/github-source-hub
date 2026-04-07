@@ -678,7 +678,7 @@ export default function AdminEsteiraAdmin() {
 
         // Load quality data (2FA status) for all profiles
         const qualityKeys = profileIds.map((id: string) => `warming_quality_${id}`);
-        const qMap: Record<string, { has2FA: boolean }> = {};
+        const qMap: Record<string, { has2FA: boolean; hasBM?: boolean; hasPage?: boolean; friendRange?: string }> = {};
         const qPageSize = 1000;
         let qFrom = 0;
         while (true) {
