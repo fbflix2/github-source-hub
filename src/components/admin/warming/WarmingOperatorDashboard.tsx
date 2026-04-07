@@ -104,12 +104,14 @@ export default function WarmingOperatorDashboard({ profiles, tasks, creatorNames
       
       let totalTaskTime = 0;
       let totalTasks = 0;
+      const profilesWithTime = new Set<string>();
       opProfiles.forEach(p => {
         const profileTasks = tasks[p.id] || [];
         profileTasks.forEach(t => {
           if (t.duration_seconds) {
             totalTaskTime += t.duration_seconds;
             totalTasks++;
+            profilesWithTime.add(p.id);
           }
         });
       });
@@ -139,7 +141,7 @@ export default function WarmingOperatorDashboard({ profiles, tasks, creatorNames
         completedProfiles: opProfiles.filter(p => p.status === "completed").length,
         restrictedProfiles: opProfiles.filter(p => p.status === "restricted").length,
         totalTaskTime,
-        avgTimePerProfile: opProfiles.length > 0 ? Math.round(totalTaskTime / opProfiles.length) : 0,
+        avgTimePerProfile: profilesWithTime.size > 0 ? Math.round(totalTaskTime / profilesWithTime.size) : 0,
         avgTimePerTask: totalTasks > 0 ? Math.round(totalTaskTime / totalTasks) : 0,
         profilesToday: profilesWorkedToday.size,
         profilesThisWeek: profilesWorkedThisWeek.size,
@@ -167,8 +169,13 @@ export default function WarmingOperatorDashboard({ profiles, tasks, creatorNames
         dailyGoal: null,
         weeklyGoal: null,
       };
-      const totalTasks = Object.values(tasks).flat().filter(t => t.duration_seconds).length;
-      agg.avgTimePerProfile = agg.totalProfiles > 0 ? Math.round(agg.totalTaskTime / agg.totalProfiles) : 0;
+      const allTasksWithTime = Object.values(tasks).flat().filter(t => t.duration_seconds);
+      const totalTasks = allTasksWithTime.length;
+      const profilesWithTimeAgg = new Set<string>();
+      Object.entries(tasks).forEach(([profileId, profileTasks]) => {
+        if (profileTasks.some(t => t.duration_seconds)) profilesWithTimeAgg.add(profileId);
+      });
+      agg.avgTimePerProfile = profilesWithTimeAgg.size > 0 ? Math.round(agg.totalTaskTime / profilesWithTimeAgg.size) : 0;
       agg.avgTimePerTask = totalTasks > 0 ? Math.round(agg.totalTaskTime / totalTasks) : 0;
       return agg;
     }
@@ -185,9 +192,10 @@ export default function WarmingOperatorDashboard({ profiles, tasks, creatorNames
       const trackProfiles = targetProfiles.filter(p => p.track_type === key);
       let totalTime = 0;
       let taskCount = 0;
+      const profilesWorked = new Set<string>();
       trackProfiles.forEach(p => {
         (tasks[p.id] || []).forEach(t => {
-          if (t.duration_seconds) { totalTime += t.duration_seconds; taskCount++; }
+          if (t.duration_seconds) { totalTime += t.duration_seconds; taskCount++; profilesWorked.add(p.id); }
         });
       });
       return {
@@ -195,7 +203,7 @@ export default function WarmingOperatorDashboard({ profiles, tasks, creatorNames
         label: track.label,
         profileCount: trackProfiles.length,
         completedCount: trackProfiles.filter(p => p.status === "completed").length,
-        avgTime: trackProfiles.length > 0 ? Math.round(totalTime / trackProfiles.length) : 0,
+        avgTime: profilesWorked.size > 0 ? Math.round(totalTime / profilesWorked.size) : 0,
         avgTaskTime: taskCount > 0 ? Math.round(totalTime / taskCount) : 0,
         totalTime,
       };
