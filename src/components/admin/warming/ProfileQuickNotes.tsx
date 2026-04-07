@@ -61,7 +61,7 @@ export default function ProfileQuickNotes({ profileId }: Props) {
   if (!loaded) return null;
 
   return (
-    <div className="w-56 shrink-0 bg-white dark:bg-white/5 rounded-xl shadow-sm border border-slate-200 dark:border-white/10 overflow-hidden flex flex-col">
+    <div className="w-full bg-white dark:bg-white/5 rounded-xl shadow-sm border border-slate-200 dark:border-white/10 overflow-hidden flex flex-col">
       <div className="px-3 py-2.5 border-b border-slate-100 dark:border-white/10 flex items-center justify-between">
         <div className="flex items-center gap-1.5">
           <MIcon name="sticky_note_2" className="text-sm text-amber-500" />
