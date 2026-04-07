@@ -754,7 +754,7 @@ export default function AdminEsteiraAdmin() {
   const totalProfiles = profiles.length;
   const completedProfiles = profiles.filter(p => p.status === "completed").length;
   const readyProfiles = useMemo(
-    () => profiles.filter((p) => p.status === "completed" && approvedProfileIds.has(p.id)),
+    () => profiles.filter((p) => (p.status === "completed" || p.status === "sent_to_store") && approvedProfileIds.has(p.id)),
     [profiles, approvedProfileIds],
   );
 
@@ -1086,9 +1086,15 @@ export default function AdminEsteiraAdmin() {
                         <div>
                           <div className="flex flex-wrap items-center gap-2 mb-2">
                             <h5 className="text-lg font-black text-slate-900 dark:text-white">{profile.profile_code}</h5>
-                            <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300 uppercase tracking-wider">
-                              Pronto para venda
-                            </span>
+                            {profile.status === "sent_to_store" ? (
+                              <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300 uppercase tracking-wider">
+                                Enviado para loja
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300 uppercase tracking-wider">
+                                Pronto para venda
+                              </span>
+                            )}
                             <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-200 text-slate-600 dark:bg-white/10 dark:text-white/60 uppercase tracking-wider">
                               {TRACKS[profile.track_type]?.label || profile.track_type}
                             </span>
@@ -1191,6 +1197,30 @@ export default function AdminEsteiraAdmin() {
                           );
                         })()}
                       </div>
+
+                      {/* Send to store button */}
+                      {profile.status !== "sent_to_store" && (
+                        <div className="px-5 pb-5">
+                          <button
+                            onClick={async () => {
+                              const { error } = await supabase
+                                .from("warming_profiles" as any)
+                                .update({ status: "sent_to_store" })
+                                .eq("id", profile.id);
+                              if (error) {
+                                toast.error("Erro ao dar baixa");
+                              } else {
+                                toast.success(`Perfil ${profile.profile_code} marcado como enviado para loja!`);
+                                fetchProfiles();
+                              }
+                            }}
+                            className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+                          >
+                            <span className="material-symbols-outlined text-lg">storefront</span>
+                            Dar baixa — Enviado para loja
+                          </button>
+                        </div>
+                      )}
                     </article>
                   );
                 })
