@@ -691,7 +691,7 @@ export default function AdminEsteiraAdmin() {
             const pid = row.key.replace("warming_quality_", "");
             try {
               const parsed = JSON.parse(row.value);
-              qMap[pid] = { has2FA: !!parsed.has2FA };
+              qMap[pid] = { has2FA: !!parsed.has2FA, hasBM: !!parsed.hasBM, hasPage: !!parsed.hasPage, friendRange: parsed.friendRange || "0-5" };
             } catch {}
           });
           if (qBatch.length < qPageSize) break;
