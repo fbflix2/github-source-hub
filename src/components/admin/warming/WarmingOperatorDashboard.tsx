@@ -192,9 +192,10 @@ export default function WarmingOperatorDashboard({ profiles, tasks, creatorNames
       const trackProfiles = targetProfiles.filter(p => p.track_type === key);
       let totalTime = 0;
       let taskCount = 0;
+      const profilesWorked = new Set<string>();
       trackProfiles.forEach(p => {
         (tasks[p.id] || []).forEach(t => {
-          if (t.duration_seconds) { totalTime += t.duration_seconds; taskCount++; }
+          if (t.duration_seconds) { totalTime += t.duration_seconds; taskCount++; profilesWorked.add(p.id); }
         });
       });
       return {
@@ -202,7 +203,7 @@ export default function WarmingOperatorDashboard({ profiles, tasks, creatorNames
         label: track.label,
         profileCount: trackProfiles.length,
         completedCount: trackProfiles.filter(p => p.status === "completed").length,
-        avgTime: trackProfiles.length > 0 ? Math.round(totalTime / trackProfiles.length) : 0,
+        avgTime: profilesWorked.size > 0 ? Math.round(totalTime / profilesWorked.size) : 0,
         avgTaskTime: taskCount > 0 ? Math.round(totalTime / taskCount) : 0,
         totalTime,
       };
