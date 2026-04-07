@@ -219,20 +219,13 @@ export default function AdminOperadorFinanceiro() {
       </div>
 
       {/* Balance Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="rounded-xl border border-border bg-card p-4">
           <div className="flex items-center gap-2 mb-1">
             <TrendingUp className="size-4 text-green-400" />
             <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Disponível</p>
           </div>
           <p className="text-xl font-black text-green-400">{fmtBRL(Math.max(0, availableBalance))}</p>
-        </div>
-        <div className="rounded-xl border border-border bg-card p-4">
-          <div className="flex items-center gap-2 mb-1">
-            <CheckCircle className="size-4 text-emerald-400" />
-            <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Aguardando 72h</p>
-          </div>
-          <p className="text-xl font-black text-emerald-400">{fmtBRL(confirmedPending72h)}</p>
         </div>
         <div className="rounded-xl border border-border bg-card p-4">
           <div className="flex items-center gap-2 mb-1">
