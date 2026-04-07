@@ -722,6 +722,22 @@ export default function AdminEsteiraAdmin() {
     [profiles],
   );
 
+  const readyTaskTitles = useMemo(() => {
+    const titles = new Set<string>();
+    readyProfiles.forEach((p) => {
+      (tasks[p.id] || []).forEach((t) => titles.add(t.title));
+    });
+    return Array.from(titles).sort();
+  }, [readyProfiles, tasks]);
+
+  const filteredReadyProfiles = useMemo(() => {
+    if (!readyTaskFilter) return readyProfiles;
+    return readyProfiles.filter((p) => {
+      const profileTasks = tasks[p.id] || [];
+      return profileTasks.some((t) => t.completed && t.title === readyTaskFilter);
+    });
+  }, [readyProfiles, tasks, readyTaskFilter]);
+
   const activeProfiles = useMemo(
     () => profiles.filter((p) => p.status !== "completed"),
     [profiles],
