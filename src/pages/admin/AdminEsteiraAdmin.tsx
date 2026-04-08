@@ -1462,32 +1462,82 @@ export default function AdminEsteiraAdmin() {
                           </div>
                         </div>
 
-                        {/* Right: action */}
-                        <div className="shrink-0">
+                        {/* Right: actions */}
+                        <div className="shrink-0 flex items-center gap-2">
                           {!isSent ? (
-                            <button
-                              onClick={async () => {
-                                const { error } = await supabase
-                                  .from("warming_profiles" as any)
-                                  .update({ status: "sent_to_store" })
-                                  .eq("id", profile.id);
-                                if (error) {
-                                  toast.error("Erro ao dar baixa");
-                                } else {
-                                  toast.success(`Perfil ${profile.profile_code} enviado para loja!`);
-                                  fetchProfiles();
-                                }
-                              }}
-                              className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-bold hover:opacity-90 transition-opacity flex items-center gap-1.5"
-                            >
-                              <span className="material-symbols-outlined text-sm">storefront</span>
-                              Dar baixa
-                            </button>
+                            <>
+                              <button
+                                onClick={async () => {
+                                  const { error } = await supabase
+                                    .from("warming_profiles" as any)
+                                    .update({ status: "sent_to_store" })
+                                    .eq("id", profile.id);
+                                  if (error) {
+                                    toast.error("Erro ao marcar como enviado");
+                                  } else {
+                                    toast.success(`Perfil ${profile.profile_code} enviado para loja!`);
+                                    fetchProfiles();
+                                  }
+                                }}
+                                className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all flex items-center gap-1.5"
+                              >
+                                <span className="material-symbols-outlined text-sm">storefront</span>
+                                Enviado p/ Loja
+                              </button>
+                              <button
+                                onClick={async () => {
+                                  const { error } = await supabase
+                                    .from("warming_profiles" as any)
+                                    .update({ status: "removed_multilogin" })
+                                    .eq("id", profile.id);
+                                  if (error) {
+                                    toast.error("Erro ao marcar remoção");
+                                  } else {
+                                    toast.success(`Perfil ${profile.profile_code} removido do Multilogin!`);
+                                    fetchProfiles();
+                                  }
+                                }}
+                                className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-all flex items-center gap-1.5"
+                              >
+                                <span className="material-symbols-outlined text-sm">delete_sweep</span>
+                                Removido do ML
+                              </button>
+                            </>
                           ) : (
-                            <span className="text-[11px] text-blue-400 font-semibold flex items-center gap-1">
-                              <span className="material-symbols-outlined text-sm">check</span>
-                              Enviado
-                            </span>
+                            <div className="flex items-center gap-3">
+                              <span className="text-[11px] text-blue-400 font-semibold flex items-center gap-1">
+                                <span className="material-symbols-outlined text-sm">check</span>
+                                Enviado
+                              </span>
+                              {profile.status !== "removed_multilogin" && (
+                                <button
+                                  onClick={async () => {
+                                    const { error } = await supabase
+                                      .from("warming_profiles" as any)
+                                      .update({ status: "removed_multilogin" })
+                                      .eq("id", profile.id);
+                                    if (error) {
+                                      toast.error("Erro ao marcar remoção");
+                                    } else {
+                                      toast.success(`Perfil ${profile.profile_code} removido do Multilogin!`);
+                                      fetchProfiles();
+                                    }
+                                  }}
+                                  className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold transition-all flex items-center gap-1.5"
+                                >
+                                  <span className="material-symbols-outlined text-sm">delete_sweep</span>
+                                  Removido do ML
+                                </button>
+                              )}
+                            </div>
+                          )}
+                          {profile.status === "removed_multilogin" && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-[11px] text-emerald-400 font-semibold flex items-center gap-1">
+                                <span className="material-symbols-outlined text-sm">check_circle</span>
+                                Finalizado
+                              </span>
+                            </div>
                           )}
                         </div>
                       </div>
