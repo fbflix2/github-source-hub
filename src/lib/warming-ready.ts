@@ -76,13 +76,10 @@ const QUALITY_EVIDENCE_PATTERNS = {
   ],
   hasPage: [
     /\bposts?\s+na\s+page\b/i,
-    /criar\s+pag/i,
-    /criar\s+pagina/i,
-    /pagina\s+caso/i,
-    /página\s+caso/i,
+    /criar\s+p[aá]g/i,
+    /p[aá]gina\s+caso/i,
     /page\s+criada/i,
-    /postar\s+(sua\s+)?pagina/i,
-    /postar\s+(sua\s+)?página/i,
+    /postar\s+(sua\s+)?p[aá]gina/i,
   ],
 };
 
