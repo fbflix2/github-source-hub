@@ -6,6 +6,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Download, Loader2, Package, Eye, EyeOff, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ReplacementDownloadModal } from "./ReplacementDownloadModal";
+import JSZip from "jszip";
+import { toast } from "sonner";
 
 interface StockItem {
   id: string;
@@ -66,47 +68,110 @@ export function StockItemsModal({ open, onOpenChange, productId, productName }: 
     setItems(prev => prev.filter(i => i.id !== item.id));
   };
 
-  const generateTxt = (item: StockItem) => {
-    const d = item.data as Record<string, unknown> | null;
-    if (!d) return "";
-    
+  const generateTxtFromTemplate = (template: string | null, stockItem: StockItem) => {
+    const d = (stockItem.data as Record<string, unknown>) || {};
+    const alternateEmail = (d.emailAlternativo || d.alternateEmail || d.alternative_email || "—") as string;
+
+    if (template) {
+      const replacements: Record<string, string> = {
+        "{{nomePerfil}}": (d.nomePerfil as string) || "—",
+        "{{emailAcesso}}": (d.emailAcesso as string) || "—",
+        "{{emailAlternativo}}": alternateEmail,
+        "{{senha}}": (d.senha as string) || "—",
+        "{{senhaEmail}}": (d.senhaEmail as string) || "—",
+        "{{token2fa}}": (d.token2fa as string) || "—",
+        "{{dataNascimento}}": (d.dataNascimento as string) || "—",
+        "{{genero}}": (d.genero as string) || "—",
+        "{{tempoPlataforma}}": (d.tempoPlataforma as string) || "—",
+        "{{statusAtual}}": (d.statusAtual as string) || "—",
+        "{{descricao}}": (d.descricao as string) || "—",
+        "{{cookies}}": (d.cookies ? (typeof d.cookies === "string" ? d.cookies : JSON.stringify(d.cookies, null, 2)) : "—"),
+        "{{linkDocumento}}": (d.linkDocumento as string) || "—",
+        "{{linkPerfil}}": (stockItem.identification_link as string) || (d.linkPerfil as string) || "—",
+        "{{idPerfil}}": (stockItem.identification as string) || (d.idPerfil as string) || "—",
+        "{{pedido}}": "—",
+        "{{data}}": "—",
+        "{{nomeProduto}}": stockItem.name,
+      };
+      let content = template;
+      for (const [key, val] of Object.entries(replacements)) {
+        content = content.split(key).join(val);
+      }
+      return content;
+    }
+
+    // Fallback
     const lines: string[] = [];
-    lines.push(`=== ${item.name} ===`);
+    lines.push(`=== ${stockItem.name} ===`);
     lines.push("");
-    
     if (d.nomePerfil) lines.push(`Nome do Perfil: ${d.nomePerfil}`);
     if (d.emailAcesso) lines.push(`Email de Acesso: ${d.emailAcesso}`);
     if (d.senhaEmail) lines.push(`Senha do Email: ${d.senhaEmail}`);
     if (d.senha) lines.push(`Senha: ${d.senha}`);
     if (d.token2fa) lines.push(`Token 2FA: ${d.token2fa}`);
     if (d.emailAlternativo) lines.push(`Email Alternativo: ${d.emailAlternativo}`);
-    if (item.identification) lines.push(`ID: ${item.identification}`);
-    if (item.identification_link) lines.push(`Link: ${item.identification_link}`);
+    if (stockItem.identification) lines.push(`ID: ${stockItem.identification}`);
+    if (stockItem.identification_link) lines.push(`Link: ${stockItem.identification_link}`);
     if (d.dataNascimento) lines.push(`Data de Nascimento: ${d.dataNascimento}`);
     if (d.genero) lines.push(`Gênero: ${d.genero}`);
     if (d.tempoPlataforma) lines.push(`Tempo de Plataforma: ${d.tempoPlataforma}`);
     if (d.descricao) lines.push(`\nDescrição:\n${d.descricao}`);
-    
-    // Include cookies if present
     if (d.cookies) {
-      lines.push(`\nCookies:\n${typeof d.cookies === 'string' ? d.cookies : JSON.stringify(d.cookies, null, 2)}`);
+      lines.push(`\nCookies:\n${typeof d.cookies === "string" ? d.cookies : JSON.stringify(d.cookies, null, 2)}`);
     }
-    
     return lines.join("\n");
   };
 
-  const handleDownloadTxt = (item: StockItem) => {
-    const content = generateTxt(item);
-    if (!content) {
-      return;
+  const generateTxt = (item: StockItem) => generateTxtFromTemplate(null, item);
+
+  const handleDownloadTxt = async (item: StockItem) => {
+    // Fetch block template
+    const { data: tpl } = await supabase
+      .from("block_templates")
+      .select("content")
+      .eq("is_default", true)
+      .maybeSingle();
+    const template = (tpl as any)?.content || null;
+
+    // Check if combo (has children)
+    const { data: children } = await supabase
+      .from("stock_items")
+      .select("id, name, status, identification, identification_link, data, order_item_id, created_at")
+      .eq("parent_id", item.id)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: true });
+
+    if (children && children.length > 0) {
+      // Combo: generate ZIP with all children
+      const zip = new JSZip();
+      (children as unknown as StockItem[]).forEach((child, idx) => {
+        const content = generateTxtFromTemplate(template, child);
+        if (content) {
+          const fileName = `${String(idx + 1).padStart(2, "0")}_${child.name.replace(/\s+/g, "_")}.txt`;
+          zip.file(fileName, content);
+        }
+      });
+
+      const blob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${item.name.replace(/\s+/g, "_")}_combo.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success(`ZIP gerado com ${children.length} perfis`);
+    } else {
+      // Single item
+      const content = generateTxtFromTemplate(template, item);
+      if (!content) return;
+      const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${item.name.replace(/\s+/g, "_")}.txt`;
+      a.click();
+      URL.revokeObjectURL(url);
     }
-    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${item.name.replace(/\s+/g, "_")}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
   };
 
   const available = items.filter(i => i.status === "revisado" && !i.order_item_id);
