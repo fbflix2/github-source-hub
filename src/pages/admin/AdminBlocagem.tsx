@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { EditStockItemModal } from "@/components/admin/EditStockItemModal";
+import { StockItemBlockViewer } from "@/components/admin/StockItemBlockViewer";
 import ComboForm from "@/components/admin/ComboForm";
 import { extractBmNameFromInput, extractBmUrlFromInput, resolveBmDisplayName } from "@/lib/bm-link";
 
@@ -1122,7 +1122,7 @@ function FolderItemsView({ folder, onBack }: { folder: Folder; onBack: () => voi
         </div>
       )}
 
-      <EditStockItemModal
+      <StockItemBlockViewer
         item={editingItem}
         open={!!editingItem}
         onOpenChange={(open) => { if (!open) setEditingItem(null); }}
