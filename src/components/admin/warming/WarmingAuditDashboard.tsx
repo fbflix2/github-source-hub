@@ -73,31 +73,17 @@ const STATUS_OPTIONS: { value: StatusFilter; label: string; icon: string }[] = [
   { value: "sent", label: "Enviados", icon: "local_shipping" },
 ];
 
-function SourceBadge({ active, label, source }: { active: boolean; label: string; source: "manual" | "task" | "both" | null }) {
-  if (!active) {
-    return (
-      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-white/5 text-muted-foreground">
-        {label}
-      </span>
-    );
-  }
+function SourceBadge({ active, label }: { active: boolean; label: string; source?: "manual" | "task" | "both" | null }) {
+  if (!active) return null;
 
   const colorMap = {
     "2FA": "bg-emerald-500/20 text-emerald-400",
-    "BM": "bg-blue-500/20 text-blue-400",
-    "Page": "bg-purple-500/20 text-purple-400",
+    BM: "bg-blue-500/20 text-blue-400",
+    Page: "bg-purple-500/20 text-purple-400",
   };
   const color = colorMap[label as keyof typeof colorMap] || "bg-emerald-500/20 text-emerald-400";
 
-  const sourceIcon = source === "manual" ? "✎" : source === "task" ? "✓" : source === "both" ? "★" : "";
-
-  return (
-    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${color} inline-flex items-center gap-0.5`} title={
-      source === "manual" ? "Marcado manualmente" : source === "task" ? "Detectado via tarefa concluída" : source === "both" ? "Manual + Tarefa" : ""
-    }>
-      {label} {sourceIcon && <span className="text-[8px] opacity-70">{sourceIcon}</span>}
-    </span>
-  );
+  return <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${color}`}>{label}</span>;
 }
 
 export default function WarmingAuditDashboard({ profiles, qualityMap, tasks, creatorNames, onRefresh }: Props) {
@@ -457,16 +443,6 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, tasks, cre
             );
           })
         )}
-      </div>
-
-      {/* Legend */}
-      <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 p-4 space-y-3">
-        <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">Legenda dos Badges</p>
-        <div className="flex flex-wrap gap-4 text-[11px] text-muted-foreground">
-          <span>✎ = Marcação manual</span>
-          <span>✓ = Detectado via tarefa concluída</span>
-          <span>★ = Manual + Tarefa</span>
-        </div>
       </div>
 
       <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/5 p-4 flex gap-3 text-sm">
