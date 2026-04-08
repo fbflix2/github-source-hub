@@ -13,7 +13,10 @@ import {
   Building2,
   Package,
   Landmark,
-  Gift
+  Gift,
+  ChevronLeft,
+  ChevronRight,
+  CalendarDays
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import PurchasesListModal from "@/components/admin/PurchasesListModal";
@@ -34,8 +37,24 @@ const timeAgo = (date: Date) => {
   return `Há ${Math.floor(hours / 24)}d`;
 };
 
+const MONTH_NAMES = [
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+];
+
+function getMonthRange(year: number, month: number) {
+  const start = new Date(year, month, 1);
+  const end = new Date(year, month + 1, 0, 23, 59, 59, 999);
+  return { start, end, startISO: start.toISOString(), endISO: end.toISOString() };
+}
+
 export default function AdminAuditoria() {
   const navigate = useNavigate();
+  const now = new Date();
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
+  const isCurrentMonth = selectedYear === now.getFullYear() && selectedMonth === now.getMonth();
+
   const [loading, setLoading] = useState(true);
   const [totalCost, setTotalCost] = useState(0);
   const [totalRevenue, setTotalRevenue] = useState(0);
@@ -53,19 +72,42 @@ export default function AdminAuditoria() {
   const [courtesyValue, setCourtesyValue] = useState(0);
   const { totalRevenue: proxyRevenue, count: proxyCount } = useProxyRevenue();
 
+  const goToPrevMonth = () => {
+    if (selectedMonth === 0) {
+      setSelectedMonth(11);
+      setSelectedYear(y => y - 1);
+    } else {
+      setSelectedMonth(m => m - 1);
+    }
+  };
+
+  const goToNextMonth = () => {
+    if (isCurrentMonth) return;
+    if (selectedMonth === 11) {
+      setSelectedMonth(0);
+      setSelectedYear(y => y + 1);
+    } else {
+      setSelectedMonth(m => m + 1);
+    }
+  };
+
+  const goToCurrentMonth = () => {
+    setSelectedYear(now.getFullYear());
+    setSelectedMonth(now.getMonth());
+  };
+
   const fetchData = async () => {
     setLoading(true);
 
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const since = thirtyDaysAgo.toISOString();
+    const { startISO: since, endISO: until } = getMonthRange(selectedYear, selectedMonth);
 
     const [ordersRes, orderItemsRes, productsRes, productCostsRes, purchasesRes, costCenterRes, webShareRes, stockItemsRes] = await Promise.all([
       supabase
         .from("orders")
         .select("id, total, subtotal, payment_method, updated_at")
         .in("status", ["completed", "delivered"])
-        .gte("created_at", since),
+        .gte("created_at", since)
+        .lte("created_at", until),
       supabase
         .from("order_items")
         .select("order_id, product_id, name, price, quantity"),
@@ -78,7 +120,8 @@ export default function AdminAuditoria() {
       supabase
         .from("purchases")
         .select("total_value, quantity, unit_value, sale_price, tax_rate, updated_at")
-        .gte("created_at", since),
+        .gte("created_at", since)
+        .lte("created_at", until),
       supabase
         .from("cost_center")
         .select("amount, active")
@@ -211,12 +254,17 @@ export default function AdminAuditoria() {
 
   useEffect(() => {
     fetchData();
+  }, [selectedYear, selectedMonth]);
+
+  useEffect(() => {
     fetchGoals();
   }, []);
 
-  const combinedRevenue = totalRevenue + proxyRevenue;
+  const combinedRevenue = totalRevenue + (isCurrentMonth ? proxyRevenue : 0);
   const profit = combinedRevenue - totalCost - totalMonthlyCosts;
   const margin = combinedRevenue > 0 ? Math.round((profit / combinedRevenue) * 100) : 0;
+
+  const monthLabel = `${MONTH_NAMES[selectedMonth]} ${selectedYear}`;
 
   const stats = [
     {
@@ -239,7 +287,7 @@ export default function AdminAuditoria() {
       icon: ShoppingBag,
       iconBg: "bg-white/5 border-white/10",
       iconColor: "text-gray-300",
-      subtitle: "Últimos 30 dias",
+      subtitle: monthLabel,
       highlighted: false,
       onClick: () => navigate("/admin/auditoria/investimentos"),
     },
@@ -263,7 +311,7 @@ export default function AdminAuditoria() {
       icon: Wallet,
       iconBg: "bg-white/5 border-white/10",
       iconColor: "text-gray-300",
-      subtitle: `Pedidos + ${proxyCount} proxies ativos`,
+      subtitle: isCurrentMonth ? `Pedidos + ${proxyCount} proxies ativos` : `Pedidos em ${monthLabel}`,
       highlighted: false
     },
     {
@@ -335,6 +383,39 @@ export default function AdminAuditoria() {
           </div>
         </header>
 
+        {/* Month Navigation */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={goToPrevMonth}
+              className="p-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all text-white"
+            >
+              <ChevronLeft className="size-4" />
+            </button>
+            <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/10 min-w-[180px] justify-center">
+              <CalendarDays className="size-4 text-primary" />
+              <span className="text-sm font-semibold text-white">{monthLabel}</span>
+            </div>
+            <button
+              onClick={goToNextMonth}
+              disabled={isCurrentMonth}
+              className="p-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all text-white disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              <ChevronRight className="size-4" />
+            </button>
+          </div>
+
+          {!isCurrentMonth && (
+            <button
+              onClick={goToCurrentMonth}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-primary bg-primary/10 border border-primary/20 hover:bg-primary/20 transition-all"
+            >
+              <CalendarDays className="size-3" />
+              Mês atual
+            </button>
+          )}
+        </div>
+
         {/* Metrics Dashboard */}
         <section className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
           {stats.map((stat, index) => (
@@ -394,7 +475,7 @@ export default function AdminAuditoria() {
           <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-500/5 border border-amber-500/15">
             <Gift className="size-4 text-amber-400 shrink-0" />
             <p className="text-xs text-amber-300/80">
-              <span className="font-bold text-amber-300">{courtesyCount} cortesia{courtesyCount > 1 ? 's' : ''}</span> nos últimos 30 dias — valor estimado de <span className="font-bold text-amber-300">{formatCurrency(courtesyValue)}</span> em produtos doados (não impacta o faturamento).
+              <span className="font-bold text-amber-300">{courtesyCount} cortesia{courtesyCount > 1 ? 's' : ''}</span> em {monthLabel} — valor estimado de <span className="font-bold text-amber-300">{formatCurrency(courtesyValue)}</span> em produtos doados (não impacta o faturamento).
             </p>
           </div>
         )}
