@@ -6,7 +6,12 @@ import WarmingOperatorDashboard from "@/components/admin/warming/WarmingOperator
 import WarmingAuditDashboard from "@/components/admin/warming/WarmingAuditDashboard";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { toast } from "sonner";
-import { DEFAULT_READY_CRITERIA, parseReadyCriteria } from "@/lib/warming-ready";
+import {
+  DEFAULT_READY_CRITERIA,
+  getEffectiveProfileQuality,
+  parseReadyCriteria,
+  type ProfileQualityData,
+} from "@/lib/warming-ready";
 
 // ── Track definitions (shared) ──
 const TRACKS: Record<string, { label: string; days: number }> = {
@@ -56,6 +61,14 @@ function MIcon({ name, className = "" }: { name: string; className?: string }) {
   return <span className={`material-symbols-outlined ${className}`}>{name}</span>;
 }
 
+function chunkArray<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+  return chunks;
+}
+
 export default function AdminEsteiraAdmin() {
   const { role } = useAdminAuth();
   const navigate = useNavigate();
@@ -66,7 +79,7 @@ export default function AdminEsteiraAdmin() {
   const [activeTab, setActiveTab] = useState<"gestao" | "relatorios" | "prontos" | "bd_perfis" | "configuracoes" | "auditoria" | "analise_interna">("gestao");
   const [reportFilter, setReportFilter] = useState("");
   const [report2faFilter, setReport2faFilter] = useState(false);
-  const [qualityMap, setQualityMap] = useState<Record<string, { has2FA: boolean; hasBM?: boolean; hasPage?: boolean; friendRange?: string }>>({});
+  const [qualityMap, setQualityMap] = useState<Record<string, ProfileQualityData>>({});
   const [configTrack, setConfigTrack] = useState<"7_days" | "15_days" | "30_days">("7_days");
   const [profileCode, setProfileCode] = useState("");
   const [creating, setCreating] = useState(false);
@@ -722,96 +735,139 @@ export default function AdminEsteiraAdmin() {
 
   const fetchProfiles = async () => {
     setLoading(true);
-    // Paginate profiles to avoid 1000 row limit
-    const allProfiles: any[] = [];
-    const pageSize = 1000;
-    let from = 0;
-    while (true) {
-      const { data: batch, error } = await supabase
-        .from("warming_profiles")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .range(from, from + pageSize - 1);
-      if (error) {
-        toast.error("Erro ao carregar perfis");
-        break;
-      }
-      if (!batch || batch.length === 0) break;
-      allProfiles.push(...batch);
-      if (batch.length < pageSize) break;
-      from += pageSize;
-    }
-    const data = allProfiles;
-    setProfiles(data || []);
-    if (data && data.length > 0) {
-      // Paginate tasks to avoid 1000 row limit
-      const profileIds = data.map((p: any) => p.id);
-      const allTasks: any[] = [];
-      const tPageSize = 1000;
-      let tFrom = 0;
+
+    try {
+      const allProfiles: WarmingProfile[] = [];
+      const pageSize = 1000;
+      const filterChunkSize = 75;
+      let from = 0;
+
       while (true) {
-        const { data: batch } = await supabase
-          .from("warming_tasks")
+        const { data: batch, error } = await supabase
+          .from("warming_profiles")
           .select("*")
-          .in("profile_id", profileIds)
-          .order("day_number", { ascending: true })
-          .range(tFrom, tFrom + tPageSize - 1);
+          .order("created_at", { ascending: false })
+          .range(from, from + pageSize - 1);
+
+        if (error) throw error;
         if (!batch || batch.length === 0) break;
-        allTasks.push(...batch);
-        if (batch.length < tPageSize) break;
-        tFrom += tPageSize;
-      }
-      const grouped: Record<string, WarmingTask[]> = {};
-      allTasks.forEach((t: any) => {
-        if (!grouped[t.profile_id]) grouped[t.profile_id] = [];
-        grouped[t.profile_id].push(t);
-      });
-      setTasks(grouped);
 
-      // Load quality data (2FA status) for all profiles
-      const qualityKeys = profileIds.map((id: string) => `warming_quality_${id}`);
-      const qMap: Record<string, { has2FA: boolean; hasBM?: boolean; hasPage?: boolean; friendRange?: string }> = {};
-      const qPageSize = 1000;
-      let qFrom = 0;
-      while (true) {
-        const { data: qBatch } = await supabase
-          .from("site_settings")
-          .select("key, value")
-          .in("key", qualityKeys)
-          .range(qFrom, qFrom + qPageSize - 1);
-        if (!qBatch || qBatch.length === 0) break;
-        qBatch.forEach((row: any) => {
-          const pid = row.key.replace("warming_quality_", "");
-          try {
-            const parsed = JSON.parse(row.value);
-            qMap[pid] = { has2FA: !!parsed.has2FA, hasBM: !!parsed.hasBM, hasPage: !!parsed.hasPage, friendRange: parsed.friendRange || "0-5" };
-          } catch {}
+        allProfiles.push(...(batch as WarmingProfile[]));
+        if (batch.length < pageSize) break;
+        from += pageSize;
+      }
+
+      setProfiles(allProfiles);
+
+      const groupedTasks: Record<string, WarmingTask[]> = {};
+      const derivedQualityMap: Record<string, ProfileQualityData> = {};
+
+      if (allProfiles.length > 0) {
+        const profileIds = allProfiles.map((profile) => profile.id);
+        const profileIdChunks = chunkArray(profileIds, filterChunkSize);
+        const allTasks: WarmingTask[] = [];
+
+        for (const profileIdChunk of profileIdChunks) {
+          let taskFrom = 0;
+
+          while (true) {
+            const { data: taskBatch, error: taskError } = await supabase
+              .from("warming_tasks")
+              .select("*")
+              .in("profile_id", profileIdChunk)
+              .order("profile_id", { ascending: true })
+              .order("day_number", { ascending: true })
+              .range(taskFrom, taskFrom + pageSize - 1);
+
+            if (taskError) throw taskError;
+            if (!taskBatch || taskBatch.length === 0) break;
+
+            allTasks.push(...(taskBatch as WarmingTask[]));
+            if (taskBatch.length < pageSize) break;
+            taskFrom += pageSize;
+          }
+        }
+
+        allTasks.forEach((task) => {
+          if (!groupedTasks[task.profile_id]) groupedTasks[task.profile_id] = [];
+          groupedTasks[task.profile_id].push(task);
         });
-        if (qBatch.length < qPageSize) break;
-        qFrom += qPageSize;
-      }
-      setQualityMap(qMap);
+        setTasks(groupedTasks);
 
-      // Fetch approved profile IDs from operator_earnings
-      const { data: earningsData } = await supabase
-        .from("operator_earnings")
-        .select("profile_id")
-        .eq("status", "confirmed");
-      setApprovedProfileIds(new Set((earningsData || []).map(e => e.profile_id)));
-    }
-    const creatorIds = [...new Set((data || []).map(p => p.created_by).filter(Boolean))] as string[];
-    if (creatorIds.length > 0) {
-      const { data: profilesData } = await supabase
-        .from("profiles")
-        .select("user_id, full_name")
-        .in("user_id", creatorIds);
-      if (profilesData) {
-        const nameMap: Record<string, string> = {};
-        profilesData.forEach(p => { nameMap[p.user_id] = p.full_name || "Sem nome"; });
-        setCreatorNames(nameMap);
+        const manualQualityMap: Record<string, Partial<ProfileQualityData>> = {};
+        const qualityKeyChunks = chunkArray(
+          profileIds.map((id) => `warming_quality_${id}`),
+          filterChunkSize,
+        );
+
+        for (const qualityKeyChunk of qualityKeyChunks) {
+          const { data: qualityBatch, error: qualityError } = await supabase
+            .from("site_settings")
+            .select("key, value")
+            .in("key", qualityKeyChunk);
+
+          if (qualityError) throw qualityError;
+
+          (qualityBatch || []).forEach((row: any) => {
+            const profileId = row.key.replace("warming_quality_", "");
+            try {
+              const parsed = JSON.parse(row.value);
+              manualQualityMap[profileId] = {
+                has2FA: !!parsed.has2FA,
+                hasBM: !!parsed.hasBM,
+                hasPage: !!parsed.hasPage,
+                friendRange: parsed.friendRange || "0-5",
+              };
+            } catch {
+              manualQualityMap[profileId] = {};
+            }
+          });
+        }
+
+        profileIds.forEach((profileId) => {
+          derivedQualityMap[profileId] = getEffectiveProfileQuality(
+            manualQualityMap[profileId],
+            groupedTasks[profileId] || [],
+          );
+        });
+
+        setQualityMap(derivedQualityMap);
+
+        const { data: earningsData } = await supabase
+          .from("operator_earnings")
+          .select("profile_id")
+          .eq("status", "confirmed");
+
+        setApprovedProfileIds(new Set((earningsData || []).map((earning) => earning.profile_id)));
+      } else {
+        setTasks({});
+        setQualityMap({});
+        setApprovedProfileIds(new Set());
       }
+
+      const creatorIds = [...new Set(allProfiles.map((profile) => profile.created_by).filter(Boolean))] as string[];
+      if (creatorIds.length > 0) {
+        const { data: profilesData } = await supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .in("user_id", creatorIds);
+
+        if (profilesData) {
+          const nameMap: Record<string, string> = {};
+          profilesData.forEach((profile) => {
+            nameMap[profile.user_id] = profile.full_name || "Sem nome";
+          });
+          setCreatorNames(nameMap);
+        }
+      } else {
+        setCreatorNames({});
+      }
+    } catch (error) {
+      console.error("Erro ao carregar esteira admin:", error);
+      toast.error("Erro ao carregar perfis");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleResetAll = async () => {
