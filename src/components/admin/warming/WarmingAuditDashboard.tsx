@@ -1,7 +1,12 @@
 import { useState, useMemo, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { getEffectiveProfileQuality, getProfileWarmingDays, type ProfileQualityData } from "@/lib/warming-ready";
+import {
+  getEffectiveProfileQualityWithSource,
+  getProfileWarmingDays,
+  type ProfileQualityData,
+  type ProfileQualityWithSource,
+} from "@/lib/warming-ready";
 
 function MIcon({ name, className = "" }: { name: string; className?: string }) {
   return <span className={`material-symbols-outlined ${className}`}>{name}</span>;
@@ -58,6 +63,43 @@ const DAYS_OPTIONS = [
   { value: 30, label: "30+ dias" },
 ];
 
+type StatusFilter = "all" | "pending" | "approved" | "restricted" | "sent";
+
+const STATUS_OPTIONS: { value: StatusFilter; label: string; icon: string }[] = [
+  { value: "all", label: "Todos", icon: "list" },
+  { value: "pending", label: "Pendentes", icon: "pending" },
+  { value: "approved", label: "Aprovados", icon: "check_circle" },
+  { value: "restricted", label: "Restritos", icon: "block" },
+  { value: "sent", label: "Enviados", icon: "local_shipping" },
+];
+
+function SourceBadge({ active, label, source }: { active: boolean; label: string; source: "manual" | "task" | "both" | null }) {
+  if (!active) {
+    return (
+      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-white/5 text-muted-foreground">
+        {label}
+      </span>
+    );
+  }
+
+  const colorMap = {
+    "2FA": "bg-emerald-500/20 text-emerald-400",
+    "BM": "bg-blue-500/20 text-blue-400",
+    "Page": "bg-purple-500/20 text-purple-400",
+  };
+  const color = colorMap[label as keyof typeof colorMap] || "bg-emerald-500/20 text-emerald-400";
+
+  const sourceIcon = source === "manual" ? "✎" : source === "task" ? "✓" : source === "both" ? "★" : "";
+
+  return (
+    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${color} inline-flex items-center gap-0.5`} title={
+      source === "manual" ? "Marcado manualmente" : source === "task" ? "Detectado via tarefa concluída" : source === "both" ? "Manual + Tarefa" : ""
+    }>
+      {label} {sourceIcon && <span className="text-[8px] opacity-70">{sourceIcon}</span>}
+    </span>
+  );
+}
+
 export default function WarmingAuditDashboard({ profiles, qualityMap, tasks, creatorNames, onRefresh }: Props) {
   const [filter2FA, setFilter2FA] = useState(false);
   const [filterBM, setFilterBM] = useState(false);
@@ -65,9 +107,9 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, tasks, cre
   const [minFriends, setMinFriends] = useState(0);
   const [minDays, setMinDays] = useState(0);
   const [filterOperator, setFilterOperator] = useState("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [approving, setApproving] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [showApproved, setShowApproved] = useState(false);
   const [approvedCount, setApprovedCount] = useState(0);
 
   useEffect(() => {
@@ -89,28 +131,54 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, tasks, cre
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
   }, [profiles, creatorNames]);
 
+  // Unified quality map derived from manual data + task evidence
   const effectiveQualityMap = useMemo(() => {
-    const map: Record<string, ProfileQualityData> = {};
-
+    const map: Record<string, ProfileQualityWithSource> = {};
     profiles.forEach((profile) => {
-      map[profile.id] = getEffectiveProfileQuality(qualityMap[profile.id], tasks[profile.id] || []);
+      map[profile.id] = getEffectiveProfileQualityWithSource(qualityMap[profile.id], tasks[profile.id] || []);
     });
-
     return map;
   }, [profiles, qualityMap, tasks]);
+
+  // Status-based counts (always from full profile list)
+  const statusCounts = useMemo(() => {
+    const counts = { total: profiles.length, pending: 0, approved: 0, restricted: 0, sent: 0 };
+    profiles.forEach((p) => {
+      if (p.status === "completed") counts.approved++;
+      else if (p.status === "restricted" || p.status === "blocked") counts.restricted++;
+      else if (p.status === "sent_to_store") counts.sent++;
+      else counts.pending++; // active, checkpoint
+    });
+    return counts;
+  }, [profiles]);
+
+  // Quality counts from ALL profiles (not filtered)
+  const qualityCounts = useMemo(() => {
+    let with2FA = 0;
+    let withBM = 0;
+    profiles.forEach((p) => {
+      const q = effectiveQualityMap[p.id];
+      if (q?.has2FA) with2FA++;
+      if (q?.hasBM) withBM++;
+    });
+    return { with2FA, withBM };
+  }, [profiles, effectiveQualityMap]);
 
   const auditProfiles = useMemo(() => {
     const searchTrimmed = search.trim().toLowerCase();
 
     return profiles.filter((p) => {
+      // Search overrides all filters
       if (searchTrimmed) {
         return p.profile_code.toLowerCase().includes(searchTrimmed);
       }
 
-      if (showApproved) {
-        if (p.status !== "completed") return false;
-      } else {
-        if (p.status !== "checkpoint" && p.status !== "active") return false;
+      // Status filter
+      if (statusFilter !== "all") {
+        if (statusFilter === "pending" && p.status !== "checkpoint" && p.status !== "active") return false;
+        if (statusFilter === "approved" && p.status !== "completed") return false;
+        if (statusFilter === "restricted" && p.status !== "restricted" && p.status !== "blocked") return false;
+        if (statusFilter === "sent" && p.status !== "sent_to_store") return false;
       }
 
       const quality = effectiveQualityMap[p.id];
@@ -128,7 +196,7 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, tasks, cre
 
       return true;
     });
-  }, [profiles, effectiveQualityMap, filter2FA, filterBM, filterPage, minFriends, minDays, filterOperator, search, showApproved]);
+  }, [profiles, effectiveQualityMap, filter2FA, filterBM, filterPage, minFriends, minDays, filterOperator, search, statusFilter]);
 
   const approveProfile = async (profile: WarmingProfile) => {
     setApproving(profile.id);
@@ -186,11 +254,6 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, tasks, cre
     }
   };
 
-  const totalFiltered = auditProfiles.length;
-  const allActiveProfiles = profiles.filter((p) => p.status === "checkpoint" || p.status === "active" || p.status === "completed");
-  const with2FA = allActiveProfiles.filter((p) => effectiveQualityMap[p.id]?.has2FA).length;
-  const withBM = allActiveProfiles.filter((p) => effectiveQualityMap[p.id]?.hasBM).length;
-
   return (
     <main className="flex-1 px-6 md:px-12 lg:px-40 py-10 max-w-[1200px] mx-auto w-full space-y-6">
       <div className="flex items-center gap-3 mb-2">
@@ -201,43 +264,60 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, tasks, cre
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      {/* KPI Cards - always show totals from full dataset */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <div className="bg-white dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 p-4">
-          <p className="text-[11px] text-muted-foreground uppercase tracking-widest mb-1">PERFIS</p>
-          <p className="text-2xl font-black">{totalFiltered}</p>
+          <p className="text-[11px] text-muted-foreground uppercase tracking-widest mb-1">TOTAL CADASTRADOS</p>
+          <p className="text-2xl font-black">{statusCounts.total}</p>
         </div>
         <div className="bg-white dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 p-4">
           <p className="text-[11px] text-muted-foreground uppercase tracking-widest mb-1">Com 2FA</p>
-          <p className="text-2xl font-black text-emerald-500">{with2FA}</p>
+          <p className="text-2xl font-black text-emerald-500">{qualityCounts.with2FA}</p>
         </div>
         <div className="bg-white dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 p-4">
           <p className="text-[11px] text-muted-foreground uppercase tracking-widest mb-1">Com BM</p>
-          <p className="text-2xl font-black text-blue-500">{withBM}</p>
+          <p className="text-2xl font-black text-blue-500">{qualityCounts.withBM}</p>
         </div>
         <div className="bg-white dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 p-4">
           <p className="text-[11px] text-muted-foreground uppercase tracking-widest mb-1">Aprovados Total</p>
           <p className="text-2xl font-black text-amber-500">{approvedCount}</p>
         </div>
+        <div className="bg-white dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 p-4">
+          <p className="text-[11px] text-muted-foreground uppercase tracking-widest mb-1">Resultado Filtro</p>
+          <p className="text-2xl font-black text-[#1876f2]">{auditProfiles.length}</p>
+        </div>
       </div>
 
+      {/* Filters */}
       <div className="bg-white dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 p-5 space-y-4">
         <div className="flex items-center gap-2 mb-2">
           <MIcon name="filter_list" className="text-slate-400" />
           <h3 className="text-sm font-bold">Filtros Combinados</h3>
         </div>
 
-        <div className="flex flex-wrap gap-3">
-          <button
-            onClick={() => setShowApproved(!showApproved)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
-              showApproved
-                ? "bg-amber-500/20 border-amber-500/40 text-amber-400"
-                : "bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10"
-            }`}
-          >
-            {showApproved ? "Mostrando Aprovados" : "Mostrando Pendentes"}
-          </button>
+        {/* Status filter tabs */}
+        <div className="flex flex-wrap gap-2">
+          {STATUS_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setStatusFilter(opt.value)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-1 ${
+                statusFilter === opt.value
+                  ? "bg-[#1876f2]/20 border-[#1876f2]/40 text-[#1876f2]"
+                  : "bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10"
+              }`}
+            >
+              <MIcon name={opt.icon} className="text-sm" />
+              {opt.label}
+              <span className="ml-1 text-[10px] opacity-70">
+                ({opt.value === "all" ? statusCounts.total : statusCounts[opt.value]})
+              </span>
+            </button>
+          ))}
+        </div>
 
+        {/* Quality filters */}
+        <div className="flex flex-wrap gap-3">
           <button
             onClick={() => setFilter2FA(!filter2FA)}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-1 ${
@@ -309,12 +389,13 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, tasks, cre
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por código..."
+            placeholder="Buscar por código (ignora filtros)..."
             className="w-full bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 rounded-lg pl-9 pr-3 py-2 text-sm"
           />
         </div>
       </div>
 
+      {/* Profile list */}
       <div className="space-y-2">
         {auditProfiles.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
@@ -346,15 +427,9 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, tasks, cre
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${quality?.has2FA ? "bg-emerald-500/20 text-emerald-400" : "bg-white/5 text-muted-foreground"}`}>
-                    2FA
-                  </span>
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${quality?.hasBM ? "bg-blue-500/20 text-blue-400" : "bg-white/5 text-muted-foreground"}`}>
-                    BM
-                  </span>
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${quality?.hasPage ? "bg-purple-500/20 text-purple-400" : "bg-white/5 text-muted-foreground"}`}>
-                    Page
-                  </span>
+                  <SourceBadge active={quality?.has2FA} label="2FA" source={quality?.has2FA_source} />
+                  <SourceBadge active={quality?.hasBM} label="BM" source={quality?.hasBM_source} />
+                  <SourceBadge active={quality?.hasPage} label="Page" source={quality?.hasPage_source} />
                   <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-white/5 text-muted-foreground">
                     {friendMin}+ amigos
                   </span>
@@ -382,6 +457,16 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, tasks, cre
             );
           })
         )}
+      </div>
+
+      {/* Legend */}
+      <div className="rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 p-4 space-y-3">
+        <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">Legenda dos Badges</p>
+        <div className="flex flex-wrap gap-4 text-[11px] text-muted-foreground">
+          <span>✎ = Marcação manual</span>
+          <span>✓ = Detectado via tarefa concluída</span>
+          <span>★ = Manual + Tarefa</span>
+        </div>
       </div>
 
       <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/5 p-4 flex gap-3 text-sm">
