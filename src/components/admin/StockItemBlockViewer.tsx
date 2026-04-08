@@ -170,7 +170,18 @@ export function StockItemBlockViewer({ item, open, onOpenChange, onSaved }: Prop
               <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">
                 📝 Anotações de Qualidade
               </label>
-              {saving && <span className="text-[10px] text-zinc-500 animate-pulse">Salvando...</span>}
+              <div className="flex items-center gap-1.5">
+                {saving && (
+                  <span className="flex items-center gap-1 text-xs text-amber-400 animate-pulse">
+                    <Loader2 className="h-3 w-3 animate-spin" /> Salvando...
+                  </span>
+                )}
+                {!saving && saved && (
+                  <span className="flex items-center gap-1 text-xs text-emerald-400">
+                    <CheckCircle2 className="h-3 w-3" /> Salvo
+                  </span>
+                )}
+              </div>
             </div>
             <textarea
               value={qualityNotes}
@@ -178,6 +189,8 @@ export function StockItemBlockViewer({ item, open, onOpenChange, onSaved }: Prop
               placeholder="Observações sobre a qualidade deste item... (ex: perfil com 2FA, BM ativa, sem restrições...)"
               className="w-full min-h-[100px] p-3 rounded-xl bg-black/30 border border-white/5 text-sm text-zinc-200 placeholder:text-zinc-600 resize-none outline-none focus:border-primary/30 transition-colors"
             />
+            <p className="text-[10px] text-zinc-600">As anotações são salvas automaticamente.</p>
+          </div>
           </div>
         </div>
       </DialogContent>
