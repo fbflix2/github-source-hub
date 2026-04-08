@@ -154,12 +154,24 @@ export default function AdminShopClone() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [buyResult, setBuyResult] = useState<BuyResult | null>(null);
   const [viewTab, setViewTab] = useState<"all" | "favorites">("all");
+  const [filter2fa, setFilter2fa] = useState<"all" | "with" | "without">("all");
   const { favorites, toggle: toggleFavorite } = useFavorites();
 
   const filteredCategories = (categories || []).map((cat) => {
     let products = cat.accounts;
     if (viewTab === "favorites") {
       products = products.filter(p => favorites.has(p.id));
+    }
+    if (filter2fa === "with") {
+      products = products.filter(p => {
+        const n = p.name.toUpperCase();
+        return (n.includes("2FA") && !n.includes("NO 2FA") && !n.includes("NO2FA") && !n.includes("WITHOUT 2FA"));
+      });
+    } else if (filter2fa === "without") {
+      products = products.filter(p => {
+        const n = p.name.toUpperCase();
+        return n.includes("NO 2FA") || n.includes("NO2FA") || n.includes("WITHOUT 2FA") || !n.includes("2FA");
+      });
     }
     if (search) {
       const q = search.toLowerCase();
@@ -300,6 +312,15 @@ export default function AdminShopClone() {
               className="pl-9"
             />
           </div>
+          <select
+            className="border rounded-md px-3 py-2 text-sm bg-background"
+            value={filter2fa}
+            onChange={(e) => setFilter2fa(e.target.value as "all" | "with" | "without")}
+          >
+            <option value="all">2FA: Todos</option>
+            <option value="with">Com 2FA</option>
+            <option value="without">Sem 2FA</option>
+          </select>
           <select
             className="border rounded-md px-3 py-2 text-sm bg-background"
             value={selectedCategory || ""}
