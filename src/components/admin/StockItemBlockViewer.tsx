@@ -69,6 +69,7 @@ export function StockItemBlockViewer({ item, open, onOpenChange, onSaved }: Prop
     setStatus(item.status);
     setQualityNotes(item.data?.quality_notes ?? "");
     setCopied(false);
+    setSaved(false);
   }, [item]);
 
   const handleCopy = () => {
