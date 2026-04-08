@@ -191,7 +191,6 @@ export function StockItemBlockViewer({ item, open, onOpenChange, onSaved }: Prop
             />
             <p className="text-[10px] text-zinc-600">As anotações são salvas automaticamente.</p>
           </div>
-          </div>
         </div>
       </DialogContent>
     </Dialog>
