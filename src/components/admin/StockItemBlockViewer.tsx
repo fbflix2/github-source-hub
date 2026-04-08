@@ -28,6 +28,12 @@ interface Props {
 
 function buildBlockText(item: StockItem): string {
   const d = item.data ?? {};
+
+  // AccFace items: show original raw format
+  if (d.source === "accface" && d.raw) {
+    return String(d.raw);
+  }
+
   const lines: string[] = [];
 
   if (item.type === "bm") {
