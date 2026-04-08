@@ -239,7 +239,9 @@ export function FbCaixas() {
         const pessoalCaixas = caixas.filter(c => !pjCaixas.includes(c));
 
         const renderCard = (c: Caixa) => {
-          const saldo = Number(c.saldo_atual);
+          const saldoBase = Number(c.saldo_atual);
+          const allocExtra = proLaboreAlloc[c.id] || 0;
+          const saldo = saldoBase + allocExtra;
           const iconCfg = caixaIcons[c.nome] || defaultIcon;
           const meta = Number(c.meta) > 0 ? Number(c.meta) : (c.alvo_percent > 0 ? saldo / (c.alvo_percent / 100) : saldo * 1.5);
           const progress = meta > 0 ? Math.min((saldo / meta) * 100, 100) : 0;
