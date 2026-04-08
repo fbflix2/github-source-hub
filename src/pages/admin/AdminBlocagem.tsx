@@ -892,10 +892,10 @@ function FolderItemsView({ folder, onBack }: { folder: Folder; onBack: () => voi
   const [items, setItems] = useState<StockItem[]>([]);
   const [editingItem, setEditingItem] = useState<StockItem | null>(null);
   const [loading, setLoading] = useState(true);
+  const [expandedBatches, setExpandedBatches] = useState<Set<string>>(new Set());
 
   const fetchItems = async () => {
     setLoading(true);
-    // fetch items matching by folder UUID or legacy folder name
     const { data, error } = await supabase
       .from("stock_items")
       .select("*")
@@ -926,15 +926,102 @@ function FolderItemsView({ folder, onBack }: { folder: Folder; onBack: () => voi
     erro: "bg-red-500/20 text-red-400",
   };
 
+  // Check if this folder has AccFace items
+  const hasAccfaceItems = items.some(i => i.data?.source === "accface");
+
+  // Group AccFace items by purchase batch (accfaceProductId + purchasedAt rounded to minute)
+  const accfaceBatches = useMemo(() => {
+    if (!hasAccfaceItems) return [];
+    const batchMap = new Map<string, { key: string; productId: string; productName: string; priceBrl: number; purchasedAt: string; type: string; items: StockItem[] }>();
+    const nonAccface: StockItem[] = [];
+
+    items.forEach(item => {
+      if (item.data?.source !== "accface") {
+        nonAccface.push(item);
+        return;
+      }
+      const productId = item.data.accfaceProductId || "unknown";
+      const purchasedAt = item.data.purchasedAt || item.created_at;
+      // Round to minute for grouping
+      const roundedTime = purchasedAt.substring(0, 16);
+      const batchKey = `${productId}_${roundedTime}`;
+      if (!batchMap.has(batchKey)) {
+        batchMap.set(batchKey, {
+          key: batchKey,
+          productId,
+          productName: item.name || "AccFace",
+          priceBrl: item.data.precoCustoBRL || 0,
+          purchasedAt,
+          type: item.type,
+          items: [],
+        });
+      }
+      batchMap.get(batchKey)!.items.push(item);
+    });
+
+    return { batches: Array.from(batchMap.values()).sort((a, b) => new Date(b.purchasedAt).getTime() - new Date(a.purchasedAt).getTime()), nonAccface };
+  }, [items, hasAccfaceItems]);
+
+  const toggleBatch = (key: string) => {
+    setExpandedBatches(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
+
+  const typeIcon = (type: string) => {
+    if (type === "bm") return <Building2 className="h-4 w-4" />;
+    if (type === "perfil") return <CircleUser className="h-4 w-4" />;
+    return <PackageOpen className="h-4 w-4" />;
+  };
+
+  const typeColor = (type: string) => {
+    if (type === "bm") return "bg-primary/20 text-primary";
+    if (type === "perfil") return "bg-cyan-500/20 text-cyan-400";
+    return "bg-purple-500/20 text-purple-400";
+  };
+
+  const typeLabel = (type: string) => {
+    if (type === "bm") return "Business Manager";
+    if (type === "perfil") return "Perfil";
+    if (type === "pagina") return "Página";
+    return type;
+  };
+
+  const renderItem = (item: StockItem) => (
+    <div key={item.id} className="flex items-center justify-between p-4 hover:bg-white/[0.02] transition-colors">
+      <div className="flex items-center gap-3">
+        <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${typeColor(item.type)}`}>
+          {typeIcon(item.type)}
+        </div>
+        <div>
+          <p className="text-sm font-medium text-foreground">{item.type === "bm" ? resolveBmDisplayName({ name: item.name, identificationLink: item.identification_link, data: item.data }) : item.name}</p>
+          <p className="text-xs text-muted-foreground">{item.identification_link || item.identification || "Sem identificação"}</p>
+        </div>
+      </div>
+      <div className="flex items-center gap-3">
+        <Badge className={`text-xs ${statusStyles[item.status] || statusStyles.aguardando}`}>{item.status}</Badge>
+        <span className="text-xs text-muted-foreground">{new Date(item.created_at).toLocaleDateString("pt-BR")}</span>
+        <button onClick={() => setEditingItem(item)} className="text-muted-foreground hover:text-foreground transition-colors">
+          <Pencil className="h-4 w-4" />
+        </button>
+        <button onClick={() => handleDelete(item.id)} className="text-muted-foreground hover:text-red-400 transition-colors">
+          <Trash2 className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <button onClick={onBack} className="w-10 h-10 rounded-full bg-zinc-800/50 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-700 transition-colors">
+        <button onClick={onBack} className="w-10 h-10 rounded-full bg-secondary/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
           <ArrowLeft className="h-5 w-5" />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-white">{folder.name}</h1>
-          <p className="text-sm text-zinc-400">{items.length} itens nesta pasta</p>
+          <h1 className="text-2xl font-bold text-foreground">{folder.name}</h1>
+          <p className="text-sm text-muted-foreground">{items.length} itens nesta pasta</p>
         </div>
       </div>
 
@@ -942,37 +1029,96 @@ function FolderItemsView({ folder, onBack }: { folder: Folder; onBack: () => voi
         <div className="flex justify-center py-12"><Loader2 className="size-8 text-primary animate-spin" /></div>
       ) : items.length === 0 ? (
         <div className="glass-panel rounded-xl p-12 text-center">
-          <FolderOpen className="h-12 w-12 text-zinc-600 mx-auto mb-3" />
-          <p className="text-zinc-400">Pasta vazia. Adicione itens usando os botões de tipo acima.</p>
+          <FolderOpen className="h-12 w-12 text-muted-foreground/40 mx-auto mb-3" />
+          <p className="text-muted-foreground">Pasta vazia. Adicione itens usando os botões de tipo acima.</p>
+        </div>
+      ) : hasAccfaceItems && accfaceBatches ? (
+        <div className="space-y-4">
+          {/* AccFace purchase batches */}
+          {(accfaceBatches as any).batches.map((batch: any) => {
+            const isExpanded = expandedBatches.has(batch.key);
+            const totalCost = batch.priceBrl * batch.items.length;
+            // Group items within batch by type
+            const byType = batch.items.reduce((acc: Record<string, StockItem[]>, item: StockItem) => {
+              if (!acc[item.type]) acc[item.type] = [];
+              acc[item.type].push(item);
+              return acc;
+            }, {} as Record<string, StockItem[]>);
+
+            return (
+              <div key={batch.key} className="glass-panel rounded-xl overflow-hidden">
+                {/* Batch header */}
+                <button
+                  onClick={() => toggleBatch(batch.key)}
+                  className="w-full flex items-center justify-between p-4 hover:bg-white/[0.02] transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${typeColor(batch.type)}`}>
+                      {typeIcon(batch.type)}
+                    </div>
+                    <div className="text-left">
+                      <p className="text-sm font-semibold text-foreground">{batch.productName}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-[10px] font-mono text-primary/70 flex items-center gap-1">
+                          <Hash className="size-3" />
+                          {batch.productId}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground">•</span>
+                        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                          <Clock className="size-3" />
+                          {new Date(batch.purchasedAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {batch.priceBrl > 0 && (
+                      <div className="text-right">
+                        <p className="text-xs font-semibold text-green-400">R$ {batch.priceBrl.toFixed(2).replace(".", ",")} /un</p>
+                        <p className="text-[10px] text-muted-foreground">Total: R$ {totalCost.toFixed(2).replace(".", ",")}</p>
+                      </div>
+                    )}
+                    <Badge variant="secondary" className="text-xs">{batch.items.length} itens</Badge>
+                    {isExpanded ? <ChevronDown className="size-4 text-muted-foreground" /> : <ChevronRight className="size-4 text-muted-foreground" />}
+                  </div>
+                </button>
+
+                {/* Expanded: show items grouped by type */}
+                {isExpanded && (
+                  <div className="border-t border-border/50">
+                    {Object.entries(byType).map(([type, typeItems]) => (
+                      <div key={type}>
+                        {Object.keys(byType).length > 1 && (
+                          <div className="px-4 py-2 bg-secondary/30 border-b border-border/30">
+                            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                              {typeIcon(type)} {typeLabel(type)} ({(typeItems as StockItem[]).length})
+                            </span>
+                          </div>
+                        )}
+                        <div className="divide-y divide-border/30">
+                          {(typeItems as StockItem[]).map(renderItem)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Non-AccFace items (manual entries) */}
+          {(accfaceBatches as any).nonAccface.length > 0 && (
+            <div className="glass-panel rounded-xl divide-y divide-border/50">
+              <div className="px-4 py-3 bg-secondary/20">
+                <span className="text-xs font-medium text-muted-foreground">Itens manuais ({(accfaceBatches as any).nonAccface.length})</span>
+              </div>
+              {(accfaceBatches as any).nonAccface.map(renderItem)}
+            </div>
+          )}
         </div>
       ) : (
-        <div className="glass-panel rounded-xl divide-y divide-white/5">
-          {items.map(item => (
-            <div key={item.id} className="flex items-center justify-between p-4 hover:bg-white/[0.02] transition-colors">
-              <div className="flex items-center gap-3">
-                <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${item.type === "bm" ? "bg-primary/20 text-primary" : item.type === "perfil" ? "bg-cyan-500/20 text-cyan-400" : "bg-purple-500/20 text-purple-400"}`}>
-                  {item.type === "bm" ? <Building2 className="h-4 w-4" /> : item.type === "perfil" ? <CircleUser className="h-4 w-4" /> : <PackageOpen className="h-4 w-4" />}
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-white">{item.type === "bm" ? resolveBmDisplayName({ name: item.name, identificationLink: item.identification_link, data: item.data }) : item.name}</p>
-                  <p className="text-xs text-zinc-500">{item.identification_link || item.identification || "Sem identificação"}</p>
-                  {item.data?.accfaceProductId && (
-                    <p className="text-[10px] text-primary/70 font-mono">AccFace ID: {item.data.accfaceProductId}</p>
-                  )}
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <Badge className={`text-xs ${statusStyles[item.status] || statusStyles.aguardando}`}>{item.status}</Badge>
-                <span className="text-xs text-zinc-500">{new Date(item.created_at).toLocaleDateString("pt-BR")}</span>
-                <button onClick={() => setEditingItem(item)} className="text-zinc-500 hover:text-white transition-colors">
-                  <Pencil className="h-4 w-4" />
-                </button>
-                <button onClick={() => handleDelete(item.id)} className="text-zinc-500 hover:text-red-400 transition-colors">
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          ))}
+        <div className="glass-panel rounded-xl divide-y divide-border/50">
+          {items.map(renderItem)}
         </div>
       )}
 
