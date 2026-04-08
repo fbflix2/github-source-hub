@@ -32,7 +32,7 @@ export function FbPersonalDistribution({ salario }: Props) {
     // Fetch ALL caixas and filter personal ones using same logic as FbCaixas
     const { data: caixasData } = await supabase
       .from("fb_finance_caixas" as any)
-      .select("id, nome, tipo")
+      .select("id, nome, tipo, saldo_atual")
       .order("nome");
 
     const allBoxes = ((caixasData || []) as unknown) as Caixa[];
