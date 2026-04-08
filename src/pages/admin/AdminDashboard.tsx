@@ -507,7 +507,7 @@ export default function AdminDashboard() {
             <DialogTitle className="text-white text-sm">Selecionar Período de Faturamento</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-1">
-            {(["hoje", "7dias", "30dias"] as const).map(p => (
+            {(["hoje", "7dias", "30dias", "inicio"] as const).map(p => (
               <button
                 key={p}
                 onClick={() => { setRevenuePeriod(p); setShowRevenuePeriodPicker(false); }}
@@ -515,9 +515,39 @@ export default function AdminDashboard() {
                   revenuePeriod === p ? "text-primary bg-primary/10" : "text-white/60 hover:text-white hover:bg-white/5"
                 }`}
               >
-                {periodLabels[p]}
+                {({ hoje: "Hoje", "7dias": "7 Dias", "30dias": "30 Dias", inicio: "Desde o Início" } as Record<string, string>)[p]}
               </button>
             ))}
+            <div className="border-t border-white/10 mt-2 pt-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+                      revenuePeriod === "custom" ? "text-primary bg-primary/10" : "text-white/60 hover:text-white hover:bg-white/5"
+                    }`}
+                  >
+                    <CalendarDays className="size-4" />
+                    {revenuePeriod === "custom" && customRevenueRange.from
+                      ? `${format(customRevenueRange.from, "dd/MM/yy", { locale: ptBR })} - ${customRevenueRange.to ? format(customRevenueRange.to, "dd/MM/yy", { locale: ptBR }) : "..."}`
+                      : "Período Personalizado"}
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="center" side="top">
+                  <Calendar
+                    mode="range"
+                    selected={{ from: customRevenueRange.from, to: customRevenueRange.to }}
+                    onSelect={(range: any) => {
+                      setCustomRevenueRange({ from: range?.from, to: range?.to });
+                      if (range?.from) setRevenuePeriod("custom");
+                      if (range?.from && range?.to) setShowRevenuePeriodPicker(false);
+                    }}
+                    locale={ptBR}
+                    numberOfMonths={2}
+                    disabled={{ after: new Date() }}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
