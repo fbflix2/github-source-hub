@@ -79,7 +79,7 @@ export function FbDistribuicaoPJ() {
 
   const fetchData = async () => {
     const [configRes, distRes, caixasRes] = await Promise.all([
-      supabase.from("fb_finance_config" as any).select("id, distribution_percentages").limit(1).maybeSingle(),
+      supabase.from("fb_finance_config" as any).select("id, distribution_percentages, personal_distribution_percentages").limit(1).maybeSingle(),
       supabase.from("fb_finance_distribuicoes" as any).select("*").order("data", { ascending: false }).limit(30),
       supabase.from("fb_finance_caixas" as any).select("id, nome, saldo_atual, meta, tipo"),
     ]);
