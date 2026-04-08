@@ -88,7 +88,7 @@ const allMenuItems: MenuItem[] = [
     { title: "Assinaturas", icon: Monitor, path: "/admin/assinaturas" },
   ]},
   { title: "Contingência Total", icon: ShieldAlert, path: "/admin/contingencia" },
-  { title: "Fornecedor AccFace", icon: Store, path: "/admin/fornecedor" },
+  { title: "Fornecedor secreto 1", icon: Store, path: "/admin/fornecedor" },
   { title: "Aquecimento", icon: Flame, path: "/admin/aquecimento" },
   { title: "Ferramentas", icon: KeyRound, path: "/admin/ferramentas-2fa", subItems: [
     { title: "Ferramentas", icon: KeyRound, path: "/admin/ferramentas-2fa" },
