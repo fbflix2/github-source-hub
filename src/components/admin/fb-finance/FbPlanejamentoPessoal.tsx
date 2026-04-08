@@ -34,9 +34,10 @@ export function FbPlanejamentoPessoal() {
   const [salario, setSalario] = useState(0);
   const [salarioManual, setSalarioManual] = useState<number | null>(null);
   const [totalCustosPessoais, setTotalCustosPessoais] = useState(0);
+  const [totalSaldoEnvelopes, setTotalSaldoEnvelopes] = useState(0);
   const META_PRO_LABORE = 10000;
 
-  useEffect(() => { fetchDespesas(); fetchProLabore(); fetchCustosPessoais(); }, [mesRef]);
+  useEffect(() => { fetchDespesas(); fetchProLabore(); fetchCustosPessoais(); fetchSaldoEnvelopes(); }, [mesRef]);
 
   const fetchProLabore = async () => {
     const { data } = await supabase
@@ -62,6 +63,19 @@ export function FbPlanejamentoPessoal() {
     }
   };
 
+  const fetchSaldoEnvelopes = async () => {
+    const { data } = await supabase
+      .from("fb_finance_caixas" as any)
+      .select("id, nome, saldo_atual, tipo")
+      .order("nome");
+    if (data) {
+      const all = data as any[];
+      const pjNames = ["Capital de Giro", "Dividendos", "Fundos Fbflix", "Operacional", "Pro Labore"];
+      const pessoais = all.filter(c => !pjNames.some(n => c.nome.toLowerCase().includes(n.toLowerCase())));
+      const total = pessoais.reduce((s: number, c: any) => s + Number(c.saldo_atual || 0), 0);
+      setTotalSaldoEnvelopes(total);
+    }
+  };
   const fetchDespesas = async () => {
     setLoading(true);
     const { data } = await supabase.from("fb_finance_despesas_planejadas" as any).select("*").eq("mes_ref", mesRef).order("dia_vencimento");
@@ -257,7 +271,13 @@ export function FbPlanejamentoPessoal() {
             <span className="text-[#c1c6d4] text-xs uppercase tracking-widest font-bold">Livre p/ Envelopes</span>
             <h3 className={`font-['Manrope'] font-bold text-3xl mt-2 ${sobraParaEnvelopes > 0 ? "text-[#40e56c]" : "text-[#ffb4a8]"}`}>{formatBRL(sobraParaEnvelopes)}</h3>
           </div>
-          <div className="mt-4 flex items-center gap-2">
+          {totalSaldoEnvelopes > 0 && (
+            <div className="mt-2 bg-[#40e56c]/10 rounded-lg px-3 py-2">
+              <p className="text-[10px] text-[#8b919e] uppercase font-bold">Saldo acumulado nos envelopes</p>
+              <p className="text-sm font-bold text-[#40e56c]">{formatBRL(totalSaldoEnvelopes)}</p>
+            </div>
+          )}
+          <div className="mt-3 flex items-center gap-2">
             <span className="material-symbols-outlined text-[#40e56c] text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>savings</span>
             <p className="text-[11px] text-[#40e56c] font-bold">{(100 - pctComprometida).toFixed(0)}% da meta disponível</p>
           </div>
