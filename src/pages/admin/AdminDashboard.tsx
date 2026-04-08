@@ -393,27 +393,36 @@ export default function AdminDashboard() {
 
   const periodLabels: Record<string, string> = { hoje: "Hoje", "7dias": "7 Dias", "30dias": "30 Dias", inicio: "Desde o Início", custom: customRevenueRange.from ? `${format(customRevenueRange.from, "dd/MM", { locale: ptBR })} - ${customRevenueRange.to ? format(customRevenueRange.to, "dd/MM", { locale: ptBR }) : "..."}` : "Personalizado" };
 
-  const periodRevenue = useMemo(() => {
+  const getRevenueSince = useMemo(() => {
     const now = new Date();
-    let since: Date;
     switch (revenuePeriod) {
-      case "hoje": since = new Date(now); since.setHours(0, 0, 0, 0); break;
-      case "7dias": since = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); break;
-      case "30dias": since = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); break;
+      case "hoje": { const d = new Date(now); d.setHours(0, 0, 0, 0); return d; }
+      case "7dias": return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      case "30dias": return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      case "inicio": return new Date(0);
+      case "custom": return customRevenueRange.from ? new Date(new Date(customRevenueRange.from).setHours(0, 0, 0, 0)) : new Date(0);
     }
+  }, [revenuePeriod, customRevenueRange]);
+
+  const getRevenueUntil = useMemo(() => {
+    if (revenuePeriod === "custom" && customRevenueRange.to) {
+      const d = new Date(customRevenueRange.to);
+      d.setHours(23, 59, 59, 999);
+      return d;
+    }
+    return null;
+  }, [revenuePeriod, customRevenueRange]);
+
+  const periodRevenue = useMemo(() => {
     return allCompletedOrders
-      .filter(o => new Date(o.created_at) >= since)
+      .filter(o => {
+        const d = new Date(o.created_at);
+        return d >= getRevenueSince && (!getRevenueUntil || d <= getRevenueUntil);
+      })
       .reduce((s, o) => s + o.total, 0);
-  }, [allCompletedOrders, revenuePeriod]);
+  }, [allCompletedOrders, getRevenueSince, getRevenueUntil]);
 
   const dynamicChartData = useMemo(() => {
-    const now = new Date();
-    let since: Date;
-    switch (revenuePeriod) {
-      case "hoje": since = new Date(now); since.setHours(0, 0, 0, 0); break;
-      case "7dias": since = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); break;
-      case "30dias": since = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); break;
-    }
     const toLocalISO = (dt: Date) => {
       const y = dt.getFullYear();
       const m = String(dt.getMonth() + 1).padStart(2, "0");
@@ -422,7 +431,10 @@ export default function AdminDashboard() {
     };
     const dayMap = new Map<string, number>();
     allCompletedOrders
-      .filter(o => new Date(o.created_at) >= since)
+      .filter(o => {
+        const d = new Date(o.created_at);
+        return d >= getRevenueSince && (!getRevenueUntil || d <= getRevenueUntil);
+      })
       .forEach(o => {
         const key = toLocalISO(new Date(o.created_at));
         dayMap.set(key, (dayMap.get(key) || 0) + o.total);
@@ -433,7 +445,7 @@ export default function AdminDashboard() {
         const [, m, d] = date.split("-");
         return { name: `${d}/${m}`, value };
       });
-  }, [allCompletedOrders, revenuePeriod]);
+  }, [allCompletedOrders, getRevenueSince, getRevenueUntil]);
 
   // Mobile: render dedicated mobile dashboard
   if (isMobile) {
