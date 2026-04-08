@@ -1,12 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useShopCloneProducts, useShopCloneBalance, ShopCloneCategory, ShopCloneProduct, buyShopCloneResource } from "@/hooks/useShopClone";
-import { Loader2, Store, DollarSign, Package, RefreshCw, ExternalLink, Eye, Search, Clock, ShoppingCart, X, Copy, CheckCircle } from "lucide-react";
+import { Loader2, Store, DollarSign, Package, RefreshCw, ExternalLink, Eye, Search, Clock, ShoppingCart, X, Copy, CheckCircle, Heart } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // VND to USD rate (accface prices are in VND)
 const VND_TO_USD = 1 / 25800;
@@ -124,6 +125,26 @@ interface BuyResult {
   productName: string;
 }
 
+const FAVORITES_KEY = "shopclone_favorites";
+
+function useFavorites() {
+  const [favorites, setFavorites] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem(FAVORITES_KEY);
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch { return new Set(); }
+  });
+  const toggle = useCallback((id: string) => {
+    setFavorites(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      localStorage.setItem(FAVORITES_KEY, JSON.stringify([...next]));
+      return next;
+    });
+  }, []);
+  return { favorites, toggle };
+}
+
 export default function AdminShopClone() {
   const { data: categories, isLoading, error, refetch } = useShopCloneProducts();
   const { data: balance, isLoading: balanceLoading, refetch: refetchBalance } = useShopCloneBalance();
@@ -132,15 +153,22 @@ export default function AdminShopClone() {
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [buyResult, setBuyResult] = useState<BuyResult | null>(null);
+  const [viewTab, setViewTab] = useState<"all" | "favorites">("all");
+  const { favorites, toggle: toggleFavorite } = useFavorites();
 
-  const filteredCategories = (categories || []).filter((cat) => {
+  const filteredCategories = (categories || []).map((cat) => {
+    let products = cat.accounts;
+    if (viewTab === "favorites") {
+      products = products.filter(p => favorites.has(p.id));
+    }
+    if (search) {
+      const q = search.toLowerCase();
+      products = products.filter(p => p.name.toLowerCase().includes(q));
+    }
+    return { ...cat, accounts: products };
+  }).filter(cat => {
     if (selectedCategory && cat.id !== selectedCategory) return false;
-    if (!search) return true;
-    const q = search.toLowerCase();
-    return (
-      cat.name.toLowerCase().includes(q) ||
-      cat.accounts.some((p) => p.name.toLowerCase().includes(q))
-    );
+    return cat.accounts.length > 0;
   });
 
   const totalProducts = (categories || []).reduce((sum, c) => sum + c.accounts.length, 0);
@@ -246,6 +274,21 @@ export default function AdminShopClone() {
           </Card>
         </div>
 
+        {/* Tabs */}
+        <Tabs value={viewTab} onValueChange={(v) => setViewTab(v as "all" | "favorites")} className="w-full">
+          <TabsList className="w-auto">
+            <TabsTrigger value="all" className="text-xs gap-1.5">
+              <Package className="size-3.5" /> Todos
+            </TabsTrigger>
+            <TabsTrigger value="favorites" className="text-xs gap-1.5">
+              <Heart className="size-3.5" /> Favoritos
+              {favorites.size > 0 && (
+                <Badge variant="secondary" className="text-[10px] h-4 px-1.5 ml-1">{favorites.size}</Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-2">
           <div className="relative flex-1">
@@ -287,11 +330,21 @@ export default function AdminShopClone() {
 
         {/* Categories & Products */}
         {!isLoading && filteredCategories.map((cat) => (
-          <CategorySection key={cat.id} category={cat} searchQuery={search} usdToBrl={usdToBrl} onBuyResult={setBuyResult} />
+          <CategorySection key={cat.id} category={cat} searchQuery={search} usdToBrl={usdToBrl} onBuyResult={setBuyResult} favorites={favorites} onToggleFavorite={toggleFavorite} />
         ))}
 
         {!isLoading && filteredCategories.length === 0 && !error && (
-          <p className="text-center text-muted-foreground py-8">Nenhum produto encontrado</p>
+          <div className="text-center py-12">
+            {viewTab === "favorites" ? (
+              <div className="space-y-2">
+                <Heart className="size-10 text-muted-foreground mx-auto" />
+                <p className="text-muted-foreground">Nenhum produto favoritado ainda.</p>
+                <p className="text-xs text-muted-foreground">Clique no ❤️ ao lado de um produto para adicioná-lo aos favoritos.</p>
+              </div>
+            ) : (
+              <p className="text-muted-foreground">Nenhum produto encontrado</p>
+            )}
+          </div>
         )}
 
         {/* Buy Result Modal */}
@@ -348,7 +401,7 @@ function BuyResultModal({ result, onClose }: { result: BuyResult | null; onClose
   );
 }
 
-function CategorySection({ category, searchQuery, usdToBrl, onBuyResult }: { category: ShopCloneCategory; searchQuery: string; usdToBrl: number; onBuyResult: (r: BuyResult) => void }) {
+function CategorySection({ category, searchQuery, usdToBrl, onBuyResult, favorites, onToggleFavorite }: { category: ShopCloneCategory; searchQuery: string; usdToBrl: number; onBuyResult: (r: BuyResult) => void; favorites: Set<string>; onToggleFavorite: (id: string) => void }) {
   const [expanded, setExpanded] = useState(true);
   const q = searchQuery.toLowerCase();
 
@@ -381,6 +434,7 @@ function CategorySection({ category, searchQuery, usdToBrl, onBuyResult }: { cat
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b text-left text-xs text-muted-foreground">
+                  <th className="pb-2 font-medium w-6"></th>
                   <th className="pb-2 font-medium">ID</th>
                   <th className="pb-2 font-medium">Nome</th>
                   <th className="pb-2 font-medium">País</th>
@@ -392,7 +446,7 @@ function CategorySection({ category, searchQuery, usdToBrl, onBuyResult }: { cat
               </thead>
               <tbody>
                 {products.map((p) => (
-                  <ProductRow key={p.id} product={p} usdToBrl={usdToBrl} onBuyResult={onBuyResult} />
+                  <ProductRow key={p.id} product={p} usdToBrl={usdToBrl} onBuyResult={onBuyResult} isFavorite={favorites.has(p.id)} onToggleFavorite={onToggleFavorite} />
                 ))}
               </tbody>
             </table>
@@ -403,7 +457,7 @@ function CategorySection({ category, searchQuery, usdToBrl, onBuyResult }: { cat
   );
 }
 
-function ProductRow({ product, usdToBrl, onBuyResult }: { product: ShopCloneProduct; usdToBrl: number; onBuyResult: (r: BuyResult) => void }) {
+function ProductRow({ product, usdToBrl, onBuyResult, isFavorite, onToggleFavorite }: { product: ShopCloneProduct; usdToBrl: number; onBuyResult: (r: BuyResult) => void; isFavorite: boolean; onToggleFavorite: (id: string) => void }) {
   const priceVnd = Number(product.price) || 0;
   const priceUsd = priceVnd * VND_TO_USD;
   const priceBrl = priceUsd * usdToBrl;
@@ -441,6 +495,11 @@ function ProductRow({ product, usdToBrl, onBuyResult }: { product: ShopCloneProd
   
   return (
     <tr className="border-b last:border-0 hover:bg-muted/50 transition-colors">
+      <td className="py-2">
+        <button onClick={() => onToggleFavorite(product.id)} className="transition-colors hover:scale-110">
+          <Heart className={`size-4 ${isFavorite ? "fill-red-500 text-red-500" : "text-muted-foreground hover:text-red-400"}`} />
+        </button>
+      </td>
       <td className="py-2 font-mono text-xs text-muted-foreground">{product.id}</td>
       <td className="py-2 max-w-xs">
         <span className="text-xs leading-tight line-clamp-2">{product.name}</span>
