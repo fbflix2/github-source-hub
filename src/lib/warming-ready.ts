@@ -19,6 +19,12 @@ export interface ReadyProfileLike {
   created_at: string;
 }
 
+export interface QualityEvidenceTaskLike {
+  title: string;
+  description?: string | null;
+  completed?: boolean;
+}
+
 export const DEFAULT_PROFILE_QUALITY_DATA: ProfileQualityData = {
   has2FA: false,
   hasBM: false,
@@ -41,6 +47,44 @@ const FRIEND_RANGE_MIN: Record<string, number> = {
   "20-50": 20,
   "50-100+": 50,
 };
+
+const QUALITY_EVIDENCE_PATTERNS = {
+  has2FA: [/\b2fa\b/, /dois fatores/],
+  hasBM: [/\bbm\b/, /business manager/, /ad account/, /conta de anuncio/],
+  hasPage: [/\bpage\b/, /\bpagina\b/],
+};
+
+function normalizeEvidenceText(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function taskMatchesEvidence(task: QualityEvidenceTaskLike, patterns: RegExp[]): boolean {
+  if (task.completed === false) return false;
+
+  const text = normalizeEvidenceText(`${task.title} ${task.description ?? ""}`);
+  return patterns.some((pattern) => pattern.test(text));
+}
+
+export function getEffectiveProfileQuality(
+  quality: Partial<ProfileQualityData> | undefined,
+  tasks: QualityEvidenceTaskLike[] = [],
+): ProfileQualityData {
+  return {
+    has2FA:
+      Boolean(quality?.has2FA) ||
+      tasks.some((task) => taskMatchesEvidence(task, QUALITY_EVIDENCE_PATTERNS.has2FA)),
+    hasBM:
+      Boolean(quality?.hasBM) ||
+      tasks.some((task) => taskMatchesEvidence(task, QUALITY_EVIDENCE_PATTERNS.hasBM)),
+    hasPage:
+      Boolean(quality?.hasPage) ||
+      tasks.some((task) => taskMatchesEvidence(task, QUALITY_EVIDENCE_PATTERNS.hasPage)),
+    friendRange: quality?.friendRange || DEFAULT_PROFILE_QUALITY_DATA.friendRange,
+  };
+}
 
 export function parseReadyCriteria(value: unknown): ReadyCriteria {
   if (!value || typeof value !== "object") return DEFAULT_READY_CRITERIA;

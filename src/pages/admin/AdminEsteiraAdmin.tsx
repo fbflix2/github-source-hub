@@ -994,6 +994,7 @@ export default function AdminEsteiraAdmin() {
         <WarmingAuditDashboard
           profiles={profiles}
           qualityMap={qualityMap as Record<string, { has2FA: boolean; hasBM: boolean; hasPage: boolean; friendRange: string }>}
+          tasks={tasks}
           creatorNames={creatorNames}
           onRefresh={fetchProfiles}
         />
