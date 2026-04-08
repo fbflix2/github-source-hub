@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Users, Receipt, Wallet, TrendingUp, Database, CheckCircle, Clock, AlertTriangle, RefreshCw, User, Briefcase, Globe, MoreVertical, Loader2, X, ExternalLink, Eye, EyeOff, Shield, Server } from "lucide-react";
+import { Users, Receipt, Wallet, TrendingUp, Database, CheckCircle, Clock, AlertTriangle, RefreshCw, User, Briefcase, Globe, MoreVertical, Loader2, X, ExternalLink, Eye, EyeOff, Shield, Server, CalendarDays } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -8,8 +8,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { AdminMobileDashboard } from "@/components/admin/mobile/AdminMobileDashboard";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface PendingItem {
   id: string;
@@ -42,8 +46,9 @@ export default function AdminDashboard() {
   const [pendingItems, setPendingItems] = useState<PendingItem[]>([]);
   const [loadingPending, setLoadingPending] = useState(false);
   const [revenueHidden, setRevenueHidden] = useState(false);
-  const [revenuePeriod, setRevenuePeriod] = useState<"hoje" | "7dias" | "30dias">("hoje");
+  const [revenuePeriod, setRevenuePeriod] = useState<"hoje" | "7dias" | "30dias" | "inicio" | "custom">("hoje");
   const [showRevenuePeriodPicker, setShowRevenuePeriodPicker] = useState(false);
+  const [customRevenueRange, setCustomRevenueRange] = useState<{ from?: Date; to?: Date }>({});
   const [allCompletedOrders, setAllCompletedOrders] = useState<{ total: number; created_at: string }[]>([]);
 
   const openPendingModal = async () => {
@@ -386,29 +391,38 @@ export default function AdminDashboard() {
   const catColors = ["bg-blue-500", "bg-purple-500", "bg-primary", "bg-cyan-500", "bg-emerald-500", "bg-orange-500"];
   const catIcons = [User, Briefcase, Database, Globe, Shield, Server];
 
-  const periodLabels: Record<string, string> = { hoje: "Hoje", "7dias": "7 Dias", "30dias": "30 Dias" };
+  const periodLabels: Record<string, string> = { hoje: "Hoje", "7dias": "7 Dias", "30dias": "30 Dias", inicio: "Desde o Início", custom: customRevenueRange.from ? `${format(customRevenueRange.from, "dd/MM", { locale: ptBR })} - ${customRevenueRange.to ? format(customRevenueRange.to, "dd/MM", { locale: ptBR }) : "..."}` : "Personalizado" };
+
+  const getRevenueSince = useMemo(() => {
+    const now = new Date();
+    switch (revenuePeriod) {
+      case "hoje": { const d = new Date(now); d.setHours(0, 0, 0, 0); return d; }
+      case "7dias": return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      case "30dias": return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      case "inicio": return new Date(0);
+      case "custom": return customRevenueRange.from ? new Date(new Date(customRevenueRange.from).setHours(0, 0, 0, 0)) : new Date(0);
+    }
+  }, [revenuePeriod, customRevenueRange]);
+
+  const getRevenueUntil = useMemo(() => {
+    if (revenuePeriod === "custom" && customRevenueRange.to) {
+      const d = new Date(customRevenueRange.to);
+      d.setHours(23, 59, 59, 999);
+      return d;
+    }
+    return null;
+  }, [revenuePeriod, customRevenueRange]);
 
   const periodRevenue = useMemo(() => {
-    const now = new Date();
-    let since: Date;
-    switch (revenuePeriod) {
-      case "hoje": since = new Date(now); since.setHours(0, 0, 0, 0); break;
-      case "7dias": since = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); break;
-      case "30dias": since = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); break;
-    }
     return allCompletedOrders
-      .filter(o => new Date(o.created_at) >= since)
+      .filter(o => {
+        const d = new Date(o.created_at);
+        return d >= getRevenueSince && (!getRevenueUntil || d <= getRevenueUntil);
+      })
       .reduce((s, o) => s + o.total, 0);
-  }, [allCompletedOrders, revenuePeriod]);
+  }, [allCompletedOrders, getRevenueSince, getRevenueUntil]);
 
   const dynamicChartData = useMemo(() => {
-    const now = new Date();
-    let since: Date;
-    switch (revenuePeriod) {
-      case "hoje": since = new Date(now); since.setHours(0, 0, 0, 0); break;
-      case "7dias": since = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); break;
-      case "30dias": since = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); break;
-    }
     const toLocalISO = (dt: Date) => {
       const y = dt.getFullYear();
       const m = String(dt.getMonth() + 1).padStart(2, "0");
@@ -417,7 +431,10 @@ export default function AdminDashboard() {
     };
     const dayMap = new Map<string, number>();
     allCompletedOrders
-      .filter(o => new Date(o.created_at) >= since)
+      .filter(o => {
+        const d = new Date(o.created_at);
+        return d >= getRevenueSince && (!getRevenueUntil || d <= getRevenueUntil);
+      })
       .forEach(o => {
         const key = toLocalISO(new Date(o.created_at));
         dayMap.set(key, (dayMap.get(key) || 0) + o.total);
@@ -428,7 +445,7 @@ export default function AdminDashboard() {
         const [, m, d] = date.split("-");
         return { name: `${d}/${m}`, value };
       });
-  }, [allCompletedOrders, revenuePeriod]);
+  }, [allCompletedOrders, getRevenueSince, getRevenueUntil]);
 
   // Mobile: render dedicated mobile dashboard
   if (isMobile) {
@@ -490,7 +507,7 @@ export default function AdminDashboard() {
             <DialogTitle className="text-white text-sm">Selecionar Período de Faturamento</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-1">
-            {(["hoje", "7dias", "30dias"] as const).map(p => (
+            {(["hoje", "7dias", "30dias", "inicio"] as const).map(p => (
               <button
                 key={p}
                 onClick={() => { setRevenuePeriod(p); setShowRevenuePeriodPicker(false); }}
@@ -498,9 +515,39 @@ export default function AdminDashboard() {
                   revenuePeriod === p ? "text-primary bg-primary/10" : "text-white/60 hover:text-white hover:bg-white/5"
                 }`}
               >
-                {periodLabels[p]}
+                {({ hoje: "Hoje", "7dias": "7 Dias", "30dias": "30 Dias", inicio: "Desde o Início" } as Record<string, string>)[p]}
               </button>
             ))}
+            <div className="border-t border-white/10 mt-2 pt-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 ${
+                      revenuePeriod === "custom" ? "text-primary bg-primary/10" : "text-white/60 hover:text-white hover:bg-white/5"
+                    }`}
+                  >
+                    <CalendarDays className="size-4" />
+                    {revenuePeriod === "custom" && customRevenueRange.from
+                      ? `${format(customRevenueRange.from, "dd/MM/yy", { locale: ptBR })} - ${customRevenueRange.to ? format(customRevenueRange.to, "dd/MM/yy", { locale: ptBR }) : "..."}`
+                      : "Período Personalizado"}
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="center" side="top">
+                  <Calendar
+                    mode="range"
+                    selected={{ from: customRevenueRange.from, to: customRevenueRange.to }}
+                    onSelect={(range: any) => {
+                      setCustomRevenueRange({ from: range?.from, to: range?.to });
+                      if (range?.from) setRevenuePeriod("custom");
+                      if (range?.from && range?.to) setShowRevenuePeriodPicker(false);
+                    }}
+                    locale={ptBR}
+                    numberOfMonths={2}
+                    disabled={{ after: new Date() }}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
