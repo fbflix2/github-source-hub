@@ -173,7 +173,7 @@ export function FbCaixas() {
   const reservedNames = ["fundos fbflix", "dividendos", "fundo emergência", "fundo emergencia", "conta corrente pessoal", "entrada compra casa", "janela oportunidade"];
   const totalPatrimonio = caixas
     .filter(c => reservedNames.some(n => c.nome.toLowerCase().includes(n)))
-    .reduce((s, c) => s + Number(c.saldo_atual) + (proLaboreAlloc[c.id] || 0), 0);
+    .reduce((s, c) => s + Number(c.saldo_atual), 0);
   const totalAlvo = caixas.reduce((s, c) => s + (Number(c.alvo_percent) > 0 ? Number(c.saldo_atual) / (Number(c.alvo_percent) / 100) : 0), 0);
   const healthPercent = totalAlvo > 0 ? Math.min((totalPatrimonio / totalAlvo) * 100, 100) : 85;
 
@@ -240,10 +240,8 @@ export function FbCaixas() {
         const pjCaixas = caixas.filter(c => pjNames.some(n => c.nome.toLowerCase().includes(n.toLowerCase())) || (c.tipo === "empresa" && !["Dia a Dia", "Dia a Dia/Emergências", "Estilo de Vida", "Fundo Emergência", "Investimentos", "Janela Oportunidade", "Conta Corrente Pessoal"].some(n => c.nome.toLowerCase().includes(n.toLowerCase()))));
         const pessoalCaixas = caixas.filter(c => !pjCaixas.includes(c));
 
-        const renderCard = (c: Caixa) => {
-          const saldoBase = Number(c.saldo_atual);
-          const allocExtra = proLaboreAlloc[c.id] || 0;
-          const saldo = saldoBase + allocExtra;
+         const renderCard = (c: Caixa) => {
+           const saldo = Number(c.saldo_atual);
           const iconCfg = caixaIcons[c.nome] || defaultIcon;
           const meta = Number(c.meta) > 0 ? Number(c.meta) : (c.alvo_percent > 0 ? saldo / (c.alvo_percent / 100) : saldo * 1.5);
           const progress = meta > 0 ? Math.min((saldo / meta) * 100, 100) : 0;
