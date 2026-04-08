@@ -457,7 +457,7 @@ function CategorySection({ category, searchQuery, usdToBrl, onBuyResult, favorit
   );
 }
 
-function ProductRow({ product, usdToBrl, onBuyResult }: { product: ShopCloneProduct; usdToBrl: number; onBuyResult: (r: BuyResult) => void }) {
+function ProductRow({ product, usdToBrl, onBuyResult, isFavorite, onToggleFavorite }: { product: ShopCloneProduct; usdToBrl: number; onBuyResult: (r: BuyResult) => void; isFavorite: boolean; onToggleFavorite: (id: string) => void }) {
   const priceVnd = Number(product.price) || 0;
   const priceUsd = priceVnd * VND_TO_USD;
   const priceBrl = priceUsd * usdToBrl;
