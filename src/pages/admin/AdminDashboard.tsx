@@ -401,6 +401,35 @@ export default function AdminDashboard() {
       .reduce((s, o) => s + o.total, 0);
   }, [allCompletedOrders, revenuePeriod]);
 
+  const dynamicChartData = useMemo(() => {
+    const now = new Date();
+    let since: Date;
+    switch (revenuePeriod) {
+      case "hoje": since = new Date(now); since.setHours(0, 0, 0, 0); break;
+      case "7dias": since = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); break;
+      case "30dias": since = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); break;
+    }
+    const toLocalISO = (dt: Date) => {
+      const y = dt.getFullYear();
+      const m = String(dt.getMonth() + 1).padStart(2, "0");
+      const d = String(dt.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    };
+    const dayMap = new Map<string, number>();
+    allCompletedOrders
+      .filter(o => new Date(o.created_at) >= since)
+      .forEach(o => {
+        const key = toLocalISO(new Date(o.created_at));
+        dayMap.set(key, (dayMap.get(key) || 0) + o.total);
+      });
+    return Array.from(dayMap.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, value]) => {
+        const [, m, d] = date.split("-");
+        return { name: `${d}/${m}`, value };
+      });
+  }, [allCompletedOrders, revenuePeriod]);
+
   // Mobile: render dedicated mobile dashboard
   if (isMobile) {
     return <AdminMobileDashboard />;
@@ -510,11 +539,12 @@ export default function AdminDashboard() {
       <div className="glass-panel rounded-xl p-4">
         <div className="pb-2">
           <h3 className="text-sm font-semibold text-foreground">Movimentação de Pagamentos</h3>
+          <p className="text-xs text-muted-foreground">Faturamento por dia — {periodLabels[revenuePeriod]}</p>
         </div>
         <div className="pt-0">
-          {chartData.length > 0 ? (
+          {dynamicChartData.length > 0 ? (
             <ResponsiveContainer width="100%" height={200}>
-              <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+              <AreaChart data={dynamicChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3} />
