@@ -171,7 +171,7 @@ export function FbCaixas() {
   const reservedNames = ["fundos fbflix", "dividendos", "fundo emergência", "fundo emergencia", "conta corrente pessoal", "entrada compra casa", "janela oportunidade"];
   const totalPatrimonio = caixas
     .filter(c => reservedNames.some(n => c.nome.toLowerCase().includes(n)))
-    .reduce((s, c) => s + Number(c.saldo_atual), 0);
+    .reduce((s, c) => s + Number(c.saldo_atual) + (proLaboreAlloc[c.id] || 0), 0);
   const totalAlvo = caixas.reduce((s, c) => s + (Number(c.alvo_percent) > 0 ? Number(c.saldo_atual) / (Number(c.alvo_percent) / 100) : 0), 0);
   const healthPercent = totalAlvo > 0 ? Math.min((totalPatrimonio / totalAlvo) * 100, 100) : 85;
 
