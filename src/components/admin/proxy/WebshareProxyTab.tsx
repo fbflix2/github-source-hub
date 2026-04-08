@@ -446,7 +446,7 @@ export default function WebshareProxyTab() {
         return (
           <Card className="border-border/40 bg-card/60 backdrop-blur-sm overflow-hidden">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-semibold text-foreground">Evolução de Vendas Webshare</CardTitle>
+              <CardTitle className="text-sm font-semibold text-foreground">Evolução de Vendas proxy Fbflix</CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
               {!chartData.length ? (
