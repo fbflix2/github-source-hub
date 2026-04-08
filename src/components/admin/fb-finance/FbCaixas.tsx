@@ -48,6 +48,7 @@ export function FbCaixas() {
   const [editSaldoCaixa, setEditSaldoCaixa] = useState<Caixa | null>(null);
   const [editSaldoValue, setEditSaldoValue] = useState("");
   const menuRef = useRef<HTMLDivElement>(null);
+  const [proLaboreAlloc, setProLaboreAlloc] = useState<Record<string, number>>({});
 
   const [newForm, setNewForm] = useState({ nome: "", tipo: "empresa", alvo_percent: "0" });
   const [transferForm, setTransferForm] = useState({ from: "", to: "", valor: "" });
@@ -56,12 +57,35 @@ export function FbCaixas() {
   useEffect(() => { fetchCaixas(); }, []);
 
   const fetchCaixas = async () => {
-    const { data: caixasData } = await supabase.from("fb_finance_caixas" as any).select("*").order("tipo").order("nome");
+    const [{ data: caixasData }, { data: configData }, { data: proLaboreData }] = await Promise.all([
+      supabase.from("fb_finance_caixas" as any).select("*").order("tipo").order("nome"),
+      supabase.from("fb_finance_config" as any).select("personal_distribution_percentages").limit(1).maybeSingle(),
+      supabase.from("fb_finance_caixas" as any).select("saldo_atual").ilike("nome", "%pro labore%").limit(1).maybeSingle(),
+    ]);
 
     const caixaRows = (caixasData as any[]) || [];
+    const proLaboreSaldo = Number((proLaboreData as any)?.saldo_atual || 0);
+    const percents = (configData as any)?.personal_distribution_percentages as Record<string, number> | null;
+
+    // Calculate Pro Labore allocation per personal box
+    const alloc: Record<string, number> = {};
+    if (percents && proLaboreSaldo > 0) {
+      const pjNames = ["Capital de Giro", "Dividendos", "Fundos Fbflix", "Operacional", "Pro Labore"];
+      const pessoalNames = ["Dia a Dia", "Dia a Dia/Emergências", "Estilo de Vida", "Fundo Emergência", "Investimentos", "Janela Oportunidade", "Conta Corrente Pessoal", "Entrada Compra Casa"];
+      const pjCaixas = caixaRows.filter((c: any) =>
+        pjNames.some(n => c.nome.toLowerCase().includes(n.toLowerCase())) ||
+        (c.tipo === "empresa" && !pessoalNames.some(n => c.nome.toLowerCase().includes(n.toLowerCase())))
+      );
+      const pessoalBoxes = caixaRows.filter((c: any) => !pjCaixas.includes(c));
+      for (const box of pessoalBoxes) {
+        const pct = percents[box.id] !== undefined ? Number(percents[box.id]) : 0;
+        alloc[box.id] = proLaboreSaldo * (pct / 100);
+      }
+    }
+    setProLaboreAlloc(alloc);
 
     setCaixas(
-      caixaRows.map((caixa) => ({
+      caixaRows.map((caixa: any) => ({
         ...caixa,
         saldo_atual: Number(caixa.saldo_atual || 0),
       })) as any
@@ -147,7 +171,7 @@ export function FbCaixas() {
   const reservedNames = ["fundos fbflix", "dividendos", "fundo emergência", "fundo emergencia", "conta corrente pessoal", "entrada compra casa", "janela oportunidade"];
   const totalPatrimonio = caixas
     .filter(c => reservedNames.some(n => c.nome.toLowerCase().includes(n)))
-    .reduce((s, c) => s + Number(c.saldo_atual), 0);
+    .reduce((s, c) => s + Number(c.saldo_atual) + (proLaboreAlloc[c.id] || 0), 0);
   const totalAlvo = caixas.reduce((s, c) => s + (Number(c.alvo_percent) > 0 ? Number(c.saldo_atual) / (Number(c.alvo_percent) / 100) : 0), 0);
   const healthPercent = totalAlvo > 0 ? Math.min((totalPatrimonio / totalAlvo) * 100, 100) : 85;
 
@@ -215,7 +239,9 @@ export function FbCaixas() {
         const pessoalCaixas = caixas.filter(c => !pjCaixas.includes(c));
 
         const renderCard = (c: Caixa) => {
-          const saldo = Number(c.saldo_atual);
+          const saldoBase = Number(c.saldo_atual);
+          const allocExtra = proLaboreAlloc[c.id] || 0;
+          const saldo = saldoBase + allocExtra;
           const iconCfg = caixaIcons[c.nome] || defaultIcon;
           const meta = Number(c.meta) > 0 ? Number(c.meta) : (c.alvo_percent > 0 ? saldo / (c.alvo_percent / 100) : saldo * 1.5);
           const progress = meta > 0 ? Math.min((saldo / meta) * 100, 100) : 0;
