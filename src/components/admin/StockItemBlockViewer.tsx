@@ -165,7 +165,7 @@ export function StockItemBlockViewer({ item, open, onOpenChange, onSaved }: Prop
             >
               {copied ? <CheckCircle2 className="h-4 w-4 text-emerald-400" /> : <Copy className="h-4 w-4" />}
             </button>
-            <pre className="bg-black/50 border border-white/5 rounded-xl p-4 text-sm text-zinc-200 font-mono whitespace-pre-wrap break-all min-h-[120px] select-all">
+            <pre className="bg-black/50 border border-white/5 rounded-xl p-4 text-sm text-zinc-200 font-mono whitespace-pre-wrap break-all min-h-[120px] select-text cursor-text">
               {blockText}
             </pre>
           </div>
