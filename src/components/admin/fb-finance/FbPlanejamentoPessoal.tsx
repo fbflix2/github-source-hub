@@ -63,6 +63,19 @@ export function FbPlanejamentoPessoal() {
     }
   };
 
+  const fetchSaldoEnvelopes = async () => {
+    const { data } = await supabase
+      .from("fb_finance_caixas" as any)
+      .select("id, nome, saldo_atual, tipo")
+      .order("nome");
+    if (data) {
+      const all = data as any[];
+      const pjNames = ["Capital de Giro", "Dividendos", "Fundos Fbflix", "Operacional", "Pro Labore"];
+      const pessoais = all.filter(c => !pjNames.some(n => c.nome.toLowerCase().includes(n.toLowerCase())));
+      const total = pessoais.reduce((s: number, c: any) => s + Number(c.saldo_atual || 0), 0);
+      setTotalSaldoEnvelopes(total);
+    }
+  };
   const fetchDespesas = async () => {
     setLoading(true);
     const { data } = await supabase.from("fb_finance_despesas_planejadas" as any).select("*").eq("mes_ref", mesRef).order("dia_vencimento");
