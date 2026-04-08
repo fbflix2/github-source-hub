@@ -539,9 +539,10 @@ export default function AdminDashboard() {
       <div className="glass-panel rounded-xl p-4">
         <div className="pb-2">
           <h3 className="text-sm font-semibold text-foreground">Movimentação de Pagamentos</h3>
+          <p className="text-xs text-muted-foreground">Faturamento por dia — {periodLabels[revenuePeriod]}</p>
         </div>
         <div className="pt-0">
-          {chartData.length > 0 ? (
+          {dynamicChartData.length > 0 ? (
             <ResponsiveContainer width="100%" height={200}>
               <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                 <defs>
