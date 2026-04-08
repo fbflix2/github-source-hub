@@ -90,16 +90,26 @@ export function StockItemBlockViewer({ item, open, onOpenChange, onSaved }: Prop
   // Auto-save quality notes with debounce
   useEffect(() => {
     if (!item) return;
+    setSaved(false);
     const timeout = setTimeout(async () => {
       const currentData = item.data ?? {};
-      if (qualityNotes === (currentData.quality_notes ?? "")) return;
+      if (qualityNotes === (currentData.quality_notes ?? "")) {
+        if (qualityNotes) setSaved(true);
+        return;
+      }
       setSaving(true);
       const { error } = await supabase
         .from("stock_items")
         .update({ data: { ...currentData, quality_notes: qualityNotes } })
         .eq("id", item.id);
       setSaving(false);
-      if (error) toast.error("Erro ao salvar anotação");
+      if (error) {
+        toast.error("Erro ao salvar anotação");
+      } else {
+        setSaved(true);
+        // Update item data in memory so subsequent comparisons work
+        item.data = { ...currentData, quality_notes: qualityNotes };
+      }
     }, 800);
     return () => clearTimeout(timeout);
   }, [qualityNotes, item]);
