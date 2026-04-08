@@ -1,12 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useShopCloneProducts, useShopCloneBalance, ShopCloneCategory, ShopCloneProduct, buyShopCloneResource } from "@/hooks/useShopClone";
-import { Loader2, Store, DollarSign, Package, RefreshCw, ExternalLink, Eye, Search, Clock, ShoppingCart, X, Copy, CheckCircle } from "lucide-react";
+import { Loader2, Store, DollarSign, Package, RefreshCw, ExternalLink, Eye, Search, Clock, ShoppingCart, X, Copy, CheckCircle, Heart } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // VND to USD rate (accface prices are in VND)
 const VND_TO_USD = 1 / 25800;
