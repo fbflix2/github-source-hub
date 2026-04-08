@@ -286,18 +286,21 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
 
     const now = new Date().toISOString();
 
-    // Fetch current delivery data + new item data
-    const [{ data: currentOrderItem }, { data: newStockFull }] = await Promise.all([
+    // Fetch current delivery data + new item data + product info
+    const [{ data: currentOrderItem }, { data: newStockFull }, { data: productInfo }] = await Promise.all([
       supabase
         .from("order_items")
-        .select("delivery_data")
+        .select("delivery_data, product_id")
         .eq("id", selectedOrderItem.id)
         .maybeSingle(),
       supabase
         .from("stock_items")
-        .select("id, name, data, identification, identification_link")
+        .select("id, name, data, identification, identification_link, type")
         .eq("id", selectedNewItem.id)
         .single(),
+      selectedOrderItem.product_id
+        ? supabase.from("products").select("icon_type").eq("id", selectedOrderItem.product_id).maybeSingle().then(r => r.data)
+        : Promise.resolve(null),
     ]);
 
     // Mark new item as sold and linked to the same order item
@@ -322,11 +325,14 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
           ? { ...(currentOrderItem.delivery_data as Record<string, unknown>) }
           : {};
       const d = (newStockFull.data as Record<string, unknown>) || {};
+      const isBmProduct = newStockFull.type === "bm" || productInfo?.icon_type === "bm";
       const deliveryData: Record<string, unknown> = {
         ...currentDeliveryData,
         ...d,
         ...(newStockFull.identification ? { idPerfil: newStockFull.identification } : {}),
         ...(newStockFull.identification_link ? { linkPerfil: newStockFull.identification_link } : {}),
+        // For BM products, update the bmLinks array so the client sees the new link
+        ...(isBmProduct && newStockFull.identification_link ? { bmLinks: [newStockFull.identification_link] } : {}),
         _replaced: true,
         _replaced_at: now,
         _replacement_stock_item_id: newStockFull.id,
