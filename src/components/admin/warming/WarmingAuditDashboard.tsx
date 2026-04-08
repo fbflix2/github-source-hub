@@ -56,7 +56,7 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, creatorNam
   const [filterBM, setFilterBM] = useState(false);
   const [filterPage, setFilterPage] = useState(false);
   const [minFriends, setMinFriends] = useState(0);
-  const [minDays, setMinDays] = useState(7);
+  const [minDays, setMinDays] = useState(0);
   const [filterOperator, setFilterOperator] = useState("all");
   const [approving, setApproving] = useState<string | null>(null);
   const [search, setSearch] = useState("");
