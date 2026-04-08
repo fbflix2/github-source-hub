@@ -46,8 +46,9 @@ export default function AdminDashboard() {
   const [pendingItems, setPendingItems] = useState<PendingItem[]>([]);
   const [loadingPending, setLoadingPending] = useState(false);
   const [revenueHidden, setRevenueHidden] = useState(false);
-  const [revenuePeriod, setRevenuePeriod] = useState<"hoje" | "7dias" | "30dias">("hoje");
+  const [revenuePeriod, setRevenuePeriod] = useState<"hoje" | "7dias" | "30dias" | "inicio" | "custom">("hoje");
   const [showRevenuePeriodPicker, setShowRevenuePeriodPicker] = useState(false);
+  const [customRevenueRange, setCustomRevenueRange] = useState<{ from?: Date; to?: Date }>({});
   const [allCompletedOrders, setAllCompletedOrders] = useState<{ total: number; created_at: string }[]>([]);
 
   const openPendingModal = async () => {
