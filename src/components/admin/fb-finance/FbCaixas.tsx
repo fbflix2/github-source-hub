@@ -1,13 +1,21 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { buildDisplayCaixaBalanceMap } from "@/lib/fb-finance";
 
 const formatBRL = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const formatCompact = (v: number) => formatBRL(v);
 
 interface Caixa { id: string; nome: string; saldo_atual: number; alvo_percent: number; tipo: string; meta: number }
 interface Lancamento { id: string; data: string; descricao: string | null; entrada: number; saida: number; categoria: string; caixa_destino_id: string | null }
+
+const META_PRO_LABORE = 10000;
+const PJ_NAMES = ["Capital de Giro", "Dividendos", "Fundos Fbflix", "Fundos Reserva/Crise", "Fundos Reserva", "Fundos Reserva/Colchão", "Operacional", "Pro Labore"];
+const PESSOAL_NAMES = ["Dia a Dia", "Dia a Dia/Emergências", "Estilo de Vida", "Fundo Emergência", "Investimentos", "Janela Oportunidade", "Conta Corrente Pessoal", "Entrada Compra Casa"];
+const RESERVED_NAMES = ["fundos fbflix", "dividendos", "fundo emergência", "fundo emergencia", "conta corrente pessoal", "entrada compra casa", "janela oportunidade"];
+
+const isPjCaixa = (caixa: Pick<Caixa, "nome" | "tipo">) =>
+  PJ_NAMES.some((name) => caixa.nome.toLowerCase().includes(name.toLowerCase())) ||
+  (caixa.tipo === "empresa" && !PESSOAL_NAMES.some((name) => caixa.nome.toLowerCase().includes(name.toLowerCase())));
 
 const caixaIcons: Record<string, { icon: string; color: string; bg: string }> = {
   "Fundo Emergência": { icon: "security", color: "text-[#a5c8ff]", bg: "bg-blue-500/10" },
@@ -36,7 +44,6 @@ const ModalOverlay = ({ children, onClose }: { children: React.ReactNode; onClos
 );
 
 export function FbCaixas() {
-  const META_PRO_LABORE = 10000;
   const [caixas, setCaixas] = useState<Caixa[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCaixa, setSelectedCaixa] = useState<Caixa | null>(null);
@@ -72,12 +79,7 @@ export function FbCaixas() {
     // Use the same base from Planejamento Pessoal / Alocação do Pro Labore
     const alloc: Record<string, number> = {};
     if (percents && disponivelParaEnvelopes > 0) {
-      const pjNames = ["Capital de Giro", "Dividendos", "Fundos Fbflix", "Operacional", "Pro Labore"];
-      const pessoalNames = ["Dia a Dia", "Dia a Dia/Emergências", "Estilo de Vida", "Fundo Emergência", "Investimentos", "Janela Oportunidade", "Conta Corrente Pessoal", "Entrada Compra Casa"];
-      const pjCaixas = caixaRows.filter((c: any) =>
-        pjNames.some(n => c.nome.toLowerCase().includes(n.toLowerCase())) ||
-        (c.tipo === "empresa" && !pessoalNames.some(n => c.nome.toLowerCase().includes(n.toLowerCase())))
-      );
+      const pjCaixas = caixaRows.filter((c: any) => isPjCaixa(c));
       const pessoalBoxes = caixaRows.filter((c: any) => !pjCaixas.includes(c));
       for (const box of pessoalBoxes) {
         const pct = percents[box.id] !== undefined ? Number(percents[box.id]) : 0;
@@ -170,10 +172,9 @@ export function FbCaixas() {
     fetchCaixas();
   };
 
-  const reservedNames = ["fundos fbflix", "dividendos", "fundo emergência", "fundo emergencia", "conta corrente pessoal", "entrada compra casa", "janela oportunidade"];
   const totalPatrimonio = caixas
-    .filter(c => reservedNames.some(n => c.nome.toLowerCase().includes(n)))
-    .reduce((s, c) => s + Number(c.saldo_atual), 0);
+    .filter(c => RESERVED_NAMES.some(n => c.nome.toLowerCase().includes(n)))
+    .reduce((s, c) => s + Number(c.saldo_atual) + (isPjCaixa(c) ? 0 : (proLaboreAlloc[c.id] || 0)), 0);
   const totalAlvo = caixas.reduce((s, c) => s + (Number(c.alvo_percent) > 0 ? Number(c.saldo_atual) / (Number(c.alvo_percent) / 100) : 0), 0);
   const healthPercent = totalAlvo > 0 ? Math.min((totalPatrimonio / totalAlvo) * 100, 100) : 85;
 
@@ -215,7 +216,7 @@ export function FbCaixas() {
             <span className="text-xs uppercase tracking-[0.2em] text-blue-100/70 font-bold mb-2 block">Patrimônio Reservado</span>
             <h3 className="text-5xl font-['Manrope'] font-black text-white mb-6 tracking-tighter">{formatBRL(totalPatrimonio)}</h3>
             <p className="text-blue-200/80 text-[10px] leading-relaxed mb-1">Fundos Fbflix · Dividendos · Fundo Emergência · Conta Corrente · Entrada Casa · Janela Oportunidade</p>
-            <span className="text-blue-200/60 text-xs">{caixas.filter(c => reservedNames.some(n => c.nome.toLowerCase().includes(n))).length} caixas reservadas</span>
+            <span className="text-blue-200/60 text-xs">{caixas.filter(c => RESERVED_NAMES.some(n => c.nome.toLowerCase().includes(n))).length} caixas reservadas</span>
           </div>
           <div className="absolute -right-12 -bottom-12 w-64 h-64 bg-white/5 rounded-full blur-3xl"></div>
           <div className="absolute right-8 top-8 opacity-20">
@@ -236,12 +237,12 @@ export function FbCaixas() {
 
       {/* PJ Section */}
       {(() => {
-        const pjNames = ["Capital de Giro", "Dividendos", "Fundos Reserva/Crise", "Fundos Reserva", "Fundos Reserva/Colchão", "Operacional"];
-        const pjCaixas = caixas.filter(c => pjNames.some(n => c.nome.toLowerCase().includes(n.toLowerCase())) || (c.tipo === "empresa" && !["Dia a Dia", "Dia a Dia/Emergências", "Estilo de Vida", "Fundo Emergência", "Investimentos", "Janela Oportunidade", "Conta Corrente Pessoal"].some(n => c.nome.toLowerCase().includes(n.toLowerCase()))));
+        const pjCaixas = caixas.filter(isPjCaixa);
         const pessoalCaixas = caixas.filter(c => !pjCaixas.includes(c));
 
          const renderCard = (c: Caixa) => {
-           const saldo = Number(c.saldo_atual);
+            const isPessoal = !isPjCaixa(c);
+            const saldo = Number(c.saldo_atual) + (isPessoal ? (proLaboreAlloc[c.id] || 0) : 0);
           const iconCfg = caixaIcons[c.nome] || defaultIcon;
           const meta = Number(c.meta) > 0 ? Number(c.meta) : (c.alvo_percent > 0 ? saldo / (c.alvo_percent / 100) : saldo * 1.5);
           const progress = meta > 0 ? Math.min((saldo / meta) * 100, 100) : 0;
@@ -285,7 +286,7 @@ export function FbCaixas() {
               <div className="space-y-4">
                 <div>
                   <div className="flex justify-between text-xs mb-2">
-                    <span className="text-[#c1c6d4] font-medium">Saldo Atual</span>
+                    <span className="text-[#c1c6d4] font-medium">{isPessoal ? "Saldo Total" : "Saldo Atual"}</span>
                     <span className="text-[#40e56c] font-bold">{formatCompact(saldo)}</span>
                   </div>
                   <div className="h-2 bg-[#283647] rounded-full overflow-hidden">
