@@ -423,6 +423,31 @@ export default function AdminDashboard() {
   }, [allCompletedOrders, getRevenueSince, getRevenueUntil]);
 
   const dynamicChartData = useMemo(() => {
+    const isToday = revenuePeriod === "hoje";
+
+    const filtered = allCompletedOrders.filter(o => {
+      const d = new Date(o.created_at);
+      return d >= getRevenueSince && (!getRevenueUntil || d <= getRevenueUntil);
+    });
+
+    if (isToday) {
+      // Group by hour for today view
+      const hourMap = new Map<number, number>();
+      // Initialize all 24 hours
+      for (let h = 0; h <= 23; h++) hourMap.set(h, 0);
+      filtered.forEach(o => {
+        const h = new Date(o.created_at).getHours();
+        hourMap.set(h, (hourMap.get(h) || 0) + o.total);
+      });
+      // Only show hours from 0 up to current hour
+      const currentHour = new Date().getHours();
+      return Array.from(hourMap.entries())
+        .filter(([h]) => h <= currentHour)
+        .sort(([a], [b]) => a - b)
+        .map(([h, value]) => ({ name: `${String(h).padStart(2, "0")}:00`, value }));
+    }
+
+    // Group by day for other periods
     const toLocalISO = (dt: Date) => {
       const y = dt.getFullYear();
       const m = String(dt.getMonth() + 1).padStart(2, "0");
@@ -430,22 +455,17 @@ export default function AdminDashboard() {
       return `${y}-${m}-${d}`;
     };
     const dayMap = new Map<string, number>();
-    allCompletedOrders
-      .filter(o => {
-        const d = new Date(o.created_at);
-        return d >= getRevenueSince && (!getRevenueUntil || d <= getRevenueUntil);
-      })
-      .forEach(o => {
-        const key = toLocalISO(new Date(o.created_at));
-        dayMap.set(key, (dayMap.get(key) || 0) + o.total);
-      });
+    filtered.forEach(o => {
+      const key = toLocalISO(new Date(o.created_at));
+      dayMap.set(key, (dayMap.get(key) || 0) + o.total);
+    });
     return Array.from(dayMap.entries())
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([date, value]) => {
         const [, m, d] = date.split("-");
         return { name: `${d}/${m}`, value };
       });
-  }, [allCompletedOrders, getRevenueSince, getRevenueUntil]);
+  }, [allCompletedOrders, revenuePeriod, getRevenueSince, getRevenueUntil]);
 
   // Mobile: render dedicated mobile dashboard
   if (isMobile) {
