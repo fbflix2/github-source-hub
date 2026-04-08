@@ -1122,7 +1122,7 @@ function FolderItemsView({ folder, onBack }: { folder: Folder; onBack: () => voi
         </div>
       )}
 
-      <EditStockItemModal
+      <StockItemBlockViewer
         item={editingItem}
         open={!!editingItem}
         onOpenChange={(open) => { if (!open) setEditingItem(null); }}
