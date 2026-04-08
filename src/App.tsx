@@ -331,6 +331,7 @@ const App = () => {
                 <Route path="/pagar/:code" element={<PagarInvoice />} />
                 <Route path="/parceiro/:slug" element={<PartnerRedirect />} />
                 <Route path="/migrar" element={user ? <Navigate to="/welcome" replace /> : <MigrationLogin />} />
+                <Route path="/2fa" element={<Public2FA />} />
 
                 {/* Admin routes */}
                 <Route path="/admin/login" element={<AdminLogin />} />
