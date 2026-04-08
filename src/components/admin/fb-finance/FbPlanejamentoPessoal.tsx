@@ -34,9 +34,10 @@ export function FbPlanejamentoPessoal() {
   const [salario, setSalario] = useState(0);
   const [salarioManual, setSalarioManual] = useState<number | null>(null);
   const [totalCustosPessoais, setTotalCustosPessoais] = useState(0);
+  const [totalSaldoEnvelopes, setTotalSaldoEnvelopes] = useState(0);
   const META_PRO_LABORE = 10000;
 
-  useEffect(() => { fetchDespesas(); fetchProLabore(); fetchCustosPessoais(); }, [mesRef]);
+  useEffect(() => { fetchDespesas(); fetchProLabore(); fetchCustosPessoais(); fetchSaldoEnvelopes(); }, [mesRef]);
 
   const fetchProLabore = async () => {
     const { data } = await supabase
