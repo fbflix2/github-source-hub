@@ -563,23 +563,76 @@ export function FbDistribuicaoPJ() {
       {/* Redirect Pro Labore Popup */}
       {redirectPopup && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setRedirectPopup(null)}>
-          <div className="bg-[#0e1c2d] rounded-2xl w-full max-w-md shadow-2xl border border-[#f5c542]/30 p-6" onClick={e => e.stopPropagation()}>
+          <div className="bg-[#0e1c2d] rounded-2xl w-full max-w-lg shadow-2xl border border-[#f5c542]/30 p-6" onClick={e => e.stopPropagation()}>
             <div className="flex items-center gap-3 mb-4">
               <span className="material-symbols-outlined text-[#f5c542] text-2xl">account_balance_wallet</span>
               <h3 className="font-['Manrope'] font-bold text-lg text-[#d5e4fa]">Meta Pro Labore Atingida!</h3>
             </div>
             <p className="text-sm text-[#8b919e] mb-4">
-              O excedente de <span className="font-bold text-[#f5c542]">{formatBRL(redirectPopup.excedente)}</span> precisa ser redirecionado para outro caixa.
+              O excedente de <span className="font-bold text-[#f5c542]">{formatBRL(redirectPopup.excedente)}</span> precisa ser redirecionado.
             </p>
+
+            {/* Option: Distribute to personal caixas */}
+            <button
+              onClick={() => { setRedirectToPersonal(true); setRedirectTarget(""); }}
+              className={`w-full flex items-center gap-3 p-4 rounded-xl border mb-3 transition-all ${
+                redirectToPersonal
+                  ? "border-[#40e56c] bg-[#40e56c]/10"
+                  : "border-white/10 bg-[#051424] hover:border-white/20"
+              }`}
+            >
+              <span className={`material-symbols-outlined text-xl ${redirectToPersonal ? "text-[#40e56c]" : "text-[#8b919e]"}`}>
+                savings
+              </span>
+              <div className="text-left flex-1">
+                <p className={`text-sm font-bold ${redirectToPersonal ? "text-[#40e56c]" : "text-[#c1c6d4]"}`}>
+                  Distribuir nos Caixas Pessoais
+                </p>
+                <p className="text-[10px] text-[#8b919e]">
+                  Usar os % da Alocação do Pro Labore para dividir entre os envelopes pessoais
+                </p>
+              </div>
+              {redirectToPersonal && <span className="material-symbols-outlined text-[#40e56c]">check_circle</span>}
+            </button>
+
+            {/* Personal preview when selected */}
+            {redirectToPersonal && (() => {
+              const personalCaixas = caixasList.filter(c => {
+                const pjNames = ["Capital de Giro", "Dividendos", "Fundos Fbflix", "Operacional", "Pro Labore"];
+                return !pjNames.some(n => c.nome.toLowerCase().includes(n.toLowerCase()));
+              });
+              const totalPerc = personalCaixas.reduce((s, pc) => s + (personalPercConfig[pc.id] || 0), 0);
+              return totalPerc > 0 ? (
+                <div className="bg-[#051424] rounded-lg p-3 mb-3 space-y-1">
+                  {personalCaixas.filter(pc => (personalPercConfig[pc.id] || 0) > 0).map(pc => {
+                    const perc = personalPercConfig[pc.id] || 0;
+                    const amount = redirectPopup.excedente * (perc / totalPerc);
+                    return (
+                      <div key={pc.id} className="flex justify-between text-xs">
+                        <span className="text-[#c1c6d4]">{pc.nome} ({perc}%)</span>
+                        <span className="text-[#40e56c] font-bold">{formatBRL(amount)}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : null;
+            })()}
+
+            {/* Divider */}
+            <div className="flex items-center gap-2 mb-3">
+              <div className="flex-1 h-px bg-white/10" />
+              <span className="text-[10px] text-[#8b919e] uppercase tracking-widest">ou enviar para um caixa</span>
+              <div className="flex-1 h-px bg-white/10" />
+            </div>
+
             <div className="space-y-2 mb-6">
-              <label className="text-xs uppercase tracking-widest text-[#8b919e] font-bold">Enviar excedente para:</label>
-              <div className="grid grid-cols-1 gap-2">
+              <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto">
                 {otherCaixas.map(c => (
                   <button
                     key={c.id}
-                    onClick={() => setRedirectTarget(c.nome)}
+                    onClick={() => { setRedirectTarget(c.nome); setRedirectToPersonal(false); }}
                     className={`flex items-center justify-between p-3 rounded-lg border transition-all ${
-                      redirectTarget === c.nome
+                      redirectTarget === c.nome && !redirectToPersonal
                         ? "border-[#f5c542] bg-[#f5c542]/10 text-[#f5c542]"
                         : "border-white/10 bg-[#051424] text-[#8b919e] hover:border-white/20"
                     }`}
@@ -591,7 +644,7 @@ export function FbDistribuicaoPJ() {
               </div>
             </div>
             <div className="flex gap-3">
-              <button onClick={() => setRedirectPopup(null)} className="flex-1 py-3 rounded-lg border border-white/10 text-[#8b919e] text-sm font-medium hover:bg-white/5">Cancelar</button>
+              <button onClick={() => { setRedirectPopup(null); setRedirectToPersonal(false); }} className="flex-1 py-3 rounded-lg border border-white/10 text-[#8b919e] text-sm font-medium hover:bg-white/5">Cancelar</button>
               <button onClick={handleRedirectConfirm} className="flex-1 py-3 rounded-lg bg-[#f5c542] text-[#1a1400] text-sm font-black hover:brightness-110">Confirmar</button>
             </div>
           </div>
