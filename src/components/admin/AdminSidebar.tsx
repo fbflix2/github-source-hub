@@ -82,7 +82,7 @@ const allMenuItems: MenuItem[] = [
   { title: "Carrinhos Abandonados", icon: ShoppingCart, path: "/admin/carrinhos-abandonados" },
   { title: "Cobrança Avulsa", icon: Receipt, path: "/admin/cobranca-avulsa" },
   { title: "Central Proxy", icon: Globe, path: "/admin/central-proxy", subItems: [
-    { title: "Webshare", icon: Globe, path: "/admin/central-proxy" },
+    { title: "Proxy Fbflix", icon: Globe, path: "/admin/central-proxy" },
     { title: "ProxyBR", icon: Globe, path: "/admin/central-proxy/proxybr" },
     { title: "Proxy Interno", icon: Shield, path: "/admin/central-proxy/interno" },
     { title: "Assinaturas", icon: Monitor, path: "/admin/assinaturas" },
