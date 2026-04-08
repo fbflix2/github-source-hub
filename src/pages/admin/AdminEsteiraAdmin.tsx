@@ -1432,7 +1432,7 @@ export default function AdminEsteiraAdmin() {
                     const latestCompletedTask = [...profileTasks]
                       .filter((task) => task.completed_at)
                       .sort((a, b) => new Date(b.completed_at || 0).getTime() - new Date(a.completed_at || 0).getTime())[0];
-                    const isSent = profile.status === "sent_to_store";
+                    const isSent = profile.status === "sent_to_store" || profile.status === "removed_multilogin";
 
                     return (
                       <div
@@ -1445,7 +1445,9 @@ export default function AdminEsteiraAdmin() {
                           <div className="min-w-0">
                             <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-sm font-black text-foreground">{profile.profile_code}</span>
-                              {isSent ? (
+                              {profile.status === "removed_multilogin" ? (
+                                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 uppercase">Removido ML</span>
+                              ) : profile.status === "sent_to_store" ? (
                                 <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 uppercase">Enviado</span>
                               ) : (
                                 <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 uppercase">Pronto</span>
