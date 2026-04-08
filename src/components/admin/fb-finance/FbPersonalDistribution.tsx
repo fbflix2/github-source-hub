@@ -123,6 +123,7 @@ export function FbPersonalDistribution({ salario }: Props) {
         {caixas.map((box, i) => {
           const value = percentuais[box.id] || 0;
           const allocated = salario * (value / 100);
+          const saldoReal = Number(box.saldo_atual) || 0;
           return (
             <div key={box.id} className="bg-[#0e1c2d] rounded-xl p-4 border border-white/5 relative group">
               <div className="flex items-center gap-2 mb-3">
@@ -131,7 +132,7 @@ export function FbPersonalDistribution({ salario }: Props) {
                   {box.nome}
                 </span>
               </div>
-              <div className="flex items-center justify-center gap-2 mb-2">
+              <div className="flex items-center justify-center gap-2 mb-1">
                 <button onClick={() => adjust(box.id, -1)}
                   className="w-6 h-6 rounded bg-[#283647] text-[#c1c6d4] hover:bg-[#1976d2] hover:text-white flex items-center justify-center text-xs font-bold transition-colors">
                   −
@@ -144,8 +145,11 @@ export function FbPersonalDistribution({ salario }: Props) {
                   +
                 </button>
               </div>
-              <p className="text-center text-[11px] text-[#8b919e] font-medium">
-                {formatBRL(allocated)}
+              <p className="text-center text-[10px] text-[#8b919e]">
+                mensal: {formatBRL(allocated)}
+              </p>
+              <p className="text-center text-[12px] font-bold text-[#40e56c] mt-1">
+                {formatBRL(saldoReal)}
               </p>
             </div>
           );
