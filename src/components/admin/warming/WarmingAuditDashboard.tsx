@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { getProfileWarmingDays, type ProfileQualityData } from "@/lib/warming-ready";
+import { getEffectiveProfileQuality, getProfileWarmingDays, type ProfileQualityData } from "@/lib/warming-ready";
 
 function MIcon({ name, className = "" }: { name: string; className?: string }) {
   return <span className={`material-symbols-outlined ${className}`}>{name}</span>;
@@ -22,9 +22,16 @@ interface WarmingProfile {
   created_at: string;
 }
 
+interface AuditTask {
+  title: string;
+  description: string | null;
+  completed: boolean;
+}
+
 interface Props {
   profiles: WarmingProfile[];
   qualityMap: Record<string, ProfileQualityData>;
+  tasks: Record<string, AuditTask[]>;
   creatorNames: Record<string, string>;
   onRefresh: () => void;
 }
@@ -51,7 +58,7 @@ const DAYS_OPTIONS = [
   { value: 30, label: "30+ dias" },
 ];
 
-export default function WarmingAuditDashboard({ profiles, qualityMap, creatorNames, onRefresh }: Props) {
+export default function WarmingAuditDashboard({ profiles, qualityMap, tasks, creatorNames, onRefresh }: Props) {
   const [filter2FA, setFilter2FA] = useState(false);
   const [filterBM, setFilterBM] = useState(false);
   const [filterPage, setFilterPage] = useState(false);
@@ -76,36 +83,40 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, creatorNam
 
   const operators = useMemo(() => {
     const map = new Map<string, string>();
-    profiles.forEach(p => {
+    profiles.forEach((p) => {
       if (p.created_by) map.set(p.created_by, creatorNames[p.created_by] || "Sem nome");
     });
     return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
   }, [profiles, creatorNames]);
 
-  // Filter profiles that are active or completed (candidates for audit)
+  const effectiveQualityMap = useMemo(() => {
+    const map: Record<string, ProfileQualityData> = {};
+
+    profiles.forEach((profile) => {
+      map[profile.id] = getEffectiveProfileQuality(qualityMap[profile.id], tasks[profile.id] || []);
+    });
+
+    return map;
+  }, [profiles, qualityMap, tasks]);
+
   const auditProfiles = useMemo(() => {
     const searchTrimmed = search.trim().toLowerCase();
 
-    return profiles.filter(p => {
-      // When searching by code, bypass all other filters to find across all operators/statuses
+    return profiles.filter((p) => {
       if (searchTrimmed) {
         return p.profile_code.toLowerCase().includes(searchTrimmed);
       }
 
-      // Normal filtering (no search)
-      // showApproved = show completed profiles; default = show checkpoint + active (pending audit)
       if (showApproved) {
         if (p.status !== "completed") return false;
       } else {
-        // Show checkpoint and active profiles (candidates for audit)
         if (p.status !== "checkpoint" && p.status !== "active") return false;
       }
 
-      const quality = qualityMap[p.id];
+      const quality = effectiveQualityMap[p.id];
       const days = getProfileWarmingDays(p);
 
       if (minDays > 0 && days < minDays) return false;
-      // Quality filters: only exclude profiles that DON'T match the active filter
       if (filter2FA && !quality?.has2FA) return false;
       if (filterBM && !quality?.hasBM) return false;
       if (filterPage && !quality?.hasPage) return false;
@@ -117,20 +128,17 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, creatorNam
 
       return true;
     });
-  }, [profiles, qualityMap, filter2FA, filterBM, filterPage, minFriends, minDays, filterOperator, search, showApproved]);
+  }, [profiles, effectiveQualityMap, filter2FA, filterBM, filterPage, minFriends, minDays, filterOperator, search, showApproved]);
 
   const approveProfile = async (profile: WarmingProfile) => {
     setApproving(profile.id);
     try {
-      // 1. Mark profile as completed
       await supabase
         .from("warming_profiles" as any)
         .update({ status: "completed" })
         .eq("id", profile.id);
 
-      // 2. Create or update operator_earnings for this profile
       if (profile.created_by) {
-        // Check if earning already exists
         const { data: existing } = await supabase
           .from("operator_earnings")
           .select("id")
@@ -148,7 +156,6 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, creatorNam
             })
             .eq("id", existing.id);
         } else {
-          // Get commission rate from site_settings
           const { data: rateSetting } = await supabase
             .from("site_settings")
             .select("value")
@@ -180,14 +187,12 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, creatorNam
   };
 
   const totalFiltered = auditProfiles.length;
-  // Count quality from ALL profiles (not just filtered) so stats are accurate
-  const allActiveProfiles = profiles.filter(p => p.status === "checkpoint" || p.status === "active" || p.status === "completed");
-  const with2FA = allActiveProfiles.filter(p => qualityMap[p.id]?.has2FA).length;
-  const withBM = allActiveProfiles.filter(p => qualityMap[p.id]?.hasBM).length;
+  const allActiveProfiles = profiles.filter((p) => p.status === "checkpoint" || p.status === "active" || p.status === "completed");
+  const with2FA = allActiveProfiles.filter((p) => effectiveQualityMap[p.id]?.has2FA).length;
+  const withBM = allActiveProfiles.filter((p) => effectiveQualityMap[p.id]?.hasBM).length;
 
   return (
     <main className="flex-1 px-6 md:px-12 lg:px-40 py-10 max-w-[1200px] mx-auto w-full space-y-6">
-      {/* Header */}
       <div className="flex items-center gap-3 mb-2">
         <MIcon name="fact_check" className="text-[#1876f2] text-2xl" />
         <div>
@@ -196,7 +201,6 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, creatorNam
         </div>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="bg-white dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 p-4">
           <p className="text-[11px] text-muted-foreground uppercase tracking-widest mb-1">PERFIS</p>
@@ -212,13 +216,10 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, creatorNam
         </div>
         <div className="bg-white dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 p-4">
           <p className="text-[11px] text-muted-foreground uppercase tracking-widest mb-1">Aprovados Total</p>
-          <p className="text-2xl font-black text-amber-500">
-            {approvedCount}
-          </p>
+          <p className="text-2xl font-black text-amber-500">{approvedCount}</p>
         </div>
       </div>
 
-      {/* Filters */}
       <div className="bg-white dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 p-5 space-y-4">
         <div className="flex items-center gap-2 mb-2">
           <MIcon name="filter_list" className="text-slate-400" />
@@ -226,7 +227,6 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, creatorNam
         </div>
 
         <div className="flex flex-wrap gap-3">
-          {/* Toggle: Show approved */}
           <button
             onClick={() => setShowApproved(!showApproved)}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
@@ -238,7 +238,6 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, creatorNam
             {showApproved ? "Mostrando Aprovados" : "Mostrando Pendentes"}
           </button>
 
-          {/* 2FA */}
           <button
             onClick={() => setFilter2FA(!filter2FA)}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-1 ${
@@ -250,7 +249,6 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, creatorNam
             <MIcon name="lock" className="text-sm" /> 2FA Ativo
           </button>
 
-          {/* BM */}
           <button
             onClick={() => setFilterBM(!filterBM)}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-1 ${
@@ -262,7 +260,6 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, creatorNam
             <MIcon name="business_center" className="text-sm" /> BM Criada
           </button>
 
-          {/* Page */}
           <button
             onClick={() => setFilterPage(!filterPage)}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-1 ${
@@ -274,55 +271,50 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, creatorNam
             <MIcon name="web" className="text-sm" /> Página Criada
           </button>
 
-          {/* Friends */}
           <select
             value={minFriends}
-            onChange={e => setMinFriends(Number(e.target.value))}
+            onChange={(e) => setMinFriends(Number(e.target.value))}
             className="bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 rounded-lg px-3 py-1.5 text-xs font-medium"
           >
-            {FRIEND_OPTIONS.map(o => (
+            {FRIEND_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>{o.label}</option>
             ))}
           </select>
 
-          {/* Days */}
           <select
             value={minDays}
-            onChange={e => setMinDays(Number(e.target.value))}
+            onChange={(e) => setMinDays(Number(e.target.value))}
             className="bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 rounded-lg px-3 py-1.5 text-xs font-medium"
           >
-            {DAYS_OPTIONS.map(o => (
+            {DAYS_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>{o.label}</option>
             ))}
           </select>
 
-          {/* Operator */}
           <select
             value={filterOperator}
-            onChange={e => setFilterOperator(e.target.value)}
+            onChange={(e) => setFilterOperator(e.target.value)}
             className="bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 rounded-lg px-3 py-1.5 text-xs font-medium"
           >
             <option value="all">Todos Operadores</option>
-            {operators.map(op => (
+            {operators.map((op) => (
               <option key={op.id} value={op.id}>{op.name}</option>
             ))}
           </select>
         </div>
 
-        {/* Search */}
         <div className="relative max-w-xs">
           <MIcon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-base" />
           <input
             type="text"
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar por código..."
             className="w-full bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 rounded-lg pl-9 pr-3 py-2 text-sm"
           />
         </div>
       </div>
 
-      {/* Profile List */}
       <div className="space-y-2">
         {auditProfiles.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
@@ -330,8 +322,8 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, creatorNam
             <p className="text-sm">Nenhum perfil encontrado com os filtros atuais</p>
           </div>
         ) : (
-          auditProfiles.map(profile => {
-            const quality = qualityMap[profile.id];
+          auditProfiles.map((profile) => {
+            const quality = effectiveQualityMap[profile.id];
             const days = getProfileWarmingDays(profile);
             const friendMin = FRIEND_RANGE_MIN[quality?.friendRange || "0-5"] || 0;
             const isApproved = profile.status === "completed";
@@ -353,7 +345,6 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, creatorNam
                   </div>
                 </div>
 
-                {/* Quality badges */}
                 <div className="flex items-center gap-2 shrink-0">
                   <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${quality?.has2FA ? "bg-emerald-500/20 text-emerald-400" : "bg-white/5 text-muted-foreground"}`}>
                     2FA
@@ -369,7 +360,6 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, creatorNam
                   </span>
                 </div>
 
-                {/* Action */}
                 {isApproved ? (
                   <span className="flex items-center gap-1 text-emerald-400 text-xs font-bold shrink-0">
                     <MIcon name="check_circle" className="text-base" /> Aprovado
@@ -394,7 +384,6 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, creatorNam
         )}
       </div>
 
-      {/* Info box */}
       <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/5 p-4 flex gap-3 text-sm">
         <MIcon name="info" className="text-yellow-400 shrink-0 mt-0.5" />
         <div className="text-muted-foreground text-xs space-y-1">
