@@ -211,7 +211,7 @@ export default function AdminShopClone() {
                 <DollarSign className="size-5 text-primary" />
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Saldo AccFace</p>
+                <p className="text-xs text-muted-foreground">Saldo no fornecedor</p>
                 <p className="text-lg font-bold">
                   {balanceLoading ? <Loader2 className="size-4 animate-spin" /> : balance || "—"}
                 </p>
