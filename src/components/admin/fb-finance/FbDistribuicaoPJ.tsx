@@ -234,7 +234,60 @@ export function FbDistribuicaoPJ() {
   };
 
   const handleRedirectConfirm = async () => {
-    if (!redirectPopup || !redirectTarget) {
+    if (!redirectPopup) return;
+
+    if (redirectToPersonal) {
+      // Distribute excess across personal caixas using personal_distribution_percentages
+      const personalCaixas = caixasList.filter(c => {
+        const pjNames = ["Capital de Giro", "Dividendos", "Fundos Fbflix", "Operacional", "Pro Labore"];
+        return !pjNames.some(n => c.nome.toLowerCase().includes(n.toLowerCase()));
+      });
+
+      const valores = { ...redirectPopup.valores };
+      const excedente = redirectPopup.excedente;
+
+      // Calculate personal allocations
+      const hoje = new Date().toISOString().split("T")[0];
+      const lancamentosPersonal: any[] = [];
+
+      let totalPersonalPerc = 0;
+      const allocations: { caixa: CaixaInfo; perc: number }[] = [];
+      for (const pc of personalCaixas) {
+        const perc = personalPercConfig[pc.id] || 0;
+        totalPersonalPerc += perc;
+        allocations.push({ caixa: pc, perc });
+      }
+
+      if (totalPersonalPerc <= 0) {
+        toast({ title: "Configure os percentuais de alocação pessoal primeiro", variant: "destructive" });
+        return;
+      }
+
+      for (const { caixa, perc } of allocations) {
+        if (perc <= 0) continue;
+        const amount = excedente * (perc / totalPersonalPerc);
+        const newBalance = Number(caixa.saldo_atual) + amount;
+        await supabase.from("fb_finance_caixas" as any).update({ saldo_atual: newBalance } as any).eq("id", caixa.id);
+        lancamentosPersonal.push({
+          data: hoje,
+          entrada: amount,
+          saida: 0,
+          categoria: "Distribuição PJ",
+          descricao: `Excedente Pro Labore → ${caixa.nome} (${perc}%)`,
+          tipo: caixa.tipo || "pessoal",
+          caixa_destino_id: caixa.id,
+        });
+      }
+
+      if (lancamentosPersonal.length > 0) {
+        await supabase.from("fb_finance_lancamentos" as any).insert(lancamentosPersonal as any);
+      }
+
+      await executeDistribution(valores);
+      return;
+    }
+
+    if (!redirectTarget) {
       toast({ title: "Selecione o caixa destino", variant: "destructive" });
       return;
     }
