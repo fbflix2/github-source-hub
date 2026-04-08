@@ -17,6 +17,12 @@ const isPjCaixa = (caixa: Pick<Caixa, "nome" | "tipo">) =>
   PJ_NAMES.some((name) => caixa.nome.toLowerCase().includes(name.toLowerCase())) ||
   (caixa.tipo === "empresa" && !PESSOAL_NAMES.some((name) => caixa.nome.toLowerCase().includes(name.toLowerCase())));
 
+const getProjectedAllocation = (caixa: Caixa, proLaboreAlloc: Record<string, number>) =>
+  isPjCaixa(caixa) ? 0 : (proLaboreAlloc[caixa.id] || 0);
+
+const getProjectedTotal = (caixa: Caixa, proLaboreAlloc: Record<string, number>) =>
+  Number(caixa.saldo_atual) + getProjectedAllocation(caixa, proLaboreAlloc);
+
 const caixaIcons: Record<string, { icon: string; color: string; bg: string }> = {
   "Fundo Emergência": { icon: "security", color: "text-[#a5c8ff]", bg: "bg-blue-500/10" },
   "Estilo de Vida": { icon: "flight_takeoff", color: "text-yellow-500", bg: "bg-yellow-500/10" },
@@ -174,7 +180,7 @@ export function FbCaixas() {
 
   const totalPatrimonio = caixas
     .filter(c => RESERVED_NAMES.some(n => c.nome.toLowerCase().includes(n)))
-    .reduce((s, c) => s + Number(c.saldo_atual) + (isPjCaixa(c) ? 0 : (proLaboreAlloc[c.id] || 0)), 0);
+    .reduce((s, c) => s + getProjectedTotal(c, proLaboreAlloc), 0);
   const totalAlvo = caixas.reduce((s, c) => s + (Number(c.alvo_percent) > 0 ? Number(c.saldo_atual) / (Number(c.alvo_percent) / 100) : 0), 0);
   const healthPercent = totalAlvo > 0 ? Math.min((totalPatrimonio / totalAlvo) * 100, 100) : 85;
 
@@ -242,10 +248,12 @@ export function FbCaixas() {
 
          const renderCard = (c: Caixa) => {
             const isPessoal = !isPjCaixa(c);
-            const saldo = Number(c.saldo_atual) + (isPessoal ? (proLaboreAlloc[c.id] || 0) : 0);
+            const saldoAtual = Number(c.saldo_atual);
+            const alocacaoPrevista = getProjectedAllocation(c, proLaboreAlloc);
+            const saldoProjetado = saldoAtual + alocacaoPrevista;
           const iconCfg = caixaIcons[c.nome] || defaultIcon;
-          const meta = Number(c.meta) > 0 ? Number(c.meta) : (c.alvo_percent > 0 ? saldo / (c.alvo_percent / 100) : saldo * 1.5);
-          const progress = meta > 0 ? Math.min((saldo / meta) * 100, 100) : 0;
+          const meta = Number(c.meta) > 0 ? Number(c.meta) : (c.alvo_percent > 0 ? saldoProjetado / (c.alvo_percent / 100) : saldoProjetado * 1.5);
+          const progress = meta > 0 ? Math.min((saldoProjetado / meta) * 100, 100) : 0;
           const metaAtingida = progress >= 100;
 
           return (
@@ -286,9 +294,21 @@ export function FbCaixas() {
               <div className="space-y-4">
                 <div>
                   <div className="flex justify-between text-xs mb-2">
-                    <span className="text-[#c1c6d4] font-medium">{isPessoal ? "Saldo Total" : "Saldo Atual"}</span>
-                    <span className="text-[#40e56c] font-bold">{formatCompact(saldo)}</span>
+                    <span className="text-[#c1c6d4] font-medium">Saldo Atual</span>
+                    <span className="text-[#40e56c] font-bold">{formatCompact(saldoAtual)}</span>
                   </div>
+                  {isPessoal && alocacaoPrevista > 0 && (
+                    <div className="mb-2 space-y-1">
+                      <div className="flex justify-between text-[11px] text-[#8b919e]">
+                        <span>Alocação prevista</span>
+                        <span className="font-medium text-[#a5c8ff]">+{formatCompact(alocacaoPrevista)}</span>
+                      </div>
+                      <div className="flex justify-between text-[11px]">
+                        <span className="text-[#8b919e]">Total projetado</span>
+                        <span className="font-semibold text-[#d5e4fa]">{formatCompact(saldoProjetado)}</span>
+                      </div>
+                    </div>
+                  )}
                   <div className="h-2 bg-[#283647] rounded-full overflow-hidden">
                     <div className={`h-full rounded-full ${metaAtingida ? "bg-[#40e56c] shadow-[0_0_10px_rgba(64,229,108,0.4)]" : "bg-[#40e56c]"}`} style={{ width: `${progress}%` }}></div>
                   </div>
@@ -553,6 +573,11 @@ export function FbCaixas() {
             <p className="text-sm text-[#c1c6d4] mb-4">
               Caixa: <span className="font-bold text-[#d5e4fa]">{editSaldoCaixa.nome}</span>
             </p>
+            {!isPjCaixa(editSaldoCaixa) && getProjectedAllocation(editSaldoCaixa, proLaboreAlloc) > 0 && (
+              <p className="text-xs text-[#8b919e] mb-4">
+                O saldo salvo ficará exatamente no valor digitado abaixo. A alocação prevista aparecerá separadamente no card.
+              </p>
+            )}
             <div className="space-y-4">
               <div>
                 <label className="text-[10px] text-[#8b919e] uppercase tracking-widest block mb-1">Novo Saldo (R$)</label>
