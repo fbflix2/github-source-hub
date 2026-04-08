@@ -61,6 +61,7 @@ export function StockItemBlockViewer({ item, open, onOpenChange, onSaved }: Prop
   const [status, setStatus] = useState("aguardando");
   const [qualityNotes, setQualityNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
