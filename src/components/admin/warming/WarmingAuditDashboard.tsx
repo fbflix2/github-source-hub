@@ -56,7 +56,7 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, creatorNam
   const [filterBM, setFilterBM] = useState(false);
   const [filterPage, setFilterPage] = useState(false);
   const [minFriends, setMinFriends] = useState(0);
-  const [minDays, setMinDays] = useState(7);
+  const [minDays, setMinDays] = useState(0);
   const [filterOperator, setFilterOperator] = useState("all");
   const [approving, setApproving] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -180,8 +180,10 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, creatorNam
   };
 
   const totalFiltered = auditProfiles.length;
-  const with2FA = auditProfiles.filter(p => qualityMap[p.id]?.has2FA).length;
-  const withBM = auditProfiles.filter(p => qualityMap[p.id]?.hasBM).length;
+  // Count quality from ALL profiles (not just filtered) so stats are accurate
+  const allActiveProfiles = profiles.filter(p => p.status === "checkpoint" || p.status === "active" || p.status === "completed");
+  const with2FA = allActiveProfiles.filter(p => qualityMap[p.id]?.has2FA).length;
+  const withBM = allActiveProfiles.filter(p => qualityMap[p.id]?.hasBM).length;
 
   return (
     <main className="flex-1 px-6 md:px-12 lg:px-40 py-10 max-w-[1200px] mx-auto w-full space-y-6">
