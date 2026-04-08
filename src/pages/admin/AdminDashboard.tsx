@@ -508,43 +508,58 @@ export default function AdminDashboard() {
 
       {/* Payment Movement Chart */}
       <div className="glass-panel rounded-xl p-4">
-        <div className="mb-4">
-          <h3 className="text-sm font-semibold text-white">Movimentação de Pagamentos</h3>
-          <p className="text-white/40 text-xs">Análise financeira por período.</p>
+        <div className="pb-2">
+          <h3 className="text-sm font-semibold text-foreground">Movimentação de Pagamentos</h3>
         </div>
-        <div className="h-56">
+        <div className="pt-0">
           {chartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+            <ResponsiveContainer width="100%" height={200}>
+              <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#22c55e" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="#22c55e" stopOpacity={0.02} />
+                    <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 11 }} dy={8} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 10 }} tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`} />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                <XAxis
+                  dataKey="name"
+                  stroke="hsl(var(--muted-foreground))"
+                  fontSize={11}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <YAxis
+                  stroke="hsl(var(--muted-foreground))"
+                  fontSize={11}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(v) => `R$${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
+                />
                 <Tooltip
-                  contentStyle={{ background: 'rgba(10,5,5,0.95)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: '12px', fontSize: '12px', boxShadow: '0 8px 32px rgba(0,0,0,0.5)', padding: '10px 14px' }}
-                  formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 'Valor']}
-                  labelStyle={{ color: 'rgba(255,255,255,0.7)', marginBottom: '4px', fontWeight: 600 }}
-                  itemStyle={{ color: 'white' }}
-                  cursor={{ stroke: '#22c55e', strokeWidth: 1, strokeDasharray: '4 4' }}
+                  contentStyle={{
+                    backgroundColor: "hsl(var(--card))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "8px",
+                    fontSize: "12px",
+                    color: "hsl(var(--foreground))",
+                  }}
+                  formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 'Receita']}
+                  labelStyle={{ color: 'hsl(var(--muted-foreground))', marginBottom: '4px', fontWeight: 600 }}
                 />
                 <Area
                   type="monotone"
                   dataKey="value"
                   stroke="#22c55e"
-                  strokeWidth={2.5}
+                  strokeWidth={2}
                   fill="url(#colorValue)"
-                  dot={{ r: 4, fill: '#22c55e', stroke: '#0a0505', strokeWidth: 2 }}
-                  activeDot={{ r: 6, fill: '#22c55e', stroke: 'white', strokeWidth: 2 }}
+                  dot={{ r: 3, fill: "#22c55e", strokeWidth: 0 }}
+                  activeDot={{ r: 5, fill: "#22c55e", strokeWidth: 2, stroke: "hsl(var(--background))" }}
                 />
               </AreaChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex items-center justify-center h-full text-white/40 text-sm">Nenhum dado de pagamento ainda.</div>
+            <div className="h-[200px] flex items-center justify-center text-muted-foreground text-sm">Nenhum dado de pagamento ainda.</div>
           )}
         </div>
       </div>
