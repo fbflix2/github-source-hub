@@ -30,6 +30,7 @@ interface OrderItemOption {
   price: number;
   order_id: string;
   order_code: string;
+  product_id: string | null;
 }
 
 interface StockItemOption {
