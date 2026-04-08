@@ -66,6 +66,8 @@ export function FbDistribuicaoPJ() {
   const [detailDist, setDetailDist] = useState<Distribuicao | null>(null);
   const [redirectPopup, setRedirectPopup] = useState<{ excedente: number; valores: Record<string, number> } | null>(null);
   const [redirectTarget, setRedirectTarget] = useState("");
+  const [redirectToPersonal, setRedirectToPersonal] = useState(false);
+  const [personalPercConfig, setPersonalPercConfig] = useState<Record<string, number>>({});
   const [caixasList, setCaixasList] = useState<CaixaInfo[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newCardName, setNewCardName] = useState("");
