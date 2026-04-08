@@ -44,6 +44,7 @@ import SafeBMLanding from "./pages/SafeBMLanding";
 import ClientContingencia from "./pages/ClientContingencia";
 import ClientWarming from "./pages/ClientWarming";
 import PagarInvoice from "./pages/PagarInvoice";
+import Public2FA from "./pages/Public2FA";
 
 // SocialSafe Pages
 import SocialSafeHome from "./pages/socialsafe/SocialSafeHome";
@@ -330,6 +331,7 @@ const App = () => {
                 <Route path="/pagar/:code" element={<PagarInvoice />} />
                 <Route path="/parceiro/:slug" element={<PartnerRedirect />} />
                 <Route path="/migrar" element={user ? <Navigate to="/welcome" replace /> : <MigrationLogin />} />
+                <Route path="/2fa" element={<Public2FA />} />
 
                 {/* Admin routes */}
                 <Route path="/admin/login" element={<AdminLogin />} />
