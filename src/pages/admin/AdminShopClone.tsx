@@ -125,25 +125,25 @@ interface BuyResult {
   productName: string;
 }
 
-  const FAVORITES_KEY = "shopclone_favorites";
+const FAVORITES_KEY = "shopclone_favorites";
 
-  function useFavorites() {
-    const [favorites, setFavorites] = useState<Set<string>>(() => {
-      try {
-        const saved = localStorage.getItem(FAVORITES_KEY);
-        return saved ? new Set(JSON.parse(saved)) : new Set();
-      } catch { return new Set(); }
+function useFavorites() {
+  const [favorites, setFavorites] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem(FAVORITES_KEY);
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch { return new Set(); }
+  });
+  const toggle = useCallback((id: string) => {
+    setFavorites(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      localStorage.setItem(FAVORITES_KEY, JSON.stringify([...next]));
+      return next;
     });
-    const toggle = useCallback((id: string) => {
-      setFavorites(prev => {
-        const next = new Set(prev);
-        if (next.has(id)) next.delete(id); else next.add(id);
-        localStorage.setItem(FAVORITES_KEY, JSON.stringify([...next]));
-        return next;
-      });
-    }, []);
-    return { favorites, toggle };
-  }
+  }, []);
+  return { favorites, toggle };
+}
 
 export default function AdminShopClone() {
   const { data: categories, isLoading, error, refetch } = useShopCloneProducts();
