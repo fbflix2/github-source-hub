@@ -48,6 +48,7 @@ export function FbCaixas() {
   const [editSaldoCaixa, setEditSaldoCaixa] = useState<Caixa | null>(null);
   const [editSaldoValue, setEditSaldoValue] = useState("");
   const menuRef = useRef<HTMLDivElement>(null);
+  const [proLaboreAlloc, setProLaboreAlloc] = useState<Record<string, number>>({});
 
   const [newForm, setNewForm] = useState({ nome: "", tipo: "empresa", alvo_percent: "0" });
   const [transferForm, setTransferForm] = useState({ from: "", to: "", valor: "" });
@@ -56,12 +57,35 @@ export function FbCaixas() {
   useEffect(() => { fetchCaixas(); }, []);
 
   const fetchCaixas = async () => {
-    const { data: caixasData } = await supabase.from("fb_finance_caixas" as any).select("*").order("tipo").order("nome");
+    const [{ data: caixasData }, { data: configData }, { data: proLaboreData }] = await Promise.all([
+      supabase.from("fb_finance_caixas" as any).select("*").order("tipo").order("nome"),
+      supabase.from("fb_finance_config" as any).select("personal_distribution_percentages").limit(1).maybeSingle(),
+      supabase.from("fb_finance_caixas" as any).select("saldo_atual").ilike("nome", "%pro labore%").limit(1).maybeSingle(),
+    ]);
 
     const caixaRows = (caixasData as any[]) || [];
+    const proLaboreSaldo = Number((proLaboreData as any)?.saldo_atual || 0);
+    const percents = (configData as any)?.personal_distribution_percentages as Record<string, number> | null;
+
+    // Calculate Pro Labore allocation per personal box
+    const alloc: Record<string, number> = {};
+    if (percents && proLaboreSaldo > 0) {
+      const pjNames = ["Capital de Giro", "Dividendos", "Fundos Fbflix", "Operacional", "Pro Labore"];
+      const pessoalNames = ["Dia a Dia", "Dia a Dia/Emergências", "Estilo de Vida", "Fundo Emergência", "Investimentos", "Janela Oportunidade", "Conta Corrente Pessoal", "Entrada Compra Casa"];
+      const pjCaixas = caixaRows.filter((c: any) =>
+        pjNames.some(n => c.nome.toLowerCase().includes(n.toLowerCase())) ||
+        (c.tipo === "empresa" && !pessoalNames.some(n => c.nome.toLowerCase().includes(n.toLowerCase())))
+      );
+      const pessoalBoxes = caixaRows.filter((c: any) => !pjCaixas.includes(c));
+      for (const box of pessoalBoxes) {
+        const pct = percents[box.id] !== undefined ? Number(percents[box.id]) : 0;
+        alloc[box.id] = proLaboreSaldo * (pct / 100);
+      }
+    }
+    setProLaboreAlloc(alloc);
 
     setCaixas(
-      caixaRows.map((caixa) => ({
+      caixaRows.map((caixa: any) => ({
         ...caixa,
         saldo_atual: Number(caixa.saldo_atual || 0),
       })) as any
