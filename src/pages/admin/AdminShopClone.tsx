@@ -156,7 +156,7 @@ export default function AdminShopClone() {
           <div>
             <h1 className="text-xl font-bold flex items-center gap-2">
               <Store className="size-5 text-primary" />
-              Central AccFace
+              Central Acc
             </h1>
             <p className="text-sm text-muted-foreground">Catálogo do fornecedor</p>
           </div>
