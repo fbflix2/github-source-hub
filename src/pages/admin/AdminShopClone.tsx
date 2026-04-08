@@ -434,6 +434,7 @@ function CategorySection({ category, searchQuery, usdToBrl, onBuyResult, favorit
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b text-left text-xs text-muted-foreground">
+                  <th className="pb-2 font-medium w-6"></th>
                   <th className="pb-2 font-medium">ID</th>
                   <th className="pb-2 font-medium">Nome</th>
                   <th className="pb-2 font-medium">País</th>
@@ -445,7 +446,7 @@ function CategorySection({ category, searchQuery, usdToBrl, onBuyResult, favorit
               </thead>
               <tbody>
                 {products.map((p) => (
-                  <ProductRow key={p.id} product={p} usdToBrl={usdToBrl} onBuyResult={onBuyResult} />
+                  <ProductRow key={p.id} product={p} usdToBrl={usdToBrl} onBuyResult={onBuyResult} isFavorite={favorites.has(p.id)} onToggleFavorite={onToggleFavorite} />
                 ))}
               </tbody>
             </table>
