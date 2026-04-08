@@ -401,7 +401,7 @@ function BuyResultModal({ result, onClose }: { result: BuyResult | null; onClose
   );
 }
 
-function CategorySection({ category, searchQuery, usdToBrl, onBuyResult }: { category: ShopCloneCategory; searchQuery: string; usdToBrl: number; onBuyResult: (r: BuyResult) => void }) {
+function CategorySection({ category, searchQuery, usdToBrl, onBuyResult, favorites, onToggleFavorite }: { category: ShopCloneCategory; searchQuery: string; usdToBrl: number; onBuyResult: (r: BuyResult) => void; favorites: Set<string>; onToggleFavorite: (id: string) => void }) {
   const [expanded, setExpanded] = useState(true);
   const q = searchQuery.toLowerCase();
 
