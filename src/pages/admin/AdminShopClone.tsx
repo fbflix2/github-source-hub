@@ -314,6 +314,15 @@ export default function AdminShopClone() {
           </div>
           <select
             className="border rounded-md px-3 py-2 text-sm bg-background"
+            value={filter2fa}
+            onChange={(e) => setFilter2fa(e.target.value as "all" | "with" | "without")}
+          >
+            <option value="all">2FA: Todos</option>
+            <option value="with">Com 2FA</option>
+            <option value="without">Sem 2FA</option>
+          </select>
+          <select
+            className="border rounded-md px-3 py-2 text-sm bg-background"
             value={selectedCategory || ""}
             onChange={(e) => setSelectedCategory(e.target.value || null)}
           >
