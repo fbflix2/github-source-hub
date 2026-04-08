@@ -391,7 +391,7 @@ export default function AdminDashboard() {
   const catColors = ["bg-blue-500", "bg-purple-500", "bg-primary", "bg-cyan-500", "bg-emerald-500", "bg-orange-500"];
   const catIcons = [User, Briefcase, Database, Globe, Shield, Server];
 
-  const periodLabels: Record<string, string> = { hoje: "Hoje", "7dias": "7 Dias", "30dias": "30 Dias" };
+  const periodLabels: Record<string, string> = { hoje: "Hoje", "7dias": "7 Dias", "30dias": "30 Dias", inicio: "Desde o Início", custom: customRevenueRange.from ? `${format(customRevenueRange.from, "dd/MM", { locale: ptBR })} - ${customRevenueRange.to ? format(customRevenueRange.to, "dd/MM", { locale: ptBR }) : "..."}` : "Personalizado" };
 
   const periodRevenue = useMemo(() => {
     const now = new Date();
