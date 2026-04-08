@@ -42,8 +42,10 @@ function TOTPCard({ secret, label, onRemove }: { secret: string; label: string; 
     );
   }
 
-  const progressPercent = (result.remaining / result.period) * 100;
-  const isUrgent = result.remaining <= 5;
+  const cappedRemaining = Math.min(result.remaining, 60);
+  const cappedPeriod = Math.min(result.period, 60);
+  const progressPercent = (cappedRemaining / cappedPeriod) * 100;
+  const isUrgent = cappedRemaining <= 5;
 
   return (
     <Card className="overflow-hidden">
