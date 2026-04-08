@@ -149,7 +149,7 @@ export function FbPersonalDistribution({ salario }: Props) {
                 mensal: {formatBRL(allocated)}
               </p>
               <p className="text-center text-[12px] font-bold text-[#40e56c] mt-1">
-                {formatBRL(saldoReal)}
+                {formatBRL(allocated + saldoReal)}
               </p>
             </div>
           );
