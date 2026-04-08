@@ -77,7 +77,7 @@ function TOTPCard({ secret, label, onRemove }: { secret: string; label: string; 
               {isUrgent ? "Renovando..." : "Tempo restante"}
             </span>
             <span className={`font-mono font-semibold ${isUrgent ? "text-destructive" : ""}`}>
-              {result.remaining}s
+              {cappedRemaining}s
             </span>
           </div>
         </div>
