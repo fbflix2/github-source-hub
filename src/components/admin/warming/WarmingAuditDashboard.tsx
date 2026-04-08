@@ -93,23 +93,22 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, creatorNam
       }
 
       // Normal filtering (no search)
-      if (!showApproved && p.status === "completed") return false;
-      if (showApproved && p.status !== "completed") return false;
-      if (!showApproved && p.status !== "active") return false;
+      // showApproved = show completed profiles; default = show checkpoint + active (pending audit)
+      if (showApproved) {
+        if (p.status !== "completed") return false;
+      } else {
+        // Show checkpoint and active profiles (candidates for audit)
+        if (p.status !== "checkpoint" && p.status !== "active") return false;
+      }
 
       const quality = qualityMap[p.id];
       const days = getProfileWarmingDays(p);
 
       if (minDays > 0 && days < minDays) return false;
-      const anyQualityFilterActive = filter2FA || filterBM || filterPage;
-      if (anyQualityFilterActive) {
-        if (filter2FA && !quality?.has2FA) return false;
-        if (!filter2FA && quality?.has2FA) return false;
-        if (filterBM && !quality?.hasBM) return false;
-        if (!filterBM && quality?.hasBM) return false;
-        if (filterPage && !quality?.hasPage) return false;
-        if (!filterPage && quality?.hasPage) return false;
-      }
+      // Quality filters: only exclude profiles that DON'T match the active filter
+      if (filter2FA && !quality?.has2FA) return false;
+      if (filterBM && !quality?.hasBM) return false;
+      if (filterPage && !quality?.hasPage) return false;
       if (minFriends > 0) {
         const friendMin = FRIEND_RANGE_MIN[quality?.friendRange || "0-5"] || 0;
         if (friendMin < minFriends) return false;
