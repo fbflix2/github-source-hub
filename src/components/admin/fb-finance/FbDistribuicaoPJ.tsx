@@ -88,6 +88,8 @@ export function FbDistribuicaoPJ() {
       setConfigId((configRes.data as any).id);
       const saved = normalizePercentuais((configRes.data as any).distribution_percentages);
       setPercentuais(Object.keys(saved).length > 0 ? saved : { ...defaultPerc });
+      const personalPerc = (configRes.data as any).personal_distribution_percentages as Record<string, number> | null;
+      if (personalPerc) setPersonalPercConfig(personalPerc);
     }
 
     if (distRes.data) setDistribuicoes(distRes.data as any);
