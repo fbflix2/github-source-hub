@@ -13,6 +13,7 @@ interface Caixa {
   id: string;
   nome: string;
   tipo: string;
+  saldo_atual: number;
 }
 
 interface Props {
