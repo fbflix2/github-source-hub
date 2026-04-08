@@ -274,6 +274,21 @@ export default function AdminShopClone() {
           </Card>
         </div>
 
+        {/* Tabs */}
+        <Tabs value={viewTab} onValueChange={(v) => setViewTab(v as "all" | "favorites")} className="w-full">
+          <TabsList className="w-auto">
+            <TabsTrigger value="all" className="text-xs gap-1.5">
+              <Package className="size-3.5" /> Todos
+            </TabsTrigger>
+            <TabsTrigger value="favorites" className="text-xs gap-1.5">
+              <Heart className="size-3.5" /> Favoritos
+              {favorites.size > 0 && (
+                <Badge variant="secondary" className="text-[10px] h-4 px-1.5 ml-1">{favorites.size}</Badge>
+              )}
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-2">
           <div className="relative flex-1">
@@ -315,11 +330,21 @@ export default function AdminShopClone() {
 
         {/* Categories & Products */}
         {!isLoading && filteredCategories.map((cat) => (
-          <CategorySection key={cat.id} category={cat} searchQuery={search} usdToBrl={usdToBrl} onBuyResult={setBuyResult} />
+          <CategorySection key={cat.id} category={cat} searchQuery={search} usdToBrl={usdToBrl} onBuyResult={setBuyResult} favorites={favorites} onToggleFavorite={toggleFavorite} />
         ))}
 
         {!isLoading && filteredCategories.length === 0 && !error && (
-          <p className="text-center text-muted-foreground py-8">Nenhum produto encontrado</p>
+          <div className="text-center py-12">
+            {viewTab === "favorites" ? (
+              <div className="space-y-2">
+                <Heart className="size-10 text-muted-foreground mx-auto" />
+                <p className="text-muted-foreground">Nenhum produto favoritado ainda.</p>
+                <p className="text-xs text-muted-foreground">Clique no ❤️ ao lado de um produto para adicioná-lo aos favoritos.</p>
+              </div>
+            ) : (
+              <p className="text-muted-foreground">Nenhum produto encontrado</p>
+            )}
+          </div>
         )}
 
         {/* Buy Result Modal */}
