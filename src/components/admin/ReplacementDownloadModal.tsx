@@ -171,7 +171,7 @@ export function ReplacementDownloadModal({
     const orderIds = orders.map(o => o.id);
     const { data: items } = await supabase
       .from("order_items")
-      .select("id, name, price, order_id")
+      .select("id, name, price, order_id, product_id")
       .in("order_id", orderIds);
 
     const mapped: OrderItemOption[] = (items || []).map(oi => {
@@ -182,6 +182,7 @@ export function ReplacementDownloadModal({
         price: Number(oi.price),
         order_id: oi.order_id,
         order_code: order?.code || "",
+        product_id: oi.product_id || null,
       };
     });
 
