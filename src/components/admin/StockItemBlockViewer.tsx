@@ -4,7 +4,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Copy, CheckCircle2 } from "lucide-react";
+import { Copy, CheckCircle2, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -61,6 +61,7 @@ export function StockItemBlockViewer({ item, open, onOpenChange, onSaved }: Prop
   const [status, setStatus] = useState("aguardando");
   const [qualityNotes, setQualityNotes] = useState("");
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -68,6 +69,7 @@ export function StockItemBlockViewer({ item, open, onOpenChange, onSaved }: Prop
     setStatus(item.status);
     setQualityNotes(item.data?.quality_notes ?? "");
     setCopied(false);
+    setSaved(false);
   }, [item]);
 
   const handleCopy = () => {
@@ -88,16 +90,26 @@ export function StockItemBlockViewer({ item, open, onOpenChange, onSaved }: Prop
   // Auto-save quality notes with debounce
   useEffect(() => {
     if (!item) return;
+    setSaved(false);
     const timeout = setTimeout(async () => {
       const currentData = item.data ?? {};
-      if (qualityNotes === (currentData.quality_notes ?? "")) return;
+      if (qualityNotes === (currentData.quality_notes ?? "")) {
+        if (qualityNotes) setSaved(true);
+        return;
+      }
       setSaving(true);
       const { error } = await supabase
         .from("stock_items")
         .update({ data: { ...currentData, quality_notes: qualityNotes } })
         .eq("id", item.id);
       setSaving(false);
-      if (error) toast.error("Erro ao salvar anotação");
+      if (error) {
+        toast.error("Erro ao salvar anotação");
+      } else {
+        setSaved(true);
+        // Update item data in memory so subsequent comparisons work
+        item.data = { ...currentData, quality_notes: qualityNotes };
+      }
     }, 800);
     return () => clearTimeout(timeout);
   }, [qualityNotes, item]);
@@ -158,7 +170,18 @@ export function StockItemBlockViewer({ item, open, onOpenChange, onSaved }: Prop
               <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider">
                 📝 Anotações de Qualidade
               </label>
-              {saving && <span className="text-[10px] text-zinc-500 animate-pulse">Salvando...</span>}
+              <div className="flex items-center gap-1.5">
+                {saving && (
+                  <span className="flex items-center gap-1 text-xs text-amber-400 animate-pulse">
+                    <Loader2 className="h-3 w-3 animate-spin" /> Salvando...
+                  </span>
+                )}
+                {!saving && saved && (
+                  <span className="flex items-center gap-1 text-xs text-emerald-400">
+                    <CheckCircle2 className="h-3 w-3" /> Salvo
+                  </span>
+                )}
+              </div>
             </div>
             <textarea
               value={qualityNotes}
@@ -166,6 +189,7 @@ export function StockItemBlockViewer({ item, open, onOpenChange, onSaved }: Prop
               placeholder="Observações sobre a qualidade deste item... (ex: perfil com 2FA, BM ativa, sem restrições...)"
               className="w-full min-h-[100px] p-3 rounded-xl bg-black/30 border border-white/5 text-sm text-zinc-200 placeholder:text-zinc-600 resize-none outline-none focus:border-primary/30 transition-colors"
             />
+            <p className="text-[10px] text-zinc-600">As anotações são salvas automaticamente.</p>
           </div>
         </div>
       </DialogContent>
