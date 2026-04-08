@@ -72,6 +72,7 @@ export default function AdminEstoque() {
 
   const fetchItems = async () => {
     // Fetch pending items (not sold, not linked to product)
+    // Exclude AccFace-imported items — they stay in Blocagem until manually moved
     const { data } = await supabase
       .from("stock_items")
       .select("*")
@@ -79,6 +80,7 @@ export default function AdminEstoque() {
       .is("parent_id", null)
       .neq("status", "vendido")
       .neq("status", "revisado")
+      .not("data->>source", "eq", "accface")
       .order("created_at", { ascending: false });
     setItems(data ?? []);
 
