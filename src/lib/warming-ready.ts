@@ -5,6 +5,16 @@ export interface ProfileQualityData {
   friendRange: string;
 }
 
+export interface ProfileQualityWithSource {
+  has2FA: boolean;
+  has2FA_source: "manual" | "task" | "both" | null;
+  hasBM: boolean;
+  hasBM_source: "manual" | "task" | "both" | null;
+  hasPage: boolean;
+  hasPage_source: "manual" | "task" | "both" | null;
+  friendRange: string;
+}
+
 export interface ReadyCriteria {
   minFriends: number;
   require2FA: boolean;
@@ -48,10 +58,32 @@ const FRIEND_RANGE_MIN: Record<string, number> = {
   "50-100+": 50,
 };
 
+// Broader patterns to match real task titles from the database
 const QUALITY_EVIDENCE_PATTERNS = {
-  has2FA: [/\b2fa\b/, /dois fatores/],
-  hasBM: [/\bbm\b/, /business manager/, /ad account/, /conta de anuncio/],
-  hasPage: [/\bpage\b/, /\bpagina\b/],
+  has2FA: [
+    /2fa/i,
+    /dois fatores/i,
+    /two.?factor/i,
+    /autenticacao/i,
+  ],
+  hasBM: [
+    /\bbm\b/i,
+    /business\s*manager/i,
+    /ad\s*account/i,
+    /conta\s*de\s*anun/i,
+    /criar\s+bm/i,
+    /bm\s*(fully|check|criada)/i,
+  ],
+  hasPage: [
+    /\bposts?\s+na\s+page\b/i,
+    /criar\s+pag/i,
+    /criar\s+pagina/i,
+    /pagina\s+caso/i,
+    /página\s+caso/i,
+    /page\s+criada/i,
+    /postar\s+(sua\s+)?pagina/i,
+    /postar\s+(sua\s+)?página/i,
+  ],
 };
 
 function normalizeEvidenceText(value: string): string {
@@ -64,8 +96,13 @@ function normalizeEvidenceText(value: string): string {
 function taskMatchesEvidence(task: QualityEvidenceTaskLike, patterns: RegExp[]): boolean {
   if (task.completed === false) return false;
 
-  const text = normalizeEvidenceText(`${task.title} ${task.description ?? ""}`);
-  return patterns.some((pattern) => pattern.test(text));
+  const rawText = `${task.title} ${task.description ?? ""}`;
+  const normalized = normalizeEvidenceText(rawText);
+  
+  return patterns.some((pattern) => {
+    // Test both original and normalized text for patterns with special chars
+    return pattern.test(rawText) || pattern.test(normalized);
+  });
 }
 
 export function getEffectiveProfileQuality(
@@ -82,6 +119,35 @@ export function getEffectiveProfileQuality(
     hasPage:
       Boolean(quality?.hasPage) ||
       tasks.some((task) => taskMatchesEvidence(task, QUALITY_EVIDENCE_PATTERNS.hasPage)),
+    friendRange: quality?.friendRange || DEFAULT_PROFILE_QUALITY_DATA.friendRange,
+  };
+}
+
+export function getEffectiveProfileQualityWithSource(
+  quality: Partial<ProfileQualityData> | undefined,
+  tasks: QualityEvidenceTaskLike[] = [],
+): ProfileQualityWithSource {
+  const manual2FA = Boolean(quality?.has2FA);
+  const task2FA = tasks.some((task) => taskMatchesEvidence(task, QUALITY_EVIDENCE_PATTERNS.has2FA));
+  const manualBM = Boolean(quality?.hasBM);
+  const taskBM = tasks.some((task) => taskMatchesEvidence(task, QUALITY_EVIDENCE_PATTERNS.hasBM));
+  const manualPage = Boolean(quality?.hasPage);
+  const taskPage = tasks.some((task) => taskMatchesEvidence(task, QUALITY_EVIDENCE_PATTERNS.hasPage));
+
+  function source(manual: boolean, task: boolean): "manual" | "task" | "both" | null {
+    if (manual && task) return "both";
+    if (manual) return "manual";
+    if (task) return "task";
+    return null;
+  }
+
+  return {
+    has2FA: manual2FA || task2FA,
+    has2FA_source: source(manual2FA, task2FA),
+    hasBM: manualBM || taskBM,
+    hasBM_source: source(manualBM, taskBM),
+    hasPage: manualPage || taskPage,
+    hasPage_source: source(manualPage, taskPage),
     friendRange: quality?.friendRange || DEFAULT_PROFILE_QUALITY_DATA.friendRange,
   };
 }
