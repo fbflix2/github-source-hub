@@ -178,10 +178,10 @@ export default function Public2FA() {
                 </div>
                 <div className="flex-1 w-full">
                   <Progress
-                    value={(quickResult.remaining / quickResult.period) * 100}
-                    className={`h-1.5 ${quickResult.remaining <= 5 ? "[&>div]:bg-destructive" : "[&>div]:bg-primary"}`}
+                    value={(Math.min(quickResult.remaining, 60) / Math.min(quickResult.period, 60)) * 100}
+                    className={`h-1.5 ${Math.min(quickResult.remaining, 60) <= 5 ? "[&>div]:bg-destructive" : "[&>div]:bg-primary"}`}
                   />
-                  <span className="text-xs text-muted-foreground font-mono">{quickResult.remaining}s</span>
+                  <span className="text-xs text-muted-foreground font-mono">{Math.min(quickResult.remaining, 60)}s</span>
                 </div>
                 <div className="flex gap-2">
                   <Button size="sm" variant="outline" onClick={handleCopyQuick}>
