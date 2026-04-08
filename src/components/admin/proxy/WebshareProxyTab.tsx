@@ -324,7 +324,7 @@ export default function WebshareProxyTab() {
               <TrendingUp className="size-5 text-green-500" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Receita Webshare</p>
+              <p className="text-xs text-muted-foreground">Receita Proxy</p>
               <p className="text-xl font-bold text-foreground">{formatCurrency(financials.totalRevenue)}</p>
             </div>
           </CardContent>
