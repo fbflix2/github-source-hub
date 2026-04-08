@@ -36,6 +36,7 @@ const ModalOverlay = ({ children, onClose }: { children: React.ReactNode; onClos
 );
 
 export function FbCaixas() {
+  const META_PRO_LABORE = 10000;
   const [caixas, setCaixas] = useState<Caixa[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCaixa, setSelectedCaixa] = useState<Caixa | null>(null);
@@ -57,19 +58,20 @@ export function FbCaixas() {
   useEffect(() => { fetchCaixas(); }, []);
 
   const fetchCaixas = async () => {
-    const [{ data: caixasData }, { data: configData }, { data: proLaboreData }] = await Promise.all([
+    const [{ data: caixasData }, { data: configData }, { data: custosData }] = await Promise.all([
       supabase.from("fb_finance_caixas" as any).select("*").order("tipo").order("nome"),
       supabase.from("fb_finance_config" as any).select("personal_distribution_percentages").limit(1).maybeSingle(),
-      supabase.from("fb_finance_caixas" as any).select("saldo_atual").ilike("nome", "%pro labore%").limit(1).maybeSingle(),
+      supabase.from("fb_finance_custos_pessoais" as any).select("valor").eq("ativo", true),
     ]);
 
     const caixaRows = (caixasData as any[]) || [];
-    const proLaboreSaldo = Number((proLaboreData as any)?.saldo_atual || 0);
     const percents = (configData as any)?.personal_distribution_percentages as Record<string, number> | null;
+    const totalCustosPessoais = ((custosData as any[]) || []).reduce((sum, custo) => sum + Number(custo?.valor || 0), 0);
+    const disponivelParaEnvelopes = Math.max(0, META_PRO_LABORE - totalCustosPessoais);
 
-    // Calculate Pro Labore allocation per personal box
+    // Use the same base from Planejamento Pessoal / Alocação do Pro Labore
     const alloc: Record<string, number> = {};
-    if (percents && proLaboreSaldo > 0) {
+    if (percents && disponivelParaEnvelopes > 0) {
       const pjNames = ["Capital de Giro", "Dividendos", "Fundos Fbflix", "Operacional", "Pro Labore"];
       const pessoalNames = ["Dia a Dia", "Dia a Dia/Emergências", "Estilo de Vida", "Fundo Emergência", "Investimentos", "Janela Oportunidade", "Conta Corrente Pessoal", "Entrada Compra Casa"];
       const pjCaixas = caixaRows.filter((c: any) =>
@@ -79,7 +81,7 @@ export function FbCaixas() {
       const pessoalBoxes = caixaRows.filter((c: any) => !pjCaixas.includes(c));
       for (const box of pessoalBoxes) {
         const pct = percents[box.id] !== undefined ? Number(percents[box.id]) : 0;
-        alloc[box.id] = proLaboreSaldo * (pct / 100);
+        alloc[box.id] = disponivelParaEnvelopes * (pct / 100);
       }
     }
     setProLaboreAlloc(alloc);
