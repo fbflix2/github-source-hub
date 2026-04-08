@@ -125,6 +125,26 @@ interface BuyResult {
   productName: string;
 }
 
+  const FAVORITES_KEY = "shopclone_favorites";
+
+  function useFavorites() {
+    const [favorites, setFavorites] = useState<Set<string>>(() => {
+      try {
+        const saved = localStorage.getItem(FAVORITES_KEY);
+        return saved ? new Set(JSON.parse(saved)) : new Set();
+      } catch { return new Set(); }
+    });
+    const toggle = useCallback((id: string) => {
+      setFavorites(prev => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id); else next.add(id);
+        localStorage.setItem(FAVORITES_KEY, JSON.stringify([...next]));
+        return next;
+      });
+    }, []);
+    return { favorites, toggle };
+  }
+
 export default function AdminShopClone() {
   const { data: categories, isLoading, error, refetch } = useShopCloneProducts();
   const { data: balance, isLoading: balanceLoading, refetch: refetchBalance } = useShopCloneBalance();
@@ -133,15 +153,22 @@ export default function AdminShopClone() {
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [buyResult, setBuyResult] = useState<BuyResult | null>(null);
+  const [viewTab, setViewTab] = useState<"all" | "favorites">("all");
+  const { favorites, toggle: toggleFavorite } = useFavorites();
 
-  const filteredCategories = (categories || []).filter((cat) => {
+  const filteredCategories = (categories || []).map((cat) => {
+    let products = cat.accounts;
+    if (viewTab === "favorites") {
+      products = products.filter(p => favorites.has(p.id));
+    }
+    if (search) {
+      const q = search.toLowerCase();
+      products = products.filter(p => p.name.toLowerCase().includes(q));
+    }
+    return { ...cat, accounts: products };
+  }).filter(cat => {
     if (selectedCategory && cat.id !== selectedCategory) return false;
-    if (!search) return true;
-    const q = search.toLowerCase();
-    return (
-      cat.name.toLowerCase().includes(q) ||
-      cat.accounts.some((p) => p.name.toLowerCase().includes(q))
-    );
+    return cat.accounts.length > 0;
   });
 
   const totalProducts = (categories || []).reduce((sum, c) => sum + c.accounts.length, 0);
