@@ -2043,7 +2043,7 @@ Deno.serve(async (req) => {
         provider: "webshare",
         exchange_quota_free: 2,
         exchange_quota_pay: 0,
-        migrated_from: "proxybr",
+        migrated_from: existingSub.type === "proxybr" ? "proxybr" : undefined,
         original_name: existingSub.name,
         profile_tag: raw.profile_tag || null,
       };
