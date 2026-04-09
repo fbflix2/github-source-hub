@@ -120,6 +120,29 @@ export default function WebshareProxyTab() {
     return map;
   }, [wsProfiles]);
 
+  // Country breakdown from products tags/names
+  const countryBreakdown = useMemo(() => {
+    if (!wsSubs || !wsProducts) return { br: { sold: 0, active: 0 }, us: { sold: 0, active: 0 } };
+    const now = new Date();
+    const productCountryMap = new Map<string, "BR" | "US">();
+    wsProducts.forEach(p => {
+      const tags = (p.tags || []).join(" ").toLowerCase();
+      const name = (p.name || "").toLowerCase();
+      const isUS = tags.includes("us") || tags.includes("usa") || tags.includes("americano") || name.includes("americana") || name.includes(" us ");
+      productCountryMap.set(p.id, isUS ? "US" : "BR");
+    });
+    const result = { br: { sold: 0, active: 0 }, us: { sold: 0, active: 0 } };
+    wsSubs.forEach(s => {
+      const country = (s.product_id && productCountryMap.get(s.product_id)) || "BR";
+      const bucket = country === "US" ? result.us : result.br;
+      bucket.sold++;
+      if (s.status === "active" && (!s.end_date || new Date(s.end_date) >= now)) {
+        bucket.active++;
+      }
+    });
+    return result;
+  }, [wsSubs, wsProducts]);
+
   // Compute sold proxy IDs to filter available list
   const soldProxyIds = useMemo(() => {
     if (!wsSubs) return new Set<number>();
@@ -424,6 +447,48 @@ export default function WebshareProxyTab() {
           );
         })()}
       </div>
+
+      {/* Country Breakdown */}
+      {(countryBreakdown.br.sold > 0 || countryBreakdown.us.sold > 0) && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Card className="border-border/40 bg-card/60 backdrop-blur-sm">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-lg">🇧🇷</span>
+                <p className="text-sm font-semibold text-foreground">Proxies Brasil</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs text-muted-foreground">Vendidos (ativos)</p>
+                  <p className="text-xl font-bold text-foreground">{countryBreakdown.br.active}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Total vendas</p>
+                  <p className="text-xl font-bold text-muted-foreground">{countryBreakdown.br.sold}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-border/40 bg-card/60 backdrop-blur-sm">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-lg">🇺🇸</span>
+                <p className="text-sm font-semibold text-foreground">Proxies Americanos</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs text-muted-foreground">Vendidos (ativos)</p>
+                  <p className="text-xl font-bold text-foreground">{countryBreakdown.us.active}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Total vendas</p>
+                  <p className="text-xl font-bold text-muted-foreground">{countryBreakdown.us.sold}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Sales Chart */}
       {(() => {
