@@ -155,6 +155,7 @@ export default function AdminAquecimento() {
   const [operationMode, setOperationMode] = useState<"register" | "execute">("execute");
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"count" | "currency">("count");
+  const [queueSearch, setQueueSearch] = useState("");
   const [operatorDisplayName, setOperatorDisplayName] = useState("");
   const [operatorCoverUrl, setOperatorCoverUrl] = useState<string | null>(null);
   const [savingConfig, setSavingConfig] = useState(false);
