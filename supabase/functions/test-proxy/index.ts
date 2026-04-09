@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { proxy } = await req.json();
+    const { proxy, is_rotating } = await req.json();
     if (!proxy || typeof proxy !== "string") {
       return new Response(JSON.stringify({ error: "Proxy string is required" }), {
         status: 400,
@@ -46,6 +46,102 @@ Deno.serve(async (req) => {
     if (parts.length < 2) {
       return new Response(JSON.stringify({ error: "Formato inválido. Use host:porta:usuario:senha" }), {
         status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // For rotating proxies, test all endpoint variants
+    if (is_rotating) {
+      const host = parts[0];
+      const username = parts[2] || "";
+      const password = parts[3] || "";
+
+      // Resolve converted host
+      let convertedHost: string | null = null;
+      if (!/^\d+\.\d+\.\d+\.\d+$/.test(host)) {
+        try {
+          const dnsResp = await fetch(`https://dns.google/resolve?name=${host}&type=A`);
+          const dnsData = await dnsResp.json();
+          const answers = Array.isArray(dnsData?.Answer) ? dnsData.Answer : [];
+          convertedHost = answers.find((a: any) => a?.type === 1 && /^\d+\.\d+\.\d+\.\d+$/.test(a?.data || ""))?.data ?? null;
+        } catch {}
+      }
+
+      const endpoints = [
+        { label: "HTTP :80", host, port: 80, protocol: "http" },
+        { label: "HTTP :3128", host, port: 3128, protocol: "http" },
+        { label: "SOCKS5 :1080", host, port: 1080, protocol: "socks5" },
+      ];
+
+      if (convertedHost) {
+        endpoints.push(
+          { label: `HTTP IP :80`, host: convertedHost, port: 80, protocol: "http" },
+          { label: `HTTP IP :3128`, host: convertedHost, port: 3128, protocol: "http" },
+        );
+      }
+
+      const results: any[] = [];
+      for (const ep of endpoints) {
+        let working = false;
+        let epError = "";
+        let epIp = "";
+        try {
+          const conn = await Promise.race([
+            Deno.connect({ hostname: ep.host, port: ep.port }),
+            new Promise<never>((_, reject) => setTimeout(() => reject(new Error("TCP timeout")), 5000)),
+          ]) as Deno.Conn;
+
+          const encoder = new TextEncoder();
+          const decoder = new TextDecoder();
+          const authHeader = username ? `Proxy-Authorization: Basic ${btoa(`${username}:${password}`)}\r\n` : "";
+          const httpReq = `GET http://ip-api.com/json/?fields=status,query HTTP/1.1\r\nHost: ip-api.com\r\n${authHeader}\r\n`;
+          await conn.write(encoder.encode(httpReq));
+
+          const buf = new Uint8Array(4096);
+          const readPromise = conn.read(buf);
+          const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 6000));
+          const bytesRead = await Promise.race([readPromise, timeoutPromise]);
+
+          if (bytesRead && typeof bytesRead === "number" && bytesRead > 0) {
+            const responseText = decoder.decode(buf.subarray(0, bytesRead));
+            if (responseText.includes("HTTP/")) {
+              if (responseText.includes("407")) {
+                epError = "Autenticação recusada";
+              } else {
+                const jsonMatch = responseText.match(/\{[^}]+\}/);
+                if (jsonMatch) {
+                  try {
+                    const j = JSON.parse(jsonMatch[0]);
+                    if (j.status === "success" && j.query) { working = true; epIp = j.query; }
+                    else { working = true; }
+                  } catch { working = true; }
+                } else { working = true; }
+              }
+            }
+          } else {
+            epError = "Sem resposta (timeout)";
+          }
+          conn.close();
+        } catch (err: any) {
+          const msg = err?.message || String(err);
+          if (msg.includes("TCP timeout") || msg.includes("timed out")) epError = "Timeout";
+          else if (msg.includes("Connection refused")) epError = "Porta fechada";
+          else epError = msg.slice(0, 60);
+        }
+        results.push({ label: ep.label, host: ep.host, port: ep.port, protocol: ep.protocol, success: working, error: working ? undefined : epError, exit_ip: epIp || undefined });
+      }
+
+      const anyWorking = results.some(r => r.success);
+      const bestEndpoint = results.find(r => r.success);
+
+      return new Response(JSON.stringify({
+        success: anyWorking,
+        is_rotating: true,
+        converted_host: convertedHost,
+        endpoints: results,
+        recommended: bestEndpoint ? `${bestEndpoint.host}:${bestEndpoint.port}` : undefined,
+        ip: bestEndpoint?.exit_ip || undefined,
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

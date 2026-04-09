@@ -176,6 +176,8 @@ export function useWebshareSubscriptions() {
                 password: raw.password,
                 protocol: "HTTP/SOCKS5",
                 socks5_port: raw.socks5_port || 1080,
+                converted_host: raw.converted_host || null,
+                alt_http_port: raw.alt_http_port || 3128,
               }
             : raw.proxy_address ? {
                 id: raw.webshare_proxy_id,

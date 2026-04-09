@@ -1962,6 +1962,52 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ========== BACKFILL ROTATING PROXY CREDENTIALS ==========
+    if (action === "backfill-rotating-credentials") {
+      const { data: isAdmin } = await supabaseAdmin.rpc("has_role", { _user_id: user.id, _role: "admin" });
+      if (!isAdmin) throw new Error("Acesso negado: apenas administradores");
+
+      // Resolve converted host
+      let convertedHost: string | null = null;
+      try {
+        const dnsResp = await fetch("https://dns.google/resolve?name=p.webshare.io&type=A");
+        const dnsData = await dnsResp.json();
+        const answers = Array.isArray(dnsData?.Answer) ? dnsData.Answer : [];
+        convertedHost = answers.find((a: any) => a?.type === 1 && /^\d+\.\d+\.\d+\.\d+$/.test(a?.data || ""))?.data ?? null;
+      } catch {}
+
+      // Find all rotating subs missing converted_host or alt_http_port
+      const { data: rotatingSubs } = await supabaseAdmin
+        .from("subscriptions")
+        .select("id, raw_data")
+        .eq("type", "webshare_rotating")
+        .in("status", ["active", "expiring"]);
+
+      let updated = 0;
+      for (const sub of (rotatingSubs || [])) {
+        const raw = (sub.raw_data || {}) as Record<string, any>;
+        if (raw.converted_host && raw.alt_http_port) continue;
+
+        const updatedRaw = {
+          ...raw,
+          converted_host: raw.converted_host || convertedHost,
+          alt_http_port: raw.alt_http_port || 3128,
+          socks5_port: raw.socks5_port || 1080,
+        };
+
+        await supabaseAdmin
+          .from("subscriptions")
+          .update({ raw_data: updatedRaw, updated_at: new Date().toISOString() })
+          .eq("id", sub.id);
+        updated++;
+      }
+
+      console.log(`[backfill-rotating] Updated ${updated} subscriptions with converted_host=${convertedHost}`);
+      return new Response(JSON.stringify({ success: true, updated, converted_host: convertedHost }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     throw new Error(`Ação desconhecida: ${action}`);
   } catch (err: any) {
     console.error("[webshare-api] Error:", err.message);
