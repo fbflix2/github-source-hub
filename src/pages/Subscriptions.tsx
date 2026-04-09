@@ -320,18 +320,11 @@ function ProxiesPanel() {
     // Extract base subscription name (strip #N suffix and __proxy_ suffix)
     const baseName = (sub.name || sub.code).replace(/#\d+$/, "").replace(/__proxy_\d+$/, "");
     setRenewingCode(sub.code);
-    const isProxyBR = !sub.provider || sub.provider === "proxybr";
-    if (isProxyBR) {
-      // Pass proxy_index for multi-proxy subs so migration creates individual subs
-      migrateMutation.mutate(
-        { subscriptionName: baseName, proxyIndex: sub.proxyIndex, totalProxies: sub.totalProxies },
-        { onSettled: () => setRenewingCode(null) },
-      );
-    } else {
-      renewMutation.mutate(baseName, {
-        onSettled: () => setRenewingCode(null),
-      });
-    }
+    // Use migrate mutation for all providers (handles both ProxyBR and Webshare renewals)
+    migrateMutation.mutate(
+      { subscriptionName: baseName, proxyIndex: sub.proxyIndex, totalProxies: sub.totalProxies },
+      { onSettled: () => setRenewingCode(null) },
+    );
   };
 
   if (!isLoading && !error && subscriptions.length === 0) {

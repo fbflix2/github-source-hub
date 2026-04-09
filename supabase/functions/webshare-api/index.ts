@@ -1905,9 +1905,10 @@ Deno.serve(async (req) => {
       const targetUserId = auto_renew_user_id || user?.id;
       if (!targetUserId) throw new Error("Usuário não identificado");
 
-      // 1. Find the ProxyBR subscription in DB (search by name across all users since sync may assign to admin)
+      // 1. Find the subscription in DB (search proxybr first, then webshare)
       let existingSub: any = null;
       {
+        // Try proxybr first (original flow)
         const { data: directSub } = await supabaseAdmin
           .from("subscriptions")
           .select("*, products:product_id(name, price, tags)")
@@ -1919,18 +1920,31 @@ Deno.serve(async (req) => {
         if (directSub) {
           existingSub = directSub;
         } else {
-          // Fallback: search across all users (sync-cron may have assigned to admin user)
-          const { data: anySub } = await supabaseAdmin
+          // Try webshare type for the same user
+          const { data: wsSub } = await supabaseAdmin
             .from("subscriptions")
             .select("*, products:product_id(name, price, tags)")
+            .eq("user_id", targetUserId)
             .eq("name", subscription_name)
-            .eq("type", "proxybr")
-            .limit(1)
+            .in("type", ["webshare", "webshare_rotating"])
             .maybeSingle();
-          existingSub = anySub;
+          
+          if (wsSub) {
+            existingSub = wsSub;
+          } else {
+            // Fallback: search across all users
+            const { data: anySub } = await supabaseAdmin
+              .from("subscriptions")
+              .select("*, products:product_id(name, price, tags)")
+              .eq("name", subscription_name)
+              .in("type", ["proxybr", "webshare", "webshare_rotating"])
+              .limit(1)
+              .maybeSingle();
+            existingSub = anySub;
+          }
         }
       }
-      if (!existingSub) throw new Error("Assinatura ProxyBR não encontrada");
+      if (!existingSub) throw new Error("Assinatura não encontrada");
 
       // For single-proxy subs or non-exploded, check if still active
       const isMultiProxy = (total_proxies || 0) > 1;
