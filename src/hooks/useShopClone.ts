@@ -9,7 +9,9 @@ async function callShopClone(action: string, params: Record<string, unknown> = {
   if (error) throw new Error(error.message || "Erro ao chamar ShopClone API");
   if (data?.error) throw new Error(data.error);
   if (data?.status === "error") {
-    const msg = data.raw || data.parseError ? "Resposta inválida do fornecedor — tente novamente em alguns minutos" : "Erro desconhecido";
+    const msg = data.raw
+      ? `Erro do fornecedor: ${String(data.raw).substring(0, 200)}`
+      : "O fornecedor não retornou dados. Isso pode acontecer quando a API está temporariamente indisponível. Tente novamente em alguns instantes.";
     throw new Error(msg);
   }
   return data;
