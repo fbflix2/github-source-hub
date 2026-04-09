@@ -50,10 +50,8 @@ export default function ProfileQuickInfo({ profileId }: { profileId: string }) {
   const [data, setData] = useState<ProfileQualityData>(DEFAULT_PROFILE_QUALITY_DATA);
   const [loaded, setLoaded] = useState(false);
 
-  useEffect(() => {
-    setData(DEFAULT_PROFILE_QUALITY_DATA);
-    setLoaded(false);
-    const key = `warming_quality_${profileId}`;
+  const loadData = (pid: string) => {
+    const key = `warming_quality_${pid}`;
     supabase
       .from("site_settings")
       .select("value")
@@ -65,7 +63,30 @@ export default function ProfileQuickInfo({ profileId }: { profileId: string }) {
         }
         setLoaded(true);
       });
+  };
+
+  useEffect(() => {
+    setData(DEFAULT_PROFILE_QUALITY_DATA);
+    setLoaded(false);
+    loadData(profileId);
   }, [profileId]);
+
+  const saveFriendRange = async (range: string) => {
+    const newData = { ...data, friendRange: range };
+    setData(newData);
+    const key = `warming_quality_${profileId}`;
+    const jsonValue = JSON.stringify(newData);
+    const { data: existing } = await supabase
+      .from("site_settings")
+      .select("id")
+      .eq("key", key)
+      .maybeSingle();
+    if (existing) {
+      await supabase.from("site_settings").update({ value: jsonValue }).eq("key", key);
+    } else {
+      await supabase.from("site_settings").insert({ key, value: jsonValue });
+    }
+  };
 
   if (!loaded) return null;
 
@@ -86,16 +107,18 @@ export default function ProfileQuickInfo({ profileId }: { profileId: string }) {
             {FRIEND_RANGES.map((range) => {
               const isActive = data.friendRange === range.value;
               return (
-                <div
+                <button
                   key={range.value}
-                  className={`py-1.5 px-1 rounded-lg border text-[10px] font-bold text-center ${
+                  type="button"
+                  onClick={() => saveFriendRange(range.value)}
+                  className={`py-1.5 px-1 rounded-lg border text-[10px] font-bold text-center transition-colors cursor-pointer ${
                     isActive
                       ? "bg-[#1876f2] text-white border-[#1876f2]"
-                      : "bg-white dark:bg-white/5 text-slate-500 dark:text-white/50 border-slate-200 dark:border-white/10"
+                      : "bg-white dark:bg-white/5 text-slate-500 dark:text-white/50 border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/10"
                   }`}
                 >
                   {range.label}
-                </div>
+                </button>
               );
             })}
           </div>
