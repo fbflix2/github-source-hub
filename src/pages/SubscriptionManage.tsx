@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useProxyBRSubscriptions, useExchangeProxy, useRenewSubscription, useToggleAutoRenew, getExchangeHistory } from "@/hooks/useProxyBR";
-import { useWebshareSubscriptions, useExchangeWebshareProxy, getWebshareExchangeHistory, useToggleWebshareAutoRenew } from "@/hooks/useWebshare";
+import { useWebshareSubscriptions, useExchangeWebshareProxy, getWebshareExchangeHistory, useToggleWebshareAutoRenew, useSyncWebshareProxyCredentials } from "@/hooks/useWebshare";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
@@ -32,6 +32,7 @@ export default function SubscriptionManage() {
   const { data: webshareRaw, isLoading: wsLoading } = useWebshareSubscriptions();
   const exchangeMutation = useExchangeProxy();
   const wsExchangeMutation = useExchangeWebshareProxy();
+  const syncWebshareCredentialsMutation = useSyncWebshareProxyCredentials();
   const renewMutation = useRenewSubscription();
   const autoRenewMutation = useToggleAutoRenew();
   const wsAutoRenewMutation = useToggleWebshareAutoRenew();
@@ -693,14 +694,39 @@ export default function SubscriptionManage() {
                 disabled={testingProxy}
                 onClick={async () => {
                   const proxyData = sub.proxy as any;
-                  const proxyString = `${proxyData.ip}:${proxyData.port}:${proxyData.username || ""}:${proxyData.password || ""}`;
+                  const buildProxyString = (override?: { ip?: string; port?: string | number; username?: string; password?: string }) => `${override?.ip || proxyData.ip}:${override?.port || proxyData.port}:${override?.username || proxyData.username || ""}:${override?.password || proxyData.password || ""}`;
                   setTestingProxy(true);
                   setProxyTestResult(null);
                   try {
-                    const { data, error } = await supabase.functions.invoke("test-proxy", {
-                      body: { proxy: proxyString, is_rotating: isRotating },
-                    });
-                    if (error) throw error;
+                    const runTest = async (proxyString: string) => {
+                      const { data, error } = await supabase.functions.invoke("test-proxy", {
+                        body: { proxy: proxyString, is_rotating: isRotating },
+                      });
+                      if (error) throw error;
+                      return data;
+                    };
+
+                    let data = await runTest(buildProxyString());
+
+                    const authFailed = !isRotating && isWebshare && !data?.success && typeof data?.error === "string" && /autentica/i.test(data.error);
+
+                    if (authFailed && (sub as any)?.id) {
+                      const syncResult = await syncWebshareCredentialsMutation.mutateAsync({ subscriptionId: (sub as any).id });
+                      const syncedProxy = syncResult?.proxy;
+                      if (syncedProxy?.ip && syncedProxy?.port) {
+                        data = await runTest(buildProxyString({
+                          ip: syncedProxy.ip,
+                          port: syncedProxy.port,
+                          username: syncedProxy.username,
+                          password: syncedProxy.password,
+                        }));
+
+                        if (data?.success) {
+                          toast.success("O proxy estava com credenciais antigas e foi sincronizado automaticamente.");
+                        }
+                      }
+                    }
+
                     setProxyTestResult(data);
                   } catch (err: any) {
                     setProxyTestResult({ success: false, error: err.message || "Erro ao testar proxy" });

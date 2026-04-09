@@ -248,6 +248,26 @@ export function useExchangeWebshareProxy() {
   });
 }
 
+export function useSyncWebshareProxyCredentials() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ subscriptionId }: { subscriptionId: string }) => {
+      const result = await callWebshare("sync-webshare-proxy-credentials", { subscription_id: subscriptionId });
+      return result;
+    },
+    onSuccess: (result: any) => {
+      queryClient.invalidateQueries({ queryKey: ["webshare-subscriptions"] });
+      if (result?.synced) {
+        toast.success("Credenciais do proxy sincronizadas com a Webshare.");
+      }
+    },
+    onError: (err: Error) => {
+      toast.error(`Erro ao sincronizar credenciais: ${err.message}`);
+    },
+  });
+}
+
 /** Toggle auto-renew for a Webshare subscription (direct DB update) */
 export function useToggleWebshareAutoRenew() {
   const queryClient = useQueryClient();
