@@ -86,6 +86,37 @@ async function webFetch(path: string, apiKey: string, method = "GET", body?: str
   return resp;
 }
 
+async function fetchAllWebshareProxies(apiKey: string, mode: "direct" | "backbone" = "direct") {
+  const proxies: any[] = [];
+  let page = 1;
+
+  while (true) {
+    const resp = await webFetch(`/proxy/list/?mode=${mode}&page=${page}&page_size=250`, apiKey);
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(`Webshare API error [${resp.status}]`);
+
+    if (data.results?.length) proxies.push(...data.results);
+    if (!data.next) break;
+    page++;
+  }
+
+  return proxies;
+}
+
+function buildStaticWebshareRawData(proxy: any, currentRaw: Record<string, any> = {}): Record<string, any> {
+  return {
+    ...currentRaw,
+    webshare_proxy_id: proxy.id,
+    proxy_address: proxy.proxy_address,
+    port: proxy.port,
+    username: proxy.username,
+    password: proxy.password,
+    country_code: proxy.country_code,
+    city_name: proxy.city_name,
+    provider: "webshare",
+  };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -775,6 +806,75 @@ Deno.serve(async (req) => {
         total: allProxies.length,
         assigned: assignedIds.size,
         available: available.length,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ========== SYNC WEBSHARE STATIC PROXY CREDENTIALS ==========
+    if (action === "sync-webshare-proxy-credentials") {
+      const { subscription_id } = params as { subscription_id: string };
+      if (!subscription_id) throw new Error("subscription_id é obrigatório");
+
+      const { data: subRow, error: subErr } = await supabaseAdmin
+        .from("subscriptions")
+        .select("*")
+        .eq("id", subscription_id)
+        .eq("type", "webshare")
+        .maybeSingle();
+
+      if (subErr || !subRow) throw new Error("Assinatura não encontrada");
+
+      if (!isServiceRole && subRow.user_id !== user?.id) {
+        const { data: isStaff } = await supabaseAdmin.rpc("is_staff", { _user_id: user?.id });
+        if (!isStaff) throw new Error("Sem permissão");
+      }
+
+      const raw = (subRow.raw_data || {}) as Record<string, any>;
+      const proxyId = raw.webshare_proxy_id ? String(raw.webshare_proxy_id) : "";
+      const proxyAddress = raw.proxy_address ? String(raw.proxy_address) : "";
+
+      if (!proxyId && !proxyAddress) {
+        throw new Error("Assinatura sem identificador do proxy");
+      }
+
+      const allProxies = await fetchAllWebshareProxies(WEBSHARE_API_KEY, "direct");
+      const providerProxy = allProxies.find((proxy: any) => (
+        (proxyId && String(proxy.id) === proxyId) ||
+        (proxyAddress && proxy.proxy_address === proxyAddress)
+      ));
+
+      if (!providerProxy) {
+        throw new Error("Proxy não encontrado na Webshare");
+      }
+
+      const updatedRaw = buildStaticWebshareRawData(providerProxy, raw) as Record<string, any>;
+      const fieldsToCompare = ["proxy_address", "port", "username", "password", "country_code", "city_name"] as const;
+      const changedFields = fieldsToCompare.filter((field) => String(updatedRaw[field] ?? "") !== String(raw[field] ?? ""));
+
+      if (changedFields.length > 0) {
+        const { error: updateErr } = await supabaseAdmin
+          .from("subscriptions")
+          .update({ raw_data: updatedRaw, updated_at: new Date().toISOString() })
+          .eq("id", subscription_id);
+
+        if (updateErr) throw new Error(`Erro ao atualizar assinatura: ${updateErr.message}`);
+      }
+
+      console.log(`[sync-webshare-proxy-credentials] sub=${subscription_id} changed=${changedFields.join(",") || "none"}`);
+
+      return new Response(JSON.stringify({
+        success: true,
+        synced: changedFields.length > 0,
+        changed_fields: changedFields,
+        proxy: {
+          id: providerProxy.id,
+          ip: providerProxy.proxy_address,
+          port: providerProxy.port,
+          username: providerProxy.username,
+          password: providerProxy.password,
+          country_code: providerProxy.country_code,
+        },
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
