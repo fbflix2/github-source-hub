@@ -1757,6 +1757,20 @@ export default function AdminEsteiraAdmin() {
                       }`}>
                         {p.status === "completed" ? "Concluído" : p.status === "blocked" ? "Bloqueado" : "Ativo"}
                       </span>
+                      <button
+                        onClick={async () => {
+                          if (!window.confirm(`Excluir perfil ${p.profile_code}? Isso removerá também todas as tarefas e ganhos vinculados.`)) return;
+                          await supabase.from("warming_tasks").delete().eq("profile_id", p.id);
+                          await supabase.from("operator_earnings").delete().eq("profile_id", p.id);
+                          await supabase.from("warming_profiles").delete().eq("id", p.id);
+                          toast.success(`Perfil ${p.profile_code} excluído!`);
+                          fetchProfiles();
+                        }}
+                        className="opacity-0 group-hover/code:opacity-100 transition-opacity text-slate-400 hover:text-rose-500 ml-1"
+                        title="Excluir perfil"
+                      >
+                        <MIcon name="delete" className="text-base" />
+                      </button>
                     </div>
                   );
                 })
