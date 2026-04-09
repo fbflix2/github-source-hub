@@ -107,16 +107,18 @@ export default function ProfileQuickInfo({ profileId }: { profileId: string }) {
             {FRIEND_RANGES.map((range) => {
               const isActive = data.friendRange === range.value;
               return (
-                <div
+                <button
                   key={range.value}
-                  className={`py-1.5 px-1 rounded-lg border text-[10px] font-bold text-center ${
+                  type="button"
+                  onClick={() => saveFriendRange(range.value)}
+                  className={`py-1.5 px-1 rounded-lg border text-[10px] font-bold text-center transition-colors cursor-pointer ${
                     isActive
                       ? "bg-[#1876f2] text-white border-[#1876f2]"
-                      : "bg-white dark:bg-white/5 text-slate-500 dark:text-white/50 border-slate-200 dark:border-white/10"
+                      : "bg-white dark:bg-white/5 text-slate-500 dark:text-white/50 border-slate-200 dark:border-white/10 hover:bg-slate-100 dark:hover:bg-white/10"
                   }`}
                 >
                   {range.label}
-                </div>
+                </button>
               );
             })}
           </div>
