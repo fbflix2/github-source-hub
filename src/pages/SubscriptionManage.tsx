@@ -670,7 +670,15 @@ export default function SubscriptionManage() {
               Ações Rápidas
             </h2>
             {sub.proxy && (
-              <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-xs h-8" onClick={() => copyToClipboard(`${sub.proxy!.ip}:${sub.proxy!.port}:${sub.proxy!.username || ""}:${sub.proxy!.password || ""}`, "quick-conn")}>
+              <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-xs h-8" onClick={() => {
+                const proxyData = sub.proxy as any;
+                if (isRotating) {
+                  const bestHost = proxyData.converted_host || proxyData.ip;
+                  copyToClipboard(`${bestHost}:${proxyData.port}:${proxyData.username || ""}:${proxyData.password || ""}`, "quick-conn");
+                } else {
+                  copyToClipboard(`${sub.proxy!.ip}:${sub.proxy!.port}:${sub.proxy!.username || ""}:${sub.proxy!.password || ""}`, "quick-conn");
+                }
+              }}>
                 <span className="material-symbols-outlined text-sm">content_copy</span>Copiar Proxy
               </Button>
             )}
@@ -684,12 +692,13 @@ export default function SubscriptionManage() {
                 className="w-full justify-start gap-2 text-xs h-8"
                 disabled={testingProxy}
                 onClick={async () => {
-                  const proxyString = `${sub.proxy!.ip}:${sub.proxy!.port}:${sub.proxy!.username || ""}:${sub.proxy!.password || ""}`;
+                  const proxyData = sub.proxy as any;
+                  const proxyString = `${proxyData.ip}:${proxyData.port}:${proxyData.username || ""}:${proxyData.password || ""}`;
                   setTestingProxy(true);
                   setProxyTestResult(null);
                   try {
                     const { data, error } = await supabase.functions.invoke("test-proxy", {
-                      body: { proxy: proxyString },
+                      body: { proxy: proxyString, is_rotating: isRotating },
                     });
                     if (error) throw error;
                     setProxyTestResult(data);
