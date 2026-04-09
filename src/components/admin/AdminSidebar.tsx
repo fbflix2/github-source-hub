@@ -46,7 +46,8 @@ import {
   ShieldAlert,
   Receipt,
   HelpCircle,
-  Wallet
+  Wallet,
+  BarChart3
 } from "lucide-react";
 
 interface SubItem {
@@ -92,6 +93,7 @@ const allMenuItems: MenuItem[] = [
   { title: "Contingência Total", icon: ShieldAlert, path: "/admin/contingencia" },
   { title: "Fornecedor secreto 1", icon: Store, path: "/admin/fornecedor" },
   { title: "Aquecimento", icon: Flame, path: "/admin/aquecimento" },
+  { title: "Dashboard", icon: BarChart3, path: "/admin/operador-dashboard" },
   { title: "Financeiro", icon: Wallet, path: "/admin/operador-financeiro" },
   { title: "Config. Operador", icon: Settings, path: "/admin/aquecimento-config" },
   { title: "Como Funciona?", icon: HelpCircle, path: "/admin/aquecimento-guia" },
