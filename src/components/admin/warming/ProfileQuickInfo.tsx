@@ -50,10 +50,8 @@ export default function ProfileQuickInfo({ profileId }: { profileId: string }) {
   const [data, setData] = useState<ProfileQualityData>(DEFAULT_PROFILE_QUALITY_DATA);
   const [loaded, setLoaded] = useState(false);
 
-  useEffect(() => {
-    setData(DEFAULT_PROFILE_QUALITY_DATA);
-    setLoaded(false);
-    const key = `warming_quality_${profileId}`;
+  const loadData = (pid: string) => {
+    const key = `warming_quality_${pid}`;
     supabase
       .from("site_settings")
       .select("value")
@@ -65,7 +63,30 @@ export default function ProfileQuickInfo({ profileId }: { profileId: string }) {
         }
         setLoaded(true);
       });
+  };
+
+  useEffect(() => {
+    setData(DEFAULT_PROFILE_QUALITY_DATA);
+    setLoaded(false);
+    loadData(profileId);
   }, [profileId]);
+
+  const saveFriendRange = async (range: string) => {
+    const newData = { ...data, friendRange: range };
+    setData(newData);
+    const key = `warming_quality_${profileId}`;
+    const jsonValue = JSON.stringify(newData);
+    const { data: existing } = await supabase
+      .from("site_settings")
+      .select("id")
+      .eq("key", key)
+      .maybeSingle();
+    if (existing) {
+      await supabase.from("site_settings").update({ value: jsonValue }).eq("key", key);
+    } else {
+      await supabase.from("site_settings").insert({ key, value: jsonValue });
+    }
+  };
 
   if (!loaded) return null;
 
