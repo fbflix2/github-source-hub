@@ -448,6 +448,48 @@ export default function WebshareProxyTab() {
         })()}
       </div>
 
+      {/* Country Breakdown */}
+      {(countryBreakdown.br.sold > 0 || countryBreakdown.us.sold > 0) && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Card className="border-border/40 bg-card/60 backdrop-blur-sm">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-lg">🇧🇷</span>
+                <p className="text-sm font-semibold text-foreground">Proxies Brasil</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs text-muted-foreground">Vendidos (ativos)</p>
+                  <p className="text-xl font-bold text-foreground">{countryBreakdown.br.active}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Total vendas</p>
+                  <p className="text-xl font-bold text-muted-foreground">{countryBreakdown.br.sold}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-border/40 bg-card/60 backdrop-blur-sm">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-lg">🇺🇸</span>
+                <p className="text-sm font-semibold text-foreground">Proxies Americanos</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs text-muted-foreground">Vendidos (ativos)</p>
+                  <p className="text-xl font-bold text-foreground">{countryBreakdown.us.active}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Total vendas</p>
+                  <p className="text-xl font-bold text-muted-foreground">{countryBreakdown.us.sold}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Sales Chart */}
       {(() => {
         const since = getPeriodDate(period);
