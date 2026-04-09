@@ -725,7 +725,32 @@ export default function SubscriptionManage() {
 
             {proxyTestResult && (
               <div className={`rounded-lg p-3 space-y-1.5 ${proxyTestResult.success ? "bg-green-500/10 border border-green-500/20" : "bg-destructive/10 border border-destructive/20"}`}>
-                {proxyTestResult.success ? (
+                {/* Rotating multi-endpoint results */}
+                {proxyTestResult.is_rotating && proxyTestResult.endpoints ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${proxyTestResult.success ? "text-green-500 bg-green-500/10" : "text-destructive bg-destructive/10"}`}>
+                        {proxyTestResult.success ? "● Funcionando" : "● Todas falharam"}
+                      </span>
+                      {proxyTestResult.ip && <span className="text-muted-foreground text-[10px]">IP: {proxyTestResult.ip}</span>}
+                    </div>
+                    <div className="space-y-1">
+                      {proxyTestResult.endpoints.map((ep: any, i: number) => (
+                        <div key={i} className="flex items-center justify-between text-[10px] px-2 py-1 rounded bg-muted/50">
+                          <span className="text-foreground font-medium font-mono">{ep.label}</span>
+                          <span className={`font-bold ${ep.success ? "text-green-500" : "text-destructive"}`}>
+                            {ep.success ? "✓ OK" : ep.error || "Falha"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    {proxyTestResult.recommended && (
+                      <p className="text-[10px] text-accent-foreground">
+                        <span className="font-bold">Recomendado:</span> {proxyTestResult.recommended}
+                      </p>
+                    )}
+                  </div>
+                ) : proxyTestResult.success ? (
                   <>
                     <div className="flex items-center gap-2">
                       {proxyTestResult.countryCode && (
