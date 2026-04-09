@@ -58,9 +58,17 @@ export default function SubscriptionCard({
   profileTag,
 }: SubscriptionCardProps) {
   const navigate = useNavigate();
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Don't navigate if clicking a button
+    if ((e.target as HTMLElement).closest('button')) return;
+    navigate(`/subscriptions/${encodeURIComponent(sub.code)}`);
+  };
+
   return (
     <div
-      className={`glass-card rounded-2xl p-6 flex flex-col gap-6 relative overflow-hidden group ${
+      onClick={handleCardClick}
+      className={`glass-card rounded-2xl p-6 flex flex-col gap-6 relative overflow-hidden group cursor-pointer ${
         status === "expired" ? "opacity-75 hover:opacity-100 transition-opacity" : ""
       }`}
     >
