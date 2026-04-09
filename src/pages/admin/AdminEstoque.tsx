@@ -82,7 +82,7 @@ export default function AdminEstoque() {
         .is("parent_id", null)
         .neq("status", "vendido")
         .neq("status", "revisado")
-        .not("data->>source", "eq", "accface")
+        .or("data->>source.is.null,data->>source.neq.accface")
         .order("created_at", { ascending: false }),
       supabase
         .from("stock_items")
