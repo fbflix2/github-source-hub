@@ -91,12 +91,10 @@ const allMenuItems: MenuItem[] = [
   ]},
   { title: "Contingência Total", icon: ShieldAlert, path: "/admin/contingencia" },
   { title: "Fornecedor secreto 1", icon: Store, path: "/admin/fornecedor" },
-  { title: "Aquecimento", icon: Flame, path: "/admin/aquecimento", subItems: [
-    { title: "Aquecimento", icon: Flame, path: "/admin/aquecimento" },
-    { title: "Financeiro", icon: Wallet, path: "/admin/operador-financeiro" },
-    { title: "Config. Operador", icon: Settings, path: "/admin/aquecimento-config" },
-    { title: "Como Funciona?", icon: HelpCircle, path: "/admin/aquecimento-guia" },
-  ]},
+  { title: "Aquecimento", icon: Flame, path: "/admin/aquecimento" },
+  { title: "Financeiro", icon: Wallet, path: "/admin/operador-financeiro" },
+  { title: "Config. Operador", icon: Settings, path: "/admin/aquecimento-config" },
+  { title: "Como Funciona?", icon: HelpCircle, path: "/admin/aquecimento-guia" },
   { title: "Ferramentas", icon: KeyRound, path: "/admin/ferramentas-2fa", subItems: [
     { title: "Ferramentas", icon: KeyRound, path: "/admin/ferramentas-2fa" },
     { title: "Esteira Admin", icon: Settings, path: "/admin/esteira-admin" },
