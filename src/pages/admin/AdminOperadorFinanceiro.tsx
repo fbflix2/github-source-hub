@@ -140,9 +140,11 @@ export default function AdminOperadorFinanceiro() {
     }
   };
 
+  const MIN_WITHDRAWAL = 50;
+
   const requestWithdrawal = async () => {
-    if (availableBalance <= 0) {
-      toast.error("Saldo insuficiente para saque");
+    if (availableBalance < MIN_WITHDRAWAL) {
+      toast.error(`Saldo mínimo para saque é de R$ ${MIN_WITHDRAWAL.toFixed(2)}`);
       return;
     }
     if (!pixKey.trim()) {
