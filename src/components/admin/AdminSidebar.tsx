@@ -61,6 +61,7 @@ interface MenuItem {
   icon: any;
   path: string;
   subItems?: SubItem[];
+  operatorOnly?: boolean;
 }
 
 const allMenuItems: MenuItem[] = [
@@ -93,7 +94,7 @@ const allMenuItems: MenuItem[] = [
   { title: "Contingência Total", icon: ShieldAlert, path: "/admin/contingencia" },
   { title: "Fornecedor secreto 1", icon: Store, path: "/admin/fornecedor" },
   { title: "Aquecimento", icon: Flame, path: "/admin/aquecimento" },
-  { title: "Dashboard", icon: BarChart3, path: "/admin/operador-dashboard" },
+  { title: "Dashboard", icon: BarChart3, path: "/admin/operador-dashboard", operatorOnly: true },
   { title: "Financeiro", icon: Wallet, path: "/admin/operador-financeiro" },
   { title: "Config. Operador", icon: Settings, path: "/admin/aquecimento-config" },
   { title: "Como Funciona?", icon: HelpCircle, path: "/admin/aquecimento-guia" },
@@ -143,7 +144,7 @@ export function AdminSidebar() {
       // Check if user is admin
       const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" as any });
       if (isAdmin) {
-        setMenuItems(allMenuItems);
+        setMenuItems(allMenuItems.filter(item => !item.operatorOnly));
         return;
       }
 
