@@ -594,7 +594,9 @@ export default function AdminAquecimento() {
     return Math.min(100, Math.round((completed / profileTaskList.length) * 100));
   };
 
-  const selectedProfile = visibleProfiles.find((p) => p.id === selectedProfileId);
+  const selectedProfile = profiles.find(
+    (p) => p.id === selectedProfileId && (isUserAdmin || p.created_by === currentUserId)
+  );
   const selectedTasks = selectedProfileId ? tasks[selectedProfileId] || [] : [];
   const selectedTrackDef = selectedProfile ? TRACKS[selectedProfile.track_type] : null;
   const selectedProgress = selectedProfile ? getProgress(selectedProfile) : 0;
@@ -657,6 +659,12 @@ export default function AdminAquecimento() {
     if (!currentUserId) return [];
     return profiles.filter(p => p.created_by === currentUserId);
   }, [profiles, isUserAdmin, currentUserId]);
+
+  useEffect(() => {
+    if (userContextReadyRef.current && currentUserId) {
+      fetchProfiles();
+    }
+  }, [currentUserId, isUserAdmin]);
 
   // Helper: check if profile was worked on today
   const wasWorkedToday = (profileId: string) => {
@@ -875,7 +883,9 @@ export default function AdminAquecimento() {
 
           {/* Personal stats row */}
           {(() => {
-            const myProfiles = currentUserId ? visibleProfiles.filter(p => p.created_by === currentUserId) : visibleProfiles;
+            const myProfiles = currentUserId
+              ? profiles.filter(p => isUserAdmin || p.created_by === currentUserId)
+              : profiles;
             const todayStart = new Date(); todayStart.setHours(0,0,0,0);
             const weekStart = new Date(todayStart); weekStart.setDate(weekStart.getDate() - weekStart.getDay());
             
