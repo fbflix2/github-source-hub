@@ -1766,7 +1766,7 @@ export default function AdminEsteiraAdmin() {
                           toast.success(`Perfil ${p.profile_code} excluído!`);
                           fetchProfiles();
                         }}
-                        className="opacity-0 group-hover/code:opacity-100 transition-opacity text-slate-400 hover:text-rose-500 ml-1"
+                        className="opacity-0 group-hover/row:opacity-100 transition-opacity text-slate-400 hover:text-rose-500 ml-1"
                         title="Excluir perfil"
                       >
                         <MIcon name="delete" className="text-base" />
