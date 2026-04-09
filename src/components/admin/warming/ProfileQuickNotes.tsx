@@ -67,7 +67,7 @@ export default function ProfileQuickNotes({ profileId, profileCode }: Props) {
         <div className="flex items-center gap-1.5">
           <MIcon name="sticky_note_2" className="text-sm text-amber-500" />
           <h4 className="text-[11px] font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-            Notas · {profileId.slice(-4).toUpperCase()}
+            Notas · {profileCode || profileId.slice(-4).toUpperCase()}
           </h4>
         </div>
         {saving && <MIcon name="sync" className="text-xs text-slate-400 animate-spin" />}
