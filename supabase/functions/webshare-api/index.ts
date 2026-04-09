@@ -1154,14 +1154,16 @@ Deno.serve(async (req) => {
             .neq("id", subscription_id);
 
           const assignedIds = new Set<string>();
+          const assignedIPs = new Set<string>();
           for (const s of (allActiveSubs || [])) {
             const r = (s.raw_data || {}) as Record<string, any>;
             if (r.webshare_proxy_id) assignedIds.add(r.webshare_proxy_id);
+            if (r.proxy_address) assignedIPs.add(r.proxy_address);
           }
 
           // Find an unassigned proxy matching the country
           const poolCandidates = allCurrentProxies.filter(
-            (p: any) => p.valid && !assignedIds.has(p.id) && p.id !== currentProxyId
+            (p: any) => p.valid && !assignedIds.has(p.id) && !assignedIPs.has(p.proxy_address) && p.id !== currentProxyId
               && (!targetCountry || String(p.country_code).toUpperCase() === targetCountry),
           );
 
