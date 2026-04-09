@@ -644,7 +644,7 @@ export function FbDistribuicaoPJ() {
               </div>
             </div>
             <div className="flex gap-3">
-              <button onClick={() => { setRedirectPopup(null); setRedirectToPersonal(false); }} className="flex-1 py-3 rounded-lg border border-white/10 text-[#8b919e] text-sm font-medium hover:bg-white/5">Cancelar</button>
+              <button onClick={() => { setRedirectPopup(null); setRedirectToPersonal(true); }} className="flex-1 py-3 rounded-lg border border-white/10 text-[#8b919e] text-sm font-medium hover:bg-white/5">Cancelar</button>
               <button onClick={handleRedirectConfirm} className="flex-1 py-3 rounded-lg bg-[#f5c542] text-[#1a1400] text-sm font-black hover:brightness-110">Confirmar</button>
             </div>
           </div>
