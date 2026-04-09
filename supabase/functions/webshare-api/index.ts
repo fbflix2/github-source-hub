@@ -103,7 +103,7 @@ async function fetchAllWebshareProxies(apiKey: string, mode: "direct" | "backbon
   return proxies;
 }
 
-function buildStaticWebshareRawData(proxy: any, currentRaw: Record<string, any> = {}) {
+function buildStaticWebshareRawData(proxy: any, currentRaw: Record<string, any> = {}): Record<string, any> {
   return {
     ...currentRaw,
     webshare_proxy_id: proxy.id,
