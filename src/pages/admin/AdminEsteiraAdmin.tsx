@@ -1695,7 +1695,7 @@ export default function AdminEsteiraAdmin() {
                   const prog = getProgress(p);
                   const operatorName = p.created_by ? creatorNames[p.created_by] || "—" : "—";
                   return (
-                    <div key={p.id} className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 dark:hover:bg-white/5">
+                    <div key={p.id} className="group/row flex items-center gap-3 px-5 py-3 hover:bg-slate-50 dark:hover:bg-white/5">
                       <MIcon
                         name={p.status === "completed" ? "check_circle" : p.status === "blocked" ? "block" : "local_fire_department"}
                         className={`text-base ${p.status === "completed" ? "text-emerald-500" : p.status === "blocked" ? "text-rose-500" : "text-orange-400"}`}
