@@ -147,6 +147,8 @@ export default function AdminAquecimento() {
   const [creatorAvatars, setCreatorAvatars] = useState<Record<string, string | null>>({});
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isUserAdmin, setIsUserAdmin] = useState(false);
+  const currentUserIdRef = useRef<string | null>(null);
+  const isUserAdminRef = useRef(false);
   const [currentUserName, setCurrentUserName] = useState<string | null>(null);
   const [currentUserAvatar, setCurrentUserAvatar] = useState<string | null>(null);
   const [operatorGoals, setOperatorGoals] = useState<{ daily: number | null; weekly: number | null }>({ daily: null, weekly: null });
@@ -230,9 +232,12 @@ export default function AdminAquecimento() {
     // Fetch current user — THEN fetch profiles so operator filtering works
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (user) {
+        currentUserIdRef.current = user.id;
+        isUserAdminRef.current = false;
         setCurrentUserId(user.id);
         // Check if user is admin — AWAIT so isUserAdmin is set before fetchProfiles
         const { data: adminData } = await supabase.rpc('has_role', { _user_id: user.id, _role: 'admin' as const });
+        isUserAdminRef.current = !!adminData;
         setIsUserAdmin(!!adminData);
         supabase.from("profiles").select("full_name, avatar_url").eq("user_id", user.id).maybeSingle().then(({ data }) => {
           if (data) {
@@ -342,7 +347,9 @@ export default function AdminAquecimento() {
   };
 
   const fetchProfiles = async () => {
-    if (!userContextReadyRef.current || !currentUserId) return;
+    const uid = currentUserIdRef.current;
+    const admin = isUserAdminRef.current;
+    if (!userContextReadyRef.current || !uid) return;
     if (!hasLoadedProfilesRef.current) {
       setLoading(true);
     }
@@ -351,8 +358,8 @@ export default function AdminAquecimento() {
       .select("*")
       .order("created_at", { ascending: false });
 
-    if (!isUserAdmin) {
-      query = query.eq("created_by", currentUserId);
+    if (!admin) {
+      query = query.eq("created_by", uid);
     }
 
     const { data, error } = await query;
