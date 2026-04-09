@@ -845,7 +845,65 @@ Deno.serve(async (req) => {
       ));
 
       if (!providerProxy) {
-        throw new Error("Proxy não encontrado na Webshare");
+        // Proxy was removed from Webshare — auto-reallocate from pool
+        console.warn(`[sync-webshare-proxy-credentials] Proxy not found on Webshare (id=${proxyId}, ip=${proxyAddress}). Auto-reallocating...`);
+
+        const targetCountry = raw.country_code ? String(raw.country_code).toUpperCase() : null;
+
+        // Get all assigned proxy IDs from other active subscriptions
+        const { data: allActiveSubs } = await supabaseAdmin
+          .from("subscriptions")
+          .select("raw_data")
+          .eq("type", "webshare")
+          .in("status", ["active", "expiring"])
+          .neq("id", subscription_id);
+
+        const assignedIds = new Set<string>();
+        const assignedIPs = new Set<string>();
+        for (const s of (allActiveSubs || [])) {
+          const r = (s.raw_data || {}) as Record<string, any>;
+          if (r.webshare_proxy_id) assignedIds.add(r.webshare_proxy_id);
+          if (r.proxy_address) assignedIPs.add(r.proxy_address);
+        }
+
+        // Find unassigned proxy matching country
+        const poolCandidates = allProxies.filter(
+          (p: any) => p.valid && !assignedIds.has(p.id) && !assignedIPs.has(p.proxy_address)
+            && (!targetCountry || String(p.country_code).toUpperCase() === targetCountry),
+        );
+
+        if (poolCandidates.length === 0) {
+          throw new Error(`Proxy removido pela Webshare e sem proxies ${targetCountry || ''} disponíveis para realocar. Contate o suporte.`);
+        }
+
+        const newProxy = poolCandidates[0];
+        const reallocatedRaw = buildStaticWebshareRawData(newProxy, raw) as Record<string, any>;
+
+        const { error: updateErr } = await supabaseAdmin
+          .from("subscriptions")
+          .update({ raw_data: reallocatedRaw, updated_at: new Date().toISOString() })
+          .eq("id", subscription_id);
+
+        if (updateErr) throw new Error(`Erro ao realocar proxy: ${updateErr.message}`);
+
+        console.log(`[sync-webshare-proxy-credentials] sub=${subscription_id} REALLOCATED from ${proxyAddress} to ${newProxy.proxy_address}`);
+
+        return new Response(JSON.stringify({
+          success: true,
+          synced: true,
+          reallocated: true,
+          changed_fields: ["proxy_address", "port", "username", "password", "webshare_proxy_id"],
+          proxy: {
+            id: newProxy.id,
+            ip: newProxy.proxy_address,
+            port: newProxy.port,
+            username: newProxy.username,
+            password: newProxy.password,
+            country_code: newProxy.country_code,
+          },
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
 
       const updatedRaw = buildStaticWebshareRawData(providerProxy, raw) as Record<string, any>;
