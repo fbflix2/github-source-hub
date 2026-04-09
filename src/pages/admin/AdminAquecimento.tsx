@@ -1206,7 +1206,7 @@ export default function AdminAquecimento() {
                   })}
                 </div>
               </div>
-            )}
+              ); })()}
 
             {/* History - profiles worked today */}
             {(() => {
