@@ -226,14 +226,13 @@ export default function AdminAquecimento() {
       supabase.removeChannel(configChannel);
     };
 
-    // Fetch current user
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    // Fetch current user — THEN fetch profiles so operator filtering works
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (user) {
         setCurrentUserId(user.id);
-        // Check if user is admin
-        supabase.rpc('has_role', { _user_id: user.id, _role: 'admin' as const }).then(({ data }) => {
-          setIsUserAdmin(!!data);
-        });
+        // Check if user is admin — AWAIT so isUserAdmin is set before fetchProfiles
+        const { data: adminData } = await supabase.rpc('has_role', { _user_id: user.id, _role: 'admin' as const });
+        setIsUserAdmin(!!adminData);
         supabase.from("profiles").select("full_name, avatar_url").eq("user_id", user.id).maybeSingle().then(({ data }) => {
           if (data) {
             setCurrentUserName(data.full_name);
@@ -248,6 +247,8 @@ export default function AdminAquecimento() {
             setOperatorGoals({ daily: daily?.target_profiles ?? null, weekly: weekly?.target_profiles ?? null });
           }
         });
+        // NOW fetch profiles — user context is ready
+        fetchProfiles();
       }
     });
     // Fetch team operators (moderators) for admin assignment
