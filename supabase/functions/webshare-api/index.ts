@@ -2001,52 +2001,91 @@ Deno.serve(async (req) => {
       if (!profile) throw new Error("Perfil não encontrado");
       if (profile.balance < renewalPrice) throw new Error(`Saldo insuficiente. Necessário: R$ ${renewalPrice.toFixed(2)}, disponível: R$ ${profile.balance.toFixed(2)}`);
 
-      // 5. Fetch available Webshare proxies
-      const allProxies: any[] = [];
-      let pg = 1;
-      while (true) {
-        const resp = await webFetch(`/proxy/list/?mode=direct&page=${pg}&page_size=250`, WEBSHARE_API_KEY);
-        const data = await resp.json();
-        if (!resp.ok) throw new Error(`Webshare API error [${resp.status}]`);
-        if (data.results?.length) allProxies.push(...data.results);
-        if (!data.next) break;
-        pg++;
-      }
-
-      // Get assigned proxy IDs
-      const { data: existSubs } = await supabaseAdmin
-        .from("subscriptions").select("raw_data")
-        .eq("type", "webshare").in("status", ["active", "expiring"]);
-      const assignedIds = new Set<string>();
-      for (const s of (existSubs || [])) {
-        const r = (s.raw_data || {}) as Record<string, any>;
-        if (r.webshare_proxy_id) assignedIds.add(r.webshare_proxy_id);
-      }
-
-      let available = allProxies.filter(p => p.valid && !assignedIds.has(p.id));
-      const countryFiltered = available.filter(p => p.country_code?.toUpperCase() === targetCountry);
-      if (countryFiltered.length === 0) throw new Error(`Nenhum proxy ${targetCountry} disponível no momento`);
-      const assignedProxy = countryFiltered[0];
-
       const startDate = new Date();
       const endDate = new Date(startDate);
       endDate.setDate(endDate.getDate() + 30);
+      const isExistingWebshareRenewal = ["webshare", "webshare_rotating"].includes(existingSub.type);
+      const nextProductId = isExistingWebshareRenewal
+        ? existingSub.product_id
+        : matchedProduct?.id || existingSub.product_id;
 
-      const newRawData = {
-        webshare_proxy_id: assignedProxy.id,
-        proxy_address: assignedProxy.proxy_address,
-        port: assignedProxy.port,
-        username: assignedProxy.username,
-        password: assignedProxy.password,
-        country_code: assignedProxy.country_code,
-        city_name: assignedProxy.city_name,
-        provider: "webshare",
-        exchange_quota_free: 2,
-        exchange_quota_pay: 0,
-        migrated_from: existingSub.type === "proxybr" ? "proxybr" : undefined,
-        original_name: existingSub.name,
-        profile_tag: raw.profile_tag || null,
-      };
+      let assignedProxy: any = null;
+      let nextRawData: Record<string, any> = raw;
+      let nextType = existingSub.type;
+
+      if (isExistingWebshareRenewal) {
+        nextRawData = {
+          ...raw,
+          renewed_at: new Date().toISOString(),
+        };
+
+        assignedProxy = existingSub.type === "webshare_rotating"
+          ? {
+              proxy_address: raw.proxy_host || raw.converted_host || "p.webshare.io",
+              port: raw.http_port || raw.alt_http_port || 80,
+              username: raw.username,
+              password: raw.password,
+              country_code: raw.country_code || targetCountry,
+            }
+          : {
+              id: raw.webshare_proxy_id,
+              proxy_address: raw.proxy_address,
+              port: raw.port,
+              username: raw.username,
+              password: raw.password,
+              country_code: raw.country_code || targetCountry,
+            };
+
+        console.log(`[migrate-proxybr] Fast renewal for ${existingSub.type} ${subscription_name}`);
+      } else {
+        // Get assigned proxy IDs once, then scan Webshare pages until we find the first valid match.
+        const { data: existSubs } = await supabaseAdmin
+          .from("subscriptions").select("raw_data")
+          .eq("type", "webshare").in("status", ["active", "expiring"]);
+
+        const assignedIds = new Set<string>();
+        for (const s of (existSubs || [])) {
+          const r = (s.raw_data || {}) as Record<string, any>;
+          if (r.webshare_proxy_id) assignedIds.add(r.webshare_proxy_id);
+        }
+
+        let foundProxy: any = null;
+        let pg = 1;
+        while (!foundProxy) {
+          const resp = await webFetch(`/proxy/list/?mode=direct&page=${pg}&page_size=250`, WEBSHARE_API_KEY);
+          const data = await resp.json();
+          if (!resp.ok) throw new Error(`Webshare API error [${resp.status}]`);
+
+          foundProxy = (data.results || []).find((proxy: any) => (
+            proxy.valid &&
+            !assignedIds.has(proxy.id) &&
+            proxy.country_code?.toUpperCase() === targetCountry
+          ));
+
+          if (foundProxy || !data.next) break;
+          pg++;
+        }
+
+        if (!foundProxy) throw new Error(`Nenhum proxy ${targetCountry} disponível no momento`);
+
+        assignedProxy = foundProxy;
+        nextType = "webshare";
+        nextRawData = {
+          webshare_proxy_id: assignedProxy.id,
+          proxy_address: assignedProxy.proxy_address,
+          port: assignedProxy.port,
+          username: assignedProxy.username,
+          password: assignedProxy.password,
+          country_code: assignedProxy.country_code,
+          city_name: assignedProxy.city_name,
+          provider: "webshare",
+          exchange_quota_free: 2,
+          exchange_quota_pay: 0,
+          migrated_from: existingSub.type === "proxybr" ? "proxybr" : undefined,
+          original_name: existingSub.name,
+          profile_tag: raw.profile_tag || null,
+        };
+      }
 
       // 6. For multi-proxy subs, CREATE a new row; for single-proxy, UPDATE the existing row
       if (isMultiProxy) {
@@ -2057,13 +2096,13 @@ Deno.serve(async (req) => {
           .insert({
             user_id: targetUserId,
             name: newSubName,
-            type: "webshare",
+            type: nextType,
             status: "active",
             start_date: startDate.toISOString(),
             end_date: endDate.toISOString(),
             auto_renew: existingSub.auto_renew,
-            product_id: matchedProduct?.id || existingSub.product_id,
-            raw_data: { ...newRawData, proxy_index: proxy_index },
+            product_id: nextProductId,
+            raw_data: { ...nextRawData, proxy_index: proxy_index },
           });
 
         if (insertErr) throw new Error(`Erro ao criar assinatura: ${insertErr.message}`);
@@ -2086,14 +2125,16 @@ Deno.serve(async (req) => {
         const { error: updateErr } = await supabaseAdmin
           .from("subscriptions")
           .update({
-            type: "webshare",
+            type: nextType,
             status: "active",
             start_date: startDate.toISOString(),
             end_date: endDate.toISOString(),
-            product_id: matchedProduct?.id || existingSub.product_id,
+            product_id: nextProductId,
             cancelled_at: null,
             updated_at: new Date().toISOString(),
-            raw_data: { ...newRawData, original_raw_data: raw },
+            raw_data: isExistingWebshareRenewal
+              ? nextRawData
+              : { ...nextRawData, original_raw_data: raw },
           })
           .eq("id", existingSub.id);
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useProxyBRSubscriptions, useRenewSubscription } from "@/hooks/useProxyBR";
+import { useProxyBRSubscriptions } from "@/hooks/useProxyBR";
 import { useWebshareSubscriptions, useMigrateProxyBRToWebshare } from "@/hooks/useWebshare";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -281,7 +281,6 @@ function ProxiesPanel() {
   const [activeFilter, setActiveFilter] = useState<string>("all");
   const { data: subscriptionsRaw, isLoading: proxyLoading, error: proxyError } = useProxyBRSubscriptions();
   const { data: webshareRaw, isLoading: wsLoading, error: wsError } = useWebshareSubscriptions();
-  const renewMutation = useRenewSubscription();
   const migrateMutation = useMigrateProxyBRToWebshare();
   const [renewingCode, setRenewingCode] = useState<string | null>(null);
 

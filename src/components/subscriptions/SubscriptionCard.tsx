@@ -213,8 +213,10 @@ export default function SubscriptionCard({
           <button
             onClick={onRenew}
             disabled={isRenewing}
-            className="flex-1 bg-danger hover:bg-red-600 text-danger-foreground h-10 rounded-lg text-sm font-bold transition-all shadow-[0_0_15px_rgba(255,59,48,0.3)] hover:shadow-[0_0_20px_rgba(255,59,48,0.5)] disabled:opacity-50"
+            aria-busy={isRenewing}
+            className="flex-1 bg-danger hover:bg-red-600 text-danger-foreground h-10 rounded-lg text-sm font-bold transition-all shadow-[0_0_15px_rgba(255,59,48,0.3)] hover:shadow-[0_0_20px_rgba(255,59,48,0.5)] disabled:opacity-50 disabled:cursor-wait flex items-center justify-center gap-2"
           >
+            <span className={`material-symbols-outlined text-lg ${isRenewing ? "animate-spin" : ""}`}>autorenew</span>
             {isRenewing ? "Renovando..." : "Renovar Agora"}
           </button>
         )}
@@ -230,9 +232,10 @@ export default function SubscriptionCard({
           <button
             onClick={onRenew}
             disabled={isRenewing}
-            className="flex-1 border border-glass-border hover:border-primary hover:text-primary text-text-secondary bg-transparent h-10 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            aria-busy={isRenewing}
+            className="flex-1 border border-glass-border hover:border-primary hover:text-primary text-text-secondary bg-transparent h-10 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-wait"
           >
-            <span className="material-symbols-outlined text-lg">autorenew</span>
+            <span className={`material-symbols-outlined text-lg ${isRenewing ? "animate-spin" : ""}`}>autorenew</span>
             {isRenewing ? "Renovando..." : `Renovar${sub.customer_price ? ` • R$ ${Number(sub.customer_price).toFixed(2).replace('.', ',')}` : ''}`}
           </button>
         )}
@@ -240,9 +243,10 @@ export default function SubscriptionCard({
           <button
             onClick={onRenew}
             disabled={isRenewing}
-            className="flex-1 border border-glass-border hover:border-primary hover:text-primary text-text-secondary bg-transparent h-10 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            aria-busy={isRenewing}
+            className="flex-1 border border-glass-border hover:border-primary hover:text-primary text-text-secondary bg-transparent h-10 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-wait"
           >
-            <span className="material-symbols-outlined text-lg">replay</span>
+            <span className={`material-symbols-outlined text-lg ${isRenewing ? "animate-spin" : ""}`}>{isRenewing ? "autorenew" : "replay"}</span>
             {isRenewing ? "Reativando..." : `Reativar${sub.customer_price ? ` • R$ ${Number(sub.customer_price).toFixed(2).replace('.', ',')}` : ''}`}
           </button>
         )}
