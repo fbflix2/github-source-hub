@@ -528,7 +528,7 @@ export default function ItemDetails() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${order?.code || orderItem?.id || "item"}.txt`;
+    a.download = `${String(stockData.idPerfil || orderItem?.id || order?.code || "item").replace(/\s+/g, "_")}.txt`;
     a.click();
     URL.revokeObjectURL(url);
   };
