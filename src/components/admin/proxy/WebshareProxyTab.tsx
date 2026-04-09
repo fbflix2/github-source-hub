@@ -120,6 +120,29 @@ export default function WebshareProxyTab() {
     return map;
   }, [wsProfiles]);
 
+  // Country breakdown from products tags/names
+  const countryBreakdown = useMemo(() => {
+    if (!wsSubs || !wsProducts) return { br: { sold: 0, active: 0 }, us: { sold: 0, active: 0 } };
+    const now = new Date();
+    const productCountryMap = new Map<string, "BR" | "US">();
+    wsProducts.forEach(p => {
+      const tags = (p.tags || []).join(" ").toLowerCase();
+      const name = (p.name || "").toLowerCase();
+      const isUS = tags.includes("us") || tags.includes("usa") || tags.includes("americano") || name.includes("americana") || name.includes(" us ");
+      productCountryMap.set(p.id, isUS ? "US" : "BR");
+    });
+    const result = { br: { sold: 0, active: 0 }, us: { sold: 0, active: 0 } };
+    wsSubs.forEach(s => {
+      const country = (s.product_id && productCountryMap.get(s.product_id)) || "BR";
+      const bucket = country === "US" ? result.us : result.br;
+      bucket.sold++;
+      if (s.status === "active" && (!s.end_date || new Date(s.end_date) >= now)) {
+        bucket.active++;
+      }
+    });
+    return result;
+  }, [wsSubs, wsProducts]);
+
   // Compute sold proxy IDs to filter available list
   const soldProxyIds = useMemo(() => {
     if (!wsSubs) return new Set<number>();
