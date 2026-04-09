@@ -177,6 +177,7 @@ export default function AdminAquecimento() {
   const [readyCriteria, setReadyCriteria] = useState(DEFAULT_READY_CRITERIA);
   const configSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasLoadedProfilesRef = useRef(false);
+  const userContextReadyRef = useRef(false);
 
   useEffect(() => {
     if (!document.querySelector('link[href*="Material+Symbols+Outlined"]')) {
@@ -192,14 +193,14 @@ export default function AdminAquecimento() {
     const profilesChannel = supabase
       .channel("operator-profiles-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "warming_profiles" }, () => {
-        fetchProfiles();
+        if (userContextReadyRef.current) fetchProfiles();
       })
       .subscribe();
 
     const tasksChannel = supabase
       .channel("operator-tasks-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "warming_tasks" }, () => {
-        fetchProfiles();
+        if (userContextReadyRef.current) fetchProfiles();
       })
       .subscribe();
 
@@ -247,6 +248,7 @@ export default function AdminAquecimento() {
             setOperatorGoals({ daily: daily?.target_profiles ?? null, weekly: weekly?.target_profiles ?? null });
           }
         });
+        userContextReadyRef.current = true;
         // NOW fetch profiles — user context is ready
         fetchProfiles();
       }
@@ -340,13 +342,20 @@ export default function AdminAquecimento() {
   };
 
   const fetchProfiles = async () => {
+    if (!userContextReadyRef.current || !currentUserId) return;
     if (!hasLoadedProfilesRef.current) {
       setLoading(true);
     }
-    const { data, error } = await supabase
+    let query = supabase
       .from("warming_profiles")
       .select("*")
       .order("created_at", { ascending: false });
+
+    if (!isUserAdmin) {
+      query = query.eq("created_by", currentUserId);
+    }
+
+    const { data, error } = await query;
     if (error) {
       toast.error("Erro ao carregar perfis");
     } else {
@@ -402,6 +411,9 @@ export default function AdminAquecimento() {
   };
 
   const fetchTasks = async (profileId: string) => {
+    if (!isUserAdmin && !profiles.some((p) => p.id === profileId && p.created_by === currentUserId)) {
+      return;
+    }
     const { data } = await supabase
       .from("warming_tasks")
       .select("*")
@@ -451,10 +463,15 @@ export default function AdminAquecimento() {
     // Check for duplicate profile code
     const { data: existing } = await supabase
       .from("warming_profiles")
-      .select("id, status")
+      .select("id, status, created_by")
       .eq("profile_code", profileCode.trim())
       .maybeSingle();
     if (existing) {
+      if (!isUserAdmin && existing.created_by && existing.created_by !== currentUserId) {
+        toast.error(`O perfil "${profileCode.trim()}" está cadastrado para outro operador.`);
+        setProfileCode("");
+        return;
+      }
       // Profile exists: select it and start if it has pending tasks
       if (existing.status === "active") {
         const { data: existingTasks } = await supabase
@@ -577,7 +594,7 @@ export default function AdminAquecimento() {
     return Math.min(100, Math.round((completed / profileTaskList.length) * 100));
   };
 
-  const selectedProfile = profiles.find((p) => p.id === selectedProfileId);
+  const selectedProfile = visibleProfiles.find((p) => p.id === selectedProfileId);
   const selectedTasks = selectedProfileId ? tasks[selectedProfileId] || [] : [];
   const selectedTrackDef = selectedProfile ? TRACKS[selectedProfile.track_type] : null;
   const selectedProgress = selectedProfile ? getProgress(selectedProfile) : 0;
@@ -858,7 +875,7 @@ export default function AdminAquecimento() {
 
           {/* Personal stats row */}
           {(() => {
-            const myProfiles = currentUserId ? profiles.filter(p => p.created_by === currentUserId) : profiles;
+            const myProfiles = currentUserId ? visibleProfiles.filter(p => p.created_by === currentUserId) : visibleProfiles;
             const todayStart = new Date(); todayStart.setHours(0,0,0,0);
             const weekStart = new Date(todayStart); weekStart.setDate(weekStart.getDate() - weekStart.getDay());
             
