@@ -155,6 +155,7 @@ export default function AdminAquecimento() {
   const [operationMode, setOperationMode] = useState<"register" | "execute">("execute");
   const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"count" | "currency">("count");
+  const [queueSearch, setQueueSearch] = useState("");
   const [operatorDisplayName, setOperatorDisplayName] = useState("");
   const [operatorCoverUrl, setOperatorCoverUrl] = useState<string | null>(null);
   const [savingConfig, setSavingConfig] = useState(false);
@@ -1106,8 +1107,26 @@ export default function AdminAquecimento() {
               </div>
             </div>
 
-            {/* Active queue - only show if there are pending profiles */}
+            {/* Search field */}
             {sortedActiveQueue.length > 0 && (
+              <div className="mt-3 relative">
+                <MIcon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-base text-slate-400 dark:text-white/40" />
+                <input
+                  type="text"
+                  value={queueSearch}
+                  onChange={(e) => setQueueSearch(e.target.value)}
+                  placeholder="Buscar perfil na fila..."
+                  className="w-full pl-9 pr-3 py-2.5 text-xs rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-[#1876f2]/30 focus:border-[#1876f2] transition-all"
+                />
+              </div>
+            )}
+
+            {/* Active queue - only show if there are pending profiles */}
+            {sortedActiveQueue.length > 0 && (() => {
+              const filteredQueue = queueSearch.trim()
+                ? sortedActiveQueue.filter(p => p.profile_code.toLowerCase().includes(queueSearch.trim().toLowerCase()) || (p.profile_name && p.profile_name.toLowerCase().includes(queueSearch.trim().toLowerCase())))
+                : sortedActiveQueue;
+              return (
               <div className="mt-3 bg-white dark:bg-white/5 rounded-xl shadow-sm border border-slate-200 dark:border-white/10 overflow-hidden">
                 <div className="px-4 py-2.5 border-b border-slate-100 dark:border-white/10 flex items-center justify-between">
                   <h3 className="text-xs font-bold text-slate-600 dark:text-white/60">Fila de Aquecimento</h3>
@@ -1117,11 +1136,11 @@ export default function AdminAquecimento() {
                     "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300"
                   }`}>
                     Esteira {currentQueueTrack === "7_days" ? "7 Dias" : currentQueueTrack === "15_days" ? "15 Dias" : "30 Dias"}
-                    {" • "}{sortedActiveQueue.length} pendente{sortedActiveQueue.length !== 1 ? "s" : ""}
+                    {" • "}{filteredQueue.length} pendente{filteredQueue.length !== 1 ? "s" : ""}
                   </span>
                 </div>
                 <div className="max-h-52 overflow-y-auto">
-                  {sortedActiveQueue.map((p) => {
+                  {filteredQueue.map((p) => {
                     const prog = getProgress(p);
                     const isSelected = selectedProfileId === p.id;
                     return (
@@ -1187,7 +1206,7 @@ export default function AdminAquecimento() {
                   })}
                 </div>
               </div>
-            )}
+              ); })()}
 
             {/* History - profiles worked today */}
             {(() => {
