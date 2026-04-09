@@ -219,7 +219,7 @@ export default function AdminOperadorFinanceiro() {
       </div>
 
       {/* Balance Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <div className="rounded-xl border border-border bg-card p-4">
           <div className="flex items-center gap-2 mb-1">
             <TrendingUp className="size-4 text-green-400" />
@@ -240,13 +240,6 @@ export default function AdminOperadorFinanceiro() {
             <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Em andamento</p>
           </div>
           <p className="text-xl font-black text-blue-400">{fmtBRL(pendingTotal)}</p>
-        </div>
-        <div className="rounded-xl border border-border bg-card p-4">
-          <div className="flex items-center gap-2 mb-1">
-            <XCircle className="size-4 text-destructive" />
-            <p className="text-[10px] text-muted-foreground uppercase tracking-widest">Perdas</p>
-          </div>
-          <p className="text-xl font-black text-destructive">{fmtBRL(cancelledTotal)}</p>
         </div>
       </div>
 
