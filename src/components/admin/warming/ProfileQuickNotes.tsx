@@ -7,9 +7,10 @@ function MIcon({ name, className = "" }: { name: string; className?: string }) {
 
 interface Props {
   profileId: string;
+  profileCode?: string;
 }
 
-export default function ProfileQuickNotes({ profileId }: Props) {
+export default function ProfileQuickNotes({ profileId, profileCode }: Props) {
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -65,7 +66,9 @@ export default function ProfileQuickNotes({ profileId }: Props) {
       <div className="px-3 py-2.5 border-b border-slate-100 dark:border-white/10 flex items-center justify-between">
         <div className="flex items-center gap-1.5">
           <MIcon name="sticky_note_2" className="text-sm text-amber-500" />
-          <h4 className="text-[11px] font-bold text-slate-900 dark:text-white uppercase tracking-wider">Anotações</h4>
+          <h4 className="text-[11px] font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+            Notas · {profileId.slice(-4).toUpperCase()}
+          </h4>
         </div>
         {saving && <MIcon name="sync" className="text-xs text-slate-400 animate-spin" />}
       </div>
