@@ -1262,7 +1262,12 @@ export default function AdminAquecimento() {
                 <MIcon name="thermostat" className="text-slate-300 text-3xl" />
                 <p className="text-slate-500 text-xs mt-2">Informe o código do perfil para iniciar o aquecimento.</p>
               </div>
-            ) : selectedTasks.length > 0 && !selectedTasks.some(t => !t.completed) ? (
+            ) : selectedTasks.length === 0 ? (
+              <div className="bg-white dark:bg-white/5 rounded-xl shadow-sm border border-slate-200 dark:border-white/10 p-8 text-center">
+                <MIcon name="hourglass_empty" className="text-slate-300 text-3xl animate-pulse" />
+                <p className="text-slate-500 text-xs mt-2">Carregando tarefas...</p>
+              </div>
+            ) : !selectedTasks.some(t => !t.completed) ? (
               <div className="bg-white dark:bg-white/5 rounded-xl shadow-sm border border-slate-200 dark:border-white/10 p-8 text-center">
                 <MIcon name="check_circle" className="text-green-500 text-3xl" />
                 <p className="text-sm font-bold text-green-600 mt-2">Tarefa do dia concluída para "{selectedProfile.profile_code}"!</p>
