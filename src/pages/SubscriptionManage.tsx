@@ -629,11 +629,13 @@ export default function SubscriptionManage() {
                 {proxyTestResult.success ? (
                   <>
                     <div className="flex items-center gap-2">
-                      <img
-                        src={`https://flagcdn.com/w40/${proxyTestResult.countryCode.toLowerCase()}.png`}
-                        alt={proxyTestResult.country}
-                        className="w-6 h-4 rounded-sm object-cover"
-                      />
+                      {proxyTestResult.countryCode && (
+                        <img
+                          src={`https://flagcdn.com/w40/${proxyTestResult.countryCode.toLowerCase()}.png`}
+                          alt={proxyTestResult.country}
+                          className="w-6 h-4 rounded-sm object-cover"
+                        />
+                      )}
                       <span className="text-sm font-bold text-foreground">{proxyTestResult.country}</span>
                       <span className="ml-auto text-[10px] font-bold text-green-500 bg-green-500/10 px-2 py-0.5 rounded-full">● Ativo</span>
                     </div>
@@ -654,9 +656,33 @@ export default function SubscriptionManage() {
                     </div>
                   </>
                 ) : (
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-destructive bg-destructive/10 px-2 py-0.5 rounded-full">● Inativo</span>
-                    <p className="text-destructive text-xs">{proxyTestResult.error}</p>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold text-destructive bg-destructive/10 px-2 py-0.5 rounded-full">● Falha</span>
+                      <p className="text-destructive text-xs font-medium">{proxyTestResult.error}</p>
+                    </div>
+                    {proxyTestResult.ip && (
+                      <div className="space-y-0.5 text-[10px] pt-1 border-t border-destructive/10">
+                        {proxyTestResult.countryCode && (
+                          <div className="flex items-center gap-2">
+                            <img
+                              src={`https://flagcdn.com/w40/${proxyTestResult.countryCode.toLowerCase()}.png`}
+                              alt={proxyTestResult.country}
+                              className="w-5 h-3.5 rounded-sm object-cover"
+                            />
+                            <span className="text-foreground font-medium">{proxyTestResult.country}</span>
+                          </div>
+                        )}
+                        <p className="text-muted-foreground">
+                          <span className="text-foreground font-medium">IP:</span> {proxyTestResult.ip}
+                        </p>
+                        {proxyTestResult.isp && (
+                          <p className="text-muted-foreground">
+                            <span className="text-foreground font-medium">ISP:</span> {proxyTestResult.isp}
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

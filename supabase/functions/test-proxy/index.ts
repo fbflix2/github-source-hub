@@ -12,7 +12,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Verify auth
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -43,7 +42,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Parse proxy: host:port:user:pass or host:port
     const parts = proxy.trim().split(":");
     if (parts.length < 2) {
       return new Response(JSON.stringify({ error: "Formato inválido. Use host:porta:usuario:senha" }), {
@@ -57,65 +55,121 @@ Deno.serve(async (req) => {
     const username = parts[2] || "";
     const password = parts[3] || "";
 
-    // Use ip-api.com to check the proxy IP location
-    // First, resolve the proxy host to get the IP
-    // We'll check ip-api.com with the host directly
-    let targetHost = host;
+    // Step 1: Test actual connectivity through the proxy using CONNECT method
+    let proxyWorking = false;
+    let realIp = "";
+    let connectError = "";
 
-    // If host looks like a domain, try to use it directly
-    // ip-api works with both IPs and domains
-    const geoUrl = `http://ip-api.com/json/${targetHost}?fields=status,message,country,countryCode,regionName,city,isp,query`;
+    try {
+      // Try to connect through the proxy to httpbin to get the real exit IP
+      const proxyUrl = username
+        ? `http://${username}:${password}@${host}:${port}`
+        : `http://${host}:${port}`;
 
+      // Use Deno.connect to test TCP connectivity first
+      const conn = await Promise.race([
+        Deno.connect({ hostname: host, port: parseInt(port) }),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error("TCP timeout")), 8000)),
+      ]) as Deno.Conn;
+
+      // TCP connection succeeded - proxy port is reachable
+      // Now try an HTTP CONNECT through the proxy
+      const encoder = new TextEncoder();
+      const decoder = new TextDecoder();
+
+      // Send HTTP request through the proxy to get exit IP
+      const httpReq = username
+        ? `GET http://ip-api.com/json/?fields=status,query,country,countryCode,regionName,city,isp HTTP/1.1\r\nHost: ip-api.com\r\nProxy-Authorization: Basic ${btoa(`${username}:${password}`)}\r\n\r\n`
+        : `GET http://ip-api.com/json/?fields=status,query,country,countryCode,regionName,city,isp HTTP/1.1\r\nHost: ip-api.com\r\n\r\n`;
+
+      await conn.write(encoder.encode(httpReq));
+
+      // Read response with timeout
+      const buf = new Uint8Array(4096);
+      const readPromise = conn.read(buf);
+      const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 10000));
+      const bytesRead = await Promise.race([readPromise, timeoutPromise]);
+
+      if (bytesRead && typeof bytesRead === "number" && bytesRead > 0) {
+        const responseText = decoder.decode(buf.subarray(0, bytesRead));
+        
+        // Extract JSON body from HTTP response
+        const bodyStart = responseText.indexOf("\r\n\r\n");
+        if (bodyStart !== -1) {
+          const body = responseText.substring(bodyStart + 4).trim();
+          // Find the JSON object in the body (might have chunked encoding)
+          const jsonMatch = body.match(/\{[^}]+\}/);
+          if (jsonMatch) {
+            try {
+              const jsonData = JSON.parse(jsonMatch[0]);
+              if (jsonData.status === "success" && jsonData.query) {
+                proxyWorking = true;
+                realIp = jsonData.query;
+              }
+            } catch {
+              // JSON parse failed, but connection worked
+            }
+          }
+        }
+
+        // Check if we got a valid HTTP response (even if we couldn't parse JSON)
+        if (!proxyWorking && responseText.includes("HTTP/")) {
+          // Got HTTP response - proxy is responding
+          if (responseText.includes("407") || responseText.includes("Proxy Authentication Required")) {
+            connectError = "Proxy requer autenticação (credenciais inválidas)";
+          } else if (responseText.includes("403")) {
+            connectError = "Proxy recusou a conexão (403 Forbidden)";
+          } else if (responseText.includes("200")) {
+            proxyWorking = true;
+          } else {
+            // Got some HTTP response - proxy is at least responding
+            proxyWorking = true;
+          }
+        }
+      } else {
+        connectError = "Proxy não respondeu dentro do tempo limite";
+      }
+
+      conn.close();
+    } catch (err: any) {
+      const msg = err?.message || String(err);
+      if (msg.includes("TCP timeout") || msg.includes("timed out")) {
+        connectError = "Conexão com o proxy expirou (timeout) — porta pode estar bloqueada";
+      } else if (msg.includes("Connection refused") || msg.includes("connection refused")) {
+        connectError = "Conexão recusada — proxy pode estar offline";
+      } else if (msg.includes("No route") || msg.includes("unreachable")) {
+        connectError = "Host inacessível — verifique o endereço do proxy";
+      } else {
+        connectError = `Erro de conexão: ${msg}`;
+      }
+    }
+
+    // Step 2: Geo lookup (use real exit IP if available, otherwise use host IP)
+    const lookupIp = realIp || host;
+    const geoUrl = `http://ip-api.com/json/${lookupIp}?fields=status,message,country,countryCode,regionName,city,isp,query`;
     const geoRes = await fetch(geoUrl);
     const geoData = await geoRes.json();
 
-    if (geoData.status === "fail") {
-      return new Response(JSON.stringify({
-        success: false,
-        error: `Não foi possível localizar o proxy: ${geoData.message}`,
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Test connectivity by trying to make a request through the proxy
-    // We'll skip actual proxy connection test (Deno doesn't natively support HTTP proxies)
-    // Instead we provide geo info based on the host IP
-
     const countryNames: Record<string, string> = {
-      BR: "Brasil",
-      US: "Estados Unidos",
-      CA: "Canadá",
-      GB: "Reino Unido",
-      DE: "Alemanha",
-      FR: "França",
-      JP: "Japão",
-      AU: "Austrália",
-      IN: "Índia",
-      MX: "México",
-      AR: "Argentina",
-      CL: "Chile",
-      CO: "Colômbia",
-      PT: "Portugal",
-      ES: "Espanha",
-      IT: "Itália",
-      NL: "Holanda",
-      SE: "Suécia",
-      NO: "Noruega",
-      RU: "Rússia",
-      CN: "China",
-      KR: "Coreia do Sul",
-      SG: "Singapura",
+      BR: "Brasil", US: "Estados Unidos", CA: "Canadá", GB: "Reino Unido",
+      DE: "Alemanha", FR: "França", JP: "Japão", AU: "Austrália",
+      IN: "Índia", MX: "México", AR: "Argentina", CL: "Chile",
+      CO: "Colômbia", PT: "Portugal", ES: "Espanha", IT: "Itália",
+      NL: "Holanda", SE: "Suécia", NO: "Noruega", RU: "Rússia",
+      CN: "China", KR: "Coreia do Sul", SG: "Singapura",
     };
 
+    const geoOk = geoData.status !== "fail";
+
     return new Response(JSON.stringify({
-      success: true,
-      ip: geoData.query,
-      country: countryNames[geoData.countryCode] || geoData.country,
-      countryCode: geoData.countryCode,
-      region: geoData.regionName,
-      city: geoData.city,
-      isp: geoData.isp,
+      success: proxyWorking,
+      error: proxyWorking ? undefined : (connectError || "Proxy não está respondendo"),
+      ip: geoOk ? geoData.query : lookupIp,
+      country: geoOk ? (countryNames[geoData.countryCode] || geoData.country) : undefined,
+      countryCode: geoOk ? geoData.countryCode : undefined,
+      region: geoOk ? geoData.regionName : undefined,
+      city: geoOk ? geoData.city : undefined,
+      isp: geoOk ? geoData.isp : undefined,
       host,
       port,
     }), {
