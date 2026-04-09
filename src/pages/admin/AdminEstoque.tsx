@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   Search, Send, ArrowLeft, Briefcase, UserRound, Flag,
-  ClipboardList, Archive, Loader2, Pencil,
+  ClipboardList, Archive, Loader2, Pencil, Recycle,
   Trash2, X
 } from "lucide-react";
 import { toast } from "sonner";
@@ -67,24 +67,32 @@ export default function AdminEstoque() {
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [bulkStatusChanging, setBulkStatusChanging] = useState(false);
+  const [blockedCount, setBlockedCount] = useState(0);
 
   
 
   const fetchItems = async () => {
-    // Fetch pending items (not sold, not linked to product)
-    // Exclude AccFace-imported items — they stay in Blocagem until manually moved
-    const { data } = await supabase
-      .from("stock_items")
-      .select("*")
-      .is("product_id", null)
-      .is("parent_id", null)
-      .neq("status", "vendido")
-      .neq("status", "revisado")
-      .not("data->>source", "eq", "accface")
-      .order("created_at", { ascending: false });
-    setItems(data ?? []);
+    setLoading(true);
 
+    const [itemsRes, blockedRes] = await Promise.all([
+      supabase
+        .from("stock_items")
+        .select("*")
+        .is("product_id", null)
+        .is("parent_id", null)
+        .neq("status", "vendido")
+        .neq("status", "revisado")
+        .not("data->>source", "eq", "accface")
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("stock_items")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "bloqueado")
+        .is("deleted_at", null),
+    ]);
 
+    setItems(itemsRes.data ?? []);
+    setBlockedCount(blockedRes.count ?? 0);
     setLoading(false);
   };
 
@@ -344,12 +352,22 @@ export default function AdminEstoque() {
               <ClipboardList className="h-4 w-4" />
               Blocagem
             </Button>
+            <Button variant="outline" className="gap-2" onClick={() => navigate("/admin/reciclagem")}>
+              <Recycle className="h-4 w-4" />
+              Reciclagem {blockedCount > 0 ? `(${blockedCount})` : ""}
+            </Button>
             <Button className="bg-primary hover:bg-primary/90 text-primary-foreground gap-2" onClick={handleEnviarParaCadastro} disabled={selectedItems.length === 0}>
               <Send className="h-4 w-4" />
               Enviar para Cadastro ({selectedItems.length})
             </Button>
           </div>
         </div>
+
+        {blockedCount > 0 && (
+          <div className="rounded-lg border border-border/50 bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+            Perfis bloqueados pelos clientes não são apagados: eles ficam na tela de <span className="font-medium text-foreground">Reciclagem</span>.
+          </div>
+        )}
 
         {/* Bulk actions bar */}
         {selectedItems.length > 0 && (
