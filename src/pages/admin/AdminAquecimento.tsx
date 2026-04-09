@@ -185,7 +185,7 @@ export default function AdminAquecimento() {
       link.href = "https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap";
       document.head.appendChild(link);
     }
-    fetchProfiles();
+    // fetchProfiles is called after user context is ready (see below)
     loadConfigFromDB();
 
     // Realtime subscriptions for instant updates
