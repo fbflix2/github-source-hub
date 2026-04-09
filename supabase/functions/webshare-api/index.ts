@@ -848,9 +848,9 @@ Deno.serve(async (req) => {
         throw new Error("Proxy não encontrado na Webshare");
       }
 
-      const updatedRaw = buildStaticWebshareRawData(providerProxy, raw);
-      const changedFields = ["proxy_address", "port", "username", "password", "country_code", "city_name"]
-        .filter((field) => String(updatedRaw[field] ?? "") !== String(raw[field] ?? ""));
+      const updatedRaw = buildStaticWebshareRawData(providerProxy, raw) as Record<string, any>;
+      const fieldsToCompare = ["proxy_address", "port", "username", "password", "country_code", "city_name"] as const;
+      const changedFields = fieldsToCompare.filter((field) => String(updatedRaw[field] ?? "") !== String(raw[field] ?? ""));
 
       if (changedFields.length > 0) {
         const { error: updateErr } = await supabaseAdmin
