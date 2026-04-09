@@ -147,7 +147,7 @@ export function StockItemsModal({ open, onOpenChange, productId, productName }: 
       (children as unknown as StockItem[]).forEach((child, idx) => {
         const content = generateTxtFromTemplate(template, child);
         if (content) {
-          const fileName = `${String(idx + 1).padStart(2, "0")}_${child.name.replace(/\s+/g, "_")}.txt`;
+          const fileName = `${String(idx + 1).padStart(2, "0")}_${child.identification || child.name.replace(/\s+/g, "_")}.txt`;
           zip.file(fileName, content);
         }
       });
@@ -168,7 +168,7 @@ export function StockItemsModal({ open, onOpenChange, productId, productName }: 
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${item.name.replace(/\s+/g, "_")}.txt`;
+      a.download = `${item.identification || item.name.replace(/\s+/g, "_")}.txt`;
       a.click();
       URL.revokeObjectURL(url);
     }
