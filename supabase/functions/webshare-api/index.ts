@@ -1381,9 +1381,20 @@ Deno.serve(async (req) => {
 
       console.log(`[get-rotating-credentials] Bandwidth: used=${aggregateUsed}, limit=${bandwidthLimit}`);
 
+      // Resolve converted host
+      let convertedHost: string | null = null;
+      try {
+        const dnsResp = await fetch("https://dns.google/resolve?name=p.webshare.io&type=A");
+        const dnsData = await dnsResp.json();
+        const answers = Array.isArray(dnsData?.Answer) ? dnsData.Answer : [];
+        convertedHost = answers.find((a: any) => a?.type === 1 && /^\d+\.\d+\.\d+\.\d+$/.test(a?.data || ""))?.data ?? null;
+      } catch {}
+
       return new Response(JSON.stringify({
         proxy_host: "p.webshare.io",
+        converted_host: convertedHost,
         http_port: 80,
+        alt_http_port: 3128,
         socks5_port: 1080,
         username: rotatingUsernameBase,
         password: rotatingPassword,
