@@ -280,54 +280,144 @@ export default function SubscriptionManage() {
                 <span className="material-symbols-outlined text-primary text-base">vpn_key</span>
                 {isRotating ? "Credenciais do Proxy Rotativo" : "Dados do Proxy"}
               </h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {[
-                  ...(isRotating
-                    ? [
-                        { label: "Endpoint HTTP", value: `${sub.proxy.ip}:${sub.proxy.port}`, key: "http" },
-                        { label: "Endpoint SOCKS5", value: `${sub.proxy.ip}:${(sub.proxy as any).socks5_port || 1080}`, key: "socks5" },
-                        { label: "Usuário", value: sub.proxy.username || "—", key: "user" },
-                        { label: "Senha", value: sub.proxy.password || "—", key: "pass" },
-                        { label: "País", value: "🇧🇷 Brasil", key: "country" },
-                        { label: "Tipo", value: "Rotativo Residencial", key: "type" },
-                      ]
-                    : [
-                        { label: "Endereço IP", value: sub.proxy.ip, key: "ip" },
-                        { label: "Porta", value: String(sub.proxy.port), key: "port" },
-                        { label: "Usuário", value: sub.proxy.username || "—", key: "user" },
-                        { label: "Senha", value: sub.proxy.password || "—", key: "pass" },
-                        { label: "Protocolo", value: sub.proxy.protocol || "SOCKS5", key: "proto" },
-                      ]
-                  ),
-                ].map((item) => (
-                  <div key={item.key} className="flex items-center justify-between p-2 rounded-lg bg-muted/50 border border-border group">
-                    <div className="min-w-0">
-                      <p className="text-text-secondary text-[9px] uppercase tracking-wider font-semibold">{item.label}</p>
-                      <p className="text-foreground font-mono font-medium text-xs mt-0.5 truncate">{item.value}</p>
-                    </div>
-                    {item.value !== "—" && item.key !== "country" && item.key !== "type" && (
-                      <button onClick={() => copyToClipboard(item.value, item.key)} className="opacity-0 group-hover:opacity-100 transition-opacity text-text-secondary hover:text-foreground ml-1 shrink-0">
-                        <span className="material-symbols-outlined text-sm">{copiedField === item.key ? "check" : "content_copy"}</span>
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
 
-              {/* Copy all button */}
-              {isRotating && sub.proxy.username && sub.proxy.password && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    const httpProxy = `${sub.proxy!.ip}:${sub.proxy!.port}:${sub.proxy!.username}:${sub.proxy!.password}`;
-                    copyToClipboard(httpProxy, "all");
-                  }}
-                  className="w-full text-xs h-8"
-                >
-                  <span className="material-symbols-outlined text-sm mr-1">{copiedField === "all" ? "check" : "content_copy"}</span>
-                  {copiedField === "all" ? "Copiado!" : "Copiar Proxy (HTTP)"}
-                </Button>
+              {isRotating ? (
+                <>
+                  {/* Rotating proxy: show all endpoint variants */}
+                  {(() => {
+                    const proxyData = sub.proxy as any;
+                    const host = proxyData.ip || "p.webshare.io";
+                    const convertedHost = proxyData.converted_host;
+                    const altPort = proxyData.alt_http_port || 3128;
+                    const socks5Port = proxyData.socks5_port || 1080;
+
+                    const endpoints = [
+                      { label: "HTTP", value: `${host}:${proxyData.port}`, key: "http-main" },
+                      { label: "HTTP (alt)", value: `${host}:${altPort}`, key: "http-alt" },
+                      { label: "SOCKS5", value: `${host}:${socks5Port}`, key: "socks5" },
+                    ];
+
+                    if (convertedHost) {
+                      endpoints.push(
+                        { label: "HTTP (IP)", value: `${convertedHost}:${proxyData.port}`, key: "http-ip" },
+                        { label: "HTTP (IP alt)", value: `${convertedHost}:${altPort}`, key: "http-ip-alt" },
+                      );
+                    }
+
+                    return (
+                      <div className="space-y-3">
+                        {/* Endpoints */}
+                        <div>
+                          <p className="text-text-secondary text-[10px] uppercase tracking-wider font-semibold mb-1.5">Endpoints Disponíveis</p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                            {endpoints.map((ep) => (
+                              <div key={ep.key} className="flex items-center justify-between p-2 rounded-lg bg-muted/50 border border-border group">
+                                <div className="min-w-0">
+                                  <p className="text-text-secondary text-[9px] uppercase tracking-wider font-semibold">{ep.label}</p>
+                                  <p className="text-foreground font-mono font-medium text-xs mt-0.5 truncate">{ep.value}</p>
+                                </div>
+                                <button onClick={() => copyToClipboard(ep.value, ep.key)} className="opacity-0 group-hover:opacity-100 transition-opacity text-text-secondary hover:text-foreground ml-1 shrink-0">
+                                  <span className="material-symbols-outlined text-sm">{copiedField === ep.key ? "check" : "content_copy"}</span>
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Credentials */}
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {[
+                            { label: "Usuário", value: proxyData.username || "—", key: "user" },
+                            { label: "Senha", value: proxyData.password || "—", key: "pass" },
+                            { label: "País", value: "🇧🇷 Brasil", key: "country" },
+                            { label: "Tipo", value: "Rotativo Residencial", key: "type" },
+                          ].map((item) => (
+                            <div key={item.key} className="flex items-center justify-between p-2 rounded-lg bg-muted/50 border border-border group">
+                              <div className="min-w-0">
+                                <p className="text-text-secondary text-[9px] uppercase tracking-wider font-semibold">{item.label}</p>
+                                <p className="text-foreground font-mono font-medium text-xs mt-0.5 truncate">{item.value}</p>
+                              </div>
+                              {item.value !== "—" && item.key !== "country" && item.key !== "type" && (
+                                <button onClick={() => copyToClipboard(item.value, item.key)} className="opacity-0 group-hover:opacity-100 transition-opacity text-text-secondary hover:text-foreground ml-1 shrink-0">
+                                  <span className="material-symbols-outlined text-sm">{copiedField === item.key ? "check" : "content_copy"}</span>
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Copy buttons */}
+                        {proxyData.username && proxyData.password && (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                const bestHost = convertedHost || host;
+                                copyToClipboard(`${bestHost}:${proxyData.port}:${proxyData.username}:${proxyData.password}`, "all-http");
+                              }}
+                              className="text-xs h-8"
+                            >
+                              <span className="material-symbols-outlined text-sm mr-1">{copiedField === "all-http" ? "check" : "content_copy"}</span>
+                              {copiedField === "all-http" ? "Copiado!" : "Copiar HTTP (Recomendado)"}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                const bestHost = convertedHost || host;
+                                copyToClipboard(`${bestHost}:${socks5Port}:${proxyData.username}:${proxyData.password}`, "all-socks");
+                              }}
+                              className="text-xs h-8"
+                            >
+                              <span className="material-symbols-outlined text-sm mr-1">{copiedField === "all-socks" ? "check" : "content_copy"}</span>
+                              {copiedField === "all-socks" ? "Copiado!" : "Copiar SOCKS5"}
+                            </Button>
+                          </div>
+                        )}
+
+                        {/* JultiLogin / Multilogin guide */}
+                        <div className="p-3 rounded-lg bg-accent/10 border border-accent/20 space-y-1.5">
+                          <div className="flex items-center gap-2">
+                            <span className="material-symbols-outlined text-accent-foreground text-sm">tips_and_updates</span>
+                            <span className="text-accent-foreground text-xs font-bold">Configuração para JultiLogin / Multilogin</span>
+                          </div>
+                          <ul className="text-accent-foreground text-[10px] space-y-0.5 list-disc list-inside">
+                            <li>Use <strong>HTTP</strong> como tipo de proxy</li>
+                            {convertedHost && <li>Prefira o <strong>IP ({convertedHost})</strong> se a ferramenta rejeitar domínio</li>}
+                            <li>Se a porta <strong>80</strong> falhar, tente <strong>3128</strong></li>
+                            <li>Para SOCKS5, use a porta <strong>1080</strong></li>
+                            <li>Preencha <strong>usuário e senha</strong> sempre</li>
+                          </ul>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {[
+                      { label: "Endereço IP", value: sub.proxy.ip, key: "ip" },
+                      { label: "Porta", value: String(sub.proxy.port), key: "port" },
+                      { label: "Usuário", value: sub.proxy.username || "—", key: "user" },
+                      { label: "Senha", value: sub.proxy.password || "—", key: "pass" },
+                      { label: "Protocolo", value: sub.proxy.protocol || "SOCKS5", key: "proto" },
+                    ].map((item) => (
+                      <div key={item.key} className="flex items-center justify-between p-2 rounded-lg bg-muted/50 border border-border group">
+                        <div className="min-w-0">
+                          <p className="text-text-secondary text-[9px] uppercase tracking-wider font-semibold">{item.label}</p>
+                          <p className="text-foreground font-mono font-medium text-xs mt-0.5 truncate">{item.value}</p>
+                        </div>
+                        {item.value !== "—" && (
+                          <button onClick={() => copyToClipboard(item.value, item.key)} className="opacity-0 group-hover:opacity-100 transition-opacity text-text-secondary hover:text-foreground ml-1 shrink-0">
+                            <span className="material-symbols-outlined text-sm">{copiedField === item.key ? "check" : "content_copy"}</span>
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </>
               )}
             </div>
           )}
@@ -580,7 +670,15 @@ export default function SubscriptionManage() {
               Ações Rápidas
             </h2>
             {sub.proxy && (
-              <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-xs h-8" onClick={() => copyToClipboard(`${sub.proxy!.ip}:${sub.proxy!.port}:${sub.proxy!.username || ""}:${sub.proxy!.password || ""}`, "quick-conn")}>
+              <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-xs h-8" onClick={() => {
+                const proxyData = sub.proxy as any;
+                if (isRotating) {
+                  const bestHost = proxyData.converted_host || proxyData.ip;
+                  copyToClipboard(`${bestHost}:${proxyData.port}:${proxyData.username || ""}:${proxyData.password || ""}`, "quick-conn");
+                } else {
+                  copyToClipboard(`${sub.proxy!.ip}:${sub.proxy!.port}:${sub.proxy!.username || ""}:${sub.proxy!.password || ""}`, "quick-conn");
+                }
+              }}>
                 <span className="material-symbols-outlined text-sm">content_copy</span>Copiar Proxy
               </Button>
             )}
@@ -594,12 +692,13 @@ export default function SubscriptionManage() {
                 className="w-full justify-start gap-2 text-xs h-8"
                 disabled={testingProxy}
                 onClick={async () => {
-                  const proxyString = `${sub.proxy!.ip}:${sub.proxy!.port}:${sub.proxy!.username || ""}:${sub.proxy!.password || ""}`;
+                  const proxyData = sub.proxy as any;
+                  const proxyString = `${proxyData.ip}:${proxyData.port}:${proxyData.username || ""}:${proxyData.password || ""}`;
                   setTestingProxy(true);
                   setProxyTestResult(null);
                   try {
                     const { data, error } = await supabase.functions.invoke("test-proxy", {
-                      body: { proxy: proxyString },
+                      body: { proxy: proxyString, is_rotating: isRotating },
                     });
                     if (error) throw error;
                     setProxyTestResult(data);
@@ -626,7 +725,32 @@ export default function SubscriptionManage() {
 
             {proxyTestResult && (
               <div className={`rounded-lg p-3 space-y-1.5 ${proxyTestResult.success ? "bg-green-500/10 border border-green-500/20" : "bg-destructive/10 border border-destructive/20"}`}>
-                {proxyTestResult.success ? (
+                {/* Rotating multi-endpoint results */}
+                {proxyTestResult.is_rotating && proxyTestResult.endpoints ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${proxyTestResult.success ? "text-green-500 bg-green-500/10" : "text-destructive bg-destructive/10"}`}>
+                        {proxyTestResult.success ? "● Funcionando" : "● Todas falharam"}
+                      </span>
+                      {proxyTestResult.ip && <span className="text-muted-foreground text-[10px]">IP: {proxyTestResult.ip}</span>}
+                    </div>
+                    <div className="space-y-1">
+                      {proxyTestResult.endpoints.map((ep: any, i: number) => (
+                        <div key={i} className="flex items-center justify-between text-[10px] px-2 py-1 rounded bg-muted/50">
+                          <span className="text-foreground font-medium font-mono">{ep.label}</span>
+                          <span className={`font-bold ${ep.success ? "text-green-500" : "text-destructive"}`}>
+                            {ep.success ? "✓ OK" : ep.error || "Falha"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    {proxyTestResult.recommended && (
+                      <p className="text-[10px] text-accent-foreground">
+                        <span className="font-bold">Recomendado:</span> {proxyTestResult.recommended}
+                      </p>
+                    )}
+                  </div>
+                ) : proxyTestResult.success ? (
                   <>
                     <div className="flex items-center gap-2">
                       {proxyTestResult.countryCode && (
