@@ -8,7 +8,10 @@ async function callShopClone(action: string, params: Record<string, unknown> = {
 
   if (error) throw new Error(error.message || "Erro ao chamar ShopClone API");
   if (data?.error) throw new Error(data.error);
-  if (data?.status === "error") throw new Error(data.raw || "Erro desconhecido");
+  if (data?.status === "error") {
+    const msg = data.raw || data.parseError ? "Resposta inválida do fornecedor — tente novamente em alguns minutos" : "Erro desconhecido";
+    throw new Error(msg);
+  }
   return data;
 }
 
@@ -35,7 +38,9 @@ export function useShopCloneProducts() {
       const result = await callShopClone("list-products");
       return (result?.categories || []) as ShopCloneCategory[];
     },
-    staleTime: 5 * 60_000, // 5 min
+    staleTime: 5 * 60_000,
+    retry: 2,
+    retryDelay: 3000,
   });
 }
 

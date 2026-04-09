@@ -268,12 +268,19 @@ Deno.serve(async (req) => {
     switch (action) {
       case "list-products": {
         const url = `${ACCFACE_BASE}/ListResource.php?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
+        console.log("[shopclone-api] list-products: fetching from AccFace...");
         const resp = await fetch(url);
+        console.log("[shopclone-api] list-products: status", resp.status, "ok", resp.ok);
         const text = await resp.text();
+        console.log("[shopclone-api] list-products: response length", text.length, "preview:", text.substring(0, 500));
+        if (!resp.ok) {
+          result = { status: "error", raw: text, httpStatus: resp.status };
+          break;
+        }
         try {
           result = JSON.parse(text);
         } catch {
-          result = { status: "error", raw: text };
+          result = { status: "error", raw: text, parseError: true };
         }
         break;
       }
