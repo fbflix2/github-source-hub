@@ -1695,7 +1695,7 @@ export default function AdminEsteiraAdmin() {
                   const prog = getProgress(p);
                   const operatorName = p.created_by ? creatorNames[p.created_by] || "—" : "—";
                   return (
-                    <div key={p.id} className="flex items-center gap-3 px-5 py-3 hover:bg-slate-50 dark:hover:bg-white/5">
+                    <div key={p.id} className="group/row flex items-center gap-3 px-5 py-3 hover:bg-slate-50 dark:hover:bg-white/5">
                       <MIcon
                         name={p.status === "completed" ? "check_circle" : p.status === "blocked" ? "block" : "local_fire_department"}
                         className={`text-base ${p.status === "completed" ? "text-emerald-500" : p.status === "blocked" ? "text-rose-500" : "text-orange-400"}`}
@@ -1757,6 +1757,20 @@ export default function AdminEsteiraAdmin() {
                       }`}>
                         {p.status === "completed" ? "Concluído" : p.status === "blocked" ? "Bloqueado" : "Ativo"}
                       </span>
+                      <button
+                        onClick={async () => {
+                          if (!window.confirm(`Excluir perfil ${p.profile_code}? Isso removerá também todas as tarefas e ganhos vinculados.`)) return;
+                          await supabase.from("warming_tasks").delete().eq("profile_id", p.id);
+                          await supabase.from("operator_earnings").delete().eq("profile_id", p.id);
+                          await supabase.from("warming_profiles").delete().eq("id", p.id);
+                          toast.success(`Perfil ${p.profile_code} excluído!`);
+                          fetchProfiles();
+                        }}
+                        className="opacity-0 group-hover/row:opacity-100 transition-opacity text-slate-400 hover:text-rose-500 ml-1"
+                        title="Excluir perfil"
+                      >
+                        <MIcon name="delete" className="text-base" />
+                      </button>
                     </div>
                   );
                 })
