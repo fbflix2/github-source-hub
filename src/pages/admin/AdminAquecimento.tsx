@@ -1419,7 +1419,7 @@ export default function AdminAquecimento() {
           {selectedProfile && (
             <section className="lg:col-span-3 space-y-3">
               <ProfileQuickInfo profileId={selectedProfile.id} />
-              <ProfileQuickNotes profileId={selectedProfile.id} />
+              <ProfileQuickNotes profileId={selectedProfile.id} profileCode={selectedProfile.profile_code} />
             </section>
           )}
         </div>
