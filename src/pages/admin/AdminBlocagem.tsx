@@ -970,6 +970,69 @@ function FolderItemsView({ folder, onBack }: { folder: Folder; onBack: () => voi
     });
   };
 
+  const generateItemTxt = (template: string | null, stockItem: StockItem) => {
+    const d = (stockItem.data as Record<string, any>) || {};
+    const alternateEmail = (d.emailAlternativo || d.alternateEmail || d.alternative_email || "—") as string;
+    if (template) {
+      const replacements: Record<string, string> = {
+        "{{nomePerfil}}": (d.nomePerfil as string) || "—",
+        "{{emailAcesso}}": (d.emailAcesso as string) || "—",
+        "{{emailAlternativo}}": alternateEmail,
+        "{{senha}}": (d.senha as string) || "—",
+        "{{senhaEmail}}": (d.senhaEmail as string) || "—",
+        "{{token2fa}}": (d.token2fa as string) || "—",
+        "{{dataNascimento}}": (d.dataNascimento as string) || "—",
+        "{{genero}}": (d.genero as string) || "—",
+        "{{tempoPlataforma}}": (d.tempoPlataforma as string) || "—",
+        "{{statusAtual}}": (d.statusAtual as string) || "—",
+        "{{descricao}}": (d.descricao as string) || "—",
+        "{{cookies}}": (d.cookies ? (typeof d.cookies === "string" ? d.cookies : JSON.stringify(d.cookies, null, 2)) : "—"),
+        "{{linkDocumento}}": (d.linkDocumento as string) || "—",
+        "{{linkPerfil}}": (stockItem.identification_link as string) || (d.linkPerfil as string) || "—",
+        "{{idPerfil}}": (stockItem.identification as string) || (d.idPerfil as string) || "—",
+        "{{pedido}}": "—",
+        "{{data}}": "—",
+        "{{nomeProduto}}": stockItem.name,
+      };
+      let content = template;
+      for (const [key, val] of Object.entries(replacements)) {
+        content = content.split(key).join(val);
+      }
+      return content;
+    }
+    const lines: string[] = [];
+    lines.push(`=== ${stockItem.name} ===`);
+    if (d.emailAcesso) lines.push(`Email: ${d.emailAcesso}`);
+    if (d.senha) lines.push(`Senha: ${d.senha}`);
+    if (d.token2fa) lines.push(`2FA: ${d.token2fa}`);
+    if (stockItem.identification_link) lines.push(`Link: ${stockItem.identification_link}`);
+    return lines.join("\n");
+  };
+
+  const handleBatchDownloadTxt = async (batchItems: StockItem[], batchName: string) => {
+    const { data: tpl } = await supabase
+      .from("block_templates")
+      .select("content")
+      .eq("is_default", true)
+      .maybeSingle();
+    const template = (tpl as any)?.content || null;
+
+    const allContent = batchItems.map((item, idx) => {
+      const header = `───── #${idx + 1} ─────`;
+      const body = generateItemTxt(template, item);
+      return `${header}\n${body}`;
+    }).join("\n\n");
+
+    const blob = new Blob([allContent], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${batchName.replace(/\s+/g, "_")}_${batchItems.length}_perfis.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(`${batchItems.length} perfis exportados em .txt`);
+  };
+
   const typeIcon = (type: string) => {
     if (type === "bm") return <Building2 className="h-4 w-4" />;
     if (type === "perfil") return <CircleUser className="h-4 w-4" />;
