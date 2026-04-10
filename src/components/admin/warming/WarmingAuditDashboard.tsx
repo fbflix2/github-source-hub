@@ -139,17 +139,17 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, manualQual
     return counts;
   }, [profiles]);
 
-  // Quality counts from ALL profiles (not filtered)
+  // Quality counts from ALL profiles using manual data only
   const qualityCounts = useMemo(() => {
     let with2FA = 0;
     let withBM = 0;
     profiles.forEach((p) => {
-      const q = effectiveQualityMap[p.id];
+      const q = manualQualityMap[p.id];
       if (q?.has2FA) with2FA++;
       if (q?.hasBM) withBM++;
     });
     return { with2FA, withBM };
-  }, [profiles, effectiveQualityMap]);
+  }, [profiles, manualQualityMap]);
 
   const auditProfiles = useMemo(() => {
     const searchTrimmed = search.trim().toLowerCase();
@@ -184,7 +184,7 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, manualQual
 
       return true;
     });
-  }, [profiles, effectiveQualityMap, filter2FA, filterBM, filterPage, minFriends, minDays, filterOperator, search, statusFilter]);
+  }, [profiles, effectiveQualityMap, manualQualityMap, filter2FA, filterBM, filterPage, minFriends, minDays, filterOperator, search, statusFilter]);
 
   const approveProfile = async (profile: WarmingProfile) => {
     setApproving(profile.id);
