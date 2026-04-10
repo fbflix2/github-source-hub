@@ -64,7 +64,7 @@ serve(async (req) => {
   }
 
   async function wapiCheckStatus() {
-    const url = `${WAPI_BASE}/instance/status?instanceId=${WAPI_INSTANCE_ID}`;
+    const url = `${WAPI_BASE}/instance/status-instance?instanceId=${WAPI_INSTANCE_ID}`;
     console.log(`W-API status URL: ${url}`);
     const res = await fetch(url, {
       headers: {
