@@ -844,6 +844,7 @@ export default function AdminEsteiraAdmin() {
       } else {
         setTasks({});
         setQualityMap({});
+        setManualQualityMap({});
         setApprovedProfileIds(new Set());
       }
 
