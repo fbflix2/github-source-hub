@@ -44,71 +44,36 @@ serve(async (req) => {
 
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-  // W-API base URL pattern: https://api.w-api.app/v1/message/send-text/{instanceId}
-  // Alternative patterns to try if the first fails
-  const WAPI_BASE = `https://api.w-api.app`;
+  const WAPI_BASE = `https://api.w-api.app/v1`;
 
   async function wapiSendText(phone: string, message: string) {
-    // Try the most common W-API URL patterns
-    const urls = [
-      `${WAPI_BASE}/v1/message/send-text/${WAPI_INSTANCE_ID}`,
-      `${WAPI_BASE}/v1/${WAPI_INSTANCE_ID}/message/send-text`,
-      `${WAPI_BASE}/message/send-text/${WAPI_INSTANCE_ID}`,
-    ];
+    const url = `${WAPI_BASE}/message/send-text?instanceId=${WAPI_INSTANCE_ID}`;
+    console.log(`W-API send-text URL: ${url}`);
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${WAPI_TOKEN}`,
+      },
+      body: JSON.stringify({ phone, message }),
+    });
 
-    for (const url of urls) {
-      console.log(`Trying W-API URL: ${url}`);
-      const res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${WAPI_TOKEN}`,
-        },
-        body: JSON.stringify({ phone, message }),
-      });
-
-      const result = await safeJson(res);
-      console.log(`W-API response [${result.status}]: ${JSON.stringify(result.data || result.raw?.slice(0, 200))}`);
-
-      // If we got JSON back (even an error), this is the right URL pattern
-      if (result.data !== null) {
-        return { ...result, url };
-      }
-
-      // If HTML returned, try next URL pattern
-      if (result.raw?.includes("<!DOCTYPE") || result.raw?.includes("<html")) {
-        console.log(`URL ${url} returned HTML, trying next...`);
-        continue;
-      }
-
-      return { ...result, url };
-    }
-
-    return { ok: false, status: 0, data: null, raw: "All URL patterns returned HTML", url: "none" };
+    const result = await safeJson(res);
+    console.log(`W-API response [${result.status}]: ${JSON.stringify(result.data || result.raw?.slice(0, 200))}`);
+    return { ...result, url };
   }
 
   async function wapiCheckStatus() {
-    const urls = [
-      `${WAPI_BASE}/v1/instance/status/${WAPI_INSTANCE_ID}`,
-      `${WAPI_BASE}/v1/${WAPI_INSTANCE_ID}/status`,
-      `${WAPI_BASE}/instance/status/${WAPI_INSTANCE_ID}`,
-    ];
-
-    for (const url of urls) {
-      console.log(`Trying status URL: ${url}`);
-      const res = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${WAPI_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-      });
-      const result = await safeJson(res);
-      if (result.data !== null) return { ...result, url };
-      if (result.raw?.includes("<!DOCTYPE")) continue;
-      return { ...result, url };
-    }
-
-    return { ok: false, status: 0, data: null, raw: "All status URLs returned HTML", url: "none" };
+    const url = `${WAPI_BASE}/instance/status?instanceId=${WAPI_INSTANCE_ID}`;
+    console.log(`W-API status URL: ${url}`);
+    const res = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${WAPI_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+    });
+    const result = await safeJson(res);
+    return { ...result, url };
   }
 
   try {
