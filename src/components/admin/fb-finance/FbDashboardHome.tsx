@@ -59,12 +59,14 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
   const saldoEmpresa = empresa.reduce((s, c) => s + (caixaBalanceMap[c.id] ?? Number(c.saldo_atual)), 0);
   const patrimonio = saldoPessoal + saldoEmpresa;
 
-  // Receita/Despesa mensal: apenas lançamentos de "Distribuição PJ" contam como receita real
+  // Receita mensal: apenas lançamentos de "Distribuição PJ" contam como receita real
   const lancDistPJ = lancamentos.filter(l => l.categoria === "Distribuição PJ");
   const receitaMensal = lancDistPJ.reduce((s, l) => s + Number(l.entrada || 0), 0);
+  // Despesa mensal: todas as saídas do mês
   const despesaMensal = lancamentos.reduce((s, l) => s + Number(l.saida || 0), 0);
-  const lucroLiquido = receitaMensal - despesaMensal;
-  const margem = receitaMensal > 0 ? ((lucroLiquido / receitaMensal) * 100).toFixed(1) : "0.0";
+  // Saldo do mês: total entradas - total saídas (fluxo de caixa, não lucro)
+  const totalEntradasMes = lancamentos.reduce((s, l) => s + Number(l.entrada || 0), 0);
+  const saldoMes = totalEntradasMes - despesaMensal;
 
   // Growth vs last month
   const lastMonthLancs = allLancamentos.filter(l => {
@@ -77,7 +79,7 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
   const lastMonthDespesaVal = lastMonthLancs.reduce((s, l) => s + Number(l.saida || 0), 0);
   const receitaGrowth = lastMonthReceitaVal > 0 ? (((receitaMensal - lastMonthReceitaVal) / lastMonthReceitaVal) * 100).toFixed(1) : "0.0";
   const despesaDiff = despesaMensal - lastMonthDespesaVal;
-  const patrimonioGrowth = lastMonthReceitaVal > 0 ? (((patrimonio - (patrimonio - lucroLiquido)) / Math.max(patrimonio - lucroLiquido, 1)) * 100).toFixed(1) : "0.0";
+  const patrimonioGrowth = lastMonthReceitaVal > 0 ? (((patrimonio - (patrimonio - saldoMes)) / Math.max(patrimonio - saldoMes, 1)) * 100).toFixed(1) : "0.0";
 
   // Allocation from config - dynamic
   const distPerc = config?.distribution_percentages || { operacional: 80, fundos_reserva: 15, capital_giro: 2, dia_a_dia: 2, dividendos: 1 };
@@ -182,13 +184,13 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
           </div>
         </div>
 
-        {/* Lucro Líquido */}
+        {/* Saldo do Mês */}
         <div className="p-4 rounded-xl border-l-4 border-[#a5c8ff] relative overflow-hidden" style={{ background: "linear-gradient(to bottom right, #0e1c2d, rgba(25, 118, 210, 0.1))" }}>
-          <p className="text-[10px] font-medium tracking-wide mb-1 uppercase text-[#c1c6d4]">Lucro Líquido</p>
-          <h3 className={`text-xl font-['Manrope'] font-extrabold ${lucroLiquido >= 0 ? "text-[#40e56c]" : "text-[#ffb4a8]"}`}>{formatBRL(lucroLiquido)}</h3>
+          <p className="text-[10px] font-medium tracking-wide mb-1 uppercase text-[#c1c6d4]">Saldo do Mês</p>
+          <h3 className={`text-xl font-['Manrope'] font-extrabold ${saldoMes >= 0 ? "text-[#40e56c]" : "text-[#ffb4a8]"}`}>{formatBRL(saldoMes)}</h3>
           <div className="mt-2">
-            <span className="px-2 py-0.5 text-[9px] font-bold rounded-full uppercase" style={{ background: lucroLiquido >= 0 ? "rgba(64, 229, 108, 0.1)" : "rgba(255, 180, 168, 0.1)", color: lucroLiquido >= 0 ? "#40e56c" : "#ffb4a8" }}>
-              Margem: {margem}%
+            <span className="px-2 py-0.5 text-[9px] font-bold rounded-full uppercase" style={{ background: saldoMes >= 0 ? "rgba(64, 229, 108, 0.1)" : "rgba(255, 180, 168, 0.1)", color: saldoMes >= 0 ? "#40e56c" : "#ffb4a8" }}>
+              Entradas − Saídas
             </span>
           </div>
         </div>
