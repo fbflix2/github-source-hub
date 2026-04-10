@@ -110,8 +110,14 @@ async function fetchAllWebshareProxies(apiKey: string, mode: "direct" | "backbon
 
   while (true) {
     const resp = await webFetch(`/proxy/list/?mode=${mode}&page=${page}&page_size=250`, apiKey);
-    const data = await resp.json();
     if (!resp.ok) throw new Error(`Webshare API error [${resp.status}]`);
+    const text = await resp.text();
+    let data: any;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      throw new Error(`Webshare retornou resposta inválida (${resp.status}). Tente novamente.`);
+    }
 
     if (data.results?.length) proxies.push(...data.results);
     if (!data.next) break;
