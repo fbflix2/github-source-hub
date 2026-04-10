@@ -80,6 +80,7 @@ export default function AdminEsteiraAdmin() {
   const [reportFilter, setReportFilter] = useState("");
   const [report2faFilter, setReport2faFilter] = useState(false);
   const [qualityMap, setQualityMap] = useState<Record<string, ProfileQualityData>>({});
+  const [manualQualityMap, setManualQualityMap] = useState<Record<string, Partial<ProfileQualityData>>>({});
   const [configTrack, setConfigTrack] = useState<"7_days" | "15_days" | "30_days">("7_days");
   const [profileCode, setProfileCode] = useState("");
   const [creating, setCreating] = useState(false);
