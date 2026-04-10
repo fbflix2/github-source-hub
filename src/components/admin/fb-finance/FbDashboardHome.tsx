@@ -69,13 +69,24 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
   const saldoEmpresa = empresa.reduce((s, c) => s + (caixaBalanceMap[c.id] ?? Number(c.saldo_atual)), 0);
   const patrimonio = saldoPessoal + saldoEmpresa;
 
-  const { totalEntradas: receitaMensal, totalSaidas: despesaMensal, saldo: lucroLiquido } = getOperationalTotals(lancamentos);
+  // Receita/Despesa mensal: total de TODOS os lançamentos do mês (incluindo não-operacionais como Distribuição PJ)
+  const receitaMensal = lancamentos.reduce((s, l) => s + Number(l.entrada || 0), 0);
+  const despesaMensal = lancamentos.reduce((s, l) => s + Number(l.saida || 0), 0);
+  const lucroLiquido = receitaMensal - despesaMensal;
   const margem = receitaMensal > 0 ? ((lucroLiquido / receitaMensal) * 100).toFixed(1) : "0.0";
 
-  // Growth vs last month
-  const receitaGrowth = lastMonthReceita > 0 ? (((receitaMensal - lastMonthReceita) / lastMonthReceita) * 100).toFixed(1) : "0.0";
-  const despesaDiff = despesaMensal - lastMonthDespesa;
-  const patrimonioGrowth = lastMonthReceita > 0 ? (((patrimonio - (patrimonio - lucroLiquido)) / Math.max(patrimonio - lucroLiquido, 1)) * 100).toFixed(1) : "0.0";
+  // Growth vs last month (also total, not just operational)
+  const lastMonthReceitaTotal = (allLancamentos).filter(l => {
+    const lastMonth = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1);
+    const endLastMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    const d = new Date(l.data);
+    return d >= lastMonth && d < endLastMonth;
+  });
+  const lastMonthReceitaVal = lastMonthReceitaTotal.reduce((s, l) => s + Number(l.entrada || 0), 0);
+  const lastMonthDespesaVal = lastMonthReceitaTotal.reduce((s, l) => s + Number(l.saida || 0), 0);
+  const receitaGrowth = lastMonthReceitaVal > 0 ? (((receitaMensal - lastMonthReceitaVal) / lastMonthReceitaVal) * 100).toFixed(1) : "0.0";
+  const despesaDiff = despesaMensal - lastMonthDespesaVal;
+  const patrimonioGrowth = lastMonthReceitaVal > 0 ? (((patrimonio - (patrimonio - lucroLiquido)) / Math.max(patrimonio - lucroLiquido, 1)) * 100).toFixed(1) : "0.0";
 
   // Allocation from config - dynamic
   const distPerc = config?.distribution_percentages || { operacional: 80, fundos_reserva: 15, capital_giro: 2, dia_a_dia: 2, dividendos: 1 };
