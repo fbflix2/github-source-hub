@@ -191,7 +191,9 @@ Deno.serve(async (req) => {
           });
 
           results.push({ phone: normalizedPhone, success: result.ok, messageId: result.data?.id || result.data?.messageId });
-          await new Promise((resolve) => setTimeout(resolve, 1500));
+          const delay = Math.floor(Math.random() * (60000 - 3000 + 1)) + 3000;
+          console.log(`Bulk delay: ${(delay / 1000).toFixed(1)}s`);
+          await new Promise((resolve) => setTimeout(resolve, delay));
         } catch (e) {
           results.push({ phone: normalizedPhone, success: false, error: String(e) });
         }
@@ -305,8 +307,10 @@ Deno.serve(async (req) => {
             metadata: { sub_ids: userSubList.map((s: any) => s.id), days_ahead },
           });
           results.push({ user_id: userId, name: profile.full_name, phone: normalizedPhone, success: result.ok });
-          // Rate limit: 1.5s between messages
-          await new Promise((resolve) => setTimeout(resolve, 1500));
+          // Delay humanizado: 3-60s aleatório
+          const delay = Math.floor(Math.random() * (60000 - 3000 + 1)) + 3000;
+          console.log(`Expiring alert delay: ${(delay / 1000).toFixed(1)}s`);
+          await new Promise((resolve) => setTimeout(resolve, delay));
         } catch (e) {
           results.push({ user_id: userId, name: profile.full_name, phone: profile.phone, success: false, error: String(e) });
         }
