@@ -225,6 +225,10 @@ export default function AdminWhatsApp() {
             <Zap className="size-3.5 mr-1" />
             {checkConnection.isPending ? "Verificando..." : "Verificar Conexão"}
           </Button>
+          <Button size="sm" onClick={() => { setExpiringResults(null); setShowExpiringModal(true); }} className="gap-1 bg-amber-600 hover:bg-amber-700">
+            <Bell className="size-3.5" />
+            Avisos de Vencimento
+          </Button>
           <Button size="sm" onClick={() => setShowQuickSend(true)} className="gap-1 bg-green-600 hover:bg-green-700">
             <Send className="size-3.5" />
             Envio Rápido
