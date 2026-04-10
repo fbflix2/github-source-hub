@@ -1010,18 +1010,15 @@ function FolderItemsView({ folder, onBack }: { folder: Folder; onBack: () => voi
   };
 
   const handleBatchDownloadTxt = async (batchItems: StockItem[], batchName: string) => {
-    const { data: tpl } = await supabase
-      .from("block_templates")
-      .select("content")
-      .eq("is_default", true)
-      .maybeSingle();
-    const template = (tpl as any)?.content || null;
-
-    const allContent = batchItems.map((item, idx) => {
-      const header = `───── #${idx + 1} ─────`;
-      const body = generateItemTxt(template, item);
-      return `${header}\n${body}`;
-    }).join("\n\n");
+    const allContent = batchItems.map((item) => {
+      const d = (item.data as Record<string, any>) || {};
+      const id = item.identification || d.idPerfil || "";
+      const senha = d.senha || "";
+      const token = d.token2fa || "";
+      const email = d.emailAcesso || "";
+      const senhaEmail = d.senhaEmail || "";
+      return [id, senha, token, email, senhaEmail].filter(Boolean).join("|");
+    }).filter(line => line.length > 0).join("\n");
 
     const blob = new Blob([allContent], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
