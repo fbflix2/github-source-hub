@@ -98,7 +98,7 @@ async function webFetch(path: string, apiKey: string, method = "GET", body?: str
   if (resp.status === 429) {
     throw new Error("Webshare rate limit atingido. Tente novamente em 60s.");
   }
-  if (resp.status === 502 || resp.status === 503 || resp.status === 504) {
+  if (resp.status >= 500) {
     throw new Error(`Webshare API indisponível (${resp.status}). Tente novamente em alguns minutos.`);
   }
   return resp;
