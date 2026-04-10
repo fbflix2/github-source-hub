@@ -79,7 +79,7 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
   const lastMonthDespesaVal = lastMonthLancs.reduce((s, l) => s + Number(l.saida || 0), 0);
   const receitaGrowth = lastMonthReceitaVal > 0 ? (((receitaMensal - lastMonthReceitaVal) / lastMonthReceitaVal) * 100).toFixed(1) : "0.0";
   const despesaDiff = despesaMensal - lastMonthDespesaVal;
-  const patrimonioGrowth = lastMonthReceitaVal > 0 ? (((patrimonio - (patrimonio - lucroLiquido)) / Math.max(patrimonio - lucroLiquido, 1)) * 100).toFixed(1) : "0.0";
+  const patrimonioGrowth = lastMonthReceitaVal > 0 ? (((patrimonio - (patrimonio - saldoMes)) / Math.max(patrimonio - saldoMes, 1)) * 100).toFixed(1) : "0.0";
 
   // Allocation from config - dynamic
   const distPerc = config?.distribution_percentages || { operacional: 80, fundos_reserva: 15, capital_giro: 2, dia_a_dia: 2, dividendos: 1 };
