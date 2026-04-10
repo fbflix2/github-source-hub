@@ -20,8 +20,6 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
   const [config, setConfig] = useState<ConfigRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [capitalGiroPeriod, setCapitalGiroPeriod] = useState<"30" | "90">("30");
-  const [lastMonthReceita, setLastMonthReceita] = useState(0);
-  const [lastMonthDespesa, setLastMonthDespesa] = useState(0);
 
   const mesAtual = new Date().toISOString().slice(0, 7);
 
@@ -32,15 +30,11 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
   const fetchData = async () => {
     const now = new Date();
     const startOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
-    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const startLastMonth = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, "0")}-01`;
-    const endLastMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
 
-    const [caixasRes, allLancRes, lancMesRes, lancLastRes, despesasRes, configRes, custosRes] = await Promise.all([
+    const [caixasRes, allLancRes, lancMesRes, despesasRes, configRes, custosRes] = await Promise.all([
       supabase.from("fb_finance_caixas").select("*"),
       supabase.from("fb_finance_lancamentos").select("*"),
       supabase.from("fb_finance_lancamentos").select("*").gte("data", startOfMonth),
-      supabase.from("fb_finance_lancamentos").select("*").gte("data", startLastMonth).lt("data", endLastMonth),
       supabase.from("fb_finance_despesas_planejadas").select("*").eq("mes_ref", mesAtual),
       supabase.from("fb_finance_config").select("*").limit(1).single(),
       supabase.from("fb_finance_custos_pessoais").select("*").eq("ativo", true),
@@ -53,10 +47,6 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
     if (configRes.data) setConfig(configRes.data as any);
     if (custosRes.data) setCustosPessoais(custosRes.data as any);
 
-    const lastLanc = (lancLastRes.data || []) as any as LancamentoRow[];
-    const lastMonthMetrics = getOperationalTotals(lastLanc);
-    setLastMonthReceita(lastMonthMetrics.totalEntradas);
-    setLastMonthDespesa(lastMonthMetrics.totalSaidas);
 
     setLoading(false);
   };
@@ -69,13 +59,24 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
   const saldoEmpresa = empresa.reduce((s, c) => s + (caixaBalanceMap[c.id] ?? Number(c.saldo_atual)), 0);
   const patrimonio = saldoPessoal + saldoEmpresa;
 
-  const { totalEntradas: receitaMensal, totalSaidas: despesaMensal, saldo: lucroLiquido } = getOperationalTotals(lancamentos);
+  // Receita/Despesa mensal: total de TODOS os lançamentos do mês (incluindo não-operacionais como Distribuição PJ)
+  const receitaMensal = lancamentos.reduce((s, l) => s + Number(l.entrada || 0), 0);
+  const despesaMensal = lancamentos.reduce((s, l) => s + Number(l.saida || 0), 0);
+  const lucroLiquido = receitaMensal - despesaMensal;
   const margem = receitaMensal > 0 ? ((lucroLiquido / receitaMensal) * 100).toFixed(1) : "0.0";
 
-  // Growth vs last month
-  const receitaGrowth = lastMonthReceita > 0 ? (((receitaMensal - lastMonthReceita) / lastMonthReceita) * 100).toFixed(1) : "0.0";
-  const despesaDiff = despesaMensal - lastMonthDespesa;
-  const patrimonioGrowth = lastMonthReceita > 0 ? (((patrimonio - (patrimonio - lucroLiquido)) / Math.max(patrimonio - lucroLiquido, 1)) * 100).toFixed(1) : "0.0";
+  // Growth vs last month (also total, not just operational)
+  const lastMonthReceitaTotal = (allLancamentos).filter(l => {
+    const lastMonth = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1);
+    const endLastMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    const d = new Date(l.data);
+    return d >= lastMonth && d < endLastMonth;
+  });
+  const lastMonthReceitaVal = lastMonthReceitaTotal.reduce((s, l) => s + Number(l.entrada || 0), 0);
+  const lastMonthDespesaVal = lastMonthReceitaTotal.reduce((s, l) => s + Number(l.saida || 0), 0);
+  const receitaGrowth = lastMonthReceitaVal > 0 ? (((receitaMensal - lastMonthReceitaVal) / lastMonthReceitaVal) * 100).toFixed(1) : "0.0";
+  const despesaDiff = despesaMensal - lastMonthDespesaVal;
+  const patrimonioGrowth = lastMonthReceitaVal > 0 ? (((patrimonio - (patrimonio - lucroLiquido)) / Math.max(patrimonio - lucroLiquido, 1)) * 100).toFixed(1) : "0.0";
 
   // Allocation from config - dynamic
   const distPerc = config?.distribution_percentages || { operacional: 80, fundos_reserva: 15, capital_giro: 2, dia_a_dia: 2, dividendos: 1 };
@@ -108,7 +109,7 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
     d.setDate(d.getDate() - i);
     const dateStr = d.toISOString().slice(0, 10);
     dayLabels.push(dateStr);
-    const dayLancs = lancamentos.filter(l => l.data === dateStr);
+    const dayLancs = allLancamentos.filter(l => l.data === dateStr);
     const dayNet = dayLancs.reduce((s, l) => s + Number(l.entrada) - Number(l.saida), 0);
     dayValues.push(dayNet);
   }
