@@ -969,7 +969,7 @@ export default function AdminEsteiraAdmin() {
 
   const filteredReportProfiles = profiles.filter(p => {
     if (reportFilter && !p.profile_code.toLowerCase().includes(reportFilter.toLowerCase())) return false;
-    if (report2faFilter && !qualityMap[p.id]?.has2FA) return false;
+    if (report2faFilter && !manualQualityMap[p.id]?.has2FA) return false;
     return true;
   });
 
