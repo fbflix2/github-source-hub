@@ -51,10 +51,6 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
     if (configRes.data) setConfig(configRes.data as any);
     if (custosRes.data) setCustosPessoais(custosRes.data as any);
 
-    const lastLanc = (lancLastRes.data || []) as any as LancamentoRow[];
-    const lastMonthMetrics = getOperationalTotals(lastLanc);
-    setLastMonthReceita(lastMonthMetrics.totalEntradas);
-    setLastMonthDespesa(lastMonthMetrics.totalSaidas);
 
     setLoading(false);
   };
