@@ -25,6 +25,12 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
 
   useEffect(() => {
     fetchData();
+    // Re-fetch when tab becomes visible (user returns from another page/tab)
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") fetchData();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
   }, []);
 
   const fetchData = async () => {
