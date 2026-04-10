@@ -79,9 +79,27 @@ async function webFetch(path: string, apiKey: string, method = "GET", body?: str
     Accept: "application/json",
   };
   if (body) headers["Content-Type"] = "application/json";
-  const resp = await fetch(url, { method, headers, body: body || undefined });
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 25000);
+
+  let resp: Response;
+  try {
+    resp = await fetch(url, { method, headers, body: body || undefined, signal: controller.signal });
+  } catch (e: any) {
+    clearTimeout(timeout);
+    if (e.name === "AbortError") {
+      throw new Error("Webshare API timeout (25s). Tente novamente.");
+    }
+    throw e;
+  }
+  clearTimeout(timeout);
+
   if (resp.status === 429) {
     throw new Error("Webshare rate limit atingido. Tente novamente em 60s.");
+  }
+  if (resp.status === 502 || resp.status === 503 || resp.status === 504) {
+    throw new Error(`Webshare API indisponível (${resp.status}). Tente novamente em alguns minutos.`);
   }
   return resp;
 }
@@ -92,8 +110,14 @@ async function fetchAllWebshareProxies(apiKey: string, mode: "direct" | "backbon
 
   while (true) {
     const resp = await webFetch(`/proxy/list/?mode=${mode}&page=${page}&page_size=250`, apiKey);
-    const data = await resp.json();
     if (!resp.ok) throw new Error(`Webshare API error [${resp.status}]`);
+    const text = await resp.text();
+    let data: any;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      throw new Error(`Webshare retornou resposta inválida (${resp.status}). Tente novamente.`);
+    }
 
     if (data.results?.length) proxies.push(...data.results);
     if (!data.next) break;
