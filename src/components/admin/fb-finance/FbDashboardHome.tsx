@@ -59,6 +59,12 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
   const saldoEmpresa = empresa.reduce((s, c) => s + (caixaBalanceMap[c.id] ?? Number(c.saldo_atual)), 0);
   const patrimonio = saldoPessoal + saldoEmpresa;
 
+  // PJ sem Pro Labore
+  const empresaSemProLabore = empresa.filter(c => !c.nome.toLowerCase().includes("pro labore") && !c.nome.toLowerCase().includes("prolabore"));
+  const saldoPJ = empresaSemProLabore.reduce((s, c) => s + (caixaBalanceMap[c.id] ?? Number(c.saldo_atual)), 0);
+  const qtdCaixasPessoal = pessoal.length;
+  const qtdCaixasPJ = empresaSemProLabore.length;
+
   // Receita mensal: apenas lançamentos de "Distribuição PJ" contam como receita real
   const lancDistPJ = lancamentos.filter(l => l.categoria === "Distribuição PJ");
   const receitaMensal = lancDistPJ.reduce((s, l) => s + Number(l.entrada || 0), 0);
