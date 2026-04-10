@@ -3523,12 +3523,18 @@ export type Database = {
       whatsapp_logs: {
         Row: {
           created_at: string
+          delivered_at: string | null
           error_message: string | null
           event_key: string | null
           id: string
+          image_url: string | null
           message_sent: string
+          message_type: string
           metadata: Json | null
           phone: string
+          read_at: string | null
+          replied_at: string | null
+          reply_message: string | null
           status: string
           template_id: string | null
           updated_at: string
@@ -3537,12 +3543,18 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          delivered_at?: string | null
           error_message?: string | null
           event_key?: string | null
           id?: string
+          image_url?: string | null
           message_sent: string
+          message_type?: string
           metadata?: Json | null
           phone: string
+          read_at?: string | null
+          replied_at?: string | null
+          reply_message?: string | null
           status?: string
           template_id?: string | null
           updated_at?: string
@@ -3551,12 +3563,18 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          delivered_at?: string | null
           error_message?: string | null
           event_key?: string | null
           id?: string
+          image_url?: string | null
           message_sent?: string
+          message_type?: string
           metadata?: Json | null
           phone?: string
+          read_at?: string | null
+          replied_at?: string | null
+          reply_message?: string | null
           status?: string
           template_id?: string | null
           updated_at?: string
