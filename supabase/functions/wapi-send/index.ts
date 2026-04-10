@@ -337,44 +337,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ========= ACTION: discover-api =========
-    if (action === "discover-api") {
-      // Test multiple endpoints to discover the correct API format
-      const testUrls = [
-        `${WAPI_BASE}/v1/instance/status/${WAPI_INSTANCE_ID}`,
-        `${WAPI_BASE}/v1/${WAPI_INSTANCE_ID}/status`,
-        `${WAPI_BASE}/instance/status/${WAPI_INSTANCE_ID}`,
-        `${WAPI_BASE}/v1/message/send-text/${WAPI_INSTANCE_ID}`,
-        `${WAPI_BASE}/v1/${WAPI_INSTANCE_ID}/message/send-text`,
-      ];
-
-      const discoveries: any[] = [];
-      for (const url of testUrls) {
-        try {
-          const res = await fetch(url, {
-            method: url.includes("message") ? "POST" : "GET",
-            headers: {
-              Authorization: `Bearer ${WAPI_TOKEN}`,
-              "Content-Type": "application/json",
-            },
-            ...(url.includes("message") ? { body: JSON.stringify({ phone: "5500000000000", message: "test" }) } : {}),
-          });
-          const result = await safeJson(res);
-          discoveries.push({
-            url,
-            status: result.status,
-            is_json: result.data !== null,
-            data_preview: result.data ? JSON.stringify(result.data).slice(0, 200) : null,
-            is_html: result.raw?.includes("<!DOCTYPE") || false,
-          });
-        } catch (e) {
-          discoveries.push({ url, error: String(e) });
-        }
-      }
-
-      return ok({ discoveries, instance_id: WAPI_INSTANCE_ID });
-    }
-
     return err("Unknown action: " + action);
   } catch (e) {
     console.error("wapi-send error:", e);
