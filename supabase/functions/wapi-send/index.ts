@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -30,7 +29,7 @@ async function safeJson(res: Response): Promise<{ ok: boolean; status: number; d
   }
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   const WAPI_TOKEN = Deno.env.get("WAPI_TOKEN");
@@ -336,44 +335,6 @@ serve(async (req) => {
         instance_id: WAPI_INSTANCE_ID,
         token_preview: WAPI_TOKEN?.slice(0, 8) + "...",
       });
-    }
-
-    // ========= ACTION: discover-api =========
-    if (action === "discover-api") {
-      // Test multiple endpoints to discover the correct API format
-      const testUrls = [
-        `${WAPI_BASE}/v1/instance/status/${WAPI_INSTANCE_ID}`,
-        `${WAPI_BASE}/v1/${WAPI_INSTANCE_ID}/status`,
-        `${WAPI_BASE}/instance/status/${WAPI_INSTANCE_ID}`,
-        `${WAPI_BASE}/v1/message/send-text/${WAPI_INSTANCE_ID}`,
-        `${WAPI_BASE}/v1/${WAPI_INSTANCE_ID}/message/send-text`,
-      ];
-
-      const discoveries: any[] = [];
-      for (const url of testUrls) {
-        try {
-          const res = await fetch(url, {
-            method: url.includes("message") ? "POST" : "GET",
-            headers: {
-              Authorization: `Bearer ${WAPI_TOKEN}`,
-              "Content-Type": "application/json",
-            },
-            ...(url.includes("message") ? { body: JSON.stringify({ phone: "5500000000000", message: "test" }) } : {}),
-          });
-          const result = await safeJson(res);
-          discoveries.push({
-            url,
-            status: result.status,
-            is_json: result.data !== null,
-            data_preview: result.data ? JSON.stringify(result.data).slice(0, 200) : null,
-            is_html: result.raw?.includes("<!DOCTYPE") || false,
-          });
-        } catch (e) {
-          discoveries.push({ url, error: String(e) });
-        }
-      }
-
-      return ok({ discoveries, instance_id: WAPI_INSTANCE_ID });
     }
 
     return err("Unknown action: " + action);
