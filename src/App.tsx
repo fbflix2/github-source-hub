@@ -102,6 +102,7 @@ import AdminAquecimentoGuia from "./pages/admin/AdminAquecimentoGuia";
 import AdminAquecimentoConfig from "./pages/admin/AdminAquecimentoConfig";
 import AdminOperadorFinanceiro from "./pages/admin/AdminOperadorFinanceiro";
 import AdminOperadorDashboard from "./pages/admin/AdminOperadorDashboard";
+import AdminSaqueOperador from "./pages/admin/AdminSaqueOperador";
 import AdminShopClone from "./pages/admin/AdminShopClone";
 import AdminFerramentas2FA from "./pages/admin/AdminFerramentas2FA";
 import AdminImageViewer from "./pages/admin/AdminImageViewer";
@@ -387,6 +388,7 @@ const App = () => {
                   <Route path="aquecimento-config" element={<AdminAquecimentoConfig />} />
                   <Route path="operador-financeiro" element={<AdminOperadorFinanceiro />} />
                   <Route path="operador-dashboard" element={<AdminOperadorDashboard />} />
+                  <Route path="saque-operador" element={<AdminSaqueOperador />} />
                   <Route path="fornecedor" element={<AdminShopClone />} />
                   <Route path="ferramentas-2fa" element={<AdminFerramentas2FA />} />
                   <Route path="imagens" element={<AdminImageViewer />} />
