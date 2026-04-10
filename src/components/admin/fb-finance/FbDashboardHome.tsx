@@ -59,12 +59,14 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
   const saldoEmpresa = empresa.reduce((s, c) => s + (caixaBalanceMap[c.id] ?? Number(c.saldo_atual)), 0);
   const patrimonio = saldoPessoal + saldoEmpresa;
 
-  // Receita/Despesa mensal: apenas lançamentos de "Distribuição PJ" contam como receita real
+  // Receita mensal: apenas lançamentos de "Distribuição PJ" contam como receita real
   const lancDistPJ = lancamentos.filter(l => l.categoria === "Distribuição PJ");
   const receitaMensal = lancDistPJ.reduce((s, l) => s + Number(l.entrada || 0), 0);
+  // Despesa mensal: todas as saídas do mês
   const despesaMensal = lancamentos.reduce((s, l) => s + Number(l.saida || 0), 0);
-  const lucroLiquido = receitaMensal - despesaMensal;
-  const margem = receitaMensal > 0 ? ((lucroLiquido / receitaMensal) * 100).toFixed(1) : "0.0";
+  // Saldo do mês: total entradas - total saídas (fluxo de caixa, não lucro)
+  const totalEntradasMes = lancamentos.reduce((s, l) => s + Number(l.entrada || 0), 0);
+  const saldoMes = totalEntradasMes - despesaMensal;
 
   // Growth vs last month
   const lastMonthLancs = allLancamentos.filter(l => {
