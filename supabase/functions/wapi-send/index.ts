@@ -42,12 +42,10 @@ Deno.serve(async (req) => {
   }
 
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
   const WAPI_BASE = `https://api.w-api.app/v1`;
 
   async function wapiSendText(phone: string, message: string) {
     const url = `${WAPI_BASE}/message/send-text?instanceId=${WAPI_INSTANCE_ID}`;
-    console.log(`W-API send-text URL: ${url}`);
     const res = await fetch(url, {
       method: "POST",
       headers: {
@@ -56,23 +54,51 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({ phone, message }),
     });
-
     const result = await safeJson(res);
-    console.log(`W-API response [${result.status}]: ${JSON.stringify(result.data || result.raw?.slice(0, 200))}`);
+    console.log(`W-API [${result.status}]: ${JSON.stringify(result.data || result.raw?.slice(0, 200))}`);
     return { ...result, url };
   }
 
   async function wapiCheckStatus() {
     const url = `${WAPI_BASE}/instance/status-instance?instanceId=${WAPI_INSTANCE_ID}`;
-    console.log(`W-API status URL: ${url}`);
     const res = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${WAPI_TOKEN}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${WAPI_TOKEN}`, "Content-Type": "application/json" },
     });
-    const result = await safeJson(res);
-    return { ...result, url };
+    return { ...(await safeJson(res)), url };
+  }
+
+  // Background sender: sends messages one by one with humanized delays
+  async function sendMessagesInBackground(messages: Array<{ phone: string; message: string; logData: any }>) {
+    for (let i = 0; i < messages.length; i++) {
+      const m = messages[i];
+      try {
+        const result = await wapiSendText(m.phone, m.message);
+        await admin.from("whatsapp_logs").insert({
+          ...m.logData,
+          phone: m.phone,
+          message_sent: m.message,
+          status: result.ok ? "sent" : "failed",
+          wapi_message_id: result.data?.id || result.data?.messageId || null,
+          error_message: result.ok ? null : JSON.stringify(result.data || result.raw),
+        });
+      } catch (e) {
+        console.error(`BG send failed ${m.phone}: ${e}`);
+        await admin.from("whatsapp_logs").insert({
+          ...m.logData,
+          phone: m.phone,
+          message_sent: m.message,
+          status: "failed",
+          error_message: String(e),
+        });
+      }
+      // Humanized delay 3-60s between messages (skip after last)
+      if (i < messages.length - 1) {
+        const delay = Math.floor(Math.random() * (60000 - 3000 + 1)) + 3000;
+        console.log(`BG delay: ${(delay / 1000).toFixed(1)}s (${i + 1}/${messages.length})`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+    console.log(`BG sender done: ${messages.length} messages processed`);
   }
 
   try {
@@ -89,7 +115,6 @@ Deno.serve(async (req) => {
 
       const result = await wapiSendText(normalizedPhone, message);
 
-      // Log to database
       await admin.from("whatsapp_logs").insert({
         template_id: template_id || null,
         user_id: user_id || null,
@@ -103,10 +128,9 @@ Deno.serve(async (req) => {
       });
 
       if (!result.ok) {
-        return err(`W-API error [${result.status}] (${result.url}): ${JSON.stringify(result.data || result.raw)}`, 502);
+        return err(`W-API error [${result.status}]: ${JSON.stringify(result.data || result.raw)}`, 502);
       }
-
-      return ok({ success: true, messageId: result.data?.id || result.data?.messageId, url_used: result.url });
+      return ok({ success: true, messageId: result.data?.id || result.data?.messageId });
     }
 
     // ========= ACTION: send-template =========
@@ -115,10 +139,7 @@ Deno.serve(async (req) => {
       if (!template_id || !phone) return err("template_id and phone are required");
 
       const { data: tpl, error: tplErr } = await admin
-        .from("whatsapp_templates")
-        .select("*")
-        .eq("id", template_id)
-        .single();
+        .from("whatsapp_templates").select("*").eq("id", template_id).single();
       if (tplErr || !tpl) return err("Template not found");
       if (!tpl.active) return err("Template is disabled");
 
@@ -134,21 +155,14 @@ Deno.serve(async (req) => {
       const result = await wapiSendText(normalizedPhone, msg);
 
       await admin.from("whatsapp_logs").insert({
-        template_id,
-        user_id: user_id || null,
-        phone: normalizedPhone,
-        message_sent: msg,
-        status: result.ok ? "sent" : "failed",
+        template_id, user_id: user_id || null, phone: normalizedPhone,
+        message_sent: msg, status: result.ok ? "sent" : "failed",
         wapi_message_id: result.data?.id || result.data?.messageId || null,
         error_message: result.ok ? null : JSON.stringify(result.data || result.raw),
-        event_key: tpl.event_key,
-        metadata: { variables: vars },
+        event_key: tpl.event_key, metadata: { variables: vars },
       });
 
-      if (!result.ok) {
-        return err(`W-API error [${result.status}]: ${JSON.stringify(result.data || result.raw)}`, 502);
-      }
-
+      if (!result.ok) return err(`W-API error [${result.status}]: ${JSON.stringify(result.data || result.raw)}`, 502);
       return ok({ success: true, messageId: result.data?.id || result.data?.messageId });
     }
 
@@ -160,67 +174,53 @@ Deno.serve(async (req) => {
       const { data: tpl } = await admin.from("whatsapp_templates").select("*").eq("id", template_id).single();
       if (!tpl) return err("Template not found");
 
-      const results: any[] = [];
+      // Build message queue
+      const queue: Array<{ phone: string; message: string; logData: any }> = [];
+      const skipped: any[] = [];
+
       for (const r of recipients) {
         let msg = tpl.message_body;
         const vars = r.variables || {};
         for (const [key, value] of Object.entries(vars)) {
           msg = msg.replaceAll(`{{${key}}}`, String(value));
         }
-
         let normalizedPhone = (r.phone || "").replace(/\D/g, "");
         if (!normalizedPhone.startsWith("55")) normalizedPhone = "55" + normalizedPhone;
         if (normalizedPhone.length < 12) {
-          results.push({ phone: r.phone, success: false, error: "Invalid phone" });
+          skipped.push({ phone: r.phone, error: "Invalid phone" });
           continue;
         }
-
-        try {
-          const result = await wapiSendText(normalizedPhone, msg);
-
-          await admin.from("whatsapp_logs").insert({
-            template_id,
-            user_id: r.user_id || null,
-            phone: normalizedPhone,
-            message_sent: msg,
-            status: result.ok ? "sent" : "failed",
-            wapi_message_id: result.data?.id || result.data?.messageId || null,
-            error_message: result.ok ? null : JSON.stringify(result.data || result.raw),
-            event_key: tpl.event_key,
-            metadata: { variables: vars, bulk: true },
-          });
-
-          results.push({ phone: normalizedPhone, success: result.ok, messageId: result.data?.id || result.data?.messageId });
-          const delay = Math.floor(Math.random() * (60000 - 3000 + 1)) + 3000;
-          console.log(`Bulk delay: ${(delay / 1000).toFixed(1)}s`);
-          await new Promise((resolve) => setTimeout(resolve, delay));
-        } catch (e) {
-          results.push({ phone: normalizedPhone, success: false, error: String(e) });
-        }
+        queue.push({
+          phone: normalizedPhone, message: msg,
+          logData: { template_id, user_id: r.user_id || null, event_key: tpl.event_key, metadata: { variables: vars, bulk: true } },
+        });
       }
 
-      return ok({ success: true, results, total: recipients.length, sent: results.filter((r: any) => r.success).length });
+      // Process in background with waitUntil
+      EdgeRuntime.waitUntil(sendMessagesInBackground(queue));
+
+      return ok({
+        success: true,
+        queued: queue.length,
+        skipped: skipped.length,
+        total: recipients.length,
+        message: `${queue.length} mensagens enfileiradas para envio em background com delays humanizados`,
+      });
     }
 
     // ========= ACTION: send-expiring-alerts =========
     if (action === "send-expiring-alerts") {
       const { days_ahead = 0, dry_run = false } = body;
 
-      // Get the active proxy_expiring template
       const { data: tpl } = await admin
-        .from("whatsapp_templates")
-        .select("*")
-        .eq("event_key", "proxy_expiring")
-        .eq("active", true)
-        .limit(1)
-        .single();
+        .from("whatsapp_templates").select("*")
+        .eq("event_key", "proxy_expiring").eq("active", true).limit(1).single();
       if (!tpl) return err("Nenhum template ativo com evento 'proxy_expiring' encontrado");
 
       const targetDate = new Date();
       targetDate.setDate(targetDate.getDate() + days_ahead);
       const dateStr = targetDate.toISOString().slice(0, 10);
 
-      // Find subscriptions expiring on the target date
       const { data: subs, error: subsErr } = await admin
         .from("subscriptions")
         .select("id, user_id, name, type, end_date, product_id")
@@ -229,49 +229,38 @@ Deno.serve(async (req) => {
         .lt("end_date", dateStr + "T23:59:59Z");
 
       if (subsErr) return err("Erro ao buscar assinaturas: " + subsErr.message);
-      if (!subs?.length) return ok({ success: true, message: `Nenhuma assinatura vencendo em ${dateStr}`, sent: 0, recipients: [] });
+      if (!subs?.length) return ok({ success: true, message: `Nenhuma assinatura vencendo em ${dateStr}`, sent: 0 });
 
-      // Get unique user IDs
       const userIds = [...new Set(subs.map((s: any) => s.user_id))];
-      const { data: profiles } = await admin
-        .from("profiles")
-        .select("user_id, full_name, phone")
-        .in("user_id", userIds);
-
+      const { data: profiles } = await admin.from("profiles").select("user_id, full_name, phone").in("user_id", userIds);
       const profileMap: Record<string, any> = {};
-      for (const p of profiles || []) {
-        profileMap[p.user_id] = p;
-      }
+      for (const p of profiles || []) profileMap[p.user_id] = p;
 
-      // Get product names/prices
       const productIds = [...new Set(subs.filter((s: any) => s.product_id).map((s: any) => s.product_id))];
       const productMap: Record<string, any> = {};
       if (productIds.length) {
-        const { data: products } = await admin
-          .from("products")
-          .select("id, name, price")
-          .in("id", productIds);
-        for (const p of products || []) {
-          productMap[p.id] = p;
-        }
+        const { data: products } = await admin.from("products").select("id, name, price").in("id", productIds);
+        for (const p of products || []) productMap[p.id] = p;
       }
 
-      // Group subs by user to avoid spamming same user
+      // Group subs by user
       const userSubs: Record<string, any[]> = {};
       for (const s of subs) {
         if (!userSubs[s.user_id]) userSubs[s.user_id] = [];
         userSubs[s.user_id].push(s);
       }
 
-      const results: any[] = [];
+      const queue: Array<{ phone: string; message: string; logData: any }> = [];
+      const dryResults: any[] = [];
+      const noPhone: any[] = [];
+
       for (const [userId, userSubList] of Object.entries(userSubs)) {
         const profile = profileMap[userId];
         if (!profile?.phone) {
-          results.push({ user_id: userId, name: profile?.full_name || "?", success: false, error: "Sem telefone cadastrado" });
+          noPhone.push({ user_id: userId, name: profile?.full_name || "?" });
           continue;
         }
 
-        // Use first sub for the message (or summarize)
         const firstSub = userSubList[0];
         const product = firstSub.product_id ? productMap[firstSub.product_id] : null;
         const productName = product?.name || firstSub.type?.toUpperCase() || "Proxy";
@@ -286,45 +275,37 @@ Deno.serve(async (req) => {
         msg = msg.replaceAll("{{link}}", "");
 
         if (dry_run) {
-          results.push({ user_id: userId, name: profile.full_name, phone: profile.phone, message_preview: msg, subs_count: userSubList.length, success: true });
+          dryResults.push({ user_id: userId, name: profile.full_name, phone: profile.phone, message_preview: msg, subs_count: userSubList.length });
           continue;
         }
 
         let normalizedPhone = profile.phone.replace(/\D/g, "");
         if (!normalizedPhone.startsWith("55")) normalizedPhone = "55" + normalizedPhone;
 
-        try {
-          const result = await wapiSendText(normalizedPhone, msg);
-          await admin.from("whatsapp_logs").insert({
-            template_id: tpl.id,
-            user_id: userId,
-            phone: normalizedPhone,
-            message_sent: msg,
-            status: result.ok ? "sent" : "failed",
-            wapi_message_id: result.data?.id || result.data?.messageId || null,
-            error_message: result.ok ? null : JSON.stringify(result.data || result.raw),
-            event_key: "proxy_expiring",
+        queue.push({
+          phone: normalizedPhone, message: msg,
+          logData: {
+            template_id: tpl.id, user_id: userId, event_key: "proxy_expiring",
             metadata: { sub_ids: userSubList.map((s: any) => s.id), days_ahead },
-          });
-          results.push({ user_id: userId, name: profile.full_name, phone: normalizedPhone, success: result.ok });
-          // Delay humanizado: 3-60s aleatório
-          const delay = Math.floor(Math.random() * (60000 - 3000 + 1)) + 3000;
-          console.log(`Expiring alert delay: ${(delay / 1000).toFixed(1)}s`);
-          await new Promise((resolve) => setTimeout(resolve, delay));
-        } catch (e) {
-          results.push({ user_id: userId, name: profile.full_name, phone: profile.phone, success: false, error: String(e) });
-        }
+          },
+        });
       }
+
+      if (dry_run) {
+        return ok({ success: true, dry_run: true, date: dateStr, total_subs: subs.length, results: dryResults, no_phone: noPhone });
+      }
+
+      // Send in background
+      EdgeRuntime.waitUntil(sendMessagesInBackground(queue));
 
       return ok({
         success: true,
         date: dateStr,
-        dry_run,
+        queued: queue.length,
+        no_phone: noPhone.length,
         total_subs: subs.length,
         total_users: Object.keys(userSubs).length,
-        sent: results.filter((r: any) => r.success).length,
-        failed: results.filter((r: any) => !r.success).length,
-        results,
+        message: `${queue.length} alertas enfileirados para envio em background`,
       });
     }
 
@@ -332,12 +313,8 @@ Deno.serve(async (req) => {
     if (action === "check-status") {
       const result = await wapiCheckStatus();
       return ok({
-        connected: result.ok,
-        status: result.data,
-        url_used: result.url,
-        raw: result.raw || null,
-        instance_id: WAPI_INSTANCE_ID,
-        token_preview: WAPI_TOKEN?.slice(0, 8) + "...",
+        connected: result.ok, status: result.data, url_used: result.url,
+        instance_id: WAPI_INSTANCE_ID, token_preview: WAPI_TOKEN?.slice(0, 8) + "...",
       });
     }
 
