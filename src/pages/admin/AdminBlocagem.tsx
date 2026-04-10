@@ -1012,12 +1012,9 @@ function FolderItemsView({ folder, onBack }: { folder: Folder; onBack: () => voi
   const handleBatchDownloadTxt = async (batchItems: StockItem[], batchName: string) => {
     const allContent = batchItems.map((item) => {
       const d = (item.data as Record<string, any>) || {};
-      const id = item.identification || d.idPerfil || "";
-      const senha = d.senha || "";
-      const token = d.token2fa || "";
-      const email = d.emailAcesso || "";
-      const senhaEmail = d.senhaEmail || "";
-      return [id, senha, token, email, senhaEmail].filter(Boolean).join("|");
+      // Monta a linha com todos os valores do data separados por |, na ordem original
+      const values = Object.values(d).map(v => String(v ?? "").trim()).filter(Boolean);
+      return values.join("|");
     }).filter(line => line.length > 0).join("\n");
 
     const blob = new Blob([allContent], { type: "text/plain;charset=utf-8" });
