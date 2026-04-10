@@ -201,6 +201,130 @@ serve(async (req) => {
       return ok({ success: true, results, total: recipients.length, sent: results.filter((r: any) => r.success).length });
     }
 
+    // ========= ACTION: send-expiring-alerts =========
+    if (action === "send-expiring-alerts") {
+      const { days_ahead = 0, dry_run = false } = body;
+
+      // Get the active proxy_expiring template
+      const { data: tpl } = await admin
+        .from("whatsapp_templates")
+        .select("*")
+        .eq("event_key", "proxy_expiring")
+        .eq("active", true)
+        .limit(1)
+        .single();
+      if (!tpl) return err("Nenhum template ativo com evento 'proxy_expiring' encontrado");
+
+      const targetDate = new Date();
+      targetDate.setDate(targetDate.getDate() + days_ahead);
+      const dateStr = targetDate.toISOString().slice(0, 10);
+
+      // Find subscriptions expiring on the target date
+      const { data: subs, error: subsErr } = await admin
+        .from("subscriptions")
+        .select("id, user_id, name, type, end_date, product_id")
+        .eq("status", "active")
+        .gte("end_date", dateStr + "T00:00:00Z")
+        .lt("end_date", dateStr + "T23:59:59Z");
+
+      if (subsErr) return err("Erro ao buscar assinaturas: " + subsErr.message);
+      if (!subs?.length) return ok({ success: true, message: `Nenhuma assinatura vencendo em ${dateStr}`, sent: 0, recipients: [] });
+
+      // Get unique user IDs
+      const userIds = [...new Set(subs.map((s: any) => s.user_id))];
+      const { data: profiles } = await admin
+        .from("profiles")
+        .select("user_id, full_name, phone")
+        .in("user_id", userIds);
+
+      const profileMap: Record<string, any> = {};
+      for (const p of profiles || []) {
+        profileMap[p.user_id] = p;
+      }
+
+      // Get product names/prices
+      const productIds = [...new Set(subs.filter((s: any) => s.product_id).map((s: any) => s.product_id))];
+      const productMap: Record<string, any> = {};
+      if (productIds.length) {
+        const { data: products } = await admin
+          .from("products")
+          .select("id, name, price")
+          .in("id", productIds);
+        for (const p of products || []) {
+          productMap[p.id] = p;
+        }
+      }
+
+      // Group subs by user to avoid spamming same user
+      const userSubs: Record<string, any[]> = {};
+      for (const s of subs) {
+        if (!userSubs[s.user_id]) userSubs[s.user_id] = [];
+        userSubs[s.user_id].push(s);
+      }
+
+      const results: any[] = [];
+      for (const [userId, userSubList] of Object.entries(userSubs)) {
+        const profile = profileMap[userId];
+        if (!profile?.phone) {
+          results.push({ user_id: userId, name: profile?.full_name || "?", success: false, error: "Sem telefone cadastrado" });
+          continue;
+        }
+
+        // Use first sub for the message (or summarize)
+        const firstSub = userSubList[0];
+        const product = firstSub.product_id ? productMap[firstSub.product_id] : null;
+        const productName = product?.name || firstSub.type?.toUpperCase() || "Proxy";
+        const productPrice = product?.price ? `R$ ${Number(product.price).toFixed(2)}` : "—";
+
+        let msg = tpl.message_body;
+        msg = msg.replaceAll("{{nome}}", profile.full_name || "Cliente");
+        msg = msg.replaceAll("{{produto}}", productName);
+        msg = msg.replaceAll("{{valor}}", productPrice);
+        msg = msg.replaceAll("{{data}}", new Date(firstSub.end_date).toLocaleDateString("pt-BR"));
+        msg = msg.replaceAll("{{email}}", "");
+        msg = msg.replaceAll("{{link}}", "");
+
+        if (dry_run) {
+          results.push({ user_id: userId, name: profile.full_name, phone: profile.phone, message_preview: msg, subs_count: userSubList.length, success: true });
+          continue;
+        }
+
+        let normalizedPhone = profile.phone.replace(/\D/g, "");
+        if (!normalizedPhone.startsWith("55")) normalizedPhone = "55" + normalizedPhone;
+
+        try {
+          const result = await wapiSendText(normalizedPhone, msg);
+          await admin.from("whatsapp_logs").insert({
+            template_id: tpl.id,
+            user_id: userId,
+            phone: normalizedPhone,
+            message_sent: msg,
+            status: result.ok ? "sent" : "failed",
+            wapi_message_id: result.data?.id || result.data?.messageId || null,
+            error_message: result.ok ? null : JSON.stringify(result.data || result.raw),
+            event_key: "proxy_expiring",
+            metadata: { sub_ids: userSubList.map((s: any) => s.id), days_ahead },
+          });
+          results.push({ user_id: userId, name: profile.full_name, phone: normalizedPhone, success: result.ok });
+          // Rate limit: 1.5s between messages
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+        } catch (e) {
+          results.push({ user_id: userId, name: profile.full_name, phone: profile.phone, success: false, error: String(e) });
+        }
+      }
+
+      return ok({
+        success: true,
+        date: dateStr,
+        dry_run,
+        total_subs: subs.length,
+        total_users: Object.keys(userSubs).length,
+        sent: results.filter((r: any) => r.success).length,
+        failed: results.filter((r: any) => !r.success).length,
+        results,
+      });
+    }
+
     // ========= ACTION: check-status =========
     if (action === "check-status") {
       const result = await wapiCheckStatus();
