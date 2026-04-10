@@ -1,9 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
-async function callShopClone(action: string, params: Record<string, unknown> = {}) {
+export type SupplierKey = "accface" | "via17";
+
+async function callShopClone(action: string, params: Record<string, unknown> = {}, supplier: SupplierKey = "accface") {
   const { data, error } = await supabase.functions.invoke("shopclone-api", {
-    body: { action, ...params },
+    body: { action, supplier, ...params },
   });
 
   if (error) throw new Error(error.message || "Erro ao chamar ShopClone API");
@@ -33,11 +35,11 @@ export interface ShopCloneCategory {
   accounts: ShopCloneProduct[];
 }
 
-export function useShopCloneProducts() {
+export function useShopCloneProducts(supplier: SupplierKey = "accface") {
   return useQuery({
-    queryKey: ["shopclone-products"],
+    queryKey: ["shopclone-products", supplier],
     queryFn: async () => {
-      const result = await callShopClone("list-products");
+      const result = await callShopClone("list-products", {}, supplier);
       return (result?.categories || []) as ShopCloneCategory[];
     },
     staleTime: 5 * 60_000,
@@ -46,25 +48,25 @@ export function useShopCloneProducts() {
   });
 }
 
-export function useShopCloneBalance() {
+export function useShopCloneBalance(supplier: SupplierKey = "accface") {
   return useQuery({
-    queryKey: ["shopclone-balance"],
+    queryKey: ["shopclone-balance", supplier],
     queryFn: async () => {
-      const result = await callShopClone("get-balance");
+      const result = await callShopClone("get-balance", {}, supplier);
       return result?.balance as string;
     },
     staleTime: 60_000,
   });
 }
 
-export function useShopCloneProductInfo(productId: string | null) {
+export function useShopCloneProductInfo(productId: string | null, supplier: SupplierKey = "accface") {
   return useQuery({
-    queryKey: ["shopclone-product", productId],
-    queryFn: () => callShopClone("product-info", { productId }),
+    queryKey: ["shopclone-product", productId, supplier],
+    queryFn: () => callShopClone("product-info", { productId }, supplier),
     enabled: !!productId,
   });
 }
 
-export async function buyShopCloneResource(productId: string, amount: number, productName?: string, folderName?: string, itemType?: string, unitPriceBrl?: number) {
-  return callShopClone("buy-resource", { productId, amount, productName, folderName, itemType, unitPriceBrl });
+export async function buyShopCloneResource(productId: string, amount: number, productName?: string, folderName?: string, itemType?: string, unitPriceBrl?: number, supplier: SupplierKey = "accface") {
+  return callShopClone("buy-resource", { productId, amount, productName, folderName, itemType, unitPriceBrl }, supplier);
 }
