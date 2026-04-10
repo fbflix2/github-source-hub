@@ -1142,6 +1142,17 @@ function FolderItemsView({ folder, onBack }: { folder: Folder; onBack: () => voi
                       </div>
                     )}
                     <Badge variant="secondary" className="text-xs">{batch.items.length} itens</Badge>
+                    {batch.items.length > 5 && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 px-2 text-primary hover:text-primary/80 gap-1 text-xs"
+                        onClick={(e) => { e.stopPropagation(); handleBatchDownloadTxt(batch.items, batch.productName); }}
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                        TXT
+                      </Button>
+                    )}
                     {isExpanded ? <ChevronDown className="size-4 text-muted-foreground" /> : <ChevronRight className="size-4 text-muted-foreground" />}
                   </div>
                 </button>
