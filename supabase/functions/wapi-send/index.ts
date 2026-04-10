@@ -44,19 +44,31 @@ Deno.serve(async (req) => {
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
   const WAPI_BASE = `https://api.w-api.app/v1`;
 
-  async function wapiSendText(phone: string, message: string) {
-    const url = `${WAPI_BASE}/message/send-text?instanceId=${WAPI_INSTANCE_ID}`;
+  async function wapiRequest(endpoint: string, payload: any) {
+    const url = `${WAPI_BASE}${endpoint}?instanceId=${WAPI_INSTANCE_ID}`;
     const res = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${WAPI_TOKEN}`,
       },
-      body: JSON.stringify({ phone, message }),
+      body: JSON.stringify(payload),
     });
     const result = await safeJson(res);
     console.log(`W-API [${result.status}]: ${JSON.stringify(result.data || result.raw?.slice(0, 200))}`);
     return { ...result, url };
+  }
+
+  async function wapiSendText(phone: string, message: string) {
+    return wapiRequest("/message/send-text", { phone, message });
+  }
+
+  async function wapiSendImage(phone: string, imageUrl: string, caption?: string) {
+    return wapiRequest("/message/send-image", { phone, image: imageUrl, caption: caption || "" });
+  }
+
+  async function wapiSendButton(phone: string, message: string, buttons: Array<{ id: string; text: string }>, title?: string, footer?: string) {
+    return wapiRequest("/message/send-button", { phone, title: title || "", message, footer: footer || "", buttons });
   }
 
   async function wapiCheckStatus() {
@@ -67,19 +79,33 @@ Deno.serve(async (req) => {
     return { ...(await safeJson(res)), url };
   }
 
-  // Background sender: sends messages one by one with humanized delays
-  async function sendMessagesInBackground(messages: Array<{ phone: string; message: string; logData: any }>) {
+  function getMessageId(result: any) {
+    return result.data?.id || result.data?.messageId || null;
+  }
+
+  // Background sender with humanized delays
+  async function sendMessagesInBackground(messages: Array<{ phone: string; message: string; logData: any; imageUrl?: string; buttons?: any[] }>) {
     for (let i = 0; i < messages.length; i++) {
       const m = messages[i];
       try {
-        const result = await wapiSendText(m.phone, m.message);
+        let result;
+        if (m.imageUrl) {
+          result = await wapiSendImage(m.phone, m.imageUrl, m.message);
+        } else if (m.buttons?.length) {
+          result = await wapiSendButton(m.phone, m.message, m.buttons);
+        } else {
+          result = await wapiSendText(m.phone, m.message);
+        }
+
         await admin.from("whatsapp_logs").insert({
           ...m.logData,
           phone: m.phone,
           message_sent: m.message,
           status: result.ok ? "sent" : "failed",
-          wapi_message_id: result.data?.id || result.data?.messageId || null,
+          wapi_message_id: getMessageId(result),
           error_message: result.ok ? null : JSON.stringify(result.data || result.raw),
+          message_type: m.imageUrl ? "image" : m.buttons?.length ? "button" : "text",
+          image_url: m.imageUrl || null,
         });
       } catch (e) {
         console.error(`BG send failed ${m.phone}: ${e}`);
@@ -91,7 +117,6 @@ Deno.serve(async (req) => {
           error_message: String(e),
         });
       }
-      // Humanized delay 3-60s between messages (skip after last)
       if (i < messages.length - 1) {
         const delay = Math.floor(Math.random() * (60000 - 3000 + 1)) + 3000;
         console.log(`BG delay: ${(delay / 1000).toFixed(1)}s (${i + 1}/${messages.length})`);
@@ -121,16 +146,70 @@ Deno.serve(async (req) => {
         phone: normalizedPhone,
         message_sent: message,
         status: result.ok ? "sent" : "failed",
-        wapi_message_id: result.data?.id || result.data?.messageId || null,
+        wapi_message_id: getMessageId(result),
         error_message: result.ok ? null : JSON.stringify(result.data || result.raw || "Unknown error"),
         event_key: event_key || "custom",
         metadata: metadata || {},
+        message_type: "text",
       });
 
-      if (!result.ok) {
-        return err(`W-API error [${result.status}]: ${JSON.stringify(result.data || result.raw)}`, 502);
-      }
-      return ok({ success: true, messageId: result.data?.id || result.data?.messageId });
+      if (!result.ok) return err(`W-API error [${result.status}]: ${JSON.stringify(result.data || result.raw)}`, 502);
+      return ok({ success: true, messageId: getMessageId(result) });
+    }
+
+    // ========= ACTION: send-image =========
+    if (action === "send-image") {
+      const { phone, image_url, caption, user_id, event_key, template_id, metadata } = body;
+      if (!phone || !image_url) return err("phone and image_url are required");
+
+      let normalizedPhone = phone.replace(/\D/g, "");
+      if (!normalizedPhone.startsWith("55")) normalizedPhone = "55" + normalizedPhone;
+
+      const result = await wapiSendImage(normalizedPhone, image_url, caption);
+
+      await admin.from("whatsapp_logs").insert({
+        template_id: template_id || null,
+        user_id: user_id || null,
+        phone: normalizedPhone,
+        message_sent: caption || "[Imagem]",
+        status: result.ok ? "sent" : "failed",
+        wapi_message_id: getMessageId(result),
+        error_message: result.ok ? null : JSON.stringify(result.data || result.raw),
+        event_key: event_key || "custom",
+        metadata: metadata || {},
+        message_type: "image",
+        image_url,
+      });
+
+      if (!result.ok) return err(`W-API error [${result.status}]: ${JSON.stringify(result.data || result.raw)}`, 502);
+      return ok({ success: true, messageId: getMessageId(result) });
+    }
+
+    // ========= ACTION: send-button =========
+    if (action === "send-button") {
+      const { phone, message, buttons, title, footer, user_id, event_key, template_id, metadata } = body;
+      if (!phone || !message || !buttons?.length) return err("phone, message and buttons are required");
+
+      let normalizedPhone = phone.replace(/\D/g, "");
+      if (!normalizedPhone.startsWith("55")) normalizedPhone = "55" + normalizedPhone;
+
+      const result = await wapiSendButton(normalizedPhone, message, buttons, title, footer);
+
+      await admin.from("whatsapp_logs").insert({
+        template_id: template_id || null,
+        user_id: user_id || null,
+        phone: normalizedPhone,
+        message_sent: message,
+        status: result.ok ? "sent" : "failed",
+        wapi_message_id: getMessageId(result),
+        error_message: result.ok ? null : JSON.stringify(result.data || result.raw),
+        event_key: event_key || "custom",
+        metadata: { ...(metadata || {}), buttons, title, footer },
+        message_type: "button",
+      });
+
+      if (!result.ok) return err(`W-API error [${result.status}]: ${JSON.stringify(result.data || result.raw)}`, 502);
+      return ok({ success: true, messageId: getMessageId(result) });
     }
 
     // ========= ACTION: send-template =========
@@ -157,13 +236,14 @@ Deno.serve(async (req) => {
       await admin.from("whatsapp_logs").insert({
         template_id, user_id: user_id || null, phone: normalizedPhone,
         message_sent: msg, status: result.ok ? "sent" : "failed",
-        wapi_message_id: result.data?.id || result.data?.messageId || null,
+        wapi_message_id: getMessageId(result),
         error_message: result.ok ? null : JSON.stringify(result.data || result.raw),
         event_key: tpl.event_key, metadata: { variables: vars },
+        message_type: "text",
       });
 
       if (!result.ok) return err(`W-API error [${result.status}]: ${JSON.stringify(result.data || result.raw)}`, 502);
-      return ok({ success: true, messageId: result.data?.id || result.data?.messageId });
+      return ok({ success: true, messageId: getMessageId(result) });
     }
 
     // ========= ACTION: send-bulk =========
@@ -174,7 +254,6 @@ Deno.serve(async (req) => {
       const { data: tpl } = await admin.from("whatsapp_templates").select("*").eq("id", template_id).single();
       if (!tpl) return err("Template not found");
 
-      // Build message queue
       const queue: Array<{ phone: string; message: string; logData: any }> = [];
       const skipped: any[] = [];
 
@@ -196,15 +275,11 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Process in background with waitUntil
       EdgeRuntime.waitUntil(sendMessagesInBackground(queue));
 
       return ok({
-        success: true,
-        queued: queue.length,
-        skipped: skipped.length,
-        total: recipients.length,
-        message: `${queue.length} mensagens enfileiradas para envio em background com delays humanizados`,
+        success: true, queued: queue.length, skipped: skipped.length, total: recipients.length,
+        message: `${queue.length} mensagens enfileiradas para envio em background`,
       });
     }
 
@@ -243,7 +318,6 @@ Deno.serve(async (req) => {
         for (const p of products || []) productMap[p.id] = p;
       }
 
-      // Group subs by user
       const userSubs: Record<string, any[]> = {};
       for (const s of subs) {
         if (!userSubs[s.user_id]) userSubs[s.user_id] = [];
@@ -295,17 +369,49 @@ Deno.serve(async (req) => {
         return ok({ success: true, dry_run: true, date: dateStr, total_subs: subs.length, results: dryResults, no_phone: noPhone });
       }
 
-      // Send in background
       EdgeRuntime.waitUntil(sendMessagesInBackground(queue));
 
       return ok({
-        success: true,
-        date: dateStr,
-        queued: queue.length,
-        no_phone: noPhone.length,
-        total_subs: subs.length,
-        total_users: Object.keys(userSubs).length,
+        success: true, date: dateStr, queued: queue.length, no_phone: noPhone.length,
+        total_subs: subs.length, total_users: Object.keys(userSubs).length,
         message: `${queue.length} alertas enfileirados para envio em background`,
+      });
+    }
+
+    // ========= ACTION: campaign-stats =========
+    if (action === "campaign-stats") {
+      const { template_id, event_key, date_from, date_to } = body;
+
+      let q = admin.from("whatsapp_logs").select("status, delivered_at, read_at, replied_at, created_at, event_key, template_id", { count: "exact" });
+
+      if (template_id) q = q.eq("template_id", template_id);
+      if (event_key) q = q.eq("event_key", event_key);
+      if (date_from) q = q.gte("created_at", date_from);
+      if (date_to) q = q.lte("created_at", date_to);
+
+      const { data: logs, count, error: logsErr } = await q.limit(5000);
+      if (logsErr) return err("Erro: " + logsErr.message);
+
+      const total = logs?.length || 0;
+      const sent = logs?.filter((l: any) => l.status !== "failed").length || 0;
+      const delivered = logs?.filter((l: any) => l.delivered_at).length || 0;
+      const read = logs?.filter((l: any) => l.read_at).length || 0;
+      const replied = logs?.filter((l: any) => l.replied_at).length || 0;
+      const failed = logs?.filter((l: any) => l.status === "failed").length || 0;
+
+      return ok({
+        total,
+        sent,
+        delivered,
+        read,
+        replied,
+        failed,
+        rates: {
+          delivery: sent > 0 ? Math.round((delivered / sent) * 100) : 0,
+          read: delivered > 0 ? Math.round((read / delivered) * 100) : 0,
+          reply: delivered > 0 ? Math.round((replied / delivered) * 100) : 0,
+          failure: total > 0 ? Math.round((failed / total) * 100) : 0,
+        },
       });
     }
 
