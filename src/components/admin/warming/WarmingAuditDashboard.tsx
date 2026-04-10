@@ -169,14 +169,15 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, manualQual
       }
 
       const quality = effectiveQualityMap[p.id];
+      const manualQuality = manualQualityMap[p.id] || {};
       const days = getProfileWarmingDays(p);
 
       if (minDays > 0 && days < minDays) return false;
-      if (filter2FA && !quality?.has2FA) return false;
-      if (filterBM && !quality?.hasBM) return false;
-      if (filterPage && !quality?.hasPage) return false;
+      if (filter2FA && !manualQuality.has2FA) return false;
+      if (filterBM && !manualQuality.hasBM) return false;
+      if (filterPage && !manualQuality.hasPage) return false;
       if (minFriends > 0) {
-        const friendMin = FRIEND_RANGE_MIN[quality?.friendRange || "0-5"] || 0;
+        const friendMin = FRIEND_RANGE_MIN[manualQuality.friendRange || "0-5"] || 0;
         if (friendMin < minFriends) return false;
       }
       if (filterOperator !== "all" && p.created_by !== filterOperator) return false;
