@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -6,7 +6,40 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const ACCFACE_BASE = "https://accface.com/api";
+// Supplier configurations
+interface SupplierConfig {
+  baseUrl: string;
+  username: string;
+  password: string;
+  label: string;
+  folderDefault: string;
+}
+
+function getSupplierConfig(supplier: string): SupplierConfig {
+  if (supplier === "via17") {
+    const username = Deno.env.get("VIA17_USERNAME");
+    const password = Deno.env.get("VIA17_PASSWORD");
+    if (!username || !password) throw new Error("VIA17 credentials not configured");
+    return {
+      baseUrl: "https://via17.com/api",
+      username,
+      password,
+      label: "VIA17",
+      folderDefault: "VIA17 Import",
+    };
+  }
+  // Default: accface
+  const username = Deno.env.get("ACCFACE_USERNAME");
+  const password = Deno.env.get("ACCFACE_PASSWORD");
+  if (!username || !password) throw new Error("ACCFACE credentials not configured");
+  return {
+    baseUrl: "https://accface.com/api",
+    username,
+    password,
+    label: "AccFace",
+    folderDefault: "AccFace Import",
+  };
+}
 
 function extractRawAccounts(parsed: any): string[] {
   const collected: string[] = [];
@@ -71,14 +104,13 @@ function extractRawAccounts(parsed: any): string[] {
   return [...new Set(cleaned)];
 }
 
-function buildStockItems(rawAccounts: string[], productId: string, productName: string | undefined, folder: string, itemType?: string, unitPriceBrl?: number) {
+function buildStockItems(rawAccounts: string[], productId: string, productName: string | undefined, folder: string, itemType?: string, unitPriceBrl?: number, source?: string) {
   const resolvedType = itemType || "perfil";
+  const resolvedSource = source || "accface";
 
   if (resolvedType === "bm") {
-    // BM items: each raw account line is a BM link/URL
     return rawAccounts.map((acc, i) => {
       const trimmed = acc.trim();
-      // Check if it's a URL
       const isUrl = /^https?:\/\//i.test(trimmed);
       return {
         name: productName || `BM #${i + 1}`,
@@ -89,24 +121,23 @@ function buildStockItems(rawAccounts: string[], productId: string, productName: 
         identification_link: isUrl ? trimmed : trimmed,
         data: {
           raw: acc,
-          source: "accface",
+          source: resolvedSource,
           accfaceProductId: String(productId),
           purchasedAt: new Date().toISOString(),
           ...(unitPriceBrl && { precoCustoBRL: unitPriceBrl }),
-          descricao: `AccFace ID: ${productId} | Custo: R$ ${unitPriceBrl ? unitPriceBrl.toFixed(2) : '—'}`,
+          descricao: `${resolvedSource} ID: ${productId} | Custo: R$ ${unitPriceBrl ? unitPriceBrl.toFixed(2) : '—'}`,
         },
       };
     });
   }
 
-  // Perfil items: Format ID|senha_perfil|token2fa|email|senha_email|...
   return rawAccounts.map((acc) => {
     const parts = acc.split("|").map((p) => p.trim());
     const fbId = parts[0] || acc.substring(0, 100);
     const profileLink = /^\d+$/.test(fbId) ? `https://facebook.com/profile.php?id=${fbId}` : undefined;
 
     return {
-      name: productName || `AccFace #${productId}`,
+      name: productName || `${resolvedSource} #${productId}`,
       type: "perfil",
       status: "aguardando",
       folder,
@@ -114,20 +145,17 @@ function buildStockItems(rawAccounts: string[], productId: string, productName: 
       identification_link: profileLink || null,
       data: {
         raw: acc,
-        source: "accface",
+        source: resolvedSource,
         accfaceProductId: String(productId),
         purchasedAt: new Date().toISOString(),
         ...(unitPriceBrl && { precoCustoBRL: unitPriceBrl }),
-        descricao: `AccFace ID: ${productId} | Custo: R$ ${unitPriceBrl ? unitPriceBrl.toFixed(2) : '—'}`,
-        // Map to Blocagem-compatible field names
+        descricao: `${resolvedSource} ID: ${productId} | Custo: R$ ${unitPriceBrl ? unitPriceBrl.toFixed(2) : '—'}`,
         ...(parts[0] && { idPerfil: parts[0] }),
         ...(parts[1] && { senha: parts[1] }),
         ...(parts[2] && { token2fa: parts[2] }),
         ...(parts[3] && { emailAcesso: parts[3] }),
         ...(parts[4] && { senhaEmail: parts[4] }),
-        // Additional fields if available
         ...(parts[5] && { emailAlternativo: parts[5] }),
-        // Also keep legacy keys for backwards compat
         ...(parts[0] && { uid: parts[0] }),
         ...(parts[1] && { pass: parts[1] }),
         ...(parts[3] && { mail: parts[3] }),
@@ -213,15 +241,11 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const username = Deno.env.get("ACCFACE_USERNAME");
-    const password = Deno.env.get("ACCFACE_PASSWORD");
-    if (!username || !password) {
-      throw new Error("ACCFACE credentials not configured");
-    }
+    const { action, supplier: supplierParam, ...params } = await req.json();
+    const supplier = supplierParam || "accface";
+    const config = getSupplierConfig(supplier);
 
-    const { action, ...params } = await req.json();
-
-    // Auth check — only staff can use admin actions, users can use buy action
+    // Auth check
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -247,7 +271,6 @@ Deno.serve(async (req) => {
 
     const userId = claimsData.claims.sub as string;
 
-    // Staff-only actions
     const staffActions = ["list-products", "get-balance", "product-info", "buy-resource", "import-accounts", "repair-folder-links", "fix-stock-item"];
     if (staffActions.includes(action)) {
       const adminClient = createClient(
@@ -267,12 +290,12 @@ Deno.serve(async (req) => {
 
     switch (action) {
       case "list-products": {
-        const url = `${ACCFACE_BASE}/ListResource.php?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
-        console.log("[shopclone-api] list-products: fetching from AccFace...");
+        const url = `${config.baseUrl}/ListResource.php?username=${encodeURIComponent(config.username)}&password=${encodeURIComponent(config.password)}`;
+        console.log(`[shopclone-api][${config.label}] list-products: fetching...`);
         const resp = await fetch(url);
-        console.log("[shopclone-api] list-products: status", resp.status, "ok", resp.ok);
+        console.log(`[shopclone-api][${config.label}] list-products: status`, resp.status);
         const text = await resp.text();
-        console.log("[shopclone-api] list-products: response length", text.length, "preview:", text.substring(0, 500));
+        console.log(`[shopclone-api][${config.label}] list-products: response length`, text.length, "preview:", text.substring(0, 500));
         if (!resp.ok) {
           result = { status: "error", raw: text, httpStatus: resp.status };
           break;
@@ -286,10 +309,9 @@ Deno.serve(async (req) => {
       }
 
       case "get-balance": {
-        const url = `${ACCFACE_BASE}/GetBalance.php?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`;
+        const url = `${config.baseUrl}/GetBalance.php?username=${encodeURIComponent(config.username)}&password=${encodeURIComponent(config.password)}`;
         const resp = await fetch(url);
         const text = await resp.text();
-        // Response is raw text like "199.994.860đ"
         result = { balance: text.trim() };
         break;
       }
@@ -297,7 +319,7 @@ Deno.serve(async (req) => {
       case "product-info": {
         const { productId } = params;
         if (!productId) throw new Error("productId is required");
-        const url = `${ACCFACE_BASE}/InfoResource.php?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&id=${encodeURIComponent(String(productId))}`;
+        const url = `${config.baseUrl}/InfoResource.php?username=${encodeURIComponent(config.username)}&password=${encodeURIComponent(config.password)}&id=${encodeURIComponent(String(productId))}`;
         const resp = await fetch(url);
         const text = await resp.text();
         try {
@@ -312,12 +334,12 @@ Deno.serve(async (req) => {
         const { productId, amount, productName, folderName, itemType, unitPriceBrl } = params;
         if (!productId || !amount) throw new Error("productId and amount are required");
 
-        const url = `${ACCFACE_BASE}/BResource.php?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&id=${encodeURIComponent(String(productId))}&amount=${encodeURIComponent(String(amount))}`;
-        console.log("[shopclone-api] buy-resource URL:", url.replace(password, "***"));
+        const url = `${config.baseUrl}/BResource.php?username=${encodeURIComponent(config.username)}&password=${encodeURIComponent(config.password)}&id=${encodeURIComponent(String(productId))}&amount=${encodeURIComponent(String(amount))}`;
+        console.log(`[shopclone-api][${config.label}] buy-resource URL:`, url.replace(config.password, "***"));
 
         const resp = await fetch(url);
         const text = await resp.text();
-        console.log("[shopclone-api] buy-resource raw response:", text.substring(0, 2000));
+        console.log(`[shopclone-api][${config.label}] buy-resource raw response:`, text.substring(0, 2000));
 
         let parsed: any;
         try {
@@ -326,7 +348,7 @@ Deno.serve(async (req) => {
           parsed = { _rawText: text };
         }
 
-        console.log("[shopclone-api] parsed keys:", Object.keys(parsed || {}));
+        console.log(`[shopclone-api][${config.label}] parsed keys:`, Object.keys(parsed || {}));
 
         if (parsed?.status === "error" || parsed?.error) {
           result = parsed;
@@ -338,15 +360,15 @@ Deno.serve(async (req) => {
           Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
         );
 
-        const folder = String(folderName || "AccFace Import");
+        const folder = String(folderName || config.folderDefault);
         const rawAccounts = extractRawAccounts(parsed);
 
-        console.log("[shopclone-api] rawAccounts count:", rawAccounts.length);
+        console.log(`[shopclone-api][${config.label}] rawAccounts count:`, rawAccounts.length);
         if (rawAccounts.length > 0) {
-          console.log("[shopclone-api] first account sample:", rawAccounts[0].substring(0, 200));
+          console.log(`[shopclone-api][${config.label}] first account sample:`, rawAccounts[0].substring(0, 200));
         }
 
-        const stockItems = buildStockItems(rawAccounts, String(productId), productName ? String(productName) : undefined, folder, itemType ? String(itemType) : undefined, unitPriceBrl ? Number(unitPriceBrl) : undefined);
+        const stockItems = buildStockItems(rawAccounts, String(productId), productName ? String(productName) : undefined, folder, itemType ? String(itemType) : undefined, unitPriceBrl ? Number(unitPriceBrl) : undefined, supplier);
         const saveResult = await saveStockItems(adminClient, folder, stockItems);
 
         result = {
@@ -373,9 +395,9 @@ Deno.serve(async (req) => {
           Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
         );
 
-        const folder = String(folderName || "AccFace Import");
+        const folder = String(folderName || config.folderDefault);
         const rawAccounts = extractRawAccounts(sourcePayload ?? { accounts });
-        const stockItems = buildStockItems(rawAccounts, String(productId), productName ? String(productName) : undefined, folder, itemType ? String(itemType) : undefined, unitPriceBrl ? Number(unitPriceBrl) : undefined);
+        const stockItems = buildStockItems(rawAccounts, String(productId), productName ? String(productName) : undefined, folder, itemType ? String(itemType) : undefined, unitPriceBrl ? Number(unitPriceBrl) : undefined, supplier);
         const saveResult = await saveStockItems(adminClient, folder, stockItems);
 
         result = {
@@ -396,7 +418,7 @@ Deno.serve(async (req) => {
           Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
         );
 
-        const folder = String(params.folderName || "AccFace Import");
+        const folder = String(params.folderName || config.folderDefault);
         const { folderId, folderName: resolvedFolderName } = await ensureFolderId(adminClient, folder);
         const repairedCount = await normalizeFolderLinks(adminClient, resolvedFolderName, folderId);
 
