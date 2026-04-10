@@ -119,7 +119,7 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
     d.setDate(d.getDate() - i);
     const dateStr = d.toISOString().slice(0, 10);
     dayLabels.push(dateStr);
-    const dayLancs = lancamentos.filter(l => l.data === dateStr);
+    const dayLancs = allLancamentos.filter(l => l.data === dateStr);
     const dayNet = dayLancs.reduce((s, l) => s + Number(l.entrada) - Number(l.saida), 0);
     dayValues.push(dayNet);
   }
