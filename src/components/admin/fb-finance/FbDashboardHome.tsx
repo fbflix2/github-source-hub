@@ -30,15 +30,11 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
   const fetchData = async () => {
     const now = new Date();
     const startOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
-    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const startLastMonth = `${lastMonth.getFullYear()}-${String(lastMonth.getMonth() + 1).padStart(2, "0")}-01`;
-    const endLastMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
 
-    const [caixasRes, allLancRes, lancMesRes, lancLastRes, despesasRes, configRes, custosRes] = await Promise.all([
+    const [caixasRes, allLancRes, lancMesRes, despesasRes, configRes, custosRes] = await Promise.all([
       supabase.from("fb_finance_caixas").select("*"),
       supabase.from("fb_finance_lancamentos").select("*"),
       supabase.from("fb_finance_lancamentos").select("*").gte("data", startOfMonth),
-      supabase.from("fb_finance_lancamentos").select("*").gte("data", startLastMonth).lt("data", endLastMonth),
       supabase.from("fb_finance_despesas_planejadas").select("*").eq("mes_ref", mesAtual),
       supabase.from("fb_finance_config").select("*").limit(1).single(),
       supabase.from("fb_finance_custos_pessoais").select("*").eq("ativo", true),
