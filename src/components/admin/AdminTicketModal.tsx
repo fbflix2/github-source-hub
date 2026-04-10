@@ -92,8 +92,37 @@ export default function AdminTicketModal({ ticket, profileName, mode, onClose, o
   const [newStatus, setNewStatus] = useState("");
   const [attachments, setAttachments] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [editingMsgId, setEditingMsgId] = useState<string | null>(null);
+  const [editingContent, setEditingContent] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const editTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const handleEditMessage = useCallback(async (msgId: string) => {
+    if (!editingContent.trim()) return;
+    setSavingEdit(true);
+    const { error } = await supabase
+      .from("ticket_messages")
+      .update({ content: editingContent.trim() })
+      .eq("id", msgId);
+    if (error) {
+      toast.error("Erro ao editar mensagem");
+    } else {
+      toast.success("Mensagem editada!");
+      setEditingMsgId(null);
+      setEditingContent("");
+      await fetchMessages();
+    }
+    setSavingEdit(false);
+  }, [editingContent]);
+
+  useEffect(() => {
+    if (editingMsgId && editTextareaRef.current) {
+      editTextareaRef.current.focus();
+      editTextareaRef.current.setSelectionRange(editTextareaRef.current.value.length, editTextareaRef.current.value.length);
+    }
+  }, [editingMsgId]);
 
   useEffect(() => {
     if (!ticket) return;
