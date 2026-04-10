@@ -98,6 +98,24 @@ export default function AdminWhatsApp() {
   // Connection status
   const [connectionStatus, setConnectionStatus] = useState<any>(null);
 
+  // Expiring alerts
+  const [showExpiringModal, setShowExpiringModal] = useState(false);
+  const [expiringDays, setExpiringDays] = useState("0");
+  const [expiringResults, setExpiringResults] = useState<any>(null);
+
+  const sendExpiringAlerts = useMutation({
+    mutationFn: (dryRun: boolean) =>
+      callWapi("send-expiring-alerts", { days_ahead: Number(expiringDays), dry_run: dryRun }),
+    onSuccess: (data) => {
+      setExpiringResults(data);
+      if (!data.dry_run) {
+        toast.success(`${data.sent} mensagem(ns) enviada(s)!`);
+        qc.invalidateQueries({ queryKey: ["whatsapp-logs"] });
+      }
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const saveTemplate = useMutation({
     mutationFn: async () => {
       if (editingTemplate) {
