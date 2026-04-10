@@ -21,6 +21,15 @@ function err(msg: string, status = 400) {
   });
 }
 
+async function safeJson(res: Response): Promise<{ ok: boolean; status: number; data: any; raw?: string }> {
+  const text = await res.text();
+  try {
+    return { ok: res.ok, status: res.status, data: JSON.parse(text) };
+  } catch {
+    return { ok: false, status: res.status, data: null, raw: text.slice(0, 500) };
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -35,6 +44,73 @@ serve(async (req) => {
 
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+  // W-API base URL pattern: https://api.w-api.app/v1/message/send-text/{instanceId}
+  // Alternative patterns to try if the first fails
+  const WAPI_BASE = `https://api.w-api.app`;
+
+  async function wapiSendText(phone: string, message: string) {
+    // Try the most common W-API URL patterns
+    const urls = [
+      `${WAPI_BASE}/v1/message/send-text/${WAPI_INSTANCE_ID}`,
+      `${WAPI_BASE}/v1/${WAPI_INSTANCE_ID}/message/send-text`,
+      `${WAPI_BASE}/message/send-text/${WAPI_INSTANCE_ID}`,
+    ];
+
+    for (const url of urls) {
+      console.log(`Trying W-API URL: ${url}`);
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${WAPI_TOKEN}`,
+        },
+        body: JSON.stringify({ phone, message }),
+      });
+
+      const result = await safeJson(res);
+      console.log(`W-API response [${result.status}]: ${JSON.stringify(result.data || result.raw?.slice(0, 200))}`);
+
+      // If we got JSON back (even an error), this is the right URL pattern
+      if (result.data !== null) {
+        return { ...result, url };
+      }
+
+      // If HTML returned, try next URL pattern
+      if (result.raw?.includes("<!DOCTYPE") || result.raw?.includes("<html")) {
+        console.log(`URL ${url} returned HTML, trying next...`);
+        continue;
+      }
+
+      return { ...result, url };
+    }
+
+    return { ok: false, status: 0, data: null, raw: "All URL patterns returned HTML", url: "none" };
+  }
+
+  async function wapiCheckStatus() {
+    const urls = [
+      `${WAPI_BASE}/v1/instance/status/${WAPI_INSTANCE_ID}`,
+      `${WAPI_BASE}/v1/${WAPI_INSTANCE_ID}/status`,
+      `${WAPI_BASE}/instance/status/${WAPI_INSTANCE_ID}`,
+    ];
+
+    for (const url of urls) {
+      console.log(`Trying status URL: ${url}`);
+      const res = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${WAPI_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+      });
+      const result = await safeJson(res);
+      if (result.data !== null) return { ...result, url };
+      if (result.raw?.includes("<!DOCTYPE")) continue;
+      return { ...result, url };
+    }
+
+    return { ok: false, status: 0, data: null, raw: "All status URLs returned HTML", url: "none" };
+  }
+
   try {
     const body = await req.json();
     const { action } = body;
@@ -44,24 +120,10 @@ serve(async (req) => {
       const { phone, message, user_id, event_key, template_id, metadata } = body;
       if (!phone || !message) return err("phone and message are required");
 
-      // Normalize phone – ensure 55 prefix and @c.us suffix
       let normalizedPhone = phone.replace(/\D/g, "");
       if (!normalizedPhone.startsWith("55")) normalizedPhone = "55" + normalizedPhone;
 
-      // Call W-API
-      const wapiUrl = `https://api.w-api.app/v1/${WAPI_INSTANCE_ID}/message/send-text`;
-      const wapiRes = await fetch(wapiUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${WAPI_TOKEN}`,
-        },
-        body: JSON.stringify({
-          phone: normalizedPhone,
-          message,
-        }),
-      });
-      const wapiData = await wapiRes.json();
+      const result = await wapiSendText(normalizedPhone, message);
 
       // Log to database
       await admin.from("whatsapp_logs").insert({
@@ -69,18 +131,18 @@ serve(async (req) => {
         user_id: user_id || null,
         phone: normalizedPhone,
         message_sent: message,
-        status: wapiRes.ok ? "sent" : "failed",
-        wapi_message_id: wapiData?.id || wapiData?.messageId || null,
-        error_message: wapiRes.ok ? null : JSON.stringify(wapiData),
+        status: result.ok ? "sent" : "failed",
+        wapi_message_id: result.data?.id || result.data?.messageId || null,
+        error_message: result.ok ? null : JSON.stringify(result.data || result.raw || "Unknown error"),
         event_key: event_key || "custom",
         metadata: metadata || {},
       });
 
-      if (!wapiRes.ok) {
-        return err(`W-API error [${wapiRes.status}]: ${JSON.stringify(wapiData)}`, 502);
+      if (!result.ok) {
+        return err(`W-API error [${result.status}] (${result.url}): ${JSON.stringify(result.data || result.raw)}`, 502);
       }
 
-      return ok({ success: true, messageId: wapiData?.id || wapiData?.messageId, wapiData });
+      return ok({ success: true, messageId: result.data?.id || result.data?.messageId, url_used: result.url });
     }
 
     // ========= ACTION: send-template =========
@@ -88,7 +150,6 @@ serve(async (req) => {
       const { template_id, phone, user_id, variables } = body;
       if (!template_id || !phone) return err("template_id and phone are required");
 
-      // Fetch template
       const { data: tpl, error: tplErr } = await admin
         .from("whatsapp_templates")
         .select("*")
@@ -97,53 +158,39 @@ serve(async (req) => {
       if (tplErr || !tpl) return err("Template not found");
       if (!tpl.active) return err("Template is disabled");
 
-      // Replace placeholders
       let msg = tpl.message_body;
       const vars = variables || {};
       for (const [key, value] of Object.entries(vars)) {
         msg = msg.replaceAll(`{{${key}}}`, String(value));
       }
 
-      // Normalize phone
       let normalizedPhone = phone.replace(/\D/g, "");
       if (!normalizedPhone.startsWith("55")) normalizedPhone = "55" + normalizedPhone;
 
-      // Send via W-API
-      const wapiUrl = `https://api.w-api.app/v1/${WAPI_INSTANCE_ID}/message/send-text`;
-      const wapiRes = await fetch(wapiUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${WAPI_TOKEN}`,
-        },
-        body: JSON.stringify({ phone: normalizedPhone, message: msg }),
-      });
-      const wapiData = await wapiRes.json();
+      const result = await wapiSendText(normalizedPhone, msg);
 
-      // Log
       await admin.from("whatsapp_logs").insert({
         template_id,
         user_id: user_id || null,
         phone: normalizedPhone,
         message_sent: msg,
-        status: wapiRes.ok ? "sent" : "failed",
-        wapi_message_id: wapiData?.id || wapiData?.messageId || null,
-        error_message: wapiRes.ok ? null : JSON.stringify(wapiData),
+        status: result.ok ? "sent" : "failed",
+        wapi_message_id: result.data?.id || result.data?.messageId || null,
+        error_message: result.ok ? null : JSON.stringify(result.data || result.raw),
         event_key: tpl.event_key,
         metadata: { variables: vars },
       });
 
-      if (!wapiRes.ok) {
-        return err(`W-API error [${wapiRes.status}]: ${JSON.stringify(wapiData)}`, 502);
+      if (!result.ok) {
+        return err(`W-API error [${result.status}]: ${JSON.stringify(result.data || result.raw)}`, 502);
       }
 
-      return ok({ success: true, messageId: wapiData?.id || wapiData?.messageId });
+      return ok({ success: true, messageId: result.data?.id || result.data?.messageId });
     }
 
     // ========= ACTION: send-bulk =========
     if (action === "send-bulk") {
       const { template_id, recipients } = body;
-      // recipients: Array<{ phone, user_id?, variables? }>
       if (!template_id || !recipients?.length) return err("template_id and recipients are required");
 
       const { data: tpl } = await admin.from("whatsapp_templates").select("*").eq("id", template_id).single();
@@ -165,32 +212,21 @@ serve(async (req) => {
         }
 
         try {
-          const wapiUrl = `https://api.w-api.app/v1/${WAPI_INSTANCE_ID}/message/send-text`;
-          const wapiRes = await fetch(wapiUrl, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${WAPI_TOKEN}`,
-            },
-            body: JSON.stringify({ phone: normalizedPhone, message: msg }),
-          });
-          const wapiData = await wapiRes.json();
+          const result = await wapiSendText(normalizedPhone, msg);
 
           await admin.from("whatsapp_logs").insert({
             template_id,
             user_id: r.user_id || null,
             phone: normalizedPhone,
             message_sent: msg,
-            status: wapiRes.ok ? "sent" : "failed",
-            wapi_message_id: wapiData?.id || wapiData?.messageId || null,
-            error_message: wapiRes.ok ? null : JSON.stringify(wapiData),
+            status: result.ok ? "sent" : "failed",
+            wapi_message_id: result.data?.id || result.data?.messageId || null,
+            error_message: result.ok ? null : JSON.stringify(result.data || result.raw),
             event_key: tpl.event_key,
             metadata: { variables: vars, bulk: true },
           });
 
-          results.push({ phone: normalizedPhone, success: wapiRes.ok, messageId: wapiData?.id || wapiData?.messageId });
-
-          // Small delay between messages to respect rate limits
+          results.push({ phone: normalizedPhone, success: result.ok, messageId: result.data?.id || result.data?.messageId });
           await new Promise((resolve) => setTimeout(resolve, 1500));
         } catch (e) {
           results.push({ phone: normalizedPhone, success: false, error: String(e) });
@@ -202,12 +238,53 @@ serve(async (req) => {
 
     // ========= ACTION: check-status =========
     if (action === "check-status") {
-      const wapiUrl = `https://api.w-api.app/v1/${WAPI_INSTANCE_ID}/status`;
-      const wapiRes = await fetch(wapiUrl, {
-        headers: { Authorization: `Bearer ${WAPI_TOKEN}` },
+      const result = await wapiCheckStatus();
+      return ok({
+        connected: result.ok,
+        status: result.data,
+        url_used: result.url,
+        raw: result.raw || null,
+        instance_id: WAPI_INSTANCE_ID,
+        token_preview: WAPI_TOKEN?.slice(0, 8) + "...",
       });
-      const wapiData = await wapiRes.json();
-      return ok({ status: wapiData });
+    }
+
+    // ========= ACTION: discover-api =========
+    if (action === "discover-api") {
+      // Test multiple endpoints to discover the correct API format
+      const testUrls = [
+        `${WAPI_BASE}/v1/instance/status/${WAPI_INSTANCE_ID}`,
+        `${WAPI_BASE}/v1/${WAPI_INSTANCE_ID}/status`,
+        `${WAPI_BASE}/instance/status/${WAPI_INSTANCE_ID}`,
+        `${WAPI_BASE}/v1/message/send-text/${WAPI_INSTANCE_ID}`,
+        `${WAPI_BASE}/v1/${WAPI_INSTANCE_ID}/message/send-text`,
+      ];
+
+      const discoveries: any[] = [];
+      for (const url of testUrls) {
+        try {
+          const res = await fetch(url, {
+            method: url.includes("message") ? "POST" : "GET",
+            headers: {
+              Authorization: `Bearer ${WAPI_TOKEN}`,
+              "Content-Type": "application/json",
+            },
+            ...(url.includes("message") ? { body: JSON.stringify({ phone: "5500000000000", message: "test" }) } : {}),
+          });
+          const result = await safeJson(res);
+          discoveries.push({
+            url,
+            status: result.status,
+            is_json: result.data !== null,
+            data_preview: result.data ? JSON.stringify(result.data).slice(0, 200) : null,
+            is_html: result.raw?.includes("<!DOCTYPE") || false,
+          });
+        } catch (e) {
+          discoveries.push({ url, error: String(e) });
+        }
+      }
+
+      return ok({ discoveries, instance_id: WAPI_INSTANCE_ID });
     }
 
     return err("Unknown action: " + action);
