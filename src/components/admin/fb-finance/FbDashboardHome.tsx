@@ -202,7 +202,35 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
         </div>
       </div>
 
-      {/* Bento Grid: Alocação + Evolução */}
+      {/* Cards Patrimônio Pessoal e PJ */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {/* Patrimônio Pessoal */}
+        <div className="rounded-xl p-5 relative overflow-hidden" style={{ background: "linear-gradient(135deg, #1976d2 0%, #0d47a1 100%)" }}>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[10px] font-bold tracking-widest uppercase text-blue-100/80">Patrimônio Pessoal</p>
+            <span className="material-symbols-outlined text-blue-200/50 text-xl">account_balance</span>
+          </div>
+          <h3 className="text-2xl font-['Manrope'] font-black text-white">{formatBRL(saldoPessoal)}</h3>
+          <p className="text-[9px] text-blue-200/60 mt-2">
+            {pessoal.map(c => c.nome).join(" · ")}
+          </p>
+          <p className="text-[9px] text-blue-200/80 font-bold mt-1">{qtdCaixasPessoal} caixas pessoais</p>
+        </div>
+
+        {/* Patrimônio PJ */}
+        <div className="rounded-xl p-5 relative overflow-hidden" style={{ background: "linear-gradient(135deg, #0e1c2d 0%, #122a44 100%)", border: "1px solid rgba(25, 118, 210, 0.2)" }}>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[10px] font-bold tracking-widest uppercase text-[#c1c6d4]">Patrimônio PJ</p>
+            <span className="material-symbols-outlined text-[#1976d2]/50 text-xl">business</span>
+          </div>
+          <h3 className="text-2xl font-['Manrope'] font-black text-[#d5e4fa]">{formatBRL(saldoPJ)}</h3>
+          <p className="text-[9px] text-slate-500 mt-2">
+            {empresaSemProLabore.map(c => c.nome).join(" · ")}
+          </p>
+          <p className="text-[9px] text-slate-400 font-bold mt-1">{qtdCaixasPJ} caixas PJ (sem Pro Labore)</p>
+        </div>
+      </div>
+
       <div className="grid grid-cols-12 gap-3">
         {/* Alocação Total */}
         <div className="col-span-12 lg:col-span-5 rounded-xl p-5 shadow-lg" style={{ background: "#0e1c2d" }}>
