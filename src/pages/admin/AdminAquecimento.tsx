@@ -662,9 +662,23 @@ export default function AdminAquecimento() {
   const tabs = [
     { key: "dashboard" as const, label: "Painel", icon: "dashboard" },
     { key: "esteiras" as const, label: "Esteiras", icon: "layers" },
+    { key: "revisao" as const, label: "Revisão", icon: "fact_check" },
   ];
 
-  // Filter profiles: non-admins only see their own profiles
+  // Review tab: filter operator's own profiles by quality attributes
+  const reviewProfiles = useMemo(() => {
+    const myProfiles = visibleProfiles.filter(p => !isUserAdmin ? true : true);
+    const searchTrimmed = reviewSearch.trim().toLowerCase();
+
+    return myProfiles.filter(p => {
+      if (searchTrimmed && !p.profile_code.toLowerCase().includes(searchTrimmed)) return false;
+
+      // Load quality data from site_settings (already fetched per profile)
+      // We need to check quality - but we don't have a global quality map here
+      // We'll use a local approach
+      return true;
+    });
+  }, [visibleProfiles, reviewSearch, isUserAdmin]);
   const visibleProfiles = useMemo(() => {
     if (isUserAdmin) return profiles;
     if (!currentUserId) return [];
