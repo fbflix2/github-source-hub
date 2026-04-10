@@ -673,6 +673,44 @@ export default function AdminAquecimento() {
     return profiles.filter(p => p.created_by === currentUserId);
   }, [profiles, isUserAdmin, currentUserId]);
 
+  // Load quality data for review tab
+  useEffect(() => {
+    if (activeTab !== "revisao" || visibleProfiles.length === 0) return;
+    const loadQuality = async () => {
+      setReviewLoading(true);
+      const keys = visibleProfiles.map(p => `warming_quality_${p.id}`);
+      const { data } = await supabase
+        .from("site_settings")
+        .select("key, value")
+        .in("key", keys);
+      const map: Record<string, any> = {};
+      if (data) {
+        data.forEach(row => {
+          const profileId = row.key.replace("warming_quality_", "");
+          try { map[profileId] = JSON.parse(row.value); } catch { }
+        });
+      }
+      setReviewQualityMap(map);
+      setReviewLoading(false);
+    };
+    loadQuality();
+  }, [activeTab, visibleProfiles]);
+
+  // Filter profiles for review tab
+  const reviewFilteredProfiles = useMemo(() => {
+    const searchTrimmed = reviewSearch.trim().toLowerCase();
+    const hasAnyFilter = reviewFilter2FA || reviewFilterBM || reviewFilterPage || searchTrimmed;
+    
+    return visibleProfiles.filter(p => {
+      if (searchTrimmed && !p.profile_code.toLowerCase().includes(searchTrimmed)) return false;
+      const q = reviewQualityMap[p.id] || {};
+      if (reviewFilter2FA && !q.has2FA) return false;
+      if (reviewFilterBM && !q.hasBM) return false;
+      if (reviewFilterPage && !q.hasPage) return false;
+      return true;
+    });
+  }, [visibleProfiles, reviewQualityMap, reviewFilter2FA, reviewFilterBM, reviewFilterPage, reviewSearch]);
+
   useEffect(() => {
     if (userContextReadyRef.current && currentUserId) {
       fetchProfiles();
