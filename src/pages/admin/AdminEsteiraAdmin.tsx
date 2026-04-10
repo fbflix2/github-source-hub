@@ -80,6 +80,7 @@ export default function AdminEsteiraAdmin() {
   const [reportFilter, setReportFilter] = useState("");
   const [report2faFilter, setReport2faFilter] = useState(false);
   const [qualityMap, setQualityMap] = useState<Record<string, ProfileQualityData>>({});
+  const [manualQualityMap, setManualQualityMap] = useState<Record<string, Partial<ProfileQualityData>>>({});
   const [configTrack, setConfigTrack] = useState<"7_days" | "15_days" | "30_days">("7_days");
   const [profileCode, setProfileCode] = useState("");
   const [creating, setCreating] = useState(false);
@@ -832,6 +833,7 @@ export default function AdminEsteiraAdmin() {
         });
 
         setQualityMap(derivedQualityMap);
+        setManualQualityMap(manualQualityMap);
 
         const { data: earningsData } = await supabase
           .from("operator_earnings")
@@ -842,6 +844,7 @@ export default function AdminEsteiraAdmin() {
       } else {
         setTasks({});
         setQualityMap({});
+        setManualQualityMap({});
         setApprovedProfileIds(new Set());
       }
 
@@ -966,7 +969,7 @@ export default function AdminEsteiraAdmin() {
 
   const filteredReportProfiles = profiles.filter(p => {
     if (reportFilter && !p.profile_code.toLowerCase().includes(reportFilter.toLowerCase())) return false;
-    if (report2faFilter && !qualityMap[p.id]?.has2FA) return false;
+    if (report2faFilter && !manualQualityMap[p.id]?.has2FA) return false;
     return true;
   });
 
@@ -1050,6 +1053,7 @@ export default function AdminEsteiraAdmin() {
         <WarmingAuditDashboard
           profiles={profiles}
           qualityMap={qualityMap as Record<string, { has2FA: boolean; hasBM: boolean; hasPage: boolean; friendRange: string }>}
+          manualQualityMap={manualQualityMap}
           tasks={tasks}
           creatorNames={creatorNames}
           onRefresh={fetchProfiles}

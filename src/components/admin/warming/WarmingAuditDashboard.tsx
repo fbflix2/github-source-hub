@@ -36,6 +36,7 @@ interface AuditTask {
 interface Props {
   profiles: WarmingProfile[];
   qualityMap: Record<string, ProfileQualityData>;
+  manualQualityMap: Record<string, Partial<ProfileQualityData>>;
   tasks: Record<string, AuditTask[]>;
   creatorNames: Record<string, string>;
   onRefresh: () => void;
@@ -86,7 +87,7 @@ function SourceBadge({ active, label }: { active: boolean; label: string; source
   return <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${color}`}>{label}</span>;
 }
 
-export default function WarmingAuditDashboard({ profiles, qualityMap, tasks, creatorNames, onRefresh }: Props) {
+export default function WarmingAuditDashboard({ profiles, qualityMap, manualQualityMap, tasks, creatorNames, onRefresh }: Props) {
   const [filter2FA, setFilter2FA] = useState(false);
   const [filterBM, setFilterBM] = useState(false);
   const [filterPage, setFilterPage] = useState(false);
@@ -138,17 +139,17 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, tasks, cre
     return counts;
   }, [profiles]);
 
-  // Quality counts from ALL profiles (not filtered)
+  // Quality counts from ALL profiles using manual data only
   const qualityCounts = useMemo(() => {
     let with2FA = 0;
     let withBM = 0;
     profiles.forEach((p) => {
-      const q = effectiveQualityMap[p.id];
+      const q = manualQualityMap[p.id];
       if (q?.has2FA) with2FA++;
       if (q?.hasBM) withBM++;
     });
     return { with2FA, withBM };
-  }, [profiles, effectiveQualityMap]);
+  }, [profiles, manualQualityMap]);
 
   const auditProfiles = useMemo(() => {
     const searchTrimmed = search.trim().toLowerCase();
@@ -168,21 +169,22 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, tasks, cre
       }
 
       const quality = effectiveQualityMap[p.id];
+      const manualQuality = manualQualityMap[p.id] || {};
       const days = getProfileWarmingDays(p);
 
       if (minDays > 0 && days < minDays) return false;
-      if (filter2FA && !quality?.has2FA) return false;
-      if (filterBM && !quality?.hasBM) return false;
-      if (filterPage && !quality?.hasPage) return false;
+      if (filter2FA && !manualQuality.has2FA) return false;
+      if (filterBM && !manualQuality.hasBM) return false;
+      if (filterPage && !manualQuality.hasPage) return false;
       if (minFriends > 0) {
-        const friendMin = FRIEND_RANGE_MIN[quality?.friendRange || "0-5"] || 0;
+        const friendMin = FRIEND_RANGE_MIN[manualQuality.friendRange || "0-5"] || 0;
         if (friendMin < minFriends) return false;
       }
       if (filterOperator !== "all" && p.created_by !== filterOperator) return false;
 
       return true;
     });
-  }, [profiles, effectiveQualityMap, filter2FA, filterBM, filterPage, minFriends, minDays, filterOperator, search, statusFilter]);
+  }, [profiles, effectiveQualityMap, manualQualityMap, filter2FA, filterBM, filterPage, minFriends, minDays, filterOperator, search, statusFilter]);
 
   const approveProfile = async (profile: WarmingProfile) => {
     setApproving(profile.id);
