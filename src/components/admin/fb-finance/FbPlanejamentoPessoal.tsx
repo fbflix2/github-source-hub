@@ -79,7 +79,47 @@ export function FbPlanejamentoPessoal() {
   const fetchDespesas = async () => {
     setLoading(true);
     const { data } = await supabase.from("fb_finance_despesas_planejadas" as any).select("*").eq("mes_ref", mesRef).order("dia_vencimento");
-    if (data) setDespesas(data as any);
+    
+    if (data && (data as any[]).length > 0) {
+      setDespesas(data as any);
+      setLoading(false);
+      return;
+    }
+
+    // Auto-generate from custos_pessoais if month is empty
+    const { data: custos } = await supabase.from("fb_finance_custos_pessoais" as any).select("*").eq("ativo", true);
+    if (custos && (custos as any[]).length > 0) {
+      // Check lancamentos to determine which are already paid
+      const [year, month] = mesRef.split("-");
+      const lastDay = new Date(Number(year), Number(month), 0).getDate();
+      const startDate = `${mesRef}-01`;
+      const endDate = `${mesRef}-${lastDay}`;
+      const { data: lancamentos } = await supabase.from("fb_finance_lancamentos")
+        .select("descricao, saida, categoria")
+        .gte("data", startDate).lte("data", endDate)
+        .eq("tipo", "pessoal")
+        .gt("saida", 0);
+
+      const paidNames = new Set(
+        (lancamentos || [])
+          .filter(l => Number(l.saida) > 0)
+          .map(l => (l.descricao || "").toLowerCase())
+      );
+
+      const toInsert = (custos as any[]).map((c: any) => ({
+        nome: c.nome,
+        valor: Number(c.valor),
+        dia_vencimento: c.dia_vencimento || 1,
+        categoria: c.categoria || "fixo",
+        mes_ref: mesRef,
+        pago: paidNames.has(c.nome.toLowerCase()) || 
+              [...paidNames].some(p => p.includes(c.nome.toLowerCase())),
+      }));
+
+      await supabase.from("fb_finance_despesas_planejadas" as any).insert(toInsert as any);
+      const { data: fresh } = await supabase.from("fb_finance_despesas_planejadas" as any).select("*").eq("mes_ref", mesRef).order("dia_vencimento");
+      if (fresh) setDespesas(fresh as any);
+    }
     setLoading(false);
   };
 
