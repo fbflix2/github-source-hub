@@ -1469,6 +1469,154 @@ export default function AdminAquecimento() {
         </div>
       )}
 
+      {/* ── Revisão Tab ── */}
+      {activeTab === "revisao" && (
+        <main className="flex-1 px-6 md:px-12 lg:px-40 py-10 max-w-[1200px] mx-auto w-full space-y-6">
+          <div className="flex items-center gap-3 mb-2">
+            <MIcon name="fact_check" className="text-[#1876f2] text-2xl" />
+            <div>
+              <h2 className="text-xl font-bold text-slate-900 dark:text-white">Revisão de Perfis</h2>
+              <p className="text-sm text-muted-foreground">Revise e corrija atribuições dos seus perfis</p>
+            </div>
+          </div>
+
+          {/* Filters */}
+          <div className="bg-white dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 p-5 space-y-4">
+            <div className="flex items-center gap-2 mb-2">
+              <MIcon name="filter_list" className="text-slate-400" />
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Filtros</h3>
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              <button
+                onClick={() => setReviewFilter2FA(!reviewFilter2FA)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-1 ${
+                  reviewFilter2FA
+                    ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400"
+                    : "bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10"
+                }`}
+              >
+                <MIcon name="lock" className="text-sm" /> 2FA Ativo
+              </button>
+
+              <button
+                onClick={() => setReviewFilterBM(!reviewFilterBM)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-1 ${
+                  reviewFilterBM
+                    ? "bg-blue-500/20 border-blue-500/40 text-blue-400"
+                    : "bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10"
+                }`}
+              >
+                <MIcon name="business_center" className="text-sm" /> BM Criada
+              </button>
+
+              <button
+                onClick={() => setReviewFilterPage(!reviewFilterPage)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all flex items-center gap-1 ${
+                  reviewFilterPage
+                    ? "bg-purple-500/20 border-purple-500/40 text-purple-400"
+                    : "bg-white/5 border-white/10 text-muted-foreground hover:bg-white/10"
+                }`}
+              >
+                <MIcon name="web" className="text-sm" /> Página Criada
+              </button>
+            </div>
+
+            <div className="relative max-w-xs">
+              <MIcon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-base" />
+              <input
+                type="text"
+                value={reviewSearch}
+                onChange={(e) => setReviewSearch(e.target.value)}
+                placeholder="Buscar por código..."
+                className="w-full bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 rounded-lg pl-9 pr-3 py-2 text-sm"
+              />
+            </div>
+          </div>
+
+          {/* Results count */}
+          <p className="text-xs text-muted-foreground">
+            {reviewFilteredProfiles.length} perfil(is) encontrado(s)
+            {(reviewFilter2FA || reviewFilterBM || reviewFilterPage) && " com os filtros aplicados"}
+          </p>
+
+          {/* Profile list */}
+          <div className="space-y-2">
+            {reviewLoading ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <MIcon name="hourglass_empty" className="text-4xl mb-2 animate-spin" />
+                <p className="text-sm">Carregando dados...</p>
+              </div>
+            ) : reviewFilteredProfiles.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                <MIcon name="search_off" className="text-4xl mb-2" />
+                <p className="text-sm">Nenhum perfil encontrado</p>
+              </div>
+            ) : (
+              reviewFilteredProfiles.map((profile) => {
+                const q = reviewQualityMap[profile.id] || {};
+                const days = Math.max(1, Math.floor((Date.now() - new Date(profile.start_date).getTime()) / 86400000));
+                return (
+                  <div
+                    key={profile.id}
+                    className="bg-white dark:bg-white/5 rounded-xl border border-slate-200 dark:border-white/10 p-4 flex items-center justify-between gap-4"
+                  >
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div className="w-10 h-10 rounded-full bg-[#1876f2]/10 flex items-center justify-center shrink-0">
+                        <MIcon name="person" className="text-[#1876f2]" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold truncate text-slate-900 dark:text-white">{profile.profile_code}</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {days} dias · {profile.track_type.replace("_", " ")} · {profile.status}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      {q.has2FA && (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400">2FA</span>
+                      )}
+                      {q.hasBM && (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/20 text-blue-400">BM</span>
+                      )}
+                      {q.hasPage && (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/20 text-purple-400">Page</span>
+                      )}
+                      {q.friendRange && (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-white/5 text-muted-foreground">
+                          {q.friendRange} amigos
+                        </span>
+                      )}
+                      {!q.has2FA && !q.hasBM && !q.hasPage && (
+                        <span className="text-[10px] text-muted-foreground italic">Sem atribuições</span>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        setSelectedProfileId(profile.id);
+                        setActiveTab("esteiras");
+                      }}
+                      className="flex items-center gap-1 bg-white/5 hover:bg-white/10 border border-white/10 text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0"
+                    >
+                      <MIcon name="edit" className="text-sm" /> Editar
+                    </button>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/5 p-4 flex gap-3 text-sm">
+            <MIcon name="info" className="text-yellow-400 shrink-0 mt-0.5" />
+            <p className="text-muted-foreground text-xs">
+              Use os filtros para encontrar perfis com atribuições específicas. Clique em <strong className="text-foreground">Editar</strong> para ir ao perfil e corrigir as marcações se necessário.
+            </p>
+          </div>
+        </main>
+      )}
+
       {/* ── Configurações Tab ── */}
       {activeTab === "configuracoes" && (
         <main className="flex-1 px-6 md:px-12 lg:px-40 py-6 max-w-[900px] mx-auto w-full space-y-6">
