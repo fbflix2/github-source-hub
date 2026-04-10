@@ -833,6 +833,7 @@ export default function AdminEsteiraAdmin() {
         });
 
         setQualityMap(derivedQualityMap);
+        setManualQualityMap(manualQualityMap);
 
         const { data: earningsData } = await supabase
           .from("operator_earnings")
