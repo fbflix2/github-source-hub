@@ -302,10 +302,13 @@ export function FbLancamentos() {
   
   // For averages, count only real income/expenses (exclude internal distribution transfers)
   const nonTransferCategories = (l: Lancamento) => !["Distribuição PJ", "Capital de Giro", "Aportes", "Transferência"].includes(l.categoria);
-  const realEntradas = lancamentos.filter(l => Number(l.entrada) > 0 && nonTransferCategories(l)).reduce((s, l) => s + Number(l.entrada), 0);
+  // Média Entradas: baseada apenas nos lançamentos de Distribuição PJ (entradas da distribuição diária)
+  const distribuicaoPJEntradas = lancamentos.filter(l => Number(l.entrada) > 0 && l.categoria === "Distribuição PJ");
+  const realEntradasDistPJ = distribuicaoPJEntradas.reduce((s, l) => s + Number(l.entrada), 0);
   const realSaidas = lancamentos.filter(l => Number(l.saida) > 0 && nonTransferCategories(l)).reduce((s, l) => s + Number(l.saida), 0);
+  const diasUnicosDistPJ = Math.max(new Set(distribuicaoPJEntradas.map(l => l.data).filter(Boolean)).size, 1);
   const diasUnicos = Math.max(new Set(lancamentos.map(l => l.data).filter(Boolean)).size, 1);
-  const mediaEntradas = realEntradas > 0 ? realEntradas / diasUnicos : 0;
+  const mediaEntradas = realEntradasDistPJ > 0 ? realEntradasDistPJ / diasUnicosDistPJ : 0;
   const mediaSaidas = realSaidas > 0 ? realSaidas / diasUnicos : 0;
   // Saldo do período (all movements)
   const totalMovimentacoes = lancamentos.length;
