@@ -242,6 +242,21 @@ export function FbCustosPessoais() {
         .update({ saldo_atual: saldoAtual - c.valor } as any)
         .eq("id", proLabore.id);
 
+      // Mark corresponding despesa_planejada as paid
+      const mesRef = new Date().toISOString().slice(0, 7);
+      const { data: despesas } = await supabase.from("fb_finance_despesas_planejadas" as any)
+        .select("id, nome")
+        .eq("mes_ref", mesRef)
+        .eq("pago", false);
+      if (despesas) {
+        const match = (despesas as any[]).find((d: any) => d.nome.toLowerCase() === c.nome.toLowerCase());
+        if (match) {
+          await supabase.from("fb_finance_despesas_planejadas" as any)
+            .update({ pago: true } as any)
+            .eq("id", match.id);
+        }
+      }
+
       toast({ title: `"${c.nome}" pago com sucesso do Pro Labore!` });
     } catch {
       toast({ title: "Erro ao processar pagamento", variant: "destructive" });
