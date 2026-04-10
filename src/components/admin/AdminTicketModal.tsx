@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useMemo } from "react";
-import { X, Send, Loader2, Paperclip, XCircle, MessageSquareText, ChevronDown, ExternalLink } from "lucide-react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { X, Send, Loader2, Paperclip, XCircle, MessageSquareText, ChevronDown, ExternalLink, Pencil, Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -92,8 +92,37 @@ export default function AdminTicketModal({ ticket, profileName, mode, onClose, o
   const [newStatus, setNewStatus] = useState("");
   const [attachments, setAttachments] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [editingMsgId, setEditingMsgId] = useState<string | null>(null);
+  const [editingContent, setEditingContent] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const editTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const handleEditMessage = useCallback(async (msgId: string) => {
+    if (!editingContent.trim()) return;
+    setSavingEdit(true);
+    const { error } = await supabase
+      .from("ticket_messages")
+      .update({ content: editingContent.trim() })
+      .eq("id", msgId);
+    if (error) {
+      toast.error("Erro ao editar mensagem");
+    } else {
+      toast.success("Mensagem editada!");
+      setEditingMsgId(null);
+      setEditingContent("");
+      await fetchMessages();
+    }
+    setSavingEdit(false);
+  }, [editingContent]);
+
+  useEffect(() => {
+    if (editingMsgId && editTextareaRef.current) {
+      editTextareaRef.current.focus();
+      editTextareaRef.current.setSelectionRange(editTextareaRef.current.value.length, editTextareaRef.current.value.length);
+    }
+  }, [editingMsgId]);
 
   useEffect(() => {
     if (!ticket) return;
@@ -317,7 +346,7 @@ export default function AdminTicketModal({ ticket, profileName, mode, onClose, o
 
               return (
                 <div key={msg.id} className={`flex ${isSupport ? "justify-end" : "justify-start"}`}>
-                  <div className={`max-w-[80%] rounded-xl px-4 py-3 text-sm ${
+                  <div className={`max-w-[80%] rounded-xl px-4 py-3 text-sm group relative ${
                     isSupport
                       ? "bg-primary/20 text-white border border-primary/20"
                       : "bg-white/5 text-white/90 border border-white/5"
@@ -325,7 +354,46 @@ export default function AdminTicketModal({ ticket, profileName, mode, onClose, o
                     <p className="text-[10px] font-semibold uppercase tracking-wide mb-1 opacity-50">
                       {isSupport ? "Suporte" : profileName}
                     </p>
-                    <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+                    {editingMsgId === msg.id ? (
+                      <div className="space-y-2">
+                        <textarea
+                          ref={editTextareaRef}
+                          value={editingContent}
+                          onChange={(e) => setEditingContent(e.target.value)}
+                          className="w-full bg-white/10 border border-white/20 rounded-lg p-2 text-sm text-white resize-none focus:outline-none focus:ring-1 focus:ring-primary"
+                          rows={3}
+                          spellCheck
+                          lang="pt-BR"
+                        />
+                        <div className="flex gap-2 justify-end">
+                          <button
+                            onClick={() => { setEditingMsgId(null); setEditingContent(""); }}
+                            className="px-2 py-1 text-[10px] rounded bg-white/5 text-white/50 hover:bg-white/10 transition-colors"
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            onClick={() => handleEditMessage(msg.id)}
+                            disabled={savingEdit}
+                            className="px-2 py-1 text-[10px] rounded bg-primary/30 text-primary hover:bg-primary/40 transition-colors flex items-center gap-1 disabled:opacity-50"
+                          >
+                            {savingEdit ? <Loader2 className="size-3 animate-spin" /> : <Check className="size-3" />}
+                            Salvar
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+                    )}
+                    {isSupport && editingMsgId !== msg.id && (
+                      <button
+                        onClick={() => { setEditingMsgId(msg.id); setEditingContent(msg.content); }}
+                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded bg-white/10 hover:bg-white/20 text-white/50 hover:text-white"
+                        title="Editar mensagem"
+                      >
+                        <Pencil className="size-3" />
+                      </button>
+                    )}
                     {imageUrls.length > 0 && (
                       <div className="mt-2 space-y-2">
                         {imageUrls.map((url, i) => (
@@ -427,6 +495,8 @@ export default function AdminTicketModal({ ticket, profileName, mode, onClose, o
                 onChange={(e) => setReply(e.target.value)}
                 placeholder="Digite sua resposta... (cole imagens com Ctrl+V)"
                 rows={2}
+                spellCheck
+                lang="pt-BR"
                 className="flex-1 bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-primary resize-none"
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
