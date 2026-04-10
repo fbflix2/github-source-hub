@@ -20,8 +20,6 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
   const [config, setConfig] = useState<ConfigRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [capitalGiroPeriod, setCapitalGiroPeriod] = useState<"30" | "90">("30");
-  const [lastMonthReceita, setLastMonthReceita] = useState(0);
-  const [lastMonthDespesa, setLastMonthDespesa] = useState(0);
 
   const mesAtual = new Date().toISOString().slice(0, 7);
 
