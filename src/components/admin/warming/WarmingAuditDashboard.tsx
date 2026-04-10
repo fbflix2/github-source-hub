@@ -87,7 +87,7 @@ function SourceBadge({ active, label }: { active: boolean; label: string; source
   return <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${color}`}>{label}</span>;
 }
 
-export default function WarmingAuditDashboard({ profiles, qualityMap, tasks, creatorNames, onRefresh }: Props) {
+export default function WarmingAuditDashboard({ profiles, qualityMap, manualQualityMap, tasks, creatorNames, onRefresh }: Props) {
   const [filter2FA, setFilter2FA] = useState(false);
   const [filterBM, setFilterBM] = useState(false);
   const [filterPage, setFilterPage] = useState(false);
