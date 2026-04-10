@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { MessageCircle, Plus, Send, Eye, Trash2, ToggleLeft, ToggleRight, Search, Phone, Clock, CheckCircle, XCircle, RefreshCw, Users, Zap } from "lucide-react";
+import { MessageCircle, Plus, Send, Eye, Trash2, ToggleLeft, ToggleRight, Search, Phone, Clock, CheckCircle, XCircle, RefreshCw, Users, Zap, Bell, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -97,6 +97,24 @@ export default function AdminWhatsApp() {
 
   // Connection status
   const [connectionStatus, setConnectionStatus] = useState<any>(null);
+
+  // Expiring alerts
+  const [showExpiringModal, setShowExpiringModal] = useState(false);
+  const [expiringDays, setExpiringDays] = useState("0");
+  const [expiringResults, setExpiringResults] = useState<any>(null);
+
+  const sendExpiringAlerts = useMutation({
+    mutationFn: (dryRun: boolean) =>
+      callWapi("send-expiring-alerts", { days_ahead: Number(expiringDays), dry_run: dryRun }),
+    onSuccess: (data) => {
+      setExpiringResults(data);
+      if (!data.dry_run) {
+        toast.success(`${data.sent} mensagem(ns) enviada(s)!`);
+        qc.invalidateQueries({ queryKey: ["whatsapp-logs"] });
+      }
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const saveTemplate = useMutation({
     mutationFn: async () => {
@@ -206,6 +224,10 @@ export default function AdminWhatsApp() {
           <Button size="sm" variant="outline" onClick={() => checkConnection.mutate()} disabled={checkConnection.isPending}>
             <Zap className="size-3.5 mr-1" />
             {checkConnection.isPending ? "Verificando..." : "Verificar Conexão"}
+          </Button>
+          <Button size="sm" onClick={() => { setExpiringResults(null); setShowExpiringModal(true); }} className="gap-1 bg-amber-600 hover:bg-amber-700">
+            <Bell className="size-3.5" />
+            Avisos de Vencimento
           </Button>
           <Button size="sm" onClick={() => setShowQuickSend(true)} className="gap-1 bg-green-600 hover:bg-green-700">
             <Send className="size-3.5" />
@@ -508,6 +530,99 @@ export default function AdminWhatsApp() {
               <Send className="size-3.5" />
               {sendQuick.isPending ? "Enviando..." : "Enviar Mensagem"}
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Expiring Alerts Modal */}
+      <Dialog open={showExpiringModal} onOpenChange={setShowExpiringModal}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Bell className="size-4 text-amber-500" />
+              Disparar Avisos de Vencimento
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground">Vencimento em quantos dias?</label>
+              <Select value={expiringDays} onValueChange={setExpiringDays}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">Hoje</SelectItem>
+                  <SelectItem value="1">Amanhã</SelectItem>
+                  <SelectItem value="2">Em 2 dias</SelectItem>
+                  <SelectItem value="3">Em 3 dias</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => sendExpiringAlerts.mutate(true)}
+                disabled={sendExpiringAlerts.isPending}
+                className="flex-1"
+              >
+                <Eye className="size-3.5 mr-1" />
+                {sendExpiringAlerts.isPending ? "Buscando..." : "Pré-visualizar"}
+              </Button>
+              <Button
+                onClick={() => {
+                  if (confirm(`Confirma o envio dos avisos de vencimento para ${expiringDays === "0" ? "hoje" : `daqui ${expiringDays} dia(s)`}?`)) {
+                    sendExpiringAlerts.mutate(false);
+                  }
+                }}
+                disabled={sendExpiringAlerts.isPending}
+                className="flex-1 bg-amber-600 hover:bg-amber-700"
+              >
+                <Send className="size-3.5 mr-1" />
+                Enviar Agora
+              </Button>
+            </div>
+
+            {expiringResults && (
+              <div className="space-y-3">
+                <div className="rounded-lg bg-muted/50 p-3 space-y-1">
+                  <p className="text-xs font-medium text-foreground">
+                    📅 Data: {expiringResults.date} | {expiringResults.dry_run ? "🔍 Pré-visualização" : "✅ Enviado"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {expiringResults.total_subs} assinatura(s) • {expiringResults.total_users} cliente(s)
+                    {!expiringResults.dry_run && ` • ${expiringResults.sent} enviado(s) • ${expiringResults.failed} falha(s)`}
+                  </p>
+                </div>
+
+                {expiringResults.results?.length > 0 ? (
+                  <div className="space-y-2">
+                    {expiringResults.results.map((r: any, i: number) => (
+                      <div key={i} className="rounded-lg border border-border/40 p-2.5 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                            {r.success ? <CheckCircle className="size-3.5 text-green-400" /> : <XCircle className="size-3.5 text-red-400" />}
+                            {r.name}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground">{r.phone || "sem telefone"}</span>
+                        </div>
+                        {r.message_preview && (
+                          <p className="text-[11px] text-muted-foreground whitespace-pre-wrap bg-muted/30 rounded p-2 max-h-20 overflow-y-auto">
+                            {r.message_preview}
+                          </p>
+                        )}
+                        {r.error && <p className="text-[10px] text-red-400">{r.error}</p>}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <AlertTriangle className="size-8 mx-auto text-muted-foreground mb-2" />
+                    <p className="text-xs text-muted-foreground">{expiringResults.message || "Nenhum cliente para notificar"}</p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
