@@ -4,7 +4,7 @@ import {
   Building2, CircleUser, PackageOpen, FolderOpen, FolderPlus, Pencil,
   ChevronRight, ChevronDown, Shield, ArrowLeft, Link, FileText, Info,
   AlertTriangle, Save, Copy, Hash, Mail, AtSign, KeyRound, Clock,
-  BadgeCheck, Cookie, Eye, EyeOff, Plus, X, Loader2, Trash2, DollarSign, Tag, Flag
+  BadgeCheck, Cookie, Eye, EyeOff, Plus, X, Loader2, Trash2, DollarSign, Tag, Flag, Download
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
