@@ -495,6 +495,8 @@ export default function AdminTicketModal({ ticket, profileName, mode, onClose, o
                 onChange={(e) => setReply(e.target.value)}
                 placeholder="Digite sua resposta... (cole imagens com Ctrl+V)"
                 rows={2}
+                spellCheck
+                lang="pt-BR"
                 className="flex-1 bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-primary resize-none"
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
