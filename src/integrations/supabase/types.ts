@@ -3520,6 +3520,89 @@ export type Database = {
           },
         ]
       }
+      whatsapp_logs: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          event_key: string | null
+          id: string
+          message_sent: string
+          metadata: Json | null
+          phone: string
+          status: string
+          template_id: string | null
+          updated_at: string
+          user_id: string | null
+          wapi_message_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          event_key?: string | null
+          id?: string
+          message_sent: string
+          metadata?: Json | null
+          phone: string
+          status?: string
+          template_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+          wapi_message_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          event_key?: string | null
+          id?: string
+          message_sent?: string
+          metadata?: Json | null
+          phone?: string
+          status?: string
+          template_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+          wapi_message_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_logs_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_templates: {
+        Row: {
+          active: boolean
+          created_at: string
+          event_key: string
+          id: string
+          message_body: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          event_key: string
+          id?: string
+          message_body: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          event_key?: string
+          id?: string
+          message_body?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

@@ -103,6 +103,7 @@ import AdminAquecimentoConfig from "./pages/admin/AdminAquecimentoConfig";
 import AdminOperadorFinanceiro from "./pages/admin/AdminOperadorFinanceiro";
 import AdminOperadorDashboard from "./pages/admin/AdminOperadorDashboard";
 import AdminSaqueOperador from "./pages/admin/AdminSaqueOperador";
+import AdminWhatsApp from "./pages/admin/AdminWhatsApp";
 import AdminShopClone from "./pages/admin/AdminShopClone";
 import AdminFerramentas2FA from "./pages/admin/AdminFerramentas2FA";
 import AdminImageViewer from "./pages/admin/AdminImageViewer";
@@ -396,6 +397,7 @@ const App = () => {
                   <Route path="contingencia" element={<AdminContingencia />} />
                   <Route path="cobranca-avulsa" element={<AdminCobrancaAvulsa />} />
                   <Route path="configuracoes/site" element={<AdminSiteEditor />} />
+                  <Route path="whatsapp" element={<AdminWhatsApp />} />
                 </Route>
                 <Route path="/admin/dash-fabricio" element={<AdminDashFabricio />} />
 
