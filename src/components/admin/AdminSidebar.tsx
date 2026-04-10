@@ -97,8 +97,8 @@ const allMenuItems: MenuItem[] = [
   { title: "Dashboard", icon: BarChart3, path: "/admin/operador-dashboard", operatorOnly: true },
   { title: "Financeiro", icon: Wallet, path: "/admin/operador-financeiro", operatorOnly: true },
   { title: "Saque Operador", icon: Wallet, path: "/admin/saque-operador" },
-  { title: "Config. Operador", icon: Settings, path: "/admin/aquecimento-config" },
-  { title: "Como Funciona?", icon: HelpCircle, path: "/admin/aquecimento-guia" },
+  { title: "Config. Operador", icon: Settings, path: "/admin/aquecimento-config", operatorOnly: true },
+  { title: "Como Funciona?", icon: HelpCircle, path: "/admin/aquecimento-guia", operatorOnly: true },
   { title: "Ferramentas", icon: KeyRound, path: "/admin/ferramentas-2fa", subItems: [
     { title: "Ferramentas", icon: KeyRound, path: "/admin/ferramentas-2fa" },
     { title: "Esteira Admin", icon: Settings, path: "/admin/esteira-admin" },
