@@ -59,21 +59,22 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
   const saldoEmpresa = empresa.reduce((s, c) => s + (caixaBalanceMap[c.id] ?? Number(c.saldo_atual)), 0);
   const patrimonio = saldoPessoal + saldoEmpresa;
 
-  // Receita/Despesa mensal: total de TODOS os lançamentos do mês (incluindo não-operacionais como Distribuição PJ)
-  const receitaMensal = lancamentos.reduce((s, l) => s + Number(l.entrada || 0), 0);
+  // Receita/Despesa mensal: apenas lançamentos de "Distribuição PJ" contam como receita real
+  const lancDistPJ = lancamentos.filter(l => l.categoria === "Distribuição PJ");
+  const receitaMensal = lancDistPJ.reduce((s, l) => s + Number(l.entrada || 0), 0);
   const despesaMensal = lancamentos.reduce((s, l) => s + Number(l.saida || 0), 0);
   const lucroLiquido = receitaMensal - despesaMensal;
   const margem = receitaMensal > 0 ? ((lucroLiquido / receitaMensal) * 100).toFixed(1) : "0.0";
 
-  // Growth vs last month (also total, not just operational)
-  const lastMonthReceitaTotal = (allLancamentos).filter(l => {
-    const lastMonth = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1);
-    const endLastMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  // Growth vs last month
+  const lastMonthLancs = allLancamentos.filter(l => {
+    const lm = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1);
+    const end = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
     const d = new Date(l.data);
-    return d >= lastMonth && d < endLastMonth;
+    return d >= lm && d < end;
   });
-  const lastMonthReceitaVal = lastMonthReceitaTotal.reduce((s, l) => s + Number(l.entrada || 0), 0);
-  const lastMonthDespesaVal = lastMonthReceitaTotal.reduce((s, l) => s + Number(l.saida || 0), 0);
+  const lastMonthReceitaVal = lastMonthLancs.filter(l => l.categoria === "Distribuição PJ").reduce((s, l) => s + Number(l.entrada || 0), 0);
+  const lastMonthDespesaVal = lastMonthLancs.reduce((s, l) => s + Number(l.saida || 0), 0);
   const receitaGrowth = lastMonthReceitaVal > 0 ? (((receitaMensal - lastMonthReceitaVal) / lastMonthReceitaVal) * 100).toFixed(1) : "0.0";
   const despesaDiff = despesaMensal - lastMonthDespesaVal;
   const patrimonioGrowth = lastMonthReceitaVal > 0 ? (((patrimonio - (patrimonio - lucroLiquido)) / Math.max(patrimonio - lucroLiquido, 1)) * 100).toFixed(1) : "0.0";
