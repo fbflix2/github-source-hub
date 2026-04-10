@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useShopCloneProducts, useShopCloneBalance, ShopCloneCategory, ShopCloneProduct, buyShopCloneResource } from "@/hooks/useShopClone";
+import { useShopCloneProducts, useShopCloneBalance, ShopCloneCategory, ShopCloneProduct, buyShopCloneResource, SupplierKey } from "@/hooks/useShopClone";
 import { Loader2, Store, DollarSign, Package, RefreshCw, ExternalLink, Eye, Search, Clock, ShoppingCart, X, Copy, CheckCircle, Heart } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -145,9 +145,37 @@ function useFavorites() {
   return { favorites, toggle };
 }
 
+const SUPPLIER_CONFIG: Record<SupplierKey, { label: string; site: string; folderDefault: string }> = {
+  accface: { label: "AccFace", site: "https://accface.com", folderDefault: "AccFace Import" },
+  via17: { label: "VIA17", site: "https://via17.com", folderDefault: "VIA17 Import" },
+};
+
 export default function AdminShopClone() {
-  const { data: categories, isLoading, error, refetch } = useShopCloneProducts();
-  const { data: balance, isLoading: balanceLoading, refetch: refetchBalance } = useShopCloneBalance();
+  const [supplier, setSupplier] = useState<SupplierKey>("accface");
+  const config = SUPPLIER_CONFIG[supplier];
+
+  return (
+    <div className="space-y-4">
+      {/* Supplier Tabs */}
+      <Tabs value={supplier} onValueChange={(v) => setSupplier(v as SupplierKey)} className="w-full">
+        <TabsList className="w-auto">
+          <TabsTrigger value="accface" className="text-xs gap-1.5">
+            <Store className="size-3.5" /> AccFace
+          </TabsTrigger>
+          <TabsTrigger value="via17" className="text-xs gap-1.5">
+            <Store className="size-3.5" /> VIA17
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      <SupplierPanel key={supplier} supplier={supplier} config={config} />
+    </div>
+  );
+}
+
+function SupplierPanel({ supplier, config }: { supplier: SupplierKey; config: { label: string; site: string; folderDefault: string } }) {
+  const { data: categories, isLoading, error, refetch } = useShopCloneProducts(supplier);
+  const { data: balance, isLoading: balanceLoading, refetch: refetchBalance } = useShopCloneBalance(supplier);
   const usdToBrl = useUsdToBrl();
   const tz = useTimezoneComparison();
   const [search, setSearch] = useState("");
@@ -196,187 +224,187 @@ export default function AdminShopClone() {
 
   return (
     <div className="space-y-4">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-bold flex items-center gap-2">
-              <Store className="size-5 text-primary" />
-              Central Acc
-            </h1>
-            <p className="text-sm text-muted-foreground">Catálogo do fornecedor</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={async () => {
-              await Promise.all([refetch(), refetchBalance()]);
-              toast.success("Dados atualizados com sucesso!");
-            }} disabled={isLoading}>
-              <RefreshCw className={`size-4 mr-1 ${isLoading ? "animate-spin" : ""}`} />
-              Atualizar
-            </Button>
-            <a
-              href="https://accface.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <ExternalLink className="size-3" />
-              accface.com
-            </a>
-          </div>
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-bold flex items-center gap-2">
+            <Store className="size-5 text-primary" />
+            Central {config.label}
+          </h1>
+          <p className="text-sm text-muted-foreground">Catálogo do fornecedor {config.label}</p>
         </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={async () => {
+            await Promise.all([refetch(), refetchBalance()]);
+            toast.success("Dados atualizados com sucesso!");
+          }} disabled={isLoading}>
+            <RefreshCw className={`size-4 mr-1 ${isLoading ? "animate-spin" : ""}`} />
+            Atualizar
+          </Button>
+          <a
+            href={config.site}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ExternalLink className="size-3" />
+            {config.site.replace("https://", "")}
+          </a>
+        </div>
+      </div>
 
-        {/* Timezone */}
-        <Card className="border-dashed">
-          <CardContent className="p-3 flex flex-col sm:flex-row items-start sm:items-center gap-3">
-            <div className="flex items-center gap-2">
-              <Clock className="size-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Fuso Horário do Fornecedor</span>
+      {/* Timezone */}
+      <Card className="border-dashed">
+        <CardContent className="p-3 flex flex-col sm:flex-row items-start sm:items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Clock className="size-4 text-muted-foreground" />
+            <span className="text-sm font-medium">Fuso Horário do Fornecedor</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-4 text-sm">
+            <div className="flex items-center gap-1.5">
+              <span className="text-muted-foreground">🇻🇳 Vietnã (GMT+7):</span>
+              <span className="font-mono font-semibold">{tz.vietnam}</span>
             </div>
-            <div className="flex flex-wrap items-center gap-4 text-sm">
-              <div className="flex items-center gap-1.5">
-                <span className="text-muted-foreground">🇻🇳 Vietnã (GMT+7):</span>
-                <span className="font-mono font-semibold">{tz.vietnam}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-muted-foreground">🇧🇷 Brasil (GMT-3):</span>
-                <span className="font-mono font-semibold">{tz.brazil}</span>
-              </div>
-              <Badge variant={tz.isOpen ? "default" : "destructive"} className="text-xs">
-                {tz.isOpen ? "🟢 Atendimento aberto (9h–20h)" : "🔴 Fora do horário (9h–20h)"}
-              </Badge>
+            <div className="flex items-center gap-1.5">
+              <span className="text-muted-foreground">🇧🇷 Brasil (GMT-3):</span>
+              <span className="font-mono font-semibold">{tz.brazil}</span>
+            </div>
+            <Badge variant={tz.isOpen ? "default" : "destructive"} className="text-xs">
+              {tz.isOpen ? "🟢 Atendimento aberto (9h–20h)" : "🔴 Fora do horário (9h–20h)"}
+            </Badge>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <Card>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <DollarSign className="size-5 text-primary" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Saldo no fornecedor</p>
+              <p className="text-lg font-bold">
+                {balanceLoading ? <Loader2 className="size-4 animate-spin" /> : balance || "—"}
+              </p>
             </div>
           </CardContent>
         </Card>
-
-        {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <Card>
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <DollarSign className="size-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Saldo no fornecedor</p>
-                <p className="text-lg font-bold">
-                  {balanceLoading ? <Loader2 className="size-4 animate-spin" /> : balance || "—"}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-500/10">
-                <Package className="size-5 text-blue-500" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Categorias / Produtos</p>
-                <p className="text-lg font-bold">
-                  {isLoading ? <Loader2 className="size-4 animate-spin" /> : `${categories?.length || 0} / ${totalProducts}`}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-green-500/10">
-                <Eye className="size-5 text-green-500" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Itens em Estoque Total</p>
-                <p className="text-lg font-bold">
-                  {isLoading ? <Loader2 className="size-4 animate-spin" /> : totalStock.toLocaleString("pt-BR")}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Tabs */}
-        <Tabs value={viewTab} onValueChange={(v) => setViewTab(v as "all" | "favorites")} className="w-full">
-          <TabsList className="w-auto">
-            <TabsTrigger value="all" className="text-xs gap-1.5">
-              <Package className="size-3.5" /> Todos
-            </TabsTrigger>
-            <TabsTrigger value="favorites" className="text-xs gap-1.5">
-              <Heart className="size-3.5" /> Favoritos
-              {favorites.size > 0 && (
-                <Badge variant="secondary" className="text-[10px] h-4 px-1.5 ml-1">{favorites.size}</Badge>
-              )}
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar produto ou categoria..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          <select
-            className="border rounded-md px-3 py-2 text-sm bg-background"
-            value={filter2fa}
-            onChange={(e) => setFilter2fa(e.target.value as "all" | "with" | "without" | "friends")}
-          >
-            <option value="all">2FA: Todos</option>
-            <option value="with">Com 2FA</option>
-            <option value="without">Sem 2FA</option>
-            <option value="friends">Com Amigos</option>
-          </select>
-          <select
-            className="border rounded-md px-3 py-2 text-sm bg-background"
-            value={selectedCategory || ""}
-            onChange={(e) => setSelectedCategory(e.target.value || null)}
-          >
-            <option value="">Todas categorias</option>
-            {(categories || []).map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name} ({c.accounts.length})
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Error */}
-        {error && (
-          <div className="bg-destructive/10 text-destructive border border-destructive/20 rounded-lg p-3 text-sm">
-            Erro ao carregar: {(error as Error).message}
-          </div>
-        )}
-
-        {/* Loading */}
-        {isLoading && (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="size-8 animate-spin text-primary" />
-          </div>
-        )}
-
-        {/* Categories & Products */}
-        {!isLoading && filteredCategories.map((cat) => (
-          <CategorySection key={cat.id} category={cat} searchQuery={search} usdToBrl={usdToBrl} onBuyResult={setBuyResult} favorites={favorites} onToggleFavorite={toggleFavorite} />
-        ))}
-
-        {!isLoading && filteredCategories.length === 0 && !error && (
-          <div className="text-center py-12">
-            {viewTab === "favorites" ? (
-              <div className="space-y-2">
-                <Heart className="size-10 text-muted-foreground mx-auto" />
-                <p className="text-muted-foreground">Nenhum produto favoritado ainda.</p>
-                <p className="text-xs text-muted-foreground">Clique no ❤️ ao lado de um produto para adicioná-lo aos favoritos.</p>
-              </div>
-            ) : (
-              <p className="text-muted-foreground">Nenhum produto encontrado</p>
-            )}
-          </div>
-        )}
-
-        {/* Buy Result Modal */}
-        <BuyResultModal result={buyResult} onClose={() => setBuyResult(null)} />
+        <Card>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-blue-500/10">
+              <Package className="size-5 text-blue-500" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Categorias / Produtos</p>
+              <p className="text-lg font-bold">
+                {isLoading ? <Loader2 className="size-4 animate-spin" /> : `${categories?.length || 0} / ${totalProducts}`}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-green-500/10">
+              <Eye className="size-5 text-green-500" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Itens em Estoque Total</p>
+              <p className="text-lg font-bold">
+                {isLoading ? <Loader2 className="size-4 animate-spin" /> : totalStock.toLocaleString("pt-BR")}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* View Tabs */}
+      <Tabs value={viewTab} onValueChange={(v) => setViewTab(v as "all" | "favorites")} className="w-full">
+        <TabsList className="w-auto">
+          <TabsTrigger value="all" className="text-xs gap-1.5">
+            <Package className="size-3.5" /> Todos
+          </TabsTrigger>
+          <TabsTrigger value="favorites" className="text-xs gap-1.5">
+            <Heart className="size-3.5" /> Favoritos
+            {favorites.size > 0 && (
+              <Badge variant="secondary" className="text-[10px] h-4 px-1.5 ml-1">{favorites.size}</Badge>
+            )}
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar produto ou categoria..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <select
+          className="border rounded-md px-3 py-2 text-sm bg-background"
+          value={filter2fa}
+          onChange={(e) => setFilter2fa(e.target.value as "all" | "with" | "without" | "friends")}
+        >
+          <option value="all">2FA: Todos</option>
+          <option value="with">Com 2FA</option>
+          <option value="without">Sem 2FA</option>
+          <option value="friends">Com Amigos</option>
+        </select>
+        <select
+          className="border rounded-md px-3 py-2 text-sm bg-background"
+          value={selectedCategory || ""}
+          onChange={(e) => setSelectedCategory(e.target.value || null)}
+        >
+          <option value="">Todas categorias</option>
+          {(categories || []).map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name} ({c.accounts.length})
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Error */}
+      {error && (
+        <div className="bg-destructive/10 text-destructive border border-destructive/20 rounded-lg p-3 text-sm">
+          Erro ao carregar: {(error as Error).message}
+        </div>
+      )}
+
+      {/* Loading */}
+      {isLoading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="size-8 animate-spin text-primary" />
+        </div>
+      )}
+
+      {/* Categories & Products */}
+      {!isLoading && filteredCategories.map((cat) => (
+        <CategorySection key={cat.id} category={cat} searchQuery={search} usdToBrl={usdToBrl} onBuyResult={setBuyResult} favorites={favorites} onToggleFavorite={toggleFavorite} supplier={supplier} folderDefault={config.folderDefault} />
+      ))}
+
+      {!isLoading && filteredCategories.length === 0 && !error && (
+        <div className="text-center py-12">
+          {viewTab === "favorites" ? (
+            <div className="space-y-2">
+              <Heart className="size-10 text-muted-foreground mx-auto" />
+              <p className="text-muted-foreground">Nenhum produto favoritado ainda.</p>
+              <p className="text-xs text-muted-foreground">Clique no ❤️ ao lado de um produto para adicioná-lo aos favoritos.</p>
+            </div>
+          ) : (
+            <p className="text-muted-foreground">Nenhum produto encontrado</p>
+          )}
+        </div>
+      )}
+
+      {/* Buy Result Modal */}
+      <BuyResultModal result={buyResult} onClose={() => setBuyResult(null)} />
+    </div>
   );
 }
 
@@ -428,7 +456,7 @@ function BuyResultModal({ result, onClose }: { result: BuyResult | null; onClose
   );
 }
 
-function CategorySection({ category, searchQuery, usdToBrl, onBuyResult, favorites, onToggleFavorite }: { category: ShopCloneCategory; searchQuery: string; usdToBrl: number; onBuyResult: (r: BuyResult) => void; favorites: Set<string>; onToggleFavorite: (id: string) => void }) {
+function CategorySection({ category, searchQuery, usdToBrl, onBuyResult, favorites, onToggleFavorite, supplier, folderDefault }: { category: ShopCloneCategory; searchQuery: string; usdToBrl: number; onBuyResult: (r: BuyResult) => void; favorites: Set<string>; onToggleFavorite: (id: string) => void; supplier: SupplierKey; folderDefault: string }) {
   const [expanded, setExpanded] = useState(true);
   const q = searchQuery.toLowerCase();
 
@@ -473,7 +501,7 @@ function CategorySection({ category, searchQuery, usdToBrl, onBuyResult, favorit
               </thead>
               <tbody>
                 {products.map((p) => (
-                  <ProductRow key={p.id} product={p} usdToBrl={usdToBrl} onBuyResult={onBuyResult} isFavorite={favorites.has(p.id)} onToggleFavorite={onToggleFavorite} />
+                  <ProductRow key={p.id} product={p} usdToBrl={usdToBrl} onBuyResult={onBuyResult} isFavorite={favorites.has(p.id)} onToggleFavorite={onToggleFavorite} supplier={supplier} folderDefault={folderDefault} />
                 ))}
               </tbody>
             </table>
@@ -484,7 +512,7 @@ function CategorySection({ category, searchQuery, usdToBrl, onBuyResult, favorit
   );
 }
 
-function ProductRow({ product, usdToBrl, onBuyResult, isFavorite, onToggleFavorite }: { product: ShopCloneProduct; usdToBrl: number; onBuyResult: (r: BuyResult) => void; isFavorite: boolean; onToggleFavorite: (id: string) => void }) {
+function ProductRow({ product, usdToBrl, onBuyResult, isFavorite, onToggleFavorite, supplier, folderDefault }: { product: ShopCloneProduct; usdToBrl: number; onBuyResult: (r: BuyResult) => void; isFavorite: boolean; onToggleFavorite: (id: string) => void; supplier: SupplierKey; folderDefault: string }) {
   const priceVnd = Number(product.price) || 0;
   const priceUsd = priceVnd * VND_TO_USD;
   const priceBrl = priceUsd * usdToBrl;
@@ -500,7 +528,7 @@ function ProductRow({ product, usdToBrl, onBuyResult, isFavorite, onToggleFavori
     }
     setBuying(true);
     try {
-      const result = await buyShopCloneResource(product.id, buyQty, product.name, "AccFace Import", undefined, priceBrl);
+      const result = await buyShopCloneResource(product.id, buyQty, product.name, folderDefault, undefined, priceBrl, supplier);
       if (result?.error || result?.status === "error") {
         toast.error("Erro na compra: " + (result.msg || result.error || result.raw || "Erro desconhecido"));
       } else {
@@ -508,7 +536,7 @@ function ProductRow({ product, usdToBrl, onBuyResult, isFavorite, onToggleFavori
         onBuyResult({
           raw_accounts: result.raw_accounts || [],
           saved_count: result.saved_count || 0,
-          folder: result.folder || "AccFace Import",
+          folder: result.folder || folderDefault,
           productName: product.name,
         });
       }
