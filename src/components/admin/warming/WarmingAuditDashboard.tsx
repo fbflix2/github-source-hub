@@ -36,6 +36,7 @@ interface AuditTask {
 interface Props {
   profiles: WarmingProfile[];
   qualityMap: Record<string, ProfileQualityData>;
+  manualQualityMap: Record<string, Partial<ProfileQualityData>>;
   tasks: Record<string, AuditTask[]>;
   creatorNames: Record<string, string>;
   onRefresh: () => void;
