@@ -184,13 +184,13 @@ export function FbDashboardHome({ onNavigate }: { onNavigate: (p: FbPage) => voi
           </div>
         </div>
 
-        {/* Lucro Líquido */}
+        {/* Saldo do Mês */}
         <div className="p-4 rounded-xl border-l-4 border-[#a5c8ff] relative overflow-hidden" style={{ background: "linear-gradient(to bottom right, #0e1c2d, rgba(25, 118, 210, 0.1))" }}>
-          <p className="text-[10px] font-medium tracking-wide mb-1 uppercase text-[#c1c6d4]">Lucro Líquido</p>
-          <h3 className={`text-xl font-['Manrope'] font-extrabold ${lucroLiquido >= 0 ? "text-[#40e56c]" : "text-[#ffb4a8]"}`}>{formatBRL(lucroLiquido)}</h3>
+          <p className="text-[10px] font-medium tracking-wide mb-1 uppercase text-[#c1c6d4]">Saldo do Mês</p>
+          <h3 className={`text-xl font-['Manrope'] font-extrabold ${saldoMes >= 0 ? "text-[#40e56c]" : "text-[#ffb4a8]"}`}>{formatBRL(saldoMes)}</h3>
           <div className="mt-2">
-            <span className="px-2 py-0.5 text-[9px] font-bold rounded-full uppercase" style={{ background: lucroLiquido >= 0 ? "rgba(64, 229, 108, 0.1)" : "rgba(255, 180, 168, 0.1)", color: lucroLiquido >= 0 ? "#40e56c" : "#ffb4a8" }}>
-              Margem: {margem}%
+            <span className="px-2 py-0.5 text-[9px] font-bold rounded-full uppercase" style={{ background: saldoMes >= 0 ? "rgba(64, 229, 108, 0.1)" : "rgba(255, 180, 168, 0.1)", color: saldoMes >= 0 ? "#40e56c" : "#ffb4a8" }}>
+              Entradas − Saídas
             </span>
           </div>
         </div>
