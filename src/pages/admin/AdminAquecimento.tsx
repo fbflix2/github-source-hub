@@ -168,7 +168,11 @@ export default function AdminAquecimento() {
   const [currentElapsed, setCurrentElapsed] = useState(0);
   const [finishSignal, setFinishSignal] = useState(0);
   const [startSignal, setStartSignal] = useState(0);
-  const [activeTab, setActiveTab] = useState<"dashboard" | "esteiras" | "configuracoes">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "esteiras" | "revisao" | "configuracoes">("dashboard");
+  const [reviewFilter2FA, setReviewFilter2FA] = useState(false);
+  const [reviewFilterBM, setReviewFilterBM] = useState(false);
+  const [reviewFilterPage, setReviewFilterPage] = useState(false);
+  const [reviewSearch, setReviewSearch] = useState("");
   const [teamOperators, setTeamOperators] = useState<{ id: string; name: string }[]>([]);
   const [configTasks, setConfigTasks] = useState<Record<string, { title: string; description: string }[]>>({
     "7_days": TRACKS["7_days"].tasks.map(t => ({ title: t.title, description: t.description })),
