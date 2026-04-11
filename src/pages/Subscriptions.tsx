@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProxyBRSubscriptions } from "@/hooks/useProxyBR";
+import { Play, X } from "lucide-react";
 import { useWebshareSubscriptions, useMigrateProxyBRToWebshare } from "@/hooks/useWebshare";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
