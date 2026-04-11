@@ -241,8 +241,10 @@ export default function SafeBMVaultConfig({ vaults, onConfigured }: Props) {
               key={v.id}
               className="group relative rounded-2xl overflow-hidden border border-amber-500/20 hover:border-amber-500/40 bg-gradient-to-b from-[#1c2025] to-[#14171b] p-0 flex flex-col transition-all duration-300"
             >
-              {isSubmitted ? (
-                <VaultProcessingAnimation bmName={submittedVaults[v.id]} />
+              {isAnimating ? (
+                <VaultProcessingAnimation bmName={animatingVaults[v.id]} />
+              ) : isSubmitted ? (
+                <VaultPendingCard bmName={submittedVaults[v.id]} />
               ) : (
                 <>
                   {/* Vault door silhouette */}
