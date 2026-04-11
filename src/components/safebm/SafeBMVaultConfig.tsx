@@ -180,10 +180,6 @@ export default function SafeBMVaultConfig({ vaults, onConfigured }: Props) {
                       <MaterialIcon name="content_copy" className="!text-[10px]" />
                     </button>
                   </div>
-                  <p className="text-[7px] text-amber-400/70 flex items-center gap-0.5 mb-2">
-                    <MaterialIcon name="warning" className="!text-[8px]" />
-                    Marque <strong>admin total</strong>
-                  </p>
                 </div>
 
                 {/* Name input + Save */}
