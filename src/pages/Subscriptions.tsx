@@ -214,9 +214,9 @@ function SafeBmPromoPanel() {
     <div className="space-y-6">
       <Card className="bg-gradient-to-br from-primary/5 via-card to-card border-primary/20 overflow-hidden relative">
         <CardContent className="p-5 md:p-6">
-          <div className="flex flex-col lg:flex-row gap-6 items-stretch">
+          <div className="flex flex-col lg:flex-row gap-6 items-center">
             {/* Info lado esquerdo */}
-            <div className="lg:w-[320px] xl:w-[340px] flex-shrink-0 space-y-3">
+            <div className="lg:w-[420px] xl:w-[460px] flex-shrink-0 space-y-4">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
                   <Shield className="size-4 text-primary" />
