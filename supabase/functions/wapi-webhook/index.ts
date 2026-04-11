@@ -14,14 +14,23 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    console.log("Webhook received:", JSON.stringify(body).slice(0, 500));
+    console.log("Webhook received:", JSON.stringify(body).slice(0, 800));
 
-    // W-API sends different webhook formats. Common fields:
-    // messageId, status, chatId, timestamp, type
+    // W-API webhook fields
     const messageId = body.messageId || body.id || body.data?.messageId || body.data?.id;
     const status = body.status || body.data?.status || body.type;
-    const replyMessage = body.message?.text || body.data?.message?.text || body.text || null;
-    const chatId = body.chatId || body.data?.chatId || body.phone;
+    const replyMessage = body.message?.text || body.data?.message?.text || body.text || body.body || null;
+    const chatId = body.chatId || body.chat?.id || body.data?.chatId || body.phone;
+    const fromMe = body.fromMe ?? body.data?.fromMe ?? null;
+    const isGroup = body.isGroup ?? body.data?.isGroup ?? false;
+
+    // Ignore group messages
+    if (isGroup) {
+      console.log("Webhook: ignoring group message");
+      return new Response(JSON.stringify({ ok: true, ignored: "group" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     if (!messageId && !chatId) {
       console.log("Webhook: no messageId or chatId, ignoring");
@@ -30,36 +39,38 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Try to find the log entry by wapi_message_id
+    // Extract phone number from chatId
+    const phone = chatId ? chatId.replace(/@.*/, "").replace(/\D/g, "") : null;
+
+    // Try to find the log entry
     let logEntry = null;
+
+    // 1. Try by wapi_message_id (exact match)
     if (messageId) {
       const { data } = await admin
         .from("whatsapp_logs")
-        .select("id, status")
+        .select("id, status, phone")
         .eq("wapi_message_id", messageId)
         .limit(1)
         .single();
       logEntry = data;
     }
 
-    // If not found by messageId, try by phone (for incoming replies)
-    if (!logEntry && chatId) {
-      const phone = chatId.replace(/@.*/, "").replace(/\D/g, "");
-      if (phone) {
-        const { data } = await admin
-          .from("whatsapp_logs")
-          .select("id, status")
-          .eq("phone", phone)
-          .is("replied_at", null)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .single();
-        logEntry = data;
-      }
+    // 2. If not found, try by phone + most recent (for status updates and replies)
+    if (!logEntry && phone) {
+      const { data } = await admin
+        .from("whatsapp_logs")
+        .select("id, status, phone")
+        .eq("phone", phone)
+        .in("status", ["sent", "delivered", "read"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+      logEntry = data;
     }
 
     if (!logEntry) {
-      console.log("Webhook: log entry not found for", messageId || chatId);
+      console.log("Webhook: log entry not found for", messageId || chatId, "phone:", phone);
       return new Response(JSON.stringify({ ok: true, not_found: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -69,24 +80,32 @@ Deno.serve(async (req) => {
     const updates: Record<string, any> = {};
 
     // Map W-API status to our tracking
-    const normalizedStatus = (status || "").toLowerCase();
+    const normalizedStatus = (status || "").toString().toLowerCase();
+    const event = (body.event || "").toString().toLowerCase();
 
-    if (normalizedStatus === "delivered" || normalizedStatus === "received" || normalizedStatus === "server") {
-      updates.delivered_at = now;
-      updates.status = "delivered";
+    // Status progression: sent -> delivered -> read
+    const currentStatus = logEntry.status;
+
+    if (normalizedStatus === "delivered" || normalizedStatus === "received" || normalizedStatus === "server" || event.includes("delivery")) {
+      if (currentStatus === "sent" || currentStatus === "delivered") {
+        updates.delivered_at = now;
+        updates.status = "delivered";
+      }
     }
 
-    if (normalizedStatus === "read" || normalizedStatus === "viewed") {
-      updates.delivered_at = now; // ensure delivered is set
+    if (normalizedStatus === "read" || normalizedStatus === "viewed" || event.includes("read")) {
+      updates.delivered_at = updates.delivered_at || now;
       updates.read_at = now;
       updates.status = "read";
     }
 
-    // Incoming message = reply
-    if (body.type === "ReceivedCallback" || body.event === "messages.upsert" || normalizedStatus === "replied" || replyMessage) {
-      updates.replied_at = now;
-      if (replyMessage) updates.reply_message = replyMessage.slice(0, 1000);
-      updates.status = "replied";
+    // Incoming message = reply (not from us)
+    if (fromMe === false || body.type === "ReceivedCallback" || body.event === "messages.upsert" || event === "webhookreceived") {
+      if (fromMe === false && !isGroup) {
+        updates.replied_at = now;
+        if (replyMessage) updates.reply_message = replyMessage.slice(0, 1000);
+        updates.status = "replied";
+      }
     }
 
     if (normalizedStatus === "failed" || normalizedStatus === "error") {
@@ -101,7 +120,9 @@ Deno.serve(async (req) => {
         .eq("id", logEntry.id);
 
       if (error) console.error("Webhook update error:", error);
-      else console.log(`Webhook: updated log ${logEntry.id} with`, updates);
+      else console.log(`Webhook: updated log ${logEntry.id} =>`, JSON.stringify(updates));
+    } else {
+      console.log("Webhook: no status update needed, event:", event, "status:", normalizedStatus, "fromMe:", fromMe);
     }
 
     return new Response(JSON.stringify({ ok: true, updated: logEntry.id }), {
@@ -111,7 +132,7 @@ Deno.serve(async (req) => {
     console.error("Webhook error:", e);
     return new Response(JSON.stringify({ ok: true, error: String(e) }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200, // Always return 200 to webhooks
+      status: 200,
     });
   }
 });

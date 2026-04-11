@@ -80,7 +80,12 @@ Deno.serve(async (req) => {
   }
 
   function getMessageId(result: any) {
-    return result.data?.id || result.data?.messageId || null;
+    // W-API returns different structures depending on the endpoint
+    // Try WhatsApp native key first (used in webhook status callbacks)
+    const d = result.data;
+    const waId = d?.key?.id || d?.message?.key?.id || d?.messageId || d?.id || null;
+    if (d) console.log("W-API response keys:", JSON.stringify({ keys: Object.keys(d), keyId: d?.key?.id, id: d?.id, messageId: d?.messageId }).slice(0, 300));
+    return waId;
   }
 
   // Background sender with humanized delays
