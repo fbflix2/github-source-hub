@@ -279,12 +279,18 @@ export default function AdminSafeBM() {
       client_name: formClientName || null,
     };
     // Update backup_link_set_at if link changed
+    // Reset protection_start to NOW when admin configures a previously unconfigured vault
     if (editingVault) {
       const oldLink = editingVault.backup_link
         || ((editingVault.bm_link && editingVault.bm_link !== "https://business.facebook.com") ? editingVault.bm_link : null)
         || editingVault.bm_tracking?.bm_link || "";
       if (formBmLink && formBmLink !== oldLink) {
         payload.backup_link_set_at = new Date().toISOString();
+      }
+      // If vault was unconfigured (generic link, no backup), set protection_start to now
+      const wasUnconfigured = editingVault.bm_link === "https://business.facebook.com" && !editingVault.backup_link && !editingVault.bm_tracking_id;
+      if (wasUnconfigured && formBmLink && formBmLink !== "https://business.facebook.com") {
+        payload.protection_start = new Date().toISOString();
       }
     } else {
       payload.backup_link_set_at = new Date().toISOString();
