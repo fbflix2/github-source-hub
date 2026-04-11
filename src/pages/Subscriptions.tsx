@@ -208,65 +208,76 @@ function SafeBmPromoPanel() {
   return (
     <div className="space-y-6">
       <Card className="bg-gradient-to-br from-primary/5 via-card to-card border-primary/20 overflow-hidden relative">
-        <CardContent className="p-8 md:p-10">
-          <div className="flex flex-col md:flex-row gap-8 items-start">
-            <div className="flex-1 space-y-5">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <Shield className="size-6 text-primary" />
+        <CardContent className="p-5 md:p-6">
+          <div className="flex flex-col lg:flex-row gap-5 items-start">
+            {/* Info lado esquerdo */}
+            <div className="flex-1 space-y-3 min-w-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Shield className="size-4 text-primary" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-foreground">Safe BM</h2>
-                  <Badge className="bg-primary/20 text-primary border-primary/30 text-[10px] mt-1">Proteção Premium</Badge>
+                  <h2 className="text-lg font-bold text-foreground">Safe BM</h2>
+                  <Badge className="bg-primary/20 text-primary border-primary/30 text-[9px] mt-0.5">Proteção Premium</Badge>
                 </div>
               </div>
 
-              <p className="text-muted-foreground leading-relaxed">
-                O <strong className="text-foreground">Safe BM</strong> é o cofre digital da FBFlix que protege suas Business Managers 
-                contra perdas, bloqueios e acessos indevidos. Com backup automático de administradores, 
-                monitoramento em tempo real e regeneração instantânea de links de acesso, você nunca mais 
-                perde uma BM.
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                O <strong className="text-foreground">Safe BM</strong> protege suas Business Managers contra perdas, bloqueios e acessos indevidos com backup automático e monitoramento 24/7.
               </p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-1.5">
                 {[
-                  { icon: ShieldCheck, text: "Backup de admin em tempo real" },
-                  { icon: Lock, text: "Proteção contra perda de acesso" },
-                  { icon: Zap, text: "Regeneração instantânea de links" },
-                  { icon: Shield, text: "Monitoramento 24/7 do cofre" },
+                  { icon: ShieldCheck, text: "Backup em tempo real" },
+                  { icon: Lock, text: "Proteção de acesso" },
+                  { icon: Zap, text: "Regeneração de links" },
+                  { icon: Shield, text: "Monitoramento 24/7" },
                 ].map((f, i) => (
-                  <div key={i} className="flex items-center gap-2.5 text-sm text-muted-foreground">
-                    <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <f.icon className="size-3.5 text-primary" />
+                  <div key={i} className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                    <div className="w-5 h-5 rounded bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <f.icon className="size-2.5 text-primary" />
                     </div>
                     {f.text}
                   </div>
                 ))}
               </div>
 
-              <div className="flex items-center gap-2 pt-2">
-                <p className="text-3xl font-bold text-foreground">R$ 9,99</p>
-                <span className="text-sm text-muted-foreground">/mês por BM</span>
+              <div className="flex items-center gap-1.5">
+                <p className="text-xl font-bold text-foreground">R$ 9,99</p>
+                <span className="text-[11px] text-muted-foreground">/mês por BM</span>
               </div>
 
-              <div className="flex flex-wrap gap-3 pt-2">
+              <div className="flex flex-wrap gap-2">
                 <Button
-                  size="lg"
-                  className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-bold"
+                  size="sm"
+                  className="gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs"
                   onClick={() => navigate("/saiba-mais-safebm")}
                 >
-                  <Zap className="size-4" />
+                  <Zap className="size-3" />
                   Ativar Agora
                 </Button>
                 <Button
                   variant="outline"
-                  size="lg"
-                  className="gap-2"
+                  size="sm"
+                  className="gap-1.5 text-xs"
                   onClick={() => navigate("/saiba-mais-safebm")}
                 >
                   Saiba Mais
-                  <ArrowRight className="size-4" />
+                  <ArrowRight className="size-3" />
                 </Button>
+              </div>
+            </div>
+
+            {/* Vídeo lado direito */}
+            <div className="w-full lg:w-[360px] xl:w-[420px] flex-shrink-0">
+              <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-border/40 bg-black/40">
+                <iframe
+                  src="https://www.youtube.com/embed/YOUR_VIDEO_ID"
+                  title="Safe BM - Como Funciona"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="absolute inset-0 w-full h-full"
+                />
               </div>
             </div>
           </div>
