@@ -340,7 +340,7 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Build list of all proxies with ID, product name, and price
+        // Build dynamic product section based on proxy count
         let totalValue = 0;
         const proxyLines: string[] = [];
         for (const sub of userSubList) {
@@ -352,17 +352,25 @@ Deno.serve(async (req) => {
           proxyLines.push(`• ${subId} — ${pName} (R$ ${pPrice.toFixed(2)})`);
         }
 
-        const productListStr = proxyLines.join("\n");
+        const isMultiple = userSubList.length > 1;
         const totalStr = `R$ ${totalValue.toFixed(2)}`;
         const firstEndDate = new Date(userSubList[0].end_date).toLocaleDateString("pt-BR");
 
-        let msg = tpl.message_body;
-        msg = msg.replaceAll("{{nome}}", profile.full_name || "Cliente");
-        msg = msg.replaceAll("{{produto}}", productListStr);
-        msg = msg.replaceAll("{{valor}}", totalStr);
-        msg = msg.replaceAll("{{data}}", firstEndDate);
-        msg = msg.replaceAll("{{email}}", "");
-        msg = msg.replaceAll("{{link}}", "");
+        let msg: string;
+        if (isMultiple) {
+          // Multiple proxies: override template with dynamic multi-proxy message
+          const nome = profile.full_name || "Cliente";
+          msg = `Olá ${nome} 👋\n\nPassando pra te lembrar que suas *${userSubList.length} assinaturas* de proxy vencem em *${firstEndDate}*:\n\n${proxyLines.join("\n")}\n\n💰 *Valor total: ${totalStr}*\n\nRenove pelo site para não perder o acesso!\nhttps://fbflix1.lovable.app/subscriptions`;
+        } else {
+          // Single proxy: use template normally
+          msg = tpl.message_body;
+          msg = msg.replaceAll("{{nome}}", profile.full_name || "Cliente");
+          msg = msg.replaceAll("{{produto}}", proxyLines[0].replace("• ", ""));
+          msg = msg.replaceAll("{{valor}}", totalStr);
+          msg = msg.replaceAll("{{data}}", firstEndDate);
+          msg = msg.replaceAll("{{email}}", "");
+          msg = msg.replaceAll("{{link}}", "");
+        }
 
         if (dry_run) {
           dryResults.push({ user_id: userId, name: profile.full_name, phone: profile.phone, message_preview: msg, subs_count: userSubList.length, total_value: totalStr });
