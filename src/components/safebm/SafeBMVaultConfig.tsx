@@ -196,8 +196,14 @@ export default function SafeBMVaultConfig({ vaults, onConfigured }: Props) {
         throw new Error(data?.error || error?.message || "Erro ao configurar");
       }
 
-      // Instead of calling onConfigured immediately, show animation
-      setSubmittedVaults(prev => ({ ...prev, [vaultId]: form.bmName.trim() }));
+      // Show animation and persist so it stays locked after reload
+      const bmNameTrimmed = form.bmName.trim();
+      setAnimatingVaults(prev => ({ ...prev, [vaultId]: bmNameTrimmed }));
+      setSubmittedVaults(prev => {
+        const next = { ...prev, [vaultId]: bmNameTrimmed };
+        localStorage.setItem(SUBMITTED_KEY, JSON.stringify(next));
+        return next;
+      });
     } catch (err: any) {
       toast.error(err.message || "Erro ao configurar cofre");
     } finally {
