@@ -147,10 +147,7 @@ export default function SafeBMClient() {
                 <p className="text-[10px] text-[#c6c6c7]/60 uppercase font-medium">Alertas Hoje</p>
                 <p className="text-lg font-bold text-[#ffb4aa]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{String(expiringVaults.length).padStart(2, '0')}</p>
               </div>
-              <div>
-                <p className="text-[10px] text-[#c6c6c7]/60 uppercase font-medium">Uptime Vault</p>
-                <p className="text-lg font-bold text-[#68d3fc]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>99.9%</p>
-              </div>
+              <UptimeVault />
             </div>
           </div>
         </div>
