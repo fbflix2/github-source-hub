@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { AdminLayout } from "@/components/admin/AdminLayout";
+import { toast } from "sonner";
 import { toast } from "sonner";
 
 function MIcon({ name, className = "" }: { name: string; className?: string }) {
