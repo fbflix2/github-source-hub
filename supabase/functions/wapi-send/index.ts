@@ -340,21 +340,32 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        const firstSub = userSubList[0];
-        const product = firstSub.product_id ? productMap[firstSub.product_id] : null;
-        const productName = product?.name || firstSub.type?.toUpperCase() || "Proxy";
-        const productPrice = product?.price ? `R$ ${Number(product.price).toFixed(2)}` : "—";
+        // Build list of all proxies with ID, product name, and price
+        let totalValue = 0;
+        const proxyLines: string[] = [];
+        for (const sub of userSubList) {
+          const product = sub.product_id ? productMap[sub.product_id] : null;
+          const pName = product?.name || sub.type?.toUpperCase() || "Proxy";
+          const pPrice = product?.price ? Number(product.price) : 0;
+          const subId = sub.name || sub.id.slice(0, 8);
+          totalValue += pPrice;
+          proxyLines.push(`• ${subId} — ${pName} (R$ ${pPrice.toFixed(2)})`);
+        }
+
+        const productListStr = proxyLines.join("\n");
+        const totalStr = `R$ ${totalValue.toFixed(2)}`;
+        const firstEndDate = new Date(userSubList[0].end_date).toLocaleDateString("pt-BR");
 
         let msg = tpl.message_body;
         msg = msg.replaceAll("{{nome}}", profile.full_name || "Cliente");
-        msg = msg.replaceAll("{{produto}}", productName);
-        msg = msg.replaceAll("{{valor}}", productPrice);
-        msg = msg.replaceAll("{{data}}", new Date(firstSub.end_date).toLocaleDateString("pt-BR"));
+        msg = msg.replaceAll("{{produto}}", productListStr);
+        msg = msg.replaceAll("{{valor}}", totalStr);
+        msg = msg.replaceAll("{{data}}", firstEndDate);
         msg = msg.replaceAll("{{email}}", "");
         msg = msg.replaceAll("{{link}}", "");
 
         if (dry_run) {
-          dryResults.push({ user_id: userId, name: profile.full_name, phone: profile.phone, message_preview: msg, subs_count: userSubList.length });
+          dryResults.push({ user_id: userId, name: profile.full_name, phone: profile.phone, message_preview: msg, subs_count: userSubList.length, total_value: totalStr });
           continue;
         }
 
