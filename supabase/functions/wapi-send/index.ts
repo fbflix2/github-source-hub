@@ -356,13 +356,25 @@ Deno.serve(async (req) => {
         const totalStr = `R$ ${totalValue.toFixed(2)}`;
         const firstEndDate = new Date(userSubList[0].end_date).toLocaleDateString("pt-BR");
 
+        // Dynamic closing hooks - rotated per user for natural feel
+        const closingHooks = [
+          "Renove e mantenha seus perfis e contas protegidos! 🔒",
+          "Não deixe seus perfis desprotegidos — renove e continue seguro! 🛡️",
+          "Sem proxy ativo, suas contas ficam expostas. Garanta sua proteção! 🔐",
+          "Mantenha a segurança das suas contas — renove antes que expire! ⚡",
+          "Proxy ativo = perfis seguros. Não arrisque perder sua proteção! 💪",
+          "Renove agora e evite qualquer risco para suas contas! ✅",
+          "Seus perfis dependem do proxy pra operar com segurança. Renove já! 🚀",
+          "Continue operando com tranquilidade — renove sua proteção! 🔑",
+        ];
+        const hookIndex = Math.floor(Math.random() * closingHooks.length);
+        const closingHook = closingHooks[hookIndex];
+
         let msg: string;
         if (isMultiple) {
-          // Multiple proxies: override template with dynamic multi-proxy message
           const nome = profile.full_name || "Cliente";
-          msg = `Olá ${nome} 👋\n\nPassando pra te lembrar que suas *${userSubList.length} assinaturas* de proxy vencem em *${firstEndDate}*:\n\n${proxyLines.join("\n")}\n\n💰 *Valor total: ${totalStr}*\n\nRenove pelo site para não perder o acesso!\nhttps://fbflix1.lovable.app/subscriptions`;
+          msg = `Olá ${nome} 👋\n\nPassando pra te lembrar que suas *${userSubList.length} assinaturas* de proxy vencem em *${firstEndDate}*:\n\n${proxyLines.join("\n")}\n\n💰 *Valor total: ${totalStr}*\n\n${closingHook}\nhttps://fbflix1.lovable.app/subscriptions`;
         } else {
-          // Single proxy: use template normally
           msg = tpl.message_body;
           msg = msg.replaceAll("{{nome}}", profile.full_name || "Cliente");
           msg = msg.replaceAll("{{produto}}", proxyLines[0].replace("• ", ""));
@@ -370,6 +382,8 @@ Deno.serve(async (req) => {
           msg = msg.replaceAll("{{data}}", firstEndDate);
           msg = msg.replaceAll("{{email}}", "");
           msg = msg.replaceAll("{{link}}", "");
+          // Append dynamic hook after template content
+          msg += `\n\n${closingHook}\nhttps://fbflix1.lovable.app/subscriptions`;
         }
 
         if (dry_run) {
