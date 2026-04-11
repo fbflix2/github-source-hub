@@ -52,10 +52,7 @@ export const buildDisplayCaixaBalanceMap = <C extends FbFinanceCaixaLike, L exte
   }, {});
 
   return caixas.reduce<Record<string, number>>((acc, caixa) => {
-    const saldoLancamentos = lancamentoMap[caixa.id];
-    acc[caixa.id] = caixa.tipo === "pessoal" && saldoLancamentos !== undefined
-      ? saldoLancamentos
-      : toAmount(caixa.saldo_atual);
+    acc[caixa.id] = toAmount(caixa.saldo_atual);
     return acc;
   }, {});
 };
