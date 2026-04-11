@@ -53,7 +53,6 @@ interface Props {
 
 interface VaultFormState {
   bmName: string;
-  bmLink: string;
   saving: boolean;
 }
 
@@ -74,7 +73,7 @@ export default function SafeBMVaultConfig({ vaults, onConfigured }: Props) {
 
   const [forms, setForms] = useState<Record<string, VaultFormState>>({});
 
-  const getForm = (id: string): VaultFormState => forms[id] || { bmName: "", bmLink: "", saving: false };
+  const getForm = (id: string): VaultFormState => forms[id] || { bmName: "", saving: false };
   const updateForm = (id: string, patch: Partial<VaultFormState>) => {
     setForms(prev => ({ ...prev, [id]: { ...getForm(id), ...patch } }));
   };
@@ -87,7 +86,6 @@ export default function SafeBMVaultConfig({ vaults, onConfigured }: Props) {
   const handleSubmit = async (vaultId: string) => {
     const form = getForm(vaultId);
     if (!form.bmName.trim()) return toast.error("Digite o nome da BM");
-    if (!form.bmLink.trim()) return toast.error("Cole o link de convite da BM");
 
     updateForm(vaultId, { saving: true });
     try {
@@ -96,7 +94,6 @@ export default function SafeBMVaultConfig({ vaults, onConfigured }: Props) {
           action: "configure_vault",
           vault_id: vaultId,
           bm_name: form.bmName.trim(),
-          bm_link: form.bmLink.trim(),
         },
       });
 
@@ -191,27 +188,15 @@ export default function SafeBMVaultConfig({ vaults, onConfigured }: Props) {
                   <div className="w-4 h-4 rounded-full bg-[#ffb4aa] text-[#410001] flex items-center justify-center text-[8px] font-black">2</div>
                   <span className="text-[10px] font-bold text-[#c6c6c7]/70">Preencha os dados</span>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div>
-                    <label className="text-[9px] uppercase font-bold text-[#c6c6c7]/50 mb-0.5 block">Nome da BM</label>
-                    <input
-                      type="text"
-                      value={form.bmName}
-                      onChange={(e) => updateForm(v.id, { bmName: e.target.value })}
-                      placeholder="Ex: BM Principal"
-                      className="w-full bg-[#0a0e13] border border-[#ffb4aa]/20 rounded-md px-2.5 py-1.5 text-xs text-[#e0e2ea] placeholder:text-[#c6c6c7]/30 focus:outline-none focus:border-[#ffb4aa]/50"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[9px] uppercase font-bold text-[#c6c6c7]/50 mb-0.5 block">Link de Convite</label>
-                    <input
-                      type="text"
-                      value={form.bmLink}
-                      onChange={(e) => updateForm(v.id, { bmLink: e.target.value })}
-                      placeholder="https://business.facebook.com/settings/..."
-                      className="w-full bg-[#0a0e13] border border-[#ffb4aa]/20 rounded-md px-2.5 py-1.5 text-xs text-[#e0e2ea] placeholder:text-[#c6c6c7]/30 focus:outline-none focus:border-[#ffb4aa]/50"
-                    />
-                  </div>
+                <div>
+                  <label className="text-[9px] uppercase font-bold text-[#c6c6c7]/50 mb-0.5 block">Nome da BM</label>
+                  <input
+                    type="text"
+                    value={form.bmName}
+                    onChange={(e) => updateForm(v.id, { bmName: e.target.value })}
+                    placeholder="Ex: BM Principal"
+                    className="w-full bg-[#0a0e13] border border-[#ffb4aa]/20 rounded-md px-2.5 py-1.5 text-xs text-[#e0e2ea] placeholder:text-[#c6c6c7]/30 focus:outline-none focus:border-[#ffb4aa]/50"
+                  />
                 </div>
                 <button
                   onClick={() => handleSubmit(v.id)}
