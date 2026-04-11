@@ -123,7 +123,7 @@ Deno.serve(async (req) => {
         });
       }
       if (i < messages.length - 1) {
-        const delay = Math.floor(Math.random() * (60000 - 3000 + 1)) + 3000;
+        const delay = Math.floor(Math.random() * (280000 - 3000 + 1)) + 3000;
         console.log(`BG delay: ${(delay / 1000).toFixed(1)}s (${i + 1}/${messages.length})`);
         await new Promise((resolve) => setTimeout(resolve, delay));
       }
