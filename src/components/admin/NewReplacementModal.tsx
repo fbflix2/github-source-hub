@@ -341,6 +341,21 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
       await supabase.from("order_items").update({ delivery_data: deliveryData as any }).eq("id", selectedOrderItem.id);
     }
 
+    // Send WhatsApp alert (fire & forget)
+    supabase.functions.invoke("wapi-send", {
+      body: {
+        action: "send-replacement-alert",
+        user_id: selectedClient.user_id,
+        client_name: selectedClient.full_name,
+        product_name: selectedOrderItem.name,
+        reason,
+        type: "replacement",
+      },
+    }).then(res => {
+      if (res.data?.success) console.log("WhatsApp replacement alert sent");
+      else console.warn("WhatsApp alert skipped/failed:", res.data);
+    }).catch(e => console.error("WhatsApp alert error:", e));
+
     toast.success("Reposição registrada com sucesso!");
     onOpenChange(false);
     onCreated();
