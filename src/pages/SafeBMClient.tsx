@@ -36,6 +36,29 @@ const MaterialIcon = ({ name, className = "" }: { name: string; className?: stri
   <span className={`material-symbols-outlined ${className}`}>{name}</span>
 );
 
+function UptimeVault() {
+  const [uptime, setUptime] = useState("99.94");
+  useEffect(() => {
+    const update = () => {
+      const r = Math.random();
+      let val: number;
+      if (r < 0.7) val = 99.9 + Math.random() * 0.09;
+      else if (r < 0.92) val = 99.8 + Math.random() * 0.1;
+      else val = 99.7 + Math.random() * 0.1;
+      setUptime(val.toFixed(2));
+    };
+    update();
+    const interval = setInterval(update, 8000 + Math.random() * 12000);
+    return () => clearInterval(interval);
+  }, []);
+  return (
+    <div>
+      <p className="text-[10px] text-[#c6c6c7]/60 uppercase font-medium">Uptime Vault</p>
+      <p className="text-lg font-bold text-[#68d3fc]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{uptime}%</p>
+    </div>
+  );
+}
+
 export default function SafeBMClient() {
   const [vaults, setVaults] = useState<SafeBmVault[]>([]);
   const [loading, setLoading] = useState(true);
