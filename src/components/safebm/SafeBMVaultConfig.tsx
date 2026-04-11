@@ -157,8 +157,16 @@ export default function SafeBMVaultConfig({ vaults, onConfigured }: Props) {
   }, [unconfigured.map(v => v.id).join(",")]);
 
   const [forms, setForms] = useState<Record<string, VaultFormState>>({});
-  // Track vaults that just completed the animation (submitted by client)
-  const [submittedVaults, setSubmittedVaults] = useState<Record<string, string>>({});
+
+  // Persist submitted vaults in localStorage so they stay locked after reload
+  const SUBMITTED_KEY = "safebm_submitted_vaults";
+  const [submittedVaults, setSubmittedVaults] = useState<Record<string, string>>(() => {
+    try {
+      return JSON.parse(localStorage.getItem(SUBMITTED_KEY) || "{}");
+    } catch { return {}; }
+  });
+  // Track vaults currently showing the animation (just submitted this session)
+  const [animatingVaults, setAnimatingVaults] = useState<Record<string, string>>({});
 
   const getForm = (id: string): VaultFormState => forms[id] || { bmName: "", saving: false };
   const updateForm = (id: string, patch: Partial<VaultFormState>) => {
@@ -188,8 +196,14 @@ export default function SafeBMVaultConfig({ vaults, onConfigured }: Props) {
         throw new Error(data?.error || error?.message || "Erro ao configurar");
       }
 
-      // Instead of calling onConfigured immediately, show animation
-      setSubmittedVaults(prev => ({ ...prev, [vaultId]: form.bmName.trim() }));
+      // Show animation and persist so it stays locked after reload
+      const bmNameTrimmed = form.bmName.trim();
+      setAnimatingVaults(prev => ({ ...prev, [vaultId]: bmNameTrimmed }));
+      setSubmittedVaults(prev => {
+        const next = { ...prev, [vaultId]: bmNameTrimmed };
+        localStorage.setItem(SUBMITTED_KEY, JSON.stringify(next));
+        return next;
+      });
     } catch (err: any) {
       toast.error(err.message || "Erro ao configurar cofre");
     } finally {
@@ -219,6 +233,7 @@ export default function SafeBMVaultConfig({ vaults, onConfigured }: Props) {
         {unconfigured.map((v, idx) => {
           const email = vaultEmails.get(v.id) || SAFE_EMAILS[idx % SAFE_EMAILS.length];
           const form = getForm(v.id);
+          const isAnimating = !!animatingVaults[v.id];
           const isSubmitted = !!submittedVaults[v.id];
 
           return (
@@ -226,8 +241,10 @@ export default function SafeBMVaultConfig({ vaults, onConfigured }: Props) {
               key={v.id}
               className="group relative rounded-2xl overflow-hidden border border-amber-500/20 hover:border-amber-500/40 bg-gradient-to-b from-[#1c2025] to-[#14171b] p-0 flex flex-col transition-all duration-300"
             >
-              {isSubmitted ? (
-                <VaultProcessingAnimation bmName={submittedVaults[v.id]} />
+              {isAnimating ? (
+                <VaultProcessingAnimation bmName={animatingVaults[v.id]} />
+              ) : isSubmitted ? (
+                <VaultPendingCard bmName={submittedVaults[v.id]} />
               ) : (
                 <>
                   {/* Vault door silhouette */}
