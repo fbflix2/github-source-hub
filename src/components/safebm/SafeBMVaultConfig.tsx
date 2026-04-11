@@ -122,13 +122,13 @@ export default function SafeBMVaultConfig({ vaults, onConfigured }: Props) {
             Configure o Safe BM para proteger suas BMs
           </span>
         </div>
-        <p className="text-[10px] text-[#c6c6c7]/60 leading-relaxed">
+        <p className="text-xs text-[#c6c6c7]/60 leading-relaxed">
           O Safe BM protege sua Business Manager contra <strong className="text-[#e0e2ea]">phishing, scanners maliciosos e invasões</strong>, 
           garantindo a <strong className="text-[#e0e2ea]">recuperação do acesso</strong> caso o perfil de administrador seja comprometido. 
           A BM não pode estar com restrição para que a recuperação funcione.
         </p>
-        <p className="text-[10px] text-amber-400/80 flex items-center gap-1">
-          <MaterialIcon name="warning" className="!text-xs" />
+        <p className="text-xs text-amber-400/80 flex items-center gap-1">
+          <MaterialIcon name="warning" className="!text-sm" />
           <span>Ao enviar o convite, conceda <strong className="text-amber-400">todas as permissões de administrador total</strong>.</span>
         </p>
       </div>
@@ -173,9 +173,9 @@ export default function SafeBMVaultConfig({ vaults, onConfigured }: Props) {
                   <p className="text-[9px] text-[#c6c6c7]/50 mb-2 font-mono truncate">Cofre {idx + 1}</p>
 
                   {/* Email */}
-                  <div className="flex items-center gap-1 bg-[#0a0e13] rounded-lg px-2 py-1.5 border border-amber-500/20 mb-1">
-                    <MaterialIcon name="email" className="text-[#ffb4aa] !text-xs" />
-                    <span className="text-[8px] font-mono text-[#e0e2ea] flex-1 select-all truncate">{email}</span>
+                  <div className="flex items-center gap-1.5 bg-[#0a0e13] rounded-lg px-2.5 py-2 border border-amber-500/20 mb-1">
+                    <MaterialIcon name="email" className="text-[#ffb4aa] !text-sm" />
+                    <span className="text-[11px] font-mono text-[#e0e2ea] flex-1 select-all truncate">{email}</span>
                     <button onClick={() => copyEmail(email)} className="p-0.5 rounded bg-[#31353b] hover:bg-amber-500 hover:text-[#410001] text-[#c6c6c7] transition-all shrink-0">
                       <MaterialIcon name="content_copy" className="!text-[10px]" />
                     </button>
