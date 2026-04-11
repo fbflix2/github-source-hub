@@ -2066,6 +2066,42 @@ export type Database = {
           },
         ]
       }
+      pipeline_templates: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          position: number
+          tasks: Json
+          track_days: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          position?: number
+          tasks?: Json
+          track_days?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          position?: number
+          tasks?: Json
+          track_days?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       platform_feedback: {
         Row: {
           created_at: string
