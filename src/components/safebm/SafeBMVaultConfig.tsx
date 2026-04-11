@@ -115,82 +115,72 @@ export default function SafeBMVaultConfig({ vaults, onConfigured }: Props) {
   return (
     <div className="space-y-1.5">
       {/* Header */}
-      <div className="relative overflow-hidden rounded-lg bg-[#262a30]/40 border border-[#5d3f3b]/15 px-3 py-2 backdrop-blur-md">
-        <div className="relative z-10 flex items-center gap-2">
-          <div className="w-6 h-6 rounded-md bg-amber-500/20 flex items-center justify-center shrink-0">
-            <MaterialIcon name="shield" className="!text-sm text-amber-400" />
-          </div>
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-500 text-white text-[8px] font-bold tracking-widest uppercase">
-              <span className="w-1 h-1 rounded-full bg-white animate-pulse" />
-              Pendente
-            </div>
-            <span className="text-xs font-bold text-[#e0e2ea]">
-              {unconfigured.length === 1 ? "1 cofre pendente" : `${unconfigured.length} cofres pendentes`}
-            </span>
-          </div>
+      <div className="rounded-lg bg-[#262a30]/40 border border-[#5d3f3b]/15 px-3 py-1.5 flex items-center gap-2">
+        <div className="w-5 h-5 rounded bg-amber-500/20 flex items-center justify-center shrink-0">
+          <MaterialIcon name="shield" className="!text-xs text-amber-400" />
         </div>
+        <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-500 text-white text-[8px] font-bold tracking-widest uppercase">
+          <span className="w-1 h-1 rounded-full bg-white animate-pulse" />
+          Pendente
+        </div>
+        <span className="text-xs font-bold text-[#e0e2ea]">
+          {unconfigured.length === 1 ? "1 cofre pendente" : `${unconfigured.length} cofres pendentes`}
+        </span>
       </div>
 
-      {/* Vault cards */}
-      {unconfigured.map((v, idx) => {
-        const email = vaultEmails.get(v.id) || SAFE_EMAILS[idx % SAFE_EMAILS.length];
-        const form = getForm(v.id);
+      {/* Vault cards - grid 2 cols */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+        {unconfigured.map((v, idx) => {
+          const email = vaultEmails.get(v.id) || SAFE_EMAILS[idx % SAFE_EMAILS.length];
+          const form = getForm(v.id);
 
-        return (
-          <div key={v.id} className="rounded-lg bg-[#1c2025] border border-[#5d3f3b]/15 px-3 py-2 space-y-1.5">
-            {/* Title row */}
-            <div className="flex items-center gap-2">
-              <div className="w-5 h-5 rounded bg-amber-500/20 flex items-center justify-center">
-                <MaterialIcon name="shield" className="!text-xs text-amber-400" />
+          return (
+            <div key={v.id} className="rounded-lg bg-[#1c2025] border border-[#5d3f3b]/15 px-2.5 py-2 space-y-1">
+              {/* Title */}
+              <div className="flex items-center gap-1.5">
+                <div className="w-4 h-4 rounded bg-amber-500/20 flex items-center justify-center">
+                  <MaterialIcon name="shield" className="!text-[10px] text-amber-400" />
+                </div>
+                <span className="text-[10px] font-bold text-[#e0e2ea] truncate">Cofre {idx + 1} — {v.bm_name}</span>
+                <span className="text-[7px] text-amber-400 ml-auto shrink-0">Pendente</span>
               </div>
-              <span className="text-[11px] font-bold text-[#e0e2ea]">Cofre {idx + 1} — {v.bm_name}</span>
-              <span className="text-[8px] text-amber-400 ml-auto">Pendente</span>
-            </div>
 
-            {/* Email row */}
-            <div className="flex items-center gap-1.5 bg-[#0a0e13] rounded px-2 py-1.5 border border-[#ffb4aa]/20">
-              <MaterialIcon name="email" className="text-[#ffb4aa] !text-xs" />
-              <span className="text-[10px] font-mono text-[#e0e2ea] flex-1 select-all truncate">{email}</span>
-              <button onClick={() => copyEmail(email)} className="p-0.5 rounded bg-[#31353b] hover:bg-[#ffb4aa] hover:text-[#410001] text-[#c6c6c7] transition-all shrink-0">
-                <MaterialIcon name="content_copy" className="!text-[10px]" />
-              </button>
-            </div>
-            <p className="text-[8px] text-amber-400/70 flex items-center gap-1">
-              <MaterialIcon name="warning" className="!text-[10px]" />
-              Marque <strong>todos os acessos de admin total</strong>.
-            </p>
+              {/* Email */}
+              <div className="flex items-center gap-1 bg-[#0a0e13] rounded px-1.5 py-1 border border-[#ffb4aa]/20">
+                <MaterialIcon name="email" className="text-[#ffb4aa] !text-[10px]" />
+                <span className="text-[9px] font-mono text-[#e0e2ea] flex-1 select-all truncate">{email}</span>
+                <button onClick={() => copyEmail(email)} className="p-0.5 rounded bg-[#31353b] hover:bg-[#ffb4aa] hover:text-[#410001] text-[#c6c6c7] transition-all shrink-0">
+                  <MaterialIcon name="content_copy" className="!text-[9px]" />
+                </button>
+              </div>
+              <p className="text-[7px] text-amber-400/70 flex items-center gap-0.5">
+                <MaterialIcon name="warning" className="!text-[9px]" />
+                Marque <strong>admin total</strong>.
+              </p>
 
-            {/* Name + Save inline */}
-            <div className="flex items-end gap-2">
-              <div className="flex-1">
-                <label className="text-[8px] uppercase font-bold text-[#c6c6c7]/50 mb-0.5 block">Nome da BM</label>
+              {/* Name + Save */}
+              <div className="flex items-center gap-1.5">
                 <input
                   type="text"
                   value={form.bmName}
                   onChange={(e) => updateForm(v.id, { bmName: e.target.value })}
-                  placeholder="Ex: BM Principal"
-                  className="w-full bg-[#0a0e13] border border-[#ffb4aa]/20 rounded px-2 py-1 text-[11px] text-[#e0e2ea] placeholder:text-[#c6c6c7]/30 focus:outline-none focus:border-[#ffb4aa]/50"
+                  placeholder="Nome da BM"
+                  className="flex-1 min-w-0 bg-[#0a0e13] border border-[#ffb4aa]/20 rounded px-2 py-1 text-[10px] text-[#e0e2ea] placeholder:text-[#c6c6c7]/30 focus:outline-none focus:border-[#ffb4aa]/50"
                 />
+                <button
+                  onClick={() => handleSubmit(v.id)}
+                  disabled={form.saving}
+                  className="px-3 py-1 bg-emerald-500 hover:bg-emerald-400 text-white rounded text-[8px] font-bold uppercase tracking-wider transition-all flex items-center gap-1 disabled:opacity-50 shrink-0"
+                >
+                  {form.saving ? (
+                    <div className="w-2.5 h-2.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : "Salvar"}
+                </button>
               </div>
-              <button
-                onClick={() => handleSubmit(v.id)}
-                disabled={form.saving}
-                className="px-4 py-1 bg-emerald-500 hover:bg-emerald-400 text-white rounded text-[9px] font-bold uppercase tracking-wider transition-all flex items-center gap-1 disabled:opacity-50 shrink-0"
-              >
-                {form.saving ? (
-                  <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <>
-                    <MaterialIcon name="shield" className="!text-[10px]" />
-                    Salvar
-                  </>
-                )}
-              </button>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }
