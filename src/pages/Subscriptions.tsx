@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProxyBRSubscriptions } from "@/hooks/useProxyBR";
+import { Play, X } from "lucide-react";
 import { useWebshareSubscriptions, useMigrateProxyBRToWebshare } from "@/hooks/useWebshare";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -204,6 +205,10 @@ export default function Subscriptions() {
 /* ─── SAFE BM PROMO (for non-subscribers) ─── */
 function SafeBmPromoPanel() {
   const navigate = useNavigate();
+  const [playingVideo, setPlayingVideo] = useState(false);
+
+  const SAFEBM_VIDEO_ID = "TI3xOr_02PY";
+  const thumbnailUrl = `https://img.youtube.com/vi/${SAFEBM_VIDEO_ID}/maxresdefault.jpg`;
 
   return (
     <div className="space-y-6">
@@ -268,21 +273,53 @@ function SafeBmPromoPanel() {
               </div>
             </div>
 
-            {/* Vídeo lado direito - maior */}
+            {/* Vídeo lado direito - thumbnail com play */}
             <div className="flex-1 min-w-0">
-              <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-border/40 bg-black/40">
-                <iframe
-                  src="https://www.youtube.com/embed/TI3xOr_02PY"
-                  title="Safe BM - Como Funciona"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  className="absolute inset-0 w-full h-full"
+              <div
+                className="relative w-full aspect-video rounded-xl overflow-hidden border border-border/40 bg-black cursor-pointer group"
+                onClick={() => setPlayingVideo(true)}
+              >
+                <img
+                  src={thumbnailUrl}
+                  alt="Safe BM - Como Funciona"
+                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                 />
+                <div className="absolute inset-0 bg-black/30 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                  <div className="w-16 h-16 rounded-full bg-primary/90 flex items-center justify-center shadow-lg shadow-primary/30 transition-transform duration-300 group-hover:scale-110">
+                    <Play className="size-7 text-primary-foreground fill-current ml-1" />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Video Player Modal */}
+      {playingVideo && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setPlayingVideo(false)}
+        >
+          <div
+            className="relative w-full max-w-4xl aspect-video rounded-xl overflow-hidden shadow-2xl bg-black"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <iframe
+              src={`https://www.youtube.com/embed/${SAFEBM_VIDEO_ID}?autoplay=1`}
+              className="w-full h-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+            <button
+              onClick={() => setPlayingVideo(false)}
+              className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/60 hover:bg-black/80 flex items-center justify-center transition-colors"
+            >
+              <X className="size-4 text-white" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
