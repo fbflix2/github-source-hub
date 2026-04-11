@@ -379,6 +379,23 @@ export default function ProductExchangeModal({ open, onOpenChange, orderItem, or
         } as any);
       }
 
+      // Send WhatsApp alert (fire & forget)
+      const newNames = selected.map(s => s.product.name).join(", ");
+      supabase.functions.invoke("wapi-send", {
+        body: {
+          action: "send-replacement-alert",
+          user_id: clientUserId,
+          client_name: clientName,
+          product_name: orderItem.product_name,
+          new_product_name: newNames,
+          reason,
+          type: "exchange",
+        },
+      }).then(res => {
+        if (res.data?.success) console.log("WhatsApp exchange alert sent");
+        else console.warn("WhatsApp exchange alert skipped/failed:", res.data);
+      }).catch(e => console.error("WhatsApp exchange alert error:", e));
+
       const successMsg = priceDiff > 0
         ? `Troca realizada! Cliente precisa pagar R$ ${priceDiff.toFixed(2).replace(".", ",")} para acessar o item.`
         : `Troca realizada! ${totalNewItems} item(ns) vinculado(s).`;

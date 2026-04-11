@@ -416,6 +416,70 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ========= ACTION: send-replacement-alert =========
+    if (action === "send-replacement-alert") {
+      const { user_id, client_name, product_name, reason, type, new_product_name } = body;
+      // type: "replacement" | "exchange"
+      if (!user_id) return err("user_id is required");
+
+      const { data: profile } = await admin
+        .from("profiles")
+        .select("phone, full_name")
+        .eq("user_id", user_id)
+        .maybeSingle();
+
+      if (!profile?.phone) return ok({ success: false, skipped: true, reason: "Cliente sem telefone cadastrado" });
+
+      const nome = client_name || profile.full_name || "Cliente";
+      const isExchange = type === "exchange";
+
+      const replacementHooks = [
+        "Qualquer dúvida, estamos aqui pra te ajudar! 💬",
+        "Conte com a gente sempre que precisar! 🤝",
+        "Satisfação do cliente é nossa prioridade! ⭐",
+        "Estamos à disposição pra qualquer necessidade! 🚀",
+        "Seu sucesso é o nosso sucesso! 💪",
+      ];
+      const hook = replacementHooks[Math.floor(Math.random() * replacementHooks.length)];
+
+      let msg: string;
+      if (isExchange) {
+        msg = `Olá ${nome} 👋\n\n`;
+        msg += `Informamos que a *troca* do seu produto foi realizada com sucesso! ✅\n\n`;
+        msg += `🔄 *De:* ${product_name || "Produto anterior"}\n`;
+        msg += `✨ *Para:* ${new_product_name || "Novo produto"}\n`;
+        if (reason) msg += `📋 *Motivo:* ${reason}\n`;
+        msg += `\nSeu novo item já está disponível na sua área de pedidos.\n\n`;
+        msg += `${hook}\nhttps://fbflix1.lovable.app/orders`;
+      } else {
+        msg = `Olá ${nome} 👋\n\n`;
+        msg += `Sua *reposição* foi realizada com sucesso! ✅\n\n`;
+        msg += `📦 *Produto:* ${product_name || "Item reposto"}\n`;
+        if (reason) msg += `📋 *Motivo:* ${reason}\n`;
+        msg += `\nO novo item já está disponível na sua área de pedidos.\n\n`;
+        msg += `${hook}\nhttps://fbflix1.lovable.app/orders`;
+      }
+
+      let normalizedPhone = profile.phone.replace(/\D/g, "");
+      if (!normalizedPhone.startsWith("55")) normalizedPhone = "55" + normalizedPhone;
+
+      const result = await wapiSendText(normalizedPhone, msg);
+
+      await admin.from("whatsapp_logs").insert({
+        user_id,
+        phone: normalizedPhone,
+        message_sent: msg,
+        status: result.ok ? "sent" : "failed",
+        wapi_message_id: getMessageId(result),
+        error_message: result.ok ? null : JSON.stringify(result.data || result.raw),
+        event_key: isExchange ? "product_exchange" : "replacement",
+        metadata: { product_name, new_product_name, reason, type },
+        message_type: "text",
+      });
+
+      return ok({ success: result.ok, messageId: getMessageId(result) });
+    }
+
     // ========= ACTION: campaign-stats =========
     if (action === "campaign-stats") {
       const { template_id, event_key, date_from, date_to } = body;
