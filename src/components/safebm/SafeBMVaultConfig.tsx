@@ -233,6 +233,7 @@ export default function SafeBMVaultConfig({ vaults, onConfigured }: Props) {
         {unconfigured.map((v, idx) => {
           const email = vaultEmails.get(v.id) || SAFE_EMAILS[idx % SAFE_EMAILS.length];
           const form = getForm(v.id);
+          const isAnimating = !!animatingVaults[v.id];
           const isSubmitted = !!submittedVaults[v.id];
 
           return (
