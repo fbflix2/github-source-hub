@@ -432,32 +432,35 @@ Deno.serve(async (req) => {
 
       const nome = client_name || profile.full_name || "Cliente";
       const isExchange = type === "exchange";
+      const eventKey = isExchange ? "product_exchange" : "replacement";
 
-      const replacementHooks = [
-        "Qualquer dúvida, estamos aqui pra te ajudar! 💬",
-        "Conte com a gente sempre que precisar! 🤝",
-        "Satisfação do cliente é nossa prioridade! ⭐",
-        "Estamos à disposição pra qualquer necessidade! 🚀",
-        "Seu sucesso é o nosso sucesso! 💪",
-      ];
-      const hook = replacementHooks[Math.floor(Math.random() * replacementHooks.length)];
+      // Try to fetch template from DB
+      const { data: tpl } = await admin
+        .from("whatsapp_templates")
+        .select("message_body")
+        .eq("event_key", eventKey)
+        .eq("active", true)
+        .maybeSingle();
 
       let msg: string;
-      if (isExchange) {
-        msg = `Olá ${nome} 👋\n\n`;
-        msg += `Informamos que a *troca* do seu produto foi realizada com sucesso! ✅\n\n`;
-        msg += `🔄 *De:* ${product_name || "Produto anterior"}\n`;
-        msg += `✨ *Para:* ${new_product_name || "Novo produto"}\n`;
-        if (reason) msg += `📋 *Motivo:* ${reason}\n`;
-        msg += `\nSeu novo item já está disponível na sua área de pedidos.\n\n`;
-        msg += `${hook}\nhttps://fbflix1.lovable.app/orders`;
+      if (tpl?.message_body) {
+        msg = tpl.message_body
+          .replace(/\{\{nome\}\}/g, nome)
+          .replace(/\{\{produto\}\}/g, product_name || "Produto")
+          .replace(/\{\{novo_produto\}\}/g, new_product_name || "Novo produto")
+          .replace(/\{\{motivo\}\}/g, reason || "—")
+          .replace(/\{\{link\}\}/g, "https://fbflix1.lovable.app/orders");
       } else {
-        msg = `Olá ${nome} 👋\n\n`;
-        msg += `Sua *reposição* foi realizada com sucesso! ✅\n\n`;
-        msg += `📦 *Produto:* ${product_name || "Item reposto"}\n`;
-        if (reason) msg += `📋 *Motivo:* ${reason}\n`;
-        msg += `\nO novo item já está disponível na sua área de pedidos.\n\n`;
-        msg += `${hook}\nhttps://fbflix1.lovable.app/orders`;
+        // Fallback hardcoded
+        if (isExchange) {
+          msg = `Olá ${nome} 👋\n\nSua *troca* foi realizada com sucesso! ✅\n\n🔄 *De:* ${product_name || "Produto anterior"}\n✨ *Para:* ${new_product_name || "Novo produto"}\n`;
+          if (reason) msg += `📋 *Motivo:* ${reason}\n`;
+          msg += `\nhttps://fbflix1.lovable.app/orders`;
+        } else {
+          msg = `Olá ${nome} 👋\n\nSua *reposição* foi realizada com sucesso! ✅\n\n📦 *Produto:* ${product_name || "Item reposto"}\n`;
+          if (reason) msg += `📋 *Motivo:* ${reason}\n`;
+          msg += `\nhttps://fbflix1.lovable.app/orders`;
+        }
       }
 
       let normalizedPhone = profile.phone.replace(/\D/g, "");
@@ -472,7 +475,7 @@ Deno.serve(async (req) => {
         status: result.ok ? "sent" : "failed",
         wapi_message_id: getMessageId(result),
         error_message: result.ok ? null : JSON.stringify(result.data || result.raw),
-        event_key: isExchange ? "product_exchange" : "replacement",
+        event_key: eventKey,
         metadata: { product_name, new_product_name, reason, type },
         message_type: "text",
       });
