@@ -42,7 +42,7 @@ export default function AdminConfigEsteiras() {
     if (data) {
       setPipelines(data.map(p => ({
         ...p,
-        tasks: Array.isArray(p.tasks) ? p.tasks as PipelineTask[] : [],
+        tasks: Array.isArray(p.tasks) ? (p.tasks as unknown as PipelineTask[]) : [],
       })));
     }
     setLoading(false);
