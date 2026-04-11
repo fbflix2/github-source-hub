@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import WarmingOperatorDashboard from "@/components/admin/warming/WarmingOperatorDashboard";
 import WarmingAuditDashboard from "@/components/admin/warming/WarmingAuditDashboard";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -72,11 +72,13 @@ function chunkArray<T>(items: T[], size: number): T[][] {
 export default function AdminEsteiraAdmin() {
   const { role } = useAdminAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const initialTab = (searchParams.get("tab") as any) || "gestao";
   const [profiles, setProfiles] = useState<WarmingProfile[]>([]);
   const [tasks, setTasks] = useState<Record<string, WarmingTask[]>>({});
   const [loading, setLoading] = useState(true);
   const [creatorNames, setCreatorNames] = useState<Record<string, string>>({});
-  const [activeTab, setActiveTab] = useState<"gestao" | "relatorios" | "prontos" | "bd_perfis" | "configuracoes" | "auditoria" | "analise_interna">("gestao");
+  const [activeTab, setActiveTab] = useState<"gestao" | "relatorios" | "prontos" | "bd_perfis" | "configuracoes" | "auditoria" | "analise_interna">(initialTab);
   const [reportFilter, setReportFilter] = useState("");
   const [report2faFilter, setReport2faFilter] = useState(false);
   const [qualityMap, setQualityMap] = useState<Record<string, ProfileQualityData>>({});
