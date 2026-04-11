@@ -157,8 +157,16 @@ export default function SafeBMVaultConfig({ vaults, onConfigured }: Props) {
   }, [unconfigured.map(v => v.id).join(",")]);
 
   const [forms, setForms] = useState<Record<string, VaultFormState>>({});
-  // Track vaults that just completed the animation (submitted by client)
-  const [submittedVaults, setSubmittedVaults] = useState<Record<string, string>>({});
+
+  // Persist submitted vaults in localStorage so they stay locked after reload
+  const SUBMITTED_KEY = "safebm_submitted_vaults";
+  const [submittedVaults, setSubmittedVaults] = useState<Record<string, string>>(() => {
+    try {
+      return JSON.parse(localStorage.getItem(SUBMITTED_KEY) || "{}");
+    } catch { return {}; }
+  });
+  // Track vaults currently showing the animation (just submitted this session)
+  const [animatingVaults, setAnimatingVaults] = useState<Record<string, string>>({});
 
   const getForm = (id: string): VaultFormState => forms[id] || { bmName: "", saving: false };
   const updateForm = (id: string, patch: Partial<VaultFormState>) => {
