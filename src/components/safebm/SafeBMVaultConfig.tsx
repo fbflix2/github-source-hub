@@ -113,19 +113,24 @@ export default function SafeBMVaultConfig({ vaults, onConfigured }: Props) {
   if (unconfigured.length === 0) return null;
 
   return (
-    <div className="space-y-1.5">
-      {/* Header */}
-      <div className="rounded-lg bg-[#262a30]/40 border border-[#5d3f3b]/15 px-3 py-1.5 flex items-center gap-2">
-        <div className="w-5 h-5 rounded bg-amber-500/20 flex items-center justify-center shrink-0">
-          <MaterialIcon name="shield" className="!text-xs text-amber-400" />
+    <div className="space-y-2.5">
+      {/* Instructions */}
+      <div className="rounded-xl bg-[#262a30]/40 border border-amber-500/15 px-4 py-3 space-y-1.5">
+        <div className="flex items-center gap-2">
+          <MaterialIcon name="verified_user" className="text-amber-400 !text-base" />
+          <span className="text-xs font-bold text-[#e0e2ea]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+            Configure o Safe BM para proteger suas BMs
+          </span>
         </div>
-        <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-500 text-white text-[8px] font-bold tracking-widest uppercase">
-          <span className="w-1 h-1 rounded-full bg-white animate-pulse" />
-          Pendente
-        </div>
-        <span className="text-xs font-bold text-[#e0e2ea]">
-          {unconfigured.length === 1 ? "1 cofre pendente" : `${unconfigured.length} cofres pendentes`}
-        </span>
+        <p className="text-[10px] text-[#c6c6c7]/60 leading-relaxed">
+          O Safe BM protege sua Business Manager contra <strong className="text-[#e0e2ea]">phishing, scanners maliciosos e invasões</strong>, 
+          garantindo a <strong className="text-[#e0e2ea]">recuperação do acesso</strong> caso o perfil de administrador seja comprometido. 
+          A BM não pode estar com restrição para que a recuperação funcione.
+        </p>
+        <p className="text-[10px] text-amber-400/80 flex items-center gap-1">
+          <MaterialIcon name="warning" className="!text-xs" />
+          <span>Ao enviar o convite, conceda <strong className="text-amber-400">todas as permissões de administrador total</strong>.</span>
+        </p>
       </div>
 
       {/* Vault cards - same design as active vaults */}
@@ -175,10 +180,6 @@ export default function SafeBMVaultConfig({ vaults, onConfigured }: Props) {
                       <MaterialIcon name="content_copy" className="!text-[10px]" />
                     </button>
                   </div>
-                  <p className="text-[7px] text-amber-400/70 flex items-center gap-0.5 mb-2">
-                    <MaterialIcon name="warning" className="!text-[8px]" />
-                    Marque <strong>admin total</strong>
-                  </p>
                 </div>
 
                 {/* Name input + Save */}
