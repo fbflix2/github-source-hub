@@ -174,10 +174,17 @@ export function FbDistribuicaoPJ() {
       valores[key] = entradaNum * ((Number(percentuais[key]) || 0) / 100);
     }
 
-    // Check Pro Labore meta
+    // Check Pro Labore meta — if already at/above goal, redirect entire allocation
     const proLaboreCaixa = caixasList.find(c => c.nome === "Pro Labore");
     if (proLaboreCaixa && proLaboreCaixa.meta > 0 && valores.pro_labore) {
       const saldoAtual = Number(proLaboreCaixa.saldo_atual) || 0;
+      if (saldoAtual >= proLaboreCaixa.meta) {
+        // Meta already reached — redirect entire Pro Labore allocation
+        const excedente = valores.pro_labore;
+        valores.pro_labore = 0;
+        setRedirectPopup({ excedente, valores });
+        return;
+      }
       const novoSaldo = saldoAtual + valores.pro_labore;
       if (novoSaldo > proLaboreCaixa.meta) {
         const excedente = novoSaldo - proLaboreCaixa.meta;
