@@ -475,7 +475,7 @@ Deno.serve(async (req) => {
         status: result.ok ? "sent" : "failed",
         wapi_message_id: getMessageId(result),
         error_message: result.ok ? null : JSON.stringify(result.data || result.raw),
-        event_key: isExchange ? "product_exchange" : "replacement",
+        event_key: eventKey,
         metadata: { product_name, new_product_name, reason, type },
         message_type: "text",
       });
