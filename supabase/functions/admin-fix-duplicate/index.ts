@@ -532,13 +532,15 @@ Deno.serve(async (req) => {
       }
 
       // Update the vault
+      const updatePayload: Record<string, any> = {
+        bm_name: bm_name.trim(),
+        updated_at: new Date().toISOString(),
+      };
+      if (bm_link) updatePayload.bm_link = bm_link.trim();
+
       const { error: updateErr } = await supabaseAdmin
         .from("safe_bm_vaults")
-        .update({
-          bm_name: bm_name.trim(),
-          bm_link: bm_link.trim(),
-          updated_at: new Date().toISOString(),
-        })
+        .update(updatePayload)
         .eq("id", vault_id);
 
       if (updateErr) {
