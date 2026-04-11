@@ -115,20 +115,14 @@ export default function SafeBMVaultConfig({ vaults, onConfigured }: Props) {
   return (
     <div className="space-y-2.5">
       {/* Instructions */}
-      <div className="rounded-xl bg-[#262a30]/40 border border-amber-500/15 px-4 py-3 space-y-1.5">
-        <div className="flex items-center gap-2">
-          <MaterialIcon name="verified_user" className="text-amber-400 !text-base" />
-          <span className="text-xs font-bold text-[#e0e2ea]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-            Configure o Safe BM para proteger suas BMs
-          </span>
-        </div>
-        <p className="text-xs text-[#c6c6c7]/60 leading-relaxed">
+      <div className="text-center py-3 space-y-1.5">
+        <p className="text-sm text-[#c6c6c7]/70 leading-relaxed max-w-2xl mx-auto">
           O Safe BM protege sua Business Manager contra <strong className="text-[#e0e2ea]">phishing, scanners maliciosos e invasões</strong>, 
           garantindo a <strong className="text-[#e0e2ea]">recuperação do acesso</strong> caso o perfil de administrador seja comprometido. 
           A BM não pode estar com restrição para que a recuperação funcione.
         </p>
-        <p className="text-xs text-amber-400/80 flex items-center gap-1">
-          <MaterialIcon name="warning" className="!text-sm" />
+        <p className="text-sm text-amber-400/80 flex items-center justify-center gap-1.5">
+          <MaterialIcon name="warning" className="!text-base" />
           <span>Ao enviar o convite, conceda <strong className="text-amber-400">todas as permissões de administrador total</strong>.</span>
         </p>
       </div>
