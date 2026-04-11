@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { toast } from "sonner";
 
 function MIcon({ name, className = "" }: { name: string; className?: string }) {
   return <span className={`material-symbols-outlined ${className}`}>{name}</span>;
@@ -142,7 +141,7 @@ export default function AdminConfigEsteiras() {
   const handleClientDragEnd = () => { setClientDragIndex(null); setClientDragOverIndex(null); };
 
   return (
-    <AdminLayout>
+    <div className="min-h-screen bg-background">
       <div className="flex-1 p-6 md:p-10 max-w-5xl mx-auto w-full space-y-6">
         <div className="flex items-center gap-3 mb-2">
           <MIcon name="settings" className="text-orange-500 text-2xl" />
