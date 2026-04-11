@@ -272,7 +272,7 @@ function SafeBmPromoPanel() {
             <div className="w-full lg:w-[360px] xl:w-[420px] flex-shrink-0">
               <div className="relative w-full aspect-video rounded-xl overflow-hidden border border-border/40 bg-black/40">
                 <iframe
-                  src="https://www.youtube.com/embed/YOUR_VIDEO_ID"
+                  src="https://www.youtube.com/embed/TI3xOr_02PY"
                   title="Safe BM - Como Funciona"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
