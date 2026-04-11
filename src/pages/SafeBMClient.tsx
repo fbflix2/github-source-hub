@@ -74,7 +74,7 @@ export default function SafeBMClient() {
     );
   }, [configuredVaults, search]);
 
-  const activeVaults = vaults.filter(v => v.status === "active");
+  const activeVaults = configuredVaults.filter(v => v.status === "active");
   const expiringVaults = vaults.filter(v => {
     if (v.status !== "active") return false;
     const daysSinceProtection = differenceInDays(new Date(), new Date(v.protection_start));
