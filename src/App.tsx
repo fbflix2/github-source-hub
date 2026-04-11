@@ -100,6 +100,7 @@ import AdminAquecimento from "./pages/admin/AdminAquecimento";
 import AdminEsteiraAdmin from "./pages/admin/AdminEsteiraAdmin";
 import AdminAquecimentoGuia from "./pages/admin/AdminAquecimentoGuia";
 import AdminAquecimentoConfig from "./pages/admin/AdminAquecimentoConfig";
+import AdminConfigEsteiras from "./pages/admin/AdminConfigEsteiras";
 import AdminOperadorFinanceiro from "./pages/admin/AdminOperadorFinanceiro";
 import AdminOperadorDashboard from "./pages/admin/AdminOperadorDashboard";
 import AdminSaqueOperador from "./pages/admin/AdminSaqueOperador";
@@ -387,6 +388,7 @@ const App = () => {
                   <Route path="esteira-admin" element={<AdminEsteiraAdmin />} />
                   <Route path="aquecimento-guia" element={<AdminAquecimentoGuia />} />
                   <Route path="aquecimento-config" element={<AdminAquecimentoConfig />} />
+                  <Route path="config-esteiras" element={<AdminConfigEsteiras />} />
                   <Route path="operador-financeiro" element={<AdminOperadorFinanceiro />} />
                   <Route path="operador-dashboard" element={<AdminOperadorDashboard />} />
                   <Route path="saque-operador" element={<AdminSaqueOperador />} />
