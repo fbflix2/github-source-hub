@@ -488,8 +488,8 @@ Deno.serve(async (req) => {
     // Action: configure_vault - client configures their unconfigured safe_bm vault
     if (body.action === "configure_vault") {
       const { vault_id, bm_name, bm_link } = body;
-      if (!vault_id || !bm_name || !bm_link) {
-        return new Response(JSON.stringify({ error: "vault_id, bm_name e bm_link são obrigatórios" }), {
+      if (!vault_id || !bm_name) {
+        return new Response(JSON.stringify({ error: "vault_id e bm_name são obrigatórios" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
