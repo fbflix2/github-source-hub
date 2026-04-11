@@ -294,7 +294,7 @@ export default function SafeBMClient() {
                           <span className="text-[#c6c6c7]/60">Data de Expiração</span>
                         )}
                         <span className="text-[#e0e2ea] font-medium">
-                          {format(new Date(v.protection_start), "dd MMM yyyy", { locale: ptBR })}
+                          {format(new Date(new Date(v.protection_start).getTime() + 30 * 24 * 60 * 60 * 1000), "dd MMM yyyy", { locale: ptBR })}
                         </span>
                       </div>
                       <div className="w-full bg-[#0a0e13] h-1 rounded-full overflow-hidden">
