@@ -261,6 +261,6 @@ export default function AdminConfigEsteiras() {
           </section>
         )}
       </div>
-    </AdminLayout>
+    </div>
   );
 }
