@@ -128,63 +128,83 @@ export default function SafeBMVaultConfig({ vaults, onConfigured }: Props) {
         </span>
       </div>
 
-      {/* Vault cards - grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1.5">
+      {/* Vault cards - same design as active vaults */}
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2.5">
         {unconfigured.map((v, idx) => {
           const email = vaultEmails.get(v.id) || SAFE_EMAILS[idx % SAFE_EMAILS.length];
           const form = getForm(v.id);
 
           return (
-            <div key={v.id} className="rounded-xl bg-[#1c2025] border border-[#5d3f3b]/15 p-3 flex flex-col gap-2 aspect-square justify-between">
-              {/* Title */}
-              <div className="flex items-center gap-1.5">
-                <div className="w-5 h-5 rounded-lg bg-amber-500/20 flex items-center justify-center shrink-0">
-                  <MaterialIcon name="shield" className="!text-xs text-amber-400" />
+            <div
+              key={v.id}
+              className="group relative rounded-2xl overflow-hidden border border-amber-500/20 hover:border-amber-500/40 bg-gradient-to-b from-[#1c2025] to-[#14171b] p-0 flex flex-col transition-all duration-300"
+            >
+              {/* Vault door silhouette */}
+              <div className="relative flex items-center justify-center pt-5 pb-3">
+                <div className="relative w-20 h-20 rounded-full border-[3px] border-amber-500/30 flex items-center justify-center bg-[#0a0e13]/60 shadow-[0_0_30px_rgba(245,158,11,0.08)]">
+                  <div className="w-12 h-12 rounded-full border-2 border-amber-500/20 flex items-center justify-center bg-[#1c2025]">
+                    <div className="w-6 h-6 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/20">
+                      <MaterialIcon name="lock_open" className="!text-[14px] text-[#410001]" />
+                    </div>
+                  </div>
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[2px] h-2 bg-amber-500/40 rounded-full" />
+                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[2px] h-2 bg-amber-500/40 rounded-full" />
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 h-[2px] w-2 bg-amber-500/40 rounded-full" />
+                  <div className="absolute right-0 top-1/2 -translate-y-1/2 h-[2px] w-2 bg-amber-500/40 rounded-full" />
                 </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] font-bold text-[#e0e2ea] truncate">Cofre {idx + 1}</p>
-                  <p className="text-[8px] text-amber-400 truncate">{v.bm_name}</p>
-                </div>
+                <div className="absolute left-2 top-4 w-1.5 h-5 rounded-full bg-amber-500/15" />
+                <div className="absolute left-2 bottom-4 w-1.5 h-5 rounded-full bg-amber-500/15" />
               </div>
 
-              {/* Email */}
-              <div className="space-y-1">
-                <div className="flex items-center gap-1 bg-[#0a0e13] rounded px-1.5 py-1 border border-[#ffb4aa]/20">
-                  <MaterialIcon name="email" className="text-[#ffb4aa] !text-[10px]" />
-                  <span className="text-[8px] font-mono text-[#e0e2ea] flex-1 select-all truncate">{email}</span>
-                  <button onClick={() => copyEmail(email)} className="p-0.5 rounded bg-[#31353b] hover:bg-[#ffb4aa] hover:text-[#410001] text-[#c6c6c7] transition-all shrink-0">
-                    <MaterialIcon name="content_copy" className="!text-[9px]" />
+              {/* Card content */}
+              <div className="px-3 pb-3 flex flex-col flex-1 justify-between">
+                <div>
+                  <div className="flex justify-between items-start mb-1.5">
+                    <h4 className="text-xs font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{v.bm_name}</h4>
+                    <div className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 text-[9px] font-bold uppercase tracking-wider">
+                      Pendente
+                    </div>
+                  </div>
+                  <p className="text-[9px] text-[#c6c6c7]/50 mb-2 font-mono truncate">Cofre {idx + 1}</p>
+
+                  {/* Email */}
+                  <div className="flex items-center gap-1 bg-[#0a0e13] rounded-lg px-2 py-1.5 border border-amber-500/20 mb-1">
+                    <MaterialIcon name="email" className="text-[#ffb4aa] !text-xs" />
+                    <span className="text-[8px] font-mono text-[#e0e2ea] flex-1 select-all truncate">{email}</span>
+                    <button onClick={() => copyEmail(email)} className="p-0.5 rounded bg-[#31353b] hover:bg-amber-500 hover:text-[#410001] text-[#c6c6c7] transition-all shrink-0">
+                      <MaterialIcon name="content_copy" className="!text-[10px]" />
+                    </button>
+                  </div>
+                  <p className="text-[7px] text-amber-400/70 flex items-center gap-0.5 mb-2">
+                    <MaterialIcon name="warning" className="!text-[8px]" />
+                    Marque <strong>admin total</strong>
+                  </p>
+                </div>
+
+                {/* Name input + Save */}
+                <div className="space-y-1.5">
+                  <input
+                    type="text"
+                    value={form.bmName}
+                    onChange={(e) => updateForm(v.id, { bmName: e.target.value })}
+                    placeholder="Nome da BM"
+                    className="w-full bg-[#0a0e13] border border-[#ffb4aa]/20 rounded-xl px-2.5 py-1.5 text-[10px] text-[#e0e2ea] placeholder:text-[#c6c6c7]/30 focus:outline-none focus:border-[#ffb4aa]/50"
+                  />
+                  <button
+                    onClick={() => handleSubmit(v.id)}
+                    disabled={form.saving}
+                    className="w-full py-2 bg-amber-500 hover:bg-amber-400 text-[#410001] transition-all duration-300 rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {form.saving ? (
+                      <div className="w-3 h-3 border-2 border-[#410001] border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <MaterialIcon name="shield" className="!text-sm" />
+                        Configurar Cofre
+                      </>
+                    )}
                   </button>
                 </div>
-                <p className="text-[7px] text-amber-400/70 flex items-center gap-0.5">
-                  <MaterialIcon name="warning" className="!text-[8px]" />
-                  Marque <strong>admin total</strong>
-                </p>
-              </div>
-
-              {/* Name + Save */}
-              <div className="space-y-1.5 mt-auto">
-                <input
-                  type="text"
-                  value={form.bmName}
-                  onChange={(e) => updateForm(v.id, { bmName: e.target.value })}
-                  placeholder="Nome da BM"
-                  className="w-full bg-[#0a0e13] border border-[#ffb4aa]/20 rounded px-2 py-1 text-[10px] text-[#e0e2ea] placeholder:text-[#c6c6c7]/30 focus:outline-none focus:border-[#ffb4aa]/50"
-                />
-                <button
-                  onClick={() => handleSubmit(v.id)}
-                  disabled={form.saving}
-                  className="w-full py-1 bg-emerald-500 hover:bg-emerald-400 text-white rounded text-[8px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1 disabled:opacity-50"
-                >
-                  {form.saving ? (
-                    <div className="w-2.5 h-2.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <>
-                      <MaterialIcon name="shield" className="!text-[10px]" />
-                      Salvar
-                    </>
-                  )}
-                </button>
               </div>
             </div>
           );
