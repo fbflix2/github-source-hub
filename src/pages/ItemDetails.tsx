@@ -1213,7 +1213,7 @@ export default function ItemDetails() {
           </div>
 
           {/* Warming Tracker - Admin Only */}
-          {isStaff && stockData.idPerfil && orderUserId && (
+          {isStaff && orderUserId && (
             <div className="glass-panel rounded-xl p-4 bg-gradient-to-br from-orange-500/5 to-muted/30 border-orange-500/20">
               <div className="flex items-center gap-2 mb-2">
                 <span className="material-symbols-outlined text-orange-400 text-lg">local_fire_department</span>
