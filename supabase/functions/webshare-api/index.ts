@@ -1971,11 +1971,14 @@ Deno.serve(async (req) => {
       if (!existingSub) throw new Error("Assinatura não encontrada");
 
       // For single-proxy subs or non-exploded, check if still active
+      // Allow renewal when ≤3 days remaining (status "expiring" in frontend)
       const isMultiProxy = (total_proxies || 0) > 1;
       if (!isMultiProxy) {
         if (!["expired", "cancelled"].includes(existingSub.status) && existingSub.end_date) {
           const endDate = new Date(existingSub.end_date);
-          if (endDate > new Date()) throw new Error("Esta assinatura ainda está ativa");
+          const now = new Date();
+          const daysRemaining = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+          if (daysRemaining > 3) throw new Error("Esta assinatura ainda está ativa. Renovação disponível nos últimos 3 dias.");
         }
       }
 
