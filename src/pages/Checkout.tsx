@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { WhatsAppRequiredPopup } from "@/components/WhatsAppRequiredPopup";
 
 interface DbProduct {
   id: string;
@@ -51,6 +52,21 @@ export default function Checkout() {
   const [product, setProduct] = useState<DbProduct | null>(null);
   const [loading, setLoading] = useState(true);
   const [shareCopied, setShareCopied] = useState(false);
+  const [showWhatsAppPopup, setShowWhatsAppPopup] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [userPhone, setUserPhone] = useState<string | null>(null);
+
+  // Fetch user phone on mount
+  useEffect(() => {
+    async function fetchUserPhone() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      setCurrentUserId(user.id);
+      const { data: profile } = await supabase.from("profiles").select("phone").eq("user_id", user.id).maybeSingle();
+      setUserPhone(profile?.phone || null);
+    }
+    fetchUserPhone();
+  }, []);
 
   useEffect(() => {
     async function fetchData() {
@@ -692,6 +708,14 @@ export default function Checkout() {
       if (!user) {
         toast.error("Faça login para continuar");
         navigate("/auth");
+        return;
+      }
+
+      // Check if user has WhatsApp
+      if (!userPhone) {
+        setShowWhatsAppPopup(true);
+        setProcessing(false);
+        clearTimeout(safetyTimeout);
         return;
       }
 
@@ -1598,6 +1622,18 @@ export default function Checkout() {
           )}
         </DialogContent>
       </Dialog>
+      {/* WhatsApp Required Popup */}
+      {currentUserId && (
+        <WhatsAppRequiredPopup
+          open={showWhatsAppPopup}
+          onClose={() => setShowWhatsAppPopup(false)}
+          onSaved={(phone) => {
+            setUserPhone(phone);
+            setShowWhatsAppPopup(false);
+          }}
+          userId={currentUserId}
+        />
+      )}
     </div>
   );
 }
