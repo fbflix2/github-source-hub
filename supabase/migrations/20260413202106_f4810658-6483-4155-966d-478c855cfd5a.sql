@@ -1,0 +1,1 @@
+UPDATE products SET external_id = NULL WHERE id = '65db89df-9000-41f9-95ab-1473db0b0608';
