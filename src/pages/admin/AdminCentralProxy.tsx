@@ -25,6 +25,9 @@ export default function AdminCentralProxy() {
           <TabsTrigger value="maintenance">
             <Wrench className="size-4 mr-1.5" />Manutenção
           </TabsTrigger>
+          <TabsTrigger value="available">
+            <Package className="size-4 mr-1.5" />Disponíveis
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="dashboard">
