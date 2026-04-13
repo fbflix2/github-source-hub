@@ -26,9 +26,9 @@ export default function ProxyAvailableTab() {
   });
   const allProxies: any[] = allProxiesData?.data || allProxiesData?.results || (Array.isArray(allProxiesData) ? allProxiesData : []);
 
-  // Fetch sold proxy IDs - reuse same query key/shape as Dashboard for cache sharing
+  // Fetch ACTIVE sold proxy IDs only (active/expiring status)
   const { data: wsSubs, isLoading: subsLoading } = useQuery({
-    queryKey: ["webshare-revenue-subs"],
+    queryKey: ["webshare-active-subs-for-available"],
     queryFn: async () => {
       let all: any[] = [];
       let from = 0;
@@ -36,8 +36,9 @@ export default function ProxyAvailableTab() {
       while (true) {
         const { data } = await supabase
           .from("subscriptions")
-          .select("id, name, status, end_date, start_date, raw_data, created_at, product_id, user_id")
+          .select("id, status, raw_data")
           .eq("type", "webshare")
+          .in("status", ["active", "expiring"])
           .range(from, from + ps - 1);
         if (!data?.length) break;
         all = [...all, ...data];
