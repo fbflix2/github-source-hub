@@ -461,17 +461,17 @@ Deno.serve(async (req) => {
           .replace(/\{\{produto\}\}/g, product_name || "Produto")
           .replace(/\{\{novo_produto\}\}/g, new_product_name || "Novo produto")
           .replace(/\{\{motivo\}\}/g, reason || "—")
-          .replace(/\{\{link\}\}/g, "https://fbflix1.lovable.app/orders");
+          .replace(/\{\{link\}\}/g, "https://fbflix.com.br/orders");
       } else {
         // Fallback hardcoded
         if (isExchange) {
           msg = `Olá ${nome} 👋\n\nSua *troca* foi realizada com sucesso! ✅\n\n🔄 *De:* ${product_name || "Produto anterior"}\n✨ *Para:* ${new_product_name || "Novo produto"}\n`;
           if (reason) msg += `📋 *Motivo:* ${reason}\n`;
-          msg += `\nhttps://fbflix1.lovable.app/orders`;
+          msg += `\nhttps://fbflix.com.br/orders`;
         } else {
           msg = `Olá ${nome} 👋\n\nSua *reposição* foi realizada com sucesso! ✅\n\n📦 *Produto:* ${product_name || "Item reposto"}\n`;
           if (reason) msg += `📋 *Motivo:* ${reason}\n`;
-          msg += `\nhttps://fbflix1.lovable.app/orders`;
+          msg += `\nhttps://fbflix.com.br/orders`;
         }
       }
 
