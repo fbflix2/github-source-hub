@@ -162,6 +162,15 @@ async function checkProfileUrl(profileUrl: string): Promise<CheckResult> {
       }
     }
 
+    if (redirectedToLoginWall) {
+      return {
+        url: profileUrl,
+        status: "blocked",
+        httpStatus,
+        detail: "Perfil bloqueado/checkpoint — redirecionado para login/checkpoint",
+      };
+    }
+
     // If page has substantial content but no clear indicators
     if (html.length > 50000) {
       return {
@@ -169,15 +178,6 @@ async function checkProfileUrl(profileUrl: string): Promise<CheckResult> {
         status: "active",
         httpStatus,
         detail: "Provavelmente ativo — página com conteúdo substancial",
-      };
-    }
-
-    if (redirectedToLoginWall) {
-      return {
-        url: profileUrl,
-        status: "blocked",
-        httpStatus,
-        detail: "Perfil bloqueado/checkpoint — redirecionado para login/checkpoint",
       };
     }
 
