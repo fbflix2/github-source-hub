@@ -5,6 +5,7 @@ import { AdminSidebar } from "./AdminSidebar";
 import { AdminHeader } from "./AdminHeader";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { ProxyBRLowBalanceAlert } from "./ProxyBRLowBalanceAlert";
+import { WapiDisconnectedAlert } from "./WapiDisconnectedAlert";
 import { PageRequestNotification } from "./PageRequestNotification";
 import { PendingSafeBMPopup } from "./PendingSafeBMPopup";
 import { Play } from "lucide-react";
@@ -87,6 +88,7 @@ export function AdminLayout() {
         </main>
         <AdminMobileBottomNav />
         <ProxyBRLowBalanceAlert />
+        <WapiDisconnectedAlert />
         <PageRequestNotification />
         <PendingSafeBMPopup />
       </div>
@@ -114,6 +116,7 @@ export function AdminLayout() {
           </div>
         </div>
         <ProxyBRLowBalanceAlert />
+        <WapiDisconnectedAlert />
         <PageRequestNotification />
         <PendingSafeBMPopup />
       </main>
