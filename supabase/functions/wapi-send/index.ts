@@ -301,9 +301,11 @@ Deno.serve(async (req) => {
       targetDate.setDate(targetDate.getDate() + days_ahead);
       const dateStr = targetDate.toISOString().slice(0, 10);
 
+      const SITE_URL = "https://fbflix.com.br";
+
       const { data: subs, error: subsErr } = await admin
         .from("subscriptions")
-        .select("id, user_id, name, type, end_date, product_id")
+        .select("id, user_id, name, type, end_date, product_id, raw_data")
         .eq("status", "active")
         .gte("end_date", dateStr + "T00:00:00Z")
         .lt("end_date", dateStr + "T23:59:59Z");
@@ -346,7 +348,14 @@ Deno.serve(async (req) => {
         for (const sub of userSubList) {
           const product = sub.product_id ? productMap[sub.product_id] : null;
           const pName = product?.name || sub.type?.toUpperCase() || "Proxy";
-          const pPrice = product?.price ? Number(product.price) : 0;
+          // Price: try product price, then raw_data.monthly_cost or raw_data.price, then fallback
+          let pPrice = product?.price ? Number(product.price) : 0;
+          if (pPrice === 0 && sub.raw_data) {
+            const rd = typeof sub.raw_data === "string" ? JSON.parse(sub.raw_data) : sub.raw_data;
+            pPrice = Number(rd?.monthly_cost || rd?.price || 0);
+          }
+          // Fallback for proxybr without product: use default price
+          if (pPrice === 0 && sub.type === "proxybr") pPrice = 25;
           const subId = sub.name || sub.id.slice(0, 8);
           totalValue += pPrice;
           proxyLines.push(`• ${subId} — ${pName} (R$ ${pPrice.toFixed(2)})`);
@@ -373,17 +382,20 @@ Deno.serve(async (req) => {
         let msg: string;
         if (isMultiple) {
           const nome = profile.full_name || "Cliente";
-          msg = `Olá ${nome} 👋\n\nPassando pra te lembrar que suas *${userSubList.length} assinaturas* de proxy vencem em *${firstEndDate}*:\n\n${proxyLines.join("\n")}\n\n💰 *Valor total: ${totalStr}*\n\n${closingHook}\nhttps://fbflix1.lovable.app/subscriptions`;
+          const subLinks = userSubList.map((s: any) => `${SITE_URL}/subscriptions/${s.name || s.id}`).join("\n");
+          msg = `Olá ${nome} 👋\n\nPassando pra te lembrar que suas *${userSubList.length} assinaturas* de proxy vencem em *${firstEndDate}*:\n\n${proxyLines.join("\n")}\n\n💰 *Valor total: ${totalStr}*\n\n${closingHook}\n\nRenove aqui:\n${subLinks}`;
         } else {
+          const subCode = userSubList[0].name || userSubList[0].id;
+          const renewLink = `${SITE_URL}/subscriptions/${subCode}`;
           msg = tpl.message_body;
           msg = msg.replaceAll("{{nome}}", profile.full_name || "Cliente");
           msg = msg.replaceAll("{{produto}}", proxyLines[0].replace("• ", ""));
           msg = msg.replaceAll("{{valor}}", totalStr);
           msg = msg.replaceAll("{{data}}", firstEndDate);
           msg = msg.replaceAll("{{email}}", "");
-          msg = msg.replaceAll("{{link}}", "");
+          msg = msg.replaceAll("{{link}}", renewLink);
           // Append dynamic hook after template content
-          msg += `\n\n${closingHook}\nhttps://fbflix1.lovable.app/subscriptions`;
+          msg += `\n\n${closingHook}\n${renewLink}`;
         }
 
         if (dry_run) {
@@ -449,17 +461,17 @@ Deno.serve(async (req) => {
           .replace(/\{\{produto\}\}/g, product_name || "Produto")
           .replace(/\{\{novo_produto\}\}/g, new_product_name || "Novo produto")
           .replace(/\{\{motivo\}\}/g, reason || "—")
-          .replace(/\{\{link\}\}/g, "https://fbflix1.lovable.app/orders");
+          .replace(/\{\{link\}\}/g, "https://fbflix.com.br/orders");
       } else {
         // Fallback hardcoded
         if (isExchange) {
           msg = `Olá ${nome} 👋\n\nSua *troca* foi realizada com sucesso! ✅\n\n🔄 *De:* ${product_name || "Produto anterior"}\n✨ *Para:* ${new_product_name || "Novo produto"}\n`;
           if (reason) msg += `📋 *Motivo:* ${reason}\n`;
-          msg += `\nhttps://fbflix1.lovable.app/orders`;
+          msg += `\nhttps://fbflix.com.br/orders`;
         } else {
           msg = `Olá ${nome} 👋\n\nSua *reposição* foi realizada com sucesso! ✅\n\n📦 *Produto:* ${product_name || "Item reposto"}\n`;
           if (reason) msg += `📋 *Motivo:* ${reason}\n`;
-          msg += `\nhttps://fbflix1.lovable.app/orders`;
+          msg += `\nhttps://fbflix.com.br/orders`;
         }
       }
 
