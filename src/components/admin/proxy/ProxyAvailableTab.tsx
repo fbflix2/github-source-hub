@@ -20,7 +20,7 @@ export default function ProxyAvailableTab() {
   const { data: allProxiesData, isLoading: proxyLoading } = useWebshareAllProxies("direct");
   const allProxies: any[] = allProxiesData?.results || allProxiesData?.data || (Array.isArray(allProxiesData) ? allProxiesData : []);
 
-  // Fetch sold proxy IDs
+  // Fetch sold proxy IDs - reuse same query key/shape as Dashboard for cache sharing
   const { data: wsSubs, isLoading: subsLoading } = useQuery({
     queryKey: ["webshare-revenue-subs"],
     queryFn: async () => {
@@ -30,7 +30,7 @@ export default function ProxyAvailableTab() {
       while (true) {
         const { data } = await supabase
           .from("subscriptions")
-          .select("id, raw_data")
+          .select("id, name, status, end_date, start_date, raw_data, created_at, product_id, user_id")
           .eq("type", "webshare")
           .range(from, from + ps - 1);
         if (!data?.length) break;
