@@ -1,12 +1,12 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useWebshareAllProxies } from "@/hooks/useWebshare";
 import { supabase } from "@/integrations/supabase/client";
+import { callWebshare } from "@/hooks/useWebshare";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Copy, Check, Search, ChevronLeft, ChevronRight, Server } from "lucide-react";
+import { Copy, Check, Search, ChevronLeft, ChevronRight, Server, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 const PAGE_SIZE = 25;
@@ -17,10 +17,16 @@ export default function ProxyAvailableTab() {
   const [brPage, setBrPage] = useState(1);
   const [usPage, setUsPage] = useState(1);
 
-  const { data: allProxiesData, isLoading: proxyLoading } = useWebshareAllProxies("direct");
-  const allProxies: any[] = allProxiesData?.results || allProxiesData?.data || (Array.isArray(allProxiesData) ? allProxiesData : []);
+  // Fetch all proxies from Webshare API
+  const { data: allProxiesData, isLoading: proxyLoading, refetch: refetchProxies } = useQuery({
+    queryKey: ["webshare-all-proxies", "direct"],
+    queryFn: () => callWebshare("get-all-proxies", { mode: "direct" }),
+    staleTime: 300_000,
+    refetchOnWindowFocus: false,
+  });
+  const allProxies: any[] = allProxiesData?.data || allProxiesData?.results || (Array.isArray(allProxiesData) ? allProxiesData : []);
 
-  // Fetch sold proxy IDs
+  // Fetch sold proxy IDs - reuse same query key/shape as Dashboard for cache sharing
   const { data: wsSubs, isLoading: subsLoading } = useQuery({
     queryKey: ["webshare-revenue-subs"],
     queryFn: async () => {
@@ -30,7 +36,7 @@ export default function ProxyAvailableTab() {
       while (true) {
         const { data } = await supabase
           .from("subscriptions")
-          .select("id, raw_data")
+          .select("id, name, status, end_date, start_date, raw_data, created_at, product_id, user_id")
           .eq("type", "webshare")
           .range(from, from + ps - 1);
         if (!data?.length) break;
@@ -170,6 +176,13 @@ export default function ProxyAvailableTab() {
 
   return (
     <div className="space-y-6">
+      {/* Refresh */}
+      <div className="flex justify-end">
+        <Button variant="outline" size="sm" onClick={() => refetchProxies()} disabled={isLoading}>
+          <RefreshCw className={`size-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />Atualizar
+        </Button>
+      </div>
+
       {/* Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="border-border/40 bg-card/60">
