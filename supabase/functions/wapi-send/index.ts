@@ -301,9 +301,11 @@ Deno.serve(async (req) => {
       targetDate.setDate(targetDate.getDate() + days_ahead);
       const dateStr = targetDate.toISOString().slice(0, 10);
 
+      const SITE_URL = "https://fbflix.com.br";
+
       const { data: subs, error: subsErr } = await admin
         .from("subscriptions")
-        .select("id, user_id, name, type, end_date, product_id")
+        .select("id, user_id, name, type, end_date, product_id, raw_data")
         .eq("status", "active")
         .gte("end_date", dateStr + "T00:00:00Z")
         .lt("end_date", dateStr + "T23:59:59Z");
