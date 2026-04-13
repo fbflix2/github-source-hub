@@ -97,11 +97,16 @@ export default function ItemDetails() {
       setOrder(orderData);
       setOrderUserId(orderData.user_id);
 
-      // Check if current user is staff (admin view)
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      if (currentUser) {
-        const { data: staffCheck } = await supabase.rpc("is_staff", { _user_id: currentUser.id });
-        if (staffCheck) setIsStaff(true);
+      // Check if current user is staff (admin view) — also detect impersonation mode
+      const isImpersonating = sessionStorage.getItem("fbflix_impersonation_tab") === "1";
+      if (isImpersonating) {
+        setIsStaff(true);
+      } else {
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        if (currentUser) {
+          const { data: staffCheck } = await supabase.rpc("is_staff", { _user_id: currentUser.id });
+          if (staffCheck) setIsStaff(true);
+        }
       }
 
       // Fetch order item
@@ -1208,7 +1213,7 @@ export default function ItemDetails() {
           </div>
 
           {/* Warming Tracker - Admin Only */}
-          {isStaff && stockData.idPerfil && orderUserId && (
+          {isStaff && orderUserId && (
             <div className="glass-panel rounded-xl p-4 bg-gradient-to-br from-orange-500/5 to-muted/30 border-orange-500/20">
               <div className="flex items-center gap-2 mb-2">
                 <span className="material-symbols-outlined text-orange-400 text-lg">local_fire_department</span>
@@ -1243,11 +1248,11 @@ export default function ItemDetails() {
         </div>
       </div>
       {/* Warming Tracker Modal */}
-      {isStaff && stockData.idPerfil && orderUserId && (
+      {isStaff && orderUserId && (
         <WarmingTrackerModal
           open={showWarmingTracker}
           onOpenChange={setShowWarmingTracker}
-          profileCode={stockData.idPerfil}
+          profileCode={stockData.idPerfil || orderItem?.name || ""}
           userId={orderUserId}
         />
       )}
