@@ -711,6 +711,14 @@ export default function Checkout() {
         return;
       }
 
+      // Check if user has WhatsApp
+      if (!userPhone) {
+        setShowWhatsAppPopup(true);
+        setProcessing(false);
+        clearTimeout(safetyTimeout);
+        return;
+      }
+
       if (!draftOrderId || !draftOrderCode) {
         toast.error("Erro ao preparar pedido. Recarregue a página.");
         return;
