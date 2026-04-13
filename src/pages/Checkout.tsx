@@ -1613,6 +1613,7 @@ export default function Checkout() {
             </>
           )}
         </DialogContent>
+      </Dialog>
       {/* WhatsApp Required Popup */}
       {currentUserId && (
         <WhatsAppRequiredPopup
