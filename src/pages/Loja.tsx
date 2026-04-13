@@ -384,7 +384,7 @@ export default function Dashboard() {
               <p className="text-muted-foreground">Nenhum proxy disponível no momento.</p>
             </div>
           ) : viewMode === "list" ? (
-            <div className="flex flex-col gap-3">
+            <div key="proxy-list" className="flex flex-col gap-3">
               {proxyProducts.map((product: any) => {
                 const local = getLocalProxyData(product);
                 const variants = product.variant || product.variants?.data || product.variants || [];
@@ -410,7 +410,7 @@ export default function Dashboard() {
                 };
                 return (
                   <ProductListItem
-                    key={product.id}
+                    key={`list-${product.id}`}
                     product={asProduct}
                     quantity={getProxyQty(String(product.id))}
                     onQuantityChange={(id, delta, max) => updateProxyQty(String(product.id), delta)}
@@ -420,7 +420,7 @@ export default function Dashboard() {
               })}
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div key="proxy-grid" className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {proxyProducts.map((product: any) => (
                 <ProxyProductCard
                   key={product.id}
@@ -510,10 +510,10 @@ export default function Dashboard() {
             <p className="text-muted-foreground">Nenhum produto encontrado.</p>
           </div>
         ) : viewMode === "list" ? (
-          <div className="flex flex-col gap-3">
+          <div key="all-list" className="flex flex-col gap-3">
             {allProducts.map((product) => (
               <ProductListItem
-                key={product.id}
+                key={`list-${product.id}`}
                 product={product}
                 quantity={getQuantity(product.id)}
                 onQuantityChange={updateQuantity}
@@ -522,7 +522,7 @@ export default function Dashboard() {
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div key="all-grid" className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {allProducts.map((product) => {
               const stockInfo = getStockInfo(product);
               return (
