@@ -1,0 +1,1 @@
+DELETE FROM subscriptions WHERE id = '6a3aff46-4f3e-477c-a985-c0e22c38550d';
