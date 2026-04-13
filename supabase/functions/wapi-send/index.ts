@@ -348,7 +348,14 @@ Deno.serve(async (req) => {
         for (const sub of userSubList) {
           const product = sub.product_id ? productMap[sub.product_id] : null;
           const pName = product?.name || sub.type?.toUpperCase() || "Proxy";
-          const pPrice = product?.price ? Number(product.price) : 0;
+          // Price: try product price, then raw_data.monthly_cost or raw_data.price, then fallback
+          let pPrice = product?.price ? Number(product.price) : 0;
+          if (pPrice === 0 && sub.raw_data) {
+            const rd = typeof sub.raw_data === "string" ? JSON.parse(sub.raw_data) : sub.raw_data;
+            pPrice = Number(rd?.monthly_cost || rd?.price || 0);
+          }
+          // Fallback for proxybr without product: use default price
+          if (pPrice === 0 && sub.type === "proxybr") pPrice = 25;
           const subId = sub.name || sub.id.slice(0, 8);
           totalValue += pPrice;
           proxyLines.push(`• ${subId} — ${pName} (R$ ${pPrice.toFixed(2)})`);
