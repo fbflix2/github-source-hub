@@ -1613,7 +1613,18 @@ export default function Checkout() {
             </>
           )}
         </DialogContent>
-      </Dialog>
+      {/* WhatsApp Required Popup */}
+      {currentUserId && (
+        <WhatsAppRequiredPopup
+          open={showWhatsAppPopup}
+          onClose={() => setShowWhatsAppPopup(false)}
+          onSaved={(phone) => {
+            setUserPhone(phone);
+            setShowWhatsAppPopup(false);
+          }}
+          userId={currentUserId}
+        />
+      )}
     </div>
   );
 }
