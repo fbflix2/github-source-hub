@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { PlatformFeedback } from "@/components/PlatformFeedback";
 import ExchangePaymentGate from "@/components/ExchangePaymentGate";
+import WarmingTrackerModal from "@/components/admin/WarmingTrackerModal";
 import {
   AlertDialog,
   AlertDialogContent,
