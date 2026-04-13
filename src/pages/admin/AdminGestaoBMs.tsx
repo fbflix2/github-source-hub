@@ -136,8 +136,33 @@ export default function AdminGestaoBMs() {
     if (error) {
       toast.error("Erro ao carregar BMs: " + error.message);
     } else {
-      const mapped = (data || []).map((item: any) => ({
+      const rows = data || [];
+      // Collect user IDs that have no client_name so we can resolve from profiles
+      const nullUuid = "00000000-0000-0000-0000-000000000000";
+      const missingNameIds = [
+        ...new Set(
+          rows
+            .filter((r: any) => !r.client_name && r.client_user_id && r.client_user_id !== nullUuid)
+            .map((r: any) => r.client_user_id)
+        ),
+      ];
+
+      let profileMap: Record<string, string> = {};
+      if (missingNameIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .in("user_id", missingNameIds);
+        if (profiles) {
+          profiles.forEach((p: any) => {
+            if (p.full_name) profileMap[p.user_id] = p.full_name;
+          });
+        }
+      }
+
+      const mapped = rows.map((item: any) => ({
         ...item,
+        client_name: item.client_name || profileMap[item.client_user_id] || null,
         perfil_matriz: item.stock_items?.data?.perfilBackup || null,
         stock_items: undefined,
       }));
