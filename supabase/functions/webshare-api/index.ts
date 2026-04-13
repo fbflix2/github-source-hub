@@ -2029,7 +2029,10 @@ Deno.serve(async (req) => {
       if (profile.balance < renewalPrice) throw new Error(`Saldo insuficiente. Necessário: R$ ${renewalPrice.toFixed(2)}, disponível: R$ ${profile.balance.toFixed(2)}`);
 
       const startDate = new Date();
-      const endDate = new Date(startDate);
+      // If renewing an active/expiring sub, extend from current end_date
+      const currentEndDate = existingSub.end_date ? new Date(existingSub.end_date) : null;
+      const isEarlyRenewal = currentEndDate && currentEndDate > startDate;
+      const endDate = new Date(isEarlyRenewal ? currentEndDate : startDate);
       endDate.setDate(endDate.getDate() + 30);
       const isExistingWebshareRenewal = ["webshare", "webshare_rotating"].includes(existingSub.type);
       const nextProductId = isExistingWebshareRenewal
