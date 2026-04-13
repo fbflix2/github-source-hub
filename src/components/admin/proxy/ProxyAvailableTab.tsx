@@ -30,6 +30,13 @@ type WebshareSubscription = {
   raw_data: Record<string, any> | null;
 };
 
+type SubscriptionRow = {
+  id: string;
+  status: string;
+  end_date: string | null;
+  raw_data: unknown;
+};
+
 const normalizeProxyId = (value: unknown) => String(value ?? "").trim();
 
 const isStillOccupying = (subscription: WebshareSubscription) => {
@@ -96,7 +103,16 @@ export default function ProxyAvailableTab() {
 
         if (error) throw new Error(error.message);
         if (!data?.length) break;
-        all = [...all, ...data];
+        const normalizedRows = (data as SubscriptionRow[]).map((row) => ({
+          id: row.id,
+          status: row.status,
+          end_date: row.end_date,
+          raw_data: row.raw_data && typeof row.raw_data === "object" && !Array.isArray(row.raw_data)
+            ? row.raw_data as Record<string, any>
+            : null,
+        }));
+
+        all = [...all, ...normalizedRows];
         if (data.length < ps) break;
         from += ps;
       }
@@ -153,7 +169,7 @@ export default function ProxyAvailableTab() {
   const copyProxy = (proxy: ProxyRecord) => {
     const str = `${proxy.proxy_address}:${proxy.port}:${proxy.username}:${proxy.password}`;
     navigator.clipboard.writeText(str);
-    setCopiedId(proxy.id);
+    setCopiedId(String(proxy.id));
     toast.success("Proxy copiado!");
     setTimeout(() => setCopiedId(null), 2000);
   };
@@ -213,8 +229,8 @@ export default function ProxyAvailableTab() {
                               className="h-7 w-7 p-0"
                               onClick={() => copyProxy(proxy)}
                             >
-                              {copiedId === proxy.id
-                                ? <Check className="w-3.5 h-3.5 text-green-400" />
+                              {copiedId === String(proxy.id)
+                                ? <Check className="w-3.5 h-3.5 text-primary" />
                                 : <Copy className="w-3.5 h-3.5 text-muted-foreground" />}
                             </Button>
                           </td>
@@ -283,8 +299,8 @@ export default function ProxyAvailableTab() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="border-border/40 bg-card/60">
           <CardContent className="p-4 flex items-center gap-3">
-            <div className="flex items-center justify-center size-10 rounded-lg bg-green-500/10">
-              <Server className="size-5 text-green-500" />
+            <div className="flex items-center justify-center size-10 rounded-lg bg-primary/10">
+              <Server className="size-5 text-primary" />
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Total Disponíveis</p>
