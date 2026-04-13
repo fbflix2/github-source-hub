@@ -100,17 +100,9 @@ async function checkProfileUrl(profileUrl: string): Promise<CheckResult> {
     const httpStatus = resp.status;
     const finalUrl = resp.url;
 
-    // Check for login redirect (Facebook hiding profile behind login wall)
-    if (finalUrl.includes("/login") || finalUrl.includes("checkpoint")) {
-      // Even login redirects can tell us things — if the page existed, it would redirect to login
-      // A non-existent page also redirects to login, so this is "unknown"
-      return {
-        url: profileUrl,
-        status: "unknown",
-        httpStatus,
-        detail: "Redirecionado para login — não é possível verificar sem autenticação",
-      };
-    }
+    // Even if Facebook redirects/login-walls the request, first inspect the HTML.
+    // Some blocked/checkpoint pages still contain strong block signals in the body.
+    const redirectedToLoginWall = finalUrl.includes("/login") || finalUrl.includes("checkpoint");
 
     // 404
     if (httpStatus === 404) {
