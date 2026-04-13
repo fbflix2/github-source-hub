@@ -1248,11 +1248,11 @@ export default function ItemDetails() {
         </div>
       </div>
       {/* Warming Tracker Modal */}
-      {isStaff && stockData.idPerfil && orderUserId && (
+      {isStaff && orderUserId && (
         <WarmingTrackerModal
           open={showWarmingTracker}
           onOpenChange={setShowWarmingTracker}
-          profileCode={stockData.idPerfil}
+          profileCode={stockData.idPerfil || orderItem?.name || ""}
           userId={orderUserId}
         />
       )}
