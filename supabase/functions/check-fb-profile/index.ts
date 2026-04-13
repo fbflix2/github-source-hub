@@ -172,6 +172,15 @@ async function checkProfileUrl(profileUrl: string): Promise<CheckResult> {
       };
     }
 
+    if (redirectedToLoginWall) {
+      return {
+        url: profileUrl,
+        status: "blocked",
+        httpStatus,
+        detail: "Perfil bloqueado/checkpoint — redirecionado para login/checkpoint",
+      };
+    }
+
     return {
       url: profileUrl,
       status: "unknown",
