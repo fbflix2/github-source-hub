@@ -382,17 +382,20 @@ Deno.serve(async (req) => {
         let msg: string;
         if (isMultiple) {
           const nome = profile.full_name || "Cliente";
-          msg = `Olá ${nome} 👋\n\nPassando pra te lembrar que suas *${userSubList.length} assinaturas* de proxy vencem em *${firstEndDate}*:\n\n${proxyLines.join("\n")}\n\n💰 *Valor total: ${totalStr}*\n\n${closingHook}\nhttps://fbflix1.lovable.app/subscriptions`;
+          const subLinks = userSubList.map((s: any) => `${SITE_URL}/subscriptions/${s.name || s.id}`).join("\n");
+          msg = `Olá ${nome} 👋\n\nPassando pra te lembrar que suas *${userSubList.length} assinaturas* de proxy vencem em *${firstEndDate}*:\n\n${proxyLines.join("\n")}\n\n💰 *Valor total: ${totalStr}*\n\n${closingHook}\n\nRenove aqui:\n${subLinks}`;
         } else {
+          const subCode = userSubList[0].name || userSubList[0].id;
+          const renewLink = `${SITE_URL}/subscriptions/${subCode}`;
           msg = tpl.message_body;
           msg = msg.replaceAll("{{nome}}", profile.full_name || "Cliente");
           msg = msg.replaceAll("{{produto}}", proxyLines[0].replace("• ", ""));
           msg = msg.replaceAll("{{valor}}", totalStr);
           msg = msg.replaceAll("{{data}}", firstEndDate);
           msg = msg.replaceAll("{{email}}", "");
-          msg = msg.replaceAll("{{link}}", "");
+          msg = msg.replaceAll("{{link}}", renewLink);
           // Append dynamic hook after template content
-          msg += `\n\n${closingHook}\nhttps://fbflix1.lovable.app/subscriptions`;
+          msg += `\n\n${closingHook}\n${renewLink}`;
         }
 
         if (dry_run) {
