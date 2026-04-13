@@ -97,11 +97,16 @@ export default function ItemDetails() {
       setOrder(orderData);
       setOrderUserId(orderData.user_id);
 
-      // Check if current user is staff (admin view)
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      if (currentUser) {
-        const { data: staffCheck } = await supabase.rpc("is_staff", { _user_id: currentUser.id });
-        if (staffCheck) setIsStaff(true);
+      // Check if current user is staff (admin view) — also detect impersonation mode
+      const isImpersonating = sessionStorage.getItem("fbflix_impersonation_tab") === "1";
+      if (isImpersonating) {
+        setIsStaff(true);
+      } else {
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        if (currentUser) {
+          const { data: staffCheck } = await supabase.rpc("is_staff", { _user_id: currentUser.id });
+          if (staffCheck) setIsStaff(true);
+        }
       }
 
       // Fetch order item
