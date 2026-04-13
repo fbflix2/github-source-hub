@@ -107,7 +107,7 @@ export function MainLayout({ userName, userEmail, onLogout, unreadTickets = 0 }:
       />
 
       {/* Main Content */}
-      <main className={cn("pb-24 md:pb-20 px-6 max-w-7xl mx-auto", isImpersonating ? "pt-36" : "pt-28")}>
+      <main className="pb-24 md:pb-20 px-6 max-w-7xl mx-auto pt-28">
         <Outlet />
       </main>
 
