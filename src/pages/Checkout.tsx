@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { WhatsAppRequiredPopup } from "@/components/WhatsAppRequiredPopup";
 
 interface DbProduct {
   id: string;
