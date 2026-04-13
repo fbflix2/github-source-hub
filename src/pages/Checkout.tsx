@@ -56,6 +56,18 @@ export default function Checkout() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [userPhone, setUserPhone] = useState<string | null>(null);
 
+  // Fetch user phone on mount
+  useEffect(() => {
+    async function fetchUserPhone() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      setCurrentUserId(user.id);
+      const { data: profile } = await supabase.from("profiles").select("phone").eq("user_id", user.id).maybeSingle();
+      setUserPhone(profile?.phone || null);
+    }
+    fetchUserPhone();
+  }, []);
+
   useEffect(() => {
     async function fetchData() {
       // If resuming an existing order
