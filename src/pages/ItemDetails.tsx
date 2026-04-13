@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { PlatformFeedback } from "@/components/PlatformFeedback";
 import ExchangePaymentGate from "@/components/ExchangePaymentGate";
+import WarmingTrackerModal from "@/components/admin/WarmingTrackerModal";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -71,6 +72,9 @@ export default function ItemDetails() {
   const [clientFullName, setClientFullName] = useState<string | null>(null);
   const [isCombo, setIsCombo] = useState(false);
   const [comboChildren, setComboChildren] = useState<any[]>([]);
+  const [isStaff, setIsStaff] = useState(false);
+  const [showWarmingTracker, setShowWarmingTracker] = useState(false);
+  const [orderUserId, setOrderUserId] = useState<string | null>(null);
   // Countdown from order created_at + 24h
   const [countdown, setCountdown] = useState({ hours: 0, minutes: 0, seconds: 0 });
   // Warranty countdown from order created_at + 7 days
@@ -91,6 +95,14 @@ export default function ItemDetails() {
 
       if (!orderData) { setLoading(false); return; }
       setOrder(orderData);
+      setOrderUserId(orderData.user_id);
+
+      // Check if current user is staff (admin view)
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (currentUser) {
+        const { data: staffCheck } = await supabase.rpc("is_staff", { _user_id: currentUser.id });
+        if (staffCheck) setIsStaff(true);
+      }
 
       // Fetch order item
       const { data: itemData } = await supabase
@@ -1195,6 +1207,24 @@ export default function ItemDetails() {
             </button>
           </div>
 
+          {/* Warming Tracker - Admin Only */}
+          {isStaff && stockData.idPerfil && orderUserId && (
+            <div className="glass-panel rounded-xl p-4 bg-gradient-to-br from-orange-500/5 to-muted/30 border-orange-500/20">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="material-symbols-outlined text-orange-400 text-lg">local_fire_department</span>
+                <h3 className="text-sm font-bold text-foreground">Esteira de Aquecimento</h3>
+              </div>
+              <p className="text-xs text-muted-foreground mb-3">Verifique se o cliente aplicou a esteira neste perfil.</p>
+              <button
+                onClick={() => setShowWarmingTracker(true)}
+                className="w-full py-2 rounded-lg bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border border-orange-500/20 transition-colors flex items-center justify-center gap-1.5 text-xs font-semibold"
+              >
+                <span className="material-symbols-outlined text-[16px]">visibility</span>
+                Ver Esteira
+              </button>
+            </div>
+          )}
+
           {/* Support */}
           <div className="glass-panel rounded-xl p-4">
             <h3 className="text-foreground text-sm font-bold mb-1">Precisa de Ajuda?</h3>
@@ -1212,6 +1242,15 @@ export default function ItemDetails() {
           <PlatformFeedback userName={clientFullName || undefined} />
         </div>
       </div>
+      {/* Warming Tracker Modal */}
+      {isStaff && stockData.idPerfil && orderUserId && (
+        <WarmingTrackerModal
+          open={showWarmingTracker}
+          onOpenChange={setShowWarmingTracker}
+          profileCode={stockData.idPerfil}
+          userId={orderUserId}
+        />
+      )}
       {/* Disclaimer Modal */}
       <AlertDialog open={showDisclaimer} onOpenChange={(open) => { if (!open) { setShowDisclaimer(false); setPendingAction(null); setDisclaimerChecked(false); } }}>
         <AlertDialogContent className="max-w-md">
