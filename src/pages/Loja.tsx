@@ -423,7 +423,7 @@ export default function Dashboard() {
             <div key="proxy-grid" className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {proxyProducts.map((product: any) => (
                 <ProxyProductCard
-                  key={product.id}
+                  key={`grid-${product.id}`}
                   product={product}
                   proxyImage={getProxyImage(product.name)}
                   quantity={getProxyQty(String(product.id))}
@@ -629,7 +629,7 @@ export default function Dashboard() {
             {/* Proxy products from API in "Todos" view */}
             {activeFilter === "Todos" && proxyProducts.map((product: any) => (
               <ProxyProductCard
-                key={`proxy-${product.id}`}
+                key={`grid-proxy-${product.id}`}
                 product={product}
                 proxyImage={getProxyImage(product.name)}
                 quantity={getProxyQty(String(product.id))}
