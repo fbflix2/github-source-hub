@@ -1207,6 +1207,24 @@ export default function ItemDetails() {
             </button>
           </div>
 
+          {/* Warming Tracker - Admin Only */}
+          {isStaff && stockData.idPerfil && orderUserId && (
+            <div className="glass-panel rounded-xl p-4 bg-gradient-to-br from-orange-500/5 to-muted/30 border-orange-500/20">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="material-symbols-outlined text-orange-400 text-lg">local_fire_department</span>
+                <h3 className="text-sm font-bold text-foreground">Esteira de Aquecimento</h3>
+              </div>
+              <p className="text-xs text-muted-foreground mb-3">Verifique se o cliente aplicou a esteira neste perfil.</p>
+              <button
+                onClick={() => setShowWarmingTracker(true)}
+                className="w-full py-2 rounded-lg bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border border-orange-500/20 transition-colors flex items-center justify-center gap-1.5 text-xs font-semibold"
+              >
+                <span className="material-symbols-outlined text-[16px]">visibility</span>
+                Ver Esteira
+              </button>
+            </div>
+          )}
+
           {/* Support */}
           <div className="glass-panel rounded-xl p-4">
             <h3 className="text-foreground text-sm font-bold mb-1">Precisa de Ajuda?</h3>
