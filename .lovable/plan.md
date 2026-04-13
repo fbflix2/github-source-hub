@@ -1,28 +1,60 @@
 
+Objetivo: corrigir a aba "Disponíveis" para realmente listar os proxies Webshare livres para venda.
 
-## Problema
+Diagnóstico
+- O componente `ProxyAvailableTab.tsx` hoje considera como “vendido/ocupado” todo registro da tabela `subscriptions` com `type = "webshare"`.
+- Isso inclui assinaturas antigas, canceladas, expiradas e possivelmente já encerradas.
+- Resultado: o filtro remove proxies demais e a tela pode ficar zerada mesmo existindo estoque livre.
+- Há uma inconsistência importante: na edge function `webshare-api`, a alocação interna já trata como ocupados apenas proxies de assinaturas `active` e `expiring`. A aba “Disponíveis” deveria seguir a mesma regra.
 
-Os filtros "2FA Ativo", "BM Criada" e "Página Criada" na Auditoria e Relatórios estão usando dados combinados (checkbox manual + detecção automática por regex em títulos de tarefas). Isso faz com que perfis apareçam nos filtros mesmo sem o operador ter marcado a caixinha correspondente.
+O que vou implementar
+1. Ajustar a lógica de bloqueio de estoque em `src/components/admin/proxy/ProxyAvailableTab.tsx`
+- Filtrar `subscriptions` para considerar somente proxies atualmente ocupados:
+  - status `active` e `expiring`
+  - e, se existir `end_date`, respeitar vencimento real
+- Ignorar assinaturas canceladas/expiradas/antigas para não “segurar” proxy no inventário.
 
-## Solução
+2. Alinhar a aba com a regra do backend
+- Reproduzir a mesma ideia usada na `webshare-api`:
+  - apenas proxies ainda em uso devem sair da lista de disponíveis
+- Isso evita divergência entre o estoque visual e o estoque usado na alocação.
 
-Alterar os filtros para usar **exclusivamente** os dados manuais (checkboxes marcados pelo operador), ignorando a detecção automática por tarefas.
+3. Melhorar o tratamento dos dados vindos da Webshare
+- Garantir parsing estável da resposta `{ data: [...], total }`
+- Opcionalmente filtrar apenas proxies válidos (`p.valid`) para não exibir item inválido como disponível, seguindo o padrão já usado no backend.
 
-## Alterações
+4. Melhorar estados da interface
+- Exibir mensagem mais clara quando:
+  - a API retornar zero proxies
+  - não houver sessão/autorização
+  - houver erro no carregamento
+- Assim fica fácil distinguir “sem estoque” de “falha no carregamento”.
 
-### 1. `src/components/admin/warming/WarmingAuditDashboard.tsx`
-- Linha ~121-127: O `effectiveQualityMap` usa `getEffectiveProfileQualityWithSource` que combina manual + task evidence
-- Alterar para que os **filtros** usem apenas `qualityMap` (dados manuais puros passados como prop) em vez de `effectiveQualityMap`
-- Os badges de exibição e contadores podem continuar usando `effectiveQualityMap` para informação visual, mas a filtragem (linhas 174-176) deve consultar `qualityMap` diretamente
+5. Revisar os cards de resumo
+- Fazer os totais de BR/US refletirem exatamente o mesmo conjunto filtrado da tabela
+- Garantir coerência entre contagem e listagem.
 
-### 2. `src/pages/admin/AdminEsteiraAdmin.tsx`
-- Linha ~827-832: O `derivedQualityMap` é construído com `getEffectiveProfileQuality` que mistura manual + task evidence
-- Criar um segundo mapa `manualOnlyQualityMap` que guarda apenas os dados manuais dos checkboxes (sem passar por `getEffectiveProfileQuality`)
-- Passar esse mapa manual para os filtros
-- O `qualityMap` existente (derivado) pode continuar sendo usado para exibição visual (badges 2FA, BM, Page nos cards)
+Arquivos que devem ser alterados
+- `src/components/admin/proxy/ProxyAvailableTab.tsx`
 
-### 3. Fluxo corrigido
-- Operador marca checkbox "2FA" no perfil → salva em `site_settings` como `warming_quality_{profileId}`
-- Admin filtra por "2FA Ativo" → sistema consulta apenas os dados salvos manualmente pelo operador
-- Perfis que apenas têm tarefas com título mencionando "2FA" mas sem checkbox marcado **não aparecem** no filtro
+Arquivos de referência que vou seguir
+- `src/components/admin/proxy/WebshareProxyTab.tsx`
+- `src/hooks/useWebshare.ts`
+- `supabase/functions/webshare-api/index.ts`
 
+Resultado esperado
+- A aba “Disponíveis” passará a mostrar os proxies realmente livres para venda.
+- Proxies de clientes com assinatura já encerrada deixarão de bloquear o estoque.
+- Os números do topo e as listas BR/US ficarão consistentes com a regra real de alocação.
+
+Validação após implementar
+- Abrir a aba “Disponíveis” e confirmar que os totais deixam de ficar zerados indevidamente.
+- Conferir se um proxy vinculado a assinatura ativa não aparece na lista.
+- Conferir se um proxy de assinatura cancelada/expirada volta a aparecer como disponível.
+- Testar o botão “Atualizar” e a busca por IP/porta.
+- Validar BR e US separadamente para garantir que a segmentação continua correta.
+
+Detalhe técnico importante
+- O principal ajuste não é visual; é de regra de negócio.
+- Hoje a tela está usando “já foi vendido alguma vez” como sinônimo de “indisponível”.
+- O correto para estoque é “está atualmente alocado a uma assinatura ainda válida”.
