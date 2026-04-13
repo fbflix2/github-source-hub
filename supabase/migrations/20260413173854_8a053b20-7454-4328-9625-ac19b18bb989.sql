@@ -1,0 +1,1 @@
+UPDATE subscriptions SET name = 'WS-IPV6-TPEN01' WHERE id = '6da54d54-b12d-4f62-b5b0-17770582621e';
