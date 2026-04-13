@@ -176,6 +176,13 @@ export default function ProxyAvailableTab() {
 
   return (
     <div className="space-y-6">
+      {/* Refresh */}
+      <div className="flex justify-end">
+        <Button variant="outline" size="sm" onClick={() => refetchProxies()} disabled={isLoading}>
+          <RefreshCw className={`size-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />Atualizar
+        </Button>
+      </div>
+
       {/* Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="border-border/40 bg-card/60">
