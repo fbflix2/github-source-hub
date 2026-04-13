@@ -1971,11 +1971,14 @@ Deno.serve(async (req) => {
       if (!existingSub) throw new Error("Assinatura não encontrada");
 
       // For single-proxy subs or non-exploded, check if still active
+      // Allow renewal when ≤3 days remaining (status "expiring" in frontend)
       const isMultiProxy = (total_proxies || 0) > 1;
       if (!isMultiProxy) {
         if (!["expired", "cancelled"].includes(existingSub.status) && existingSub.end_date) {
           const endDate = new Date(existingSub.end_date);
-          if (endDate > new Date()) throw new Error("Esta assinatura ainda está ativa");
+          const now = new Date();
+          const daysRemaining = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+          if (daysRemaining > 3) throw new Error("Esta assinatura ainda está ativa. Renovação disponível nos últimos 3 dias.");
         }
       }
 
@@ -2026,7 +2029,10 @@ Deno.serve(async (req) => {
       if (profile.balance < renewalPrice) throw new Error(`Saldo insuficiente. Necessário: R$ ${renewalPrice.toFixed(2)}, disponível: R$ ${profile.balance.toFixed(2)}`);
 
       const startDate = new Date();
-      const endDate = new Date(startDate);
+      // If renewing an active/expiring sub, extend from current end_date
+      const currentEndDate = existingSub.end_date ? new Date(existingSub.end_date) : null;
+      const isEarlyRenewal = currentEndDate && currentEndDate > startDate;
+      const endDate = new Date(isEarlyRenewal ? currentEndDate : startDate);
       endDate.setDate(endDate.getDate() + 30);
       const isExistingWebshareRenewal = ["webshare", "webshare_rotating"].includes(existingSub.type);
       const nextProductId = isExistingWebshareRenewal
