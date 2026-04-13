@@ -1,67 +1,123 @@
-import { useState, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { callWebshare } from "@/hooks/useWebshare";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Copy, Check, Search, ChevronLeft, ChevronRight, Server, RefreshCw } from "lucide-react";
+import { Copy, Check, Search, ChevronLeft, ChevronRight, Server, RefreshCw, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
 const PAGE_SIZE = 25;
+const ACTIVE_STATUSES = ["active", "expiring"] as const;
+
+type ProxyRecord = {
+  id: string | number;
+  proxy_address?: string;
+  port?: string | number;
+  username?: string;
+  password?: string;
+  country_code?: string;
+  valid?: boolean;
+};
+
+type WebshareSubscription = {
+  id: string;
+  status: string;
+  end_date: string | null;
+  raw_data: Record<string, any> | null;
+};
+
+const normalizeProxyId = (value: unknown) => String(value ?? "").trim();
+
+const isStillOccupying = (subscription: WebshareSubscription) => {
+  const proxyId = normalizeProxyId(subscription.raw_data?.webshare_proxy_id);
+  if (!proxyId) return false;
+  if (!subscription.end_date) return true;
+  return new Date(subscription.end_date).getTime() >= Date.now();
+};
 
 export default function ProxyAvailableTab() {
+  const { isAdmin, loading: authLoading } = useAdminAuth();
   const [search, setSearch] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [brPage, setBrPage] = useState(1);
   const [usPage, setUsPage] = useState(1);
+  const canLoad = isAdmin === true && !authLoading;
 
   // Fetch all proxies from Webshare API
-  const { data: allProxiesData, isLoading: proxyLoading, refetch: refetchProxies } = useQuery({
-    queryKey: ["webshare-all-proxies", "direct"],
-    queryFn: () => callWebshare("get-all-proxies", { mode: "direct" }),
+  const {
+    data: allProxies = [],
+    isLoading: proxyLoading,
+    error: proxyError,
+    refetch: refetchProxies,
+  } = useQuery<ProxyRecord[]>({
+    queryKey: ["webshare-available-all-proxies", "direct"],
+    enabled: canLoad,
+    queryFn: async () => {
+      const response = await callWebshare("get-all-proxies", { mode: "direct" });
+      if (!response) {
+        throw new Error("Sessão administrativa ainda não foi carregada.");
+      }
+
+      const proxies = response?.data || response?.results || (Array.isArray(response) ? response : []);
+      return (Array.isArray(proxies) ? proxies : []).filter((proxy): proxy is ProxyRecord => {
+        return Boolean(proxy?.proxy_address) && proxy.valid !== false;
+      });
+    },
     staleTime: 300_000,
     refetchOnWindowFocus: false,
+    retry: 1,
   });
-  const allProxies: any[] = allProxiesData?.data || allProxiesData?.results || (Array.isArray(allProxiesData) ? allProxiesData : []);
 
   // Fetch ACTIVE sold proxy IDs only (active/expiring status)
-  const { data: wsSubs, isLoading: subsLoading } = useQuery({
-    queryKey: ["webshare-active-subs-for-available"],
+  const {
+    data: wsSubs = [],
+    isLoading: subsLoading,
+    error: subsError,
+    refetch: refetchSubs,
+  } = useQuery<WebshareSubscription[]>({
+    queryKey: ["webshare-active-subs-for-available-v2"],
+    enabled: canLoad,
     queryFn: async () => {
-      let all: any[] = [];
+      let all: WebshareSubscription[] = [];
       let from = 0;
       const ps = 1000;
+
       while (true) {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("subscriptions")
-          .select("id, status, raw_data")
+          .select("id, status, end_date, raw_data")
           .eq("type", "webshare")
-          .in("status", ["active", "expiring"])
+          .in("status", [...ACTIVE_STATUSES])
           .range(from, from + ps - 1);
+
+        if (error) throw new Error(error.message);
         if (!data?.length) break;
         all = [...all, ...data];
         if (data.length < ps) break;
         from += ps;
       }
-      return all;
+
+      return all.filter(isStillOccupying);
     },
     staleTime: 60_000,
+    retry: 1,
   });
 
   const soldProxyIds = useMemo(() => {
-    if (!wsSubs) return new Set<number>();
-    const ids = new Set<number>();
+    const ids = new Set<string>();
     wsSubs.forEach(s => {
-      const raw = s.raw_data as any;
-      if (raw?.webshare_proxy_id) ids.add(Number(raw.webshare_proxy_id));
+      const proxyId = normalizeProxyId(s.raw_data?.webshare_proxy_id);
+      if (proxyId) ids.add(proxyId);
     });
     return ids;
   }, [wsSubs]);
 
   const availableProxies = useMemo(() => {
-    return allProxies.filter(p => !soldProxyIds.has(Number(p.id)));
+    return allProxies.filter(proxy => !soldProxyIds.has(normalizeProxyId(proxy.id)));
   }, [allProxies, soldProxyIds]);
 
   const { br, us } = useMemo(() => {
@@ -69,7 +125,7 @@ export default function ProxyAvailableTab() {
     const filtered = !term
       ? availableProxies
       : availableProxies.filter(p =>
-          (p.proxy_address || "").includes(term) ||
+          (p.proxy_address || "").toLowerCase().includes(term) ||
           String(p.port || "").includes(term) ||
           (p.country_code || "").toLowerCase().includes(term)
         );
@@ -79,9 +135,22 @@ export default function ProxyAvailableTab() {
     };
   }, [availableProxies, search]);
 
-  const isLoading = proxyLoading || subsLoading;
+  useEffect(() => {
+    const maxBrPages = Math.max(1, Math.ceil(br.length / PAGE_SIZE));
+    const maxUsPages = Math.max(1, Math.ceil(us.length / PAGE_SIZE));
 
-  const copyProxy = (proxy: any) => {
+    if (brPage > maxBrPages) setBrPage(maxBrPages);
+    if (usPage > maxUsPages) setUsPage(maxUsPages);
+  }, [br.length, us.length, brPage, usPage]);
+
+  const isLoading = authLoading || proxyLoading || subsLoading;
+  const loadError = proxyError instanceof Error
+    ? proxyError.message
+    : subsError instanceof Error
+      ? subsError.message
+      : null;
+
+  const copyProxy = (proxy: ProxyRecord) => {
     const str = `${proxy.proxy_address}:${proxy.port}:${proxy.username}:${proxy.password}`;
     navigator.clipboard.writeText(str);
     setCopiedId(proxy.id);
@@ -92,7 +161,7 @@ export default function ProxyAvailableTab() {
   const renderSection = (
     label: string,
     flag: string,
-    proxies: any[],
+    proxies: ProxyRecord[],
     page: number,
     setPage: (p: number | ((prev: number) => number)) => void,
   ) => {
@@ -179,10 +248,36 @@ export default function ProxyAvailableTab() {
     <div className="space-y-6">
       {/* Refresh */}
       <div className="flex justify-end">
-        <Button variant="outline" size="sm" onClick={() => refetchProxies()} disabled={isLoading}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            refetchProxies();
+            refetchSubs();
+          }}
+          disabled={authLoading}
+        >
           <RefreshCw className={`size-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />Atualizar
         </Button>
       </div>
+
+      {!canLoad && !authLoading && (
+        <Card className="border-border/40 bg-card/60">
+          <CardContent className="flex items-center gap-3 p-4 text-sm text-muted-foreground">
+            <AlertCircle className="size-4 text-destructive" />
+            Sessão administrativa não encontrada para carregar os proxies da Webshare.
+          </CardContent>
+        </Card>
+      )}
+
+      {loadError && (
+        <Card className="border-border/40 bg-card/60">
+          <CardContent className="flex items-center gap-3 p-4 text-sm text-muted-foreground">
+            <AlertCircle className="size-4 text-destructive" />
+            {loadError}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
