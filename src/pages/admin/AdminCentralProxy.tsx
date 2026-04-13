@@ -37,6 +37,10 @@ export default function AdminCentralProxy() {
         <TabsContent value="maintenance">
           <ProxyMaintenanceTab />
         </TabsContent>
+
+        <TabsContent value="available">
+          <ProxyAvailableTab />
+        </TabsContent>
       </Tabs>
     </div>
   );
