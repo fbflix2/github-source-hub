@@ -52,6 +52,9 @@ export default function Checkout() {
   const [product, setProduct] = useState<DbProduct | null>(null);
   const [loading, setLoading] = useState(true);
   const [shareCopied, setShareCopied] = useState(false);
+  const [showWhatsAppPopup, setShowWhatsAppPopup] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [userPhone, setUserPhone] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchData() {
