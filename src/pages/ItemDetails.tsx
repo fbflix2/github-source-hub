@@ -1242,6 +1242,15 @@ export default function ItemDetails() {
           <PlatformFeedback userName={clientFullName || undefined} />
         </div>
       </div>
+      {/* Warming Tracker Modal */}
+      {isStaff && stockData.idPerfil && orderUserId && (
+        <WarmingTrackerModal
+          open={showWarmingTracker}
+          onOpenChange={setShowWarmingTracker}
+          profileCode={stockData.idPerfil}
+          userId={orderUserId}
+        />
+      )}
       {/* Disclaimer Modal */}
       <AlertDialog open={showDisclaimer} onOpenChange={(open) => { if (!open) { setShowDisclaimer(false); setPendingAction(null); setDisclaimerChecked(false); } }}>
         <AlertDialogContent className="max-w-md">
