@@ -81,8 +81,24 @@ export function MainLayout({ userName, userEmail, onLogout, unreadTickets = 0 }:
     setShowSupportMenu(false);
   };
 
+  const isImpersonating = typeof window !== "undefined" && sessionStorage.getItem("fbflix_impersonation_tab") === "1";
+
   return (
     <div className="min-h-screen bg-background text-foreground font-display selection:bg-primary selection:text-primary-foreground overflow-x-hidden">
+      {/* Admin impersonation banner */}
+      {isImpersonating && (
+        <div className="fixed top-0 left-0 right-0 z-[200] bg-amber-500 text-black text-center py-1.5 text-sm font-bold flex items-center justify-center gap-2 shadow-lg">
+          <svg xmlns="http://www.w3.org/2000/svg" className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 9v4"/><path d="M10.363 3.591l-8.106 13.534a1.914 1.914 0 0 0 1.636 2.871h16.214a1.914 1.914 0 0 0 1.636-2.87L13.637 3.59a1.914 1.914 0 0 0-3.274 0z"/><path d="M12 17h.01"/></svg>
+          MODO ADMIN — Visualizando como: {userName} ({userEmail})
+          <button
+            onClick={() => { window.close(); }}
+            className="ml-4 px-3 py-0.5 bg-black/20 hover:bg-black/30 rounded text-xs font-semibold transition-colors"
+          >
+            Fechar aba
+          </button>
+        </div>
+      )}
+
       <Navbar
         userName={userName}
         userEmail={userEmail}
@@ -94,7 +110,7 @@ export function MainLayout({ userName, userEmail, onLogout, unreadTickets = 0 }:
       />
 
       {/* Main Content */}
-      <main className="pt-28 pb-24 md:pb-20 px-6 max-w-7xl mx-auto">
+      <main className={cn("pb-24 md:pb-20 px-6 max-w-7xl mx-auto", isImpersonating ? "pt-36" : "pt-28")}>
         <Outlet />
       </main>
 
