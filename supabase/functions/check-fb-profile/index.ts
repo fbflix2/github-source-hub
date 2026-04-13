@@ -30,6 +30,21 @@ const BLOCK_INDICATORS = [
   '"error_code"',
   "account_disabled",
   "permanently deleted",
+  // Portuguese indicators
+  "Este conte\u00fado n\u00e3o est\u00e1 dispon\u00edvel no momento",
+  "este conte\u00fado n\u00e3o est\u00e1 dispon\u00edvel",
+  "Esta p\u00e1gina n\u00e3o est\u00e1 dispon\u00edvel",
+  "conte\u00fado n\u00e3o est\u00e1 dispon\u00edvel",
+  "a conta foi desativada",
+  "conta foi desativada",
+  "perfil n\u00e3o est\u00e1 dispon\u00edvel",
+  "temporariamente restrito",
+  "Desculpe, este conte\u00fado n\u00e3o est\u00e1 dispon\u00edvel",
+  "p\u00e1gina solicitada n\u00e3o foi encontrada",
+  "O link que voc\u00ea seguiu pode estar quebrado",
+  "o link que voc\u00ea seguiu pode ter expirado",
+  "exclu\u00eddo permanentemente",
+  "Ir para o Feed",
 ];
 
 /**
