@@ -458,6 +458,7 @@ export default function Checkout() {
         const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
         if (itemsError) {
           console.error("Error inserting order items:", itemsError);
+          throw itemsError;
         }
 
         setDraftOrderId(order.id);
@@ -765,9 +766,10 @@ export default function Checkout() {
         const bump = bumpProducts.find(b => b.id === bumpId);
         if (bump) extraItems.push({ order_id: orderId, product_id: bump.id, name: bump.name, price: bump.price, quantity: 1 });
       });
-      if (extraItems.length > 0) {
-        await supabase.from("order_items").insert(extraItems);
-      }
+        if (extraItems.length > 0) {
+          const { error: extraItemsError } = await supabase.from("order_items").insert(extraItems);
+          if (extraItemsError) throw extraItemsError;
+        }
 
       if (paymentMethod === "saldo") {
         const { data: profile } = await supabase.from("profiles").select("balance").eq("user_id", user.id).maybeSingle();
