@@ -20,6 +20,18 @@ function err(msg: string, status = 400) {
   });
 }
 
+// Normalizes phone: strips non-digits, only adds BR country code (55) if the
+// stored number looks like a Brazilian local number (10-11 digits without country code).
+// International numbers (starting with +1, +44, etc.) are kept as-is after stripping.
+function normalizePhone(raw: string): string {
+  let digits = raw.replace(/\D/g, "");
+  // If the original string starts with "+" it's already international — keep digits as-is
+  if (raw.trim().startsWith("+")) return digits;
+  // Brazilian numbers without country code are 10 or 11 digits
+  if (!digits.startsWith("55") && digits.length <= 11) digits = "55" + digits;
+  return digits;
+}
+
 async function safeJson(res: Response): Promise<{ ok: boolean; status: number; data: any; raw?: string }> {
   const text = await res.text();
   try {
@@ -140,8 +152,7 @@ Deno.serve(async (req) => {
       const { phone, message, user_id, event_key, template_id, metadata } = body;
       if (!phone || !message) return err("phone and message are required");
 
-      let normalizedPhone = phone.replace(/\D/g, "");
-      if (!normalizedPhone.startsWith("55")) normalizedPhone = "55" + normalizedPhone;
+      let normalizedPhone = normalizePhone(phone);
 
       const result = await wapiSendText(normalizedPhone, message);
 
@@ -167,8 +178,7 @@ Deno.serve(async (req) => {
       const { phone, image_url, caption, user_id, event_key, template_id, metadata } = body;
       if (!phone || !image_url) return err("phone and image_url are required");
 
-      let normalizedPhone = phone.replace(/\D/g, "");
-      if (!normalizedPhone.startsWith("55")) normalizedPhone = "55" + normalizedPhone;
+      let normalizedPhone = normalizePhone(phone);
 
       const result = await wapiSendImage(normalizedPhone, image_url, caption);
 
@@ -195,8 +205,7 @@ Deno.serve(async (req) => {
       const { phone, message, buttons, title, footer, user_id, event_key, template_id, metadata } = body;
       if (!phone || !message || !buttons?.length) return err("phone, message and buttons are required");
 
-      let normalizedPhone = phone.replace(/\D/g, "");
-      if (!normalizedPhone.startsWith("55")) normalizedPhone = "55" + normalizedPhone;
+      let normalizedPhone = normalizePhone(phone);
 
       const result = await wapiSendButton(normalizedPhone, message, buttons, title, footer);
 
@@ -233,8 +242,7 @@ Deno.serve(async (req) => {
         msg = msg.replaceAll(`{{${key}}}`, String(value));
       }
 
-      let normalizedPhone = phone.replace(/\D/g, "");
-      if (!normalizedPhone.startsWith("55")) normalizedPhone = "55" + normalizedPhone;
+      let normalizedPhone = normalizePhone(phone);
 
       const result = await wapiSendText(normalizedPhone, msg);
 
@@ -268,8 +276,7 @@ Deno.serve(async (req) => {
         for (const [key, value] of Object.entries(vars)) {
           msg = msg.replaceAll(`{{${key}}}`, String(value));
         }
-        let normalizedPhone = (r.phone || "").replace(/\D/g, "");
-        if (!normalizedPhone.startsWith("55")) normalizedPhone = "55" + normalizedPhone;
+        let normalizedPhone = normalizePhone(r.phone || "");
         if (normalizedPhone.length < 12) {
           skipped.push({ phone: r.phone, error: "Invalid phone" });
           continue;
@@ -413,8 +420,7 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        let normalizedPhone = profile.phone.replace(/\D/g, "");
-        if (!normalizedPhone.startsWith("55")) normalizedPhone = "55" + normalizedPhone;
+        let normalizedPhone = normalizePhone(profile.phone);
 
         queue.push({
           phone: normalizedPhone, message: msg,
@@ -485,8 +491,7 @@ Deno.serve(async (req) => {
         }
       }
 
-      let normalizedPhone = profile.phone.replace(/\D/g, "");
-      if (!normalizedPhone.startsWith("55")) normalizedPhone = "55" + normalizedPhone;
+      let normalizedPhone = normalizePhone(profile.phone);
 
       const result = await wapiSendText(normalizedPhone, msg);
 
