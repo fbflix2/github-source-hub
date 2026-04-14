@@ -328,6 +328,11 @@ function SafeBmPromoPanel() {
 /* ─── PROXIES PANEL ─── */
 function ProxiesPanel() {
   const [activeFilter, setActiveFilter] = useState<string>("all");
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [countryFilter, setCountryFilter] = useState<string>("all");
+  const [tagFilter, setTagFilter] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<string>("newest");
   const { data: subscriptionsRaw, isLoading: proxyLoading, error: proxyError } = useProxyBRSubscriptions();
   const { data: webshareRaw, isLoading: wsLoading, error: wsError } = useWebshareSubscriptions();
   const migrateMutation = useMigrateProxyBRToWebshare();
@@ -362,7 +367,46 @@ function ProxiesPanel() {
     { key: "expired", label: "Expiradas", count: counts.expired },
   ];
 
-  const filtered = enriched.filter((s) => activeFilter === "all" || s.mappedStatus === activeFilter);
+  // Unique profile tags for filter
+  const allTags = [...new Set(enriched.map(s => s.profile_tag).filter(Boolean))] as string[];
+
+  // Detect country from proxy IP or product name
+  const getCountry = (sub: typeof enriched[0]) => {
+    const name = (sub.product_name || sub.name || "").toUpperCase();
+    if (name.includes("BR") || name.includes("BRASIL")) return "BR";
+    if (name.includes("US") || name.includes("EUA") || name.includes("AMERICANO")) return "US";
+    const ip = sub.proxy?.ip || "";
+    // Heuristic: can't determine from IP alone, fallback
+    return "OTHER";
+  };
+
+  let filtered = enriched.filter((s) => activeFilter === "all" || s.mappedStatus === activeFilter);
+
+  // Advanced filters
+  if (advancedOpen) {
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(s =>
+        (s.code || "").toLowerCase().includes(term) ||
+        (s.name || "").toLowerCase().includes(term) ||
+        (s.product_name || "").toLowerCase().includes(term) ||
+        (s.proxy?.ip || "").includes(term) ||
+        (s.profile_tag || "").toLowerCase().includes(term)
+      );
+    }
+    if (countryFilter !== "all") {
+      filtered = filtered.filter(s => getCountry(s) === countryFilter);
+    }
+    if (tagFilter !== "all") {
+      filtered = filtered.filter(s => s.profile_tag === tagFilter);
+    }
+    filtered = [...filtered].sort((a, b) => {
+      if (sortBy === "newest") return new Date(b.start_date).getTime() - new Date(a.start_date).getTime();
+      if (sortBy === "oldest") return new Date(a.start_date).getTime() - new Date(b.start_date).getTime();
+      if (sortBy === "expiring_soon") return a.daysRemaining - b.daysRemaining;
+      return 0;
+    });
+  }
 
   const handleRenew = (sub: ProxySubscription & { mappedStatus: SubscriptionStatus }) => {
     // Extract base subscription name (strip #N suffix and __proxy_ suffix)
