@@ -210,29 +210,13 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, manualQual
               status: "confirmed",
               confirmed_at: now,
             })
-            .eq("id", existing.id);
-        } else {
-          const { data: rateSetting } = await supabase
-            .from("site_settings")
-            .select("value")
-            .eq("key", "warming_commission_rate")
-            .maybeSingle();
-          const rate = rateSetting ? parseFloat(rateSetting.value) : 0.25;
-
-          await supabase
-            .from("operator_earnings")
-            .insert({
-              user_id: profile.created_by,
-              profile_id: profile.id,
-              profile_code: profile.profile_code,
-              amount: rate,
-              status: "confirmed",
-              confirmed_at: now,
-            });
+            .eq("profile_id", profile.id)
+            .neq("status", "cancelled");
         }
+        // If no earnings exist yet (edge case), they were created per-task
       }
 
-      toast.success(`Perfil ${profile.profile_code} aprovado! Saldo liberado em 72h.`);
+      toast.success(`Perfil ${profile.profile_code} aprovado! Saldo liberado em 24h.`);
       onRefresh();
     } catch (err) {
       console.error(err);

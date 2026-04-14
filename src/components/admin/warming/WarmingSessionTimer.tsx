@@ -209,6 +209,18 @@ export default function WarmingSessionTimer({
       duration_seconds: finalDuration,
     }).eq("id", task.id);
 
+    // Create earning for this completed task (R$0.25 per task)
+    if (profile.created_by) {
+      await supabase.from("operator_earnings").insert({
+        user_id: profile.created_by,
+        profile_id: task.profile_id,
+        profile_code: profile.profile_code,
+        task_id: task.id,
+        amount: 0.25,
+        status: "pending",
+      }).then(({ error: eErr }) => { if (eErr) console.warn("Earning insert:", eErr); });
+    }
+
     // Check progress
     const completedCount = tasks.filter(t => t.completed || t.id === task.id).length;
     const allDone = completedCount >= profile.track_days;
@@ -249,6 +261,8 @@ export default function WarmingSessionTimer({
       completed_at: null,
       duration_seconds: null,
     }).eq("id", task.id);
+    // Remove earning for this task
+    await supabase.from("operator_earnings").delete().eq("task_id", task.id);
     onTaskCompleted();
   };
 

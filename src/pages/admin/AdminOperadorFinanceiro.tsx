@@ -59,37 +59,8 @@ export default function AdminOperadorFinanceiro() {
         setHasRecord(true);
       }
 
-      const rate = 0.25; // Default commission rate
-      const existingEarnings = (earningsRes.data || []) as Earning[];
-      const trackedProfileIds = new Set(existingEarnings.map(e => e.profile_id));
-
-      // Build earnings from warming_profiles that don't have earnings records yet
-      const profiles = profilesRes.data || [];
-      const syntheticEarnings: Earning[] = profiles
-        .filter((p: any) => !trackedProfileIds.has(p.id))
-        .map((p: any) => {
-          const statusMap: Record<string, string> = {
-            active: "pending",
-            checkpoint: "frozen",
-            completed: "confirmed",
-            blocked: "cancelled",
-            restricted: "cancelled",
-            disabled: "cancelled",
-          };
-          return {
-            id: p.id,
-            profile_id: p.id,
-            profile_code: p.profile_code,
-            amount: rate,
-            status: statusMap[p.status] || "pending",
-            frozen_at: p.status === "checkpoint" ? p.created_at : null,
-            confirmed_at: p.status === "completed" ? p.created_at : null,
-            cancelled_at: ["blocked", "restricted", "disabled"].includes(p.status) ? p.created_at : null,
-            created_at: p.created_at,
-          } as Earning;
-        });
-
-      setEarnings([...existingEarnings, ...syntheticEarnings].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
+      // Earnings are now per-task, just use real records
+      setEarnings((earningsRes.data || []) as Earning[]);
       if (wdRes.data) setWithdrawals(wdRes.data);
     } catch (err) {
       console.error(err);
@@ -98,11 +69,11 @@ export default function AdminOperadorFinanceiro() {
     }
   };
 
-  // Calculate balances - confirmed earnings are only "available" after 72h from confirmed_at
-  const now72hAgo = Date.now() - (72 * 60 * 60 * 1000);
-  const confirmedAvailable = earnings.filter(e => e.status === "confirmed" && e.confirmed_at && new Date(e.confirmed_at).getTime() <= now72hAgo).reduce((s, e) => s + Number(e.amount), 0);
-  const confirmedPending72h = earnings.filter(e => e.status === "confirmed" && (!e.confirmed_at || new Date(e.confirmed_at).getTime() > now72hAgo)).reduce((s, e) => s + Number(e.amount), 0);
-  const confirmedTotal = confirmedAvailable + confirmedPending72h;
+  // Calculate balances - confirmed earnings are only "available" after 24h from confirmed_at
+  const now24hAgo = Date.now() - (24 * 60 * 60 * 1000);
+  const confirmedAvailable = earnings.filter(e => e.status === "confirmed" && e.confirmed_at && new Date(e.confirmed_at).getTime() <= now24hAgo).reduce((s, e) => s + Number(e.amount), 0);
+  const confirmedPending24h = earnings.filter(e => e.status === "confirmed" && (!e.confirmed_at || new Date(e.confirmed_at).getTime() > now24hAgo)).reduce((s, e) => s + Number(e.amount), 0);
+  const confirmedTotal = confirmedAvailable + confirmedPending24h;
   const frozenTotal = earnings.filter(e => e.status === "frozen").reduce((s, e) => s + Number(e.amount), 0);
   const pendingTotal = earnings.filter(e => e.status === "pending").reduce((s, e) => s + Number(e.amount), 0);
   const cancelledTotal = earnings.filter(e => e.status === "cancelled").reduce((s, e) => s + Number(e.amount), 0);
@@ -210,10 +181,10 @@ export default function AdminOperadorFinanceiro() {
           <p className="font-semibold text-yellow-400">Como funciona o pagamento</p>
           <ul className="space-y-1.5 list-disc list-inside text-xs leading-relaxed">
             <li>O saque ocorre sempre após a <strong className="text-foreground">validação e aprovação do admin/chefe de operações</strong> na aba de Auditoria.</li>
-            <li>Após a aprovação, o saldo referente ao perfil fica em <strong className="text-emerald-400">aguardando 72 horas</strong> antes de ser liberado para saque.</li>
+            <li>Você ganha <strong className="text-emerald-400">R$ 0,25 por tarefa concluída</strong>. Após a aprovação na auditoria, o saldo fica em <strong className="text-emerald-400">aguardando 24 horas</strong> antes de ser liberado para saque.</li>
             <li>Perfis marcados como <strong className="text-foreground">Checkpoint</strong> entram em fila de análise do suporte interno — o saldo referente fica <strong className="text-yellow-400">congelado temporariamente</strong>.</li>
             <li>Se o perfil voltar para a esteira, o saldo é liberado normalmente.</li>
-            <li>Caso o perfil seja classificado como <strong className="text-destructive">bloqueado/desabilitado</strong>, o operador <strong className="text-destructive">não recebe</strong> por aquele perfil — a FBFLIX também não terá lucro com ele.</li>
+            <li>Caso o perfil seja classificado como <strong className="text-destructive">bloqueado/desabilitado</strong>, os ganhos das tarefas desse perfil <strong className="text-destructive">são anulados</strong> — a FBFLIX também não terá lucro com ele.</li>
             <li>Os saques são liberados de forma <strong className="text-foreground">automática pelo sistema em até 24h</strong> após a solicitação e aprovação.</li>
             <li>Certifique-se de que sua chave PIX está correta e atualizada.</li>
           </ul>
