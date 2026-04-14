@@ -64,12 +64,13 @@ const DAYS_OPTIONS = [
   { value: 30, label: "30+ dias" },
 ];
 
-type StatusFilter = "all" | "pending" | "approved" | "restricted" | "sent";
+type StatusFilter = "all" | "pending" | "approved" | "checkpoint" | "restricted" | "sent";
 
 const STATUS_OPTIONS: { value: StatusFilter; label: string; icon: string }[] = [
   { value: "all", label: "Todos", icon: "list" },
   { value: "pending", label: "Pendentes", icon: "pending" },
   { value: "approved", label: "Aprovados", icon: "check_circle" },
+  { value: "checkpoint", label: "Checkpoint", icon: "pause_circle" },
   { value: "restricted", label: "Restritos", icon: "block" },
   { value: "sent", label: "Enviados", icon: "local_shipping" },
 ];
@@ -129,12 +130,13 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, manualQual
 
   // Status-based counts (always from full profile list)
   const statusCounts = useMemo(() => {
-    const counts = { total: profiles.length, pending: 0, approved: 0, restricted: 0, sent: 0 };
+    const counts = { total: profiles.length, pending: 0, approved: 0, checkpoint: 0, restricted: 0, sent: 0 };
     profiles.forEach((p) => {
       if (p.status === "completed") counts.approved++;
+      else if (p.status === "checkpoint") counts.checkpoint++;
       else if (p.status === "restricted" || p.status === "blocked") counts.restricted++;
       else if (p.status === "sent_to_store") counts.sent++;
-      else counts.pending++; // active, checkpoint
+      else counts.pending++; // active
     });
     return counts;
   }, [profiles]);
@@ -162,7 +164,8 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, manualQual
 
       // Status filter
       if (statusFilter !== "all") {
-        if (statusFilter === "pending" && p.status !== "checkpoint" && p.status !== "active") return false;
+        if (statusFilter === "pending" && p.status !== "active") return false;
+        if (statusFilter === "checkpoint" && p.status !== "checkpoint") return false;
         if (statusFilter === "approved" && p.status !== "completed") return false;
         if (statusFilter === "restricted" && p.status !== "restricted" && p.status !== "blocked") return false;
         if (statusFilter === "sent" && p.status !== "sent_to_store") return false;
@@ -221,6 +224,22 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, manualQual
     } catch (err) {
       console.error(err);
       toast.error("Erro ao aprovar perfil");
+    } finally {
+      setApproving(null);
+    }
+  };
+  const markCheckpoint = async (profile: WarmingProfile) => {
+    setApproving(profile.id);
+    try {
+      await supabase
+        .from("warming_profiles" as any)
+        .update({ status: "checkpoint" })
+        .eq("id", profile.id);
+      toast.success(`Perfil ${profile.profile_code} marcado como Checkpoint.`);
+      onRefresh();
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao marcar checkpoint");
     } finally {
       setApproving(null);
     }
@@ -411,19 +430,42 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, manualQual
                   <span className="flex items-center gap-1 text-emerald-400 text-xs font-bold shrink-0">
                     <MIcon name="check_circle" className="text-base" /> Aprovado
                   </span>
+                ) : profile.status === "checkpoint" ? (
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="flex items-center gap-1 text-yellow-400 text-xs font-bold">
+                      <MIcon name="pause_circle" className="text-base" /> Checkpoint
+                    </span>
+                    <button
+                      onClick={() => approveProfile(profile)}
+                      disabled={approving === profile.id}
+                      className="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                    >
+                      <MIcon name="verified" className="text-sm" /> Aprovar
+                    </button>
+                  </div>
                 ) : (
-                  <button
-                    onClick={() => approveProfile(profile)}
-                    disabled={approving === profile.id}
-                    className="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-xs font-bold transition-all shrink-0"
-                  >
-                    {approving === profile.id ? (
-                      <span className="animate-spin w-3 h-3 border-2 border-white border-t-transparent rounded-full" />
-                    ) : (
-                      <MIcon name="verified" className="text-base" />
-                    )}
-                    Aprovar
-                  </button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => markCheckpoint(profile)}
+                      disabled={approving === profile.id}
+                      className="flex items-center gap-1 bg-yellow-600 hover:bg-yellow-500 disabled:opacity-50 text-white px-3 py-2 rounded-lg text-xs font-bold transition-all"
+                    >
+                      <MIcon name="pause_circle" className="text-base" />
+                      Checkpoint
+                    </button>
+                    <button
+                      onClick={() => approveProfile(profile)}
+                      disabled={approving === profile.id}
+                      className="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white px-3 py-2 rounded-lg text-xs font-bold transition-all"
+                    >
+                      {approving === profile.id ? (
+                        <span className="animate-spin w-3 h-3 border-2 border-white border-t-transparent rounded-full" />
+                      ) : (
+                        <MIcon name="verified" className="text-base" />
+                      )}
+                      Aprovar
+                    </button>
+                  </div>
                 )}
               </div>
             );
