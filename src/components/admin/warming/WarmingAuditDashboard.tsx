@@ -130,12 +130,13 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, manualQual
 
   // Status-based counts (always from full profile list)
   const statusCounts = useMemo(() => {
-    const counts = { total: profiles.length, pending: 0, approved: 0, restricted: 0, sent: 0 };
+    const counts = { total: profiles.length, pending: 0, approved: 0, checkpoint: 0, restricted: 0, sent: 0 };
     profiles.forEach((p) => {
       if (p.status === "completed") counts.approved++;
+      else if (p.status === "checkpoint") counts.checkpoint++;
       else if (p.status === "restricted" || p.status === "blocked") counts.restricted++;
       else if (p.status === "sent_to_store") counts.sent++;
-      else counts.pending++; // active, checkpoint
+      else counts.pending++; // active
     });
     return counts;
   }, [profiles]);
