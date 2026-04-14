@@ -1607,6 +1607,7 @@ export type Database = {
           profile_code: string
           profile_id: string
           status: string
+          task_id: string | null
           updated_at: string | null
           user_id: string
         }
@@ -1620,6 +1621,7 @@ export type Database = {
           profile_code: string
           profile_id: string
           status?: string
+          task_id?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -1633,10 +1635,19 @@ export type Database = {
           profile_code?: string
           profile_id?: string
           status?: string
+          task_id?: string | null
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "operator_earnings_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: true
+            referencedRelation: "warming_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       operator_financials: {
         Row: {
