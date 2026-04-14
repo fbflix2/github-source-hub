@@ -20,6 +20,18 @@ function err(msg: string, status = 400) {
   });
 }
 
+// Normalizes phone: strips non-digits, only adds BR country code (55) if the
+// stored number looks like a Brazilian local number (10-11 digits without country code).
+// International numbers (starting with +1, +44, etc.) are kept as-is after stripping.
+function normalizePhone(raw: string): string {
+  let digits = raw.replace(/\D/g, "");
+  // If the original string starts with "+" it's already international — keep digits as-is
+  if (raw.trim().startsWith("+")) return digits;
+  // Brazilian numbers without country code are 10 or 11 digits
+  if (!digits.startsWith("55") && digits.length <= 11) digits = "55" + digits;
+  return digits;
+}
+
 async function safeJson(res: Response): Promise<{ ok: boolean; status: number; data: any; raw?: string }> {
   const text = await res.text();
   try {
