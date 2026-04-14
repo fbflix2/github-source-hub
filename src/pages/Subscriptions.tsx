@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProxyBRSubscriptions } from "@/hooks/useProxyBR";
-import { Play, X } from "lucide-react";
+import { Play, X, SlidersHorizontal, Search } from "lucide-react";
 import { useWebshareSubscriptions, useMigrateProxyBRToWebshare } from "@/hooks/useWebshare";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -11,6 +11,7 @@ import SubscriptionCard from "@/components/subscriptions/SubscriptionCard";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Shield, Globe, ShieldCheck, Layers, Zap, ArrowRight, Lock } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
