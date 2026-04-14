@@ -169,7 +169,7 @@ export default function SafeBMVaultConfig({ vaults, onConfigured }: Props) {
   // Track vaults currently showing the animation (just submitted this session)
   const [animatingVaults, setAnimatingVaults] = useState<Record<string, string>>({});
 
-  const getForm = (id: string): VaultFormState => forms[id] || { bmName: "", saving: false };
+  const getForm = (id: string): VaultFormState => forms[id] || { bmName: "", saving: false, confirmed: false };
   const updateForm = (id: string, patch: Partial<VaultFormState>) => {
     setForms(prev => ({ ...prev, [id]: { ...getForm(id), ...patch } }));
   };
@@ -286,7 +286,7 @@ export default function SafeBMVaultConfig({ vaults, onConfigured }: Props) {
                       </div>
                     </div>
 
-                    {/* Name input + Save */}
+                    {/* Checkbox confirmation + Name input + Save */}
                     <div className="space-y-1.5">
                       <input
                         type="text"
@@ -295,20 +295,36 @@ export default function SafeBMVaultConfig({ vaults, onConfigured }: Props) {
                         placeholder="Nome da BM"
                         className="w-full bg-[#0a0e13] border border-[#ffb4aa]/20 rounded-xl px-2.5 py-1.5 text-[10px] text-[#e0e2ea] placeholder:text-[#c6c6c7]/30 focus:outline-none focus:border-[#ffb4aa]/50"
                       />
-                      <button
-                        onClick={() => handleSubmit(v.id)}
-                        disabled={form.saving}
-                        className="w-full py-2 bg-amber-500 hover:bg-amber-400 text-[#410001] transition-all duration-300 rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 disabled:opacity-50"
-                      >
-                        {form.saving ? (
-                          <div className="w-3 h-3 border-2 border-[#410001] border-t-transparent rounded-full animate-spin" />
-                        ) : (
-                          <>
-                            <MaterialIcon name="shield" className="!text-sm" />
-                            Configurar Cofre
-                          </>
-                        )}
-                      </button>
+
+                      {/* Checkbox: confirm invite sent */}
+                      <label className="flex items-start gap-2 cursor-pointer px-1 py-1.5 rounded-lg hover:bg-white/5 transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={form.confirmed}
+                          onChange={(e) => updateForm(v.id, { confirmed: e.target.checked })}
+                          className="mt-0.5 w-3.5 h-3.5 rounded border-amber-500/40 bg-[#0a0e13] accent-amber-500 shrink-0"
+                        />
+                        <span className="text-[10px] text-[#c6c6c7]/70 leading-snug">
+                          Já enviei o convite da BM para o e-mail <strong className="text-amber-400">{email}</strong>
+                        </span>
+                      </label>
+
+                      {form.confirmed && (
+                        <button
+                          onClick={() => handleSubmit(v.id)}
+                          disabled={form.saving}
+                          className="w-full py-2 bg-amber-500 hover:bg-amber-400 text-[#410001] transition-all duration-300 rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-2 disabled:opacity-50 animate-fade-in"
+                        >
+                          {form.saving ? (
+                            <div className="w-3 h-3 border-2 border-[#410001] border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <>
+                              <MaterialIcon name="verified_user" className="!text-sm" />
+                              Confirmar Configuração
+                            </>
+                          )}
+                        </button>
+                      )}
                     </div>
                   </div>
                 </>
