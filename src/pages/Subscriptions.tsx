@@ -462,27 +462,117 @@ function ProxiesPanel() {
         )}
       </div>
 
-      {/* Filters */}
-      <div className="border-b border-glass-border">
-        <div className="flex gap-8 overflow-x-auto pb-px no-scrollbar">
-          {filters.map((f) => (
-            <button
-              key={f.key}
-              onClick={() => setActiveFilter(f.key)}
-              className={`group flex items-center gap-2 pb-4 border-b-2 transition-colors ${
-                activeFilter === f.key ? "border-primary" : f.isWarning ? "border-transparent hover:border-danger/50" : "border-transparent hover:border-glass-border"
-              }`}
-            >
-              <span className={`text-sm font-medium transition-colors ${activeFilter === f.key ? "text-foreground font-bold" : f.isWarning ? "text-text-secondary group-hover:text-danger" : "text-text-secondary group-hover:text-foreground"}`}>
-                {f.label}
-              </span>
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full transition-colors ${activeFilter === f.key ? "bg-primary/20 text-primary" : f.isWarning ? "bg-danger/10 text-danger" : "bg-muted text-text-secondary group-hover:text-foreground"}`}>
-                {f.count}
-              </span>
-            </button>
-          ))}
+      {/* Filters + Advanced Toggle */}
+      <div className="flex items-center justify-between gap-4">
+        <div className="border-b border-glass-border flex-1">
+          <div className="flex gap-8 overflow-x-auto pb-px no-scrollbar">
+            {filters.map((f) => (
+              <button
+                key={f.key}
+                onClick={() => setActiveFilter(f.key)}
+                className={`group flex items-center gap-2 pb-4 border-b-2 transition-colors ${
+                  activeFilter === f.key ? "border-primary" : f.isWarning ? "border-transparent hover:border-danger/50" : "border-transparent hover:border-glass-border"
+                }`}
+              >
+                <span className={`text-sm font-medium transition-colors ${activeFilter === f.key ? "text-foreground font-bold" : f.isWarning ? "text-text-secondary group-hover:text-danger" : "text-text-secondary group-hover:text-foreground"}`}>
+                  {f.label}
+                </span>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full transition-colors ${activeFilter === f.key ? "bg-primary/20 text-primary" : f.isWarning ? "bg-danger/10 text-danger" : "bg-muted text-text-secondary group-hover:text-foreground"}`}>
+                  {f.count}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
+        <button
+          onClick={() => setAdvancedOpen(prev => !prev)}
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all border ${
+            advancedOpen
+              ? "bg-primary/10 text-primary border-primary/30"
+              : "bg-card text-muted-foreground border-border hover:text-foreground hover:border-border/60"
+          }`}
+          title="Filtro Avançado"
+        >
+          <SlidersHorizontal className="size-3.5" />
+          <span className="hidden sm:inline">Filtros</span>
+        </button>
       </div>
+
+      {/* Advanced Filters Panel */}
+      {advancedOpen && (
+        <div className="glass-panel rounded-xl p-4 space-y-3 animate-fade-in border border-border/40">
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Search */}
+            <div className="relative flex-1 min-w-[200px] max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+              <Input
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                placeholder="Buscar por IP, código, nome..."
+                className="pl-9 h-9 text-sm bg-background border-border"
+              />
+            </div>
+
+            {/* Country */}
+            <select
+              value={countryFilter}
+              onChange={e => setCountryFilter(e.target.value)}
+              className="h-9 rounded-lg border border-border bg-background text-sm text-foreground px-3 appearance-none cursor-pointer"
+            >
+              <option value="all">🌍 Todos os países</option>
+              <option value="BR">🇧🇷 Brasil</option>
+              <option value="US">🇺🇸 Estados Unidos</option>
+            </select>
+
+            {/* Profile Tag */}
+            {allTags.length > 0 && (
+              <select
+                value={tagFilter}
+                onChange={e => setTagFilter(e.target.value)}
+                className="h-9 rounded-lg border border-border bg-background text-sm text-foreground px-3 appearance-none cursor-pointer"
+              >
+                <option value="all">🏷️ Todas etiquetas</option>
+                {allTags.map(tag => (
+                  <option key={tag} value={tag}>{tag}</option>
+                ))}
+              </select>
+            )}
+
+            {/* Sort */}
+            <select
+              value={sortBy}
+              onChange={e => setSortBy(e.target.value)}
+              className="h-9 rounded-lg border border-border bg-background text-sm text-foreground px-3 appearance-none cursor-pointer"
+            >
+              <option value="newest">📅 Mais recentes</option>
+              <option value="oldest">📅 Mais antigos</option>
+              <option value="expiring_soon">⏳ Vencendo antes</option>
+            </select>
+          </div>
+
+          {/* Active filters summary */}
+          {(searchTerm || countryFilter !== "all" || tagFilter !== "all") && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[10px] text-muted-foreground uppercase font-semibold">Filtros:</span>
+              {searchTerm && (
+                <Badge variant="secondary" className="text-[10px] gap-1 cursor-pointer" onClick={() => setSearchTerm("")}>
+                  "{searchTerm}" <X className="size-2.5" />
+                </Badge>
+              )}
+              {countryFilter !== "all" && (
+                <Badge variant="secondary" className="text-[10px] gap-1 cursor-pointer" onClick={() => setCountryFilter("all")}>
+                  {countryFilter === "BR" ? "🇧🇷 Brasil" : "🇺🇸 EUA"} <X className="size-2.5" />
+                </Badge>
+              )}
+              {tagFilter !== "all" && (
+                <Badge variant="secondary" className="text-[10px] gap-1 cursor-pointer" onClick={() => setTagFilter("all")}>
+                  {tagFilter} <X className="size-2.5" />
+                </Badge>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {isLoading && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
