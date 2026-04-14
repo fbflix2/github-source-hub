@@ -283,7 +283,7 @@ export default function AdminContingencia() {
       name: plan.name, price: plan.price,
       profiles_qty: plan.profiles_qty, proxies_qty: plan.proxies_qty,
       bms_qty: plan.bms_qty, accounts_qty: plan.accounts_qty,
-      replacements_qty: plan.replacements_qty,
+      replacements_qty: plan.replacements_qty, active: plan.active,
     } as any).eq("id", plan.id);
     if (!error) {
       toast({ title: "Plano atualizado!" });
@@ -509,7 +509,7 @@ export default function AdminContingencia() {
               const isEditing = editingPlan?.id === plan.id;
               const p = isEditing ? editingPlan! : plan;
               return (
-                <Card key={plan.id} className={`border ${plan.tier === "black" ? "bg-purple-500/5 border-purple-500/20" : "bg-white/5 border-white/10"}`}>
+                <Card key={plan.id} className={`border relative ${plan.tier === "black" ? "bg-purple-500/5 border-purple-500/20" : "bg-white/5 border-white/10"} ${!plan.active ? "opacity-50" : ""}`}>
                   <CardHeader className="pb-2">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-base text-white">{isEditing ? (
@@ -533,6 +533,12 @@ export default function AdminContingencia() {
                             </div>
                           ))}
                         </div>
+                        <div className="flex items-center justify-between mt-2">
+                          <label className="flex items-center gap-2 text-xs text-white/60 cursor-pointer">
+                            <input type="checkbox" checked={p.active} onChange={e => setEditingPlan({ ...p, active: e.target.checked })} className="accent-emerald-500" />
+                            Visível para clientes
+                          </label>
+                        </div>
                         <div className="flex gap-2">
                           <Button size="sm" className="bg-emerald-600 hover:bg-emerald-700 flex-1" onClick={() => handleSavePlan(p)}>
                             <Save className="size-3 mr-1" /> Salvar
@@ -552,6 +558,9 @@ export default function AdminContingencia() {
                           <div className="flex justify-between"><span>Contas</span><span className="text-white">{plan.accounts_qty}</span></div>
                           <div className="flex justify-between"><span>Reposições/mês</span><span className="text-white">{plan.replacements_qty}</span></div>
                         </div>
+                        {!plan.active && (
+                          <div className="text-[10px] text-amber-400/80 text-center font-medium">⚠ Oculto para clientes</div>
+                        )}
                         <Button size="sm" variant="ghost" className="w-full text-blue-400 hover:text-blue-300 hover:bg-blue-500/10" onClick={() => setEditingPlan({ ...plan })}>
                           <Edit2 className="size-3 mr-1" /> Editar
                         </Button>
