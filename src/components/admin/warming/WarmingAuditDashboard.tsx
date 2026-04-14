@@ -70,6 +70,7 @@ const STATUS_OPTIONS: { value: StatusFilter; label: string; icon: string }[] = [
   { value: "all", label: "Todos", icon: "list" },
   { value: "pending", label: "Pendentes", icon: "pending" },
   { value: "approved", label: "Aprovados", icon: "check_circle" },
+  { value: "checkpoint", label: "Checkpoint", icon: "pause_circle" },
   { value: "restricted", label: "Restritos", icon: "block" },
   { value: "sent", label: "Enviados", icon: "local_shipping" },
 ];
