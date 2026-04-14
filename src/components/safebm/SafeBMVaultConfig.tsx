@@ -49,6 +49,7 @@ interface Props {
 interface VaultFormState {
   bmName: string;
   saving: boolean;
+  confirmed: boolean;
 }
 
 // ─── Processing animation steps ───
