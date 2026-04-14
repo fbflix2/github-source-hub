@@ -456,12 +456,12 @@ export default function AdminAquecimento() {
       .update({ status: "completed", updated_at: new Date().toISOString() })
       .eq("id", profileId);
 
-    // Mark earning as confirmed
+    // Mark all task earnings for this profile as confirmed
     await supabase.from("operator_earnings").update({
       status: "confirmed",
       confirmed_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
-    }).eq("profile_id", profileId);
+    }).eq("profile_id", profileId).neq("status", "cancelled");
 
     toast.success(`✅ Perfil "${profile.profile_code}" movido para Perfis Prontos.`);
     return true;
@@ -523,16 +523,7 @@ export default function AdminAquecimento() {
     const taskRows = tasksToUse.map((t, i) => ({ profile_id: profile.id, day_number: i + 1, title: t.title, description: t.description }));
     await supabase.from("warming_tasks").insert(taskRows);
 
-    // Create earning record for this profile
-    if (assignTo) {
-      await supabase.from("operator_earnings").insert({
-        user_id: assignTo,
-        profile_id: profile.id,
-        profile_code: profileCode.trim(),
-        amount: commissionRate,
-        status: "pending",
-      }).then(({ error: eErr }) => { if (eErr) console.warn("Earning insert:", eErr); });
-    }
+    // Earnings are now created per-task completion, not per-profile
 
     // Both modes: register + auto-start (new profile has priority)
     toast.success(`✅ Perfil "${profileCode.trim()}" cadastrado e iniciando tarefas!`);
@@ -579,14 +570,29 @@ export default function AdminAquecimento() {
     }).eq("id", task.id);
 
     if (newCompleted) {
+      // Create earning for this completed task (R$0.25 per task)
+      const profile = profiles.find((p) => p.id === task.profile_id);
+      if (profile?.created_by) {
+        await supabase.from("operator_earnings").insert({
+          user_id: profile.created_by,
+          profile_id: task.profile_id,
+          profile_code: profile.profile_code,
+          task_id: task.id,
+          amount: commissionRate,
+          status: "pending",
+        }).then(({ error: eErr }) => { if (eErr) console.warn("Earning insert:", eErr); });
+      }
+
       const profileTasks = tasks[task.profile_id] || [];
       const completedCount = profileTasks.filter((t) => t.completed || t.id === task.id).length;
-      const profile = profiles.find((p) => p.id === task.profile_id);
       if (profile) {
         const newDay = Math.min(completedCount + 1, profile.track_days);
         const newStatus = completedCount >= profile.track_days ? "completed" : "active";
         await supabase.from("warming_profiles").update({ current_day: newDay, status: newStatus, updated_at: new Date().toISOString() }).eq("id", task.profile_id);
       }
+    } else {
+      // If uncompleting a task, remove the earning for this task
+      await supabase.from("operator_earnings").delete().eq("task_id", task.id);
     }
     fetchTasks(task.profile_id);
     fetchProfiles();
