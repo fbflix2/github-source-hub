@@ -174,21 +174,34 @@ export function FbDistribuicaoPJ() {
       valores[key] = entradaNum * ((Number(percentuais[key]) || 0) / 100);
     }
 
-    // Check Pro Labore meta — if already at/above goal, redirect entire allocation
+    // Check Pro Labore meta — use total monthly ENTRIES (not current balance, which decreases with expenses)
     const proLaboreCaixa = caixasList.find(c => c.nome === "Pro Labore");
     if (proLaboreCaixa && proLaboreCaixa.meta > 0 && valores.pro_labore) {
-      const saldoAtual = Number(proLaboreCaixa.saldo_atual) || 0;
-      if (saldoAtual >= proLaboreCaixa.meta) {
-        // Meta already reached — redirect entire Pro Labore allocation
+      const now = new Date();
+      const mesInicio = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+      const mesFim = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${lastDay}`;
+      
+      const { data: entradasMes } = await supabase
+        .from("fb_finance_lancamentos" as any)
+        .select("entrada")
+        .eq("caixa_destino_id", proLaboreCaixa.id)
+        .gte("data", mesInicio)
+        .lte("data", mesFim);
+      
+      const totalEntradasMes = (entradasMes as any[] || []).reduce((s: number, l: any) => s + Number(l.entrada || 0), 0);
+
+      if (totalEntradasMes >= proLaboreCaixa.meta) {
+        // Meta already reached this month — redirect entire Pro Labore allocation
         const excedente = valores.pro_labore;
         valores.pro_labore = 0;
         setRedirectPopup({ excedente, valores });
         return;
       }
-      const novoSaldo = saldoAtual + valores.pro_labore;
-      if (novoSaldo > proLaboreCaixa.meta) {
-        const excedente = novoSaldo - proLaboreCaixa.meta;
-        valores.pro_labore = Math.max(0, proLaboreCaixa.meta - saldoAtual);
+      const novoTotal = totalEntradasMes + valores.pro_labore;
+      if (novoTotal > proLaboreCaixa.meta) {
+        const excedente = novoTotal - proLaboreCaixa.meta;
+        valores.pro_labore = Math.max(0, proLaboreCaixa.meta - totalEntradasMes);
         setRedirectPopup({ excedente, valores });
         return;
       }
