@@ -152,7 +152,7 @@ Deno.serve(async (req) => {
       const { phone, message, user_id, event_key, template_id, metadata } = body;
       if (!phone || !message) return err("phone and message are required");
 
-      let normalizedPhone = phone.replace(/\D/g, "");
+      let normalizedPhone = normalizePhone(phone);
 
       const result = await wapiSendText(normalizedPhone, message);
 
@@ -178,7 +178,7 @@ Deno.serve(async (req) => {
       const { phone, image_url, caption, user_id, event_key, template_id, metadata } = body;
       if (!phone || !image_url) return err("phone and image_url are required");
 
-      let normalizedPhone = phone.replace(/\D/g, "");
+      let normalizedPhone = normalizePhone(phone);
 
       const result = await wapiSendImage(normalizedPhone, image_url, caption);
 
@@ -205,7 +205,7 @@ Deno.serve(async (req) => {
       const { phone, message, buttons, title, footer, user_id, event_key, template_id, metadata } = body;
       if (!phone || !message || !buttons?.length) return err("phone, message and buttons are required");
 
-      let normalizedPhone = phone.replace(/\D/g, "");
+      let normalizedPhone = normalizePhone(phone);
 
       const result = await wapiSendButton(normalizedPhone, message, buttons, title, footer);
 
@@ -242,7 +242,7 @@ Deno.serve(async (req) => {
         msg = msg.replaceAll(`{{${key}}}`, String(value));
       }
 
-      let normalizedPhone = phone.replace(/\D/g, "");
+      let normalizedPhone = normalizePhone(phone);
 
       const result = await wapiSendText(normalizedPhone, msg);
 
@@ -276,7 +276,7 @@ Deno.serve(async (req) => {
         for (const [key, value] of Object.entries(vars)) {
           msg = msg.replaceAll(`{{${key}}}`, String(value));
         }
-        let normalizedPhone = (r.phone || "").replace(/\D/g, "");
+        let normalizedPhone = normalizePhone(r.phone || "");
         if (normalizedPhone.length < 12) {
           skipped.push({ phone: r.phone, error: "Invalid phone" });
           continue;
@@ -420,7 +420,7 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        let normalizedPhone = profile.phone.replace(/\D/g, "");
+        let normalizedPhone = normalizePhone(profile.phone);
 
         queue.push({
           phone: normalizedPhone, message: msg,
@@ -491,7 +491,7 @@ Deno.serve(async (req) => {
         }
       }
 
-      let normalizedPhone = profile.phone.replace(/\D/g, "");
+      let normalizedPhone = normalizePhone(profile.phone);
 
       const result = await wapiSendText(normalizedPhone, msg);
 
