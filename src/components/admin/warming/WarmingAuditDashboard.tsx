@@ -64,7 +64,7 @@ const DAYS_OPTIONS = [
   { value: 30, label: "30+ dias" },
 ];
 
-type StatusFilter = "all" | "pending" | "approved" | "restricted" | "sent";
+type StatusFilter = "all" | "pending" | "approved" | "checkpoint" | "restricted" | "sent";
 
 const STATUS_OPTIONS: { value: StatusFilter; label: string; icon: string }[] = [
   { value: "all", label: "Todos", icon: "list" },
