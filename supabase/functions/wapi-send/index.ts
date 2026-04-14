@@ -297,9 +297,15 @@ Deno.serve(async (req) => {
         .eq("event_key", "proxy_expiring").eq("active", true).limit(1).single();
       if (!tpl) return err("Nenhum template ativo com evento 'proxy_expiring' encontrado");
 
-      const targetDate = new Date();
-      targetDate.setDate(targetDate.getDate() + days_ahead);
-      const dateStr = targetDate.toISOString().slice(0, 10);
+      // Use BRT (UTC-3) to match the business timezone
+      const now = new Date();
+      const brtNow = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+      brtNow.setDate(brtNow.getDate() + days_ahead);
+      const dateStr = brtNow.toISOString().slice(0, 10);
+
+      // Convert BRT day boundaries to UTC for the query
+      const startUTC = dateStr + "T03:00:00Z"; // 00:00 BRT = 03:00 UTC
+      const endUTC = new Date(new Date(dateStr + "T03:00:00Z").getTime() + 24 * 60 * 60 * 1000).toISOString(); // next day 03:00 UTC
 
       const SITE_URL = "https://fbflix.com.br";
 
@@ -307,8 +313,8 @@ Deno.serve(async (req) => {
         .from("subscriptions")
         .select("id, user_id, name, type, end_date, product_id, raw_data")
         .eq("status", "active")
-        .gte("end_date", dateStr + "T00:00:00Z")
-        .lt("end_date", dateStr + "T23:59:59Z");
+        .gte("end_date", startUTC)
+        .lt("end_date", endUTC);
 
       if (subsErr) return err("Erro ao buscar assinaturas: " + subsErr.message);
       if (!subs?.length) return ok({ success: true, message: `Nenhuma assinatura vencendo em ${dateStr}`, sent: 0 });
