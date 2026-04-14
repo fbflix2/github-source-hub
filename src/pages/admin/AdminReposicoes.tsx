@@ -337,7 +337,7 @@ export default function AdminReposicoes() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
-                      {r.stock_item_id && (
+                      {(r.new_stock_item_id || r.stock_item_id) && (
                         <Button
                           size="sm"
                           variant="ghost"
