@@ -1150,6 +1150,23 @@ export default function AdminEsteiraAdmin() {
                       Reativar
                     </button>
                   )}
+                  {selectedProfile.status !== "disabled" && (
+                    <button
+                      onClick={async () => {
+                        if (!confirm(`Tem certeza que deseja marcar o perfil ${selectedProfile.profile_code} como bloqueado? Os ganhos referentes a este perfil serão anulados.`)) return;
+                        const { error: profErr } = await supabase.from("warming_profiles").update({ status: "disabled", updated_at: new Date().toISOString() }).eq("id", selectedProfile.id);
+                        if (profErr) { toast.error("Erro ao bloquear perfil"); return; }
+                        await supabase.from("operator_earnings").update({ status: "cancelled", cancelled_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq("profile_id", selectedProfile.id).neq("status", "cancelled");
+                        toast.success(`Perfil ${selectedProfile.profile_code} marcado como bloqueado.`);
+                        setAnaliseSelectedId(null);
+                        fetchProfiles();
+                      }}
+                      className="text-xs font-bold px-4 py-1.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors flex items-center gap-1"
+                    >
+                      <MIcon name="block" className="text-sm" />
+                      Bloqueado
+                    </button>
+                  )}
                 </div>
               </div>
 
