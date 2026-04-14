@@ -166,6 +166,7 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, manualQual
       if (statusFilter !== "all") {
         if (statusFilter === "pending" && p.status !== "active") return false;
         if (statusFilter === "checkpoint" && p.status !== "checkpoint") return false;
+        if (statusFilter === "approved" && p.status !== "completed") return false;
         if (statusFilter === "restricted" && p.status !== "restricted" && p.status !== "blocked") return false;
         if (statusFilter === "sent" && p.status !== "sent_to_store") return false;
       }
@@ -413,19 +414,42 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, manualQual
                   <span className="flex items-center gap-1 text-emerald-400 text-xs font-bold shrink-0">
                     <MIcon name="check_circle" className="text-base" /> Aprovado
                   </span>
+                ) : profile.status === "checkpoint" ? (
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="flex items-center gap-1 text-yellow-400 text-xs font-bold">
+                      <MIcon name="pause_circle" className="text-base" /> Checkpoint
+                    </span>
+                    <button
+                      onClick={() => approveProfile(profile)}
+                      disabled={approving === profile.id}
+                      className="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                    >
+                      <MIcon name="verified" className="text-sm" /> Aprovar
+                    </button>
+                  </div>
                 ) : (
-                  <button
-                    onClick={() => approveProfile(profile)}
-                    disabled={approving === profile.id}
-                    className="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white px-4 py-2 rounded-lg text-xs font-bold transition-all shrink-0"
-                  >
-                    {approving === profile.id ? (
-                      <span className="animate-spin w-3 h-3 border-2 border-white border-t-transparent rounded-full" />
-                    ) : (
-                      <MIcon name="verified" className="text-base" />
-                    )}
-                    Aprovar
-                  </button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => markCheckpoint(profile)}
+                      disabled={approving === profile.id}
+                      className="flex items-center gap-1 bg-yellow-600 hover:bg-yellow-500 disabled:opacity-50 text-white px-3 py-2 rounded-lg text-xs font-bold transition-all"
+                    >
+                      <MIcon name="pause_circle" className="text-base" />
+                      Checkpoint
+                    </button>
+                    <button
+                      onClick={() => approveProfile(profile)}
+                      disabled={approving === profile.id}
+                      className="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white px-3 py-2 rounded-lg text-xs font-bold transition-all"
+                    >
+                      {approving === profile.id ? (
+                        <span className="animate-spin w-3 h-3 border-2 border-white border-t-transparent rounded-full" />
+                      ) : (
+                        <MIcon name="verified" className="text-base" />
+                      )}
+                      Aprovar
+                    </button>
+                  </div>
                 )}
               </div>
             );
