@@ -228,8 +228,24 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, manualQual
       setApproving(null);
     }
   };
+  const markCheckpoint = async (profile: WarmingProfile) => {
+    setApproving(profile.id);
+    try {
+      await supabase
+        .from("warming_profiles" as any)
+        .update({ status: "checkpoint" })
+        .eq("id", profile.id);
+      toast.success(`Perfil ${profile.profile_code} marcado como Checkpoint.`);
+      onRefresh();
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao marcar checkpoint");
+    } finally {
+      setApproving(null);
+    }
+  };
 
-  return (
+
     <main className="flex-1 px-6 md:px-12 lg:px-40 py-10 max-w-[1200px] mx-auto w-full space-y-6">
       <div className="flex items-center gap-3 mb-2">
         <MIcon name="fact_check" className="text-[#1876f2] text-2xl" />
