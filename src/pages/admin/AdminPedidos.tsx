@@ -145,6 +145,10 @@ export default function AdminPedidos() {
   }
 
   const filtered = orders.filter((o) => {
+    const hasItems = o.items.length > 0;
+    // Hide orphan orders without items from the admin grid
+    if (!hasItems) return false;
+
     // Hide "processing" orders from the default "todos" view — they are PIX awaiting payment
     const matchesStatus = statusFilter === "todos" 
       ? o.status !== "processing" 
