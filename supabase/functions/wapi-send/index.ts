@@ -389,7 +389,11 @@ Deno.serve(async (req) => {
           const renewLink = `${SITE_URL}/subscriptions/${subCode}`;
           msg = tpl.message_body;
           msg = msg.replaceAll("{{nome}}", profile.full_name || "Cliente");
-          msg = msg.replaceAll("{{produto}}", proxyLines[0].replace("• ", ""));
+          // Use product label without price to avoid redundancy with {{valor}}
+          const sub0 = userSubList[0];
+          const prod0 = sub0.product_id ? productMap[sub0.product_id] : null;
+          const prodLabel = `${sub0.name || sub0.id.slice(0, 8)} — ${prod0?.name || sub0.type?.toUpperCase() || "Proxy"}`;
+          msg = msg.replaceAll("{{produto}}", prodLabel);
           msg = msg.replaceAll("{{valor}}", totalStr);
           msg = msg.replaceAll("{{data}}", firstEndDate);
           msg = msg.replaceAll("{{email}}", "");
