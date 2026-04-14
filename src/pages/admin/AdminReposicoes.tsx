@@ -139,14 +139,16 @@ export default function AdminReposicoes() {
   };
 
   const handleDownloadTxt = async (r: Replacement) => {
-    if (!r.stock_item_id) {
+    // Use the NEW stock item if available, otherwise fall back to the old one
+    const targetStockId = r.new_stock_item_id || r.stock_item_id;
+    if (!targetStockId) {
       toast.error("Item de estoque não vinculado");
       return;
     }
     const { data: stockItem, error } = await supabase
       .from("stock_items")
       .select("name, data, identification, identification_link")
-      .eq("id", r.stock_item_id)
+      .eq("id", targetStockId)
       .single();
 
     if (error || !stockItem) {
@@ -335,7 +337,7 @@ export default function AdminReposicoes() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
-                      {r.stock_item_id && (
+                      {(r.new_stock_item_id || r.stock_item_id) && (
                         <Button
                           size="sm"
                           variant="ghost"
