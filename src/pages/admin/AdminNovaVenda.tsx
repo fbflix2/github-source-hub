@@ -80,7 +80,7 @@ export default function AdminNovaVenda() {
   useEffect(() => {
     supabase
       .from("products")
-      .select("id, name, price")
+      .select("id, name, price, external_id, icon_type")
       .eq("status", "active")
       .order("name")
       .then(({ data }) => setProducts(data || []));
