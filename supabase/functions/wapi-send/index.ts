@@ -153,7 +153,6 @@ Deno.serve(async (req) => {
       if (!phone || !message) return err("phone and message are required");
 
       let normalizedPhone = phone.replace(/\D/g, "");
-      if (!normalizedPhone.startsWith("55")) normalizedPhone = "55" + normalizedPhone;
 
       const result = await wapiSendText(normalizedPhone, message);
 
@@ -180,7 +179,6 @@ Deno.serve(async (req) => {
       if (!phone || !image_url) return err("phone and image_url are required");
 
       let normalizedPhone = phone.replace(/\D/g, "");
-      if (!normalizedPhone.startsWith("55")) normalizedPhone = "55" + normalizedPhone;
 
       const result = await wapiSendImage(normalizedPhone, image_url, caption);
 
@@ -208,7 +206,6 @@ Deno.serve(async (req) => {
       if (!phone || !message || !buttons?.length) return err("phone, message and buttons are required");
 
       let normalizedPhone = phone.replace(/\D/g, "");
-      if (!normalizedPhone.startsWith("55")) normalizedPhone = "55" + normalizedPhone;
 
       const result = await wapiSendButton(normalizedPhone, message, buttons, title, footer);
 
@@ -246,7 +243,6 @@ Deno.serve(async (req) => {
       }
 
       let normalizedPhone = phone.replace(/\D/g, "");
-      if (!normalizedPhone.startsWith("55")) normalizedPhone = "55" + normalizedPhone;
 
       const result = await wapiSendText(normalizedPhone, msg);
 
@@ -281,7 +277,6 @@ Deno.serve(async (req) => {
           msg = msg.replaceAll(`{{${key}}}`, String(value));
         }
         let normalizedPhone = (r.phone || "").replace(/\D/g, "");
-        if (!normalizedPhone.startsWith("55")) normalizedPhone = "55" + normalizedPhone;
         if (normalizedPhone.length < 12) {
           skipped.push({ phone: r.phone, error: "Invalid phone" });
           continue;
@@ -426,7 +421,6 @@ Deno.serve(async (req) => {
         }
 
         let normalizedPhone = profile.phone.replace(/\D/g, "");
-        if (!normalizedPhone.startsWith("55")) normalizedPhone = "55" + normalizedPhone;
 
         queue.push({
           phone: normalizedPhone, message: msg,
@@ -498,7 +492,6 @@ Deno.serve(async (req) => {
       }
 
       let normalizedPhone = profile.phone.replace(/\D/g, "");
-      if (!normalizedPhone.startsWith("55")) normalizedPhone = "55" + normalizedPhone;
 
       const result = await wapiSendText(normalizedPhone, msg);
 
