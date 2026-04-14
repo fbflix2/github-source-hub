@@ -236,6 +236,8 @@ export default function SafeBMVaultConfig({ vaults, onConfigured }: Props) {
           const form = getForm(v.id);
           const isAnimating = !!animatingVaults[v.id];
           const isSubmitted = !!submittedVaults[v.id];
+          // If vault already has a real bm_name set (not default), treat as already submitted
+          const alreadyConfigured = v.bm_name && v.bm_name.trim() !== "" && v.bm_name !== "BM" && v.bm_name !== "Cofre";
 
           return (
             <div
@@ -244,8 +246,8 @@ export default function SafeBMVaultConfig({ vaults, onConfigured }: Props) {
             >
               {isAnimating ? (
                 <VaultProcessingAnimation bmName={animatingVaults[v.id]} />
-              ) : isSubmitted ? (
-                <VaultPendingCard bmName={submittedVaults[v.id]} />
+              ) : (isSubmitted || alreadyConfigured) ? (
+                <VaultPendingCard bmName={submittedVaults[v.id] || v.bm_name} />
               ) : (
                 <>
                   {/* Vault door silhouette */}
