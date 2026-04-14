@@ -164,8 +164,8 @@ export default function WarmingAuditDashboard({ profiles, qualityMap, manualQual
 
       // Status filter
       if (statusFilter !== "all") {
-        if (statusFilter === "pending" && p.status !== "checkpoint" && p.status !== "active") return false;
-        if (statusFilter === "approved" && p.status !== "completed") return false;
+        if (statusFilter === "pending" && p.status !== "active") return false;
+        if (statusFilter === "checkpoint" && p.status !== "checkpoint") return false;
         if (statusFilter === "restricted" && p.status !== "restricted" && p.status !== "blocked") return false;
         if (statusFilter === "sent" && p.status !== "sent_to_store") return false;
       }
