@@ -332,6 +332,49 @@ export default function AdminNovaVenda() {
         }
       }
 
+      // Auto-fulfill proxy when delivery method is "proxy" or "automatica" for proxy products
+      if ((deliveryMethod === "proxy" || deliveryMethod === "automatica") && insertedItems) {
+        for (const oi of insertedItems) {
+          if (!oi.product_id) continue;
+          const product = products.find((p: any) => p.id === oi.product_id);
+          if (!product || product.icon_type !== "proxy") continue;
+
+          try {
+            if (product.external_id) {
+              // ProxyBR fulfillment
+              const { data: fulfillData, error: fulfillErr } = await supabase.functions.invoke("proxybr-api", {
+                body: {
+                  action: "admin-fulfill-proxybr",
+                  order_item_id: oi.id,
+                  user_id: selectedClient.user_id,
+                  external_id: product.external_id,
+                },
+              });
+              if (fulfillErr) throw fulfillErr;
+              if (fulfillData?.error) throw new Error(fulfillData.error);
+              console.log("[proxy-fulfill] ProxyBR fulfilled:", fulfillData);
+            } else {
+              // Webshare fulfillment
+              const { data: fulfillData, error: fulfillErr } = await supabase.functions.invoke("webshare-api", {
+                body: {
+                  action: "admin-allocate-proxy",
+                  target_user_id: selectedClient.user_id,
+                  quantity: oi.quantity || 1,
+                  product_id: oi.product_id,
+                  order_id: order.id,
+                },
+              });
+              if (fulfillErr) throw fulfillErr;
+              if (fulfillData?.error) throw new Error(fulfillData.error);
+              console.log("[proxy-fulfill] Webshare fulfilled:", fulfillData);
+            }
+          } catch (proxyErr: any) {
+            console.error("[proxy-fulfill] Error:", proxyErr);
+            toast.warning(`Pedido criado, mas falha ao alocar proxy: ${proxyErr.message}`);
+          }
+        }
+      }
+
       // Register wallet transaction for client history (no balance impact for courtesy)
       const { data: profile } = await supabase
         .from("profiles")
