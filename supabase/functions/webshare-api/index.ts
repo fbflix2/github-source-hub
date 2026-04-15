@@ -2253,6 +2253,31 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ========== INTERNAL: DELETE WEBSHARE PROXY ==========
+    if (action === "internal-delete-webshare-proxy") {
+      const supabaseInternal = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+
+      const { webshare_proxy_id } = bodyClone;
+      if (!webshare_proxy_id) throw new Error("webshare_proxy_id é obrigatório");
+
+      // Delete the proxy from Webshare API
+      const resp = await webFetch(`/proxy/list/${webshare_proxy_id}/`, WEBSHARE_API_KEY, "DELETE");
+      
+      // 204 = success, 404 = already deleted
+      if (resp.status !== 204 && resp.status !== 404) {
+        const text = await resp.text();
+        throw new Error(`Webshare delete error [${resp.status}]: ${text.slice(0, 200)}`);
+      }
+
+      console.log(`[internal-delete-proxy] Deleted Webshare proxy ${webshare_proxy_id} (status=${resp.status})`);
+      return new Response(JSON.stringify({ success: true, webshare_proxy_id, status: resp.status }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     throw new Error(`Ação desconhecida: ${action}`);
   } catch (err: any) {
     console.error("[webshare-api] Error:", err.message);
