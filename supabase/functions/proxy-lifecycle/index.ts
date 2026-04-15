@@ -113,6 +113,7 @@ Deno.serve(async (req) => {
 
       // Helper to update grace_notifications
       async function markStage(stage: string) {
+        if (dryRun) return;
         const updated = { ...grace, [stage]: new Date().toISOString() };
         await admin.from("subscriptions").update({ grace_notifications: updated }).eq("id", sub.id);
       }
