@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
     if (resetFirst) {
       await admin.from("subscriptions")
         .update({ grace_notifications: {} })
-        .in("type", ["webshare", "webshare_rotating"])
+        .in("type", ["webshare", "webshare_rotating", "proxybr"])
         .in("status", ["active", "expired", "expiring"]);
       console.log("[proxy-lifecycle] Reset grace_notifications for non-cancelled subs");
     }
@@ -82,11 +82,11 @@ Deno.serve(async (req) => {
     const SITE_URL = "https://fbflix.com.br";
     const GRACE_FEE_PER_DAY = 0.25;
 
-    // ======== FETCH ALL WEBSHARE/WEBSHARE_ROTATING SUBSCRIPTIONS ========
+    // ======== FETCH ALL PROXY SUBSCRIPTIONS (Webshare + ProxyBR) ========
     const { data: allSubs, error: subsErr } = await admin
       .from("subscriptions")
       .select("id, user_id, name, type, status, end_date, raw_data, product_id, grace_notifications, auto_renew")
-      .in("type", ["webshare", "webshare_rotating"])
+      .in("type", ["webshare", "webshare_rotating", "proxybr"])
       .in("status", ["active", "expired", "expiring"])
       .not("end_date", "is", null);
 
@@ -147,14 +147,16 @@ Deno.serve(async (req) => {
     // Helper to build proxy line for a sub
     function buildProxyLine(sub: SubWithStage): { line: string; price: number; ip: string; code: string } {
       const product = sub.product_id ? productMap[sub.product_id] : null;
-      const productName = product?.name || (sub.type === "webshare_rotating" ? "Proxy Rotativo" : "Proxy Residencial");
+      const productName = product?.name || (sub.type === "webshare_rotating" ? "Proxy Rotativo" : sub.type === "proxybr" ? "PROXYBR" : "Proxy Residencial");
       let price = product?.price ? Number(product.price) : 0;
       if (price === 0 && sub.raw_data) {
         const rd = typeof sub.raw_data === "string" ? JSON.parse(sub.raw_data) : sub.raw_data;
         price = Number(rd?.monthly_cost || rd?.price || 0);
       }
+      // Fallback for proxybr without product: use default price
+      if (price === 0 && sub.type === "proxybr") price = 25;
       const raw = (sub.raw_data || {}) as Record<string, any>;
-      const ip = raw.proxy_address || raw.proxy_host || "—";
+      const ip = raw.proxy_address || raw.proxy_host || raw.proxy_ip || "—";
       const code = sub.name || sub.id.slice(0, 8);
       return {
         line: `• ${code} — ${productName} (R$ ${price.toFixed(2)}) — IP: ${ip}`,
