@@ -61,7 +61,8 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
     linkPerfil: "", idPerfil: "", emailAcesso: "", emailAlternativo: "",
     senha: "", senhaEmail: "", token2fa: "", tempoPlataforma: "3-meses", statusAtual: "aquecido",
     cookies: "", descricao: "", nomePerfil: "", dataNascimento: "", genero: "masculino",
-    linkDocumento: "", fotoUrl: "", preco: "", categoryId: "", tags: [] as string[], nomeProduto: ""
+    linkDocumento: "", fotoUrl: "", preco: "", categoryId: "", tags: [] as string[], nomeProduto: "",
+    bmNames: [] as string[], perfilMatriz: ""
   };
 
   const [formData, setFormData] = useState(() => {
