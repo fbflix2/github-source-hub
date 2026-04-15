@@ -153,8 +153,10 @@ Deno.serve(async (req) => {
         const rd = typeof sub.raw_data === "string" ? JSON.parse(sub.raw_data) : sub.raw_data;
         price = Number(rd?.monthly_cost || rd?.price || 0);
       }
+      // Fallback for proxybr without product: use default price
+      if (price === 0 && sub.type === "proxybr") price = 25;
       const raw = (sub.raw_data || {}) as Record<string, any>;
-      const ip = raw.proxy_address || raw.proxy_host || "—";
+      const ip = raw.proxy_address || raw.proxy_host || raw.proxy_ip || "—";
       const code = sub.name || sub.id.slice(0, 8);
       return {
         line: `• ${code} — ${productName} (R$ ${price.toFixed(2)}) — IP: ${ip}`,
