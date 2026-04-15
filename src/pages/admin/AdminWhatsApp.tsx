@@ -396,6 +396,9 @@ export default function AdminWhatsApp() {
           <TabsTrigger value="campaigns">
             <BarChart3 className="size-4 mr-1.5" />Campanhas
           </TabsTrigger>
+          <TabsTrigger value="renewals">
+            <RotateCw className="size-4 mr-1.5" />Renovações
+          </TabsTrigger>
           <TabsTrigger value="templates">
             <MessageCircle className="size-4 mr-1.5" />Templates
           </TabsTrigger>
