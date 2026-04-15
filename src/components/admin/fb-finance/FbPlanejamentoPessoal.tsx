@@ -196,8 +196,43 @@ export function FbPlanejamentoPessoal() {
       </div>
     );
 
+  // Pro Labore payday reminder (day 30)
+  const today = new Date();
+  const dayOfMonth = today.getDate();
+  const isPayday = dayOfMonth === 30;
+  const isNearPayday = dayOfMonth >= 28 && dayOfMonth < 30;
+  const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+  const isLastDayAndNoThirty = lastDayOfMonth < 30 && dayOfMonth === lastDayOfMonth;
+  const showPaydayAlert = isPayday || isLastDayAndNoThirty;
+  const showPaydaySoon = isNearPayday && !showPaydayAlert;
+  const daysUntilPayday = 30 - dayOfMonth;
+
   return (
     <div className="space-y-12 max-w-7xl mx-auto">
+      {/* Payday Alert */}
+      {showPaydayAlert && (
+        <div className="bg-gradient-to-r from-[#40e56c]/20 to-[#1976d2]/20 border border-[#40e56c]/30 rounded-xl p-5 flex items-center gap-4 animate-pulse-slow">
+          <div className="w-12 h-12 rounded-full bg-[#40e56c]/20 flex items-center justify-center flex-shrink-0">
+            <span className="material-symbols-outlined text-[#40e56c] text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>payments</span>
+          </div>
+          <div>
+            <h3 className="font-['Manrope'] font-bold text-lg text-[#40e56c]">💰 Hoje é dia de Pro Labore!</h3>
+            <p className="text-[#c1c6d4] text-sm">Dia 30 — hora de transferir o saldo do Pro Labore ({formatBRL(salario)}) para seus caixas pessoais.</p>
+          </div>
+        </div>
+      )}
+      {showPaydaySoon && (
+        <div className="bg-[#0e1c2d] border border-amber-500/20 rounded-xl p-4 flex items-center gap-4">
+          <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+            <span className="material-symbols-outlined text-amber-400 text-xl">schedule</span>
+          </div>
+          <div>
+            <h3 className="font-['Manrope'] font-bold text-sm text-amber-400">Pro Labore em {daysUntilPayday} dia{daysUntilPayday > 1 ? "s" : ""}</h3>
+            <p className="text-[#8b919e] text-xs">Saldo acumulado: {formatBRL(salario)} — a transferência para os envelopes será no dia 30.</p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <section className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div>
