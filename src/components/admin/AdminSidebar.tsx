@@ -40,6 +40,7 @@ import {
   Briefcase,
   Coins,
   Flame,
+  CircleUser,
   Store,
   KeyRound,
   ImageIcon,
