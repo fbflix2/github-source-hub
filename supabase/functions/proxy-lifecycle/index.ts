@@ -147,7 +147,7 @@ Deno.serve(async (req) => {
     // Helper to build proxy line for a sub
     function buildProxyLine(sub: SubWithStage): { line: string; price: number; ip: string; code: string } {
       const product = sub.product_id ? productMap[sub.product_id] : null;
-      const productName = product?.name || (sub.type === "webshare_rotating" ? "Proxy Rotativo" : "Proxy Residencial");
+      const productName = product?.name || (sub.type === "webshare_rotating" ? "Proxy Rotativo" : sub.type === "proxybr" ? "PROXYBR" : "Proxy Residencial");
       let price = product?.price ? Number(product.price) : 0;
       if (price === 0 && sub.raw_data) {
         const rd = typeof sub.raw_data === "string" ? JSON.parse(sub.raw_data) : sub.raw_data;
