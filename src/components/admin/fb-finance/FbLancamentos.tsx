@@ -757,6 +757,7 @@ export function FbLancamentos() {
                   </div>
                   <span className="font-['Manrope'] font-bold text-[#40e56c]">{formatBRL(p.valor)}</span>
                 </div>
+              )})}
             </div>
 
             <div className="flex gap-3">
