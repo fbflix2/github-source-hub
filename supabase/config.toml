@@ -86,3 +86,6 @@ verify_jwt = false
 
 [functions.proxy-lifecycle]
 verify_jwt = false
+
+[functions.invoice-lookup]
+verify_jwt = false
