@@ -378,7 +378,7 @@ function RenewalsTab() {
   );
 }
 
-
+export default function AdminWhatsApp() {
   const qc = useQueryClient();
   const { data: templates, isLoading: loadingTemplates } = useTemplates();
   const [logSearch, setLogSearch] = useState("");
