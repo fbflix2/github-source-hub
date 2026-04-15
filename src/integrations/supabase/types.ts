@@ -3128,6 +3128,7 @@ export type Database = {
           cancelled_at: string | null
           created_at: string
           end_date: string | null
+          grace_notifications: Json | null
           id: string
           name: string
           product_id: string | null
@@ -3143,6 +3144,7 @@ export type Database = {
           cancelled_at?: string | null
           created_at?: string
           end_date?: string | null
+          grace_notifications?: Json | null
           id?: string
           name: string
           product_id?: string | null
@@ -3158,6 +3160,7 @@ export type Database = {
           cancelled_at?: string | null
           created_at?: string
           end_date?: string | null
+          grace_notifications?: Json | null
           id?: string
           name?: string
           product_id?: string | null
