@@ -82,11 +82,11 @@ Deno.serve(async (req) => {
     const SITE_URL = "https://fbflix.com.br";
     const GRACE_FEE_PER_DAY = 0.25;
 
-    // ======== FETCH ALL WEBSHARE/WEBSHARE_ROTATING SUBSCRIPTIONS ========
+    // ======== FETCH ALL PROXY SUBSCRIPTIONS (Webshare + ProxyBR) ========
     const { data: allSubs, error: subsErr } = await admin
       .from("subscriptions")
       .select("id, user_id, name, type, status, end_date, raw_data, product_id, grace_notifications, auto_renew")
-      .in("type", ["webshare", "webshare_rotating"])
+      .in("type", ["webshare", "webshare_rotating", "proxybr"])
       .in("status", ["active", "expired", "expiring"])
       .not("end_date", "is", null);
 
