@@ -56,7 +56,7 @@ export default function AdminGestaoPerfis() {
   const fetchItems = async () => {
     setLoading(true);
     try {
-      // Fetch perfil stock items that are either in-store (revisado + product_id + not sold) or sold
+      // Fetch perfil stock items that went through blocagem (have bmNames or perfilMatriz in data)
       const { data: stockItems, error } = await supabase
         .from("stock_items")
         .select("id, name, identification, identification_link, status, product_id, data, folder, created_at, order_item_id")
@@ -67,8 +67,12 @@ export default function AdminGestaoPerfis() {
 
       if (error) throw error;
 
-      // Filter: only show sold items OR revisado with product_id (actually in the store)
+      // Only show items that passed through blocagem (have bmNames or perfilMatriz filled)
       const rows = (stockItems || []).filter(r => {
+        const d = r.data as any;
+        const hasBm = Array.isArray(d?.bmNames) && d.bmNames.some((b: string) => b.trim());
+        const hasMatriz = !!d?.perfilMatriz;
+        if (!hasBm && !hasMatriz) return false;
         if (r.status === "vendido" || r.status === "usado") return true;
         if (r.status === "revisado" && r.product_id && !r.order_item_id) return true;
         return false;
