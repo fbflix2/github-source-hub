@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
   }
 
   async function wapiSendButton(phone: string, message: string, buttons: Array<{ id: string; text: string }>, title?: string, footer?: string) {
-    return wapiRequest("/message/send-buttons", { phone, title: title || "", message, footer: footer || "", buttons });
+    return wapiRequest("/message/send-interactive", { phone, title: title || "", message, footer: footer || "", buttons });
   }
 
   async function wapiCheckStatus() {
