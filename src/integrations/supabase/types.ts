@@ -968,6 +968,7 @@ export type Database = {
       }
       fb_finance_config: {
         Row: {
+          capital_giro_debt: number
           created_at: string
           distribution_percentages: Json
           id: string
@@ -976,6 +977,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          capital_giro_debt?: number
           created_at?: string
           distribution_percentages?: Json
           id?: string
@@ -984,6 +986,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          capital_giro_debt?: number
           created_at?: string
           distribution_percentages?: Json
           id?: string
