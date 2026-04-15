@@ -725,22 +725,39 @@ export function FbLancamentos() {
               <span className="text-2xl font-['Manrope'] font-black text-[#40e56c]">{formatBRL(pendingPayload?.entrada || 0)}</span>
             </div>
 
+            {(pendingPayload?._debtRepayment || 0) > 0 && (
+              <div className="bg-[#f5c542]/10 border border-[#f5c542]/20 p-3 rounded-lg mb-4 flex items-center gap-3">
+                <span className="material-symbols-outlined text-[#f5c542]">priority_high</span>
+                <div>
+                  <p className="text-xs font-bold text-[#f5c542]">Reposição de Capital de Giro</p>
+                  <p className="text-[10px] text-[#8b919e]">
+                    R$ {Number(pendingPayload._debtRepayment).toFixed(2)} será reposto ao Capital de Giro antes da distribuição normal
+                  </p>
+                </div>
+              </div>
+            )}
+
             <div className="space-y-2 mb-6">
               <p className="text-[10px] text-[#8b919e] uppercase tracking-widest font-bold">Distribuição nos Caixas</p>
-              {distPreviews.map(p => (
+              {distPreviews.map(p => {
+                const isCapitalGiroItem = p.caixaName === "Capital de Giro";
+                const debtPart = isCapitalGiroItem ? (pendingPayload?._debtRepayment || 0) : 0;
+                return (
                 <div key={p.caixaId} className="flex justify-between items-center bg-[#051424] px-4 py-3 rounded-lg">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-[#1976d2]/10 flex items-center justify-center">
-                      <span className="material-symbols-outlined text-sm text-[#a5c8ff]">account_balance</span>
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isCapitalGiroItem && debtPart > 0 ? "bg-[#f5c542]/10" : "bg-[#1976d2]/10"}`}>
+                      <span className={`material-symbols-outlined text-sm ${isCapitalGiroItem && debtPart > 0 ? "text-[#f5c542]" : "text-[#a5c8ff]"}`}>account_balance</span>
                     </div>
                     <div>
                       <span className="text-sm text-[#d5e4fa] font-medium">{p.caixaName}</span>
-                      <span className="text-[10px] text-[#8b919e] ml-2">({p.percent}%)</span>
+                      <span className="text-[10px] text-[#8b919e] ml-2">
+                        ({p.percent}%{debtPart > 0 ? ` + Reposição` : ""})
+                      </span>
                     </div>
                   </div>
                   <span className="font-['Manrope'] font-bold text-[#40e56c]">{formatBRL(p.valor)}</span>
                 </div>
-              ))}
+              )})}
             </div>
 
             <div className="flex gap-3">
