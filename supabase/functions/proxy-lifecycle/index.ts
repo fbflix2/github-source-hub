@@ -132,7 +132,7 @@ Deno.serve(async (req) => {
         await sendWA(msg, "proxy_expiring_d0");
         await markStage("d0");
         // Mark status as expired if still active
-        if (sub.status === "active") {
+        if (sub.status === "active" && !dryRun) {
           await admin.from("subscriptions").update({ status: "expired" }).eq("id", sub.id);
         }
         results.push({ sub: subCode, stage: "D0", action: "notified+expired" });
@@ -142,11 +142,13 @@ Deno.serve(async (req) => {
       else if ((diff === 1 || diff === 2) && !grace[`d_plus_${diff}`]) {
         const fee = GRACE_FEE_PER_DAY * diff;
         await markStage(`d_plus_${diff}`);
-        // Store accumulated fee in raw_data
-        const updatedRaw = { ...raw, grace_fee: fee };
-        await admin.from("subscriptions").update({ raw_data: updatedRaw }).eq("id", sub.id);
-        if (sub.status !== "expired") {
-          await admin.from("subscriptions").update({ status: "expired" }).eq("id", sub.id);
+        if (!dryRun) {
+          // Store accumulated fee in raw_data
+          const updatedRaw = { ...raw, grace_fee: fee };
+          await admin.from("subscriptions").update({ raw_data: updatedRaw }).eq("id", sub.id);
+          if (sub.status !== "expired") {
+            await admin.from("subscriptions").update({ status: "expired" }).eq("id", sub.id);
+          }
         }
         results.push({ sub: subCode, stage: `D+${diff}`, action: `grace_fee=${fee}` });
       }
@@ -175,24 +177,28 @@ Deno.serve(async (req) => {
         const webshareProxyId = raw.webshare_proxy_id;
         let deleteResult = "no_proxy_id";
 
-        if (webshareProxyId && sub.type === "webshare") {
-          try {
-            const deleteResp = await admin.functions.invoke("webshare-api", {
-              body: { action: "internal-delete-webshare-proxy", webshare_proxy_id: webshareProxyId },
-            });
-            deleteResult = deleteResp.data?.success ? "deleted" : (deleteResp.data?.error || "failed");
-            console.log(`[proxy-lifecycle] Delete proxy ${webshareProxyId}: ${deleteResult}`);
-          } catch (e: any) {
-            deleteResult = `error: ${e.message}`;
-            console.error(`[proxy-lifecycle] Delete proxy error: ${e.message}`);
+        if (!dryRun) {
+          if (webshareProxyId && sub.type === "webshare") {
+            try {
+              const deleteResp = await admin.functions.invoke("webshare-api", {
+                body: { action: "internal-delete-webshare-proxy", webshare_proxy_id: webshareProxyId },
+              });
+              deleteResult = deleteResp.data?.success ? "deleted" : (deleteResp.data?.error || "failed");
+              console.log(`[proxy-lifecycle] Delete proxy ${webshareProxyId}: ${deleteResult}`);
+            } catch (e: any) {
+              deleteResult = `error: ${e.message}`;
+              console.error(`[proxy-lifecycle] Delete proxy error: ${e.message}`);
+            }
           }
-        }
 
-        // Update subscription to cancelled
-        await admin.from("subscriptions").update({
-          status: "cancelled",
-          cancelled_at: new Date().toISOString(),
-        }).eq("id", sub.id);
+          // Update subscription to cancelled
+          await admin.from("subscriptions").update({
+            status: "cancelled",
+            cancelled_at: new Date().toISOString(),
+          }).eq("id", sub.id);
+        } else {
+          deleteResult = "dry_run_skipped";
+        }
         await markStage("d_plus_5_cancelled");
 
         // Send cancellation notification
