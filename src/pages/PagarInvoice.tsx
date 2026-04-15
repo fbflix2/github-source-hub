@@ -42,11 +42,6 @@ export default function PagarInvoice() {
   useEffect(() => {
     if (!invoice || invoice.status !== "pending") return;
     const interval = setInterval(async () => {
-      const { data } = await supabase.functions.invoke("invoice-lookup", {
-        body: null,
-        headers: {},
-      }).then(() => ({ data: null })).catch(() => ({ data: null }));
-      // Use fetch directly for GET with query params
       try {
         const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
         const res = await fetch(
