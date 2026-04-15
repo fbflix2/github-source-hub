@@ -38,34 +38,36 @@ export default function PagarInvoice() {
     loadInvoice();
   }, [code]);
 
-  // Poll payment status
+  // Poll payment status via edge function
   useEffect(() => {
     if (!invoice || invoice.status !== "pending") return;
     const interval = setInterval(async () => {
-      const { data } = await supabase
-        .from("invoice_links" as any)
-        .select("status, paid_at")
-        .eq("code", code)
-        .single();
-      if (data && (data as any).status === "paid") {
-        setInvoice(prev => prev ? { ...prev, status: "paid", paid_at: (data as any).paid_at } : prev);
-      }
+      try {
+        const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+        const res = await fetch(
+          `https://${projectId}.supabase.co/functions/v1/invoice-lookup?code=${code}&action=status`
+        );
+        const statusData = await res.json();
+        if (statusData?.status === "paid") {
+          setInvoice(prev => prev ? { ...prev, status: "paid", paid_at: statusData.paid_at } : prev);
+        }
+      } catch {}
     }, 5000);
     return () => clearInterval(interval);
   }, [invoice?.status, code]);
 
   const loadInvoice = async () => {
     if (!code) { setNotFound(true); setLoading(false); return; }
-    const { data, error } = await supabase
-      .from("invoice_links" as any)
-      .select("*")
-      .eq("code", code)
-      .single();
-
-    if (error || !data) {
+    try {
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const res = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/invoice-lookup?code=${encodeURIComponent(code)}`
+      );
+      if (!res.ok) { setNotFound(true); setLoading(false); return; }
+      const data = await res.json();
+      if (data?.error) { setNotFound(true); } else { setInvoice(data); }
+    } catch {
       setNotFound(true);
-    } else {
-      setInvoice(data as any);
     }
     setLoading(false);
   };
