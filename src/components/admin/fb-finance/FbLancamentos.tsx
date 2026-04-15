@@ -96,15 +96,31 @@ export function FbLancamentos() {
     await supabase.from("fb_finance_caixas" as any).update({ saldo_atual: novoSaldo } as any).eq("id", caixaId);
   };
 
+  // Helper: check if a caixa is Capital de Giro
+  const isCapitalGiroCaixa = (caixaId: string) => {
+    const c = caixas.find(cx => cx.id === caixaId);
+    return c?.nome === "Capital de Giro";
+  };
+
+  // Track Capital de Giro debt when a saída happens from it
+  const trackCapitalGiroDebt = async (saidaVal: number) => {
+    const { data: config } = await supabase.from("fb_finance_config" as any).select("id, capital_giro_debt").limit(1).single();
+    if (config) {
+      const currentDebt = Number((config as any).capital_giro_debt || 0);
+      await supabase.from("fb_finance_config" as any).update({ capital_giro_debt: currentDebt + saidaVal } as any).eq("id", (config as any).id);
+    }
+  };
+
   const handleSubmit = async () => {
     const entradaVal = parseFloat(form.entrada) || 0;
     const saidaVal = parseFloat(form.saida) || 0;
 
     // If it's an entrada and tipo is empresa, show distribution preview
     if (entradaVal > 0 && saidaVal === 0 && form.tipo === "empresa") {
-      // Fetch distribution percentages
-      const { data: config } = await supabase.from("fb_finance_config" as any).select("distribution_percentages").limit(1).single();
+      // Fetch distribution percentages AND capital_giro_debt
+      const { data: config } = await supabase.from("fb_finance_config" as any).select("distribution_percentages, capital_giro_debt").limit(1).single();
       const percs = config ? (config as any).distribution_percentages : null;
+      const capitalGiroDebt = Number((config as any)?.capital_giro_debt || 0);
 
       if (percs && Object.keys(percs).length > 0) {
         const previews: DistPreview[] = [];
@@ -120,15 +136,37 @@ export function FbLancamentos() {
           dia_a_dia: "Dia a Dia/Emergências",
         };
 
+        // First, calculate how much goes to Capital de Giro debt repayment
+        const debtRepayment = Math.min(capitalGiroDebt, entradaVal);
+        const remainingAfterDebt = entradaVal - debtRepayment;
+
         for (const [key, percent] of Object.entries(percs)) {
           const nome = caixaMap[key] || key;
           const caixa = allCaixas.find(c => c.nome === nome);
           if (caixa && Number(percent) > 0) {
+            let valor = remainingAfterDebt * Number(percent) / 100;
+            // Add debt repayment to Capital de Giro
+            if (key === "capital_giro" && debtRepayment > 0) {
+              valor += debtRepayment;
+            }
             previews.push({
               caixaName: nome,
               caixaId: caixa.id,
               percent: Number(percent),
-              valor: entradaVal * Number(percent) / 100,
+              valor,
+            });
+          }
+        }
+
+        // If Capital de Giro has no normal %, but has debt, add it as a separate entry
+        if (debtRepayment > 0 && !Object.keys(percs).includes("capital_giro")) {
+          const cgCaixa = allCaixas.find(c => c.nome === "Capital de Giro");
+          if (cgCaixa) {
+            previews.push({
+              caixaName: "Capital de Giro",
+              caixaId: cgCaixa.id,
+              percent: 0,
+              valor: debtRepayment,
             });
           }
         }
@@ -142,6 +180,7 @@ export function FbLancamentos() {
             descricao: form.descricao || null,
             entrada: entradaVal,
             saida: 0,
+            _debtRepayment: debtRepayment,
           });
           setShowDistPreview(true);
           return;
@@ -168,6 +207,11 @@ export function FbLancamentos() {
 
     await syncCaixaSaldo(form.caixa_destino_id, payload.entrada - payload.saida);
 
+    // If saída from Capital de Giro, track the debt
+    if (saidaVal > 0 && isCapitalGiroCaixa(form.caixa_destino_id)) {
+      await trackCapitalGiroDebt(saidaVal);
+    }
+
     toast({ title: "Lançamento adicionado!" });
     setForm({ ...form, descricao: "", entrada: "", saida: "" });
     setShowForm(false);
@@ -179,13 +223,25 @@ export function FbLancamentos() {
     setDistributing(true);
 
     try {
+      const debtRepayment = pendingPayload._debtRepayment || 0;
+
       // Create one lancamento per caixa
       for (const preview of distPreviews) {
+        const isCapitalGiro = preview.caixaName === "Capital de Giro";
+        let descBase = pendingPayload.descricao || pendingPayload.categoria;
+        let desc = `${descBase} → ${preview.caixaName} (${preview.percent}%)`;
+        
+        // If Capital de Giro has debt repayment, mention it in the description
+        if (isCapitalGiro && debtRepayment > 0) {
+          const normalVal = preview.valor - debtRepayment;
+          desc = `${descBase} → ${preview.caixaName} (${preview.percent}% + Reposição R$${debtRepayment.toFixed(2)})`;
+        }
+
         const lancPayload = {
           data: pendingPayload.data,
           tipo: pendingPayload.tipo,
           categoria: pendingPayload.categoria,
-          descricao: `${pendingPayload.descricao || pendingPayload.categoria} → ${preview.caixaName} (${preview.percent}%)`,
+          descricao: desc,
           entrada: preview.valor,
           saida: 0,
           caixa_destino_id: preview.caixaId,
@@ -198,6 +254,15 @@ export function FbLancamentos() {
         if (caixa) {
           const novoSaldo = Number((caixa as any).saldo_atual || 0) + preview.valor;
           await supabase.from("fb_finance_caixas" as any).update({ saldo_atual: novoSaldo } as any).eq("id", preview.caixaId);
+        }
+      }
+
+      // Clear Capital de Giro debt after distribution
+      if (debtRepayment > 0) {
+        const { data: config } = await supabase.from("fb_finance_config" as any).select("id, capital_giro_debt").limit(1).single();
+        if (config) {
+          const remaining = Math.max(0, Number((config as any).capital_giro_debt || 0) - debtRepayment);
+          await supabase.from("fb_finance_config" as any).update({ capital_giro_debt: remaining } as any).eq("id", (config as any).id);
         }
       }
 
@@ -225,7 +290,7 @@ export function FbLancamentos() {
         aplicado: true,
       } as any);
 
-      toast({ title: "Entrada distribuída entre os caixas!" });
+      toast({ title: debtRepayment > 0 ? `Distribuído! Reposição de R$${debtRepayment.toFixed(2)} ao Capital de Giro` : "Entrada distribuída entre os caixas!" });
       setShowDistPreview(false);
       setPendingPayload(null);
       setDistPreviews([]);
