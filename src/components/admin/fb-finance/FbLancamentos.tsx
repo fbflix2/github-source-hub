@@ -223,13 +223,25 @@ export function FbLancamentos() {
     setDistributing(true);
 
     try {
+      const debtRepayment = pendingPayload._debtRepayment || 0;
+
       // Create one lancamento per caixa
       for (const preview of distPreviews) {
+        const isCapitalGiro = preview.caixaName === "Capital de Giro";
+        let descBase = pendingPayload.descricao || pendingPayload.categoria;
+        let desc = `${descBase} → ${preview.caixaName} (${preview.percent}%)`;
+        
+        // If Capital de Giro has debt repayment, mention it in the description
+        if (isCapitalGiro && debtRepayment > 0) {
+          const normalVal = preview.valor - debtRepayment;
+          desc = `${descBase} → ${preview.caixaName} (${preview.percent}% + Reposição R$${debtRepayment.toFixed(2)})`;
+        }
+
         const lancPayload = {
           data: pendingPayload.data,
           tipo: pendingPayload.tipo,
           categoria: pendingPayload.categoria,
-          descricao: `${pendingPayload.descricao || pendingPayload.categoria} → ${preview.caixaName} (${preview.percent}%)`,
+          descricao: desc,
           entrada: preview.valor,
           saida: 0,
           caixa_destino_id: preview.caixaId,
@@ -242,6 +254,15 @@ export function FbLancamentos() {
         if (caixa) {
           const novoSaldo = Number((caixa as any).saldo_atual || 0) + preview.valor;
           await supabase.from("fb_finance_caixas" as any).update({ saldo_atual: novoSaldo } as any).eq("id", preview.caixaId);
+        }
+      }
+
+      // Clear Capital de Giro debt after distribution
+      if (debtRepayment > 0) {
+        const { data: config } = await supabase.from("fb_finance_config" as any).select("id, capital_giro_debt").limit(1).single();
+        if (config) {
+          const remaining = Math.max(0, Number((config as any).capital_giro_debt || 0) - debtRepayment);
+          await supabase.from("fb_finance_config" as any).update({ capital_giro_debt: remaining } as any).eq("id", (config as any).id);
         }
       }
 
@@ -269,7 +290,7 @@ export function FbLancamentos() {
         aplicado: true,
       } as any);
 
-      toast({ title: "Entrada distribuída entre os caixas!" });
+      toast({ title: debtRepayment > 0 ? `Distribuído! Reposição de R$${debtRepayment.toFixed(2)} ao Capital de Giro` : "Entrada distribuída entre os caixas!" });
       setShowDistPreview(false);
       setPendingPayload(null);
       setDistPreviews([]);
