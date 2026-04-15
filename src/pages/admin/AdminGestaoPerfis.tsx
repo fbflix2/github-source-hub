@@ -119,7 +119,7 @@ export default function AdminGestaoPerfis() {
       const mapped: ProfileItem[] = rows.map(item => {
         const orderInfo = item.order_item_id ? orderItemMap[item.order_item_id] : null;
         const clientInfo = orderInfo?.userId ? profileMap[orderInfo.userId] : null;
-        const dataPrice = item.data?.preco;
+        const dataPrice = (item.data as any)?.preco;
         return {
           ...item,
           clientName: clientInfo?.name || undefined,
