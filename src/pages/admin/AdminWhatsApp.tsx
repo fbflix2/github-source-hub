@@ -495,6 +495,11 @@ export default function AdminWhatsApp() {
           )}
         </TabsContent>
 
+        {/* RENEWALS TAB */}
+        <TabsContent value="renewals" className="space-y-4">
+          <RenewalsTab />
+        </TabsContent>
+
         {/* TEMPLATES TAB */}
         <TabsContent value="templates" className="space-y-4">
           <div className="flex justify-between items-center">
