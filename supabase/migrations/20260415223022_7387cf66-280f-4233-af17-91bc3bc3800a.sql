@@ -1,0 +1,1 @@
+DELETE FROM public.subscriptions WHERE id = 'eebc51b0-b859-488d-9480-efe034f45d90';
