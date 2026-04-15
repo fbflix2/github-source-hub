@@ -32,7 +32,7 @@ export function FbLancamentos() {
   const [showForm, setShowForm] = useState(false);
   const [mesFilter, setMesFilter] = useState(new Date().toISOString().slice(0, 7));
   const [page, setPage] = useState(0);
-  const perPage = 6;
+  const perPage = 20;
 
   // Distribution preview state
   const [showDistPreview, setShowDistPreview] = useState(false);
