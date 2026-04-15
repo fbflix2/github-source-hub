@@ -32,7 +32,7 @@ export function FbLancamentos() {
   const [showForm, setShowForm] = useState(false);
   const [mesFilter, setMesFilter] = useState(new Date().toISOString().slice(0, 7));
   const [page, setPage] = useState(0);
-  const perPage = 6;
+  const perPage = 20;
 
   // Distribution preview state
   const [showDistPreview, setShowDistPreview] = useState(false);
@@ -65,7 +65,7 @@ export function FbLancamentos() {
     const endDate = `${mesFilter}-${String(lastDay).padStart(2, "0")}`;
     const [caixasRes, lancRes] = await Promise.all([
       supabase.from("fb_finance_caixas" as any).select("id, nome, tipo, saldo_atual"),
-      supabase.from("fb_finance_lancamentos" as any).select("*").gte("data", startDate).lte("data", endDate).order("data", { ascending: false }),
+      supabase.from("fb_finance_lancamentos" as any).select("*").gte("data", startDate).lte("data", endDate).order("created_at", { ascending: false }),
     ]);
     if (caixasRes.data) setCaixas(caixasRes.data as any);
     if (lancRes.data) setLancamentos(lancRes.data as any);
