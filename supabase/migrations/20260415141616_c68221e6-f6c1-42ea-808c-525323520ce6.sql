@@ -1,0 +1,1 @@
+UPDATE public.fb_finance_config SET capital_giro_debt = 1000 WHERE id = 'eb483f31-bf40-45bd-ae5a-e78e96b12bf3';
