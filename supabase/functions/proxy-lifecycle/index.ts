@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
     if (resetFirst) {
       await admin.from("subscriptions")
         .update({ grace_notifications: {} })
-        .in("type", ["webshare", "webshare_rotating"])
+        .in("type", ["webshare", "webshare_rotating", "proxybr"])
         .in("status", ["active", "expired", "expiring"]);
       console.log("[proxy-lifecycle] Reset grace_notifications for non-cancelled subs");
     }
