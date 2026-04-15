@@ -80,7 +80,10 @@ Deno.serve(async (req) => {
   }
 
   async function wapiSendButton(phone: string, message: string, buttons: Array<{ id: string; text: string }>, title?: string, footer?: string) {
-    return wapiRequest("/message/send-interactive", { phone, title: title || "", message, footer: footer || "", buttons });
+    // W-API removed native button support. Send as formatted text with button labels instead.
+    const buttonLabels = buttons.map((b, i) => `▶ ${b.text}`).join("\n");
+    const fullMessage = `${title ? `*${title}*\n\n` : ""}${message}${footer ? `\n\n_${footer}_` : ""}\n\n${buttonLabels}`;
+    return wapiSendText(phone, fullMessage);
   }
 
   async function wapiCheckStatus() {
