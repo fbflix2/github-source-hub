@@ -126,6 +126,8 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
         categoryId: formData.categoryId || undefined,
         tags: formData.tags.length > 0 ? formData.tags : undefined,
         nomeProduto: formData.nomeProduto || undefined,
+        bmNames: formData.bmNames.filter(b => b.trim()) || undefined,
+        perfilMatriz: formData.perfilMatriz || undefined,
       },
     };
     if (formData.categoryId) insertData.product_id = null; // keep clean
