@@ -124,7 +124,261 @@ function RateBar({ label, value, total, color }: { label: string; value: number;
   );
 }
 
-export default function AdminWhatsApp() {
+// ============= RENEWALS TAB COMPONENT =============
+function RenewalsTab() {
+  const [filterMonth, setFilterMonth] = useState(() => new Date().toISOString().slice(0, 7));
+
+  const { data: renewalData, isLoading } = useQuery({
+    queryKey: ["proxy-renewal-tracking", filterMonth],
+    queryFn: async () => {
+      // 1. Fetch all proxy_expiring logs for the selected month
+      const startDate = `${filterMonth}-01T00:00:00Z`;
+      const endMonth = new Date(startDate);
+      endMonth.setMonth(endMonth.getMonth() + 1);
+      const endDate = endMonth.toISOString();
+
+      const { data: alertLogs, error } = await supabase
+        .from("whatsapp_logs")
+        .select("*")
+        .eq("event_key", "proxy_expiring")
+        .gte("created_at", startDate)
+        .lt("created_at", endDate)
+        .order("created_at", { ascending: false })
+        .limit(500);
+
+      if (error) throw error;
+      if (!alertLogs?.length) return { alerts: [], subMap: {} };
+
+      // 2. Extract unique sub_ids from metadata
+      const allSubIds = new Set<string>();
+      for (const log of alertLogs) {
+        const meta = log.metadata as any;
+        if (meta?.sub_ids) {
+          for (const sid of meta.sub_ids) allSubIds.add(sid);
+        }
+      }
+
+      // 3. Fetch subscriptions for those ids
+      const subIds = Array.from(allSubIds);
+      const subMap: Record<string, any> = {};
+      
+      // Batch in chunks of 50
+      for (let i = 0; i < subIds.length; i += 50) {
+        const chunk = subIds.slice(i, i + 50);
+        const { data: subs } = await supabase
+          .from("subscriptions")
+          .select("id, name, type, status, end_date, auto_renew, user_id")
+          .in("id", chunk);
+        if (subs) {
+          for (const s of subs) subMap[s.id] = s;
+        }
+      }
+
+      // 4. Group alerts by user (deduplicate – keep latest per user)
+      const userMap: Record<string, any> = {};
+      for (const log of alertLogs) {
+        const uid = log.user_id;
+        if (!uid) continue;
+        const meta = log.metadata as any;
+        const subIds = meta?.sub_ids || [];
+        
+        if (!userMap[uid]) {
+          // Extract name from message
+          const nameMatch = log.message_sent?.match(/Olá\s+(.+?)[\s\n👋]/);
+          const clientName = nameMatch?.[1]?.trim() || "—";
+          userMap[uid] = {
+            userId: uid,
+            clientName,
+            phone: log.phone,
+            alerts: [],
+            subIds: new Set<string>(),
+          };
+        }
+        userMap[uid].alerts.push(log);
+        for (const sid of subIds) userMap[uid].subIds.add(sid);
+      }
+
+      // 5. Determine renewal status per user
+      const alerts = Object.values(userMap).map((u: any) => {
+        const subs = Array.from(u.subIds as Set<string>).map((sid: string) => subMap[sid]).filter(Boolean);
+        const totalSubs = subs.length;
+        const renewed = subs.filter((s: any) => {
+          if (!s) return false;
+          // Consider renewed if: end_date is in the future OR status is active
+          const endDate = new Date(s.end_date);
+          return s.status === "active" && endDate > new Date();
+        });
+        const renewedCount = renewed.length;
+        const status = totalSubs === 0 ? "unknown" : renewedCount === totalSubs ? "renewed" : renewedCount > 0 ? "partial" : "pending";
+        
+        const lastAlert = u.alerts[0];
+        const wasDelivered = !!lastAlert.delivered_at;
+        const wasRead = !!lastAlert.read_at;
+        const wasReplied = !!lastAlert.replied_at;
+
+        return {
+          ...u,
+          subIds: Array.from(u.subIds),
+          subs,
+          totalSubs,
+          renewedCount,
+          status,
+          lastAlertDate: lastAlert.created_at,
+          alertCount: u.alerts.length,
+          wasDelivered,
+          wasRead,
+          wasReplied,
+        };
+      });
+
+      // Sort: pending first, then partial, then renewed
+      const order = { pending: 0, partial: 1, unknown: 2, renewed: 3 };
+      alerts.sort((a: any, b: any) => (order[a.status as keyof typeof order] ?? 2) - (order[b.status as keyof typeof order] ?? 2));
+
+      return { alerts, subMap };
+    },
+    refetchInterval: 30_000,
+  });
+
+  const alerts = renewalData?.alerts || [];
+  const totalAlerted = alerts.length;
+  const totalRenewed = alerts.filter((a: any) => a.status === "renewed").length;
+  const totalPartial = alerts.filter((a: any) => a.status === "partial").length;
+  const totalPending = alerts.filter((a: any) => a.status === "pending").length;
+  const renewalRate = totalAlerted > 0 ? Math.round(((totalRenewed + totalPartial * 0.5) / totalAlerted) * 100) : 0;
+
+  const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
+    renewed: { label: "Renovado", color: "bg-green-500/20 text-green-400 border-green-500/30", icon: CheckCircle },
+    partial: { label: "Parcial", color: "bg-amber-500/20 text-amber-400 border-amber-500/30", icon: AlertTriangle },
+    pending: { label: "Pendente", color: "bg-red-500/20 text-red-400 border-red-500/30", icon: Clock },
+    unknown: { label: "Sem dados", color: "bg-muted text-muted-foreground border-border", icon: XCircle },
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Filter & Stats */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-3">
+          <Input
+            type="month"
+            value={filterMonth}
+            onChange={(e) => setFilterMonth(e.target.value)}
+            className="w-44"
+          />
+          <span className="text-xs text-muted-foreground">
+            {totalAlerted} cliente(s) alertado(s)
+          </span>
+        </div>
+      </div>
+
+      {/* Summary cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Card>
+          <CardContent className="p-4 text-center">
+            <p className="text-2xl font-bold text-green-400">{totalRenewed}</p>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Renovados</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <p className="text-2xl font-bold text-amber-400">{totalPartial}</p>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Parcial</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <p className="text-2xl font-bold text-red-400">{totalPending}</p>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Pendentes</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <p className="text-2xl font-bold text-foreground">{renewalRate}%</p>
+            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Taxa Renovação</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* List */}
+      {isLoading ? (
+        <div className="text-center text-muted-foreground py-8">Carregando...</div>
+      ) : !alerts.length ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <RotateCw className="size-10 mx-auto text-muted-foreground mb-3" />
+            <p className="text-muted-foreground">Nenhum alerta de vencimento neste mês</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-2">
+          {alerts.map((a: any) => {
+            const sc = statusConfig[a.status] || statusConfig.unknown;
+            const StatusIcon = sc.icon;
+            return (
+              <Card key={a.userId}>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <StatusIcon className={`size-5 shrink-0 ${a.status === "renewed" ? "text-green-400" : a.status === "partial" ? "text-amber-400" : a.status === "pending" ? "text-red-400" : "text-muted-foreground"}`} />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{a.clientName}</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          {a.phone} • {a.alertCount} alerta(s) • {a.totalSubs} proxy(s)
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {/* Delivery indicators */}
+                      <div className="flex items-center gap-1">
+                        {a.wasDelivered && <CheckCheck className="size-3.5 text-green-400" title="Entregue" />}
+                        {a.wasRead && <Eye className="size-3.5 text-emerald-400" title="Lido" />}
+                        {a.wasReplied && <MessageSquareReply className="size-3.5 text-purple-400" title="Respondeu" />}
+                      </div>
+                      <Badge variant="outline" className={`text-[10px] ${sc.color}`}>
+                        {sc.label} ({a.renewedCount}/{a.totalSubs})
+                      </Badge>
+                      <span className="text-[10px] text-muted-foreground">
+                        {new Date(a.lastAlertDate).toLocaleDateString("pt-BR")}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Sub details */}
+                  {a.subs?.length > 0 && (
+                    <div className="mt-3 space-y-1">
+                      {a.subs.map((s: any) => {
+                        const isActive = s.status === "active" && new Date(s.end_date) > new Date();
+                        return (
+                          <div key={s.id} className="flex items-center justify-between text-[11px] px-3 py-1.5 rounded-md bg-muted/30">
+                            <div className="flex items-center gap-2">
+                              {isActive ? <CheckCircle className="size-3 text-green-400" /> : <XCircle className="size-3 text-red-400" />}
+                              <span className="text-foreground font-medium">{s.name}</span>
+                              <span className="text-muted-foreground uppercase">{s.type}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className={isActive ? "text-green-400" : "text-red-400"}>
+                                {isActive ? "Ativo" : s.status === "cancelled" ? "Cancelado" : "Expirado"}
+                              </span>
+                              <span className="text-muted-foreground">
+                                até {new Date(s.end_date).toLocaleDateString("pt-BR")}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
   const qc = useQueryClient();
   const { data: templates, isLoading: loadingTemplates } = useTemplates();
   const [logSearch, setLogSearch] = useState("");
