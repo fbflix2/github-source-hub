@@ -19,6 +19,7 @@ interface ProfileItem {
   identification: string | null;
   identification_link: string | null;
   status: string;
+  product_id: string | null;
   data: any;
   folder: string | null;
   created_at: string;
@@ -33,8 +34,7 @@ interface ProfileItem {
 }
 
 const statusMap: Record<string, { label: string; color: string }> = {
-  aguardando: { label: "Na Loja", color: "bg-purple-500/15 text-purple-400 border-purple-500/30" },
-  disponivel: { label: "Na Loja", color: "bg-purple-500/15 text-purple-400 border-purple-500/30" },
+  revisado: { label: "Na Loja", color: "bg-purple-500/15 text-purple-400 border-purple-500/30" },
   vendido: { label: "Vendido", color: "bg-green-500/15 text-green-400 border-green-500/30" },
   reservado: { label: "Reservado", color: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30" },
   usado: { label: "Usado", color: "bg-zinc-500/15 text-zinc-400 border-zinc-500/30" },
@@ -56,17 +56,23 @@ export default function AdminGestaoPerfis() {
   const fetchItems = async () => {
     setLoading(true);
     try {
-      // Fetch all perfil stock items
+      // Fetch perfil stock items that are either in-store (revisado + product_id + not sold) or sold
       const { data: stockItems, error } = await supabase
         .from("stock_items")
-        .select("id, name, identification, identification_link, status, data, folder, created_at, order_item_id")
+        .select("id, name, identification, identification_link, status, product_id, data, folder, created_at, order_item_id")
         .eq("type", "perfil")
         .is("deleted_at", null)
+        .in("status", ["revisado", "vendido", "usado"])
         .order("created_at", { ascending: false });
 
       if (error) throw error;
 
-      const rows = stockItems || [];
+      // Filter: only show sold items OR revisado with product_id (actually in the store)
+      const rows = (stockItems || []).filter(r => {
+        if (r.status === "vendido" || r.status === "usado") return true;
+        if (r.status === "revisado" && r.product_id && !r.order_item_id) return true;
+        return false;
+      });
 
       // Get order_item_ids to resolve orders
       const orderItemIds = rows.filter(r => r.order_item_id).map(r => r.order_item_id!);
@@ -145,7 +151,7 @@ export default function AdminGestaoPerfis() {
   const filtered = useMemo(() => {
     return items.filter(item => {
       const isSold = item.status === "vendido" || item.status === "usado";
-      const isInStore = item.status === "aguardando" || item.status === "disponivel";
+      const isInStore = item.status === "revisado" && !!item.product_id && !item.order_item_id;
 
       if (statusFilter === "vendido" && !isSold) return false;
       if (statusFilter === "na_loja" && !isInStore) return false;
@@ -175,7 +181,7 @@ export default function AdminGestaoPerfis() {
     const bmItems = items.filter(i => (i.data?.bmNames || []).length > 0);
     return {
       total: items.length,
-      naLoja: items.filter(i => i.status === "aguardando" || i.status === "disponivel").length,
+      naLoja: items.filter(i => i.status === "revisado" && !!i.product_id && !i.order_item_id).length,
       vendidos: items.filter(i => i.status === "vendido" || i.status === "usado").length,
       comBm: bmItems.length,
       semBm: items.length - bmItems.length,
