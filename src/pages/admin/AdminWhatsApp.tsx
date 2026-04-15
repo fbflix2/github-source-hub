@@ -2,7 +2,8 @@ import { useState, useMemo } from "react";
 import {
   MessageCircle, Plus, Send, Eye, Trash2, ToggleLeft, ToggleRight, Search, Phone, Clock,
   CheckCircle, XCircle, RefreshCw, Users, Zap, Bell, AlertTriangle, Image, MousePointerClick,
-  BarChart3, ArrowUpRight, MessageSquareReply, CheckCheck, Mail, TrendingUp, RotateCw, ExternalLink
+  BarChart3, ArrowUpRight, MessageSquareReply, CheckCheck, Mail, TrendingUp, RotateCw, DollarSign,
+  Calendar, ChevronDown, ChevronUp
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
