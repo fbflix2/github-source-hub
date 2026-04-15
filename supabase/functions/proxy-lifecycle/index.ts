@@ -44,6 +44,16 @@ Deno.serve(async (req) => {
     let body: any = {};
     try { body = await req.json(); } catch {}
     const dryRun = body?.dry_run === true;
+    const resetFirst = body?.reset_and_run === true;
+
+    // If reset_and_run, clear grace_notifications for non-cancelled subs
+    if (resetFirst) {
+      await admin.from("subscriptions")
+        .update({ grace_notifications: {} })
+        .in("type", ["webshare", "webshare_rotating"])
+        .in("status", ["active", "expired", "expiring"]);
+      console.log("[proxy-lifecycle] Reset grace_notifications for non-cancelled subs");
+    }
 
     const SITE_URL = "https://fbflix.com.br";
     const GRACE_FEE_PER_DAY = 0.25;
