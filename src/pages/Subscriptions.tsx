@@ -299,7 +299,7 @@ function SafeBmPromoPanel() {
       {/* Video Player Modal */}
       {playingVideo && (
         <div
-          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
           onClick={() => setPlayingVideo(false)}
         >
           <div
@@ -307,10 +307,11 @@ function SafeBmPromoPanel() {
             onClick={(e) => e.stopPropagation()}
           >
             <iframe
-              src={`https://www.youtube.com/embed/${SAFEBM_VIDEO_ID}?autoplay=1`}
+              src={`https://www.youtube.com/embed/${SAFEBM_VIDEO_ID}?autoplay=1&rel=0&modestbranding=1&playsinline=1`}
               className="w-full h-full"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
+              loading="lazy"
             />
             <button
               onClick={() => setPlayingVideo(false)}
