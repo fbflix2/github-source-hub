@@ -330,9 +330,9 @@ function RenewalsTab() {
                     <div className="flex items-center gap-2 flex-wrap">
                       {/* Delivery indicators */}
                       <div className="flex items-center gap-1">
-                        {a.wasDelivered && <CheckCheck className="size-3.5 text-green-400" title="Entregue" />}
-                        {a.wasRead && <Eye className="size-3.5 text-emerald-400" title="Lido" />}
-                        {a.wasReplied && <MessageSquareReply className="size-3.5 text-purple-400" title="Respondeu" />}
+                        {a.wasDelivered && <span title="Entregue"><CheckCheck className="size-3.5 text-green-400" /></span>}
+                        {a.wasRead && <span title="Lido"><Eye className="size-3.5 text-emerald-400" /></span>}
+                        {a.wasReplied && <span title="Respondeu"><MessageSquareReply className="size-3.5 text-purple-400" /></span>}
                       </div>
                       <Badge variant="outline" className={`text-[10px] ${sc.color}`}>
                         {sc.label} ({a.renewedCount}/{a.totalSubs})
