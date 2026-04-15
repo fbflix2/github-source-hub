@@ -61,7 +61,8 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
     linkPerfil: "", idPerfil: "", emailAcesso: "", emailAlternativo: "",
     senha: "", senhaEmail: "", token2fa: "", tempoPlataforma: "3-meses", statusAtual: "aquecido",
     cookies: "", descricao: "", nomePerfil: "", dataNascimento: "", genero: "masculino",
-    linkDocumento: "", fotoUrl: "", preco: "", categoryId: "", tags: [] as string[], nomeProduto: ""
+    linkDocumento: "", fotoUrl: "", preco: "", categoryId: "", tags: [] as string[], nomeProduto: "",
+    bmNames: [] as string[], perfilMatriz: ""
   };
 
   const [formData, setFormData] = useState(() => {
@@ -125,6 +126,8 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
         categoryId: formData.categoryId || undefined,
         tags: formData.tags.length > 0 ? formData.tags : undefined,
         nomeProduto: formData.nomeProduto || undefined,
+        bmNames: formData.bmNames.filter(b => b.trim()) || undefined,
+        perfilMatriz: formData.perfilMatriz || undefined,
       },
     };
     if (formData.categoryId) insertData.product_id = null; // keep clean
@@ -416,6 +419,62 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
                 <p className="text-[11px] text-primary/80 leading-relaxed">
                   Certifique-se de que o 2FA está ativo antes de salvar perfis "Aquecidos" ou "Verificados".
                 </p>
+              </div>
+            </div>
+          </div>
+
+          {/* BMs inside this profile */}
+          <div className="flex flex-col gap-3 pt-3 border-t border-white/5">
+            <div className="flex items-center gap-2 pb-1 border-b border-white/10">
+              <Building2 className="h-4 w-4 text-primary" />
+              <h2 className="text-sm font-bold text-white">BMs neste Perfil</h2>
+            </div>
+            {formData.bmNames.map((bm: string, idx: number) => (
+              <div key={idx} className="flex items-center gap-2">
+                <div className="relative flex-1">
+                  <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                  <Input
+                    placeholder={`Nome da BM ${idx + 1}`}
+                    value={bm}
+                    onChange={e => {
+                      const updated = [...formData.bmNames];
+                      updated[idx] = e.target.value;
+                      setFormData({ ...formData, bmNames: updated });
+                    }}
+                    className="pl-10 bg-black/30 border-white/5 text-white placeholder:text-zinc-600"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const updated = formData.bmNames.filter((_: string, i: number) => i !== idx);
+                    setFormData({ ...formData, bmNames: updated });
+                  }}
+                  className="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center text-red-400 hover:bg-red-500/20 transition-colors"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="w-fit bg-black/30 border-white/5 text-zinc-400 hover:text-white gap-1.5"
+              onClick={() => setFormData({ ...formData, bmNames: [...formData.bmNames, ""] })}
+            >
+              <Plus className="h-3.5 w-3.5" /> Adicionar BM
+            </Button>
+            <div className="flex flex-col gap-1 group">
+              <label className="text-xs font-medium text-zinc-400 group-focus-within:text-white transition-colors">Perfil Matriz (backup)</label>
+              <div className="relative">
+                <Shield className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                <Input
+                  placeholder="Nome ou ID do perfil matriz onde as BMs estão"
+                  value={formData.perfilMatriz}
+                  onChange={e => setFormData({ ...formData, perfilMatriz: e.target.value })}
+                  className="pl-10 bg-black/30 border-white/5 text-white placeholder:text-zinc-600"
+                />
               </div>
             </div>
           </div>

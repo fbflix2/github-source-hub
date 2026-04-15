@@ -40,6 +40,7 @@ import {
   Briefcase,
   Coins,
   Flame,
+  CircleUser,
   Store,
   KeyRound,
   ImageIcon,
@@ -75,6 +76,7 @@ const allMenuItems: MenuItem[] = [
   { title: "Blocagem", icon: Shield, path: "/admin/blocagem" },
   { title: "Gestão Itens", icon: Briefcase, path: "/admin/gestao-bms", subItems: [
     { title: "Gestão BMs", icon: Briefcase, path: "/admin/gestao-bms" },
+    { title: "Gestão Perfis", icon: CircleUser, path: "/admin/gestao-perfis" },
     { title: "Safe BM", icon: ShieldCheck, path: "/admin/safe-bm" },
     { title: "Reposições", icon: RefreshCw, path: "/admin/reposicoes" },
     { title: "Trocas", icon: ArrowRightLeft, path: "/admin/trocas" },

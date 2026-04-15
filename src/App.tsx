@@ -90,6 +90,7 @@ import AdminMigrados from "./pages/admin/AdminMigrados";
 import AdminReposicoes from "./pages/admin/AdminReposicoes";
 import AdminTrocas from "./pages/admin/AdminTrocas";
 import AdminGestaoBMs from "./pages/admin/AdminGestaoBMs";
+import AdminGestaoPerfis from "./pages/admin/AdminGestaoPerfis";
 import AdminParceiros from "./pages/admin/AdminParceiros";
 import PartnerRedirect from "./pages/PartnerRedirect";
 import AdminFBX from "./pages/admin/AdminFBX";
@@ -379,6 +380,7 @@ const App = () => {
                   <Route path="reposicoes" element={<AdminReposicoes />} />
                   <Route path="trocas" element={<AdminTrocas />} />
                   <Route path="gestao-bms" element={<AdminGestaoBMs />} />
+                  <Route path="gestao-perfis" element={<AdminGestaoPerfis />} />
                   <Route path="parceiros" element={<AdminParceiros />} />
                   <Route path="api" element={<AdminApi />} />
                   <Route path="anuncios" element={<AdminAnuncios />} />
