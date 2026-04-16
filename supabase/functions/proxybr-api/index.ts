@@ -1254,7 +1254,89 @@ Deno.serve(async (req) => {
           }
         }
 
-        // 3. Call ProxyBR API to renew FIRST
+        // Check if this is a Webshare-migrated subscription (transparent renewal without ProxyBR API)
+        const isWebshareMigrated = rawDataForPrice?.provider === "webshare" || rawDataForPrice?.migrated_from_proxybr === true;
+
+        if (isWebshareMigrated) {
+          console.log(`[renew] Webshare-migrated subscription detected: ${params.subscriptionCode}. Renewing locally.`);
+
+          // Debit balance
+          if (renewalPrice > 0) {
+            const { data: freshProfile } = await supabaseAdmin
+              .from("profiles")
+              .select("balance")
+              .eq("user_id", subUserId)
+              .single();
+
+            const currentBalance = Number(freshProfile?.balance || 0);
+            const newBalance = currentBalance - renewalPrice;
+            await supabaseAdmin
+              .from("profiles")
+              .update({ balance: newBalance })
+              .eq("user_id", subUserId);
+
+            await supabaseAdmin.from("wallet_transactions").insert({
+              user_id: subUserId,
+              type: "purchase",
+              title: `Renovação Proxy - ${params.subscriptionCode}`,
+              amount: -renewalPrice,
+              balance_after: newBalance,
+              reference_id: localSub?.id || null,
+            });
+
+            // Create order record
+            const orderCode = `REN-${params.subscriptionCode}-${Date.now().toString(36).toUpperCase()}`;
+            const productName = rawDataForPrice?.product?.name || `Proxy ${params.subscriptionCode}`;
+
+            const { data: newOrder } = await supabaseAdmin.from("orders").insert({
+              user_id: subUserId,
+              code: orderCode,
+              subtotal: renewalPrice,
+              discount: 0,
+              total: renewalPrice,
+              status: "completed",
+              payment_method: "saldo",
+            }).select("id").single();
+
+            if (newOrder?.id) {
+              await supabaseAdmin.from("order_items").insert({
+                order_id: newOrder.id,
+                product_id: localSub?.product_id || null,
+                name: `Renovação - ${productName}`,
+                price: renewalPrice,
+                quantity: 1,
+                delivery_data: { subscription_code: params.subscriptionCode, type: "proxy_renewal" },
+              });
+            }
+
+            console.log(`[renew] Webshare: Debited R$ ${renewalPrice.toFixed(2)} from user ${subUserId}, order: ${orderCode}`);
+          }
+
+          // Extend end_date by 30 days from current end_date (or from now if expired)
+          const currentEnd = localSub?.end_date ? new Date(localSub.end_date) : new Date();
+          const baseDate = currentEnd.getTime() > Date.now() ? currentEnd : new Date();
+          const newEndDate = new Date(baseDate);
+          newEndDate.setDate(newEndDate.getDate() + 30);
+
+          await supabaseAdmin
+            .from("subscriptions")
+            .update({
+              status: "active",
+              end_date: newEndDate.toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq("name", params.subscriptionCode)
+            .eq("type", "proxybr");
+
+          console.log(`[renew] Webshare: Extended ${params.subscriptionCode} to ${newEndDate.toISOString()}`);
+
+          return new Response(
+            JSON.stringify({ success: true, message: "Assinatura renovada com sucesso!", new_end_date: newEndDate.toISOString() }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        // 3. Call ProxyBR API to renew FIRST (non-migrated subscriptions)
         const renewUrl = `${PROXYBR_BASE}/subscriptions/${encodeURIComponent(params.subscriptionCode)}/renew`;
         console.log(`ProxyBR API call: POST ${renewUrl}`);
         const renewResp = await proxyFetch(renewUrl, PROXYBR_API_KEY, "POST");
