@@ -47,6 +47,7 @@ export function EditStockItemModal({ item, open, onOpenChange, onSaved }: EditSt
   // BM fields
   const [bmLink, setBmLink] = useState("");
   const [bmNotes, setBmNotes] = useState("");
+  const [bmPerfilMatriz, setBmPerfilMatriz] = useState("");
 
   // Perfil fields
   const [formData, setFormData] = useState({
@@ -71,6 +72,7 @@ export function EditStockItemModal({ item, open, onOpenChange, onSaved }: EditSt
     if (item.type === "bm") {
       setBmLink(item.identification_link ?? "");
       setBmNotes(d.notes ?? "");
+      setBmPerfilMatriz(d.perfilMatriz ?? d.perfilBackup ?? "");
     } else {
       setFormData({
         linkPerfil: item.identification_link ?? "",
@@ -106,7 +108,12 @@ export function EditStockItemModal({ item, open, onOpenChange, onSaved }: EditSt
 
     if (item.type === "bm") {
       updatePayload.identification_link = bmLink;
-      updatePayload.data = { notes: bmNotes, ...productMeta };
+      updatePayload.data = {
+        ...(item.data ?? {}),
+        notes: bmNotes,
+        perfilMatriz: bmPerfilMatriz || undefined,
+        ...productMeta,
+      };
     } else {
       updatePayload.name = formData.nomePerfil || formData.emailAcesso || `Perfil ${formData.idPerfil}`;
       updatePayload.identification = formData.idPerfil || null;
@@ -200,6 +207,21 @@ export function EditStockItemModal({ item, open, onOpenChange, onSaved }: EditSt
                 <div className="relative">
                   <Link className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
                   <Input value={bmLink} onChange={e => setBmLink(e.target.value)} placeholder="https://business.facebook.com/..." className="pl-10 bg-black/30 border-white/5 text-white" />
+                </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-zinc-400 flex items-center gap-2">
+                  <Shield className="h-3.5 w-3.5 text-primary" />
+                  Perfil Matriz <span className="text-zinc-600 text-xs">(perfil onde o BM está)</span>
+                </label>
+                <div className="relative">
+                  <Shield className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                  <Input
+                    value={bmPerfilMatriz}
+                    onChange={e => setBmPerfilMatriz(e.target.value)}
+                    placeholder="Nome ou ID do perfil matriz onde a BM está"
+                    className="pl-10 bg-black/30 border-white/5 text-white placeholder:text-zinc-600"
+                  />
                 </div>
               </div>
               <div className="flex flex-col gap-2">
