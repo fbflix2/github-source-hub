@@ -410,12 +410,15 @@ function ProxiesPanel() {
   }
 
   const handleRenew = (sub: ProxySubscription & { mappedStatus: SubscriptionStatus }) => {
-    // Extract base subscription name (strip #N suffix and __proxy_ suffix)
-    const baseName = (sub.name || sub.code).replace(/#\d+$/, "").replace(/__proxy_\d+$/, "");
+    const rawData = (sub.raw_data || {}) as Record<string, any>;
+    const isAlreadyWebshare = rawData.provider === "webshare" || rawData.migrated_from_proxybr === true;
+    // For already-migrated Webshare subs, use full name (#1, #2); for ProxyBR multi-proxy, strip #N
+    const subName = isAlreadyWebshare
+      ? (sub.name || sub.code)
+      : (sub.name || sub.code).replace(/#\d+$/, "").replace(/__proxy_\d+$/, "");
     setRenewingCode(sub.code);
-    // Use migrate mutation for all providers (handles both ProxyBR and Webshare renewals)
     migrateMutation.mutate(
-      { subscriptionName: baseName, proxyIndex: sub.proxyIndex, totalProxies: sub.totalProxies },
+      { subscriptionName: subName, proxyIndex: isAlreadyWebshare ? undefined : sub.proxyIndex, totalProxies: isAlreadyWebshare ? undefined : sub.totalProxies },
       { onSettled: () => setRenewingCode(null) },
     );
   };
