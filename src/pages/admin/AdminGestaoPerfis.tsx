@@ -78,13 +78,12 @@ export default function AdminGestaoPerfis() {
         return false;
       });
 
-      // Get order_item_ids to resolve orders
+      // Get order_item_ids to resolve orders (direct link)
       const orderItemIds = rows.filter(r => r.order_item_id).map(r => r.order_item_id!);
 
       let orderItemMap: Record<string, { orderId: string; orderCode: string; userId: string; soldAt: string; price: number }> = {};
 
       if (orderItemIds.length > 0) {
-        // Batch in chunks of 75
         for (let i = 0; i < orderItemIds.length; i += 75) {
           const chunk = orderItemIds.slice(i, i + 75);
           const { data: orderItems } = await supabase
@@ -106,8 +105,41 @@ export default function AdminGestaoPerfis() {
         }
       }
 
-      // Resolve client names
-      const userIds = [...new Set(Object.values(orderItemMap).map(o => o.userId).filter(Boolean))];
+      // Fallback: items vendidos sem order_item_id (ex: foram substituídos via reposição).
+      // Buscar via delivery_data._replacement_old_stock_item_id no order_items.
+      const orphanItems = rows.filter(r =>
+        !r.order_item_id && (r.status === "vendido" || r.status === "usado")
+      );
+
+      let orphanMap: Record<string, { orderId: string; orderCode: string; userId: string; soldAt: string; price: number }> = {};
+
+      for (const orphan of orphanItems) {
+        const { data: matched } = await supabase
+          .from("order_items")
+          .select("id, price, order_id, delivery_data, orders!inner(id, code, user_id, created_at)")
+          .or(`delivery_data->>_replacement_old_stock_item_id.eq.${orphan.id},delivery_data->>_original_stock_item_id.eq.${orphan.id}`)
+          .limit(1)
+          .maybeSingle();
+
+        if (matched) {
+          const m = matched as any;
+          orphanMap[orphan.id] = {
+            orderId: m.orders?.id,
+            orderCode: m.orders?.code || "",
+            userId: m.orders?.user_id || "",
+            soldAt: m.orders?.created_at || "",
+            price: m.price || 0,
+          };
+        }
+      }
+
+      // Resolve client names from BOTH maps
+      const userIds = [
+        ...new Set([
+          ...Object.values(orderItemMap).map(o => o.userId),
+          ...Object.values(orphanMap).map(o => o.userId),
+        ].filter(Boolean)),
+      ];
       let profileMap: Record<string, { name: string; email: string }> = {};
 
       if (userIds.length > 0) {
@@ -127,7 +159,9 @@ export default function AdminGestaoPerfis() {
       }
 
       const mapped: ProfileItem[] = rows.map(item => {
-        const orderInfo = item.order_item_id ? orderItemMap[item.order_item_id] : null;
+        const orderInfo = item.order_item_id
+          ? orderItemMap[item.order_item_id]
+          : orphanMap[item.id];
         const clientInfo = orderInfo?.userId ? profileMap[orderInfo.userId] : null;
         const dataPrice = (item.data as any)?.preco;
         return {
