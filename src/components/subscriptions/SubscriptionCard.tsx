@@ -163,7 +163,7 @@ export default function SubscriptionCard({
       </div>
 
       {/* Proxy info */}
-      {sub.proxy && status !== "expired" && (
+      {sub.proxy && (
         <div className="flex flex-col gap-1.5 p-3 rounded-lg bg-muted/50 border border-border">
           {sub.is_rotating ? (
             <>
