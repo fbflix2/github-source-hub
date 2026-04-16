@@ -317,7 +317,7 @@ export default function SubscriptionManage() {
                                   <p className="text-text-secondary text-[9px] uppercase tracking-wider font-semibold">{ep.label}</p>
                                   <p className="text-foreground font-mono font-medium text-xs mt-0.5 truncate">{ep.value}</p>
                                 </div>
-                                <button onClick={() => copyToClipboard(ep.value, ep.key)} className="opacity-0 group-hover:opacity-100 transition-opacity text-text-secondary hover:text-foreground ml-1 shrink-0">
+                                <button onClick={() => copyToClipboard(ep.value, ep.key)} className="text-text-secondary hover:text-foreground ml-1 shrink-0">
                                   <span className="material-symbols-outlined text-sm">{copiedField === ep.key ? "check" : "content_copy"}</span>
                                 </button>
                               </div>
@@ -339,7 +339,7 @@ export default function SubscriptionManage() {
                                 <p className="text-foreground font-mono font-medium text-xs mt-0.5 truncate">{item.value}</p>
                               </div>
                               {item.value !== "—" && item.key !== "country" && item.key !== "type" && (
-                                <button onClick={() => copyToClipboard(item.value, item.key)} className="opacity-0 group-hover:opacity-100 transition-opacity text-text-secondary hover:text-foreground ml-1 shrink-0">
+                                <button onClick={() => copyToClipboard(item.value, item.key)} className="text-text-secondary hover:text-foreground ml-1 shrink-0">
                                   <span className="material-symbols-outlined text-sm">{copiedField === item.key ? "check" : "content_copy"}</span>
                                 </button>
                               )}
@@ -411,7 +411,7 @@ export default function SubscriptionManage() {
                           <p className="text-foreground font-mono font-medium text-xs mt-0.5 truncate">{item.value}</p>
                         </div>
                         {item.value !== "—" && (
-                          <button onClick={() => copyToClipboard(item.value, item.key)} className="opacity-0 group-hover:opacity-100 transition-opacity text-text-secondary hover:text-foreground ml-1 shrink-0">
+                          <button onClick={() => copyToClipboard(item.value, item.key)} className="text-text-secondary hover:text-foreground ml-1 shrink-0">
                             <span className="material-symbols-outlined text-sm">{copiedField === item.key ? "check" : "content_copy"}</span>
                           </button>
                         )}
