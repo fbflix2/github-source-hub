@@ -112,6 +112,35 @@ export function useProxyBRSubscriptions() {
           };
         };
 
+        const buildMigratedWebshareProxyInfo = () => {
+          if (raw.proxy_address && raw.port) {
+            return {
+              id: raw.webshare_proxy_id,
+              ip: raw.proxy_address,
+              port: raw.port,
+              username: raw.username,
+              password: raw.password,
+              protocol: "HTTP/SOCKS5",
+            };
+          }
+
+          if (raw.proxy_host && raw.http_port) {
+            return {
+              id: raw.webshare_proxy_id,
+              ip: raw.proxy_host,
+              port: raw.http_port,
+              username: raw.username,
+              password: raw.password,
+              protocol: "HTTP/SOCKS5",
+              socks5_port: raw.socks5_port || 1080,
+              converted_host: raw.converted_host || null,
+              alt_http_port: raw.alt_http_port || 3128,
+            };
+          }
+
+          return undefined;
+        };
+
         // Resolve price: from product join, raw_data, or name match
         const rawProductName = raw.product?.name || raw.product_name || raw.subscription?.product?.name || productInfo?.name || "";
         const resolvedPrice = productInfo?.price || raw.product?.price || priceByName[rawProductName.toLowerCase().trim()] || null;
@@ -127,11 +156,16 @@ export function useProxyBRSubscriptions() {
           auto_renew: sub.auto_renew,
           raw_data: raw,
           profile_tag: raw.profile_tag || null,
+          provider: raw.provider,
+          is_rotating: raw.provider === "webshare" && !!raw.proxy_host,
         };
 
         if (proxies.length === 0) {
-          // No proxies — emit one entry without proxy info
-          results.push({ ...baseEntry, proxy: undefined });
+          const migratedProxy = raw.provider === "webshare" || raw.migrated_from_proxybr === true
+            ? buildMigratedWebshareProxyInfo()
+            : undefined;
+
+          results.push({ ...baseEntry, proxy: migratedProxy });
         } else if (!isMulti) {
           // Single proxy — same as before
           results.push({ ...baseEntry, proxy: buildProxyInfo(proxies[0]) });
