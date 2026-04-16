@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Copy, CheckCircle2 } from "lucide-react";
 import type { SubscriptionStatus, ProxySubscription } from "@/pages/Subscriptions";
 
 interface SubscriptionCardProps {
