@@ -50,7 +50,7 @@ export default function SubscriptionManage() {
   const proxyBRSub = (subscriptions as ProxySubscription[] | undefined)?.find((s) => s.code === code);
   const webshareSub = (Array.isArray(webshareRaw) ? webshareRaw : [])?.find((s: any) => s.code === code);
   const sub = (proxyBRSub || webshareSub) as ProxySubscription | undefined;
-  const isWebshare = !!webshareSub && !proxyBRSub;
+  const isWebshare = !!webshareSub || (sub as any)?.provider === "webshare";
   const isRotating = !!(sub as any)?.is_rotating;
   const combinedLoading = isLoading || wsLoading;
 
