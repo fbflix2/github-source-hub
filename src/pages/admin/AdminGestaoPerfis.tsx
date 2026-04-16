@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { toast } from "sonner";
 import {
   Search, RefreshCw, Loader2, CircleUser, Building2, Shield,
-  ShoppingCart, Store, Package, Filter, X, ExternalLink, Copy
+  ShoppingCart, Store, Package, Filter, X, ExternalLink, Copy, Repeat
 } from "lucide-react";
 
 interface ProfileItem {
@@ -31,6 +31,7 @@ interface ProfileItem {
   orderId?: string;
   soldAt?: string;
   price?: number;
+  isReplacement?: boolean;
 }
 
 const statusMap: Record<string, { label: string; color: string }> = {
@@ -166,6 +167,7 @@ export default function AdminGestaoPerfis() {
           : orphanMap[item.id];
         const clientInfo = orderInfo?.userId ? profileMap[orderInfo.userId] : null;
         const dataPrice = (item.data as any)?.preco;
+        const isReplacement = !item.order_item_id && !!orphanMap[item.id];
         return {
           ...item,
           clientName: clientInfo?.name || undefined,
@@ -174,6 +176,7 @@ export default function AdminGestaoPerfis() {
           orderId: orderInfo?.orderId || undefined,
           soldAt: orderInfo?.soldAt || undefined,
           price: orderInfo?.price || dataPrice || undefined,
+          isReplacement,
         };
       });
 
@@ -401,7 +404,14 @@ export default function AdminGestaoPerfis() {
                           {item.price ? `R$ ${Number(item.price).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—"}
                         </TableCell>
                         <TableCell>
-                          <Badge className={`${st.color} text-[10px] font-semibold`}>{st.label}</Badge>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <Badge className={`${st.color} text-[10px] font-semibold`}>{st.label}</Badge>
+                            {item.isReplacement && (
+                              <Badge variant="outline" className="text-[10px] font-semibold bg-orange-500/15 text-orange-400 border-orange-500/30 gap-1">
+                                <Repeat className="size-2.5" />Reposição
+                              </Badge>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="text-xs">
                           {item.orderCode ? (
