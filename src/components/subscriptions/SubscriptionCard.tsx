@@ -60,9 +60,16 @@ export default function SubscriptionCard({
   profileTag,
 }: SubscriptionCardProps) {
   const navigate = useNavigate();
+  const [copied, setCopied] = useState<string | null>(null);
+
+  const handleCopy = (text: string, label: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(text);
+    setCopied(label);
+    setTimeout(() => setCopied(null), 2000);
+  };
 
   const handleCardClick = (e: React.MouseEvent) => {
-    // Don't navigate if clicking a button
     if ((e.target as HTMLElement).closest('button')) return;
     navigate(`/subscriptions/${encodeURIComponent(sub.code)}`);
   };
