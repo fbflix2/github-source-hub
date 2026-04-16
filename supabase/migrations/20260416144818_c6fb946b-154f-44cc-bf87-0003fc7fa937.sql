@@ -1,0 +1,1 @@
+UPDATE public.subscriptions SET status = 'migrated' WHERE id = '58d5ddce-1fb8-4db2-8469-9aa52f0845ad';
