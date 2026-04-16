@@ -145,14 +145,16 @@ export default function AdminGestaoPerfis() {
       if (userIds.length > 0) {
         for (let i = 0; i < userIds.length; i += 75) {
           const chunk = userIds.slice(i, i + 75);
-          const { data: profiles } = await supabase
+          const { data: profiles, error: profilesError } = await supabase
             .from("profiles")
-            .select("user_id, full_name, whatsapp")
+            .select("user_id, full_name, phone")
             .in("user_id", chunk);
+
+          if (profilesError) throw profilesError;
 
           if (profiles) {
             profiles.forEach((p: any) => {
-              profileMap[p.user_id] = { name: p.full_name || "", email: p.whatsapp || "" };
+              profileMap[p.user_id] = { name: p.full_name || "", email: p.phone || "" };
             });
           }
         }
