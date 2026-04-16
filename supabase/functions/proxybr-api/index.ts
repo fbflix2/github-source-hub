@@ -1346,11 +1346,128 @@ Deno.serve(async (req) => {
         if (!renewResp.ok) {
           let renewError;
           try { renewError = JSON.parse(renewText); } catch { renewError = { raw: renewText }; }
-          console.error(`Renewal FAILED for ${params.subscriptionCode} — API returned ${renewResp.status}. NOT debiting balance.`);
-          return new Response(
-            JSON.stringify({ error: `Falha ao renovar na ProxyBR [${renewResp.status}]`, details: renewError }),
-            { status: renewResp.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
+          console.error(`Renewal FAILED for ${params.subscriptionCode} — API returned ${renewResp.status}. Attempting Webshare migration fallback.`);
+
+          // === FALLBACK: Migrate to Webshare transparently ===
+          try {
+            const WEBSHARE_API_KEY = Deno.env.get("WEBSHARE_API_KEY") || "";
+            if (!WEBSHARE_API_KEY) throw new Error("WEBSHARE_API_KEY not configured");
+
+            // Get available Webshare proxy
+            const listResp = await webshareFetch("/proxy/list/?mode=direct&page=1&page_size=100", WEBSHARE_API_KEY);
+            const listData = await listResp.json();
+            const allProxies = listData?.results || [];
+
+            // Find unassigned proxy (not linked to any subscription)
+            const { data: assignedProxies } = await supabaseAdmin
+              .from("subscriptions")
+              .select("raw_data")
+              .eq("type", "proxybr")
+              .in("status", ["active", "pending_renewal"])
+              .not("raw_data->provider", "is", null);
+
+            const usedProxyIds = new Set(
+              (assignedProxies || []).map((s: any) => (s.raw_data as any)?.webshare_proxy_id).filter(Boolean)
+            );
+            const availableProxy = allProxies.find((p: any) => !usedProxyIds.has(String(p.id)));
+
+            if (!availableProxy) {
+              return new Response(
+                JSON.stringify({ error: "Sem proxies disponíveis para migração. Contate o suporte." }),
+                { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+              );
+            }
+
+            // Debit balance
+            if (renewalPrice > 0) {
+              const { data: freshProfile } = await supabaseAdmin
+                .from("profiles")
+                .select("balance")
+                .eq("user_id", subUserId)
+                .single();
+
+              const currentBalance = Number(freshProfile?.balance || 0);
+              const newBalance = currentBalance - renewalPrice;
+              await supabaseAdmin.from("profiles").update({ balance: newBalance }).eq("user_id", subUserId);
+
+              await supabaseAdmin.from("wallet_transactions").insert({
+                user_id: subUserId,
+                type: "purchase",
+                title: `Renovação Proxy - ${params.subscriptionCode}`,
+                amount: -renewalPrice,
+                balance_after: newBalance,
+                reference_id: localSub?.id || null,
+              });
+
+              const orderCode = `REN-${params.subscriptionCode}-${Date.now().toString(36).toUpperCase()}`;
+              const { data: newOrder } = await supabaseAdmin.from("orders").insert({
+                user_id: subUserId,
+                code: orderCode,
+                subtotal: renewalPrice,
+                discount: 0,
+                total: renewalPrice,
+                status: "completed",
+                payment_method: "saldo",
+              }).select("id").single();
+
+              if (newOrder?.id) {
+                await supabaseAdmin.from("order_items").insert({
+                  order_id: newOrder.id,
+                  product_id: localSub?.product_id || null,
+                  name: `Renovação Proxy (migrado Webshare) - ${params.subscriptionCode}`,
+                  price: renewalPrice,
+                  quantity: 1,
+                  delivery_data: { subscription_code: params.subscriptionCode, type: "proxy_renewal_migration" },
+                });
+              }
+
+              console.log(`[renew-fallback] Debited R$ ${renewalPrice.toFixed(2)} from user ${subUserId}`);
+            }
+
+            // Extend end_date + migrate raw_data to Webshare
+            const currentEnd = localSub?.end_date ? new Date(localSub.end_date) : new Date();
+            const baseDate = currentEnd.getTime() > Date.now() ? currentEnd : new Date();
+            const newEndDate = new Date(baseDate);
+            newEndDate.setDate(newEndDate.getDate() + 30);
+
+            const existingRaw = (localSub?.raw_data || {}) as Record<string, any>;
+            const preservedTags = Object.fromEntries(
+              Object.entries(existingRaw).filter(([key]) => key.startsWith("profile_tag"))
+            );
+
+            await supabaseAdmin
+              .from("subscriptions")
+              .update({
+                status: "active",
+                end_date: newEndDate.toISOString(),
+                updated_at: new Date().toISOString(),
+                raw_data: {
+                  ...preservedTags,
+                  provider: "webshare",
+                  migrated_from_proxybr: true,
+                  webshare_proxy_id: String(availableProxy.id),
+                  proxy_address: availableProxy.proxy_address,
+                  port: availableProxy.port,
+                  username: availableProxy.username,
+                  password: availableProxy.password,
+                  product: existingRaw.product || { name: `Proxy ${params.subscriptionCode}` },
+                },
+              })
+              .eq("id", localSub!.id);
+
+            console.log(`[renew-fallback] Migrated ${params.subscriptionCode} to Webshare proxy ${availableProxy.proxy_address}:${availableProxy.port}, extended to ${newEndDate.toISOString()}`);
+
+            return new Response(
+              JSON.stringify({ success: true, message: "Assinatura renovada com sucesso!", new_end_date: newEndDate.toISOString(), migrated: true }),
+              { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          } catch (migrationErr: any) {
+            console.error(`[renew-fallback] Migration failed: ${migrationErr.message}`);
+            return new Response(
+              JSON.stringify({ error: `Falha ao renovar: ${migrationErr.message}` }),
+              { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
         }
 
         let renewData;
