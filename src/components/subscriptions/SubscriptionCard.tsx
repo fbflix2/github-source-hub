@@ -164,38 +164,98 @@ export default function SubscriptionCard({
 
       {/* Proxy info */}
       {sub.proxy && status !== "expired" && (
-        <div className="flex flex-col gap-1 p-3 rounded-lg bg-muted/50 border border-border">
+        <div className="flex flex-col gap-1.5 p-3 rounded-lg bg-muted/50 border border-border">
           {sub.is_rotating ? (
             <>
-              <div className="flex justify-between text-xs">
+              <div className="flex justify-between items-center text-xs group/row">
                 <span className="text-text-secondary">Endpoint</span>
-                <span className="text-foreground font-mono font-medium text-[11px]">{sub.proxy.ip}:{sub.proxy.port}</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-foreground font-mono font-medium text-[11px]">{sub.proxy.ip}:{sub.proxy.port}</span>
+                  <button onClick={(e) => handleCopy(`${sub.proxy!.ip}:${sub.proxy!.port}`, 'endpoint', e)} className="p-0.5 rounded hover:bg-border transition-colors" title="Copiar">
+                    {copied === 'endpoint' ? <CheckCircle2 className="size-3 text-green-500" /> : <Copy className="size-3 text-text-secondary opacity-0 group-hover/row:opacity-100 transition-opacity" />}
+                  </button>
+                </div>
               </div>
               {sub.proxy.socks5_port && (
-                <div className="flex justify-between text-xs">
+                <div className="flex justify-between items-center text-xs group/row">
                   <span className="text-text-secondary">SOCKS5</span>
-                  <span className="text-foreground font-mono font-medium text-[11px]">{sub.proxy.ip}:{sub.proxy.socks5_port}</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-foreground font-mono font-medium text-[11px]">{sub.proxy.ip}:{sub.proxy.socks5_port}</span>
+                    <button onClick={(e) => handleCopy(`${sub.proxy!.ip}:${sub.proxy!.socks5_port}`, 'socks5', e)} className="p-0.5 rounded hover:bg-border transition-colors" title="Copiar">
+                      {copied === 'socks5' ? <CheckCircle2 className="size-3 text-green-500" /> : <Copy className="size-3 text-text-secondary opacity-0 group-hover/row:opacity-100 transition-opacity" />}
+                    </button>
+                  </div>
                 </div>
               )}
-              <div className="flex justify-between text-xs">
+              <div className="flex justify-between items-center text-xs group/row">
                 <span className="text-text-secondary">User</span>
-                <span className="text-foreground font-mono font-medium text-[11px] truncate max-w-[140px]">{sub.proxy.username}</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-foreground font-mono font-medium text-[11px] truncate max-w-[140px]">{sub.proxy.username}</span>
+                  <button onClick={(e) => handleCopy(sub.proxy!.username || '', 'user', e)} className="p-0.5 rounded hover:bg-border transition-colors" title="Copiar">
+                    {copied === 'user' ? <CheckCircle2 className="size-3 text-green-500" /> : <Copy className="size-3 text-text-secondary opacity-0 group-hover/row:opacity-100 transition-opacity" />}
+                  </button>
+                </div>
               </div>
+              {sub.proxy.password && (
+                <div className="flex justify-between items-center text-xs group/row">
+                  <span className="text-text-secondary">Pass</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-foreground font-mono font-medium text-[11px] truncate max-w-[140px]">••••••</span>
+                    <button onClick={(e) => handleCopy(sub.proxy!.password || '', 'pass', e)} className="p-0.5 rounded hover:bg-border transition-colors" title="Copiar senha">
+                      {copied === 'pass' ? <CheckCircle2 className="size-3 text-green-500" /> : <Copy className="size-3 text-text-secondary opacity-0 group-hover/row:opacity-100 transition-opacity" />}
+                    </button>
+                  </div>
+                </div>
+              )}
             </>
           ) : (
             <>
-              <div className="flex justify-between text-xs">
+              <div className="flex justify-between items-center text-xs group/row">
                 <span className="text-text-secondary">IP</span>
-                <span className="text-foreground font-mono font-medium">{sub.proxy.ip}:{sub.proxy.port}</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-foreground font-mono font-medium">{sub.proxy.ip}:{sub.proxy.port}</span>
+                  <button onClick={(e) => handleCopy(`${sub.proxy!.ip}:${sub.proxy!.port}`, 'ip', e)} className="p-0.5 rounded hover:bg-border transition-colors" title="Copiar">
+                    {copied === 'ip' ? <CheckCircle2 className="size-3 text-green-500" /> : <Copy className="size-3 text-text-secondary opacity-0 group-hover/row:opacity-100 transition-opacity" />}
+                  </button>
+                </div>
               </div>
               {sub.proxy.username && (
-                <div className="flex justify-between text-xs">
+                <div className="flex justify-between items-center text-xs group/row">
                   <span className="text-text-secondary">User</span>
-                  <span className="text-foreground font-mono font-medium">{sub.proxy.username}</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-foreground font-mono font-medium">{sub.proxy.username}</span>
+                    <button onClick={(e) => handleCopy(sub.proxy!.username || '', 'user', e)} className="p-0.5 rounded hover:bg-border transition-colors" title="Copiar">
+                      {copied === 'user' ? <CheckCircle2 className="size-3 text-green-500" /> : <Copy className="size-3 text-text-secondary opacity-0 group-hover/row:opacity-100 transition-opacity" />}
+                    </button>
+                  </div>
+                </div>
+              )}
+              {sub.proxy.password && (
+                <div className="flex justify-between items-center text-xs group/row">
+                  <span className="text-text-secondary">Pass</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-foreground font-mono font-medium truncate max-w-[140px]">••••••</span>
+                    <button onClick={(e) => handleCopy(sub.proxy!.password || '', 'pass', e)} className="p-0.5 rounded hover:bg-border transition-colors" title="Copiar senha">
+                      {copied === 'pass' ? <CheckCircle2 className="size-3 text-green-500" /> : <Copy className="size-3 text-text-secondary opacity-0 group-hover/row:opacity-100 transition-opacity" />}
+                    </button>
+                  </div>
                 </div>
               )}
             </>
           )}
+          {/* Botão copiar tudo */}
+          <button
+            onClick={(e) => {
+              const parts = [`${sub.proxy!.ip}:${sub.proxy!.port}`];
+              if (sub.proxy!.username) parts.push(sub.proxy!.username);
+              if (sub.proxy!.password) parts.push(sub.proxy!.password);
+              handleCopy(parts.join(':'), 'all', e);
+            }}
+            className="mt-1 flex items-center justify-center gap-1.5 w-full py-1.5 rounded-md bg-primary/10 hover:bg-primary/20 border border-primary/20 text-primary text-[11px] font-bold transition-colors"
+          >
+            {copied === 'all' ? <CheckCircle2 className="size-3" /> : <Copy className="size-3" />}
+            {copied === 'all' ? 'Copiado!' : 'Copiar Endereço Completo'}
+          </button>
         </div>
       )}
 
