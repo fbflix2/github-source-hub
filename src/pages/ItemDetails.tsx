@@ -34,6 +34,8 @@ interface StockData {
   foto_url?: string;
   linkPerfil?: string;
   idPerfil?: string;
+  perfilBackup?: string;
+  perfilMatriz?: string;
 }
 
 export default function ItemDetails() {
@@ -438,6 +440,7 @@ export default function ItemDetails() {
   const itemName = comboProfileId && stockData.nomePerfil
     ? `${orderItem?.name || product?.name || "Item"} • ${stockData.nomePerfil}`
     : (orderItem?.name || product?.name || "Item");
+  const bmMatrixProfile = stockData.perfilMatriz || stockData.perfilBackup || "";
   const email = stockData.emailAcesso || "—";
   const senha = stockData.senha || "—";
   const token2fa = stockData.token2fa || "—";
@@ -698,6 +701,19 @@ export default function ItemDetails() {
                 ) : isBM ? (
                   <>
                     <h3 className="text-[10px] font-bold text-foreground mb-2 uppercase tracking-wider">Links das BMs</h3>
+                    {bmMatrixProfile && (
+                      <div className="mb-3 rounded-lg border border-primary/20 bg-primary/5 p-2.5">
+                        <label className="text-[10px] text-text-secondary mb-0.5 block">Perfil Matriz</label>
+                        <div className="flex items-center gap-1">
+                          <code className="flex-1 bg-background/50 px-2 py-1.5 rounded border border-border text-xs font-mono text-foreground truncate">
+                            {bmMatrixProfile}
+                          </code>
+                          <button onClick={() => copyToClipboard(bmMatrixProfile, 'perfil-matriz')} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
+                            <span className="material-symbols-outlined text-[14px]">{copied === 'perfil-matriz' ? 'check' : 'content_copy'}</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
                     {bmLinks.length === 0 ? (
                       <p className="text-text-secondary text-xs">Nenhum link disponível ainda.</p>
                     ) : bmLinks.length <= 3 ? (
