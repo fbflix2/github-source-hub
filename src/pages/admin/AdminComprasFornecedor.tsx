@@ -536,32 +536,63 @@ export default function AdminComprasFornecedor() {
         {/* BATCHES */}
         <TabsContent value="batches" className="space-y-3 mt-4">
           <Card className="bg-white/5 border-white/10">
-            <CardContent className="p-3 flex flex-wrap items-center gap-2">
-              <span className="text-xs text-white/60">Filtrar por data da compra:</span>
-              <Input
-                type="date"
-                value={batchDateFrom}
-                onChange={(e) => setBatchDateFrom(e.target.value)}
-                className="h-9 w-[160px] bg-white/5 border-white/10 [color-scheme:dark]"
-              />
-              <span className="text-white/40 text-xs">até</span>
-              <Input
-                type="date"
-                value={batchDateTo}
-                onChange={(e) => setBatchDateTo(e.target.value)}
-                className="h-9 w-[160px] bg-white/5 border-white/10 [color-scheme:dark]"
-              />
-              {(batchDateFrom || batchDateTo) && (
-                <Button size="sm" variant="ghost" onClick={() => { setBatchDateFrom(""); setBatchDateTo(""); }}>
-                  Limpar
+            <CardContent className="p-3 space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="relative flex-1 min-w-[200px]">
+                  <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 text-white/40" />
+                  <Input
+                    value={batchSearch}
+                    onChange={(e) => setBatchSearch(e.target.value)}
+                    placeholder="Buscar por nome do lote ou fornecedor..."
+                    className="pl-8 h-9 bg-white/5 border-white/10"
+                  />
+                </div>
+                <Select value={batchSupplierFilter} onValueChange={setBatchSupplierFilter}>
+                  <SelectTrigger className="w-[180px] h-9 bg-white/5 border-white/10">
+                    <SelectValue placeholder="Fornecedor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos fornecedores</SelectItem>
+                    {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <Button onClick={() => setBatchModal({ open: true })} size="sm" disabled={suppliers.length === 0}>
+                  <Plus className="size-4 mr-1" /> Novo lote
                 </Button>
-              )}
-              <span className="ml-auto text-xs text-white/50">
-                {batchStats.length} de {batches.length} lotes
-              </span>
-              <Button onClick={() => setBatchModal({ open: true })} size="sm" disabled={suppliers.length === 0}>
-                <Plus className="size-4 mr-1" /> Novo lote
-              </Button>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs text-white/60">Período:</span>
+                <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setDatePreset("today")}>Hoje</Button>
+                <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setDatePreset("yesterday")}>Ontem</Button>
+                <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setDatePreset("7d")}>7 dias</Button>
+                <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setDatePreset("30d")}>30 dias</Button>
+                <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setDatePreset("month")}>Este mês</Button>
+                <span className="text-white/30">|</span>
+                <Input
+                  type="date"
+                  value={batchDateFrom}
+                  onChange={(e) => setBatchDateFrom(e.target.value)}
+                  className="h-8 w-[150px] bg-white/5 border-white/10 [color-scheme:dark]"
+                />
+                <span className="text-white/40 text-xs">até</span>
+                <Input
+                  type="date"
+                  value={batchDateTo}
+                  onChange={(e) => setBatchDateTo(e.target.value)}
+                  className="h-8 w-[150px] bg-white/5 border-white/10 [color-scheme:dark]"
+                />
+                {(batchDateFrom || batchDateTo || batchSupplierFilter !== "all" || batchSearch) && (
+                  <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => {
+                    setBatchDateFrom(""); setBatchDateTo("");
+                    setBatchSupplierFilter("all"); setBatchSearch("");
+                  }}>
+                    Limpar tudo
+                  </Button>
+                )}
+                <span className="ml-auto text-xs text-white/50">
+                  {batchStats.length} de {batches.length} lotes
+                </span>
+              </div>
             </CardContent>
           </Card>
           {suppliers.length === 0 && (
@@ -577,7 +608,9 @@ export default function AdminComprasFornecedor() {
                     <div className="min-w-0 flex-1">
                       <div className="font-bold text-base truncate">{b.name}</div>
                       <div className="text-xs text-white/50 mt-0.5">{supplierMap[b.supplier_id]?.name || "-"}</div>
-                      <div className="text-[10px] text-white/40 mt-0.5">{new Date(b.purchased_at).toLocaleDateString("pt-BR")}</div>
+                      <div className="text-[10px] text-white/40 mt-0.5">
+                        {new Date(b.purchased_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "short" })}
+                      </div>
                     </div>
                     <div className="flex flex-col gap-1">
                       <Button size="icon" variant="ghost" className="size-7" onClick={() => setImportModal({ open: true, batch: b })} title="Importar .txt">
