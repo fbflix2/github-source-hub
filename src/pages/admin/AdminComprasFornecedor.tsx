@@ -130,7 +130,7 @@ function normalizeAccountCredentials(account: Account): Account {
     email_principal: principalEmail || null,
     email_password: emailPassword || null,
     email_alt: altEmail || null,
-    profile_link,
+    profile_link: profileLink,
   };
 }
 
