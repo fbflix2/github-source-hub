@@ -93,6 +93,8 @@ export default function AdminComprasFornecedor() {
   const [filterLoginResult, setFilterLoginResult] = useState<string>("all");
   const [filterSold, setFilterSold] = useState<string>("all");
   const [search, setSearch] = useState("");
+  const [batchDateFrom, setBatchDateFrom] = useState("");
+  const [batchDateTo, setBatchDateTo] = useState("");
 
   // Modals
   const [supplierModal, setSupplierModal] = useState<{ open: boolean; supplier?: Supplier }>({ open: false });
