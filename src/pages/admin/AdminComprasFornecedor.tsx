@@ -404,14 +404,21 @@ export default function AdminComprasFornecedor() {
         const restLinkIdx = rest.findIndex(p => /^https?:\/\//i.test(p));
         if (restLinkIdx >= 0) profile_link = rest[restLinkIdx];
 
-        // Collect emails (anything containing @)
+        // Collect emails (anything containing @) and classify by domain:
+        // - hotmail/outlook  => email_principal
+        // - fviainboxes.com  => email_alt
+        // Fallback: 1st email = principal, 2nd = alt
         const emails = rest.filter(p => p.includes("@"));
-        if (emails[0]) email_principal = emails[0];
-        if (emails[1]) email_alt = emails[1];
+        const isPrincipalDomain = (e: string) => /@(hotmail|outlook|live|msn)\./i.test(e);
+        const isAltDomain = (e: string) => /@fviainboxes\./i.test(e);
 
-        // Email password = the token between the two emails (if present)
-        // In the canonical format ID|SENHA|EMAIL|SENHA_EMAIL|EMAIL_ALT
-        // it's the part right after the first email and not itself an email/link.
+        const principalMatch = emails.find(isPrincipalDomain);
+        const altMatch = emails.find(isAltDomain);
+        email_principal = principalMatch || emails[0];
+        email_alt = altMatch && altMatch !== email_principal ? altMatch : emails.find(e => e !== email_principal);
+
+        // Email password = token immediately after the principal email
+        // Canonical format: ID|SENHA_FB|EMAIL_PRINCIPAL|SENHA_EMAIL|EMAIL_ALT
         if (email_principal) {
           const idxEmail = rest.indexOf(email_principal);
           const candidate = rest[idxEmail + 1];
