@@ -354,21 +354,66 @@ export default function AdminComprasFornecedor() {
   };
 
   // ===== Import .txt (auto-detect formats) =====
+  // Supports:
+  //   ID|SENHA_FB|EMAIL_PRINCIPAL|SENHA_EMAIL|EMAIL_ALT  (5 parts)
+  //   ID|SENHA_FB||EMAIL_PRINCIPAL|SENHA_EMAIL|EMAIL_ALT (with empty 3rd)
+  //   login|senha|link
+  //   login:senha[:link]
   const importAccounts = async (batch: Batch, content: string) => {
     const lines = content.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-    const parsed: { login: string; password: string; profile_link?: string }[] = [];
+    type Parsed = {
+      login: string;
+      password: string;
+      profile_link?: string;
+      email_principal?: string;
+      email_password?: string;
+      email_alt?: string;
+      raw: string;
+    };
+    const parsed: Parsed[] = [];
 
     for (const line of lines) {
-      // Try | separator first
-      let parts = line.includes("|") ? line.split("|").map(p => p.trim()) : line.split(":").map(p => p.trim());
-
+      const usePipe = line.includes("|");
+      const parts = (usePipe ? line.split("|") : line.split(":")).map(p => p.trim());
       if (parts.length < 2) continue;
 
-      // Detect link in any part (starts with http)
       const linkIdx = parts.findIndex(p => /^https?:\/\//i.test(p));
       let login = "", password = "", profile_link: string | undefined;
+      let email_principal: string | undefined;
+      let email_password: string | undefined;
+      let email_alt: string | undefined;
 
-      if (linkIdx >= 0) {
+      if (usePipe) {
+        // First two are always login/senha; remaining tokens are inspected
+        login = parts[0] || "";
+        password = parts[1] || "";
+        const rest = parts.slice(2);
+
+        // Pull link
+        const restLinkIdx = rest.findIndex(p => /^https?:\/\//i.test(p));
+        if (restLinkIdx >= 0) profile_link = rest[restLinkIdx];
+
+        // Collect emails (anything containing @)
+        const emails = rest.filter(p => p.includes("@"));
+        if (emails[0]) email_principal = emails[0];
+        if (emails[1]) email_alt = emails[1];
+
+        // Email password = the token between the two emails (if present)
+        // In the canonical format ID|SENHA|EMAIL|SENHA_EMAIL|EMAIL_ALT
+        // it's the part right after the first email and not itself an email/link.
+        if (email_principal) {
+          const idxEmail = rest.indexOf(email_principal);
+          const candidate = rest[idxEmail + 1];
+          if (candidate && !candidate.includes("@") && !/^https?:\/\//i.test(candidate)) {
+            email_password = candidate;
+          }
+        }
+
+        // Build profile link from ID if it looks numeric and no link given
+        if (!profile_link && /^\d{6,}$/.test(login)) {
+          profile_link = `https://facebook.com/profile.php?id=${login}`;
+        }
+      } else if (linkIdx >= 0) {
         profile_link = parts[linkIdx];
         const rest = parts.filter((_, i) => i !== linkIdx);
         login = rest[0] || "";
@@ -376,13 +421,12 @@ export default function AdminComprasFornecedor() {
       } else if (parts.length === 2) {
         [login, password] = parts;
       } else {
-        // login:senha:link assumed when no http detected: take first 2
         login = parts[0];
         password = parts.slice(1).join(":");
       }
 
       if (!login || !password) continue;
-      parsed.push({ login, password, profile_link });
+      parsed.push({ login, password, profile_link, email_principal, email_password, email_alt, raw: line });
     }
 
     if (parsed.length === 0) { toast.error("Nenhuma conta válida encontrada"); return; }
@@ -393,6 +437,10 @@ export default function AdminComprasFornecedor() {
       login: p.login,
       password: p.password,
       profile_link: p.profile_link || null,
+      email_principal: p.email_principal || null,
+      email_password: p.email_password || null,
+      email_alt: p.email_alt || null,
+      notes: p.raw,
     }));
 
     // Insert in chunks to avoid limits
@@ -411,6 +459,7 @@ export default function AdminComprasFornecedor() {
   const saveAccount = async (a: Account) => {
     const { error } = await supabase.from("supplier_accounts").update({
       profile_link: a.profile_link, login: a.login, password: a.password,
+      email_principal: a.email_principal, email_password: a.email_password, email_alt: a.email_alt,
       status: a.status, logged_in: a.logged_in, login_result: a.login_result,
       sold: a.sold, client_name: a.client_name,
       sold_at: a.sold ? (a.sold_at || new Date().toISOString()) : null,
@@ -963,7 +1012,10 @@ function ImportModal({ modal, onClose, onImport }: any) {
         <DialogHeader><DialogTitle>Importar contas — {modal.batch?.name}</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <p className="text-xs text-white/60">
-            Formatos aceitos por linha: <code className="text-primary">login:senha</code>, <code className="text-primary">login:senha:link</code> ou <code className="text-primary">email|senha|link</code>. O sistema detecta automaticamente.
+            Formatos aceitos por linha:<br/>
+            • <code className="text-primary">ID|SENHA_FB|EMAIL|SENHA_EMAIL|EMAIL_ALT</code> (formato completo)<br/>
+            • <code className="text-primary">login|senha|link</code> ou <code className="text-primary">login:senha[:link]</code><br/>
+            O sistema separa automaticamente login, senha do FB, emails e senha do email.
           </p>
           <div>
             <Label className="text-xs">Arquivo .txt</Label>
@@ -1000,12 +1052,41 @@ function AccountModal({ modal, onClose, onSave }: any) {
             <Input value={a.profile_link || ""} onChange={(e) => upd("profile_link", e.target.value)} className="bg-white/5 border-white/10" />
           </div>
           <div>
-            <Label className="text-xs">Login</Label>
+            <Label className="text-xs">Login (ID Facebook)</Label>
             <Input value={a.login || ""} onChange={(e) => upd("login", e.target.value)} className="bg-white/5 border-white/10" />
           </div>
           <div>
-            <Label className="text-xs">Senha</Label>
+            <Label className="text-xs">Senha do Facebook</Label>
             <Input value={a.password || ""} onChange={(e) => upd("password", e.target.value)} className="bg-white/5 border-white/10" />
+          </div>
+          <div className="col-span-2 grid grid-cols-2 gap-3 p-3 rounded-lg bg-white/[0.02] border border-white/10">
+            <div className="col-span-2 text-[11px] uppercase tracking-wide text-white/50 font-semibold">📧 Emails da conta</div>
+            <div>
+              <Label className="text-xs">Email principal (Hotmail/Outlook)</Label>
+              <Input
+                value={a.email_principal || ""}
+                onChange={(e) => upd("email_principal", e.target.value)}
+                placeholder="usuario@hotmail.com"
+                className="bg-white/5 border-white/10"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Senha do email principal</Label>
+              <Input
+                value={a.email_password || ""}
+                onChange={(e) => upd("email_password", e.target.value)}
+                className="bg-white/5 border-white/10"
+              />
+            </div>
+            <div className="col-span-2">
+              <Label className="text-xs">Email alternativo (fviainboxes.com)</Label>
+              <Input
+                value={a.email_alt || ""}
+                onChange={(e) => upd("email_alt", e.target.value)}
+                placeholder="usuario@fviainboxes.com"
+                className="bg-white/5 border-white/10"
+              />
+            </div>
           </div>
           <div>
             <Label className="text-xs">Status</Label>
