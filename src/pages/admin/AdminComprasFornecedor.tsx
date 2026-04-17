@@ -142,7 +142,7 @@ export default function AdminComprasFornecedor() {
     try {
       const [s, b, a] = await Promise.all([
         supabase.from("suppliers").select("*").order("created_at", { ascending: false }),
-        supabase.from("supplier_batches").select("*").order("purchased_at", { ascending: false }),
+        supabase.from("supplier_batches").select("*").order("created_at", { ascending: false }),
         supabase.from("supplier_accounts").select("*").order("created_at", { ascending: false }).limit(2000),
       ]);
       if (s.error) throw s.error;
@@ -159,6 +159,18 @@ export default function AdminComprasFornecedor() {
   };
 
   useEffect(() => { loadAll(); }, []);
+
+  useEffect(() => {
+    const onFocus = () => void loadAll();
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
+    const interval = window.setInterval(() => void loadAll(), 30000);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
+      window.clearInterval(interval);
+    };
+  }, []);
 
   const supplierMap = useMemo(() => Object.fromEntries(suppliers.map(s => [s.id, s])), [suppliers]);
   const batchMap = useMemo(() => Object.fromEntries(batches.map(b => [b.id, b])), [batches]);
@@ -208,32 +220,68 @@ export default function AdminComprasFornecedor() {
 
   const batchStats = useMemo(() => {
     return batches
-      .filter(b => {
+      .filter((b) => {
         if (batchSupplierFilter !== "all" && b.supplier_id !== batchSupplierFilter) return false;
         if (batchSearch.trim()) {
           const q = batchSearch.toLowerCase();
           const supplierName = (supplierMap[b.supplier_id]?.name || "").toLowerCase();
-          if (!b.name.toLowerCase().includes(q) && !supplierName.includes(q)) return false;
+          const batchAccounts = accounts.filter((a) => a.batch_id === b.id);
+          const hasAccountMatch = batchAccounts.some((a) =>
+            [a.login, a.profile_link, a.notes]
+              .filter(Boolean)
+              .some((value) => String(value).toLowerCase().includes(q))
+          );
+
+          if (!b.name.toLowerCase().includes(q) && !supplierName.includes(q) && !hasAccountMatch) return false;
         }
-        const d = toBrazilDate(b.purchased_at);
+        const d = toBrazilDate(b.purchased_at || b.created_at);
         if (batchDateFrom && d < batchDateFrom) return false;
         if (batchDateTo && d > batchDateTo) return false;
         return true;
       })
-      .map(b => {
-        const bAccs = accounts.filter(a => a.batch_id === b.id);
+      .map((b) => {
+        const bAccs = accounts
+          .filter((a) => a.batch_id === b.id)
+          .sort((a, z) => (z.created_at || "").localeCompare(a.created_at || ""));
         const total = bAccs.length;
-        const apr = bAccs.filter(a => a.status === "aprovado").length;
-        const chk = bAccs.filter(a => a.login_result === "checkpoint").length;
-        const blq = bAccs.filter(a => a.login_result === "bloqueado").length;
+        const apr = bAccs.filter((a) => a.status === "aprovado").length;
+        const chk = bAccs.filter((a) => a.login_result === "checkpoint").length;
+        const blq = bAccs.filter((a) => a.login_result === "bloqueado").length;
         const taxaApr = total > 0 ? (apr / total) * 100 : 0;
         const taxaProb = total > 0 ? ((chk + blq) / total) * 100 : 0;
-        return { ...b, total, aprovado: apr, checkpoint: chk, bloqueado: blq, taxaApr, taxaProb };
-      });
+        return {
+          ...b,
+          total,
+          aprovado: apr,
+          checkpoint: chk,
+          bloqueado: blq,
+          taxaApr,
+          taxaProb,
+          items: bAccs,
+          purchaseDateKey: toBrazilDate(b.purchased_at || b.created_at),
+        };
+      })
+      .sort((a, z) => (z.purchased_at || z.created_at || "").localeCompare(a.purchased_at || a.created_at || ""));
   }, [batches, accounts, batchDateFrom, batchDateTo, batchSupplierFilter, batchSearch, supplierMap]);
 
   const worstBatch = useMemo(() => {
-    return [...batchStats].filter(b => b.total > 0).sort((a, b) => b.taxaProb - a.taxaProb)[0];
+    return [...batchStats].filter((b) => b.total > 0).sort((a, z) => z.taxaProb - a.taxaProb)[0];
+  }, [batchStats]);
+
+  const groupedBatchStats = useMemo(() => {
+    const groups = new Map<string, typeof batchStats>();
+
+    batchStats.forEach((batch) => {
+      const key = batch.purchaseDateKey || "Sem data";
+      const current = groups.get(key) || [];
+      current.push(batch);
+      groups.set(key, current);
+    });
+
+    return Array.from(groups.entries()).map(([date, groupBatches]) => ({
+      date,
+      batches: groupBatches.sort((a, z) => (z.purchased_at || z.created_at || "").localeCompare(a.purchased_at || a.created_at || "")),
+    }));
   }, [batchStats]);
 
   // ===== Quick action =====
@@ -543,7 +591,7 @@ export default function AdminComprasFornecedor() {
                   <Input
                     value={batchSearch}
                     onChange={(e) => setBatchSearch(e.target.value)}
-                    placeholder="Buscar por nome do lote ou fornecedor..."
+                    placeholder="Buscar lote, fornecedor ou item comprado..."
                     className="pl-8 h-9 bg-white/5 border-white/10"
                   />
                 </div>
@@ -556,6 +604,9 @@ export default function AdminComprasFornecedor() {
                     {suppliers.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
+                <Button onClick={loadAll} size="sm" variant="outline">
+                  Atualizar
+                </Button>
                 <Button onClick={() => setBatchModal({ open: true })} size="sm" disabled={suppliers.length === 0}>
                   <Plus className="size-4 mr-1" /> Novo lote
                 </Button>
@@ -600,53 +651,81 @@ export default function AdminComprasFornecedor() {
               <CardContent className="p-3 text-xs text-amber-300">Cadastre um fornecedor antes de criar lotes.</CardContent>
             </Card>
           )}
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {batchStats.map(b => (
-              <Card key={b.id} className="bg-white/5 border-white/10 hover:border-primary/30 transition">
-                <CardContent className="p-4 space-y-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <div className="font-bold text-base truncate">{b.name}</div>
-                      <div className="text-xs text-white/50 mt-0.5">{supplierMap[b.supplier_id]?.name || "-"}</div>
-                      <div className="text-[10px] text-white/40 mt-0.5">
-                        {new Date(b.purchased_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "short" })}
-                      </div>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <Button size="icon" variant="ghost" className="size-7" onClick={() => setImportModal({ open: true, batch: b })} title="Importar .txt">
-                        <Upload className="size-3.5" />
-                      </Button>
-                      <Button size="icon" variant="ghost" className="size-7" onClick={() => setBatchModal({ open: true, batch: b })}>
-                        <Pencil className="size-3.5" />
-                      </Button>
-                      <Button size="icon" variant="ghost" className="size-7 text-red-400 hover:text-red-300" onClick={() => deleteBatch(b.id)}>
-                        <Trash2 className="size-3.5" />
-                      </Button>
-                    </div>
+          <div className="space-y-4">
+            {groupedBatchStats.map((group) => (
+              <div key={group.date} className="space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-semibold">Compras de {group.date === todayBR() ? "hoje" : group.date}</h3>
+                    <p className="text-xs text-white/50">{group.batches.length} lote(s) nesta data</p>
                   </div>
-                  <div className="grid grid-cols-2 gap-2 text-center">
-                    <div className="bg-white/5 p-2 rounded">
-                      <div className="text-xs text-white/50">Contas</div>
-                      <div className="font-bold">{b.total}</div>
-                    </div>
-                    <div className="bg-emerald-500/10 p-2 rounded">
-                      <div className="text-xs text-emerald-400">Aprov.</div>
-                      <div className="font-bold text-emerald-400">{b.taxaApr.toFixed(0)}%</div>
-                    </div>
-                  </div>
-                  <Button size="sm" variant="outline" className="w-full" onClick={() => {
-                    setFilterBatch(b.id);
-                    setFilterSupplier("all");
-                    setTab("accounts");
-                  }}>
-                    <Eye className="size-3.5 mr-1" /> Ver contas
-                  </Button>
-                </CardContent>
-              </Card>
+                </div>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {group.batches.map((b) => (
+                    <Card key={b.id} className="bg-white/5 border-white/10 hover:border-primary/30 transition">
+                      <CardContent className="p-4 space-y-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <div className="font-bold text-base truncate">{b.name}</div>
+                            <div className="text-xs text-white/50 mt-0.5">{supplierMap[b.supplier_id]?.name || "-"}</div>
+                            <div className="text-[10px] text-white/40 mt-0.5">
+                              {new Date(b.purchased_at || b.created_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "short" })}
+                            </div>
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <Button size="icon" variant="ghost" className="size-7" onClick={() => setImportModal({ open: true, batch: b })} title="Importar .txt">
+                              <Upload className="size-3.5" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="size-7" onClick={() => setBatchModal({ open: true, batch: b })}>
+                              <Pencil className="size-3.5" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="size-7 text-red-400 hover:text-red-300" onClick={() => deleteBatch(b.id)}>
+                              <Trash2 className="size-3.5" />
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-center">
+                          <div className="bg-white/5 p-2 rounded">
+                            <div className="text-xs text-white/50">Contas</div>
+                            <div className="font-bold">{b.total}</div>
+                          </div>
+                          <div className="bg-emerald-500/10 p-2 rounded">
+                            <div className="text-xs text-emerald-400">Aprov.</div>
+                            <div className="font-bold text-emerald-400">{b.taxaApr.toFixed(0)}%</div>
+                          </div>
+                        </div>
+                        <div className="space-y-1.5">
+                          <div className="text-[11px] font-medium text-white/70">Itens desta compra</div>
+                          {b.items.length > 0 ? b.items.slice(0, 4).map((item) => (
+                            <div key={item.id} className="rounded-md border border-white/10 bg-white/5 px-2 py-1.5">
+                              <div className="truncate text-xs font-medium text-white/90">{item.login || item.profile_link || item.notes || "Item sem identificação"}</div>
+                              <div className="flex items-center gap-1 mt-1 flex-wrap">
+                                <Badge className={`${statusColor(item.status)} border text-[10px] px-1.5 py-0`}>{STATUS_LABEL[item.status]}</Badge>
+                                {item.has_bm && <Badge className="bg-purple-500/15 text-purple-400 border border-purple-500/30 px-1.5 py-0 text-[10px]">BM</Badge>}
+                                {item.login_result && <Badge className="bg-white/10 text-white/70 border border-white/20 px-1.5 py-0 text-[10px]">{LOGIN_RESULT_LABEL[item.login_result]}</Badge>}
+                              </div>
+                            </div>
+                          )) : (
+                            <div className="rounded-md border border-dashed border-white/10 px-2 py-2 text-[11px] text-white/45">Nenhum item vinculado a este lote ainda.</div>
+                          )}
+                          {b.items.length > 4 && <div className="text-[10px] text-white/45">+ {b.items.length - 4} item(ns) neste lote</div>}
+                        </div>
+                        <Button size="sm" variant="outline" className="w-full" onClick={() => {
+                          setFilterBatch(b.id);
+                          setFilterSupplier("all");
+                          setTab("accounts");
+                        }}>
+                          <Eye className="size-3.5 mr-1" /> Ver contas do lote
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
             ))}
             {batchStats.length === 0 && suppliers.length > 0 && (
               <Card className="bg-white/5 border-white/10 col-span-full">
-                <CardContent className="p-6 text-center text-sm text-white/50">Nenhum lote criado ainda</CardContent>
+                <CardContent className="p-6 text-center text-sm text-white/50">Nenhum lote encontrado com os filtros atuais</CardContent>
               </Card>
             )}
           </div>
