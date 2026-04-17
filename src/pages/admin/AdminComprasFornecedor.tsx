@@ -209,7 +209,13 @@ export default function AdminComprasFornecedor() {
   const batchStats = useMemo(() => {
     return batches
       .filter(b => {
-        const d = (b.purchased_at || "").slice(0, 10);
+        if (batchSupplierFilter !== "all" && b.supplier_id !== batchSupplierFilter) return false;
+        if (batchSearch.trim()) {
+          const q = batchSearch.toLowerCase();
+          const supplierName = (supplierMap[b.supplier_id]?.name || "").toLowerCase();
+          if (!b.name.toLowerCase().includes(q) && !supplierName.includes(q)) return false;
+        }
+        const d = toBrazilDate(b.purchased_at);
         if (batchDateFrom && d < batchDateFrom) return false;
         if (batchDateTo && d > batchDateTo) return false;
         return true;
@@ -224,7 +230,7 @@ export default function AdminComprasFornecedor() {
         const taxaProb = total > 0 ? ((chk + blq) / total) * 100 : 0;
         return { ...b, total, aprovado: apr, checkpoint: chk, bloqueado: blq, taxaApr, taxaProb };
       });
-  }, [batches, accounts, batchDateFrom, batchDateTo]);
+  }, [batches, accounts, batchDateFrom, batchDateTo, batchSupplierFilter, batchSearch, supplierMap]);
 
   const worstBatch = useMemo(() => {
     return [...batchStats].filter(b => b.total > 0).sort((a, b) => b.taxaProb - a.taxaProb)[0];
