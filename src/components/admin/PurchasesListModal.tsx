@@ -43,6 +43,8 @@ export default function PurchasesListModal({ open, onClose, onUpdate }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editData, setEditData] = useState({ provider_name: "", provider_link: "", purchase_date: "", quantity: 0, unit_value: 0, item_type: "", description: "", sale_price: 0, tax_rate: 0 });
   const [saving, setSaving] = useState(false);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   const fetchPurchases = async () => {
     setLoading(true);
@@ -57,6 +59,16 @@ export default function PurchasesListModal({ open, onClose, onUpdate }: Props) {
   useEffect(() => {
     if (open) fetchPurchases();
   }, [open]);
+
+  const filteredPurchases = useMemo(() => {
+    return purchases.filter((p) => {
+      if (dateFrom && p.purchase_date < dateFrom) return false;
+      if (dateTo && p.purchase_date > dateTo) return false;
+      return true;
+    });
+  }, [purchases, dateFrom, dateTo]);
+
+  const clearFilters = () => { setDateFrom(""); setDateTo(""); };
 
   const startEdit = (p: Purchase) => {
     setEditingId(p.id);
