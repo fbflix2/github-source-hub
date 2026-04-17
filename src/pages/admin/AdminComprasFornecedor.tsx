@@ -93,6 +93,47 @@ function statusColor(status: string) {
   }
 }
 
+function normalizeAccountCredentials(account: Account): Account {
+  const raw = account.notes?.trim();
+  if (!raw || !raw.includes("|")) {
+    return account;
+  }
+
+  const parts = raw.split("|").map((p) => p.trim());
+  if (parts.length < 2) {
+    return account;
+  }
+
+  const login = parts[0] || account.login;
+  const password = parts[1] || account.password;
+  const rest = parts.slice(2);
+
+  const emails = rest.filter((p) => p.includes("@"));
+  const principalEmail = emails.find((e) => /@(hotmail|outlook|live|msn)\./i.test(e)) || emails[0] || account.email_principal;
+  const altEmail = emails.find((e) => /@fviainboxes\./i.test(e)) || emails.find((e) => e !== principalEmail) || account.email_alt;
+
+  let emailPassword = account.email_password;
+  if (principalEmail) {
+    const idx = rest.indexOf(principalEmail);
+    const candidate = rest[idx + 1];
+    if (candidate && !candidate.includes("@") && !/^https?:\/\//i.test(candidate)) {
+      emailPassword = candidate;
+    }
+  }
+
+  const profileLink = account.profile_link || (/^\d{6,}$/.test(login || "") ? `https://facebook.com/profile.php?id=${login}` : null);
+
+  return {
+    ...account,
+    login,
+    password,
+    email_principal: principalEmail || null,
+    email_password: emailPassword || null,
+    email_alt: altEmail || null,
+    profile_link: profileLink,
+  };
+}
+
 export default function AdminComprasFornecedor() {
   const [tab, setTab] = useState("dashboard");
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -164,7 +205,7 @@ export default function AdminComprasFornecedor() {
       if (a.error) throw a.error;
       setSuppliers((s.data || []) as Supplier[]);
       setBatches((b.data || []) as Batch[]);
-      setAccounts((a.data || []) as Account[]);
+      setAccounts(((a.data || []) as Account[]).map(normalizeAccountCredentials));
     } catch (err: any) {
       toast.error("Erro ao carregar: " + err.message);
     } finally {
@@ -1084,7 +1125,7 @@ function ImportModal({ modal, onClose, onImport }: any) {
 
 function AccountModal({ modal, onClose, onSave }: any) {
   const [a, setA] = useState<Account | null>(null);
-  useEffect(() => { if (modal.open) setA(modal.account || null); }, [modal]);
+  useEffect(() => { if (modal.open) setA(modal.account ? normalizeAccountCredentials(modal.account) : null); }, [modal]);
   if (!a) return null;
   const upd = (k: keyof Account, v: any) => setA({ ...a, [k]: v });
   return (
