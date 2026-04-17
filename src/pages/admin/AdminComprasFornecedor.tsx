@@ -14,8 +14,19 @@ import { Label } from "@/components/ui/label";
 import {
   Plus, Trash2, Pencil, Upload, Package, Building2, Users, BarChart3,
   CheckCircle2, XCircle, AlertTriangle, Clock, Search, Eye, FileText,
-  TrendingUp, Award, ShieldAlert
+  TrendingUp, Award, ShieldAlert, Copy, IdCard, KeyRound, Mail, Lock, AtSign
 } from "lucide-react";
+
+const copyToClipboard = (value: string | null | undefined, label: string) => {
+  if (!value) {
+    toast.error(`${label} vazio`);
+    return;
+  }
+  navigator.clipboard.writeText(value).then(
+    () => toast.success(`${label} copiado`),
+    () => toast.error("Falha ao copiar")
+  );
+};
 
 type Supplier = {
   id: string;
@@ -844,6 +855,33 @@ export default function AdminComprasFornecedor() {
                       <div className="text-[10px] text-white/40 truncate">{batchMap[a.batch_id]?.name} · {supplierMap[a.supplier_id]?.name}</div>
                     </div>
                     <Badge className={`${statusColor(a.status)} border text-[10px] px-1.5 py-0`}>{STATUS_LABEL[a.status]}</Badge>
+                  </div>
+
+                  {/* Credenciais organizadas: ID | SENHA FB | EMAIL PRINCIPAL | SENHA EMAIL | EMAIL ALT */}
+                  <div className="space-y-1 rounded-md bg-black/20 border border-white/5 p-2">
+                    {[
+                      { icon: IdCard, label: "ID da conta", value: a.login, color: "text-sky-400" },
+                      { icon: KeyRound, label: "Senha FB", value: a.password, color: "text-amber-400", mono: true },
+                      { icon: Mail, label: "Email principal", value: a.email_principal, color: "text-emerald-400" },
+                      { icon: Lock, label: "Senha do email", value: a.email_password, color: "text-orange-400", mono: true },
+                      { icon: AtSign, label: "Email alternativo", value: a.email_alt, color: "text-purple-400" },
+                    ].map(({ icon: Icon, label, value, color, mono }) => (
+                      <div key={label} className="flex items-center gap-1.5 text-[11px] group">
+                        <Icon className={`size-3 shrink-0 ${color}`} />
+                        <span className="text-white/40 shrink-0 w-[88px]">{label}:</span>
+                        <span className={`flex-1 truncate text-white/85 ${mono ? "font-mono" : ""}`}>{value || "—"}</span>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-5 w-5 p-0 opacity-50 hover:opacity-100 hover:bg-white/10 shrink-0"
+                          onClick={() => copyToClipboard(value, label)}
+                          title={`Copiar ${label}`}
+                          disabled={!value}
+                        >
+                          <Copy className="size-3" />
+                        </Button>
+                      </div>
+                    ))}
                   </div>
 
                   {a.profile_link && (
