@@ -25,7 +25,7 @@ function getSupplierConfig(supplier: string): SupplierConfig {
       username,
       password,
       label: "VIA17",
-      folderDefault: "VIA17 Import",
+      folderDefault: "VIA17",
     };
   }
   // Default: accface
@@ -37,7 +37,7 @@ function getSupplierConfig(supplier: string): SupplierConfig {
     username,
     password,
     label: "AccFace",
-    folderDefault: "AccFace Import",
+    folderDefault: "AccFace",
   };
 }
 
@@ -104,135 +104,102 @@ function extractRawAccounts(parsed: any): string[] {
   return [...new Set(cleaned)];
 }
 
-function buildStockItems(rawAccounts: string[], productId: string, productName: string | undefined, folder: string, itemType?: string, unitPriceBrl?: number, source?: string) {
-  const resolvedType = itemType || "perfil";
-  const resolvedSource = source || "accface";
+/** Parse a raw account line into login/password/profile_link. */
+function parseAccountLine(raw: string): { login: string | null; password: string | null; profile_link: string | null } {
+  const trimmed = raw.trim();
+  if (!trimmed) return { login: null, password: null, profile_link: null };
 
-  if (resolvedType === "bm") {
-    return rawAccounts.map((acc, i) => {
-      const trimmed = acc.trim();
-      const isUrl = /^https?:\/\//i.test(trimmed);
-      return {
-        name: productName || `BM #${i + 1}`,
-        type: "bm",
-        status: "aguardando",
-        folder,
-        identification: null,
-        identification_link: isUrl ? trimmed : trimmed,
-        data: {
-          raw: acc,
-          source: resolvedSource,
-          accfaceProductId: String(productId),
-          purchasedAt: new Date().toISOString(),
-          ...(unitPriceBrl && { precoCustoBRL: unitPriceBrl }),
-          descricao: `${resolvedSource} ID: ${productId} | Custo: R$ ${unitPriceBrl ? unitPriceBrl.toFixed(2) : '—'}`,
-        },
-      };
-    });
+  const urlMatch = trimmed.match(/(https?:\/\/[^\s|:]+)/i);
+  const profile_link = urlMatch ? urlMatch[1] : null;
+
+  let parts: string[];
+  if (trimmed.includes("|")) parts = trimmed.split("|").map((p) => p.trim());
+  else parts = trimmed.split(":").map((p) => p.trim());
+
+  const cleanParts = parts.filter((p) => !/^https?:\/\//i.test(p));
+  const login = cleanParts[0] || trimmed;
+  const password = cleanParts[1] || null;
+
+  let finalLink = profile_link;
+  if (!finalLink && /^\d{6,}$/.test(login)) {
+    finalLink = `https://facebook.com/profile.php?id=${login}`;
   }
 
-  return rawAccounts.map((acc) => {
-    const parts = acc.split("|").map((p) => p.trim());
-    const fbId = parts[0] || acc.substring(0, 100);
-    const profileLink = /^\d+$/.test(fbId) ? `https://facebook.com/profile.php?id=${fbId}` : undefined;
-
-    return {
-      name: productName || `${resolvedSource} #${productId}`,
-      type: "perfil",
-      status: "aguardando",
-      folder,
-      identification: fbId,
-      identification_link: profileLink || null,
-      data: {
-        raw: acc,
-        source: resolvedSource,
-        accfaceProductId: String(productId),
-        purchasedAt: new Date().toISOString(),
-        ...(unitPriceBrl && { precoCustoBRL: unitPriceBrl }),
-        descricao: `${resolvedSource} ID: ${productId} | Custo: R$ ${unitPriceBrl ? unitPriceBrl.toFixed(2) : '—'}`,
-        ...(parts[0] && { idPerfil: parts[0] }),
-        ...(parts[1] && { senha: parts[1] }),
-        ...(parts[2] && { token2fa: parts[2] }),
-        ...(parts[3] && { emailAcesso: parts[3] }),
-        ...(parts[4] && { senhaEmail: parts[4] }),
-        ...(parts[5] && { emailAlternativo: parts[5] }),
-        ...(parts[0] && { uid: parts[0] }),
-        ...(parts[1] && { pass: parts[1] }),
-        ...(parts[3] && { mail: parts[3] }),
-        ...(parts[4] && { mailPass: parts[4] }),
-      },
-    };
-  });
+  return { login, password, profile_link: finalLink };
 }
 
-async function ensureFolderId(adminClient: ReturnType<typeof createClient>, folderName: string) {
-  const normalizedFolderName = folderName.trim() || "AccFace Import";
-
-  const { data: existingFolder, error: findFolderError } = await adminClient
-    .from("stock_folders")
-    .select("id, name")
-    .eq("name", normalizedFolderName)
-    .is("deleted_at", null)
+/** Ensure a supplier row exists, return id. */
+async function ensureSupplierId(adminClient: ReturnType<typeof createClient>, supplierLabel: string) {
+  const { data: existing } = await adminClient
+    .from("suppliers")
+    .select("id")
+    .eq("name", supplierLabel)
     .maybeSingle();
+  if (existing?.id) return existing.id as string;
 
-  if (findFolderError) {
-    throw new Error(`Erro ao buscar pasta: ${findFolderError.message}`);
-  }
+  const { data: created, error } = await adminClient
+    .from("suppliers")
+    .insert({ name: supplierLabel, status: "active", notes: "Auto-criado pela integração Fornecedor secreto 1" })
+    .select("id")
+    .single();
+  if (error || !created?.id) throw new Error(`Erro ao criar fornecedor: ${error?.message || "sem retorno"}`);
+  return created.id as string;
+}
 
-  if (existingFolder?.id) {
-    return { folderId: existingFolder.id, folderName: existingFolder.name };
-  }
+/** Create a new batch for this purchase. */
+async function createBatch(
+  adminClient: ReturnType<typeof createClient>,
+  supplierId: string,
+  productId: string | number,
+  productName: string | undefined,
+  unitPriceBrl: number | undefined,
+  createdBy: string | null,
+) {
+  const dt = new Date();
+  const stamp = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")} ${String(dt.getHours()).padStart(2, "0")}:${String(dt.getMinutes()).padStart(2, "0")}`;
+  const baseName = productName ? `${productName} (${stamp})` : `Produto ${productId} (${stamp})`;
+  const notes = `Compra automática via Fornecedor secreto 1. ID produto: ${productId}${unitPriceBrl ? ` | Custo unit.: R$ ${unitPriceBrl.toFixed(2)}` : ""}`;
 
-  const { data: createdFolder, error: createFolderError } = await adminClient
-    .from("stock_folders")
-    .insert({ name: normalizedFolderName })
+  const { data, error } = await adminClient
+    .from("supplier_batches")
+    .insert({ supplier_id: supplierId, name: baseName, notes, created_by: createdBy })
     .select("id, name")
     .single();
-
-  if (createFolderError || !createdFolder?.id) {
-    throw new Error(`Erro ao criar pasta: ${createFolderError?.message || "sem retorno"}`);
-  }
-
-  return { folderId: createdFolder.id, folderName: createdFolder.name };
+  if (error || !data?.id) throw new Error(`Erro ao criar lote: ${error?.message || "sem retorno"}`);
+  return { batchId: data.id as string, batchName: data.name as string };
 }
 
-async function normalizeFolderLinks(
+/** Insert raw accounts into supplier_accounts. */
+async function saveSupplierAccounts(
   adminClient: ReturnType<typeof createClient>,
-  folderName: string,
-  folderId: string,
+  supplierId: string,
+  batchId: string,
+  rawAccounts: string[],
+  itemType: string | undefined,
 ) {
-  const { data, error } = await adminClient
-    .from("stock_items")
-    .update({ folder: folderId })
-    .eq("folder", folderName)
-    .is("deleted_at", null)
-    .select("id");
+  if (rawAccounts.length === 0) return { savedCount: 0 };
 
+  const has_bm = (itemType || "").toLowerCase() === "bm";
+  const rows = rawAccounts.map((raw) => {
+    const { login, password, profile_link } = parseAccountLine(raw);
+    return {
+      supplier_id: supplierId,
+      batch_id: batchId,
+      login,
+      password,
+      profile_link,
+      status: "aguardando",
+      has_bm,
+      notes: raw,
+    };
+  });
+
+  const { error } = await adminClient.from("supplier_accounts").insert(rows);
   if (error) {
-    console.error("[shopclone-api] Error normalizing folder links:", error);
-    return 0;
+    console.error("[shopclone-api] Error saving supplier_accounts:", error);
+    return { savedCount: 0, error: error.message };
   }
-
-  return data?.length ?? 0;
-}
-
-async function saveStockItems(adminClient: ReturnType<typeof createClient>, folderName: string, stockItems: any[]) {
-  const { folderId, folderName: resolvedFolderName } = await ensureFolderId(adminClient, folderName);
-  const repairedCount = await normalizeFolderLinks(adminClient, resolvedFolderName, folderId);
-
-  if (stockItems.length === 0) {
-    return { savedCount: 0, folderId, folderName: resolvedFolderName, repairedCount };
-  }
-
-  const normalizedItems = stockItems.map((item) => ({ ...item, folder: folderId }));
-
-  const { error: insertError } = await adminClient.from("stock_items").insert(normalizedItems);
-  if (insertError) {
-    console.error("[shopclone-api] Error saving to stock:", insertError);
-    return { savedCount: 0, error: insertError.message, folderId, folderName: resolvedFolderName, repairedCount };
-  }
-
-  return { savedCount: normalizedItems.length, folderId, folderName: resolvedFolderName, repairedCount };
+  return { savedCount: rows.length };
 }
 
 Deno.serve(async (req) => {
@@ -271,7 +238,7 @@ Deno.serve(async (req) => {
 
     const userId = claimsData.claims.sub as string;
 
-    const staffActions = ["list-products", "get-balance", "product-info", "buy-resource", "import-accounts", "repair-folder-links", "fix-stock-item"];
+    const staffActions = ["list-products", "get-balance", "product-info", "buy-resource", "import-accounts"];
     if (staffActions.includes(action)) {
       const adminClient = createClient(
         Deno.env.get("SUPABASE_URL")!,
@@ -291,11 +258,8 @@ Deno.serve(async (req) => {
     switch (action) {
       case "list-products": {
         const url = `${config.baseUrl}/ListResource.php?username=${encodeURIComponent(config.username)}&password=${encodeURIComponent(config.password)}`;
-        console.log(`[shopclone-api][${config.label}] list-products: fetching...`);
         const resp = await fetch(url);
-        console.log(`[shopclone-api][${config.label}] list-products: status`, resp.status);
         const text = await resp.text();
-        console.log(`[shopclone-api][${config.label}] list-products: response length`, text.length, "preview:", text.substring(0, 500));
         if (!resp.ok) {
           result = { status: "error", raw: text, httpStatus: resp.status };
           break;
@@ -331,15 +295,12 @@ Deno.serve(async (req) => {
       }
 
       case "buy-resource": {
-        const { productId, amount, productName, folderName, itemType, unitPriceBrl } = params;
+        const { productId, amount, productName, itemType, unitPriceBrl } = params;
         if (!productId || !amount) throw new Error("productId and amount are required");
 
         const url = `${config.baseUrl}/BResource.php?username=${encodeURIComponent(config.username)}&password=${encodeURIComponent(config.password)}&id=${encodeURIComponent(String(productId))}&amount=${encodeURIComponent(String(amount))}`;
-        console.log(`[shopclone-api][${config.label}] buy-resource URL:`, url.replace(config.password, "***"));
-
         const resp = await fetch(url);
         const text = await resp.text();
-        console.log(`[shopclone-api][${config.label}] buy-resource raw response:`, text.substring(0, 2000));
 
         let parsed: any;
         try {
@@ -347,8 +308,6 @@ Deno.serve(async (req) => {
         } catch {
           parsed = { _rawText: text };
         }
-
-        console.log(`[shopclone-api][${config.label}] parsed keys:`, Object.keys(parsed || {}));
 
         if (parsed?.status === "error" || parsed?.error) {
           result = parsed;
@@ -360,25 +319,35 @@ Deno.serve(async (req) => {
           Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
         );
 
-        const folder = String(folderName || config.folderDefault);
         const rawAccounts = extractRawAccounts(parsed);
 
-        console.log(`[shopclone-api][${config.label}] rawAccounts count:`, rawAccounts.length);
-        if (rawAccounts.length > 0) {
-          console.log(`[shopclone-api][${config.label}] first account sample:`, rawAccounts[0].substring(0, 200));
-        }
-
-        const stockItems = buildStockItems(rawAccounts, String(productId), productName ? String(productName) : undefined, folder, itemType ? String(itemType) : undefined, unitPriceBrl ? Number(unitPriceBrl) : undefined, supplier);
-        const saveResult = await saveStockItems(adminClient, folder, stockItems);
+        // Persist into supplier_accounts (new isolated module)
+        const supplierId = await ensureSupplierId(adminClient, config.label);
+        const { batchId, batchName } = await createBatch(
+          adminClient,
+          supplierId,
+          productId,
+          productName ? String(productName) : undefined,
+          unitPriceBrl ? Number(unitPriceBrl) : undefined,
+          userId,
+        );
+        const saveResult = await saveSupplierAccounts(
+          adminClient,
+          supplierId,
+          batchId,
+          rawAccounts,
+          itemType ? String(itemType) : undefined,
+        );
 
         result = {
           status: parsed?.status || "success",
           msg: parsed?.msg,
           trans_id: parsed?.data?.trans_id,
           saved_count: saveResult.savedCount,
-          repaired_count: saveResult.repairedCount,
-          folder: saveResult.folderName,
-          folder_id: saveResult.folderId,
+          supplier: config.label,
+          supplier_id: supplierId,
+          batch_id: batchId,
+          batch_name: batchName,
           raw_accounts: rawAccounts,
           api_response_keys: Object.keys(parsed || {}),
           ...(saveResult.error && { save_error: saveResult.error }),
@@ -387,7 +356,7 @@ Deno.serve(async (req) => {
       }
 
       case "import-accounts": {
-        const { productId, productName, folderName, sourcePayload, accounts, itemType, unitPriceBrl } = params;
+        const { productId, productName, sourcePayload, accounts, itemType, unitPriceBrl } = params;
         if (!productId) throw new Error("productId is required");
 
         const adminClient = createClient(
@@ -395,57 +364,35 @@ Deno.serve(async (req) => {
           Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
         );
 
-        const folder = String(folderName || config.folderDefault);
         const rawAccounts = extractRawAccounts(sourcePayload ?? { accounts });
-        const stockItems = buildStockItems(rawAccounts, String(productId), productName ? String(productName) : undefined, folder, itemType ? String(itemType) : undefined, unitPriceBrl ? Number(unitPriceBrl) : undefined, supplier);
-        const saveResult = await saveStockItems(adminClient, folder, stockItems);
+
+        const supplierId = await ensureSupplierId(adminClient, config.label);
+        const { batchId, batchName } = await createBatch(
+          adminClient,
+          supplierId,
+          productId,
+          productName ? String(productName) : undefined,
+          unitPriceBrl ? Number(unitPriceBrl) : undefined,
+          userId,
+        );
+        const saveResult = await saveSupplierAccounts(
+          adminClient,
+          supplierId,
+          batchId,
+          rawAccounts,
+          itemType ? String(itemType) : undefined,
+        );
 
         result = {
           status: saveResult.error ? "error" : "success",
           saved_count: saveResult.savedCount,
-          repaired_count: saveResult.repairedCount,
-          folder: saveResult.folderName,
-          folder_id: saveResult.folderId,
+          supplier: config.label,
+          supplier_id: supplierId,
+          batch_id: batchId,
+          batch_name: batchName,
           raw_accounts: rawAccounts,
           ...(saveResult.error && { error: saveResult.error }),
         };
-        break;
-      }
-
-      case "repair-folder-links": {
-        const adminClient = createClient(
-          Deno.env.get("SUPABASE_URL")!,
-          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-        );
-
-        const folder = String(params.folderName || config.folderDefault);
-        const { folderId, folderName: resolvedFolderName } = await ensureFolderId(adminClient, folder);
-        const repairedCount = await normalizeFolderLinks(adminClient, resolvedFolderName, folderId);
-
-        result = {
-          status: "success",
-          folder: resolvedFolderName,
-          folder_id: folderId,
-          repaired_count: repairedCount,
-        };
-        break;
-      }
-
-      case "fix-stock-item": {
-        const { itemId, updates } = params;
-        if (!itemId) throw new Error("itemId is required");
-        const adminClient = createClient(
-          Deno.env.get("SUPABASE_URL")!,
-          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-        );
-        const { data, error } = await adminClient
-          .from("stock_items")
-          .update(updates)
-          .eq("id", itemId)
-          .select("id, folder, type, status")
-          .single();
-        if (error) throw new Error(error.message);
-        result = { status: "success", item: data };
         break;
       }
 
