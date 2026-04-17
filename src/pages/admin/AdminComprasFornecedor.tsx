@@ -93,6 +93,8 @@ export default function AdminComprasFornecedor() {
   const [filterLoginResult, setFilterLoginResult] = useState<string>("all");
   const [filterSold, setFilterSold] = useState<string>("all");
   const [search, setSearch] = useState("");
+  const [batchDateFrom, setBatchDateFrom] = useState("");
+  const [batchDateTo, setBatchDateTo] = useState("");
 
   // Modals
   const [supplierModal, setSupplierModal] = useState<{ open: boolean; supplier?: Supplier }>({ open: false });
@@ -170,17 +172,24 @@ export default function AdminComprasFornecedor() {
   }, [suppliers, accounts]);
 
   const batchStats = useMemo(() => {
-    return batches.map(b => {
-      const bAccs = accounts.filter(a => a.batch_id === b.id);
-      const total = bAccs.length;
-      const apr = bAccs.filter(a => a.status === "aprovado").length;
-      const chk = bAccs.filter(a => a.login_result === "checkpoint").length;
-      const blq = bAccs.filter(a => a.login_result === "bloqueado").length;
-      const taxaApr = total > 0 ? (apr / total) * 100 : 0;
-      const taxaProb = total > 0 ? ((chk + blq) / total) * 100 : 0;
-      return { ...b, total, aprovado: apr, checkpoint: chk, bloqueado: blq, taxaApr, taxaProb };
-    });
-  }, [batches, accounts]);
+    return batches
+      .filter(b => {
+        const d = (b.purchased_at || "").slice(0, 10);
+        if (batchDateFrom && d < batchDateFrom) return false;
+        if (batchDateTo && d > batchDateTo) return false;
+        return true;
+      })
+      .map(b => {
+        const bAccs = accounts.filter(a => a.batch_id === b.id);
+        const total = bAccs.length;
+        const apr = bAccs.filter(a => a.status === "aprovado").length;
+        const chk = bAccs.filter(a => a.login_result === "checkpoint").length;
+        const blq = bAccs.filter(a => a.login_result === "bloqueado").length;
+        const taxaApr = total > 0 ? (apr / total) * 100 : 0;
+        const taxaProb = total > 0 ? ((chk + blq) / total) * 100 : 0;
+        return { ...b, total, aprovado: apr, checkpoint: chk, bloqueado: blq, taxaApr, taxaProb };
+      });
+  }, [batches, accounts, batchDateFrom, batchDateTo]);
 
   const worstBatch = useMemo(() => {
     return [...batchStats].filter(b => b.total > 0).sort((a, b) => b.taxaProb - a.taxaProb)[0];
@@ -485,11 +494,35 @@ export default function AdminComprasFornecedor() {
 
         {/* BATCHES */}
         <TabsContent value="batches" className="space-y-3 mt-4">
-          <div className="flex justify-end">
-            <Button onClick={() => setBatchModal({ open: true })} size="sm" disabled={suppliers.length === 0}>
-              <Plus className="size-4 mr-1" /> Novo lote
-            </Button>
-          </div>
+          <Card className="bg-white/5 border-white/10">
+            <CardContent className="p-3 flex flex-wrap items-center gap-2">
+              <span className="text-xs text-white/60">Filtrar por data da compra:</span>
+              <Input
+                type="date"
+                value={batchDateFrom}
+                onChange={(e) => setBatchDateFrom(e.target.value)}
+                className="h-9 w-[160px] bg-white/5 border-white/10 [color-scheme:dark]"
+              />
+              <span className="text-white/40 text-xs">até</span>
+              <Input
+                type="date"
+                value={batchDateTo}
+                onChange={(e) => setBatchDateTo(e.target.value)}
+                className="h-9 w-[160px] bg-white/5 border-white/10 [color-scheme:dark]"
+              />
+              {(batchDateFrom || batchDateTo) && (
+                <Button size="sm" variant="ghost" onClick={() => { setBatchDateFrom(""); setBatchDateTo(""); }}>
+                  Limpar
+                </Button>
+              )}
+              <span className="ml-auto text-xs text-white/50">
+                {batchStats.length} de {batches.length} lotes
+              </span>
+              <Button onClick={() => setBatchModal({ open: true })} size="sm" disabled={suppliers.length === 0}>
+                <Plus className="size-4 mr-1" /> Novo lote
+              </Button>
+            </CardContent>
+          </Card>
           {suppliers.length === 0 && (
             <Card className="bg-amber-500/10 border-amber-500/30">
               <CardContent className="p-3 text-xs text-amber-300">Cadastre um fornecedor antes de criar lotes.</CardContent>
