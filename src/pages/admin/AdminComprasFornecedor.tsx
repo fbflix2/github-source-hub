@@ -14,8 +14,19 @@ import { Label } from "@/components/ui/label";
 import {
   Plus, Trash2, Pencil, Upload, Package, Building2, Users, BarChart3,
   CheckCircle2, XCircle, AlertTriangle, Clock, Search, Eye, FileText,
-  TrendingUp, Award, ShieldAlert
+  TrendingUp, Award, ShieldAlert, Copy, IdCard, KeyRound, Mail, Lock, AtSign
 } from "lucide-react";
+
+const copyToClipboard = (value: string | null | undefined, label: string) => {
+  if (!value) {
+    toast.error(`${label} vazio`);
+    return;
+  }
+  navigator.clipboard.writeText(value).then(
+    () => toast.success(`${label} copiado`),
+    () => toast.error("Falha ao copiar")
+  );
+};
 
 type Supplier = {
   id: string;
