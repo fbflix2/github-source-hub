@@ -95,6 +95,41 @@ export default function AdminComprasFornecedor() {
   const [search, setSearch] = useState("");
   const [batchDateFrom, setBatchDateFrom] = useState("");
   const [batchDateTo, setBatchDateTo] = useState("");
+  const [batchSupplierFilter, setBatchSupplierFilter] = useState<string>("all");
+  const [batchSearch, setBatchSearch] = useState("");
+
+  // Convert a timestamp to YYYY-MM-DD in Brazil timezone (America/Sao_Paulo, UTC-3)
+  const toBrazilDate = (ts: string | null | undefined): string => {
+    if (!ts) return "";
+    const d = new Date(ts);
+    if (isNaN(d.getTime())) return "";
+    // pt-BR locale with sv-SE-style ISO output via en-CA
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Sao_Paulo",
+      year: "numeric", month: "2-digit", day: "2-digit",
+    }).format(d);
+  };
+
+  const todayBR = () => toBrazilDate(new Date().toISOString());
+  const setDatePreset = (preset: "today" | "yesterday" | "7d" | "30d" | "month") => {
+    const today = new Date();
+    const fmt = (d: Date) => toBrazilDate(d.toISOString());
+    if (preset === "today") {
+      const t = todayBR(); setBatchDateFrom(t); setBatchDateTo(t);
+    } else if (preset === "yesterday") {
+      const y = new Date(today); y.setDate(y.getDate() - 1);
+      const ys = fmt(y); setBatchDateFrom(ys); setBatchDateTo(ys);
+    } else if (preset === "7d") {
+      const from = new Date(today); from.setDate(from.getDate() - 6);
+      setBatchDateFrom(fmt(from)); setBatchDateTo(todayBR());
+    } else if (preset === "30d") {
+      const from = new Date(today); from.setDate(from.getDate() - 29);
+      setBatchDateFrom(fmt(from)); setBatchDateTo(todayBR());
+    } else if (preset === "month") {
+      const from = new Date(today.getFullYear(), today.getMonth(), 1);
+      setBatchDateFrom(fmt(from)); setBatchDateTo(todayBR());
+    }
+  };
 
   // Modals
   const [supplierModal, setSupplierModal] = useState<{ open: boolean; supplier?: Supplier }>({ open: false });
