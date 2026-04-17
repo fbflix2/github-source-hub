@@ -127,17 +127,50 @@ export default function PurchasesListModal({ open, onClose, onUpdate }: Props) {
           </button>
         </div>
 
+        {/* Filters */}
+        <div className="px-5 py-3 border-b border-white/10 bg-white/[0.02] flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5 text-xs text-white/50">
+            <Filter className="size-3.5" />
+            <span>Filtrar por data:</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="bg-black/30 border border-white/10 rounded-md px-2 py-1.5 text-xs text-white/80 [color-scheme:dark] focus:border-primary focus:outline-none"
+            />
+            <span className="text-white/30 text-xs">até</span>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="bg-black/30 border border-white/10 rounded-md px-2 py-1.5 text-xs text-white/80 [color-scheme:dark] focus:border-primary focus:outline-none"
+            />
+            {(dateFrom || dateTo) && (
+              <button onClick={clearFilters} className="text-xs text-white/50 hover:text-white px-2 py-1">
+                Limpar
+              </button>
+            )}
+          </div>
+          <span className="ml-auto text-xs text-white/40">
+            {filteredPurchases.length} de {purchases.length}
+          </span>
+        </div>
+
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-5">
           {loading ? (
             <div className="flex justify-center py-10">
               <Loader2 className="size-6 animate-spin text-primary" />
             </div>
-          ) : purchases.length === 0 ? (
-            <p className="text-center text-white/40 py-10">Nenhuma compra registrada.</p>
+          ) : filteredPurchases.length === 0 ? (
+            <p className="text-center text-white/40 py-10">
+              {purchases.length === 0 ? "Nenhuma compra registrada." : "Nenhuma compra no período selecionado."}
+            </p>
           ) : (
             <div className="space-y-3">
-              {purchases.map((p) => (
+              {filteredPurchases.map((p) => (
                 <div key={p.id} className="bg-white/5 border border-white/10 rounded-xl p-4">
                   {editingId === p.id ? (
                     <div className="space-y-4">
