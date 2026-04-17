@@ -808,12 +808,36 @@ export default function AdminComprasFornecedor() {
                         <div className="space-y-1.5">
                           <div className="text-[11px] font-medium text-white/70">Itens desta compra</div>
                           {b.items.length > 0 ? b.items.slice(0, 4).map((item) => (
-                            <div key={item.id} className="rounded-md border border-white/10 bg-white/5 px-2 py-1.5">
-                              <div className="truncate text-xs font-medium text-white/90">{item.login || item.profile_link || item.notes || "Item sem identificação"}</div>
-                              <div className="flex items-center gap-1 mt-1 flex-wrap">
+                            <div key={item.id} className="rounded-md border border-white/10 bg-white/5 px-2 py-1.5 space-y-1">
+                              <div className="flex items-center gap-1 flex-wrap">
                                 <Badge className={`${statusColor(item.status)} border text-[10px] px-1.5 py-0`}>{STATUS_LABEL[item.status]}</Badge>
                                 {item.has_bm && <Badge className="bg-purple-500/15 text-purple-400 border border-purple-500/30 px-1.5 py-0 text-[10px]">BM</Badge>}
                                 {item.login_result && <Badge className="bg-white/10 text-white/70 border border-white/20 px-1.5 py-0 text-[10px]">{LOGIN_RESULT_LABEL[item.login_result]}</Badge>}
+                              </div>
+                              <div className="space-y-0.5">
+                                {[
+                                  { icon: IdCard, label: "ID", value: item.login, color: "text-sky-400" },
+                                  { icon: KeyRound, label: "Senha FB", value: item.password, color: "text-amber-400", mono: true },
+                                  { icon: Mail, label: "Email", value: item.email_principal, color: "text-emerald-400" },
+                                  { icon: Lock, label: "Senha email", value: item.email_password, color: "text-orange-400", mono: true },
+                                  { icon: AtSign, label: "Email alt", value: item.email_alt, color: "text-purple-400" },
+                                ].map(({ icon: Icon, label, value, color, mono }) => (
+                                  <div key={label} className="flex items-center gap-1 text-[10px] group">
+                                    <Icon className={`size-2.5 shrink-0 ${color}`} />
+                                    <span className="text-white/40 shrink-0 w-[60px]">{label}:</span>
+                                    <span className={`flex-1 truncate text-white/85 ${mono ? "font-mono" : ""}`}>{value || "—"}</span>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-4 w-4 p-0 opacity-50 hover:opacity-100 hover:bg-white/10 shrink-0"
+                                      onClick={(e) => { e.stopPropagation(); copyToClipboard(value, label); }}
+                                      title={`Copiar ${label}`}
+                                      disabled={!value}
+                                    >
+                                      <Copy className="size-2.5" />
+                                    </Button>
+                                  </div>
+                                ))}
                               </div>
                             </div>
                           )) : (
