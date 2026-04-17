@@ -49,6 +49,7 @@ const allMenuOptions = [
   { path: "/admin/esteira-admin", label: "Esteira Admin" },
   { path: "/admin/ferramentas-2fa", label: "Ferramentas > 2FA" },
   { path: "/admin/imagens", label: "Ferramentas > Imagens" },
+  { path: "/admin/compras-fornecedor", label: "Compras Fornecedor" },
 ];
 
 interface ModeratorPermissionsModalProps {

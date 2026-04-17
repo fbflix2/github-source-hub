@@ -3184,6 +3184,155 @@ export type Database = {
           },
         ]
       }
+      supplier_accounts: {
+        Row: {
+          account_year: number | null
+          batch_id: string
+          client_name: string | null
+          country: string | null
+          created_at: string
+          has_bm: boolean
+          id: string
+          logged_in: boolean
+          login: string | null
+          login_result: string | null
+          notes: string | null
+          password: string | null
+          profile_link: string | null
+          sold: boolean
+          sold_at: string | null
+          status: string
+          supplier_id: string
+          updated_at: string
+        }
+        Insert: {
+          account_year?: number | null
+          batch_id: string
+          client_name?: string | null
+          country?: string | null
+          created_at?: string
+          has_bm?: boolean
+          id?: string
+          logged_in?: boolean
+          login?: string | null
+          login_result?: string | null
+          notes?: string | null
+          password?: string | null
+          profile_link?: string | null
+          sold?: boolean
+          sold_at?: string | null
+          status?: string
+          supplier_id: string
+          updated_at?: string
+        }
+        Update: {
+          account_year?: number | null
+          batch_id?: string
+          client_name?: string | null
+          country?: string | null
+          created_at?: string
+          has_bm?: boolean
+          id?: string
+          logged_in?: boolean
+          login?: string | null
+          login_result?: string | null
+          notes?: string | null
+          password?: string | null
+          profile_link?: string | null
+          sold?: boolean
+          sold_at?: string | null
+          status?: string
+          supplier_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_accounts_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_accounts_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supplier_batches: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          notes: string | null
+          purchased_at: string
+          supplier_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          purchased_at?: string
+          supplier_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          purchased_at?: string
+          supplier_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_batches_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      suppliers: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          notes: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       team_messages: {
         Row: {
           content: string

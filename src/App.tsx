@@ -116,6 +116,7 @@ import AdminContingencia from "./pages/admin/AdminContingencia";
 import AdminCobrancaAvulsa from "./pages/admin/AdminCobrancaAvulsa";
 import AdminDashFabricio from "./pages/admin/AdminDashFabricio";
 import AdminSiteEditor from "./pages/admin/AdminSiteEditor";
+import AdminComprasFornecedor from "./pages/admin/AdminComprasFornecedor";
 import { AdminLayout } from "./components/admin/AdminLayout";
 
 // Layout
@@ -402,6 +403,7 @@ const App = () => {
                   <Route path="cobranca-avulsa" element={<AdminCobrancaAvulsa />} />
                   <Route path="configuracoes/site" element={<AdminSiteEditor />} />
                   <Route path="whatsapp" element={<AdminWhatsApp />} />
+                  <Route path="compras-fornecedor" element={<AdminComprasFornecedor />} />
                 </Route>
                 <Route path="/admin/dash-fabricio" element={<AdminDashFabricio />} />
 
