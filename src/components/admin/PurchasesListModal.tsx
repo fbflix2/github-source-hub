@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { X, Loader2, Pencil, Save, Trash2, LinkIcon, User, Calendar, Layers, ShoppingCart, DollarSign, Wallet, ChevronDown, Store } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { X, Loader2, Pencil, Save, Trash2, LinkIcon, User, Calendar, Layers, ShoppingCart, DollarSign, Wallet, ChevronDown, Store, Filter } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
