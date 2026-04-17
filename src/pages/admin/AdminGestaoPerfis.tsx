@@ -10,8 +10,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { toast } from "sonner";
 import {
   Search, RefreshCw, Loader2, CircleUser, Building2, Shield,
-  ShoppingCart, Store, Package, Filter, X, ExternalLink, Copy, Repeat
+  ShoppingCart, Store, Package, Filter, X, ExternalLink, Copy, Repeat, StickyNote
 } from "lucide-react";
+import { ProfileNotesModal } from "@/components/admin/ProfileNotesModal";
 
 interface ProfileItem {
   id: string;
@@ -53,6 +54,7 @@ export default function AdminGestaoPerfis() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [bmFilter, setBmFilter] = useState("all"); // all | com_bm | sem_bm
+  const [notesModal, setNotesModal] = useState<{ id: string; notes: string } | null>(null);
 
   const fetchItems = async () => {
     setLoading(true);
@@ -352,8 +354,15 @@ export default function AdminGestaoPerfis() {
                     const isSold = item.status === "vendido" || item.status === "usado";
                     const displayDate = isSold && item.soldAt ? item.soldAt : item.created_at;
 
+                    const itemNotes = (item.data?.gestaoNotes || "") as string;
+                    const hasNotes = !!itemNotes.trim();
+
                     return (
-                      <TableRow key={item.id} className="group">
+                      <TableRow
+                        key={item.id}
+                        className="group cursor-pointer hover:bg-muted/40"
+                        onClick={() => setNotesModal({ id: item.id, notes: itemNotes })}
+                      >
                         <TableCell className="text-xs">
                           {item.clientName ? (
                             <div>
@@ -368,9 +377,17 @@ export default function AdminGestaoPerfis() {
                           <div className="flex items-center gap-1.5">
                             <span className="font-mono text-xs text-foreground">{getProfileLast4(item.identification)}</span>
                             {item.identification && (
-                              <button onClick={() => copyToClipboard(item.identification!)} className="opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); copyToClipboard(item.identification!); }}
+                                className="opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
                                 <Copy className="size-3 text-muted-foreground hover:text-foreground" />
                               </button>
+                            )}
+                            {hasNotes && (
+                              <span title="Possui observação">
+                                <StickyNote className="size-3 text-amber-500 fill-amber-500/30" />
+                              </span>
                             )}
                           </div>
                           {item.name && <p className="text-[10px] text-muted-foreground truncate max-w-[120px]">{item.name}</p>}
@@ -436,6 +453,21 @@ export default function AdminGestaoPerfis() {
       <p className="text-xs text-muted-foreground text-center">
         Exibindo {filtered.length} de {items.length} perfis
       </p>
+
+      <ProfileNotesModal
+        itemId={notesModal?.id || null}
+        initialNotes={notesModal?.notes || ""}
+        open={!!notesModal}
+        onOpenChange={(o) => { if (!o) setNotesModal(null); }}
+        onSaved={(newNotes) => {
+          if (!notesModal) return;
+          setItems(prev => prev.map(it =>
+            it.id === notesModal.id
+              ? { ...it, data: { ...(it.data || {}), gestaoNotes: newNotes || undefined } }
+              : it
+          ));
+        }}
+      />
     </div>
   );
 }
