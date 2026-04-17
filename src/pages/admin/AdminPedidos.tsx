@@ -85,39 +85,85 @@ export default function AdminPedidos() {
   async function fetchOrders() {
     setLoading(true);
 
-    const { data: ordersData, error } = await supabase
-      .from("orders")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (error || !ordersData) {
-      toast.error("Erro ao carregar pedidos");
-      setLoading(false);
-      return;
+    // Paginate orders fetch to avoid the 1000 row default limit
+    const PAGE_SIZE = 1000;
+    let allOrders: any[] = [];
+    let page = 0;
+    while (true) {
+      const from = page * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+      const { data, error } = await supabase
+        .from("orders")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .range(from, to);
+      if (error) {
+        toast.error("Erro ao carregar pedidos");
+        setLoading(false);
+        return;
+      }
+      if (!data || data.length === 0) break;
+      allOrders = allOrders.concat(data);
+      if (data.length < PAGE_SIZE) break;
+      page++;
     }
+    const ordersData = allOrders;
 
     const orderIds = ordersData.map((o) => o.id);
     const userIds = [...new Set(ordersData.map((o) => o.user_id))];
 
-    const [itemsRes, profilesRes] = await Promise.all([
-      supabase.from("order_items").select("*").in("order_id", orderIds.length > 0 ? orderIds : ["__none__"]),
-      supabase.from("profiles").select("user_id, full_name").in("user_id", userIds.length > 0 ? userIds : ["__none__"]),
-    ]);
+    // Chunk IN() queries to avoid 1000 row limit and URL length issues
+    const CHUNK = 200;
+    const chunks = <T,>(arr: T[]) => {
+      const out: T[][] = [];
+      for (let i = 0; i < arr.length; i += CHUNK) out.push(arr.slice(i, i + CHUNK));
+      return out;
+    };
+
+    // Fetch order_items in chunks with internal pagination
+    const itemsAll: any[] = [];
+    for (const chunk of chunks(orderIds)) {
+      let p = 0;
+      while (true) {
+        const { data } = await supabase
+          .from("order_items")
+          .select("*")
+          .in("order_id", chunk)
+          .range(p * PAGE_SIZE, p * PAGE_SIZE + PAGE_SIZE - 1);
+        if (!data || data.length === 0) break;
+        itemsAll.push(...data);
+        if (data.length < PAGE_SIZE) break;
+        p++;
+      }
+    }
+
+    // Fetch profiles in chunks
+    const profilesAll: any[] = [];
+    for (const chunk of chunks(userIds)) {
+      const { data } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", chunk);
+      if (data) profilesAll.push(...data);
+    }
+
+    const itemsRes = { data: itemsAll };
+    const profilesRes = { data: profilesAll };
 
     // Fetch stock items with 'ok' status to know which orders got positive feedback
-    const orderItemIds = (itemsRes.data || []).map(i => i.id);
-    const [okStockRes, stockLinksRes] = await Promise.all([
-      supabase
-        .from("stock_items")
-        .select("order_item_id")
-        .in("order_item_id", orderItemIds.length > 0 ? orderItemIds : ["__none__"])
-        .eq("status", "ok"),
-      supabase
-        .from("stock_items")
-        .select("id, order_item_id")
-        .in("order_item_id", orderItemIds.length > 0 ? orderItemIds : ["__none__"])
-        .in("status", ["vendido", "ok"]),
-    ]);
+    const orderItemIds = itemsAll.map(i => i.id);
+    const okStockAll: any[] = [];
+    const stockLinksAll: any[] = [];
+    for (const chunk of chunks(orderItemIds)) {
+      const [okRes, linkRes] = await Promise.all([
+        supabase.from("stock_items").select("order_item_id").in("order_item_id", chunk).eq("status", "ok"),
+        supabase.from("stock_items").select("id, order_item_id").in("order_item_id", chunk).in("status", ["vendido", "ok"]),
+      ]);
+      if (okRes.data) okStockAll.push(...okRes.data);
+      if (linkRes.data) stockLinksAll.push(...linkRes.data);
+    }
+    const okStockRes = { data: okStockAll };
+    const stockLinksRes = { data: stockLinksAll };
 
     const okOrderItemIds = new Set((okStockRes.data || []).map(s => s.order_item_id));
     const stockItemMap = new Map((stockLinksRes.data || []).map(s => [s.order_item_id, s.id]));
