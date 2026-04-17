@@ -3191,6 +3191,9 @@ export type Database = {
           client_name: string | null
           country: string | null
           created_at: string
+          email_alt: string | null
+          email_password: string | null
+          email_principal: string | null
           has_bm: boolean
           id: string
           logged_in: boolean
@@ -3211,6 +3214,9 @@ export type Database = {
           client_name?: string | null
           country?: string | null
           created_at?: string
+          email_alt?: string | null
+          email_password?: string | null
+          email_principal?: string | null
           has_bm?: boolean
           id?: string
           logged_in?: boolean
@@ -3231,6 +3237,9 @@ export type Database = {
           client_name?: string | null
           country?: string | null
           created_at?: string
+          email_alt?: string | null
+          email_password?: string | null
+          email_principal?: string | null
           has_bm?: boolean
           id?: string
           logged_in?: boolean

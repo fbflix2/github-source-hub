@@ -41,6 +41,9 @@ type Account = {
   profile_link: string | null;
   login: string | null;
   password: string | null;
+  email_principal: string | null;
+  email_password: string | null;
+  email_alt: string | null;
   status: "aguardando" | "em_teste" | "aprovado" | "reprovado";
   logged_in: boolean;
   login_result: string | null;
