@@ -208,32 +208,68 @@ export default function AdminComprasFornecedor() {
 
   const batchStats = useMemo(() => {
     return batches
-      .filter(b => {
+      .filter((b) => {
         if (batchSupplierFilter !== "all" && b.supplier_id !== batchSupplierFilter) return false;
         if (batchSearch.trim()) {
           const q = batchSearch.toLowerCase();
           const supplierName = (supplierMap[b.supplier_id]?.name || "").toLowerCase();
-          if (!b.name.toLowerCase().includes(q) && !supplierName.includes(q)) return false;
+          const batchAccounts = accounts.filter((a) => a.batch_id === b.id);
+          const hasAccountMatch = batchAccounts.some((a) =>
+            [a.login, a.profile_link, a.notes]
+              .filter(Boolean)
+              .some((value) => String(value).toLowerCase().includes(q))
+          );
+
+          if (!b.name.toLowerCase().includes(q) && !supplierName.includes(q) && !hasAccountMatch) return false;
         }
-        const d = toBrazilDate(b.purchased_at);
+        const d = toBrazilDate(b.purchased_at || b.created_at);
         if (batchDateFrom && d < batchDateFrom) return false;
         if (batchDateTo && d > batchDateTo) return false;
         return true;
       })
-      .map(b => {
-        const bAccs = accounts.filter(a => a.batch_id === b.id);
+      .map((b) => {
+        const bAccs = accounts
+          .filter((a) => a.batch_id === b.id)
+          .sort((a, z) => (z.created_at || "").localeCompare(a.created_at || ""));
         const total = bAccs.length;
-        const apr = bAccs.filter(a => a.status === "aprovado").length;
-        const chk = bAccs.filter(a => a.login_result === "checkpoint").length;
-        const blq = bAccs.filter(a => a.login_result === "bloqueado").length;
+        const apr = bAccs.filter((a) => a.status === "aprovado").length;
+        const chk = bAccs.filter((a) => a.login_result === "checkpoint").length;
+        const blq = bAccs.filter((a) => a.login_result === "bloqueado").length;
         const taxaApr = total > 0 ? (apr / total) * 100 : 0;
         const taxaProb = total > 0 ? ((chk + blq) / total) * 100 : 0;
-        return { ...b, total, aprovado: apr, checkpoint: chk, bloqueado: blq, taxaApr, taxaProb };
-      });
+        return {
+          ...b,
+          total,
+          aprovado: apr,
+          checkpoint: chk,
+          bloqueado: blq,
+          taxaApr,
+          taxaProb,
+          items: bAccs,
+          purchaseDateKey: toBrazilDate(b.purchased_at || b.created_at),
+        };
+      })
+      .sort((a, z) => (z.purchased_at || z.created_at || "").localeCompare(a.purchased_at || a.created_at || ""));
   }, [batches, accounts, batchDateFrom, batchDateTo, batchSupplierFilter, batchSearch, supplierMap]);
 
   const worstBatch = useMemo(() => {
-    return [...batchStats].filter(b => b.total > 0).sort((a, b) => b.taxaProb - a.taxaProb)[0];
+    return [...batchStats].filter((b) => b.total > 0).sort((a, z) => z.taxaProb - a.taxaProb)[0];
+  }, [batchStats]);
+
+  const groupedBatchStats = useMemo(() => {
+    const groups = new Map<string, typeof batchStats>();
+
+    batchStats.forEach((batch) => {
+      const key = batch.purchaseDateKey || "Sem data";
+      const current = groups.get(key) || [];
+      current.push(batch);
+      groups.set(key, current);
+    });
+
+    return Array.from(groups.entries()).map(([date, groupBatches]) => ({
+      date,
+      batches: groupBatches.sort((a, z) => (z.purchased_at || z.created_at || "").localeCompare(a.purchased_at || a.created_at || "")),
+    }));
   }, [batchStats]);
 
   // ===== Quick action =====
