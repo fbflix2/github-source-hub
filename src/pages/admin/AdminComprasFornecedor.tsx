@@ -172,17 +172,24 @@ export default function AdminComprasFornecedor() {
   }, [suppliers, accounts]);
 
   const batchStats = useMemo(() => {
-    return batches.map(b => {
-      const bAccs = accounts.filter(a => a.batch_id === b.id);
-      const total = bAccs.length;
-      const apr = bAccs.filter(a => a.status === "aprovado").length;
-      const chk = bAccs.filter(a => a.login_result === "checkpoint").length;
-      const blq = bAccs.filter(a => a.login_result === "bloqueado").length;
-      const taxaApr = total > 0 ? (apr / total) * 100 : 0;
-      const taxaProb = total > 0 ? ((chk + blq) / total) * 100 : 0;
-      return { ...b, total, aprovado: apr, checkpoint: chk, bloqueado: blq, taxaApr, taxaProb };
-    });
-  }, [batches, accounts]);
+    return batches
+      .filter(b => {
+        const d = (b.purchased_at || "").slice(0, 10);
+        if (batchDateFrom && d < batchDateFrom) return false;
+        if (batchDateTo && d > batchDateTo) return false;
+        return true;
+      })
+      .map(b => {
+        const bAccs = accounts.filter(a => a.batch_id === b.id);
+        const total = bAccs.length;
+        const apr = bAccs.filter(a => a.status === "aprovado").length;
+        const chk = bAccs.filter(a => a.login_result === "checkpoint").length;
+        const blq = bAccs.filter(a => a.login_result === "bloqueado").length;
+        const taxaApr = total > 0 ? (apr / total) * 100 : 0;
+        const taxaProb = total > 0 ? ((chk + blq) / total) * 100 : 0;
+        return { ...b, total, aprovado: apr, checkpoint: chk, bloqueado: blq, taxaApr, taxaProb };
+      });
+  }, [batches, accounts, batchDateFrom, batchDateTo]);
 
   const worstBatch = useMemo(() => {
     return [...batchStats].filter(b => b.total > 0).sort((a, b) => b.taxaProb - a.taxaProb)[0];
