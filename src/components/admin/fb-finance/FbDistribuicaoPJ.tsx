@@ -212,14 +212,14 @@ export function FbDistribuicaoPJ() {
         // Meta already reached this month — redirect entire Pro Labore allocation
         const excedente = valores.pro_labore;
         valores.pro_labore = 0;
-        setRedirectPopup({ excedente, valores });
+        setRedirectPopup({ excedente, valores, debtRepayment });
         return;
       }
       const novoTotal = totalEntradasMes + valores.pro_labore;
       if (novoTotal > proLaboreCaixa.meta) {
         const excedente = novoTotal - proLaboreCaixa.meta;
         valores.pro_labore = Math.max(0, proLaboreCaixa.meta - totalEntradasMes);
-        setRedirectPopup({ excedente, valores });
+        setRedirectPopup({ excedente, valores, debtRepayment });
         return;
       }
     }
