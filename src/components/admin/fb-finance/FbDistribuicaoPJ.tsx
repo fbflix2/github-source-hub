@@ -64,7 +64,7 @@ export function FbDistribuicaoPJ() {
   const [distribuicoes, setDistribuicoes] = useState<Distribuicao[]>([]);
   const [loading, setLoading] = useState(true);
   const [detailDist, setDetailDist] = useState<Distribuicao | null>(null);
-  const [redirectPopup, setRedirectPopup] = useState<{ excedente: number; valores: Record<string, number> } | null>(null);
+  const [redirectPopup, setRedirectPopup] = useState<{ excedente: number; valores: Record<string, number>; debtRepayment?: number } | null>(null);
   const [redirectTarget, setRedirectTarget] = useState("");
   const [redirectToPersonal, setRedirectToPersonal] = useState(true);
   const [personalPercConfig, setPersonalPercConfig] = useState<Record<string, number>>({});
@@ -74,12 +74,20 @@ export function FbDistribuicaoPJ() {
   const [newCardPerc, setNewCardPerc] = useState("0");
   const [configId, setConfigId] = useState<string | null>(null);
   const [hasLoadedConfig, setHasLoadedConfig] = useState(false);
+  const [capitalGiroDebt, setCapitalGiroDebt] = useState(0);
+
+  // Confirmation modal state (with debt repayment preview)
+  const [confirmDist, setConfirmDist] = useState<{
+    valores: Record<string, number>;
+    debtRepayment: number;
+    entrada: number;
+  } | null>(null);
 
   useEffect(() => { void fetchData(); }, []);
 
   const fetchData = async () => {
     const [configRes, distRes, caixasRes] = await Promise.all([
-      supabase.from("fb_finance_config" as any).select("id, distribution_percentages, personal_distribution_percentages").limit(1).maybeSingle(),
+      supabase.from("fb_finance_config" as any).select("id, distribution_percentages, personal_distribution_percentages, capital_giro_debt").limit(1).maybeSingle(),
       supabase.from("fb_finance_distribuicoes" as any).select("*").order("data", { ascending: false }).limit(30),
       supabase.from("fb_finance_caixas" as any).select("id, nome, saldo_atual, meta, tipo"),
     ]);
@@ -90,6 +98,7 @@ export function FbDistribuicaoPJ() {
       setPercentuais(Object.keys(saved).length > 0 ? saved : { ...defaultPerc });
       const personalPerc = (configRes.data as any).personal_distribution_percentages as Record<string, number> | null;
       if (personalPerc) setPersonalPercConfig(personalPerc);
+      setCapitalGiroDebt(Number((configRes.data as any).capital_giro_debt || 0));
     }
 
     if (distRes.data) setDistribuicoes(distRes.data as any);
@@ -169,9 +178,17 @@ export function FbDistribuicaoPJ() {
     if (!entradaNum || entradaNum <= 0) { toast({ title: "Informe a entrada do dia", variant: "destructive" }); return; }
     if (!isValid) { toast({ title: "A soma dos % deve ser 100%", variant: "destructive" }); return; }
 
+    // PRIORITY: repay Capital de Giro debt before % distribution
+    const debtRepayment = Math.min(capitalGiroDebt, entradaNum);
+    const remainingAfterDebt = entradaNum - debtRepayment;
+
     const valores: Record<string, number> = {};
     for (const key of keys) {
-      valores[key] = entradaNum * ((Number(percentuais[key]) || 0) / 100);
+      valores[key] = remainingAfterDebt * ((Number(percentuais[key]) || 0) / 100);
+    }
+    // Add debt repayment on top of capital_giro allocation
+    if (debtRepayment > 0) {
+      valores.capital_giro = (valores.capital_giro || 0) + debtRepayment;
     }
 
     // Check Pro Labore meta — use total monthly ENTRIES (not current balance, which decreases with expenses)
@@ -195,22 +212,24 @@ export function FbDistribuicaoPJ() {
         // Meta already reached this month — redirect entire Pro Labore allocation
         const excedente = valores.pro_labore;
         valores.pro_labore = 0;
-        setRedirectPopup({ excedente, valores });
+        setRedirectPopup({ excedente, valores, debtRepayment });
         return;
       }
       const novoTotal = totalEntradasMes + valores.pro_labore;
       if (novoTotal > proLaboreCaixa.meta) {
         const excedente = novoTotal - proLaboreCaixa.meta;
         valores.pro_labore = Math.max(0, proLaboreCaixa.meta - totalEntradasMes);
-        setRedirectPopup({ excedente, valores });
+        setRedirectPopup({ excedente, valores, debtRepayment });
         return;
       }
     }
 
-    await executeDistribution(valores);
+    // Open confirmation modal showing the debt repayment breakdown
+    setConfirmDist({ valores, debtRepayment, entrada: entradaNum });
   };
 
-  const executeDistribution = async (valores: Record<string, number>) => {
+  const executeDistribution = async (valores: Record<string, number>, debtRepaymentOverride?: number) => {
+    const debtRepayment = debtRepaymentOverride ?? confirmDist?.debtRepayment ?? 0;
     const hoje = new Date().toISOString().split("T")[0];
     const { error } = await supabase.from("fb_finance_distribuicoes" as any).insert({
       data: hoje, entrada_dia: entradaNum, percentuais, valores_alocados: valores, aplicado: true,
@@ -228,13 +247,19 @@ export function FbDistribuicaoPJ() {
           if (!caixa || !val) return;
           const newBalance = Number(caixa.saldo_atual) + Number(val);
           await supabase.from("fb_finance_caixas" as any).update({ saldo_atual: newBalance } as any).eq("id", caixa.id);
-          // Create a lancamento entry for this allocation
+          // Build description — flag debt repayment for capital_giro
+          const isCapitalGiro = key === "capital_giro";
+          const perc = Number(percentuais[key] || 0);
+          let desc = `Distribuição: ${keyToLabel(key)} (${perc}%)`;
+          if (isCapitalGiro && debtRepayment > 0) {
+            desc = `Distribuição: ${keyToLabel(key)} (${perc}% + Reposição R$ ${debtRepayment.toFixed(2)})`;
+          }
           lancamentosToInsert.push({
             data: hoje,
             entrada: Number(val),
             saida: 0,
             categoria: "Distribuição PJ",
-            descricao: `Distribuição: ${keyToLabel(key)} (${Number(percentuais[key] || 0)}%)`,
+            descricao: desc,
             tipo: (caixa as any).tipo || "empresa",
             caixa_destino_id: caixa.id,
           });
@@ -247,9 +272,21 @@ export function FbDistribuicaoPJ() {
       }
     }
 
-    toast({ title: "Distribuição aplicada com sucesso!" });
+    // Subtract debt that was repaid
+    if (debtRepayment > 0 && configId) {
+      const remaining = Math.max(0, capitalGiroDebt - debtRepayment);
+      await supabase.from("fb_finance_config" as any).update({ capital_giro_debt: remaining } as any).eq("id", configId);
+      setCapitalGiroDebt(remaining);
+    }
+
+    toast({
+      title: debtRepayment > 0
+        ? `Distribuído! Reposição de R$ ${debtRepayment.toFixed(2)} ao Capital de Giro`
+        : "Distribuição aplicada com sucesso!"
+    });
     setEntradaHoje("1000");
     setRedirectPopup(null);
+    setConfirmDist(null);
     fetchData();
   };
 
@@ -303,7 +340,7 @@ export function FbDistribuicaoPJ() {
         await supabase.from("fb_finance_lancamentos" as any).insert(lancamentosPersonal as any);
       }
 
-      await executeDistribution(valores);
+      await executeDistribution(valores, redirectPopup.debtRepayment ?? 0);
       return;
     }
 
@@ -316,7 +353,7 @@ export function FbDistribuicaoPJ() {
     if (targetKey) {
       valores[targetKey] = (valores[targetKey] || 0) + redirectPopup.excedente;
     }
-    await executeDistribution(valores);
+    await executeDistribution(valores, redirectPopup.debtRepayment ?? 0);
   };
 
   const handleDeleteDist = async (id: string) => {
@@ -435,15 +472,51 @@ export function FbDistribuicaoPJ() {
               </div>
             </div>
 
-            <div className="pt-4 border-t border-white/10 space-y-3">
-              {keys.map((key, i) => (
-                <div key={key} className="flex justify-between items-center group">
-                  <span className="text-sm text-[#8b919e] group-hover:text-[#d5e4fa] transition-colors">{keyToLabel(key)}</span>
-                  <span className="font-['Manrope'] font-bold" style={{ color: getColor(i) }}>
-                    {formatBRL(entradaNum * (Number(percentuais[key]) || 0) / 100)}
-                  </span>
+            {/* Capital de Giro debt alert */}
+            {capitalGiroDebt > 0 && (
+              <div className="bg-[#f5c542]/10 border border-[#f5c542]/30 rounded-lg p-4">
+                <div className="flex items-start gap-2">
+                  <span className="material-symbols-outlined text-[#f5c542] text-base mt-0.5">priority_high</span>
+                  <div className="flex-1">
+                    <p className="text-xs font-bold text-[#f5c542] uppercase tracking-wide mb-1">
+                      Reposição prioritária ativa
+                    </p>
+                    <p className="text-[11px] text-[#c1c6d4] leading-relaxed">
+                      Existe uma dívida de <span className="font-bold text-[#f5c542]">{formatBRL(capitalGiroDebt)}</span> retirada do Capital de Giro. Será reposta antes da distribuição percentual.
+                    </p>
+                    <div className="mt-2 flex justify-between text-[11px]">
+                      <span className="text-[#8b919e]">Reposição agora:</span>
+                      <span className="font-bold text-[#40e56c]">{formatBRL(Math.min(capitalGiroDebt, entradaNum))}</span>
+                    </div>
+                    <div className="flex justify-between text-[11px]">
+                      <span className="text-[#8b919e]">Sobra para distribuir:</span>
+                      <span className="font-bold text-[#a5c8ff]">{formatBRL(Math.max(0, entradaNum - capitalGiroDebt))}</span>
+                    </div>
+                  </div>
                 </div>
-              ))}
+              </div>
+            )}
+
+            <div className="pt-4 border-t border-white/10 space-y-3">
+              {keys.map((key, i) => {
+                const debtRep = Math.min(capitalGiroDebt, entradaNum);
+                const remaining = Math.max(0, entradaNum - debtRep);
+                const baseVal = remaining * (Number(percentuais[key]) || 0) / 100;
+                const finalVal = key === "capital_giro" ? baseVal + debtRep : baseVal;
+                return (
+                  <div key={key} className="flex justify-between items-center group">
+                    <span className="text-sm text-[#8b919e] group-hover:text-[#d5e4fa] transition-colors">
+                      {keyToLabel(key)}
+                      {key === "capital_giro" && debtRep > 0 && (
+                        <span className="ml-1 text-[9px] text-[#f5c542]">+ reposição</span>
+                      )}
+                    </span>
+                    <span className="font-['Manrope'] font-bold" style={{ color: getColor(i) }}>
+                      {formatBRL(finalVal)}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
 
             <button onClick={handleDistribuir}
@@ -504,6 +577,108 @@ export function FbDistribuicaoPJ() {
           </div>
         </div>
       </div>
+
+      {/* Confirm Distribution Modal */}
+      {confirmDist && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setConfirmDist(null)}>
+          <div className="bg-[#0e1c2d] rounded-2xl w-full max-w-lg shadow-2xl border border-white/10 p-6 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="font-['Manrope'] font-bold text-xl text-[#d5e4fa]">Confirmar Distribuição</h3>
+              <button onClick={() => setConfirmDist(null)} className="text-[#8b919e] hover:text-white">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <div className="bg-[#051424] rounded-lg p-4 mb-4 flex justify-between items-center">
+              <span className="text-xs text-[#8b919e] uppercase tracking-widest">Entrada do dia</span>
+              <span className="text-2xl font-['Manrope'] font-extrabold text-[#40e56c]">{formatBRL(confirmDist.entrada)}</span>
+            </div>
+
+            {/* Priority debt repayment highlight */}
+            {confirmDist.debtRepayment > 0 && (
+              <div className="bg-gradient-to-br from-[#f5c542]/15 to-[#f5c542]/5 border border-[#f5c542]/40 rounded-xl p-4 mb-4">
+                <div className="flex items-start gap-3">
+                  <span className="material-symbols-outlined text-[#f5c542] text-2xl">payments</span>
+                  <div className="flex-1">
+                    <p className="text-xs font-bold text-[#f5c542] uppercase tracking-widest mb-1">
+                      Reposição prioritária
+                    </p>
+                    <p className="text-sm text-[#d5e4fa] mb-2">
+                      Devolvendo <span className="font-bold text-[#f5c542]">{formatBRL(confirmDist.debtRepayment)}</span> ao Capital de Giro
+                    </p>
+                    <p className="text-[11px] text-[#8b919e] leading-relaxed">
+                      Motivo: este valor foi previamente retirado do Capital de Giro (saídas registradas como dívida). Ele é reposto ANTES da distribuição percentual normal.
+                    </p>
+                    <div className="mt-3 pt-3 border-t border-[#f5c542]/20 space-y-1 text-[11px]">
+                      <div className="flex justify-between">
+                        <span className="text-[#8b919e]">Dívida total antes:</span>
+                        <span className="text-[#c1c6d4] font-bold">{formatBRL(capitalGiroDebt)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-[#8b919e]">Reposição agora:</span>
+                        <span className="text-[#40e56c] font-bold">- {formatBRL(confirmDist.debtRepayment)}</span>
+                      </div>
+                      <div className="flex justify-between pt-1 border-t border-white/5">
+                        <span className="text-[#8b919e]">Dívida restante:</span>
+                        <span className="text-[#d5e4fa] font-bold">{formatBRL(Math.max(0, capitalGiroDebt - confirmDist.debtRepayment))}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-2 mb-5">
+              <p className="text-xs text-[#8b919e] uppercase tracking-widest font-bold mb-2">Distribuição nos caixas</p>
+              {Object.entries(confirmDist.valores).map(([key, val], i) => {
+                const perc = Number(percentuais[key] || 0);
+                const isCG = key === "capital_giro";
+                const debtPart = isCG ? confirmDist.debtRepayment : 0;
+                const normalPart = Number(val) - debtPart;
+                return (
+                  <div key={key} className="bg-[#051424] rounded-lg p-3">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full" style={{ background: getColor(i) }} />
+                        <span className="text-sm font-bold text-[#d5e4fa]">{keyToLabel(key)}</span>
+                        <span className="text-[10px] text-[#8b919e]">({perc}%)</span>
+                      </div>
+                      <span className="text-sm font-['Manrope'] font-extrabold text-[#d5e4fa]">{formatBRL(Number(val))}</span>
+                    </div>
+                    {isCG && debtPart > 0 && (
+                      <div className="mt-2 pt-2 border-t border-white/5 grid grid-cols-2 gap-2 text-[10px]">
+                        <div className="flex justify-between">
+                          <span className="text-[#8b919e]">Reposição:</span>
+                          <span className="text-[#f5c542] font-bold">{formatBRL(debtPart)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-[#8b919e]">% normal:</span>
+                          <span className="text-[#a5c8ff] font-bold">{formatBRL(normalPart)}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmDist(null)}
+                className="flex-1 py-3 rounded-lg border border-white/10 text-[#8b919e] text-sm font-medium hover:bg-white/5"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => executeDistribution(confirmDist.valores, confirmDist.debtRepayment)}
+                className="flex-1 py-3 rounded-lg bg-[#40e56c] text-[#003912] text-sm font-black uppercase tracking-widest hover:brightness-110"
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Detail Modal */}
       {detailDist && (
