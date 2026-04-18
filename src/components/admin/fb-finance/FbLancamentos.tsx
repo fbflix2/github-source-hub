@@ -726,13 +726,25 @@ export function FbLancamentos() {
             </div>
 
             {(pendingPayload?._debtRepayment || 0) > 0 && (
-              <div className="bg-[#f5c542]/10 border border-[#f5c542]/20 p-3 rounded-lg mb-4 flex items-center gap-3">
-                <span className="material-symbols-outlined text-[#f5c542]">priority_high</span>
-                <div>
-                  <p className="text-xs font-bold text-[#f5c542]">Reposição de Capital de Giro</p>
-                  <p className="text-[10px] text-[#8b919e]">
-                    R$ {Number(pendingPayload._debtRepayment).toFixed(2)} será reposto ao Capital de Giro antes da distribuição normal
-                  </p>
+              <div className="bg-gradient-to-br from-[#f5c542]/15 to-[#f5c542]/5 border-2 border-[#f5c542]/40 p-4 rounded-xl mb-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-[#f5c542]/20 flex items-center justify-center flex-shrink-0">
+                    <span className="material-symbols-outlined text-[#f5c542]">savings</span>
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-sm font-extrabold text-[#f5c542]">Reposição Prioritária</p>
+                      <span className="font-['Manrope'] font-black text-lg text-[#f5c542]">
+                        {formatBRL(pendingPayload._debtRepayment)}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-[#d5e4fa]/80 leading-relaxed">
+                      Este valor está voltando ao <strong>Caixa de Capital de Giro</strong> para repor saídas anteriores que foram feitas dele (aportes / cobertura de despesas).
+                    </p>
+                    <p className="text-[10px] text-[#8b919e] mt-2 italic">
+                      A reposição acontece <strong>antes</strong> da distribuição percentual. Apenas o restante ({formatBRL((pendingPayload?.entrada || 0) - pendingPayload._debtRepayment)}) será distribuído conforme os percentuais definidos.
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
@@ -742,20 +754,38 @@ export function FbLancamentos() {
               {distPreviews.map(p => {
                 const isCapitalGiroItem = p.caixaName === "Capital de Giro";
                 const debtPart = isCapitalGiroItem ? (pendingPayload?._debtRepayment || 0) : 0;
+                const normalPart = p.valor - debtPart;
                 return (
-                <div key={p.caixaId} className="flex justify-between items-center bg-[#051424] px-4 py-3 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isCapitalGiroItem && debtPart > 0 ? "bg-[#f5c542]/10" : "bg-[#1976d2]/10"}`}>
-                      <span className={`material-symbols-outlined text-sm ${isCapitalGiroItem && debtPart > 0 ? "text-[#f5c542]" : "text-[#a5c8ff]"}`}>account_balance</span>
+                <div key={p.caixaId} className={`bg-[#051424] px-4 py-3 rounded-lg ${isCapitalGiroItem && debtPart > 0 ? "border border-[#f5c542]/30" : ""}`}>
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isCapitalGiroItem && debtPart > 0 ? "bg-[#f5c542]/10" : "bg-[#1976d2]/10"}`}>
+                        <span className={`material-symbols-outlined text-sm ${isCapitalGiroItem && debtPart > 0 ? "text-[#f5c542]" : "text-[#a5c8ff]"}`}>account_balance</span>
+                      </div>
+                      <div>
+                        <span className="text-sm text-[#d5e4fa] font-medium">{p.caixaName}</span>
+                        <span className="text-[10px] text-[#8b919e] ml-2">({p.percent}%)</span>
+                      </div>
                     </div>
-                    <div>
-                      <span className="text-sm text-[#d5e4fa] font-medium">{p.caixaName}</span>
-                      <span className="text-[10px] text-[#8b919e] ml-2">
-                        ({p.percent}%{debtPart > 0 ? ` + Reposição` : ""})
-                      </span>
-                    </div>
+                    <span className="font-['Manrope'] font-bold text-[#40e56c]">{formatBRL(p.valor)}</span>
                   </div>
-                  <span className="font-['Manrope'] font-bold text-[#40e56c]">{formatBRL(p.valor)}</span>
+                  {isCapitalGiroItem && debtPart > 0 && (
+                    <div className="mt-2 ml-11 pt-2 border-t border-white/5 space-y-1">
+                      <div className="flex justify-between text-[10px]">
+                        <span className="text-[#f5c542] flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[10px]">undo</span>
+                          Reposição de saídas anteriores
+                        </span>
+                        <span className="text-[#f5c542] font-bold">{formatBRL(debtPart)}</span>
+                      </div>
+                      {normalPart > 0 && (
+                        <div className="flex justify-between text-[10px]">
+                          <span className="text-[#8b919e]">+ Distribuição normal ({p.percent}%)</span>
+                          <span className="text-[#8b919e]">{formatBRL(normalPart)}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )})}
             </div>
