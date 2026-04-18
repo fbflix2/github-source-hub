@@ -472,15 +472,51 @@ export function FbDistribuicaoPJ() {
               </div>
             </div>
 
-            <div className="pt-4 border-t border-white/10 space-y-3">
-              {keys.map((key, i) => (
-                <div key={key} className="flex justify-between items-center group">
-                  <span className="text-sm text-[#8b919e] group-hover:text-[#d5e4fa] transition-colors">{keyToLabel(key)}</span>
-                  <span className="font-['Manrope'] font-bold" style={{ color: getColor(i) }}>
-                    {formatBRL(entradaNum * (Number(percentuais[key]) || 0) / 100)}
-                  </span>
+            {/* Capital de Giro debt alert */}
+            {capitalGiroDebt > 0 && (
+              <div className="bg-[#f5c542]/10 border border-[#f5c542]/30 rounded-lg p-4">
+                <div className="flex items-start gap-2">
+                  <span className="material-symbols-outlined text-[#f5c542] text-base mt-0.5">priority_high</span>
+                  <div className="flex-1">
+                    <p className="text-xs font-bold text-[#f5c542] uppercase tracking-wide mb-1">
+                      Reposição prioritária ativa
+                    </p>
+                    <p className="text-[11px] text-[#c1c6d4] leading-relaxed">
+                      Existe uma dívida de <span className="font-bold text-[#f5c542]">{formatBRL(capitalGiroDebt)}</span> retirada do Capital de Giro. Será reposta antes da distribuição percentual.
+                    </p>
+                    <div className="mt-2 flex justify-between text-[11px]">
+                      <span className="text-[#8b919e]">Reposição agora:</span>
+                      <span className="font-bold text-[#40e56c]">{formatBRL(Math.min(capitalGiroDebt, entradaNum))}</span>
+                    </div>
+                    <div className="flex justify-between text-[11px]">
+                      <span className="text-[#8b919e]">Sobra para distribuir:</span>
+                      <span className="font-bold text-[#a5c8ff]">{formatBRL(Math.max(0, entradaNum - capitalGiroDebt))}</span>
+                    </div>
+                  </div>
                 </div>
-              ))}
+              </div>
+            )}
+
+            <div className="pt-4 border-t border-white/10 space-y-3">
+              {keys.map((key, i) => {
+                const debtRep = Math.min(capitalGiroDebt, entradaNum);
+                const remaining = Math.max(0, entradaNum - debtRep);
+                const baseVal = remaining * (Number(percentuais[key]) || 0) / 100;
+                const finalVal = key === "capital_giro" ? baseVal + debtRep : baseVal;
+                return (
+                  <div key={key} className="flex justify-between items-center group">
+                    <span className="text-sm text-[#8b919e] group-hover:text-[#d5e4fa] transition-colors">
+                      {keyToLabel(key)}
+                      {key === "capital_giro" && debtRep > 0 && (
+                        <span className="ml-1 text-[9px] text-[#f5c542]">+ reposição</span>
+                      )}
+                    </span>
+                    <span className="font-['Manrope'] font-bold" style={{ color: getColor(i) }}>
+                      {formatBRL(finalVal)}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
 
             <button onClick={handleDistribuir}
