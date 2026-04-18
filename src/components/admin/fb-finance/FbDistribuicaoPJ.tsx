@@ -578,6 +578,108 @@ export function FbDistribuicaoPJ() {
         </div>
       </div>
 
+      {/* Confirm Distribution Modal */}
+      {confirmDist && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setConfirmDist(null)}>
+          <div className="bg-[#0e1c2d] rounded-2xl w-full max-w-lg shadow-2xl border border-white/10 p-6 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="font-['Manrope'] font-bold text-xl text-[#d5e4fa]">Confirmar Distribuição</h3>
+              <button onClick={() => setConfirmDist(null)} className="text-[#8b919e] hover:text-white">
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <div className="bg-[#051424] rounded-lg p-4 mb-4 flex justify-between items-center">
+              <span className="text-xs text-[#8b919e] uppercase tracking-widest">Entrada do dia</span>
+              <span className="text-2xl font-['Manrope'] font-extrabold text-[#40e56c]">{formatBRL(confirmDist.entrada)}</span>
+            </div>
+
+            {/* Priority debt repayment highlight */}
+            {confirmDist.debtRepayment > 0 && (
+              <div className="bg-gradient-to-br from-[#f5c542]/15 to-[#f5c542]/5 border border-[#f5c542]/40 rounded-xl p-4 mb-4">
+                <div className="flex items-start gap-3">
+                  <span className="material-symbols-outlined text-[#f5c542] text-2xl">payments</span>
+                  <div className="flex-1">
+                    <p className="text-xs font-bold text-[#f5c542] uppercase tracking-widest mb-1">
+                      Reposição prioritária
+                    </p>
+                    <p className="text-sm text-[#d5e4fa] mb-2">
+                      Devolvendo <span className="font-bold text-[#f5c542]">{formatBRL(confirmDist.debtRepayment)}</span> ao Capital de Giro
+                    </p>
+                    <p className="text-[11px] text-[#8b919e] leading-relaxed">
+                      Motivo: este valor foi previamente retirado do Capital de Giro (saídas registradas como dívida). Ele é reposto ANTES da distribuição percentual normal.
+                    </p>
+                    <div className="mt-3 pt-3 border-t border-[#f5c542]/20 space-y-1 text-[11px]">
+                      <div className="flex justify-between">
+                        <span className="text-[#8b919e]">Dívida total antes:</span>
+                        <span className="text-[#c1c6d4] font-bold">{formatBRL(capitalGiroDebt)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-[#8b919e]">Reposição agora:</span>
+                        <span className="text-[#40e56c] font-bold">- {formatBRL(confirmDist.debtRepayment)}</span>
+                      </div>
+                      <div className="flex justify-between pt-1 border-t border-white/5">
+                        <span className="text-[#8b919e]">Dívida restante:</span>
+                        <span className="text-[#d5e4fa] font-bold">{formatBRL(Math.max(0, capitalGiroDebt - confirmDist.debtRepayment))}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-2 mb-5">
+              <p className="text-xs text-[#8b919e] uppercase tracking-widest font-bold mb-2">Distribuição nos caixas</p>
+              {Object.entries(confirmDist.valores).map(([key, val], i) => {
+                const perc = Number(percentuais[key] || 0);
+                const isCG = key === "capital_giro";
+                const debtPart = isCG ? confirmDist.debtRepayment : 0;
+                const normalPart = Number(val) - debtPart;
+                return (
+                  <div key={key} className="bg-[#051424] rounded-lg p-3">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full" style={{ background: getColor(i) }} />
+                        <span className="text-sm font-bold text-[#d5e4fa]">{keyToLabel(key)}</span>
+                        <span className="text-[10px] text-[#8b919e]">({perc}%)</span>
+                      </div>
+                      <span className="text-sm font-['Manrope'] font-extrabold text-[#d5e4fa]">{formatBRL(Number(val))}</span>
+                    </div>
+                    {isCG && debtPart > 0 && (
+                      <div className="mt-2 pt-2 border-t border-white/5 grid grid-cols-2 gap-2 text-[10px]">
+                        <div className="flex justify-between">
+                          <span className="text-[#8b919e]">Reposição:</span>
+                          <span className="text-[#f5c542] font-bold">{formatBRL(debtPart)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-[#8b919e]">% normal:</span>
+                          <span className="text-[#a5c8ff] font-bold">{formatBRL(normalPart)}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmDist(null)}
+                className="flex-1 py-3 rounded-lg border border-white/10 text-[#8b919e] text-sm font-medium hover:bg-white/5"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => executeDistribution(confirmDist.valores, confirmDist.debtRepayment)}
+                className="flex-1 py-3 rounded-lg bg-[#40e56c] text-[#003912] text-sm font-black uppercase tracking-widest hover:brightness-110"
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Detail Modal */}
       {detailDist && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setDetailDist(null)}>
