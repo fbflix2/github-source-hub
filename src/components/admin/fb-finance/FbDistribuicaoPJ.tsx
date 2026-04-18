@@ -64,7 +64,7 @@ export function FbDistribuicaoPJ() {
   const [distribuicoes, setDistribuicoes] = useState<Distribuicao[]>([]);
   const [loading, setLoading] = useState(true);
   const [detailDist, setDetailDist] = useState<Distribuicao | null>(null);
-  const [redirectPopup, setRedirectPopup] = useState<{ excedente: number; valores: Record<string, number> } | null>(null);
+  const [redirectPopup, setRedirectPopup] = useState<{ excedente: number; valores: Record<string, number>; debtRepayment?: number } | null>(null);
   const [redirectTarget, setRedirectTarget] = useState("");
   const [redirectToPersonal, setRedirectToPersonal] = useState(true);
   const [personalPercConfig, setPersonalPercConfig] = useState<Record<string, number>>({});
