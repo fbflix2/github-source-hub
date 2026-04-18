@@ -178,9 +178,17 @@ export function FbDistribuicaoPJ() {
     if (!entradaNum || entradaNum <= 0) { toast({ title: "Informe a entrada do dia", variant: "destructive" }); return; }
     if (!isValid) { toast({ title: "A soma dos % deve ser 100%", variant: "destructive" }); return; }
 
+    // PRIORITY: repay Capital de Giro debt before % distribution
+    const debtRepayment = Math.min(capitalGiroDebt, entradaNum);
+    const remainingAfterDebt = entradaNum - debtRepayment;
+
     const valores: Record<string, number> = {};
     for (const key of keys) {
-      valores[key] = entradaNum * ((Number(percentuais[key]) || 0) / 100);
+      valores[key] = remainingAfterDebt * ((Number(percentuais[key]) || 0) / 100);
+    }
+    // Add debt repayment on top of capital_giro allocation
+    if (debtRepayment > 0) {
+      valores.capital_giro = (valores.capital_giro || 0) + debtRepayment;
     }
 
     // Check Pro Labore meta — use total monthly ENTRIES (not current balance, which decreases with expenses)
@@ -216,10 +224,12 @@ export function FbDistribuicaoPJ() {
       }
     }
 
-    await executeDistribution(valores);
+    // Open confirmation modal showing the debt repayment breakdown
+    setConfirmDist({ valores, debtRepayment, entrada: entradaNum });
   };
 
-  const executeDistribution = async (valores: Record<string, number>) => {
+  const executeDistribution = async (valores: Record<string, number>, debtRepaymentOverride?: number) => {
+    const debtRepayment = debtRepaymentOverride ?? confirmDist?.debtRepayment ?? 0;
     const hoje = new Date().toISOString().split("T")[0];
     const { error } = await supabase.from("fb_finance_distribuicoes" as any).insert({
       data: hoje, entrada_dia: entradaNum, percentuais, valores_alocados: valores, aplicado: true,
@@ -237,13 +247,19 @@ export function FbDistribuicaoPJ() {
           if (!caixa || !val) return;
           const newBalance = Number(caixa.saldo_atual) + Number(val);
           await supabase.from("fb_finance_caixas" as any).update({ saldo_atual: newBalance } as any).eq("id", caixa.id);
-          // Create a lancamento entry for this allocation
+          // Build description — flag debt repayment for capital_giro
+          const isCapitalGiro = key === "capital_giro";
+          const perc = Number(percentuais[key] || 0);
+          let desc = `Distribuição: ${keyToLabel(key)} (${perc}%)`;
+          if (isCapitalGiro && debtRepayment > 0) {
+            desc = `Distribuição: ${keyToLabel(key)} (${perc}% + Reposição R$ ${debtRepayment.toFixed(2)})`;
+          }
           lancamentosToInsert.push({
             data: hoje,
             entrada: Number(val),
             saida: 0,
             categoria: "Distribuição PJ",
-            descricao: `Distribuição: ${keyToLabel(key)} (${Number(percentuais[key] || 0)}%)`,
+            descricao: desc,
             tipo: (caixa as any).tipo || "empresa",
             caixa_destino_id: caixa.id,
           });
@@ -256,9 +272,21 @@ export function FbDistribuicaoPJ() {
       }
     }
 
-    toast({ title: "Distribuição aplicada com sucesso!" });
+    // Subtract debt that was repaid
+    if (debtRepayment > 0 && configId) {
+      const remaining = Math.max(0, capitalGiroDebt - debtRepayment);
+      await supabase.from("fb_finance_config" as any).update({ capital_giro_debt: remaining } as any).eq("id", configId);
+      setCapitalGiroDebt(remaining);
+    }
+
+    toast({
+      title: debtRepayment > 0
+        ? `Distribuído! Reposição de R$ ${debtRepayment.toFixed(2)} ao Capital de Giro`
+        : "Distribuição aplicada com sucesso!"
+    });
     setEntradaHoje("1000");
     setRedirectPopup(null);
+    setConfirmDist(null);
     fetchData();
   };
 
