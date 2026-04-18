@@ -340,7 +340,7 @@ export function FbDistribuicaoPJ() {
         await supabase.from("fb_finance_lancamentos" as any).insert(lancamentosPersonal as any);
       }
 
-      await executeDistribution(valores);
+      await executeDistribution(valores, redirectPopup.debtRepayment ?? 0);
       return;
     }
 
@@ -353,7 +353,7 @@ export function FbDistribuicaoPJ() {
     if (targetKey) {
       valores[targetKey] = (valores[targetKey] || 0) + redirectPopup.excedente;
     }
-    await executeDistribution(valores);
+    await executeDistribution(valores, redirectPopup.debtRepayment ?? 0);
   };
 
   const handleDeleteDist = async (id: string) => {
