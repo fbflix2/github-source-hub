@@ -74,12 +74,20 @@ export function FbDistribuicaoPJ() {
   const [newCardPerc, setNewCardPerc] = useState("0");
   const [configId, setConfigId] = useState<string | null>(null);
   const [hasLoadedConfig, setHasLoadedConfig] = useState(false);
+  const [capitalGiroDebt, setCapitalGiroDebt] = useState(0);
+
+  // Confirmation modal state (with debt repayment preview)
+  const [confirmDist, setConfirmDist] = useState<{
+    valores: Record<string, number>;
+    debtRepayment: number;
+    entrada: number;
+  } | null>(null);
 
   useEffect(() => { void fetchData(); }, []);
 
   const fetchData = async () => {
     const [configRes, distRes, caixasRes] = await Promise.all([
-      supabase.from("fb_finance_config" as any).select("id, distribution_percentages, personal_distribution_percentages").limit(1).maybeSingle(),
+      supabase.from("fb_finance_config" as any).select("id, distribution_percentages, personal_distribution_percentages, capital_giro_debt").limit(1).maybeSingle(),
       supabase.from("fb_finance_distribuicoes" as any).select("*").order("data", { ascending: false }).limit(30),
       supabase.from("fb_finance_caixas" as any).select("id, nome, saldo_atual, meta, tipo"),
     ]);
@@ -90,6 +98,7 @@ export function FbDistribuicaoPJ() {
       setPercentuais(Object.keys(saved).length > 0 ? saved : { ...defaultPerc });
       const personalPerc = (configRes.data as any).personal_distribution_percentages as Record<string, number> | null;
       if (personalPerc) setPersonalPercConfig(personalPerc);
+      setCapitalGiroDebt(Number((configRes.data as any).capital_giro_debt || 0));
     }
 
     if (distRes.data) setDistribuicoes(distRes.data as any);
