@@ -320,7 +320,7 @@ Deno.serve(async (req) => {
     } catch (err: any) {
       const msg = err?.message || String(err);
       if (msg.includes("TCP timeout") || msg.includes("timed out")) {
-        connectError = "Conexão com o proxy expirou (timeout) — porta pode estar bloqueada";
+        connectError = "O endpoint do proxy não respondeu ao servidor de teste (timeout). Isso normalmente indica IP/porta inacessível neste momento, bloqueio de rede ou proxy offline — não significa, por si só, assinatura vencida.";
       } else if (msg.includes("Connection refused") || msg.includes("connection refused")) {
         connectError = "Conexão recusada — proxy pode estar offline";
       } else if (msg.includes("No route") || msg.includes("unreachable")) {
