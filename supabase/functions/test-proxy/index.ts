@@ -150,23 +150,112 @@ Deno.serve(async (req) => {
     const port = parts[1];
     const username = parts[2] || "";
     const password = parts[3] || "";
+    const portNum = parseInt(port);
 
-    // Step 1: Test actual connectivity through the proxy using CONNECT method
+    // Auto-detect SOCKS5 by common ports (Webshare uses 6xxx range for SOCKS5)
+    const isSocks5 = portNum === 1080 || (portNum >= 6000 && portNum <= 6999);
+
+    // Step 1: Test actual connectivity through the proxy
     let proxyWorking = false;
     let realIp = "";
     let connectError = "";
 
     try {
-      // Try to connect through the proxy to httpbin to get the real exit IP
-      const proxyUrl = username
-        ? `http://${username}:${password}@${host}:${port}`
-        : `http://${host}:${port}`;
-
       // Use Deno.connect to test TCP connectivity first
       const conn = await Promise.race([
-        Deno.connect({ hostname: host, port: parseInt(port) }),
+        Deno.connect({ hostname: host, port: portNum }),
         new Promise<never>((_, reject) => setTimeout(() => reject(new Error("TCP timeout")), 8000)),
       ]) as Deno.Conn;
+
+      // SOCKS5 path
+      if (isSocks5) {
+        const encoder = new TextEncoder();
+        const decoder = new TextDecoder();
+
+        try {
+          // 1. Greeting: VER=5, NMETHODS=2, METHODS=[0x00 no-auth, 0x02 user/pass]
+          await conn.write(new Uint8Array([0x05, 0x02, 0x00, 0x02]));
+          const greetResp = new Uint8Array(2);
+          const greetRead = await Promise.race([
+            conn.read(greetResp),
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), 6000)),
+          ]);
+
+          if (!greetRead || greetResp[0] !== 0x05) {
+            throw new Error("SOCKS5 handshake falhou");
+          }
+
+          // 2. Auth if required
+          if (greetResp[1] === 0x02 && username) {
+            const userBytes = encoder.encode(username);
+            const passBytes = encoder.encode(password);
+            const authReq = new Uint8Array([0x01, userBytes.length, ...userBytes, passBytes.length, ...passBytes]);
+            await conn.write(authReq);
+            const authResp = new Uint8Array(2);
+            const authRead = await Promise.race([
+              conn.read(authResp),
+              new Promise<null>((resolve) => setTimeout(() => resolve(null), 6000)),
+            ]);
+            if (!authRead || authResp[1] !== 0x00) {
+              throw new Error("Autenticação SOCKS5 recusada");
+            }
+          } else if (greetResp[1] === 0xff) {
+            throw new Error("SOCKS5 requer autenticação");
+          }
+
+          // 3. CONNECT to ip-api.com:80 (use domain to test DNS through proxy)
+          const targetHost = "ip-api.com";
+          const hostBytes = encoder.encode(targetHost);
+          const connectReq = new Uint8Array([
+            0x05, 0x01, 0x00, 0x03, hostBytes.length, ...hostBytes, 0x00, 0x50, // port 80
+          ]);
+          await conn.write(connectReq);
+          const connectResp = new Uint8Array(10);
+          const connectRead = await Promise.race([
+            conn.read(connectResp),
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), 8000)),
+          ]);
+
+          if (!connectRead || connectResp[1] !== 0x00) {
+            throw new Error("SOCKS5 CONNECT falhou");
+          }
+
+          // 4. Send HTTP request through tunnel
+          const httpReq = `GET /json/?fields=status,query HTTP/1.1\r\nHost: ip-api.com\r\nConnection: close\r\n\r\n`;
+          await conn.write(encoder.encode(httpReq));
+
+          const buf = new Uint8Array(4096);
+          const bytesRead = await Promise.race([
+            conn.read(buf),
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), 8000)),
+          ]);
+
+          if (bytesRead && typeof bytesRead === "number" && bytesRead > 0) {
+            const text = decoder.decode(buf.subarray(0, bytesRead));
+            const jsonMatch = text.match(/\{[^}]+\}/);
+            if (jsonMatch) {
+              try {
+                const j = JSON.parse(jsonMatch[0]);
+                if (j.status === "success" && j.query) {
+                  proxyWorking = true;
+                  realIp = j.query;
+                }
+              } catch {
+                proxyWorking = true; // tunnel works even if parse failed
+              }
+            } else if (text.includes("HTTP/")) {
+              proxyWorking = true;
+            }
+          } else {
+            proxyWorking = true; // tunnel established successfully
+          }
+
+          conn.close();
+        } catch (sockErr: any) {
+          connectError = sockErr?.message || "Erro SOCKS5";
+          try { conn.close(); } catch {}
+        }
+      } else {
 
       // TCP connection succeeded - proxy port is reachable
       // Now try an HTTP CONNECT through the proxy
