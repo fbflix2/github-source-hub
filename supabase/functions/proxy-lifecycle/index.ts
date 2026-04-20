@@ -315,9 +315,9 @@ Deno.serve(async (req) => {
 
         if (isMultiple) {
           const ipsLost = proxyInfos.map(p => `• ${p.code} — IP: ${p.ip}`).join("\n");
-          msg = `❌ *Proxies cancelados — ${nome}*\n\nSeus *${subs.length} proxies* foram cancelados por falta de renovação.\n\nIPs perdidos:\n${ipsLost}\n\nCaso queira adquirir novos proxies, acesse:\n${SITE_URL}/loja\n\n_Obrigado por ter sido nosso cliente! Estamos à disposição._ 🙏`;
+          msg = `❌ *Proxies cancelados — ${nome}*\n\nSeus *${subs.length} proxies* foram cancelados por falta de renovação.\n\nIPs perdidos:\n${ipsLost}\n\nCaso queira adquirir novos proxies, acesse:\n${SITE_URL}/loja\n\n_Proxies cancelados, qualquer dúvida estamos à disposição._ 🙏`;
         } else {
-          msg = `❌ *Proxy cancelado — ${nome}*\n\nSeu proxy *${firstCode}* foi cancelado por falta de renovação.\n\n🌐 IP que foi perdido: ${firstIp}\n\nCaso queira adquirir um novo proxy, acesse:\n${SITE_URL}/loja\n\n_Obrigado por ter sido nosso cliente! Estamos à disposição._ 🙏`;
+          msg = `❌ *Proxy cancelado — ${nome}*\n\nSeu proxy *${firstCode}* foi cancelado por falta de renovação.\n\n🌐 IP que foi perdido: ${firstIp}\n\nCaso queira adquirir um novo proxy, acesse:\n${SITE_URL}/loja\n\n_Proxy cancelado, qualquer dúvida estamos à disposição._ 🙏`;
         }
       }
 
