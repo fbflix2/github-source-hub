@@ -3834,7 +3834,42 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      fbx_orders_public: {
+        Row: {
+          created_at: string | null
+          fee_amount: number | null
+          fee_rate: number | null
+          id: string | null
+          quantity: number | null
+          status: string | null
+          type: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          fee_amount?: number | null
+          fee_rate?: number | null
+          id?: string | null
+          quantity?: number | null
+          status?: string | null
+          type?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          fee_amount?: number | null
+          fee_rate?: number | null
+          id?: string | null
+          quantity?: number | null
+          status?: string | null
+          type?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       fulfill_order_item: {
