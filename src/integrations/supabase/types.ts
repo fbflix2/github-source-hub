@@ -2911,6 +2911,13 @@ export type Database = {
             referencedRelation: "ss_transactions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "ss_messages_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "ss_transactions_safe"
+            referencedColumns: ["id"]
+          },
         ]
       }
       ss_reviews: {
@@ -2947,6 +2954,13 @@ export type Database = {
             columns: ["transaction_id"]
             isOneToOne: false
             referencedRelation: "ss_transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ss_reviews_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "ss_transactions_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -3193,6 +3207,7 @@ export type Database = {
           created_at: string
           email_alt: string | null
           email_password: string | null
+          email_password_enc: string | null
           email_principal: string | null
           has_bm: boolean
           id: string
@@ -3201,6 +3216,7 @@ export type Database = {
           login_result: string | null
           notes: string | null
           password: string | null
+          password_enc: string | null
           profile_link: string | null
           sold: boolean
           sold_at: string | null
@@ -3216,6 +3232,7 @@ export type Database = {
           created_at?: string
           email_alt?: string | null
           email_password?: string | null
+          email_password_enc?: string | null
           email_principal?: string | null
           has_bm?: boolean
           id?: string
@@ -3224,6 +3241,7 @@ export type Database = {
           login_result?: string | null
           notes?: string | null
           password?: string | null
+          password_enc?: string | null
           profile_link?: string | null
           sold?: boolean
           sold_at?: string | null
@@ -3239,6 +3257,7 @@ export type Database = {
           created_at?: string
           email_alt?: string | null
           email_password?: string | null
+          email_password_enc?: string | null
           email_principal?: string | null
           has_bm?: boolean
           id?: string
@@ -3247,6 +3266,7 @@ export type Database = {
           login_result?: string | null
           notes?: string | null
           password?: string | null
+          password_enc?: string | null
           profile_link?: string | null
           sold?: boolean
           sold_at?: string | null
@@ -3870,13 +3890,95 @@ export type Database = {
         }
         Relationships: []
       }
+      ss_transactions_safe: {
+        Row: {
+          amount: number | null
+          buyer_id: string | null
+          confirmed_at: string | null
+          created_at: string | null
+          delivered_at: string | null
+          dispute_reason: string | null
+          dispute_resolution: string | null
+          disputed_at: string | null
+          fee_rate: number | null
+          id: string | null
+          listing_id: string | null
+          notes: string | null
+          platform_fee: number | null
+          seller_id: string | null
+          status: string | null
+          updated_at: string | null
+          validated_at: string | null
+          validated_by: string | null
+          validation_checklist: Json | null
+        }
+        Insert: {
+          amount?: number | null
+          buyer_id?: string | null
+          confirmed_at?: string | null
+          created_at?: string | null
+          delivered_at?: string | null
+          dispute_reason?: string | null
+          dispute_resolution?: string | null
+          disputed_at?: string | null
+          fee_rate?: number | null
+          id?: string | null
+          listing_id?: string | null
+          notes?: string | null
+          platform_fee?: number | null
+          seller_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+          validated_at?: string | null
+          validated_by?: string | null
+          validation_checklist?: Json | null
+        }
+        Update: {
+          amount?: number | null
+          buyer_id?: string | null
+          confirmed_at?: string | null
+          created_at?: string | null
+          delivered_at?: string | null
+          dispute_reason?: string | null
+          dispute_resolution?: string | null
+          disputed_at?: string | null
+          fee_rate?: number | null
+          id?: string | null
+          listing_id?: string | null
+          notes?: string | null
+          platform_fee?: number | null
+          seller_id?: string | null
+          status?: string | null
+          updated_at?: string | null
+          validated_at?: string | null
+          validated_by?: string | null
+          validation_checklist?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ss_transactions_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "ss_listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
+      _supplier_enc_key: { Args: never; Returns: string }
       fulfill_order_item: {
         Args: { p_order_item_id: string; p_product_id: string }
         Returns: Json
       }
       get_client_count: { Args: never; Returns: number }
+      get_supplier_account_credentials: {
+        Args: { _account_id: string }
+        Returns: {
+          email_password: string
+          password: string
+        }[]
+      }
       get_total_wallet_balance: { Args: never; Returns: number }
       get_user_id_by_email: { Args: { target_email: string }; Returns: string }
       has_role: {
