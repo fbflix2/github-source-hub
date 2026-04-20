@@ -316,6 +316,7 @@ Deno.serve(async (req) => {
       }
 
       conn.close();
+      } // end else (HTTP path)
     } catch (err: any) {
       const msg = err?.message || String(err);
       if (msg.includes("TCP timeout") || msg.includes("timed out")) {
