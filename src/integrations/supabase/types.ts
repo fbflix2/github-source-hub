@@ -1608,7 +1608,7 @@ export type Database = {
           frozen_at: string | null
           id: string
           profile_code: string
-          profile_id: string
+          profile_id: string | null
           status: string
           task_id: string | null
           updated_at: string | null
@@ -1622,7 +1622,7 @@ export type Database = {
           frozen_at?: string | null
           id?: string
           profile_code: string
-          profile_id: string
+          profile_id?: string | null
           status?: string
           task_id?: string | null
           updated_at?: string | null
@@ -1636,7 +1636,7 @@ export type Database = {
           frozen_at?: string | null
           id?: string
           profile_code?: string
-          profile_id?: string
+          profile_id?: string | null
           status?: string
           task_id?: string | null
           updated_at?: string | null
