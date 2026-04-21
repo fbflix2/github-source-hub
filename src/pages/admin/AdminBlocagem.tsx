@@ -1044,6 +1044,7 @@ function FolderItemsView({ folder, onBack }: { folder: Folder; onBack: () => voi
         "{{senha}}": (d.senha as string) || "—",
         "{{senhaEmail}}": (d.senhaEmail as string) || "—",
         "{{token2fa}}": (d.token2fa as string) || "—",
+        "{{fbToken}}": (d.fbToken as string) || "—",
         "{{dataNascimento}}": (d.dataNascimento as string) || "—",
         "{{genero}}": (d.genero as string) || "—",
         "{{tempoPlataforma}}": (d.tempoPlataforma as string) || "—",
@@ -1068,6 +1069,7 @@ function FolderItemsView({ folder, onBack }: { folder: Folder; onBack: () => voi
     if (d.emailAcesso) lines.push(`Email: ${d.emailAcesso}`);
     if (d.senha) lines.push(`Senha: ${d.senha}`);
     if (d.token2fa) lines.push(`2FA: ${d.token2fa}`);
+    if (d.fbToken) lines.push(`Token: ${d.fbToken}`);
     if (stockItem.identification_link) lines.push(`Link: ${stockItem.identification_link}`);
     return lines.join("\n");
   };

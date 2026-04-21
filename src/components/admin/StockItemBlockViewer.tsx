@@ -45,10 +45,11 @@ function buildBlockText(item: StockItem): string {
     if (item.identification_link) lines.push(`Link: ${item.identification_link}`);
     if (item.identification) lines.push(`ID: ${item.identification}`);
     if (d.emailAcesso) lines.push(`Email: ${d.emailAcesso}`);
+    if (d.senhaFB || d.senha) lines.push(`Senha FB: ${d.senhaFB || d.senha}`);
+    if (d.token2fa) lines.push(`2FA: ${d.token2fa}`);
+    if (d.fbToken) lines.push(`Token FB: ${d.fbToken}`);
     if (d.senhaEmail) lines.push(`Senha Email: ${d.senhaEmail}`);
     if (d.emailAlternativo) lines.push(`Email Alt: ${d.emailAlternativo}`);
-    if (d.senha) lines.push(`Senha FB: ${d.senha}`);
-    if (d.token2fa) lines.push(`2FA: ${d.token2fa}`);
     if (d.dataNascimento) lines.push(`Nascimento: ${d.dataNascimento}`);
     if (d.genero) lines.push(`Gênero: ${d.genero}`);
     if (d.tempoPlataforma) lines.push(`Tempo: ${d.tempoPlataforma}`);
