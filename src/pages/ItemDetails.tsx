@@ -20,6 +20,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 interface StockData {
   emailAcesso?: string;
   emailAlternativo?: string;
+  fbToken?: string;
   senha?: string;
   senhaEmail?: string;
   token2fa?: string;
@@ -442,8 +443,11 @@ export default function ItemDetails() {
     : (orderItem?.name || product?.name || "Item");
   const bmMatrixProfile = stockData.perfilMatriz || stockData.perfilBackup || "";
   const email = stockData.emailAcesso || "—";
+  const emailAlternativo = stockData.emailAlternativo || (stockData as any).alternateEmail || (stockData as any).alternative_email || "—";
   const senha = stockData.senha || "—";
+  const senhaEmail = stockData.senhaEmail || "—";
   const token2fa = stockData.token2fa || "—";
+  const fbToken = stockData.fbToken || "—";
   const descricao = stockData.descricao || product?.description || "";
   const tags = product?.tags || [];
   const isBM = product?.icon_type === "bm";
@@ -494,10 +498,11 @@ export default function ItemDetails() {
       const replacements: Record<string, string> = {
         "{{nomePerfil}}": stockData.nomePerfil || "—",
         "{{emailAcesso}}": email,
-        "{{emailAlternativo}}": alternateEmail,
+        "{{emailAlternativo}}": emailAlternativo,
         "{{senha}}": senha,
         "{{senhaEmail}}": stockData.senhaEmail || "—",
         "{{token2fa}}": token2fa,
+        "{{fbToken}}": fbToken,
         "{{dataNascimento}}": stockData.dataNascimento || "—",
         "{{genero}}": stockData.genero || "—",
         "{{tempoPlataforma}}": stockData.tempoPlataforma || "—",
@@ -527,13 +532,9 @@ export default function ItemDetails() {
         `Senha: ${senha}`,
         `Código 2FA: ${token2fa}`,
       ];
-      const alternateEmail =
-        stockData.emailAlternativo ||
-        (stockData as Record<string, any>).alternateEmail ||
-        (stockData as Record<string, any>).alternative_email ||
-        "";
-
-      if (alternateEmail) lines.push(`Email Alternativo: ${alternateEmail}`);
+      if (emailAlternativo !== "—") lines.push(`Email Alternativo: ${emailAlternativo}`);
+      if (senhaEmail !== "—") lines.push(`Senha Email: ${senhaEmail}`);
+      if (fbToken !== "—") lines.push(`Token FB: ${fbToken}`);
       if (stockData.nomePerfil) lines.push(`Nome do Perfil: ${stockData.nomePerfil}`);
       if (stockData.dataNascimento) lines.push(`Data de Nascimento: ${stockData.dataNascimento}`);
       if (stockData.genero) lines.push(`Gênero: ${stockData.genero}`);
@@ -1047,39 +1048,74 @@ export default function ItemDetails() {
                   <>
                     <h3 className="text-[10px] font-bold text-foreground mb-2 uppercase tracking-wider">Dados de Acesso</h3>
                     <div className="space-y-2">
-                      <div>
-                        <label className="text-[10px] text-text-secondary mb-0.5 block">Login / Email</label>
-                        <div className="flex items-center gap-1">
-                          <code className="flex-1 bg-background/50 px-2 py-1.5 rounded border border-border text-xs font-mono text-foreground truncate">{email}</code>
-                          <button onClick={() => copyToClipboard(email, 'email')} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
-                            <span className="material-symbols-outlined text-[14px]">{copied === 'email' ? 'check' : 'content_copy'}</span>
-                          </button>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-[10px] text-text-secondary mb-0.5 block">Login / Email</label>
+                          <div className="flex items-center gap-1">
+                            <code className="flex-1 bg-background/50 px-2 py-1.5 rounded border border-border text-xs font-mono text-foreground truncate">{email}</code>
+                            <button onClick={() => copyToClipboard(email, 'email')} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
+                              <span className="material-symbols-outlined text-[14px]">{copied === 'email' ? 'check' : 'content_copy'}</span>
+                            </button>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-text-secondary mb-0.5 block">Senha FB</label>
+                          <div className="flex items-center gap-1">
+                            <code className="flex-1 bg-background/50 px-2 py-1.5 rounded border border-border text-xs font-mono text-foreground">{showPassword ? senha : "•••••••••"}</code>
+                            <button onClick={() => setShowPassword(!showPassword)} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
+                              <span className="material-symbols-outlined text-[14px]">{showPassword ? 'visibility_off' : 'visibility'}</span>
+                            </button>
+                            <button onClick={() => copyToClipboard(senha, 'password')} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
+                              <span className="material-symbols-outlined text-[14px]">{copied === 'password' ? 'check' : 'content_copy'}</span>
+                            </button>
+                          </div>
                         </div>
                       </div>
-                      <div>
-                        <label className="text-[10px] text-text-secondary mb-0.5 block">Senha</label>
-                        <div className="flex items-center gap-1">
-                          <code className="flex-1 bg-background/50 px-2 py-1.5 rounded border border-border text-xs font-mono text-foreground">{showPassword ? senha : "•••••••••"}</code>
-                          <button onClick={() => setShowPassword(!showPassword)} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
-                            <span className="material-symbols-outlined text-[14px]">{showPassword ? 'visibility_off' : 'visibility'}</span>
-                          </button>
-                          <button onClick={() => copyToClipboard(senha, 'password')} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
-                            <span className="material-symbols-outlined text-[14px]">{copied === 'password' ? 'check' : 'content_copy'}</span>
-                          </button>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-[10px] text-text-secondary mb-0.5 block">Email Alternativo</label>
+                          <div className="flex items-center gap-1">
+                            <code className="flex-1 bg-background/50 px-2 py-1.5 rounded border border-border text-xs font-mono text-foreground truncate">{emailAlternativo}</code>
+                            <button onClick={() => copyToClipboard(emailAlternativo, 'email-alt')} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
+                              <span className="material-symbols-outlined text-[14px]">{copied === 'email-alt' ? 'check' : 'content_copy'}</span>
+                            </button>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-text-secondary mb-0.5 block">Senha do Email</label>
+                          <div className="flex items-center gap-1">
+                            <code className="flex-1 bg-background/50 px-2 py-1.5 rounded border border-border text-xs font-mono text-foreground truncate">{senhaEmail}</code>
+                            <button onClick={() => copyToClipboard(senhaEmail, 'senha-email')} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
+                              <span className="material-symbols-outlined text-[14px]">{copied === 'senha-email' ? 'check' : 'content_copy'}</span>
+                            </button>
+                          </div>
                         </div>
                       </div>
-                      <div>
-                        <label className="text-[10px] text-text-secondary mb-0.5 block">Código 2FA</label>
-                        <div className="flex items-center gap-1">
-                          <code className="flex-1 bg-background/50 px-2 py-1.5 rounded border border-border text-xs font-mono text-foreground">
-                            {showToken ? token2fa : "•••••••••"}
-                          </code>
-                          <button onClick={() => requireDisclaimer(() => setShowToken(!showToken))} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
-                            <span className="material-symbols-outlined text-[14px]">{showToken ? 'visibility_off' : 'visibility'}</span>
-                          </button>
-                          <button onClick={() => requireDisclaimer(() => copyToClipboard(token2fa, '2fa'))} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
-                            <span className="material-symbols-outlined text-[14px]">{copied === '2fa' ? 'check' : 'content_copy'}</span>
-                          </button>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-[10px] text-text-secondary mb-0.5 block">Código 2FA</label>
+                          <div className="flex items-center gap-1">
+                            <code className="flex-1 bg-background/50 px-2 py-1.5 rounded border border-border text-xs font-mono text-foreground">
+                              {showToken ? token2fa : "•••••••••"}
+                            </code>
+                            <button onClick={() => requireDisclaimer(() => setShowToken(!showToken))} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
+                              <span className="material-symbols-outlined text-[14px]">{showToken ? 'visibility_off' : 'visibility'}</span>
+                            </button>
+                            <button onClick={() => requireDisclaimer(() => copyToClipboard(token2fa, '2fa'))} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
+                              <span className="material-symbols-outlined text-[14px]">{copied === '2fa' ? 'check' : 'content_copy'}</span>
+                            </button>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-text-secondary mb-0.5 block">Token de Acesso (FB)</label>
+                          <div className="flex items-center gap-1">
+                            <code className="flex-1 bg-background/50 px-2 py-1.5 rounded border border-border text-xs font-mono text-foreground truncate">{fbToken}</code>
+                            <button onClick={() => requireDisclaimer(() => copyToClipboard(fbToken, 'fb-token'))} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
+                              <span className="material-symbols-outlined text-[14px]">{copied === 'fb-token' ? 'check' : 'content_copy'}</span>
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
