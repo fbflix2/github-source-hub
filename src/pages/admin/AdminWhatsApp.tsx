@@ -479,6 +479,214 @@ function RenewalsTab() {
   );
 }
 
+ function ContactsTab() {
+   const [page, setPage] = useState(1);
+   const [search, setSearch] = useState("");
+   const [selectedJids, setSelectedJids] = useState<Set<string>>(new Set());
+   const [showCampaignModal, setShowCampaignModal] = useState(false);
+   const [selectedTemplateId, setSelectedTemplateId] = useState("");
+ 
+   const { data: contactsData, isLoading, refetch } = useQuery({
+     queryKey: ["whatsapp-contacts", page],
+     queryFn: () => callWapi("fetch-contacts", { page, perPage: 100 }),
+   });
+ 
+   const { data: templates } = useTemplates();
+   const qc = useQueryClient();
+ 
+   const contacts = contactsData?.data || [];
+   const filteredContacts = contacts.filter((c: any) => 
+     (c.name || "").toLowerCase().includes(search.toLowerCase()) || 
+     (c.pushName || "").toLowerCase().includes(search.toLowerCase()) ||
+     (c.id || "").includes(search)
+   );
+ 
+   const toggleSelect = (jid: string) => {
+     const next = new Set(selectedJids);
+     if (next.has(jid)) next.delete(jid);
+     else next.add(jid);
+     setSelectedJids(next);
+   };
+ 
+   const toggleSelectAll = () => {
+     if (selectedJids.size === filteredContacts.length) {
+       setSelectedJids(new Set());
+     } else {
+       setSelectedJids(new Set(filteredContacts.map((c: any) => c.id)));
+     }
+   };
+ 
+   const sendCampaign = useMutation({
+     mutationFn: async () => {
+       const recipients = Array.from(selectedJids).map(jid => ({
+         phone: jid.split("@")[0],
+         variables: {
+           nome: contacts.find((c: any) => c.id === jid)?.name || "Cliente"
+         }
+       }));
+       return callWapi("send-bulk", { template_id: selectedTemplateId, recipients });
+     },
+     onSuccess: () => {
+       toast.success("Campanha iniciada com sucesso!");
+       setShowCampaignModal(false);
+       setSelectedJids(new Set());
+       qc.invalidateQueries({ queryKey: ["whatsapp-logs"] });
+     },
+     onError: (e: Error) => toast.error(e.message),
+   });
+ 
+   return (
+     <div className="space-y-4">
+       <div className="flex items-center justify-between gap-3 flex-wrap">
+         <div className="relative flex-1 max-w-sm">
+           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+           <Input 
+             placeholder="Buscar contatos..." 
+             value={search} 
+             onChange={(e) => setSearch(e.target.value)} 
+             className="pl-8" 
+           />
+         </div>
+         <div className="flex items-center gap-2">
+           <Button 
+             variant="outline" 
+             size="sm" 
+             onClick={() => refetch()} 
+             disabled={isLoading}
+           >
+             <RefreshCw className={`size-3.5 mr-1 ${isLoading ? "animate-spin" : ""}`} />
+             Sincronizar
+           </Button>
+           {selectedJids.size > 0 && (
+             <Button 
+               size="sm" 
+               className="bg-green-600 hover:bg-green-700"
+               onClick={() => setShowCampaignModal(true)}
+             >
+               <Zap className="size-3.5 mr-1" />
+               Criar Campanha ({selectedJids.size})
+             </Button>
+           )}
+         </div>
+       </div>
+ 
+       {isLoading ? (
+         <div className="text-center py-12 text-muted-foreground">Carregando contatos...</div>
+       ) : filteredContacts.length === 0 ? (
+         <Card>
+           <CardContent className="py-12 text-center">
+             <Users className="size-10 mx-auto text-muted-foreground mb-3" />
+             <p className="text-muted-foreground">Nenhum contato encontrado</p>
+           </CardContent>
+         </Card>
+       ) : (
+         <div className="border border-border/40 rounded-lg overflow-hidden bg-card/30">
+           <table className="w-full text-sm">
+             <thead>
+               <tr className="bg-muted/50 border-b border-border/40">
+                 <th className="p-3 text-left w-10">
+                   <input 
+                     type="checkbox" 
+                     checked={selectedJids.size === filteredContacts.length && filteredContacts.length > 0}
+                     onChange={toggleSelectAll}
+                     className="rounded border-border/40 bg-background"
+                   />
+                 </th>
+                 <th className="p-3 text-left">Contato</th>
+                 <th className="p-3 text-left">WhatsApp</th>
+                 <th className="p-3 text-left">Etiquetas</th>
+               </tr>
+             </thead>
+             <tbody className="divide-y divide-border/30">
+               {filteredContacts.map((c: any) => (
+                 <tr key={c.id} className="hover:bg-muted/20 transition-colors">
+                   <td className="p-3">
+                     <input 
+                       type="checkbox" 
+                       checked={selectedJids.has(c.id)}
+                       onChange={() => toggleSelect(c.id)}
+                       className="rounded border-border/40 bg-background"
+                     />
+                   </td>
+                   <td className="p-3">
+                     <div className="flex items-center gap-3">
+                       <div className="size-9 rounded-full bg-muted overflow-hidden shrink-0 border border-border/40">
+                         {c.profilePicUrl ? (
+                           <img src={c.profilePicUrl} alt="" className="size-full object-cover" />
+                         ) : (
+                           <div className="size-full flex items-center justify-center bg-green-500/10 text-green-500">
+                             <Users className="size-4" />
+                           </div>
+                         )}
+                       </div>
+                       <div className="min-w-0">
+                         <p className="font-medium text-foreground truncate">{c.name || c.pushName || "Sem nome"}</p>
+                         <p className="text-[10px] text-muted-foreground">{c.pushName ? `@${c.pushName}` : ""}</p>
+                       </div>
+                     </div>
+                   </td>
+                   <td className="p-3 text-muted-foreground font-mono text-[11px]">
+                     {c.id.split("@")[0]}
+                   </td>
+                   <td className="p-3">
+                     <div className="flex flex-wrap gap-1">
+                       {c.labels && c.labels.length > 0 ? (
+                         c.labels.map((label: string, idx: number) => (
+                           <Badge key={idx} variant="outline" className="text-[9px] py-0 h-4 bg-blue-500/5 text-blue-400 border-blue-500/20">
+                             {label}
+                           </Badge>
+                         ))
+                       ) : (
+                         <span className="text-[10px] text-muted-foreground italic">sem etiquetas</span>
+                       )}
+                     </div>
+                   </td>
+                 </tr>
+               ))}
+             </tbody>
+           </table>
+         </div>
+       )}
+ 
+       <Dialog open={showCampaignModal} onOpenChange={setShowCampaignModal}>
+         <DialogContent>
+           <DialogHeader>
+             <DialogTitle>Criar Campanha para {selectedJids.size} contatos</DialogTitle>
+           </DialogHeader>
+           <div className="space-y-4 py-2">
+             <div className="space-y-1.5">
+               <label className="text-xs font-medium text-muted-foreground">Selecione o Template</label>
+               <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
+                 <SelectTrigger>
+                   <SelectValue placeholder="Escolha um template..." />
+                 </SelectTrigger>
+                 <SelectContent>
+                   {templates?.filter(t => t.active).map(t => (
+                     <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                   ))}
+                 </SelectContent>
+               </Select>
+             </div>
+             <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3 flex gap-3">
+               <AlertTriangle className="size-5 text-amber-500 shrink-0" />
+               <p className="text-xs text-amber-200/80 leading-relaxed">
+                 As mensagens serão enviadas com um intervalo aleatório entre 3 e 5 minutos para evitar o bloqueio do seu WhatsApp.
+               </p>
+             </div>
+             <Button 
+               className="w-full bg-green-600 hover:bg-green-700" 
+               disabled={!selectedTemplateId || sendCampaign.isPending}
+               onClick={() => sendCampaign.mutate()}
+             >
+               {sendCampaign.isPending ? "Iniciando..." : "Confirmar e Enviar"}
+             </Button>
+           </div>
+         </DialogContent>
+       </Dialog>
+     </div>
+   );
+ }
+ 
 export default function AdminWhatsApp() {
   const qc = useQueryClient();
   const { data: templates, isLoading: loadingTemplates } = useTemplates();
@@ -751,9 +959,12 @@ export default function AdminWhatsApp() {
           <TabsTrigger value="campaigns">
             <BarChart3 className="size-4 mr-1.5" />Campanhas
           </TabsTrigger>
-          <TabsTrigger value="renewals">
-            <RotateCw className="size-4 mr-1.5" />Renovações
-          </TabsTrigger>
+           <TabsTrigger value="renewals">
+             <RotateCw className="size-4 mr-1.5" />Renovações
+           </TabsTrigger>
+           <TabsTrigger value="contatos">
+             <Users className="size-4 mr-1.5" />Contatos
+           </TabsTrigger>
           <TabsTrigger value="templates">
             <MessageCircle className="size-4 mr-1.5" />Templates
           </TabsTrigger>
@@ -850,10 +1061,15 @@ export default function AdminWhatsApp() {
           )}
         </TabsContent>
 
-        {/* RENEWALS TAB */}
-        <TabsContent value="renewals" className="space-y-4">
-          <RenewalsTab />
-        </TabsContent>
+         {/* RENEWALS TAB */}
+         <TabsContent value="renewals" className="space-y-4">
+           <RenewalsTab />
+         </TabsContent>
+ 
+         {/* CONTATOS TAB */}
+         <TabsContent value="contatos" className="space-y-4">
+           <ContactsTab />
+         </TabsContent>
 
         {/* TEMPLATES TAB */}
         <TabsContent value="templates" className="space-y-4">
