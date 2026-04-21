@@ -486,6 +486,7 @@ function RenewalsTab() {
    const [selectedJids, setSelectedJids] = useState<Set<string>>(new Set());
    const [showCampaignModal, setShowCampaignModal] = useState(false);
    const [selectedTemplateId, setSelectedTemplateId] = useState("");
+   const [isBulkByRule, setIsBulkByRule] = useState(false);
  
    const { data: contactsData, isLoading, refetch } = useQuery({
      queryKey: ["whatsapp-contacts", page],
@@ -535,10 +536,11 @@ function RenewalsTab() {
  
    const sendCampaign = useMutation({
      mutationFn: async () => {
-       const recipients = Array.from(selectedJids).map(jid => ({
-         phone: jid.split("@")[0],
+       const targets = isBulkByRule ? filteredContacts : contacts.filter((c: any) => selectedJids.has(c.id));
+       const recipients = targets.map((c: any) => ({
+         phone: c.id.split("@")[0],
          variables: {
-           nome: contacts.find((c: any) => c.id === jid)?.name || "Cliente"
+           nome: c.name || "Cliente"
          }
        }));
        return callWapi("send-bulk", { template_id: selectedTemplateId, recipients });
@@ -575,14 +577,24 @@ function RenewalsTab() {
                <RefreshCw className={`size-3.5 mr-1 ${isLoading ? "animate-spin" : ""}`} />
                Sincronizar
              </Button>
-             {selectedJids.size > 0 && (
+             {selectedJids.size > 0 ? (
                <Button 
                  size="sm" 
                  className="bg-green-600 hover:bg-green-700"
-                 onClick={() => setShowCampaignModal(true)}
+                 onClick={() => { setIsBulkByRule(false); setShowCampaignModal(true); }}
                >
                  <Zap className="size-3.5 mr-1" />
-                 Criar Campanha ({selectedJids.size})
+                 Enviar para Selecionados ({selectedJids.size})
+               </Button>
+             ) : filteredContacts.length > 0 && (selectedLabels.length > 0 || search) && (
+               <Button 
+                 size="sm" 
+                 variant="outline"
+                 className="border-green-500/50 text-green-500 hover:bg-green-500/10"
+                 onClick={() => { setIsBulkByRule(true); setShowCampaignModal(true); }}
+               >
+                 <Zap className="size-3.5 mr-1" />
+                 Enviar para todos do Filtro ({filteredContacts.length})
                </Button>
              )}
            </div>
@@ -704,7 +716,9 @@ function RenewalsTab() {
        <Dialog open={showCampaignModal} onOpenChange={setShowCampaignModal}>
          <DialogContent>
            <DialogHeader>
-             <DialogTitle>Criar Campanha para {selectedJids.size} contatos</DialogTitle>
+             <DialogTitle>
+               Criar Campanha para {isBulkByRule ? filteredContacts.length : selectedJids.size} contatos
+             </DialogTitle>
            </DialogHeader>
            <div className="space-y-4 py-2">
              <div className="space-y-1.5">
