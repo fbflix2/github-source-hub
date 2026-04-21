@@ -479,7 +479,7 @@ function RenewalsTab() {
   );
 }
 
- function ContactsTab() {
+ function ContactsTab({ logs }: { logs?: any[] }) {
    const [page, setPage] = useState(1);
    const [search, setSearch] = useState("");
    const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
@@ -1166,10 +1166,10 @@ export default function AdminWhatsApp() {
            <RenewalsTab />
          </TabsContent>
  
-         {/* CONTATOS TAB */}
-         <TabsContent value="contatos" className="space-y-4">
-           <ContactsTab />
-         </TabsContent>
+          {/* CONTATOS TAB */}
+          <TabsContent value="contatos" className="space-y-4">
+            <ContactsTab logs={logs} />
+          </TabsContent>
 
         {/* TEMPLATES TAB */}
         <TabsContent value="templates" className="space-y-4">
