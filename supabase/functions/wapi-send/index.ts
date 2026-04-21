@@ -189,9 +189,10 @@ Deno.serve(async (req) => {
             if (id.includes("@g.us") || id.includes("@broadcast") || !id.includes("@")) continue;
             allContacts.push({
               id: c.id,
-              notify: c.name || c.notify || c.pushName || "",
-              verifiedName: c.verifiedName || "",
-              profilePicture: c.profilePicture || c.imgUrl || null,
+              name: c.name || c.notify || c.pushName || "",
+              pushName: c.pushName || c.notify || c.name || "",
+              verifiedName: c.verifiedName || c.verifiedBizName || "",
+              profilePicUrl: c.profilePicture || c.profilePicUrl || c.imgUrl || null,
               labels: c.labels || [],
             });
           }
