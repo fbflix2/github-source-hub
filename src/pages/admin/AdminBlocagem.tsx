@@ -58,7 +58,7 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
   const [showImagePicker, setShowImagePicker] = useState(false);
 
   const emptyForm = {
-    linkPerfil: "", idPerfil: "", emailAcesso: "", emailAlternativo: "",
+    linkPerfil: "", idPerfil: "", emailAcesso: "", emailAlternativo: "", fbToken: "",
     senha: "", senhaEmail: "", token2fa: "", tempoPlataforma: "3-meses", statusAtual: "aquecido",
     cookies: "", descricao: "", nomePerfil: "", dataNascimento: "", genero: "masculino",
     linkDocumento: "", fotoUrl: "", preco: "", categoryId: "", tags: [] as string[], nomeProduto: "",
@@ -115,6 +115,7 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
         senhaEmail: formData.senhaEmail,
         emailAcesso: formData.emailAcesso,
         emailAlternativo: formData.emailAlternativo,
+        fbToken: formData.fbToken,
         senha: formData.senha,
         token2fa: formData.token2fa,
         tempoPlataforma: formData.tempoPlataforma,
@@ -223,6 +224,7 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
               </div>
               {[
                 { label: "E-mail", icon: Mail, key: "emailAcesso", placeholder: "exemplo@fbflix.com", type: "email" },
+                { label: "Senha do Email", icon: KeyRound, key: "senhaEmail", placeholder: "Senha do email", type: "text" },
               ].map(f => (
                 <div key={f.key} className="flex flex-col gap-1 group">
                   <label className="text-xs font-medium text-zinc-400 group-focus-within:text-white transition-colors">{f.label}</label>
@@ -232,13 +234,6 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
                   </div>
                 </div>
               ))}
-              <div className="flex flex-col gap-1 group">
-                <label className="text-xs font-medium text-zinc-400 group-focus-within:text-white transition-colors">Senha Email</label>
-                <div className="relative">
-                  <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-                  <Input type="text" placeholder="Senha do email" value={formData.senhaEmail} onChange={e => setFormData({ ...formData, senhaEmail: e.target.value })} className="pl-10 bg-black/30 border-white/5 text-white placeholder:text-zinc-600" />
-                </div>
-              </div>
               {[
                 { label: "Email Alternativo", icon: AtSign, key: "emailAlternativo", placeholder: "recuperacao@email.com", type: "email" },
               ].map(f => (
@@ -298,11 +293,20 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
                   </button>
                 </div>
               </div>
-              <div className="flex flex-col gap-1 group">
-                <label className="text-xs font-medium text-zinc-400">Token 2FA</label>
-                <div className="relative">
-                  <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-                  <Input type="text" placeholder="JBSWY3DPEHPK3PXP" value={formData.token2fa} onChange={e => setFormData({ ...formData, token2fa: e.target.value })} className="pl-10 bg-black/30 border-white/5 text-white font-mono" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1 group">
+                  <label className="text-xs font-medium text-zinc-400">Token 2FA</label>
+                  <div className="relative">
+                    <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                    <Input type="text" placeholder="JBSWY3DPEHPK3PXP" value={formData.token2fa} onChange={e => setFormData({ ...formData, token2fa: e.target.value })} className="pl-10 bg-black/30 border-white/5 text-white font-mono" />
+                  </div>
+                </div>
+                <div className="flex flex-col gap-1 group">
+                  <label className="text-xs font-medium text-zinc-400">Token de Acesso (FB)</label>
+                  <div className="relative">
+                    <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                    <Input type="text" placeholder="EAAB..." value={formData.fbToken} onChange={e => setFormData({ ...formData, fbToken: e.target.value })} className="pl-10 bg-black/30 border-white/5 text-white font-mono" />
+                  </div>
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-3">
