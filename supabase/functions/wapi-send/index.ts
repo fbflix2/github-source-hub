@@ -172,32 +172,46 @@ Deno.serve(async (req) => {
        const result = await wapiRequest("/contacts/fetch-contacts", { page, perPage }, "GET");
         if (result.ok) return ok(result.data);
 
-        // Fallback: use fetch-chats when contacts endpoint returns 404
-        console.log("fetch-contacts failed, falling back to fetch-chats");
-        const chatsResult = await wapiRequest("/chats/fetch-chats", { page, perPage }, "GET");
-        if (!chatsResult.ok) return err(`W-API error [${chatsResult.status}]: ${JSON.stringify(chatsResult.data || chatsResult.raw)}`, 502);
+        // Fallback: paginate through all fetch-chats pages to collect individual contacts
+        console.log("fetch-contacts failed, falling back to fetch-chats (all pages)");
+        const allContacts: any[] = [];
+        let currentPage = 1;
+        const maxPages = 30; // safety limit
+        while (currentPage <= maxPages) {
+          const chatsResult = await wapiRequest("/chats/fetch-chats", { page: currentPage, perPage: 50 }, "GET");
+          if (!chatsResult.ok) break;
+          const chatsData = chatsResult.data;
+          const rawChats = chatsData?.chats || chatsData || [];
+          if (!Array.isArray(rawChats) || rawChats.length === 0) break;
 
-        // Normalize chats response to match contacts format
-        const chatsData = chatsResult.data;
-        const rawChats = chatsData?.chats || chatsData || [];
-        console.log("Raw chat sample:", JSON.stringify((Array.isArray(rawChats) ? rawChats : []).slice(0, 2)));
-        const contacts = (Array.isArray(rawChats) ? rawChats : []).filter((c: any) => {
-          const id = c?.id || "";
-          // Exclude groups and status broadcasts
-          return !id.includes("@g.us") && !id.includes("@broadcast") && id.includes("@");
-        }).map((c: any) => ({
-          id: c.id,
-          notify: c.name || c.notify || c.pushName || "",
-          verifiedName: c.verifiedName || "",
-          profilePicture: c.profilePicture || c.imgUrl || null,
-          labels: c.labels || [],
-        }));
+          for (const c of rawChats) {
+            const id = c?.id || "";
+            if (id.includes("@g.us") || id.includes("@broadcast") || !id.includes("@")) continue;
+            allContacts.push({
+              id: c.id,
+              notify: c.name || c.notify || c.pushName || "",
+              verifiedName: c.verifiedName || "",
+              profilePicture: c.profilePicture || c.imgUrl || null,
+              labels: c.labels || [],
+            });
+          }
+
+          const totalPages = chatsData?.totalPages || 1;
+          if (currentPage >= totalPages) break;
+          currentPage++;
+        }
+
+        console.log(`Chats fallback collected ${allContacts.length} individual contacts from ${currentPage} pages`);
+
+        // Paginate locally based on requested page/perPage
+        const start = (page - 1) * perPage;
+        const paged = allContacts.slice(start, start + perPage);
 
         return ok({
-          contacts,
-          totalContacts: contacts.length,
-          totalPages: chatsData?.totalPages || 1,
-          currentPage: chatsData?.currentPage || page,
+          contacts: paged,
+          totalContacts: allContacts.length,
+          totalPages: Math.ceil(allContacts.length / perPage) || 1,
+          currentPage: page,
           _source: "chats-fallback",
         });
      }
