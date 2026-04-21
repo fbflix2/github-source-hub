@@ -51,8 +51,8 @@ export function EditStockItemModal({ item, open, onOpenChange, onSaved }: EditSt
 
   // Perfil fields
   const [formData, setFormData] = useState({
-    linkPerfil: "", idPerfil: "", emailAcesso: "", emailAlternativo: "",
-    senha: "", token2fa: "", tempoPlataforma: "3-meses", statusAtual: "aquecido",
+    linkPerfil: "", idPerfil: "", emailAcesso: "", emailAlternativo: "", fbToken: "",
+    senha: "", senhaEmail: "", token2fa: "", tempoPlataforma: "3-meses", statusAtual: "aquecido",
     cookies: "", descricao: "", nomePerfil: "", dataNascimento: "", genero: "masculino",
     linkDocumento: "", fotoUrl: ""
   });
@@ -79,6 +79,8 @@ export function EditStockItemModal({ item, open, onOpenChange, onSaved }: EditSt
         idPerfil: item.identification ?? "",
         emailAcesso: d.emailAcesso ?? "",
         emailAlternativo: d.emailAlternativo ?? "",
+        fbToken: d.fbToken ?? "",
+        senhaEmail: d.senhaEmail ?? "",
         senha: d.senha ?? "",
         token2fa: d.token2fa ?? "",
         tempoPlataforma: d.tempoPlataforma ?? "3-meses",
@@ -125,6 +127,8 @@ export function EditStockItemModal({ item, open, onOpenChange, onSaved }: EditSt
         linkDocumento: formData.linkDocumento,
         emailAcesso: formData.emailAcesso,
         emailAlternativo: formData.emailAlternativo,
+        fbToken: formData.fbToken,
+        senhaEmail: formData.senhaEmail,
         senha: formData.senha,
         token2fa: formData.token2fa,
         tempoPlataforma: formData.tempoPlataforma,
@@ -244,6 +248,7 @@ export function EditStockItemModal({ item, open, onOpenChange, onSaved }: EditSt
                     { label: "Link do Perfil", icon: Link, key: "linkPerfil", placeholder: "https://facebook.com/profile.php?id=..." },
                     { label: "ID do Perfil", icon: Hash, key: "idPerfil", placeholder: "10000843...", mono: true },
                     { label: "Email de Acesso", icon: Mail, key: "emailAcesso", placeholder: "exemplo@fbflix.com" },
+                    { label: "Senha do Email", icon: KeyRound, key: "senhaEmail", placeholder: "Senha do email" },
                     { label: "Email Alternativo", icon: AtSign, key: "emailAlternativo", placeholder: "recuperacao@email.com" },
                   ].map(f => (
                     <div key={f.key} className="flex flex-col gap-1.5">
@@ -303,11 +308,20 @@ export function EditStockItemModal({ item, open, onOpenChange, onSaved }: EditSt
                       </button>
                     </div>
                   </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-medium text-zinc-400">Token 2FA</label>
-                    <div className="relative">
-                      <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-                      <Input value={formData.token2fa} onChange={e => setFormData({ ...formData, token2fa: e.target.value })} placeholder="JBSWY3DPEHPK3PXP" className="pl-10 bg-black/30 border-white/5 text-white font-mono" />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-medium text-zinc-400">Token 2FA</label>
+                      <div className="relative">
+                        <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                        <Input value={formData.token2fa} onChange={e => setFormData({ ...formData, token2fa: e.target.value })} placeholder="JBSWY3DPEHPK3PXP" className="pl-10 bg-black/30 border-white/5 text-white font-mono" />
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs font-medium text-zinc-400">Token de Acesso (FB)</label>
+                      <div className="relative">
+                        <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                        <Input value={formData.fbToken} onChange={e => setFormData({ ...formData, fbToken: e.target.value })} placeholder="EAAB..." className="pl-10 bg-black/30 border-white/5 text-white font-mono" />
+                      </div>
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
