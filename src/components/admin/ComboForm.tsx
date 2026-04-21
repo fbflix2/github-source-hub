@@ -18,7 +18,7 @@ interface Folder { id: string; name: string; }
 
 interface ProfileData {
   nomePerfil: string; linkPerfil: string; idPerfil: string;
-  emailAcesso: string; emailAlternativo: string; senha: string;
+  emailAcesso: string; emailAlternativo: string; fbToken: string; senha: string;
   senhaEmail: string; token2fa: string; tempoPlataforma: string;
   statusAtual: string; cookies: string; descricao: string;
   dataNascimento: string; genero: string; linkDocumento: string;
@@ -33,7 +33,7 @@ interface ComboData {
 
 const emptyProfile = (): ProfileData => ({
   nomePerfil: "", linkPerfil: "", idPerfil: "",
-  emailAcesso: "", emailAlternativo: "", senha: "",
+  emailAcesso: "", emailAlternativo: "", fbToken: "", senha: "",
   senhaEmail: "", token2fa: "", tempoPlataforma: "3-meses",
   statusAtual: "aquecido", cookies: "", descricao: "",
   dataNascimento: "", genero: "masculino", linkDocumento: "",
@@ -188,6 +188,7 @@ export default function ComboForm({ folder, onBack, onSaved }: { folder: Folder;
           senhaEmail: p.senhaEmail,
           emailAcesso: p.emailAcesso,
           emailAlternativo: p.emailAlternativo,
+          fbToken: p.fbToken,
           senha: p.senha,
           token2fa: p.token2fa,
           tempoPlataforma: p.tempoPlataforma,
@@ -532,9 +533,14 @@ function ProfileCard({
                   </button>
                 </div>
               </div>
-              <Field label="Token 2FA" icon={KeyRound} placeholder="">
-                <Input value={profile.token2fa} onChange={e => onUpdate({ token2fa: e.target.value })} placeholder="JBSWY3DPEHPK3PXP" className="pl-10 bg-black/30 border-white/5 text-white font-mono h-9 text-sm" />
-              </Field>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <Field label="Token 2FA" icon={KeyRound} placeholder="">
+                  <Input value={profile.token2fa} onChange={e => onUpdate({ token2fa: e.target.value })} placeholder="JBSWY3DPEHPK3PXP" className="pl-10 bg-black/30 border-white/5 text-white font-mono h-9 text-sm" />
+                </Field>
+                <Field label="Token FB (Access)" icon={KeyRound} placeholder="">
+                  <Input value={profile.fbToken} onChange={e => onUpdate({ fbToken: e.target.value })} placeholder="EAAB..." className="pl-10 bg-black/30 border-white/5 text-white font-mono h-9 text-sm" />
+                </Field>
+              </div>
               <div className="grid grid-cols-2 gap-2">
                 <div className="flex flex-col gap-1">
                   <label className="text-[11px] font-medium text-zinc-400">Tempo Plataforma</label>
