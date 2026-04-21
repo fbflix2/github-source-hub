@@ -686,7 +686,14 @@ function RenewalsTab() {
                        </div>
                        <div className="min-w-0">
                          <p className="font-medium text-foreground truncate">{c.name || c.pushName || "Sem nome"}</p>
+                       <div className="flex items-center gap-1.5">
                          <p className="text-[10px] text-muted-foreground">{c.pushName ? `@${c.pushName}` : ""}</p>
+                         {logs?.some(l => l.phone === c.id.split("@")[0] && l.status === "sent") && (
+                           <Badge variant="outline" className="text-[8px] h-3 px-1 py-0 bg-green-500/10 text-green-500 border-green-500/20">
+                             Enviado
+                           </Badge>
+                         )}
+                       </div>
                        </div>
                      </div>
                    </td>
@@ -937,21 +944,22 @@ export default function AdminWhatsApp() {
       const failed = cLogs.filter((l: any) => l.status === "failed").length;
       const lastSent = cLogs[0]?.created_at;
 
-      return {
-        id,
-        template,
-        total,
-        sent,
-        delivered,
-        read,
-        replied,
-        failed,
-        lastSent,
-        deliveryRate: sent > 0 ? Math.round((delivered / sent) * 100) : 0,
-        readRate: delivered > 0 ? Math.round((read / delivered) * 100) : 0,
-        replyRate: delivered > 0 ? Math.round((replied / delivered) * 100) : 0,
-      };
-    }).sort((a, b) => new Date(b.lastSent || 0).getTime() - new Date(a.lastSent || 0).getTime());
+                       return {
+                         id,
+                         template,
+                         total,
+                         sent,
+                         delivered,
+                         read,
+                         replied,
+                         failed,
+                         lastSent,
+                         logs: cLogs,
+                         deliveryRate: sent > 0 ? Math.round((delivered / sent) * 100) : 0,
+                         readRate: delivered > 0 ? Math.round((read / delivered) * 100) : 0,
+                         replyRate: delivered > 0 ? Math.round((replied / delivered) * 100) : 0,
+                       };
+                     }).sort((a, b) => new Date(b.lastSent || 0).getTime() - new Date(a.lastSent || 0).getTime());
   }, [logs, templates]);
 
   return (
@@ -1097,30 +1105,55 @@ export default function AdminWhatsApp() {
                       </div>
                     </div>
 
-                    {/* Rate bars */}
-                    <div className="grid grid-cols-3 gap-4">
-                      <div>
-                        <div className="flex justify-between text-[10px] mb-1">
-                          <span className="text-muted-foreground">Entrega</span>
-                          <span className="font-medium text-green-400">{c.deliveryRate}%</span>
-                        </div>
-                        <Progress value={c.deliveryRate} className="h-1.5 [&>div]:bg-green-500" />
-                      </div>
-                      <div>
-                        <div className="flex justify-between text-[10px] mb-1">
-                          <span className="text-muted-foreground">Leitura</span>
-                          <span className="font-medium text-emerald-400">{c.readRate}%</span>
-                        </div>
-                        <Progress value={c.readRate} className="h-1.5 [&>div]:bg-emerald-500" />
-                      </div>
-                      <div>
-                        <div className="flex justify-between text-[10px] mb-1">
-                          <span className="text-muted-foreground">Resposta</span>
-                          <span className="font-medium text-purple-400">{c.replyRate}%</span>
-                        </div>
-                        <Progress value={c.replyRate} className="h-1.5 [&>div]:bg-purple-500" />
-                      </div>
-                    </div>
+                     {/* Rate bars and detail toggler */}
+                     <div className="flex flex-col gap-4">
+                       <div className="grid grid-cols-3 gap-4">
+                         <div>
+                           <div className="flex justify-between text-[10px] mb-1">
+                             <span className="text-muted-foreground">Entrega</span>
+                             <span className="font-medium text-green-400">{c.deliveryRate}%</span>
+                           </div>
+                           <Progress value={c.deliveryRate} className="h-1.5 [&>div]:bg-green-500" />
+                         </div>
+                         <div>
+                           <div className="flex justify-between text-[10px] mb-1">
+                             <span className="text-muted-foreground">Leitura</span>
+                             <span className="font-medium text-emerald-400">{c.readRate}%</span>
+                           </div>
+                           <Progress value={c.readRate} className="h-1.5 [&>div]:bg-emerald-500" />
+                         </div>
+                         <div>
+                           <div className="flex justify-between text-[10px] mb-1">
+                             <span className="text-muted-foreground">Resposta</span>
+                             <span className="font-medium text-purple-400">{c.replyRate}%</span>
+                           </div>
+                           <Progress value={c.replyRate} className="h-1.5 [&>div]:bg-purple-500" />
+                         </div>
+                       </div>
+ 
+                       <div className="pt-2 border-t border-border/20">
+                         <details className="group">
+                           <summary className="text-[10px] font-medium text-muted-foreground cursor-pointer hover:text-foreground flex items-center gap-1 list-none">
+                             <ChevronDown className="size-3 transition-transform group-open:rotate-180" />
+                             Ver status detalhado por contato
+                           </summary>
+                           <div className="mt-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                             {c.logs.map((l: any) => (
+                               <div key={l.id} className="p-1.5 rounded bg-muted/20 border border-border/20 text-[9px] flex items-center justify-between gap-1">
+                                 <span className="truncate max-w-[60%]">{l.phone}</span>
+                                 {l.status === "failed" ? (
+                                   <Badge variant="outline" className="text-[8px] h-3 px-1 py-0 bg-red-500/10 text-red-500 border-red-500/20">Erro</Badge>
+                                 ) : l.read_at ? (
+                                   <Badge variant="outline" className="text-[8px] h-3 px-1 py-0 bg-emerald-500/10 text-emerald-500 border-emerald-500/20">Lido</Badge>
+                                 ) : (
+                                   <Badge variant="outline" className="text-[8px] h-3 px-1 py-0 bg-green-500/10 text-green-500 border-green-500/20">Enviado</Badge>
+                                 )}
+                               </div>
+                             ))}
+                           </div>
+                         </details>
+                       </div>
+                     </div>
                   </CardContent>
                 </Card>
               ))}
