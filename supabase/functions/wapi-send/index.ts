@@ -170,7 +170,26 @@ Deno.serve(async (req) => {
      if (action === "fetch-contacts") {
        const { page = 1, perPage = 50 } = body;
        const result = await wapiRequest("/contacts/fetch-contacts", { page, perPage }, "GET");
-        if (result.ok) return ok(result.data);
+         if (result.ok) {
+           const data = result.data;
+           const rawContacts = data?.contacts || data?.data || data || [];
+           const normalized = Array.isArray(rawContacts) ? rawContacts.map((c: any) => ({
+             id: c.id || c.jid || "",
+             name: c.name || c.notify || c.pushName || c.verifiedName || c.verifiedBizName || "",
+             pushName: c.pushName || c.notify || c.name || "",
+             verifiedName: c.verifiedName || c.verifiedBizName || "",
+             profilePicUrl: c.profilePicture || c.profilePicUrl || c.imgUrl || c.avatar || null,
+             labels: c.labels || [],
+           })) : [];
+           
+           return ok({
+             contacts: normalized,
+             totalContacts: data?.totalContacts || normalized.length,
+             totalPages: data?.totalPages || 1,
+             currentPage: data?.currentPage || page,
+             _source: "primary"
+           });
+         }
 
         // Fallback: paginate through all fetch-chats pages to collect individual contacts
         console.log("fetch-contacts failed, falling back to fetch-chats (all pages)");
@@ -188,11 +207,11 @@ Deno.serve(async (req) => {
             const id = c?.id || "";
             if (id.includes("@g.us") || id.includes("@broadcast") || !id.includes("@")) continue;
             allContacts.push({
-              id: c.id,
-              name: c.name || c.notify || c.pushName || "",
+              id: c.id || c.jid || "",
+              name: c.name || c.notify || c.pushName || c.verifiedName || c.verifiedBizName || "",
               pushName: c.pushName || c.notify || c.name || "",
               verifiedName: c.verifiedName || c.verifiedBizName || "",
-              profilePicUrl: c.profilePicture || c.profilePicUrl || c.imgUrl || null,
+              profilePicUrl: c.profilePicture || c.profilePicUrl || c.imgUrl || c.avatar || null,
               labels: c.labels || [],
             });
           }

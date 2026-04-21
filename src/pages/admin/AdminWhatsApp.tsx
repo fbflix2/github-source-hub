@@ -539,9 +539,9 @@ function RenewalsTab() {
        const targets = isBulkByRule ? filteredContacts : contacts.filter((c: any) => selectedJids.has(c.id));
        const recipients = targets.map((c: any) => ({
          phone: c.id.split("@")[0],
-         variables: {
-           nome: c.name || "Cliente"
-         }
+          variables: {
+            nome: c.name || c.verifiedName || c.pushName || "Cliente"
+          }
        }));
        return callWapi("send-bulk", { template_id: selectedTemplateId, recipients });
      },
@@ -685,7 +685,9 @@ function RenewalsTab() {
                          )}
                        </div>
                        <div className="min-w-0">
-                         <p className="font-medium text-foreground truncate">{c.name || c.pushName || "Sem nome"}</p>
+                        <p className="font-medium text-foreground truncate">
+                          {c.name || c.verifiedName || c.pushName || c.id.split("@")[0]}
+                        </p>
                        <div className="flex items-center gap-1.5">
                          <p className="text-[10px] text-muted-foreground">{c.pushName ? `@${c.pushName}` : ""}</p>
                          {logs?.some(l => l.phone === c.id.split("@")[0] && l.status === "sent") && (
