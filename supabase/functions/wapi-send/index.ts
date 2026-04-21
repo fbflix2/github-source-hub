@@ -180,6 +180,7 @@ Deno.serve(async (req) => {
         // Normalize chats response to match contacts format
         const chatsData = chatsResult.data;
         const rawChats = chatsData?.chats || chatsData || [];
+        console.log("Raw chat sample:", JSON.stringify((Array.isArray(rawChats) ? rawChats : []).slice(0, 2)));
         const contacts = (Array.isArray(rawChats) ? rawChats : []).filter((c: any) => {
           const id = c?.id || "";
           // Exclude groups and status broadcasts
