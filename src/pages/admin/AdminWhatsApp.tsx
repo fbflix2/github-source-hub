@@ -1074,11 +1074,41 @@ export default function AdminWhatsApp() {
                           </span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30 text-xs">
-                          <Users className="size-3 mr-1" />{c.total} destinatários
-                        </Badge>
-                      </div>
+                       <div className="flex items-center gap-2">
+                         {c.failed > 0 && (
+                           <Button
+                             size="sm"
+                             variant="outline"
+                             className="h-7 text-[10px] border-red-500/50 text-red-400 hover:bg-red-500/10 gap-1"
+                             onClick={() => {
+                               const failedRecipients = c.logs
+                                 .filter((l: any) => l.status === "failed")
+                                 .map((l: any) => ({
+                                   phone: l.phone,
+                                   variables: l.metadata?.variables || {}
+                                 }));
+                               
+                               if (failedRecipients.length > 0) {
+                                 if (confirm(`Reenviar para ${failedRecipients.length} contatos que falharam?`)) {
+                                   callWapi("send-bulk", { 
+                                     template_id: c.id === "direct" ? undefined : c.id, 
+                                     recipients: failedRecipients 
+                                   }).then(() => {
+                                     toast.success("Reenvio iniciado!");
+                                     qc.invalidateQueries({ queryKey: ["whatsapp-logs"] });
+                                   }).catch(e => toast.error(e.message));
+                                 }
+                               }
+                             }}
+                           >
+                             <RefreshCw className="size-3" />
+                             Reenviar Falhas ({c.failed})
+                           </Button>
+                         )}
+                         <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/30 text-xs h-7">
+                           <Users className="size-3 mr-1" />{c.total} destinatários
+                         </Badge>
+                       </div>
                     </div>
 
                     {/* Campaign metrics */}
