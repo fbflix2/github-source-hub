@@ -162,10 +162,18 @@ Deno.serve(async (req) => {
     console.log(`BG sender done: ${messages.length} messages processed`);
   }
 
-  try {
-    const body = await req.json();
-    const { action } = body;
-
+   try {
+     const body = await req.json();
+     const { action } = body;
+ 
+     // ========= ACTION: fetch-contacts =========
+     if (action === "fetch-contacts") {
+       const { page = 1, perPage = 50 } = body;
+       const result = await wapiRequest("/contacts/fetch-contacts", { page, perPage }, "GET");
+       if (!result.ok) return err(`W-API error [${result.status}]: ${JSON.stringify(result.data || result.raw)}`, 502);
+       return ok(result.data);
+     }
+ 
     // ========= ACTION: send-text =========
     if (action === "send-text") {
       const { phone, message, user_id, event_key, template_id, metadata } = body;
