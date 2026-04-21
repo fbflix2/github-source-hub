@@ -207,11 +207,11 @@ Deno.serve(async (req) => {
             const id = c?.id || "";
             if (id.includes("@g.us") || id.includes("@broadcast") || !id.includes("@")) continue;
             allContacts.push({
-              id: c.id,
-              name: c.name || c.notify || c.pushName || "",
+              id: c.id || c.jid || "",
+              name: c.name || c.notify || c.pushName || c.verifiedName || c.verifiedBizName || "",
               pushName: c.pushName || c.notify || c.name || "",
               verifiedName: c.verifiedName || c.verifiedBizName || "",
-              profilePicUrl: c.profilePicture || c.profilePicUrl || c.imgUrl || null,
+              profilePicUrl: c.profilePicture || c.profilePicUrl || c.imgUrl || c.avatar || null,
               labels: c.labels || [],
             });
           }
