@@ -622,27 +622,6 @@ function RenewalsTab() {
            </div>
          )}
        </div>
-           <Button 
-             variant="outline" 
-             size="sm" 
-             onClick={() => refetch()} 
-             disabled={isLoading}
-           >
-             <RefreshCw className={`size-3.5 mr-1 ${isLoading ? "animate-spin" : ""}`} />
-             Sincronizar
-           </Button>
-           {selectedJids.size > 0 && (
-             <Button 
-               size="sm" 
-               className="bg-green-600 hover:bg-green-700"
-               onClick={() => setShowCampaignModal(true)}
-             >
-               <Zap className="size-3.5 mr-1" />
-               Criar Campanha ({selectedJids.size})
-             </Button>
-           )}
-         </div>
-       </div>
  
        {isLoading ? (
          <div className="text-center py-12 text-muted-foreground">Carregando contatos...</div>
