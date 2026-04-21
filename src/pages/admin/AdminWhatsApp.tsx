@@ -539,9 +539,9 @@ function RenewalsTab() {
        const targets = isBulkByRule ? filteredContacts : contacts.filter((c: any) => selectedJids.has(c.id));
        const recipients = targets.map((c: any) => ({
          phone: c.id.split("@")[0],
-         variables: {
-           nome: c.name || "Cliente"
-         }
+          variables: {
+            nome: c.name || c.verifiedName || c.pushName || "Cliente"
+          }
        }));
        return callWapi("send-bulk", { template_id: selectedTemplateId, recipients });
      },
