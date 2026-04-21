@@ -482,6 +482,7 @@ function RenewalsTab() {
  function ContactsTab() {
    const [page, setPage] = useState(1);
    const [search, setSearch] = useState("");
+   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
    const [selectedJids, setSelectedJids] = useState<Set<string>>(new Set());
    const [showCampaignModal, setShowCampaignModal] = useState(false);
    const [selectedTemplateId, setSelectedTemplateId] = useState("");
@@ -495,11 +496,27 @@ function RenewalsTab() {
    const qc = useQueryClient();
  
    const contacts = contactsData?.data || [];
-   const filteredContacts = contacts.filter((c: any) => 
-     (c.name || "").toLowerCase().includes(search.toLowerCase()) || 
-     (c.pushName || "").toLowerCase().includes(search.toLowerCase()) ||
-     (c.id || "").includes(search)
-   );
+ 
+   const allLabels = useMemo(() => {
+     const labels = new Set<string>();
+     contacts.forEach((c: any) => {
+       if (c.labels) c.labels.forEach((l: string) => labels.add(l));
+     });
+     return Array.from(labels).sort();
+   }, [contacts]);
+ 
+   const filteredContacts = useMemo(() => {
+     return contacts.filter((c: any) => {
+       const matchesSearch = (c.name || "").toLowerCase().includes(search.toLowerCase()) || 
+                            (c.pushName || "").toLowerCase().includes(search.toLowerCase()) ||
+                            (c.id || "").includes(search);
+       
+       const matchesLabels = selectedLabels.length === 0 || 
+                            (c.labels && selectedLabels.some(l => c.labels.includes(l)));
+ 
+       return matchesSearch && matchesLabels;
+     });
+   }, [contacts, search, selectedLabels]);
  
    const toggleSelect = (jid: string) => {
      const next = new Set(selectedJids);
@@ -537,37 +554,73 @@ function RenewalsTab() {
  
    return (
      <div className="space-y-4">
-       <div className="flex items-center justify-between gap-3 flex-wrap">
-         <div className="relative flex-1 max-w-sm">
-           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-           <Input 
-             placeholder="Buscar contatos..." 
-             value={search} 
-             onChange={(e) => setSearch(e.target.value)} 
-             className="pl-8" 
-           />
-         </div>
-         <div className="flex items-center gap-2">
-           <Button 
-             variant="outline" 
-             size="sm" 
-             onClick={() => refetch()} 
-             disabled={isLoading}
-           >
-             <RefreshCw className={`size-3.5 mr-1 ${isLoading ? "animate-spin" : ""}`} />
-             Sincronizar
-           </Button>
-           {selectedJids.size > 0 && (
+       <div className="flex flex-col gap-4">
+         <div className="flex items-center justify-between gap-3 flex-wrap">
+           <div className="relative flex-1 max-w-sm">
+             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+             <Input 
+               placeholder="Buscar contatos..." 
+               value={search} 
+               onChange={(e) => setSearch(e.target.value)} 
+               className="pl-8" 
+             />
+           </div>
+           <div className="flex items-center gap-2">
              <Button 
+               variant="outline" 
                size="sm" 
-               className="bg-green-600 hover:bg-green-700"
-               onClick={() => setShowCampaignModal(true)}
+               onClick={() => refetch()} 
+               disabled={isLoading}
              >
-               <Zap className="size-3.5 mr-1" />
-               Criar Campanha ({selectedJids.size})
+               <RefreshCw className={`size-3.5 mr-1 ${isLoading ? "animate-spin" : ""}`} />
+               Sincronizar
              </Button>
-           )}
+             {selectedJids.size > 0 && (
+               <Button 
+                 size="sm" 
+                 className="bg-green-600 hover:bg-green-700"
+                 onClick={() => setShowCampaignModal(true)}
+               >
+                 <Zap className="size-3.5 mr-1" />
+                 Criar Campanha ({selectedJids.size})
+               </Button>
+             )}
+           </div>
          </div>
+ 
+         {allLabels.length > 0 && (
+           <div className="flex flex-wrap gap-2 items-center p-3 rounded-lg bg-card/30 border border-border/40">
+             <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5 mr-2">
+               <Plus className="size-3" /> Filtrar por etiqueta:
+             </span>
+             {allLabels.map(label => {
+               const isSelected = selectedLabels.includes(label);
+               return (
+                 <Badge 
+                   key={label}
+                   variant={isSelected ? "default" : "outline"}
+                   className={`cursor-pointer transition-all hover:scale-105 ${isSelected ? "bg-blue-600 hover:bg-blue-700" : "hover:border-blue-500/50"}`}
+                   onClick={() => {
+                     if (isSelected) setSelectedLabels(selectedLabels.filter(l => l !== label));
+                     else setSelectedLabels([...selectedLabels, label]);
+                   }}
+                 >
+                   {label}
+                 </Badge>
+               );
+             })}
+             {selectedLabels.length > 0 && (
+               <Button 
+                 variant="ghost" 
+                 size="sm" 
+                 className="h-6 px-2 text-[10px] text-muted-foreground hover:text-foreground"
+                 onClick={() => setSelectedLabels([])}
+               >
+                 Limpar filtros
+               </Button>
+             )}
+           </div>
+         )}
        </div>
  
        {isLoading ? (
