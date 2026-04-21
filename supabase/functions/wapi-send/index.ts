@@ -170,8 +170,35 @@ Deno.serve(async (req) => {
      if (action === "fetch-contacts") {
        const { page = 1, perPage = 50 } = body;
        const result = await wapiRequest("/contacts/fetch-contacts", { page, perPage }, "GET");
-       if (!result.ok) return err(`W-API error [${result.status}]: ${JSON.stringify(result.data || result.raw)}`, 502);
-       return ok(result.data);
+        if (result.ok) return ok(result.data);
+
+        // Fallback: use fetch-chats when contacts endpoint returns 404
+        console.log("fetch-contacts failed, falling back to fetch-chats");
+        const chatsResult = await wapiRequest("/chats/fetch-chats", { page, perPage }, "GET");
+        if (!chatsResult.ok) return err(`W-API error [${chatsResult.status}]: ${JSON.stringify(chatsResult.data || chatsResult.raw)}`, 502);
+
+        // Normalize chats response to match contacts format
+        const chatsData = chatsResult.data;
+        const rawChats = chatsData?.chats || chatsData || [];
+        const contacts = (Array.isArray(rawChats) ? rawChats : []).filter((c: any) => {
+          const id = c?.id || "";
+          // Exclude groups and status broadcasts
+          return !id.includes("@g.us") && !id.includes("@broadcast") && id.includes("@");
+        }).map((c: any) => ({
+          id: c.id,
+          notify: c.name || c.notify || c.pushName || "",
+          verifiedName: c.verifiedName || "",
+          profilePicture: c.profilePicture || c.imgUrl || null,
+          labels: c.labels || [],
+        }));
+
+        return ok({
+          contacts,
+          totalContacts: contacts.length,
+          totalPages: chatsData?.totalPages || 1,
+          currentPage: chatsData?.currentPage || page,
+          _source: "chats-fallback",
+        });
      }
  
     // ========= ACTION: send-text =========
