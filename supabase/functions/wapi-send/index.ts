@@ -56,21 +56,45 @@ Deno.serve(async (req) => {
   const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
   const WAPI_BASE = `https://api.w-api.app/v1`;
 
-  async function wapiRequest(endpoint: string, payload: any) {
-    const url = `${WAPI_BASE}${endpoint}?instanceId=${WAPI_INSTANCE_ID}`;
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${WAPI_TOKEN}`,
-      },
-      body: JSON.stringify(payload),
-    });
-    const result = await safeJson(res);
-    console.log(`W-API [${result.status}]: ${JSON.stringify(result.data || result.raw?.slice(0, 200))}`);
-    return { ...result, url };
-  }
-
+   async function wapiRequest(endpoint: string, payload: any, method = "POST") {
+     let url = `${WAPI_BASE}${endpoint}`;
+     const params = new URLSearchParams();
+     params.append("instanceId", WAPI_INSTANCE_ID!);
+ 
+     if (method === "GET" && payload) {
+       for (const [key, value] of Object.entries(payload)) {
+         params.append(key, String(value));
+       }
+     }
+ 
+     url += `?${params.toString()}`;
+ 
+     const options: RequestInit = {
+       method,
+       headers: {
+         "Content-Type": "application/json",
+         Authorization: `Bearer ${WAPI_TOKEN}`,
+       },
+     };
+ 
+     if (method !== "GET" && payload) {
+       options.body = JSON.stringify(payload);
+     }
+ 
+     const res = await fetch(url, options);
+     const result = await safeJson(res);
+     console.log(`W-API ${method} [${result.status}]: ${JSON.stringify(result.data || result.raw?.slice(0, 200))}`);
+     return { ...result, url };
+   }
+ 
+     // ========= ACTION: fetch-contacts =========
+     if (action === "fetch-contacts") {
+       const { page = 1, perPage = 50 } = body;
+       const result = await wapiRequest("/contacts/fetch-contacts", { page, perPage }, "GET");
+       if (!result.ok) return err(`W-API error [${result.status}]: ${JSON.stringify(result.data || result.raw)}`, 502);
+       return ok(result.data);
+     }
+ 
   async function wapiSendText(phone: string, message: string) {
     return wapiRequest("/message/send-text", { phone, message });
   }
