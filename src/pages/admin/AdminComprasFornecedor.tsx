@@ -954,6 +954,28 @@ export default function AdminComprasFornecedor() {
                         </Button>
                       </div>
                     ))}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="w-full mt-1 h-6 text-[10px] text-white/50 hover:text-white hover:bg-white/10 gap-1"
+                      onClick={() => {
+                        const lines = [
+                          a.login ? `ID da conta: ${a.login}` : "",
+                          a.password ? `Senha FB: ${a.password}` : "",
+                          a.email_principal ? `Email principal: ${a.email_principal}` : "",
+                          a.email_password ? `Senha do email: ${a.email_password}` : "",
+                          a.email_alt ? `Email alternativo: ${a.email_alt}` : "",
+                        ].filter(Boolean).join("\n");
+                        if (!lines) { toast.error("Nenhum dado para copiar"); return; }
+                        navigator.clipboard.writeText(lines).then(
+                          () => toast.success("Todos os dados copiados!"),
+                          () => toast.error("Falha ao copiar")
+                        );
+                      }}
+                      title="Copiar todos os dados"
+                    >
+                      <Copy className="size-3" /> Copiar Tudo
+                    </Button>
                   </div>
 
                   {a.profile_link && (
