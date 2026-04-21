@@ -170,8 +170,51 @@ Deno.serve(async (req) => {
      if (action === "fetch-contacts") {
        const { page = 1, perPage = 50 } = body;
        const result = await wapiRequest("/contacts/fetch-contacts", { page, perPage }, "GET");
-       if (!result.ok) return err(`W-API error [${result.status}]: ${JSON.stringify(result.data || result.raw)}`, 502);
-       return ok(result.data);
+        if (result.ok) return ok(result.data);
+
+        // Fallback: paginate through all fetch-chats pages to collect individual contacts
+        console.log("fetch-contacts failed, falling back to fetch-chats (all pages)");
+        const allContacts: any[] = [];
+        let currentPage = 1;
+        const maxPages = 30; // safety limit
+        while (currentPage <= maxPages) {
+          const chatsResult = await wapiRequest("/chats/fetch-chats", { page: currentPage, perPage: 50 }, "GET");
+          if (!chatsResult.ok) break;
+          const chatsData = chatsResult.data;
+          const rawChats = chatsData?.chats || chatsData || [];
+          if (!Array.isArray(rawChats) || rawChats.length === 0) break;
+
+          for (const c of rawChats) {
+            const id = c?.id || "";
+            if (id.includes("@g.us") || id.includes("@broadcast") || !id.includes("@")) continue;
+            allContacts.push({
+              id: c.id,
+              name: c.name || c.notify || c.pushName || "",
+              pushName: c.pushName || c.notify || c.name || "",
+              verifiedName: c.verifiedName || c.verifiedBizName || "",
+              profilePicUrl: c.profilePicture || c.profilePicUrl || c.imgUrl || null,
+              labels: c.labels || [],
+            });
+          }
+
+          const totalPages = chatsData?.totalPages || 1;
+          if (currentPage >= totalPages) break;
+          currentPage++;
+        }
+
+        console.log(`Chats fallback collected ${allContacts.length} individual contacts from ${currentPage} pages`);
+
+        // Paginate locally based on requested page/perPage
+        const start = (page - 1) * perPage;
+        const paged = allContacts.slice(start, start + perPage);
+
+        return ok({
+          contacts: paged,
+          totalContacts: allContacts.length,
+          totalPages: Math.ceil(allContacts.length / perPage) || 1,
+          currentPage: page,
+          _source: "chats-fallback",
+        });
      }
  
     // ========= ACTION: send-text =========

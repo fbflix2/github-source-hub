@@ -496,7 +496,7 @@ function RenewalsTab() {
    const { data: templates } = useTemplates();
    const qc = useQueryClient();
  
-   const contacts = contactsData?.data || [];
+    const contacts = contactsData?.contacts || contactsData?.data || [];
  
    const allLabels = useMemo(() => {
      const labels = new Set<string>();
