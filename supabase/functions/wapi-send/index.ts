@@ -87,14 +87,6 @@ Deno.serve(async (req) => {
      return { ...result, url };
    }
  
-     // ========= ACTION: fetch-contacts =========
-     if (action === "fetch-contacts") {
-       const { page = 1, perPage = 50 } = body;
-       const result = await wapiRequest("/contacts/fetch-contacts", { page, perPage }, "GET");
-       if (!result.ok) return err(`W-API error [${result.status}]: ${JSON.stringify(result.data || result.raw)}`, 502);
-       return ok(result.data);
-     }
- 
   async function wapiSendText(phone: string, message: string) {
     return wapiRequest("/message/send-text", { phone, message });
   }
