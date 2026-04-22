@@ -529,6 +529,38 @@ export default function AdminDashboard() {
       .reduce((s, o) => s + o.total, 0);
   }, [allCompletedOrders, getRevenueSince, getRevenueUntil]);
 
+  const categoryStats = useMemo(() => {
+    // Filter category items by period
+    const filtered = allCategoryItems.filter(item => {
+      const d = new Date(item.created_at);
+      return d >= getRevenueSince && (!getRevenueUntil || d <= getRevenueUntil);
+    });
+
+    const catStats: Record<string, { sales: number; revenue: number }> = {};
+    filtered.forEach(item => {
+      if (!catStats[item.catId]) catStats[item.catId] = { sales: 0, revenue: 0 };
+      catStats[item.catId].sales += item.qty;
+      catStats[item.catId].revenue += item.revenue;
+    });
+
+    // Add proxy (not date-filtered, it's subscription-based)
+    if (proxyCatStats) {
+      catStats[proxyCatStats.id] = { sales: proxyCatStats.sales, revenue: proxyCatStats.revenue };
+    }
+
+    const result = categoryList.map(c => ({
+      name: c.name,
+      sales: catStats[c.id]?.sales ?? 0,
+      revenue: catStats[c.id]?.revenue ?? 0,
+    }));
+
+    result.push({ name: "Safe BM", ...safeBmCatStats });
+    result.push({ name: "Contingência", ...ctCatStats });
+
+    return result;
+  }, [allCategoryItems, categoryList, proxyCatStats, safeBmCatStats, ctCatStats, getRevenueSince, getRevenueUntil]);
+
+
   const dynamicChartData = useMemo(() => {
     const isToday = revenuePeriod === "hoje";
 
