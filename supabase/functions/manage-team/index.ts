@@ -143,9 +143,9 @@ async function handleAdd(sb: any, body: any) {
   console.log("Buscando usuário por email:", targetEmail);
   
   // Use the more efficient getUserByEmail first
-  const { data: { user: fetchedUser }, error: fetchError } = await sb.auth.admin.getUserByEmail(targetEmail);
+  const { data: userData } = await sb.auth.admin.getUserByEmail(targetEmail);
   
-  let foundUser = fetchedUser;
+  let foundUser = userData?.user;
 
   if (!foundUser) {
     console.log("Usuário não encontrado via getUserByEmail, tentando convidar...");
