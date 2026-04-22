@@ -2414,6 +2414,7 @@ export type Database = {
           stock: number
           tags: string[] | null
           updated_at: string
+          whatsapp_group_link: string | null
         }
         Insert: {
           available?: boolean
@@ -2435,6 +2436,7 @@ export type Database = {
           stock?: number
           tags?: string[] | null
           updated_at?: string
+          whatsapp_group_link?: string | null
         }
         Update: {
           available?: boolean
@@ -2456,6 +2458,7 @@ export type Database = {
           stock?: number
           tags?: string[] | null
           updated_at?: string
+          whatsapp_group_link?: string | null
         }
         Relationships: [
           {
