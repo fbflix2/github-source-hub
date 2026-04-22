@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
     // ======== FETCH ALL PROXY SUBSCRIPTIONS (Webshare + ProxyBR) ========
     const { data: allSubs, error: subsErr } = await admin
       .from("subscriptions")
-      .select("id, user_id, name, type, status, end_date, raw_data, product_id, grace_notifications, auto_renew")
+      .select("id, user_id, name, type, status, end_date, raw_data, product_id, grace_notifications, auto_renew, notifications_enabled")
       .in("type", ["webshare", "webshare_rotating", "proxybr"])
       .in("status", ["active", "expired", "expiring"])
       .not("end_date", "is", null);
@@ -181,17 +181,20 @@ Deno.serve(async (req) => {
       const nome = profile?.full_name || "Cliente";
       const hook = randomHook();
 
-      // Build proxy lines and total
-      const proxyInfos = subs.map(s => buildProxyLine(s as SubWithStage));
+      // Filter subs that have notifications enabled for the message
+      const subsForMessage = subs.filter(s => s.notifications_enabled !== false);
+      
+      // Build proxy lines and total only for enabled subs
+      const proxyInfos = subsForMessage.map(s => buildProxyLine(s as SubWithStage));
       const proxyLines = proxyInfos.map(p => p.line).join("\n");
       const totalValue = proxyInfos.reduce((sum, p) => sum + p.price, 0);
       const totalStr = `R$ ${totalValue.toFixed(2)}`;
-      const isMultiple = subs.length > 1;
-      const subLinks = subs.map(s => `${SITE_URL}/subscriptions/${s.name || s.id}`).join("\n");
-      const firstCode = proxyInfos[0].code;
-      const firstIp = proxyInfos[0].ip;
+      const isMultiple = subsForMessage.length > 1;
+      const subLinks = subsForMessage.map(s => `${SITE_URL}/subscriptions/${s.name || s.id}`).join("\n");
+      const firstCode = proxyInfos[0]?.code;
+      const firstIp = proxyInfos[0]?.ip;
       const renewLink = `${SITE_URL}/subscriptions/${firstCode}`;
-      const countLabel = isMultiple ? `${subs.length} proxies` : `proxy *${firstCode}*`;
+      const countLabel = isMultiple ? `${subsForMessage.length} proxies` : `proxy *${firstCode}*`;
 
       let msg = "";
       let eventKey = "";
@@ -321,8 +324,8 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Queue WhatsApp message (skip if no phone or dryRun)
-      if (msg && phone && !dryRun) {
+      // Queue WhatsApp message (skip if no phone, dryRun, or no subs have notifications enabled)
+      if (msg && phone && !dryRun && subsForMessage.length > 0) {
         waQueue.push({
           phone: normalizePhone(phone),
           message: msg,
