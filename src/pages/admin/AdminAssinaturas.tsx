@@ -16,7 +16,10 @@ import {
   FileSpreadsheet,
   UserPlus,
   Download,
+  Bell,
+  BellOff,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -70,6 +73,7 @@ interface EnrichedSubscription {
   userId?: string;
   rawApiStatus?: string;
   paidPrice?: number;
+  notifications_enabled?: boolean;
   [key: string]: unknown;
 }
 
@@ -168,6 +172,7 @@ function enrichSubFromLocal(
     clientEmail: "",
     userId: dbSub.user_id,
     type: dbSub.type,
+    notifications_enabled: dbSub.notifications_enabled ?? true,
   };
 }
 
@@ -187,6 +192,22 @@ export default function AdminAssinaturas() {
   const [generatingCredentials, setGeneratingCredentials] = useState(false);
   const queryClient = useQueryClient();
   const renewMutation = useRenewSubscription();
+
+  const toggleNotifications = async (subCode: string, enabled: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("subscriptions")
+        .update({ notifications_enabled: enabled })
+        .eq("name", subCode);
+
+      if (error) throw error;
+      
+      toast.success(enabled ? "Notificações ativadas!" : "Notificações desativadas!");
+      queryClient.invalidateQueries({ queryKey: ["admin-subscriptions-cached"] });
+    } catch (err: any) {
+      toast.error(`Erro: ${err.message}`);
+    }
+  };
 
   // PRIMARY SOURCE: Load from local Supabase DB (instant)
   const { data: localDbSubs, isLoading } = useQuery({
@@ -874,6 +895,7 @@ export default function AdminAssinaturas() {
                   <th className="px-4 py-4 font-medium">Status</th>
                   <th className="px-4 py-4 font-medium">Vencimento</th>
                   <th className="px-4 py-4 font-medium">Renovação</th>
+                  <th className="px-4 py-4 font-medium">Aviso WhatsApp</th>
                   <th className="px-4 py-4 font-medium text-right">Ações</th>
                 </tr>
               </thead>
@@ -934,6 +956,19 @@ export default function AdminAssinaturas() {
                       <span className="text-xs border border-border px-2 py-1 rounded-md text-muted-foreground">
                         {sub.auto_renew ? "Automática" : "Manual"}
                       </span>
+                    </td>
+                    <td className="px-4 py-4">
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={sub.notifications_enabled}
+                          onCheckedChange={(checked) => toggleNotifications(sub.code, checked)}
+                        />
+                        {sub.notifications_enabled ? (
+                          <Bell className="w-4 h-4 text-emerald-400" />
+                        ) : (
+                          <BellOff className="w-4 h-4 text-muted-foreground" />
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-4 text-right">
                       <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
