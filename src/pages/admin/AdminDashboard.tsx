@@ -50,6 +50,11 @@ export default function AdminDashboard() {
   const [showRevenuePeriodPicker, setShowRevenuePeriodPicker] = useState(false);
   const [customRevenueRange, setCustomRevenueRange] = useState<{ from?: Date; to?: Date }>({});
   const [allCompletedOrders, setAllCompletedOrders] = useState<{ total: number; created_at: string }[]>([]);
+  const [allCategoryItems, setAllCategoryItems] = useState<{ catId: string; qty: number; revenue: number; created_at: string }[]>([]);
+  const [categoryList, setCategoryList] = useState<{ id: string; name: string; slug: string }[]>([]);
+  const [proxyCatStats, setProxyCatStats] = useState<{ id: string; sales: number; revenue: number } | null>(null);
+  const [safeBmCatStats, setSafeBmCatStats] = useState<{ sales: number; revenue: number }>({ sales: 0, revenue: 0 });
+  const [ctCatStats, setCtCatStats] = useState<{ sales: number; revenue: number }>({ sales: 0, revenue: 0 });
 
   const openPendingModal = async () => {
     setPendingModal(true);
