@@ -803,7 +803,7 @@ export default function AdminDashboard() {
       <div className="glass-panel rounded-xl p-4">
         <div className="mb-4">
           <h3 className="text-sm font-semibold text-white">Volume de Vendas por Categoria</h3>
-          <p className="text-white/40 text-xs">Desempenho comparativo por categoria de produto.</p>
+          <p className="text-white/40 text-xs">Desempenho comparativo por categoria — {periodLabels[revenuePeriod]}</p>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {categoryStats.filter(c => c.sales > 0).length > 0 ? categoryStats.filter(c => c.sales > 0).map((cat, i) => {
