@@ -549,7 +549,7 @@ export default function Checkout() {
       if (isMainProxy && isProxy) return false;
       if (isMainPerfil && isPerfil) return false;
       // Permite SafeBM mesmo se o produto principal for BM, pois é um serviço complementar de proteção
-      const isSafeBM = bName.includes("safebm") || bName.includes("safe bm") || bump.id === "e5118c63-ed52-4f4e-8983-f44c1ba0d17b";
+      const isSafeBM = (bump.name || "").toLowerCase().includes("safe") || bump.id === "e5118c63-ed52-4f4e-8983-f44c1ba0d17b";
       if (isMainBM && isBM && !isSafeBM) return false;
       if (isMainPagina && isPagina) return false;
 
