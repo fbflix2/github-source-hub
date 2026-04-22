@@ -1,14 +1,32 @@
-import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import logoFbflix from "@/assets/logo-fbflix.webp";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
 export default function Auth() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("type") === "recovery") {
+      setIsResetting(false);
+      // We don't necessarily need to do anything here as the recovery link 
+      // will have set the session, and App.tsx will handle the logged-in state.
+      // But we want to make sure they go to /welcome.
+      const checkSession = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          navigate("/welcome");
+        }
+      };
+      checkSession();
+    }
+  }, [location, navigate]);
 
   // Login state
   const [loginEmail, setLoginEmail] = useState("");
@@ -109,9 +127,7 @@ export default function Auth() {
     if (!resetEmail) return;
     setLoading(true);
 
-    const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-      redirectTo: `${window.location.origin}/auth?type=recovery`,
-    });
+    const { error } = await supabase.auth.resetPasswordForEmail(resetEmail);
 
     if (error) {
       toast({
