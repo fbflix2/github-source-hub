@@ -380,7 +380,32 @@ export default function Checkout() {
         .neq("id", product.id)
         .order("price", { ascending: true })
         .limit(10);
-      setBumpProducts(data || []);
+      const baseBumps = data || [];
+      // Garante que o SafeBM esteja sempre disponível como oferta "Combo" se não for o produto principal
+      const SAFEBM_ID = "e5118c63-ed52-4f4e-8983-f44c1ba0d17b";
+      if (product.id !== SAFEBM_ID && !baseBumps.some(b => b.id === SAFEBM_ID)) {
+        const { data: safeBmProd } = await supabase
+          .from("products")
+          .select("id, name, description, price, image_url, tags, icon_type")
+          .eq("id", SAFEBM_ID)
+          .maybeSingle();
+        
+        if (safeBmProd) {
+          // Transformar em "Combo" (3 meses) conforme solicitado
+          const comboSafeBm = {
+            ...safeBmProd,
+            name: "Combo SafeBM (3 Meses)",
+            price: 29.97,
+            description: "Proteção completa para sua BM por 3 meses (Mínimo recomendado)",
+            _hasDiscount: true,
+            _originalPrice: 29.97,
+            _isCombo: true,
+            _comboQty: 3
+          };
+          baseBumps.push(comboSafeBm as any);
+        }
+      }
+      setBumpProducts(baseBumps);
 
       // Fallback promo proxy
       const PROMO_PROXY_ID = "6c396fa8-f6a0-43b2-8061-9148213df549";
@@ -548,7 +573,9 @@ export default function Checkout() {
       // Exclude same type as main product
       if (isMainProxy && isProxy) return false;
       if (isMainPerfil && isPerfil) return false;
-      if (isMainBM && isBM) return false;
+      // Permite SafeBM mesmo se o produto principal for BM, pois é um serviço complementar de proteção
+      const isSafeBM = (bump.name || "").toLowerCase().includes("safe") || bump.id === "e5118c63-ed52-4f4e-8983-f44c1ba0d17b";
+      if (isMainBM && isBM && !isSafeBM) return false;
       if (isMainPagina && isPagina) return false;
 
       return true;
@@ -572,8 +599,10 @@ export default function Checkout() {
         else if (isBumpPagina) score = 15;
         else score = 5;
       } else if (isMainBM) {
-        // BM → Perfil > Proxy > Página
-        if (isBumpPerfil) score = 30;
+        const isSafeBM = (bump.name || "").toLowerCase().includes("safe") || bump.id === "e5118c63-ed52-4f4e-8983-f44c1ba0d17b";
+        // BM → SafeBM > Perfil > Proxy > Página
+        if (isSafeBM) score = 50;
+        else if (isBumpPerfil) score = 30;
         else if (isBumpProxy) score = 20;
         else if (isBumpPagina) score = 15;
         else score = 5;
@@ -764,7 +793,10 @@ export default function Checkout() {
       const extraItems: any[] = [];
       selectedBumps.forEach(bumpId => {
         const bump = bumpProducts.find(b => b.id === bumpId);
-        if (bump) extraItems.push({ order_id: orderId, product_id: bump.id, name: bump.name, price: bump.price, quantity: 1 });
+        if (bump) {
+          const qty = (bump as any)._isCombo ? ((bump as any)._comboQty || 1) : 1;
+          extraItems.push({ order_id: orderId, product_id: bump.id, name: bump.name, price: bump.price, quantity: qty });
+        }
       });
         if (extraItems.length > 0) {
           const { error: extraItemsError } = await supabase.from("order_items").insert(extraItems);
