@@ -74,7 +74,7 @@ function FAQItem({ q, a }: { q: string; a: string }) {
 
 export default function SafeBMLanding() {
   const navigate = useNavigate();
-  const BM_SAFE_CHECKOUT = "/checkout?product=e5118c63-ed52-4f4e-8983-f44c1ba0d17b&qty=3";
+  const BM_SAFE_CHECKOUT_URL = "/checkout?product=e5118c63-ed52-4f4e-8983-f44c1ba0d17b&qty=3";
   const [avatars, setAvatars] = useState<string[]>([]);
 
   useEffect(() => {
@@ -87,6 +87,16 @@ export default function SafeBMLanding() {
         if (data) setAvatars(data.map((p) => p.avatar_url!).filter(Boolean));
       });
   }, []);
+
+  const handleCheckout = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      sessionStorage.setItem("product_redirect", BM_SAFE_CHECKOUT_URL);
+      navigate("/auth");
+      return;
+    }
+    navigate(BM_SAFE_CHECKOUT_URL);
+  };
 
   return (
     <div className="bg-[#0A0A0A] text-white font-sans min-h-screen selection:bg-[#BC13FE] selection:text-white">
@@ -278,7 +288,7 @@ export default function SafeBMLanding() {
               </div>
             </div>
             <button
-              onClick={() => navigate(BM_SAFE_CHECKOUT)}
+              onClick={handleCheckout}
               className="block w-full bg-[#E11D48] hover:bg-rose-700 transition-colors py-6 rounded-2xl text-2xl font-bold mb-6 text-white"
             >
               ATIVAR BLINDAGEM AGORA
@@ -335,7 +345,7 @@ export default function SafeBMLanding() {
               Não espere o bloqueio chegar para tomar uma atitude. O seguro é feito enquanto tudo está bem.
             </p>
             <button
-              onClick={() => navigate(BM_SAFE_CHECKOUT)}
+              onClick={handleCheckout}
               className="inline-block bg-white text-[#0A0A0A] px-12 py-4 rounded-full font-extrabold hover:bg-[#00F0FF] transition-colors uppercase tracking-widest text-sm"
             >
               Ativar BM Blindada Agora
