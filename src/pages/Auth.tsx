@@ -14,6 +14,10 @@ export default function Auth() {
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
 
+  // Reset password state
+  const [isResetting, setIsResetting] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+
   // Register state
   const [registerName, setRegisterName] = useState("");
   const [registerCpf, setRegisterCpf] = useState("");
@@ -97,6 +101,31 @@ export default function Auth() {
       navigate(isStaff ? "/admin" : "/loja");
     }
 
+    setLoading(false);
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetEmail) return;
+    setLoading(true);
+
+    const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+      redirectTo: `${window.location.origin}/auth?type=recovery`,
+    });
+
+    if (error) {
+      toast({
+        title: "Erro ao enviar email",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Email enviado!",
+        description: "Verifique sua caixa de entrada para redefinir sua senha.",
+      });
+      setIsResetting(false);
+    }
     setLoading(false);
   };
 
@@ -213,7 +242,46 @@ export default function Auth() {
           </div>
 
           {/* Login Form */}
-          {isLogin ? (
+          {isResetting ? (
+            <form onSubmit={handleResetPassword} className="flex flex-col gap-5">
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm font-medium text-muted-foreground pl-1">Email de Recuperação</label>
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <span className="material-symbols-outlined text-muted-foreground group-focus-within:text-primary transition-colors text-[20px]">
+                        mail
+                      </span>
+                    </div>
+                    <input
+                      type="email"
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                      className="w-full bg-card border border-border rounded-xl py-3.5 pl-10 pr-4 text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all text-sm font-medium"
+                      placeholder="seu@email.com"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-sm py-3.5 rounded-xl shadow-[0_0_20px_rgba(220,38,38,0.2)] hover:shadow-[0_0_25px_rgba(220,38,38,0.4)] transition-all duration-300 transform active:scale-[0.98] disabled:opacity-50"
+              >
+                {loading ? "Enviando..." : "Enviar Email de Recuperação"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsResetting(false)}
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors text-center"
+              >
+                Voltar para o Login
+              </button>
+            </form>
+          ) : isLogin ? (
             <form onSubmit={handleLogin} className="flex flex-col gap-5">
               <div className="flex flex-col gap-4">
                 {/* Email Input */}
@@ -240,7 +308,14 @@ export default function Auth() {
                 <div className="flex flex-col gap-1.5">
                   <div className="flex justify-between items-center pl-1">
                     <label className="text-sm font-medium text-muted-foreground">Senha</label>
-                    <button type="button" className="text-xs font-medium text-primary hover:text-primary/80 transition-colors">
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        setIsResetting(true);
+                        setResetEmail(loginEmail);
+                      }}
+                      className="text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+                    >
                       Recuperar Senha?
                     </button>
                   </div>
