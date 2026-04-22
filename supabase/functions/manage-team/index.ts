@@ -143,36 +143,26 @@ async function handleAdd(sb: any, body: any) {
   const targetEmail = email.trim().toLowerCase();
   console.log("Looking for email:", targetEmail);
 
-  let foundUser: any = null;
+  console.log("Buscando usuário por email:", targetEmail);
+  
+  // Use the more efficient getUserByEmail first
+  const { data: { user: fetchedUser }, error: fetchError } = await sb.auth.admin.getUserByEmail(targetEmail);
+  
+  let foundUser = fetchedUser;
 
-  // Paginated search through all auth users
-  let page = 1;
-  let totalChecked = 0;
-  while (!foundUser) {
-    const { data, error: listError } = await sb.auth.admin.listUsers({ page, perPage: 1000 });
-    if (listError) {
-      console.error("listUsers error on page", page, ":", listError.message);
-      throw new Error(listError.message);
-    }
-    const users = data?.users || [];
-    console.log(`Page ${page}: got ${users.length} users`);
-    if (users.length === 0) break;
+  if (!foundUser) {
+    console.log("Usuário não encontrado via getUserByEmail, tentando convidar...");
+    // If user not found, we can try to invite them which creates the auth user
+    const { data: inviteData, error: inviteError } = await sb.auth.admin.inviteUserByEmail(targetEmail);
     
-    for (const u of users) {
-      if (u.email?.toLowerCase() === targetEmail) {
-        foundUser = u;
-        break;
-      }
+    if (inviteError) {
+      console.error("Erro ao convidar usuário:", inviteError.message);
+      throw new Error(`Usuário não encontrado e erro ao convidar: ${inviteError.message}`);
     }
-    totalChecked += users.length;
     
-    if (users.length < 1000) break;
-    page++;
+    foundUser = inviteData.user;
+    console.log("Usuário convidado com sucesso:", foundUser.id);
   }
-
-  console.log(`Checked ${totalChecked} users across ${page} pages. Found:`, !!foundUser);
-
-  if (!foundUser) throw new Error(`Usuário não encontrado com esse email (verificados: ${totalChecked})`);
   // Check if already has role
   const { data: existing } = await sb
     .from("user_roles")
