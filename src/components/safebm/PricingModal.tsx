@@ -19,10 +19,11 @@ const plans = [
   },
   {
     name: "Profissional",
-    price: "99,99",
+    price: "49,99",
     bms: "Até 15 BMs",
     features: ["Tudo do Starter", "Anti-phishing avançado", "Backup em tempo real", "Suporte prioritário", "Relatórios semanais"],
     popular: true,
+    isPromo: true,
   },
   {
     name: "Enterprise",
@@ -73,11 +74,23 @@ export default function PricingModal({ open, onClose }: PricingModalProps) {
                   Mais Popular
                 </div>
               )}
-              <h3 className="text-sm font-bold text-[#e0e2ea] mb-1" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{plan.name}</h3>
+              <div className="flex items-center justify-between mb-1">
+                <h3 className="text-sm font-bold text-[#e0e2ea]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{plan.name}</h3>
+                {plan.name === "Profissional" && (
+                  <span className="px-1.5 py-0.5 rounded bg-red-500 text-white text-[8px] font-black uppercase">PROMO</span>
+                )}
+              </div>
               <p className="text-[10px] text-[#c6c6c7]/60 mb-3">{plan.bms}</p>
               <div className="mb-4">
-                <span className="text-2xl font-black text-[#e0e2ea]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>R$ {plan.price}</span>
-                <span className="text-[10px] text-[#c6c6c7]/50">/mês</span>
+                <div className="flex flex-col">
+                  {plan.name === "Profissional" && (
+                    <span className="text-[10px] text-red-400 line-through mb-[-4px]">R$ 99,99</span>
+                  )}
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-2xl font-black text-[#e0e2ea]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>R$ {plan.price}</span>
+                    <span className="text-[10px] text-[#c6c6c7]/50">/mês</span>
+                  </div>
+                </div>
               </div>
               <ul className="space-y-1.5 mb-4 flex-1">
                 {plan.features.map(f => (
