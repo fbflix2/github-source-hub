@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const MaterialIcon = ({ name, className = "" }: { name: string; className?: string }) => (
   <span className={`material-symbols-outlined ${className}`}>{name}</span>
@@ -13,6 +14,8 @@ const plans = [
   {
     name: "Starter",
     price: "9,99",
+    productId: "e5118c63-ed52-4f4e-8983-f44c1ba0d17b",
+    qty: 3,
     bms: "Até 3 BMs",
     features: ["Monitoramento 24/7", "Backup diário", "Alertas por email", "Suporte via chat"],
     popular: false,
@@ -20,6 +23,8 @@ const plans = [
   {
     name: "Profissional",
     price: "49,99",
+    productId: "e5118c63-ed52-4f4e-8983-f44c1ba0d17b",
+    qty: 5,
     bms: "Até 15 BMs",
     features: ["Tudo do Starter", "Anti-phishing avançado", "Backup em tempo real", "Suporte prioritário", "Relatórios semanais"],
     popular: true,
@@ -28,6 +33,8 @@ const plans = [
   {
     name: "Enterprise",
     price: "297,00",
+    productId: "e5118c63-ed52-4f4e-8983-f44c1ba0d17b",
+    qty: 30,
     bms: "Até 50 BMs",
     features: ["Tudo do Profissional", "API dedicada", "Gerente de conta", "SLA 99.99%", "Auditoria completa", "Onboarding VIP"],
     popular: false,
@@ -35,7 +42,13 @@ const plans = [
 ];
 
 export default function PricingModal({ open, onClose }: PricingModalProps) {
+  const navigate = useNavigate();
   if (!open) return null;
+
+  const handleSelectPlan = (plan: typeof plans[0]) => {
+    navigate(`/checkout?product=${plan.productId}&qty=${plan.qty}`);
+    onClose();
+  };
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" onClick={onClose}>
@@ -101,6 +114,7 @@ export default function PricingModal({ open, onClose }: PricingModalProps) {
                 ))}
               </ul>
               <button
+                onClick={() => handleSelectPlan(plan)}
                 className={`w-full py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all active:scale-95 ${
                   plan.popular
                     ? "bg-[#ffb4aa] text-[#410001] hover:bg-[#ffdad5]"
