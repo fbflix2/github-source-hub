@@ -79,10 +79,32 @@ export default function AdminBalanco() {
     setLoading(true);
     const since = getSinceDate();
 
-    const [ordersRes, purchasesRes, orderItemsRes, categoriesRes, productsRes, _discountRes, costRes, webShareRes, proxyCatRes, costCenterRes, allocationRes] = await Promise.all([
-      supabase.from("orders").select("id, total, status, created_at, code").in("status", ["completed", "delivered"]).gte("created_at", since).order("created_at", { ascending: false }),
-      supabase.from("purchases").select("*").gte("created_at", since).order("created_at", { ascending: false }),
-      supabase.from("order_items").select("product_id, price, quantity, order_id, name, created_at").gte("created_at", since),
+    const fetchAll = async (table: string, select: string, conditions: any[] = [], order = { column: 'created_at', ascending: false }) => {
+      let all: any[] = [];
+      let from = 0;
+      const PAGE_SIZE = 1000;
+      while (true) {
+        let query = supabase.from(table).select(select);
+        conditions.forEach(c => {
+          if (c.type === 'in') query = query.in(c.column, c.values);
+          else if (c.type === 'gte') query = query.gte(c.column, c.value);
+          else if (c.type === 'eq') query = query.eq(c.column, c.value);
+        });
+        if (order) query = query.order(order.column, { ascending: order.ascending });
+        query = query.range(from, from + PAGE_SIZE - 1);
+        const { data } = await query;
+        if (!data || data.length === 0) break;
+        all = [...all, ...data];
+        if (data.length < PAGE_SIZE) break;
+        from += PAGE_SIZE;
+      }
+      return all;
+    };
+
+    const [orders, purchases, orderItems, categoriesRes, productsRes, _discountRes, costRes, webShareRes, proxyCatRes, costCenterRes, allocationRes] = await Promise.all([
+      fetchAll("orders", "id, total, status, created_at, code", [{ type: 'in', column: 'status', values: ["completed", "delivered"] }, { type: 'gte', column: 'created_at', value: since }]),
+      fetchAll("purchases", "*", [{ type: 'gte', column: 'created_at', value: since }]),
+      fetchAll("order_items", "product_id, price, quantity, order_id, name, created_at", [{ type: 'gte', column: 'created_at', value: since }]),
       supabase.from("product_categories").select("id, name, slug"),
       supabase.from("products").select("id, category_id, name, price, external_id, tags, icon_type"),
       supabase.from("site_settings").select("value").eq("key", "proxybr_reseller_discounts").maybeSingle(),
@@ -92,10 +114,6 @@ export default function AdminBalanco() {
       supabase.from("cost_center").select("amount, active, name").eq("active", true),
       supabase.from("site_settings").select("value").eq("key", "fixed_cost_allocation").maybeSingle(),
     ]);
-
-    const orders = ordersRes.data ?? [];
-    const purchases = purchasesRes.data ?? [];
-    const orderItems = orderItemsRes.data ?? [];
     const categories = categoriesRes.data ?? [];
     const products = productsRes.data ?? [];
     const productCostsRaw = (costRes.data as any[]) ?? [];
