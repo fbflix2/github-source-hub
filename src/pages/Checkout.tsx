@@ -548,7 +548,9 @@ export default function Checkout() {
       // Exclude same type as main product
       if (isMainProxy && isProxy) return false;
       if (isMainPerfil && isPerfil) return false;
-      if (isMainBM && isBM) return false;
+      // Permite SafeBM mesmo se o produto principal for BM, pois é um serviço complementar de proteção
+      const isSafeBM = bName.includes("safebm") || bName.includes("safe bm") || bump.id === "e5118c63-ed52-4f4e-8983-f44c1ba0d17b";
+      if (isMainBM && isBM && !isSafeBM) return false;
       if (isMainPagina && isPagina) return false;
 
       return true;
@@ -572,8 +574,10 @@ export default function Checkout() {
         else if (isBumpPagina) score = 15;
         else score = 5;
       } else if (isMainBM) {
-        // BM → Perfil > Proxy > Página
-        if (isBumpPerfil) score = 30;
+        const isSafeBM = (bump.name || "").toLowerCase().includes("safe") || bump.id === "e5118c63-ed52-4f4e-8983-f44c1ba0d17b";
+        // BM → SafeBM > Perfil > Proxy > Página
+        if (isSafeBM) score = 50;
+        else if (isBumpPerfil) score = 30;
         else if (isBumpProxy) score = 20;
         else if (isBumpPagina) score = 15;
         else score = 5;

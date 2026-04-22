@@ -74,7 +74,7 @@ function FAQItem({ q, a }: { q: string; a: string }) {
 
 export default function SafeBMLanding() {
   const navigate = useNavigate();
-  const BM_SAFE_CHECKOUT = "/checkout?product=e5118c63-ed52-4f4e-8983-f44c1ba0d17b&qty=1";
+  const BM_SAFE_CHECKOUT = "/checkout?product=e5118c63-ed52-4f4e-8983-f44c1ba0d17b&qty=3";
   const [avatars, setAvatars] = useState<string[]>([]);
 
   useEffect(() => {
