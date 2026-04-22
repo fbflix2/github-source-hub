@@ -200,7 +200,7 @@ export default function AdminDashboard() {
         return all;
       };
 
-      const [profilesRes, loggedInRes, transactionsRes, balanceRes, productsRes, ords, orderItems, categoriesRes, pendingPaymentsRes, paidInvoices, walletPurchases, completedPayments] = await Promise.all([
+      const [profilesRes, loggedInRes, transactionsRes, balanceRes, productsRes, fetchedOrds, fetchedOrderItems, categoriesRes, pendingPaymentsRes, fetchedPaidInvoices, fetchedWalletPurchases, fetchedCompletedPayments] = await Promise.all([
         supabase.from("profiles").select("id", { count: "exact", head: true }).limit(0),
         supabase.from("profiles").select("id", { count: "exact", head: true }).not("first_login_at", "is", null).limit(0),
         supabase.from("wallet_transactions").select("id", { count: "exact", head: true }),
@@ -224,7 +224,7 @@ export default function AdminDashboard() {
       setTotalProducts(prods.length);
       setActiveProducts(prods.filter(p => p.available).length);
 
-      const ords = ordersRes.data ?? [];
+      const ords = fetchedOrds;
       setTotalOrders(ords.length);
       setPendingOrders(ords.filter(o => o.status === "processing").length + (pendingPaymentsRes.count ?? 0));
 
@@ -232,7 +232,7 @@ export default function AdminDashboard() {
       const completedOrds = ords.filter(o => completedStatuses.includes(o.status));
 
       // Merge paid invoices (cobranças avulsas) into revenue
-      const paidInvoices = (paidInvoicesRes.data ?? []).map((inv: any) => ({
+      const paidInvoices = fetchedPaidInvoices.map((inv: any) => ({
         total: Number(inv.amount) || 0,
         created_at: inv.paid_at as string,
       }));
@@ -240,7 +240,7 @@ export default function AdminDashboard() {
       const activeOrderIds = new Set(completedOrds.map(o => o.id));
 
       // Wallet purchases (proxy renewals via wallet debit) - exclude those linked to completed orders
-      const walletPurchases = (walletPurchasesRes.data ?? [])
+      const walletPurchases = fetchedWalletPurchases
         .filter((wt: any) => !wt.reference_id || !activeOrderIds.has(wt.reference_id))
         .map((wt: any) => ({
           total: Math.abs(Number(wt.amount)) || 0,
@@ -248,7 +248,7 @@ export default function AdminDashboard() {
         }));
 
       // Balance deposits (completed payments with no order_id)
-      const balanceDeposits = (completedPaymentsRes.data ?? [])
+      const balanceDeposits = fetchedCompletedPayments
         .filter((p: any) => !p.order_id)
         .map((p: any) => ({
           total: Number(p.amount) || 0,
@@ -305,7 +305,7 @@ export default function AdminDashboard() {
       completedOrds.forEach(o => { orderTotalMap[o.id] = o.total || 0; });
 
       const orderItemCounts: Record<string, number> = {};
-      (orderItemsRes.data ?? []).forEach(item => {
+      fetchedOrderItems.forEach(item => {
         if (!completedOrderIds.has(item.order_id)) return;
         orderItemCounts[item.order_id] = (orderItemCounts[item.order_id] || 0) + 1;
       });
@@ -329,7 +329,7 @@ export default function AdminDashboard() {
       };
 
       const catStats: Record<string, { sales: number; revenue: number }> = {};
-      (orderItemsRes.data ?? []).forEach(item => {
+      fetchedOrderItems.forEach(item => {
         if (!completedOrderIds.has(item.order_id)) return;
         let catId = item.product_id ? prodCatMap[item.product_id] : null;
         // Fallback: match by item name if no product_id
@@ -455,7 +455,7 @@ export default function AdminDashboard() {
       const completedOrderIdsForRepl = new Set(
         ords.filter(o => ["completed", "delivered"].includes(o.status) && o.created_at >= monthStart && o.created_at <= monthEnd).map(o => o.id)
       );
-      const nonProxyOrderItems = (orderItemsRes.data ?? []).filter(item => 
+      const nonProxyOrderItems = fetchedOrderItems.filter(item => 
         completedOrderIdsForRepl.has(item.order_id) && (!item.product_id || !proxyProductIds.has(item.product_id))
       );
       const totalNonProxyItems = nonProxyOrderItems.reduce((sum, item) => sum + (item.quantity || 1), 0);
