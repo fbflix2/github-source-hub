@@ -114,12 +114,12 @@ export default function AdminDashboard() {
         supabase.from("wallet_transactions").select("id", { count: "exact", head: true }),
         supabase.rpc("get_total_wallet_balance"),
         supabase.from("products").select("id, available"),
-        supabase.from("orders").select("id, status, total, created_at"),
-        supabase.from("order_items").select("product_id, price, quantity, created_at, order_id, name"),
+        supabase.from("orders").select("id, status, total, created_at").order("created_at", { ascending: false }).limit(2000),
+        supabase.from("order_items").select("product_id, price, quantity, created_at, order_id, name").order("created_at", { ascending: false }).limit(5000),
         supabase.from("product_categories").select("id, name, slug"),
         supabase.from("payments").select("id", { count: "exact", head: true }).eq("status", "pending"),
-        supabase.from("invoice_links").select("id, amount, paid_at").eq("status", "paid").not("paid_at", "is", null),
-        supabase.from("wallet_transactions").select("id, amount, created_at").eq("type", "purchase").lt("amount", 0),
+        supabase.from("invoice_links").select("id, amount, paid_at").eq("status", "paid").not("paid_at", "is", null).order("paid_at", { ascending: false }).limit(1000),
+        supabase.from("wallet_transactions").select("id, amount, created_at").in("type", ["purchase", "debit"]).lt("amount", 0).order("created_at", { ascending: false }).limit(2000),
       ]);
 
       setTotalClients(loggedInRes.count ?? 0);
