@@ -333,21 +333,29 @@ export default function AdminDashboard() {
         return null;
       };
 
-      const catStats: Record<string, { sales: number; revenue: number }> = {};
+      // Build enriched category items with dates for period filtering
+      const orderDateMap: Record<string, string> = {};
+      completedOrds.forEach(o => { orderDateMap[o.id] = o.created_at; });
+
+      const enrichedCatItems: { catId: string; qty: number; revenue: number; created_at: string }[] = [];
       fetchedOrderItems.forEach(item => {
         if (!completedOrderIds.has(item.order_id)) return;
         let catId = item.product_id ? prodCatMap[item.product_id] : null;
-        // Fallback: match by item name if no product_id
         if (!catId && (item as any).name) {
           catId = guessCategoryByName((item as any).name);
         }
         if (catId) {
-          if (!catStats[catId]) catStats[catId] = { sales: 0, revenue: 0 };
-          catStats[catId].sales += item.quantity;
           const itemCount = orderItemCounts[item.order_id] || 1;
-          catStats[catId].revenue += (orderTotalMap[item.order_id] || 0) / itemCount;
+          enrichedCatItems.push({
+            catId,
+            qty: item.quantity,
+            revenue: (orderTotalMap[item.order_id] || 0) / itemCount,
+            created_at: orderDateMap[item.order_id] || item.created_at,
+          });
         }
       });
+      setAllCategoryItems(enrichedCatItems);
+      setCategoryList(cats);
 
       const zeroedCategories: string[] = [];
       const proxyCat = cats.find(c => c.slug === "proxy") || cats.find(c => c.name.toLowerCase().includes("proxy"));
