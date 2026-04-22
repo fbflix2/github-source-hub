@@ -516,6 +516,13 @@ export default function AdminDashboard() {
 
     const catStats: Record<string, { sales: number; revenue: number }> = {};
     filtered.forEach(item => {
+      const lower = (item.name || '').toLowerCase();
+      const isSafeBM = lower.includes('safe bm') || lower.includes('bm safe');
+      const isContingencia = lower.includes('contingência') || lower.includes('contingencia') || lower.includes('plano black') || lower.includes('plano white');
+
+      // Exclude from regular categories if it's Safe BM or Contingência to avoid double counting
+      if (isSafeBM || isContingencia) return;
+
       if (!catStats[item.catId]) catStats[item.catId] = { sales: 0, revenue: 0 };
       catStats[item.catId].sales += item.qty;
       catStats[item.catId].revenue += item.revenue;
