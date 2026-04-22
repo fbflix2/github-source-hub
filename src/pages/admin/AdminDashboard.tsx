@@ -49,7 +49,7 @@ export default function AdminDashboard() {
   const [showRevenuePeriodPicker, setShowRevenuePeriodPicker] = useState(false);
   const [customRevenueRange, setCustomRevenueRange] = useState<{ from?: Date; to?: Date }>({});
   const [allCompletedOrders, setAllCompletedOrders] = useState<{ total: number; created_at: string; product_name?: string | null }[]>([]);
-  const [allCategoryItems, setAllCategoryItems] = useState<{ catId: string; qty: number; revenue: number; created_at: string }[]>([]);
+  const [allCategoryItems, setAllCategoryItems] = useState<{ catId: string; qty: number; revenue: number; created_at: string; name?: string }[]>([]);
   const [categoryList, setCategoryList] = useState<{ id: string; name: string; slug: string }[]>([]);
   const [proxyCatStats, setProxyCatStats] = useState<{ id: string; sales: number; revenue: number } | null>(null);
 
@@ -335,7 +335,7 @@ export default function AdminDashboard() {
       const orderDateMap: Record<string, string> = {};
       completedOrds.forEach(o => { orderDateMap[o.id] = o.created_at; });
 
-      const enrichedCatItems: { catId: string; qty: number; revenue: number; created_at: string }[] = [];
+  const enrichedCatItems: { catId: string; qty: number; revenue: number; created_at: string; name?: string }[] = [];
       fetchedOrderItems.forEach(item => {
         if (!completedOrderIds.has(item.order_id)) return;
         let catId = item.product_id ? prodCatMap[item.product_id] : null;
@@ -349,6 +349,7 @@ export default function AdminDashboard() {
             qty: item.quantity,
             revenue: (orderTotalMap[item.order_id] || 0) / itemCount,
             created_at: orderDateMap[item.order_id] || item.created_at,
+            name: item.name,
           });
         }
       });
@@ -537,7 +538,7 @@ export default function AdminDashboard() {
       return d >= getRevenueSince && (!getRevenueUntil || d <= getRevenueUntil);
     });
 
-    const safeBmItems = filteredRevenue.filter(o => (o.product_name || '').toLowerCase().includes('safe bm'));
+    const safeBmItems = filteredRevenue.filter(o => (o.product_name || '').toLowerCase().includes('safe bm') || (o.product_name || '').toLowerCase().includes('bm safe'));
     const ctItems = filteredRevenue.filter(o => 
       (o.product_name || '').toLowerCase().includes('contingência') || 
       (o.product_name || '').toLowerCase().includes('contingencia') ||
