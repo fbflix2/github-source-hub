@@ -14,6 +14,7 @@ import {
   UserCog,
   KeyRound,
   Building2,
+  LockKeyhole,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -85,6 +86,11 @@ export default function AdminConfiguracoes() {
   // Department editing
   const [deptMember, setDeptMember] = useState<TeamMember | null>(null);
   const [deptValue, setDeptValue] = useState("");
+
+  // Reset password modal
+  const [resetMember, setResetMember] = useState<TeamMember | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
 
   const filters = [
     { key: "all", label: "Todos" },
@@ -159,6 +165,32 @@ export default function AdminConfiguracoes() {
       fetchMembers();
     } catch (err: any) {
       toast.error(err.message);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!resetMember) return;
+    if (newPassword.length < 6) {
+      toast.error("A senha deve ter pelo menos 6 caracteres");
+      return;
+    }
+    setResetLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("reset-user-password", {
+        body: {
+          target_user_id: resetMember.user_id,
+          new_password: newPassword,
+        },
+      });
+
+      if (error) throw new Error(error.message);
+      toast.success("Senha alterada com sucesso!");
+      setResetMember(null);
+      setNewPassword("");
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setResetLoading(false);
     }
   };
 
@@ -376,6 +408,16 @@ export default function AdminConfiguracoes() {
                           title="Definir Setor"
                         >
                           <Building2 className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setResetMember(member);
+                            setNewPassword("");
+                          }}
+                          className="p-2 hover:bg-yellow-500/20 rounded-lg text-gray-400 hover:text-yellow-400 transition-colors"
+                          title="Resetar Senha"
+                        >
+                          <LockKeyhole className="w-5 h-5" />
                         </button>
                         <button
                           onClick={() => {
@@ -605,6 +647,51 @@ export default function AdminConfiguracoes() {
               className="bg-primary hover:bg-red-700 text-white"
             >
               Salvar Alteração
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reset Password Modal */}
+      <Dialog open={!!resetMember} onOpenChange={(open) => !open && setResetMember(null)}>
+        <DialogContent className="bg-[#1a1a1a] border-white/10 text-white max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <LockKeyhole className="w-5 h-5 text-yellow-400" />
+              Alterar Senha do Membro
+            </DialogTitle>
+          </DialogHeader>
+          {resetMember && (
+            <div className="space-y-4 py-4">
+              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
+                <p className="text-xs text-yellow-200/80 leading-relaxed">
+                  Você está definindo uma nova senha para <strong className="text-white">{resetMember.name}</strong>. 
+                  Após salvar, informe a nova senha ao membro da equipe.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-400">Nova Senha</label>
+                <Input
+                  type="text"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Mínimo 6 caracteres"
+                  className="bg-black/30 border-white/10 text-white placeholder:text-gray-500"
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setResetMember(null)} className="border-white/10 text-gray-300">
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleResetPassword}
+              disabled={resetLoading || !newPassword}
+              className="bg-yellow-600 hover:bg-yellow-700 text-white"
+            >
+              {resetLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Salvar Nova Senha
             </Button>
           </DialogFooter>
         </DialogContent>
