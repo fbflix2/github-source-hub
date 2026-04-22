@@ -3148,6 +3148,7 @@ export type Database = {
           grace_notifications: Json | null
           id: string
           name: string
+          notifications_enabled: boolean
           product_id: string | null
           raw_data: Json | null
           start_date: string
@@ -3164,6 +3165,7 @@ export type Database = {
           grace_notifications?: Json | null
           id?: string
           name: string
+          notifications_enabled?: boolean
           product_id?: string | null
           raw_data?: Json | null
           start_date?: string
@@ -3180,6 +3182,7 @@ export type Database = {
           grace_notifications?: Json | null
           id?: string
           name?: string
+          notifications_enabled?: boolean
           product_id?: string | null
           raw_data?: Json | null
           start_date?: string
