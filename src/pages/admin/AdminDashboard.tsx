@@ -108,19 +108,111 @@ export default function AdminDashboard() {
   useEffect(() => {
     async function fetchStats() {
       try {
-      const [profilesRes, loggedInRes, transactionsRes, balanceRes, productsRes, ordersRes, orderItemsRes, categoriesRes, pendingPaymentsRes, paidInvoicesRes, walletPurchasesRes, completedPaymentsRes] = await Promise.all([
+      const fetchAllOrders = async () => {
+        let all: any[] = [];
+        let from = 0;
+        const PAGE_SIZE = 1000;
+        while (true) {
+          const { data } = await supabase.from("orders")
+            .select("id, status, total, created_at")
+            .order("created_at", { ascending: false })
+            .range(from, from + PAGE_SIZE - 1);
+          if (!data || data.length === 0) break;
+          all = [...all, ...data];
+          if (data.length < PAGE_SIZE) break;
+          from += PAGE_SIZE;
+          if (all.length >= 10000) break; // Safety cap
+        }
+        return all;
+      };
+
+      const fetchAllOrderItems = async () => {
+        let all: any[] = [];
+        let from = 0;
+        const PAGE_SIZE = 1000;
+        while (true) {
+          const { data } = await supabase.from("order_items")
+            .select("product_id, price, quantity, created_at, order_id, name")
+            .order("created_at", { ascending: false })
+            .range(from, from + PAGE_SIZE - 1);
+          if (!data || data.length === 0) break;
+          all = [...all, ...data];
+          if (data.length < PAGE_SIZE) break;
+          from += PAGE_SIZE;
+          if (all.length >= 25000) break; // Safety cap
+        }
+        return all;
+      };
+
+      const fetchAllPaidInvoices = async () => {
+        let all: any[] = [];
+        let from = 0;
+        const PAGE_SIZE = 1000;
+        while (true) {
+          const { data } = await supabase.from("invoice_links")
+            .select("id, amount, paid_at")
+            .eq("status", "paid")
+            .not("paid_at", "is", null)
+            .order("paid_at", { ascending: false })
+            .range(from, from + PAGE_SIZE - 1);
+          if (!data || data.length === 0) break;
+          all = [...all, ...data];
+          if (data.length < PAGE_SIZE) break;
+          from += PAGE_SIZE;
+        }
+        return all;
+      };
+
+      const fetchAllWalletPurchases = async () => {
+        let all: any[] = [];
+        let from = 0;
+        const PAGE_SIZE = 1000;
+        while (true) {
+          const { data } = await supabase.from("wallet_transactions")
+            .select("id, amount, created_at, reference_id")
+            .in("type", ["purchase", "debit"])
+            .lt("amount", 0)
+            .order("created_at", { ascending: false })
+            .range(from, from + PAGE_SIZE - 1);
+          if (!data || data.length === 0) break;
+          all = [...all, ...data];
+          if (data.length < PAGE_SIZE) break;
+          from += PAGE_SIZE;
+        }
+        return all;
+      };
+
+      const fetchAllCompletedPayments = async () => {
+        let all: any[] = [];
+        let from = 0;
+        const PAGE_SIZE = 1000;
+        while (true) {
+          const { data } = await supabase.from("payments")
+            .select("id, amount, created_at, order_id")
+            .eq("status", "completed")
+            .order("created_at", { ascending: false })
+            .range(from, from + PAGE_SIZE - 1);
+          if (!data || data.length === 0) break;
+          all = [...all, ...data];
+          if (data.length < PAGE_SIZE) break;
+          from += PAGE_SIZE;
+        }
+        return all;
+      };
+
+      const [profilesRes, loggedInRes, transactionsRes, balanceRes, productsRes, ords, orderItems, categoriesRes, pendingPaymentsRes, paidInvoices, walletPurchases, completedPayments] = await Promise.all([
         supabase.from("profiles").select("id", { count: "exact", head: true }).limit(0),
         supabase.from("profiles").select("id", { count: "exact", head: true }).not("first_login_at", "is", null).limit(0),
         supabase.from("wallet_transactions").select("id", { count: "exact", head: true }),
         supabase.rpc("get_total_wallet_balance"),
         supabase.from("products").select("id, available"),
-        supabase.from("orders").select("id, status, total, created_at").order("created_at", { ascending: false }).limit(2000),
-        supabase.from("order_items").select("product_id, price, quantity, created_at, order_id, name").order("created_at", { ascending: false }).limit(5000),
+        fetchAllOrders(),
+        fetchAllOrderItems(),
         supabase.from("product_categories").select("id, name, slug"),
         supabase.from("payments").select("id", { count: "exact", head: true }).eq("status", "pending"),
-        supabase.from("invoice_links").select("id, amount, paid_at").eq("status", "paid").not("paid_at", "is", null).order("paid_at", { ascending: false }).limit(1000),
-        supabase.from("wallet_transactions").select("id, amount, created_at, reference_id").in("type", ["purchase", "debit"]).lt("amount", 0).order("created_at", { ascending: false }).limit(2000),
-        supabase.from("payments").select("id, amount, created_at, order_id").eq("status", "completed").order("created_at", { ascending: false }).limit(1000),
+        fetchAllPaidInvoices(),
+        fetchAllWalletPurchases(),
+        fetchAllCompletedPayments(),
       ]);
 
       setTotalClients(loggedInRes.count ?? 0);
