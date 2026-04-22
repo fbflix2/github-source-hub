@@ -538,23 +538,39 @@ export default function AdminDashboard() {
       return d >= getRevenueSince && (!getRevenueUntil || d <= getRevenueUntil);
     });
 
-    const safeBmItems = filteredRevenue.filter(o => (o.product_name || '').toLowerCase().includes('safe bm') || (o.product_name || '').toLowerCase().includes('bm safe'));
-    const ctItems = filteredRevenue.filter(o => 
+    const safeBmInvoices = filteredRevenue.filter(o => (o.product_name || '').toLowerCase().includes('safe bm') || (o.product_name || '').toLowerCase().includes('bm safe'));
+    const ctInvoices = filteredRevenue.filter(o => 
       (o.product_name || '').toLowerCase().includes('contingência') || 
       (o.product_name || '').toLowerCase().includes('contingencia') ||
       (o.product_name || '').toLowerCase().includes('plano black') ||
       (o.product_name || '').toLowerCase().includes('plano white')
     );
 
+    // Also check allCategoryItems for regular orders that might have these products (if not categorized)
+    const filteredOrderItems = allCategoryItems.filter(item => {
+      const d = new Date(item.created_at);
+      return d >= getRevenueSince && (!getRevenueUntil || d <= getRevenueUntil);
+    });
+
+    const safeBmOrderItems = filteredOrderItems.filter(item => 
+      (item.name || '').toLowerCase().includes('safe bm') || (item.name || '').toLowerCase().includes('bm safe')
+    );
+    const ctOrderItems = filteredOrderItems.filter(item => 
+      (item.name || '').toLowerCase().includes('contingência') || 
+      (item.name || '').toLowerCase().includes('contingencia') ||
+      (item.name || '').toLowerCase().includes('plano black') ||
+      (item.name || '').toLowerCase().includes('plano white')
+    );
+
     result.push({ 
       name: "Safe BM", 
-      sales: safeBmItems.length, 
-      revenue: safeBmItems.reduce((s, o) => s + o.total, 0) 
+      sales: safeBmInvoices.length + safeBmOrderItems.reduce((s, i) => s + i.qty, 0), 
+      revenue: safeBmInvoices.reduce((s, o) => s + o.total, 0) + safeBmOrderItems.reduce((s, i) => s + i.revenue, 0) 
     });
     result.push({ 
       name: "Contingência", 
-      sales: ctItems.length, 
-      revenue: ctItems.reduce((s, o) => s + o.total, 0) 
+      sales: ctInvoices.length + ctOrderItems.reduce((s, i) => s + i.qty, 0), 
+      revenue: ctInvoices.reduce((s, o) => s + o.total, 0) + ctOrderItems.reduce((s, i) => s + i.revenue, 0) 
     });
 
     return result;
