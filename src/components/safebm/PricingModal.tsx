@@ -19,14 +19,14 @@ const plans = [
   },
   {
     name: "Profissional",
-    price: "24,99",
+    price: "99,99",
     bms: "Até 15 BMs",
     features: ["Tudo do Starter", "Anti-phishing avançado", "Backup em tempo real", "Suporte prioritário", "Relatórios semanais"],
     popular: true,
   },
   {
     name: "Enterprise",
-    price: "49,99",
+    price: "297,00",
     bms: "Até 50 BMs",
     features: ["Tudo do Profissional", "API dedicada", "Gerente de conta", "SLA 99.99%", "Auditoria completa", "Onboarding VIP"],
     popular: false,
