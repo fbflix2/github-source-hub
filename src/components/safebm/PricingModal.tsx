@@ -24,7 +24,7 @@ const plans = [
     name: "Profissional",
     price: "49,99",
     productId: "e5118c63-ed52-4f4e-8983-f44c1ba0d17b",
-    qty: 5,
+    qty: 15,
     bms: "Até 15 BMs",
     features: ["Tudo do Starter", "Anti-phishing avançado", "Backup em tempo real", "Suporte prioritário", "Relatórios semanais"],
     popular: true,
