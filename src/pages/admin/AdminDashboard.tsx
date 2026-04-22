@@ -48,7 +48,7 @@ export default function AdminDashboard() {
   const [revenuePeriod, setRevenuePeriod] = useState<"hoje" | "7dias" | "30dias" | "inicio" | "custom">("hoje");
   const [showRevenuePeriodPicker, setShowRevenuePeriodPicker] = useState(false);
   const [customRevenueRange, setCustomRevenueRange] = useState<{ from?: Date; to?: Date }>({});
-  const [allCompletedOrders, setAllCompletedOrders] = useState<{ total: number; created_at: string }[]>([]);
+  const [allCompletedOrders, setAllCompletedOrders] = useState<{ total: number; created_at: string; product_name?: string | null }[]>([]);
   const [allCategoryItems, setAllCategoryItems] = useState<{ catId: string; qty: number; revenue: number; created_at: string }[]>([]);
   const [categoryList, setCategoryList] = useState<{ id: string; name: string; slug: string }[]>([]);
   const [proxyCatStats, setProxyCatStats] = useState<{ id: string; sales: number; revenue: number } | null>(null);
@@ -533,11 +533,33 @@ export default function AdminDashboard() {
       revenue: catStats[c.id]?.revenue ?? 0,
     }));
 
-    result.push({ name: "Safe BM", ...safeBmCatStats });
-    result.push({ name: "Contingência", ...ctCatStats });
+    // Calculate Safe BM and Contingência from allCompletedOrders filtered by period
+    const filteredRevenue = allCompletedOrders.filter(o => {
+      const d = new Date(o.created_at);
+      return d >= getRevenueSince && (!getRevenueUntil || d <= getRevenueUntil);
+    });
+
+    const safeBmItems = filteredRevenue.filter(o => (o.product_name || '').toLowerCase().includes('safe bm'));
+    const ctItems = filteredRevenue.filter(o => 
+      (o.product_name || '').toLowerCase().includes('contingência') || 
+      (o.product_name || '').toLowerCase().includes('contingencia') ||
+      (o.product_name || '').toLowerCase().includes('plano black') ||
+      (o.product_name || '').toLowerCase().includes('plano white')
+    );
+
+    result.push({ 
+      name: "Safe BM", 
+      sales: safeBmItems.length, 
+      revenue: safeBmItems.reduce((s, o) => s + o.total, 0) 
+    });
+    result.push({ 
+      name: "Contingência", 
+      sales: ctItems.length, 
+      revenue: ctItems.reduce((s, o) => s + o.total, 0) 
+    });
 
     return result;
-  }, [allCategoryItems, categoryList, proxyCatStats, safeBmCatStats, ctCatStats, getRevenueSince, getRevenueUntil]);
+  }, [allCategoryItems, categoryList, proxyCatStats, allCompletedOrders, getRevenueSince, getRevenueUntil]);
 
 
   const dynamicChartData = useMemo(() => {
