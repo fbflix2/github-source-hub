@@ -398,7 +398,9 @@ export default function Checkout() {
             price: 29.97,
             description: "Proteção completa para sua BM por 3 meses (Mínimo recomendado)",
             _hasDiscount: true,
-            _originalPrice: 29.97
+            _originalPrice: 29.97,
+            _isCombo: true,
+            _comboQty: 3
           };
           baseBumps.push(comboSafeBm as any);
         }
@@ -791,7 +793,10 @@ export default function Checkout() {
       const extraItems: any[] = [];
       selectedBumps.forEach(bumpId => {
         const bump = bumpProducts.find(b => b.id === bumpId);
-        if (bump) extraItems.push({ order_id: orderId, product_id: bump.id, name: bump.name, price: bump.price, quantity: 1 });
+        if (bump) {
+          const qty = (bump as any)._isCombo ? ((bump as any)._comboQty || 1) : 1;
+          extraItems.push({ order_id: orderId, product_id: bump.id, name: bump.name, price: bump.price, quantity: qty });
+        }
       });
         if (extraItems.length > 0) {
           const { error: extraItemsError } = await supabase.from("order_items").insert(extraItems);
