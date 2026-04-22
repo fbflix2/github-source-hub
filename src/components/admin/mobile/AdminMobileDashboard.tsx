@@ -84,38 +84,130 @@ export function AdminMobileDashboard() {
         if (profile?.full_name) setUserName(profile.full_name.split(" ")[0]);
       }
 
-      const [profilesRes, loggedInRes, transactionsRes, balanceRes, productsRes, ordersRes, orderItemsRes, categoriesRes, replacementsRes, paymentsRes, paidInvoicesRes, walletPurchasesRes, completedPaymentsRes] = await Promise.all([
+      const fetchAllOrders = async () => {
+        let all: any[] = [];
+        let from = 0;
+        const PAGE_SIZE = 1000;
+        while (true) {
+          const { data } = await supabase.from("orders")
+            .select("id, status, total, created_at")
+            .order("created_at", { ascending: false })
+            .range(from, from + PAGE_SIZE - 1);
+          if (!data || data.length === 0) break;
+          all = [...all, ...data];
+          if (data.length < PAGE_SIZE) break;
+          from += PAGE_SIZE;
+          if (all.length >= 5000) break; // Safety cap
+        }
+        return all;
+      };
+
+      const fetchAllOrderItems = async () => {
+        let all: any[] = [];
+        let from = 0;
+        const PAGE_SIZE = 1000;
+        while (true) {
+          const { data } = await supabase.from("order_items")
+            .select("product_id, price, quantity, order_id, name")
+            .order("created_at", { ascending: false })
+            .range(from, from + PAGE_SIZE - 1);
+          if (!data || data.length === 0) break;
+          all = [...all, ...data];
+          if (data.length < PAGE_SIZE) break;
+          from += PAGE_SIZE;
+          if (all.length >= 10000) break; // Safety cap
+        }
+        return all;
+      };
+
+      const fetchAllPaidInvoices = async () => {
+        let all: any[] = [];
+        let from = 0;
+        const PAGE_SIZE = 1000;
+        while (true) {
+          const { data } = await supabase.from("invoice_links")
+            .select("id, amount, paid_at")
+            .eq("status", "paid")
+            .not("paid_at", "is", null)
+            .order("paid_at", { ascending: false })
+            .range(from, from + PAGE_SIZE - 1);
+          if (!data || data.length === 0) break;
+          all = [...all, ...data];
+          if (data.length < PAGE_SIZE) break;
+          from += PAGE_SIZE;
+        }
+        return all;
+      };
+
+      const fetchAllWalletPurchases = async () => {
+        let all: any[] = [];
+        let from = 0;
+        const PAGE_SIZE = 1000;
+        while (true) {
+          const { data } = await supabase.from("wallet_transactions")
+            .select("id, amount, created_at, reference_id")
+            .in("type", ["purchase", "debit"])
+            .lt("amount", 0)
+            .order("created_at", { ascending: false })
+            .range(from, from + PAGE_SIZE - 1);
+          if (!data || data.length === 0) break;
+          all = [...all, ...data];
+          if (data.length < PAGE_SIZE) break;
+          from += PAGE_SIZE;
+        }
+        return all;
+      };
+
+      const fetchAllCompletedPayments = async () => {
+        let all: any[] = [];
+        let from = 0;
+        const PAGE_SIZE = 1000;
+        while (true) {
+          const { data } = await supabase.from("payments")
+            .select("id, amount, created_at, order_id")
+            .eq("status", "completed")
+            .order("created_at", { ascending: false })
+            .range(from, from + PAGE_SIZE - 1);
+          if (!data || data.length === 0) break;
+          all = [...all, ...data];
+          if (data.length < PAGE_SIZE) break;
+          from += PAGE_SIZE;
+        }
+        return all;
+      };
+
+      const [profilesRes, loggedInRes, transactionsRes, balanceRes, productsRes, fetchedOrds, fetchedOrderItems, categoriesRes, replacementsRes, paymentsRes, fetchedPaidInvoices, fetchedWalletPurchases, fetchedCompletedPayments] = await Promise.all([
         supabase.from("profiles").select("id", { count: "exact", head: true }),
         supabase.from("profiles").select("id", { count: "exact", head: true }).not("first_login_at", "is", null),
         supabase.from("wallet_transactions").select("id", { count: "exact", head: true }),
         supabase.rpc("get_total_wallet_balance"),
         supabase.from("products").select("id, available, icon_type"),
-        supabase.from("orders").select("id, status, total, created_at").order("created_at", { ascending: false }).limit(2000),
-        supabase.from("order_items").select("product_id, price, quantity, order_id, name").order("created_at", { ascending: false }).limit(5000),
+        fetchAllOrders(),
+        fetchAllOrderItems(),
         supabase.from("product_categories").select("id, name, slug"),
         supabase.from("replacements").select("id", { count: "exact", head: true })
           .gte("created_at", new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString())
           .lte("created_at", new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 23, 59, 59).toISOString()),
         supabase.from("payments").select("amount, created_at, status").in("status", ["approved", "paid", "completed"]).gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()).order("created_at", { ascending: true }),
-        supabase.from("invoice_links").select("id, amount, paid_at").eq("status", "paid").not("paid_at", "is", null).order("paid_at", { ascending: false }).limit(1000),
-        supabase.from("wallet_transactions").select("id, amount, created_at, reference_id").in("type", ["purchase", "debit"]).lt("amount", 0).order("created_at", { ascending: false }).limit(2000),
-        supabase.from("payments").select("id, amount, created_at, order_id").eq("status", "completed").order("created_at", { ascending: false }).limit(1000),
+        fetchAllPaidInvoices(),
+        fetchAllWalletPurchases(),
+        fetchAllCompletedPayments(),
       ]);
 
       const prods = productsRes.data ?? [];
-      const ords = ordersRes.data ?? [];
-      const completedStatuses = ["completed", "delivered"];
-      const completedOrds = ords.filter(o => completedStatuses.includes(o.status));
-      const completedOrderIds = new Set(completedOrds.map(o => o.id));
-
-      // Merge paid invoices (cobranças avulsas) into revenue
-      const paidInvoices = (paidInvoicesRes.data ?? []).map((inv: any) => ({
+      const ords = fetchedOrds;
+      const orderItems = fetchedOrderItems;
+      const paidInvoices = fetchedPaidInvoices.map((inv: any) => ({
         total: Number(inv.amount) || 0,
         created_at: inv.paid_at as string,
       }));
 
+      const completedStatuses = ["completed", "delivered"];
+      const completedOrds = ords.filter(o => completedStatuses.includes(o.status));
+      const completedOrderIds = new Set(completedOrds.map(o => o.id));
+
       // Wallet purchases (proxy renewals via wallet debit) - exclude those linked to completed orders
-      const walletPurchases = (walletPurchasesRes.data ?? [])
+      const walletPurchases = fetchedWalletPurchases
         .filter((wt: any) => !wt.reference_id || !completedOrderIds.has(wt.reference_id))
         .map((wt: any) => ({
           total: Math.abs(Number(wt.amount)) || 0,
@@ -123,7 +215,7 @@ export function AdminMobileDashboard() {
         }));
 
       // Balance deposits (completed payments with no order_id)
-      const balanceDeposits = (completedPaymentsRes.data ?? [])
+      const balanceDeposits = fetchedCompletedPayments
         .filter((p: any) => !p.order_id)
         .map((p: any) => ({
           total: Number(p.amount) || 0,
@@ -192,7 +284,7 @@ export function AdminMobileDashboard() {
       });
 
       const catStats: Record<string, number> = {};
-      (orderItemsRes.data ?? []).forEach(item => {
+      orderItems.forEach(item => {
         if (!completedOrderIds.has(item.order_id)) return;
         const catId = item.product_id ? prodCatMap[item.product_id] : null;
         if (catId) {
@@ -209,7 +301,7 @@ export function AdminMobileDashboard() {
       const replaceableTypes = new Set(["perfil", "bm", "page"]);
       const prodIconMap: Record<string, string> = {};
       prods.forEach((p: any) => { if (p.icon_type) prodIconMap[p.id] = p.icon_type; });
-      const totalReplaceableItems = (orderItemsRes.data ?? [])
+      const totalReplaceableItems = orderItems
         .filter(item => monthCompletedOrderIds.has(item.order_id) && item.product_id && replaceableTypes.has(prodIconMap[item.product_id] || ""))
         .reduce((sum, item) => sum + (item.quantity || 1), 0);
       const totalReplacements = replacementsRes.count ?? 0;

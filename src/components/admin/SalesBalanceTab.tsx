@@ -81,25 +81,52 @@ export default function SalesBalanceTab() {
     const since = getSince();
     const until = getUntil();
 
-    let ordersQuery = supabase.from("orders").select("id, total, subtotal, discount, status, payment_method, created_at")
-      .in("status", ["completed", "delivered"]).neq("payment_method", "courtesy").gte("created_at", since);
-    let itemsQuery = supabase.from("order_items").select("order_id, product_id, name, price, quantity, created_at")
-      .gte("created_at", since);
-    
-    if (until) {
-      ordersQuery = ordersQuery.lte("created_at", until);
-      itemsQuery = itemsQuery.lte("created_at", until);
-    }
+    const fetchAllOrders = async () => {
+      let all: any[] = [];
+      let from = 0;
+      const PAGE_SIZE = 1000;
+      while (true) {
+        let query = supabase.from("orders")
+          .select("id, total, subtotal, discount, status, payment_method, created_at")
+          .in("status", ["completed", "delivered"])
+          .neq("payment_method", "courtesy")
+          .gte("created_at", since)
+          .range(from, from + PAGE_SIZE - 1);
+        if (until) query = query.lte("created_at", until);
+        const { data } = await query;
+        if (!data || data.length === 0) break;
+        all = [...all, ...data];
+        if (data.length < PAGE_SIZE) break;
+        from += PAGE_SIZE;
+      }
+      return all;
+    };
 
-    const [ordersRes, itemsRes, productsRes, catsRes] = await Promise.all([
-      ordersQuery,
-      itemsQuery,
+    const fetchAllOrderItems = async () => {
+      let all: any[] = [];
+      let from = 0;
+      const PAGE_SIZE = 1000;
+      while (true) {
+        let query = supabase.from("order_items")
+          .select("order_id, product_id, name, price, quantity, created_at")
+          .gte("created_at", since)
+          .range(from, from + PAGE_SIZE - 1);
+        if (until) query = query.lte("created_at", until);
+        const { data } = await query;
+        if (!data || data.length === 0) break;
+        all = [...all, ...data];
+        if (data.length < PAGE_SIZE) break;
+        from += PAGE_SIZE;
+      }
+      return all;
+    };
+
+    const [orders, items, productsRes, catsRes] = await Promise.all([
+      fetchAllOrders(),
+      fetchAllOrderItems(),
       supabase.from("products").select("id, name, category_id"),
       supabase.from("product_categories").select("id, name, slug"),
     ]);
-
-    const orders = ordersRes.data ?? [];
-    const items = itemsRes.data ?? [];
     const products = productsRes.data ?? [];
     const cats = catsRes.data ?? [];
     setCategories(cats);

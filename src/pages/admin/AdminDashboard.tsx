@@ -108,19 +108,111 @@ export default function AdminDashboard() {
   useEffect(() => {
     async function fetchStats() {
       try {
-      const [profilesRes, loggedInRes, transactionsRes, balanceRes, productsRes, ordersRes, orderItemsRes, categoriesRes, pendingPaymentsRes, paidInvoicesRes, walletPurchasesRes, completedPaymentsRes] = await Promise.all([
+      const fetchAllOrders = async () => {
+        let all: any[] = [];
+        let from = 0;
+        const PAGE_SIZE = 1000;
+        while (true) {
+          const { data } = await supabase.from("orders")
+            .select("id, status, total, created_at")
+            .order("created_at", { ascending: false })
+            .range(from, from + PAGE_SIZE - 1);
+          if (!data || data.length === 0) break;
+          all = [...all, ...data];
+          if (data.length < PAGE_SIZE) break;
+          from += PAGE_SIZE;
+          if (all.length >= 10000) break; // Safety cap
+        }
+        return all;
+      };
+
+      const fetchAllOrderItems = async () => {
+        let all: any[] = [];
+        let from = 0;
+        const PAGE_SIZE = 1000;
+        while (true) {
+          const { data } = await supabase.from("order_items")
+            .select("product_id, price, quantity, created_at, order_id, name")
+            .order("created_at", { ascending: false })
+            .range(from, from + PAGE_SIZE - 1);
+          if (!data || data.length === 0) break;
+          all = [...all, ...data];
+          if (data.length < PAGE_SIZE) break;
+          from += PAGE_SIZE;
+          if (all.length >= 25000) break; // Safety cap
+        }
+        return all;
+      };
+
+      const fetchAllPaidInvoices = async () => {
+        let all: any[] = [];
+        let from = 0;
+        const PAGE_SIZE = 1000;
+        while (true) {
+          const { data } = await supabase.from("invoice_links")
+            .select("id, amount, paid_at")
+            .eq("status", "paid")
+            .not("paid_at", "is", null)
+            .order("paid_at", { ascending: false })
+            .range(from, from + PAGE_SIZE - 1);
+          if (!data || data.length === 0) break;
+          all = [...all, ...data];
+          if (data.length < PAGE_SIZE) break;
+          from += PAGE_SIZE;
+        }
+        return all;
+      };
+
+      const fetchAllWalletPurchases = async () => {
+        let all: any[] = [];
+        let from = 0;
+        const PAGE_SIZE = 1000;
+        while (true) {
+          const { data } = await supabase.from("wallet_transactions")
+            .select("id, amount, created_at, reference_id")
+            .in("type", ["purchase", "debit"])
+            .lt("amount", 0)
+            .order("created_at", { ascending: false })
+            .range(from, from + PAGE_SIZE - 1);
+          if (!data || data.length === 0) break;
+          all = [...all, ...data];
+          if (data.length < PAGE_SIZE) break;
+          from += PAGE_SIZE;
+        }
+        return all;
+      };
+
+      const fetchAllCompletedPayments = async () => {
+        let all: any[] = [];
+        let from = 0;
+        const PAGE_SIZE = 1000;
+        while (true) {
+          const { data } = await supabase.from("payments")
+            .select("id, amount, created_at, order_id")
+            .eq("status", "completed")
+            .order("created_at", { ascending: false })
+            .range(from, from + PAGE_SIZE - 1);
+          if (!data || data.length === 0) break;
+          all = [...all, ...data];
+          if (data.length < PAGE_SIZE) break;
+          from += PAGE_SIZE;
+        }
+        return all;
+      };
+
+      const [profilesRes, loggedInRes, transactionsRes, balanceRes, productsRes, fetchedOrds, fetchedOrderItems, categoriesRes, pendingPaymentsRes, fetchedPaidInvoices, fetchedWalletPurchases, fetchedCompletedPayments] = await Promise.all([
         supabase.from("profiles").select("id", { count: "exact", head: true }).limit(0),
         supabase.from("profiles").select("id", { count: "exact", head: true }).not("first_login_at", "is", null).limit(0),
         supabase.from("wallet_transactions").select("id", { count: "exact", head: true }),
         supabase.rpc("get_total_wallet_balance"),
         supabase.from("products").select("id, available"),
-        supabase.from("orders").select("id, status, total, created_at").order("created_at", { ascending: false }).limit(2000),
-        supabase.from("order_items").select("product_id, price, quantity, created_at, order_id, name").order("created_at", { ascending: false }).limit(5000),
+        fetchAllOrders(),
+        fetchAllOrderItems(),
         supabase.from("product_categories").select("id, name, slug"),
         supabase.from("payments").select("id", { count: "exact", head: true }).eq("status", "pending"),
-        supabase.from("invoice_links").select("id, amount, paid_at").eq("status", "paid").not("paid_at", "is", null).order("paid_at", { ascending: false }).limit(1000),
-        supabase.from("wallet_transactions").select("id, amount, created_at, reference_id").in("type", ["purchase", "debit"]).lt("amount", 0).order("created_at", { ascending: false }).limit(2000),
-        supabase.from("payments").select("id, amount, created_at, order_id").eq("status", "completed").order("created_at", { ascending: false }).limit(1000),
+        fetchAllPaidInvoices(),
+        fetchAllWalletPurchases(),
+        fetchAllCompletedPayments(),
       ]);
 
       setTotalClients(loggedInRes.count ?? 0);
@@ -132,7 +224,7 @@ export default function AdminDashboard() {
       setTotalProducts(prods.length);
       setActiveProducts(prods.filter(p => p.available).length);
 
-      const ords = ordersRes.data ?? [];
+      const ords = fetchedOrds;
       setTotalOrders(ords.length);
       setPendingOrders(ords.filter(o => o.status === "processing").length + (pendingPaymentsRes.count ?? 0));
 
@@ -140,7 +232,7 @@ export default function AdminDashboard() {
       const completedOrds = ords.filter(o => completedStatuses.includes(o.status));
 
       // Merge paid invoices (cobranças avulsas) into revenue
-      const paidInvoices = (paidInvoicesRes.data ?? []).map((inv: any) => ({
+      const paidInvoices = fetchedPaidInvoices.map((inv: any) => ({
         total: Number(inv.amount) || 0,
         created_at: inv.paid_at as string,
       }));
@@ -148,7 +240,7 @@ export default function AdminDashboard() {
       const activeOrderIds = new Set(completedOrds.map(o => o.id));
 
       // Wallet purchases (proxy renewals via wallet debit) - exclude those linked to completed orders
-      const walletPurchases = (walletPurchasesRes.data ?? [])
+      const walletPurchases = fetchedWalletPurchases
         .filter((wt: any) => !wt.reference_id || !activeOrderIds.has(wt.reference_id))
         .map((wt: any) => ({
           total: Math.abs(Number(wt.amount)) || 0,
@@ -156,7 +248,7 @@ export default function AdminDashboard() {
         }));
 
       // Balance deposits (completed payments with no order_id)
-      const balanceDeposits = (completedPaymentsRes.data ?? [])
+      const balanceDeposits = fetchedCompletedPayments
         .filter((p: any) => !p.order_id)
         .map((p: any) => ({
           total: Number(p.amount) || 0,
@@ -213,7 +305,7 @@ export default function AdminDashboard() {
       completedOrds.forEach(o => { orderTotalMap[o.id] = o.total || 0; });
 
       const orderItemCounts: Record<string, number> = {};
-      (orderItemsRes.data ?? []).forEach(item => {
+      fetchedOrderItems.forEach(item => {
         if (!completedOrderIds.has(item.order_id)) return;
         orderItemCounts[item.order_id] = (orderItemCounts[item.order_id] || 0) + 1;
       });
@@ -237,7 +329,7 @@ export default function AdminDashboard() {
       };
 
       const catStats: Record<string, { sales: number; revenue: number }> = {};
-      (orderItemsRes.data ?? []).forEach(item => {
+      fetchedOrderItems.forEach(item => {
         if (!completedOrderIds.has(item.order_id)) return;
         let catId = item.product_id ? prodCatMap[item.product_id] : null;
         // Fallback: match by item name if no product_id
@@ -363,7 +455,7 @@ export default function AdminDashboard() {
       const completedOrderIdsForRepl = new Set(
         ords.filter(o => ["completed", "delivered"].includes(o.status) && o.created_at >= monthStart && o.created_at <= monthEnd).map(o => o.id)
       );
-      const nonProxyOrderItems = (orderItemsRes.data ?? []).filter(item => 
+      const nonProxyOrderItems = fetchedOrderItems.filter(item => 
         completedOrderIdsForRepl.has(item.order_id) && (!item.product_id || !proxyProductIds.has(item.product_id))
       );
       const totalNonProxyItems = nonProxyOrderItems.reduce((sum, item) => sum + (item.quantity || 1), 0);

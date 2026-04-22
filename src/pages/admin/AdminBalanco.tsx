@@ -79,10 +79,64 @@ export default function AdminBalanco() {
     setLoading(true);
     const since = getSinceDate();
 
-    const [ordersRes, purchasesRes, orderItemsRes, categoriesRes, productsRes, _discountRes, costRes, webShareRes, proxyCatRes, costCenterRes, allocationRes] = await Promise.all([
-      supabase.from("orders").select("id, total, status, created_at, code").in("status", ["completed", "delivered"]).gte("created_at", since).order("created_at", { ascending: false }),
-      supabase.from("purchases").select("*").gte("created_at", since).order("created_at", { ascending: false }),
-      supabase.from("order_items").select("product_id, price, quantity, order_id, name, created_at").gte("created_at", since),
+    const fetchAllOrders = async () => {
+      let all: any[] = [];
+      let from = 0;
+      const PAGE_SIZE = 1000;
+      while (true) {
+        const { data } = await supabase.from("orders")
+          .select("id, total, status, created_at, code")
+          .in("status", ["completed", "delivered"])
+          .gte("created_at", since)
+          .order("created_at", { ascending: false })
+          .range(from, from + PAGE_SIZE - 1);
+        if (!data || data.length === 0) break;
+        all = [...all, ...data];
+        if (data.length < PAGE_SIZE) break;
+        from += PAGE_SIZE;
+      }
+      return all;
+    };
+
+    const fetchAllPurchases = async () => {
+      let all: any[] = [];
+      let from = 0;
+      const PAGE_SIZE = 1000;
+      while (true) {
+        const { data } = await supabase.from("purchases")
+          .select("*")
+          .gte("created_at", since)
+          .order("created_at", { ascending: false })
+          .range(from, from + PAGE_SIZE - 1);
+        if (!data || data.length === 0) break;
+        all = [...all, ...data];
+        if (data.length < PAGE_SIZE) break;
+        from += PAGE_SIZE;
+      }
+      return all;
+    };
+
+    const fetchAllOrderItems = async () => {
+      let all: any[] = [];
+      let from = 0;
+      const PAGE_SIZE = 1000;
+      while (true) {
+        const { data } = await supabase.from("order_items")
+          .select("product_id, price, quantity, order_id, name, created_at")
+          .gte("created_at", since)
+          .range(from, from + PAGE_SIZE - 1);
+        if (!data || data.length === 0) break;
+        all = [...all, ...data];
+        if (data.length < PAGE_SIZE) break;
+        from += PAGE_SIZE;
+      }
+      return all;
+    };
+
+    const [orders, purchases, orderItems, categoriesRes, productsRes, _discountRes, costRes, webShareRes, proxyCatRes, costCenterRes, allocationRes] = await Promise.all([
+      fetchAllOrders(),
+      fetchAllPurchases(),
+      fetchAllOrderItems(),
       supabase.from("product_categories").select("id, name, slug"),
       supabase.from("products").select("id, category_id, name, price, external_id, tags, icon_type"),
       supabase.from("site_settings").select("value").eq("key", "proxybr_reseller_discounts").maybeSingle(),
@@ -92,10 +146,6 @@ export default function AdminBalanco() {
       supabase.from("cost_center").select("amount, active, name").eq("active", true),
       supabase.from("site_settings").select("value").eq("key", "fixed_cost_allocation").maybeSingle(),
     ]);
-
-    const orders = ordersRes.data ?? [];
-    const purchases = purchasesRes.data ?? [];
-    const orderItems = orderItemsRes.data ?? [];
     const categories = categoriesRes.data ?? [];
     const products = productsRes.data ?? [];
     const productCostsRaw = (costRes.data as any[]) ?? [];
