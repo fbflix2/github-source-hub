@@ -145,11 +145,11 @@ export default function AdminDashboard() {
         created_at: inv.paid_at as string,
       }));
 
-      const completedOrderIds = new Set(completedOrds.map(o => o.id));
+      const activeOrderIds = new Set(completedOrds.map(o => o.id));
 
       // Wallet purchases (proxy renewals via wallet debit) - exclude those linked to completed orders
       const walletPurchases = (walletPurchasesRes.data ?? [])
-        .filter((wt: any) => !wt.reference_id || !completedOrderIds.has(wt.reference_id))
+        .filter((wt: any) => !wt.reference_id || !activeOrderIds.has(wt.reference_id))
         .map((wt: any) => ({
           total: Math.abs(Number(wt.amount)) || 0,
           created_at: wt.created_at as string,
@@ -179,7 +179,7 @@ export default function AdminDashboard() {
       setTodayRevenue(todayRev);
       setAllCompletedOrders(allRevenue);
 
-      const completedOrderIds = new Set(completedOrds.map(o => o.id));
+      const completedOrderIds = activeOrderIds;
 
       const monthMap: Record<string, number> = {};
       const dateKeyMap: Record<string, string> = {}; // ISO date -> display key
