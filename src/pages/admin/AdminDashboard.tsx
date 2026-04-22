@@ -108,18 +108,19 @@ export default function AdminDashboard() {
   useEffect(() => {
     async function fetchStats() {
       try {
-      const [profilesRes, loggedInRes, transactionsRes, balanceRes, productsRes, ordersRes, orderItemsRes, categoriesRes, pendingPaymentsRes, paidInvoicesRes, walletPurchasesRes] = await Promise.all([
+      const [profilesRes, loggedInRes, transactionsRes, balanceRes, productsRes, ordersRes, orderItemsRes, categoriesRes, pendingPaymentsRes, paidInvoicesRes, walletPurchasesRes, completedPaymentsRes] = await Promise.all([
         supabase.from("profiles").select("id", { count: "exact", head: true }).limit(0),
         supabase.from("profiles").select("id", { count: "exact", head: true }).not("first_login_at", "is", null).limit(0),
         supabase.from("wallet_transactions").select("id", { count: "exact", head: true }),
         supabase.rpc("get_total_wallet_balance"),
         supabase.from("products").select("id, available"),
-        supabase.from("orders").select("id, status, total, created_at"),
-        supabase.from("order_items").select("product_id, price, quantity, created_at, order_id, name"),
+        supabase.from("orders").select("id, status, total, created_at").order("created_at", { ascending: false }).limit(2000),
+        supabase.from("order_items").select("product_id, price, quantity, created_at, order_id, name").order("created_at", { ascending: false }).limit(5000),
         supabase.from("product_categories").select("id, name, slug"),
         supabase.from("payments").select("id", { count: "exact", head: true }).eq("status", "pending"),
-        supabase.from("invoice_links").select("id, amount, paid_at").eq("status", "paid").not("paid_at", "is", null),
-        supabase.from("wallet_transactions").select("id, amount, created_at").eq("type", "purchase").lt("amount", 0),
+        supabase.from("invoice_links").select("id, amount, paid_at").eq("status", "paid").not("paid_at", "is", null).order("paid_at", { ascending: false }).limit(1000),
+        supabase.from("wallet_transactions").select("id, amount, created_at, reference_id").in("type", ["purchase", "debit"]).lt("amount", 0).order("created_at", { ascending: false }).limit(2000),
+        supabase.from("payments").select("id, amount, created_at, order_id").eq("status", "completed").order("created_at", { ascending: false }).limit(1000),
       ]);
 
       setTotalClients(loggedInRes.count ?? 0);
@@ -144,16 +145,29 @@ export default function AdminDashboard() {
         created_at: inv.paid_at as string,
       }));
 
-      // Wallet purchases (proxy renewals via wallet debit) - amount is negative, so Math.abs
-      const walletPurchases = (walletPurchasesRes.data ?? []).map((wt: any) => ({
-        total: Math.abs(Number(wt.amount)) || 0,
-        created_at: wt.created_at as string,
-      }));
+      const activeOrderIds = new Set(completedOrds.map(o => o.id));
+
+      // Wallet purchases (proxy renewals via wallet debit) - exclude those linked to completed orders
+      const walletPurchases = (walletPurchasesRes.data ?? [])
+        .filter((wt: any) => !wt.reference_id || !activeOrderIds.has(wt.reference_id))
+        .map((wt: any) => ({
+          total: Math.abs(Number(wt.amount)) || 0,
+          created_at: wt.created_at as string,
+        }));
+
+      // Balance deposits (completed payments with no order_id)
+      const balanceDeposits = (completedPaymentsRes.data ?? [])
+        .filter((p: any) => !p.order_id)
+        .map((p: any) => ({
+          total: Number(p.amount) || 0,
+          created_at: p.created_at as string,
+        }));
 
       const allRevenue = [
         ...completedOrds.map(o => ({ total: o.total || 0, created_at: o.created_at })),
         ...paidInvoices,
         ...walletPurchases,
+        ...balanceDeposits,
       ];
 
       // Calculate today's revenue
@@ -165,7 +179,7 @@ export default function AdminDashboard() {
       setTodayRevenue(todayRev);
       setAllCompletedOrders(allRevenue);
 
-      const completedOrderIds = new Set(completedOrds.map(o => o.id));
+      const completedOrderIds = activeOrderIds;
 
       const monthMap: Record<string, number> = {};
       const dateKeyMap: Record<string, string> = {}; // ISO date -> display key

@@ -84,21 +84,22 @@ export function AdminMobileDashboard() {
         if (profile?.full_name) setUserName(profile.full_name.split(" ")[0]);
       }
 
-      const [profilesRes, loggedInRes, transactionsRes, balanceRes, productsRes, ordersRes, orderItemsRes, categoriesRes, replacementsRes, paymentsRes, paidInvoicesRes, walletPurchasesRes] = await Promise.all([
+      const [profilesRes, loggedInRes, transactionsRes, balanceRes, productsRes, ordersRes, orderItemsRes, categoriesRes, replacementsRes, paymentsRes, paidInvoicesRes, walletPurchasesRes, completedPaymentsRes] = await Promise.all([
         supabase.from("profiles").select("id", { count: "exact", head: true }),
         supabase.from("profiles").select("id", { count: "exact", head: true }).not("first_login_at", "is", null),
         supabase.from("wallet_transactions").select("id", { count: "exact", head: true }),
         supabase.rpc("get_total_wallet_balance"),
         supabase.from("products").select("id, available, icon_type"),
-        supabase.from("orders").select("id, status, total, created_at"),
-        supabase.from("order_items").select("product_id, price, quantity, order_id, name"),
+        supabase.from("orders").select("id, status, total, created_at").order("created_at", { ascending: false }).limit(2000),
+        supabase.from("order_items").select("product_id, price, quantity, order_id, name").order("created_at", { ascending: false }).limit(5000),
         supabase.from("product_categories").select("id, name, slug"),
         supabase.from("replacements").select("id", { count: "exact", head: true })
           .gte("created_at", new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString())
           .lte("created_at", new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0, 23, 59, 59).toISOString()),
-        supabase.from("payments").select("amount, created_at, status").in("status", ["approved", "paid"]).gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()).order("created_at", { ascending: true }),
-        supabase.from("invoice_links").select("id, amount, paid_at").eq("status", "paid").not("paid_at", "is", null),
-        supabase.from("wallet_transactions").select("id, amount, created_at").eq("type", "purchase").lt("amount", 0),
+        supabase.from("payments").select("amount, created_at, status").in("status", ["approved", "paid", "completed"]).gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()).order("created_at", { ascending: true }),
+        supabase.from("invoice_links").select("id, amount, paid_at").eq("status", "paid").not("paid_at", "is", null).order("paid_at", { ascending: false }).limit(1000),
+        supabase.from("wallet_transactions").select("id, amount, created_at, reference_id").in("type", ["purchase", "debit"]).lt("amount", 0).order("created_at", { ascending: false }).limit(2000),
+        supabase.from("payments").select("id, amount, created_at, order_id").eq("status", "completed").order("created_at", { ascending: false }).limit(1000),
       ]);
 
       const prods = productsRes.data ?? [];
@@ -113,16 +114,27 @@ export function AdminMobileDashboard() {
         created_at: inv.paid_at as string,
       }));
 
-      // Wallet purchases (proxy renewals via wallet debit)
-      const walletPurchases = (walletPurchasesRes.data ?? []).map((wt: any) => ({
-        total: Math.abs(Number(wt.amount)) || 0,
-        created_at: wt.created_at as string,
-      }));
+      // Wallet purchases (proxy renewals via wallet debit) - exclude those linked to completed orders
+      const walletPurchases = (walletPurchasesRes.data ?? [])
+        .filter((wt: any) => !wt.reference_id || !completedOrderIds.has(wt.reference_id))
+        .map((wt: any) => ({
+          total: Math.abs(Number(wt.amount)) || 0,
+          created_at: wt.created_at as string,
+        }));
+
+      // Balance deposits (completed payments with no order_id)
+      const balanceDeposits = (completedPaymentsRes.data ?? [])
+        .filter((p: any) => !p.order_id)
+        .map((p: any) => ({
+          total: Number(p.amount) || 0,
+          created_at: p.created_at as string,
+        }));
 
       const allRevenue = [
         ...completedOrds.map(o => ({ total: o.total || 0, created_at: o.created_at })),
         ...paidInvoices,
         ...walletPurchases,
+        ...balanceDeposits,
       ];
 
       const todayStart = new Date();
