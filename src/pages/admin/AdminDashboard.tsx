@@ -154,7 +154,7 @@ export default function AdminDashboard() {
         const PAGE_SIZE = 1000;
         while (true) {
           const { data } = await supabase.from("invoice_links")
-            .select("id, amount, paid_at")
+            .select("id, amount, paid_at, product_name")
             .eq("status", "paid")
             .not("paid_at", "is", null)
             .order("paid_at", { ascending: false })
@@ -239,6 +239,7 @@ export default function AdminDashboard() {
       const paidInvoices = fetchedPaidInvoices.map((inv: any) => ({
         total: Number(inv.amount) || 0,
         created_at: inv.paid_at as string,
+        product_name: inv.product_name,
       }));
 
       const activeOrderIds = new Set(completedOrds.map(o => o.id));
@@ -260,10 +261,10 @@ export default function AdminDashboard() {
         }));
 
       const allRevenue = [
-        ...completedOrds.map(o => ({ total: o.total || 0, created_at: o.created_at })),
+        ...completedOrds.map(o => ({ total: o.total || 0, created_at: o.created_at, product_name: null })),
         ...paidInvoices,
-        ...walletPurchases,
-        ...balanceDeposits,
+        ...walletPurchases.map(w => ({ ...w, product_name: null })),
+        ...balanceDeposits.map(b => ({ ...b, product_name: null })),
       ];
 
       // Calculate today's revenue
@@ -418,28 +419,7 @@ export default function AdminDashboard() {
       setChartData(sortedEntries.map(([isoKey, value]) => ({ name: dateKeyMap[isoKey] || isoKey, value })));
 
       // Fetch service-based sales (Safe BM + Contingência)
-      const [safeBmRes, ctClientsRes, ctInvoicesRes] = await Promise.all([
-        supabase.from("safe_bm_vaults").select("id, subscription_price, status"),
-        supabase.from("ct_clients").select("id, monthly_value, status"),
-        supabase.from("invoice_links").select("id, amount, status, product_name").eq("status", "paid"),
-      ]);
-
-      const safeBmVaults = (safeBmRes.data ?? []).filter(v => v.status !== 'pending_setup');
-      const safeBmSales = safeBmVaults.length;
-      const safeBmRevenue = safeBmVaults.reduce((s, v) => s + (Number(v.subscription_price) || 0), 0);
-
-      const ctClients = (ctClientsRes.data ?? []).filter(c => c.status === 'ativo');
-      const ctInvoices = (ctInvoicesRes.data ?? []).filter(inv => 
-        (inv.product_name || '').toLowerCase().includes('contingência') || 
-        (inv.product_name || '').toLowerCase().includes('contingencia') ||
-        (inv.product_name || '').toLowerCase().includes('plano black') ||
-        (inv.product_name || '').toLowerCase().includes('plano white')
-      );
-      const ctSales = ctClients.length;
-      const ctRevenue = ctInvoices.reduce((s, inv) => s + (Number(inv.amount) || 0), 0);
-
-      setSafeBmCatStats({ sales: safeBmSales, revenue: safeBmRevenue });
-      setCtCatStats({ sales: ctSales, revenue: ctRevenue });
+      // Service-based sales (Safe BM + Contingência) will now be calculated in the useMemo to respect periods
 
       // Calculate replacement rate for current month (non-proxy products)
       const replNow = new Date();
