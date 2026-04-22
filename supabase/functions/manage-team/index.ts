@@ -73,10 +73,7 @@ Deno.serve(async (req) => {
     throw new Error("Ação não reconhecida");
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Erro desconhecido";
-    return new Response(JSON.stringify({ error: msg }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonResponse({ error: msg });
   }
 });
 
