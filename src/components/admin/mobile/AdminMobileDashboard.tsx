@@ -222,34 +222,6 @@ export function AdminMobileDashboard() {
           created_at: p.created_at as string,
         }));
 
-      const prods = productsRes.data ?? [];
-      const ords = ordersRes.data ?? [];
-      const completedStatuses = ["completed", "delivered"];
-      const completedOrds = ords.filter(o => completedStatuses.includes(o.status));
-      const completedOrderIds = new Set(completedOrds.map(o => o.id));
-
-      // Merge paid invoices (cobranças avulsas) into revenue
-      const paidInvoices = (paidInvoicesRes.data ?? []).map((inv: any) => ({
-        total: Number(inv.amount) || 0,
-        created_at: inv.paid_at as string,
-      }));
-
-      // Wallet purchases (proxy renewals via wallet debit) - exclude those linked to completed orders
-      const walletPurchases = (walletPurchasesRes.data ?? [])
-        .filter((wt: any) => !wt.reference_id || !completedOrderIds.has(wt.reference_id))
-        .map((wt: any) => ({
-          total: Math.abs(Number(wt.amount)) || 0,
-          created_at: wt.created_at as string,
-        }));
-
-      // Balance deposits (completed payments with no order_id)
-      const balanceDeposits = (completedPaymentsRes.data ?? [])
-        .filter((p: any) => !p.order_id)
-        .map((p: any) => ({
-          total: Number(p.amount) || 0,
-          created_at: p.created_at as string,
-        }));
-
       const allRevenue = [
         ...completedOrds.map(o => ({ total: o.total || 0, created_at: o.created_at })),
         ...paidInvoices,
@@ -312,7 +284,7 @@ export function AdminMobileDashboard() {
       });
 
       const catStats: Record<string, number> = {};
-      (orderItemsRes.data ?? []).forEach(item => {
+      orderItems.forEach(item => {
         if (!completedOrderIds.has(item.order_id)) return;
         const catId = item.product_id ? prodCatMap[item.product_id] : null;
         if (catId) {
@@ -329,7 +301,7 @@ export function AdminMobileDashboard() {
       const replaceableTypes = new Set(["perfil", "bm", "page"]);
       const prodIconMap: Record<string, string> = {};
       prods.forEach((p: any) => { if (p.icon_type) prodIconMap[p.id] = p.icon_type; });
-      const totalReplaceableItems = (orderItemsRes.data ?? [])
+      const totalReplaceableItems = orderItems
         .filter(item => monthCompletedOrderIds.has(item.order_id) && item.product_id && replaceableTypes.has(prodIconMap[item.product_id] || ""))
         .reduce((sum, item) => sum + (item.quantity || 1), 0);
       const totalReplacements = replacementsRes.count ?? 0;
