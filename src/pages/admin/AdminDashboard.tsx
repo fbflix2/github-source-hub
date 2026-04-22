@@ -41,7 +41,6 @@ export default function AdminDashboard() {
   const [replacementRate, setReplacementRate] = useState(0);
   const [todayRevenue, setTodayRevenue] = useState(0);
   const [chartData, setChartData] = useState<{ name: string; value: number }[]>([]);
-  const [categoryStats, setCategoryStats] = useState<{ name: string; sales: number; revenue: number }[]>([]);
   const [pendingModal, setPendingModal] = useState(false);
   const [pendingItems, setPendingItems] = useState<PendingItem[]>([]);
   const [loadingPending, setLoadingPending] = useState(false);
@@ -50,6 +49,11 @@ export default function AdminDashboard() {
   const [showRevenuePeriodPicker, setShowRevenuePeriodPicker] = useState(false);
   const [customRevenueRange, setCustomRevenueRange] = useState<{ from?: Date; to?: Date }>({});
   const [allCompletedOrders, setAllCompletedOrders] = useState<{ total: number; created_at: string }[]>([]);
+  const [allCategoryItems, setAllCategoryItems] = useState<{ catId: string; qty: number; revenue: number; created_at: string }[]>([]);
+  const [categoryList, setCategoryList] = useState<{ id: string; name: string; slug: string }[]>([]);
+  const [proxyCatStats, setProxyCatStats] = useState<{ id: string; sales: number; revenue: number } | null>(null);
+  const [safeBmCatStats, setSafeBmCatStats] = useState<{ sales: number; revenue: number }>({ sales: 0, revenue: 0 });
+  const [ctCatStats, setCtCatStats] = useState<{ sales: number; revenue: number }>({ sales: 0, revenue: 0 });
 
   const openPendingModal = async () => {
     setPendingModal(true);
@@ -328,21 +332,29 @@ export default function AdminDashboard() {
         return null;
       };
 
-      const catStats: Record<string, { sales: number; revenue: number }> = {};
+      // Build enriched category items with dates for period filtering
+      const orderDateMap: Record<string, string> = {};
+      completedOrds.forEach(o => { orderDateMap[o.id] = o.created_at; });
+
+      const enrichedCatItems: { catId: string; qty: number; revenue: number; created_at: string }[] = [];
       fetchedOrderItems.forEach(item => {
         if (!completedOrderIds.has(item.order_id)) return;
         let catId = item.product_id ? prodCatMap[item.product_id] : null;
-        // Fallback: match by item name if no product_id
         if (!catId && (item as any).name) {
           catId = guessCategoryByName((item as any).name);
         }
         if (catId) {
-          if (!catStats[catId]) catStats[catId] = { sales: 0, revenue: 0 };
-          catStats[catId].sales += item.quantity;
           const itemCount = orderItemCounts[item.order_id] || 1;
-          catStats[catId].revenue += (orderTotalMap[item.order_id] || 0) / itemCount;
+          enrichedCatItems.push({
+            catId,
+            qty: item.quantity,
+            revenue: (orderTotalMap[item.order_id] || 0) / itemCount,
+            created_at: orderDateMap[item.order_id] || item.created_at,
+          });
         }
       });
+      setAllCategoryItems(enrichedCatItems);
+      setCategoryList(cats);
 
       const zeroedCategories: string[] = [];
       const proxyCat = cats.find(c => c.slug === "proxy") || cats.find(c => c.name.toLowerCase().includes("proxy"));
@@ -396,7 +408,7 @@ export default function AdminDashboard() {
           proxySales += proxyCount;
         });
 
-        catStats[proxyCat.id] = { sales: proxySales, revenue: proxyRevenue };
+        setProxyCatStats({ id: proxyCat.id, sales: proxySales, revenue: proxyRevenue });
         proxyRevenueForChart = proxyRevenue;
       }
 
@@ -404,15 +416,6 @@ export default function AdminDashboard() {
       // Sort by ISO date to ensure chronological order, then display with formatted labels
       const sortedEntries = Object.entries(monthMap).sort(([a], [b]) => a.localeCompare(b)).slice(-7);
       setChartData(sortedEntries.map(([isoKey, value]) => ({ name: dateKeyMap[isoKey] || isoKey, value })));
-
-      const productCategoryStats = cats.map(c => {
-        const shouldZero = zeroedCategories.includes(c.name.toLowerCase().trim());
-        return {
-          name: c.name,
-          sales: shouldZero ? 0 : (catStats[c.id]?.sales ?? 0),
-          revenue: shouldZero ? 0 : (catStats[c.id]?.revenue ?? 0),
-        };
-      });
 
       // Fetch service-based sales (Safe BM + Contingência)
       const [safeBmRes, ctClientsRes, ctInvoicesRes] = await Promise.all([
@@ -435,11 +438,8 @@ export default function AdminDashboard() {
       const ctSales = ctClients.length;
       const ctRevenue = ctInvoices.reduce((s, inv) => s + (Number(inv.amount) || 0), 0);
 
-      setCategoryStats([
-        ...productCategoryStats,
-        { name: "Safe BM", sales: safeBmSales, revenue: safeBmRevenue },
-        { name: "Contingência", sales: ctSales, revenue: ctRevenue },
-      ]);
+      setSafeBmCatStats({ sales: safeBmSales, revenue: safeBmRevenue });
+      setCtCatStats({ sales: ctSales, revenue: ctRevenue });
 
       // Calculate replacement rate for current month (non-proxy products)
       const replNow = new Date();
@@ -527,6 +527,38 @@ export default function AdminDashboard() {
       })
       .reduce((s, o) => s + o.total, 0);
   }, [allCompletedOrders, getRevenueSince, getRevenueUntil]);
+
+  const categoryStats = useMemo(() => {
+    // Filter category items by period
+    const filtered = allCategoryItems.filter(item => {
+      const d = new Date(item.created_at);
+      return d >= getRevenueSince && (!getRevenueUntil || d <= getRevenueUntil);
+    });
+
+    const catStats: Record<string, { sales: number; revenue: number }> = {};
+    filtered.forEach(item => {
+      if (!catStats[item.catId]) catStats[item.catId] = { sales: 0, revenue: 0 };
+      catStats[item.catId].sales += item.qty;
+      catStats[item.catId].revenue += item.revenue;
+    });
+
+    // Add proxy (not date-filtered, it's subscription-based)
+    if (proxyCatStats) {
+      catStats[proxyCatStats.id] = { sales: proxyCatStats.sales, revenue: proxyCatStats.revenue };
+    }
+
+    const result = categoryList.map(c => ({
+      name: c.name,
+      sales: catStats[c.id]?.sales ?? 0,
+      revenue: catStats[c.id]?.revenue ?? 0,
+    }));
+
+    result.push({ name: "Safe BM", ...safeBmCatStats });
+    result.push({ name: "Contingência", ...ctCatStats });
+
+    return result;
+  }, [allCategoryItems, categoryList, proxyCatStats, safeBmCatStats, ctCatStats, getRevenueSince, getRevenueUntil]);
+
 
   const dynamicChartData = useMemo(() => {
     const isToday = revenuePeriod === "hoje";
@@ -771,7 +803,7 @@ export default function AdminDashboard() {
       <div className="glass-panel rounded-xl p-4">
         <div className="mb-4">
           <h3 className="text-sm font-semibold text-white">Volume de Vendas por Categoria</h3>
-          <p className="text-white/40 text-xs">Desempenho comparativo por categoria de produto.</p>
+          <p className="text-white/40 text-xs">Desempenho comparativo por categoria — {periodLabels[revenuePeriod]}</p>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {categoryStats.filter(c => c.sales > 0).length > 0 ? categoryStats.filter(c => c.sales > 0).map((cat, i) => {
