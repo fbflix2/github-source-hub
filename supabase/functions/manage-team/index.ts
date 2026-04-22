@@ -99,11 +99,22 @@ async function handleList(sb: any) {
 
   const profileMap = new Map((profiles || []).map((p: any) => [p.user_id, p]));
 
-  // Get emails from auth
+  // Get all users from auth to map emails efficiently
+  const { data: { users: allUsers }, error: authError } = await sb.auth.admin.listUsers();
   const emailMap = new Map<string, string>();
+  
+  if (allUsers) {
+    allUsers.forEach((u: any) => {
+      emailMap.set(u.id, u.email || "");
+    });
+  }
+
+  // If any user was not in the first page of listUsers, fetch them individually
   for (const uid of userIds) {
-    const { data: { user } } = await sb.auth.admin.getUserById(uid);
-    if (user?.email) emailMap.set(uid, user.email);
+    if (!emailMap.has(uid)) {
+      const { data: { user } } = await sb.auth.admin.getUserById(uid);
+      if (user?.email) emailMap.set(uid, user.email);
+    }
   }
 
   const members = roles.map((r: any) => {
@@ -142,23 +153,28 @@ async function handleAdd(sb: any, body: any) {
 
   console.log("Buscando usuário por email:", targetEmail);
   
-  // Use the more efficient getUserByEmail first
-  const { data: userData } = await sb.auth.admin.getUserByEmail(targetEmail);
+  // Use listUsers to find user (getUserByEmail might not be available in all versions)
+  const { data: { users: allUsers }, error: listError } = await sb.auth.admin.listUsers();
+  if (listError) throw new Error(listError.message);
   
-  let foundUser = userData?.user;
+  let foundUser = allUsers.find((u: any) => u.email?.toLowerCase() === targetEmail);
 
   if (!foundUser) {
-    console.log("Usuário não encontrado via getUserByEmail, tentando convidar...");
-    // If user not found, we can try to invite them which creates the auth user
-    const { data: inviteData, error: inviteError } = await sb.auth.admin.inviteUserByEmail(targetEmail);
+    console.log("Usuário não encontrado, criando conta confirmada...");
+    // Create user with confirmed email as requested - no email confirmation needed
+    const { data: createData, error: createError } = await sb.auth.admin.createUser({
+      email: targetEmail,
+      email_confirm: true,
+      user_metadata: { created_by: 'admin' }
+    });
     
-    if (inviteError) {
-      console.error("Erro ao convidar usuário:", inviteError.message);
-      throw new Error(`Usuário não encontrado e erro ao convidar: ${inviteError.message}`);
+    if (createError) {
+      console.error("Erro ao criar usuário:", createError.message);
+      throw new Error(`Erro ao criar usuário: ${createError.message}`);
     }
     
-    foundUser = inviteData.user;
-    console.log("Usuário convidado com sucesso:", foundUser.id);
+    foundUser = createData.user;
+    console.log("Usuário criado com sucesso:", foundUser.id);
   }
   // Check if already has role
   const { data: existing } = await sb
