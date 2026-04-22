@@ -380,7 +380,30 @@ export default function Checkout() {
         .neq("id", product.id)
         .order("price", { ascending: true })
         .limit(10);
-      setBumpProducts(data || []);
+      const baseBumps = data || [];
+      // Garante que o SafeBM esteja sempre disponível como oferta "Combo" se não for o produto principal
+      const SAFEBM_ID = "e5118c63-ed52-4f4e-8983-f44c1ba0d17b";
+      if (product.id !== SAFEBM_ID && !baseBumps.some(b => b.id === SAFEBM_ID)) {
+        const { data: safeBmProd } = await supabase
+          .from("products")
+          .select("id, name, description, price, image_url, tags, icon_type")
+          .eq("id", SAFEBM_ID)
+          .maybeSingle();
+        
+        if (safeBmProd) {
+          // Transformar em "Combo" (3 meses) conforme solicitado
+          const comboSafeBm = {
+            ...safeBmProd,
+            name: "Combo SafeBM (3 Meses)",
+            price: 29.97,
+            description: "Proteção completa para sua BM por 3 meses (Mínimo recomendado)",
+            _hasDiscount: true,
+            _originalPrice: 29.97
+          };
+          baseBumps.push(comboSafeBm as any);
+        }
+      }
+      setBumpProducts(baseBumps);
 
       // Fallback promo proxy
       const PROMO_PROXY_ID = "6c396fa8-f6a0-43b2-8061-9148213df549";
