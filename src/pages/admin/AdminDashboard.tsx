@@ -48,12 +48,10 @@ export default function AdminDashboard() {
   const [revenuePeriod, setRevenuePeriod] = useState<"hoje" | "7dias" | "30dias" | "inicio" | "custom">("hoje");
   const [showRevenuePeriodPicker, setShowRevenuePeriodPicker] = useState(false);
   const [customRevenueRange, setCustomRevenueRange] = useState<{ from?: Date; to?: Date }>({});
-  const [allCompletedOrders, setAllCompletedOrders] = useState<{ total: number; created_at: string }[]>([]);
-  const [allCategoryItems, setAllCategoryItems] = useState<{ catId: string; qty: number; revenue: number; created_at: string }[]>([]);
+  const [allCompletedOrders, setAllCompletedOrders] = useState<{ total: number; created_at: string; product_name?: string | null }[]>([]);
+  const [allCategoryItems, setAllCategoryItems] = useState<{ catId: string; qty: number; revenue: number; created_at: string; name?: string }[]>([]);
   const [categoryList, setCategoryList] = useState<{ id: string; name: string; slug: string }[]>([]);
   const [proxyCatStats, setProxyCatStats] = useState<{ id: string; sales: number; revenue: number } | null>(null);
-  const [safeBmCatStats, setSafeBmCatStats] = useState<{ sales: number; revenue: number }>({ sales: 0, revenue: 0 });
-  const [ctCatStats, setCtCatStats] = useState<{ sales: number; revenue: number }>({ sales: 0, revenue: 0 });
 
   const openPendingModal = async () => {
     setPendingModal(true);
@@ -154,7 +152,7 @@ export default function AdminDashboard() {
         const PAGE_SIZE = 1000;
         while (true) {
           const { data } = await supabase.from("invoice_links")
-            .select("id, amount, paid_at")
+            .select("id, amount, paid_at, product_name")
             .eq("status", "paid")
             .not("paid_at", "is", null)
             .order("paid_at", { ascending: false })
@@ -239,6 +237,7 @@ export default function AdminDashboard() {
       const paidInvoices = fetchedPaidInvoices.map((inv: any) => ({
         total: Number(inv.amount) || 0,
         created_at: inv.paid_at as string,
+        product_name: inv.product_name,
       }));
 
       const activeOrderIds = new Set(completedOrds.map(o => o.id));
@@ -260,10 +259,10 @@ export default function AdminDashboard() {
         }));
 
       const allRevenue = [
-        ...completedOrds.map(o => ({ total: o.total || 0, created_at: o.created_at })),
+        ...completedOrds.map(o => ({ total: o.total || 0, created_at: o.created_at, product_name: null })),
         ...paidInvoices,
-        ...walletPurchases,
-        ...balanceDeposits,
+        ...walletPurchases.map(w => ({ ...w, product_name: null })),
+        ...balanceDeposits.map(b => ({ ...b, product_name: null })),
       ];
 
       // Calculate today's revenue
@@ -336,7 +335,7 @@ export default function AdminDashboard() {
       const orderDateMap: Record<string, string> = {};
       completedOrds.forEach(o => { orderDateMap[o.id] = o.created_at; });
 
-      const enrichedCatItems: { catId: string; qty: number; revenue: number; created_at: string }[] = [];
+  const enrichedCatItems: { catId: string; qty: number; revenue: number; created_at: string; name?: string }[] = [];
       fetchedOrderItems.forEach(item => {
         if (!completedOrderIds.has(item.order_id)) return;
         let catId = item.product_id ? prodCatMap[item.product_id] : null;
@@ -350,6 +349,7 @@ export default function AdminDashboard() {
             qty: item.quantity,
             revenue: (orderTotalMap[item.order_id] || 0) / itemCount,
             created_at: orderDateMap[item.order_id] || item.created_at,
+            name: item.name,
           });
         }
       });
@@ -418,28 +418,7 @@ export default function AdminDashboard() {
       setChartData(sortedEntries.map(([isoKey, value]) => ({ name: dateKeyMap[isoKey] || isoKey, value })));
 
       // Fetch service-based sales (Safe BM + Contingência)
-      const [safeBmRes, ctClientsRes, ctInvoicesRes] = await Promise.all([
-        supabase.from("safe_bm_vaults").select("id, subscription_price, status"),
-        supabase.from("ct_clients").select("id, monthly_value, status"),
-        supabase.from("invoice_links").select("id, amount, status, product_name").eq("status", "paid"),
-      ]);
-
-      const safeBmVaults = (safeBmRes.data ?? []).filter(v => v.status !== 'pending_setup');
-      const safeBmSales = safeBmVaults.length;
-      const safeBmRevenue = safeBmVaults.reduce((s, v) => s + (Number(v.subscription_price) || 0), 0);
-
-      const ctClients = (ctClientsRes.data ?? []).filter(c => c.status === 'ativo');
-      const ctInvoices = (ctInvoicesRes.data ?? []).filter(inv => 
-        (inv.product_name || '').toLowerCase().includes('contingência') || 
-        (inv.product_name || '').toLowerCase().includes('contingencia') ||
-        (inv.product_name || '').toLowerCase().includes('plano black') ||
-        (inv.product_name || '').toLowerCase().includes('plano white')
-      );
-      const ctSales = ctClients.length;
-      const ctRevenue = ctInvoices.reduce((s, inv) => s + (Number(inv.amount) || 0), 0);
-
-      setSafeBmCatStats({ sales: safeBmSales, revenue: safeBmRevenue });
-      setCtCatStats({ sales: ctSales, revenue: ctRevenue });
+      // Service-based sales (Safe BM + Contingência) will now be calculated in the useMemo to respect periods
 
       // Calculate replacement rate for current month (non-proxy products)
       const replNow = new Date();
@@ -537,6 +516,13 @@ export default function AdminDashboard() {
 
     const catStats: Record<string, { sales: number; revenue: number }> = {};
     filtered.forEach(item => {
+      const lower = (item.name || '').toLowerCase();
+      const isSafeBM = lower.includes('safe bm') || lower.includes('bm safe');
+      const isContingencia = lower.includes('contingência') || lower.includes('contingencia') || lower.includes('plano black') || lower.includes('plano white');
+
+      // Exclude from regular categories if it's Safe BM or Contingência to avoid double counting
+      if (isSafeBM || isContingencia) return;
+
       if (!catStats[item.catId]) catStats[item.catId] = { sales: 0, revenue: 0 };
       catStats[item.catId].sales += item.qty;
       catStats[item.catId].revenue += item.revenue;
@@ -553,11 +539,49 @@ export default function AdminDashboard() {
       revenue: catStats[c.id]?.revenue ?? 0,
     }));
 
-    result.push({ name: "Safe BM", ...safeBmCatStats });
-    result.push({ name: "Contingência", ...ctCatStats });
+    // Calculate Safe BM and Contingência from allCompletedOrders filtered by period
+    const filteredRevenue = allCompletedOrders.filter(o => {
+      const d = new Date(o.created_at);
+      return d >= getRevenueSince && (!getRevenueUntil || d <= getRevenueUntil);
+    });
+
+    const safeBmInvoices = filteredRevenue.filter(o => (o.product_name || '').toLowerCase().includes('safe bm') || (o.product_name || '').toLowerCase().includes('bm safe'));
+    const ctInvoices = filteredRevenue.filter(o => 
+      (o.product_name || '').toLowerCase().includes('contingência') || 
+      (o.product_name || '').toLowerCase().includes('contingencia') ||
+      (o.product_name || '').toLowerCase().includes('plano black') ||
+      (o.product_name || '').toLowerCase().includes('plano white')
+    );
+
+    // Also check allCategoryItems for regular orders that might have these products (if not categorized)
+    const filteredOrderItems = allCategoryItems.filter(item => {
+      const d = new Date(item.created_at);
+      return d >= getRevenueSince && (!getRevenueUntil || d <= getRevenueUntil);
+    });
+
+    const safeBmOrderItems = filteredOrderItems.filter(item => 
+      (item.name || '').toLowerCase().includes('safe bm') || (item.name || '').toLowerCase().includes('bm safe')
+    );
+    const ctOrderItems = filteredOrderItems.filter(item => 
+      (item.name || '').toLowerCase().includes('contingência') || 
+      (item.name || '').toLowerCase().includes('contingencia') ||
+      (item.name || '').toLowerCase().includes('plano black') ||
+      (item.name || '').toLowerCase().includes('plano white')
+    );
+
+    result.push({ 
+      name: "Safe BM", 
+      sales: safeBmInvoices.length + safeBmOrderItems.reduce((s, i) => s + i.qty, 0), 
+      revenue: safeBmInvoices.reduce((s, o) => s + o.total, 0) + safeBmOrderItems.reduce((s, i) => s + i.revenue, 0) 
+    });
+    result.push({ 
+      name: "Contingência", 
+      sales: ctInvoices.length + ctOrderItems.reduce((s, i) => s + i.qty, 0), 
+      revenue: ctInvoices.reduce((s, o) => s + o.total, 0) + ctOrderItems.reduce((s, i) => s + i.revenue, 0) 
+    });
 
     return result;
-  }, [allCategoryItems, categoryList, proxyCatStats, safeBmCatStats, ctCatStats, getRevenueSince, getRevenueUntil]);
+  }, [allCategoryItems, categoryList, proxyCatStats, allCompletedOrders, getRevenueSince, getRevenueUntil]);
 
 
   const dynamicChartData = useMemo(() => {
