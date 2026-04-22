@@ -41,7 +41,6 @@ export default function AdminDashboard() {
   const [replacementRate, setReplacementRate] = useState(0);
   const [todayRevenue, setTodayRevenue] = useState(0);
   const [chartData, setChartData] = useState<{ name: string; value: number }[]>([]);
-  const [categoryStats, setCategoryStats] = useState<{ name: string; sales: number; revenue: number }[]>([]);
   const [pendingModal, setPendingModal] = useState(false);
   const [pendingItems, setPendingItems] = useState<PendingItem[]>([]);
   const [loadingPending, setLoadingPending] = useState(false);
