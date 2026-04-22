@@ -409,7 +409,7 @@ export default function AdminDashboard() {
           proxySales += proxyCount;
         });
 
-        catStats[proxyCat.id] = { sales: proxySales, revenue: proxyRevenue };
+        setProxyCatStats({ id: proxyCat.id, sales: proxySales, revenue: proxyRevenue });
         proxyRevenueForChart = proxyRevenue;
       }
 
@@ -417,15 +417,6 @@ export default function AdminDashboard() {
       // Sort by ISO date to ensure chronological order, then display with formatted labels
       const sortedEntries = Object.entries(monthMap).sort(([a], [b]) => a.localeCompare(b)).slice(-7);
       setChartData(sortedEntries.map(([isoKey, value]) => ({ name: dateKeyMap[isoKey] || isoKey, value })));
-
-      const productCategoryStats = cats.map(c => {
-        const shouldZero = zeroedCategories.includes(c.name.toLowerCase().trim());
-        return {
-          name: c.name,
-          sales: shouldZero ? 0 : (catStats[c.id]?.sales ?? 0),
-          revenue: shouldZero ? 0 : (catStats[c.id]?.revenue ?? 0),
-        };
-      });
 
       // Fetch service-based sales (Safe BM + Contingência)
       const [safeBmRes, ctClientsRes, ctInvoicesRes] = await Promise.all([
@@ -448,11 +439,8 @@ export default function AdminDashboard() {
       const ctSales = ctClients.length;
       const ctRevenue = ctInvoices.reduce((s, inv) => s + (Number(inv.amount) || 0), 0);
 
-      setCategoryStats([
-        ...productCategoryStats,
-        { name: "Safe BM", sales: safeBmSales, revenue: safeBmRevenue },
-        { name: "Contingência", sales: ctSales, revenue: ctRevenue },
-      ]);
+      setSafeBmCatStats({ sales: safeBmSales, revenue: safeBmRevenue });
+      setCtCatStats({ sales: ctSales, revenue: ctRevenue });
 
       // Calculate replacement rate for current month (non-proxy products)
       const replNow = new Date();
