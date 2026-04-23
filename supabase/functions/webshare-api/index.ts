@@ -1792,15 +1792,10 @@ Deno.serve(async (req) => {
         const plansResp = await webFetch("/subscription/plan/", WEBSHARE_API_KEY);
         const plansData = await plansResp.json();
         const plans = (plansData.results || []).filter((p: any) => p.status === "active");
-        console.log(`[get-internal-proxy-config] Found ${plans.length} active plans:`, plans.map((p: any) => `${p.id} (${p.proxy_subtype}) limit=${p.bandwidth_limit}GB`).join(", "));
 
         // Find the residential (rotating) plan specifically for internal proxy
         const activePlan = plans.find((p: any) => p.proxy_subtype === "residential")
           || plans.find((p: any) => p.bandwidth_limit > 0);
-
-        if (activePlan) {
-          console.log(`[get-internal-proxy-config] Active plan: ${activePlan.id} name=${activePlan.name} type=${activePlan.proxy_subtype}`);
-        }
         
         let limitBytes = 0;
         let usedBytes = 0;
@@ -1814,17 +1809,14 @@ Deno.serve(async (req) => {
 
           // Fetch aggregate stats filtered by this specific plan_id
           try {
-          console.log(`[get-internal-proxy-config] Fetching stats for plan ${activePlan.id}...`);
           const aggResp = await webFetch(`/stats/aggregate/?plan_id=${activePlan.id}`, WEBSHARE_API_KEY);
           const aggData = await aggResp.json();
           if (aggResp.ok && aggData.bandwidth_total !== undefined) {
             usedBytes = aggData.bandwidth_total || 0;
-            console.log(`[get-internal-proxy-config] Plan ${activePlan.id} bandwidth: ${usedBytes}`);
           }
           
           // Fallback to account-wide if 0
           if (usedBytes === 0) {
-            console.log(`[get-internal-proxy-config] Plan stats were 0, trying account-wide...`);
             const accAggResp = await webFetch(`/stats/aggregate/`, WEBSHARE_API_KEY);
             if (accAggResp.ok) {
               const accAggData = await accAggResp.json();
