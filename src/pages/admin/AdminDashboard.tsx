@@ -541,11 +541,6 @@ export default function AdminDashboard() {
       catStats[item.catId].revenue += item.revenue;
     });
 
-    // Add proxy (not date-filtered, it's subscription-based)
-    if (proxyCatStats) {
-      catStats[proxyCatStats.id] = { sales: proxyCatStats.sales, revenue: proxyCatStats.revenue };
-    }
-
     const result = categoryList.map(c => ({
       name: c.name,
       sales: catStats[c.id]?.sales ?? 0,
