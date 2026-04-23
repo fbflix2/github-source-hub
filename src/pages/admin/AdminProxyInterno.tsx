@@ -172,7 +172,7 @@ export default function AdminProxyInterno() {
         <div className="flex items-start gap-2">
           <AlertTriangle className="size-4 text-amber-500 mt-0.5 shrink-0" />
           <p className="text-xs text-amber-200/80">
-            Esta tela é exclusiva para uso operacional interno. Alterações aqui <strong>não afetam</strong> assinaturas de clientes, entregas ou cobranças.
+             Esta tela é exclusiva para uso operacional interno. As estatísticas de banda abaixo representam o <strong>consumo total da conta principal</strong> e não o uso individual de cada plano ou colaborador. Alterações aqui <strong>não afetam</strong> assinaturas de clientes, entregas ou cobranças.
           </p>
         </div>
       </div>
@@ -298,9 +298,12 @@ export default function AdminProxyInterno() {
                       {limitBytes > 0 ? formatBytes(Math.max(0, limitBytes - usedBytes)) : "∞"}
                     </p>
                   </div>
-                  <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-3 text-center">
-                    <p className="text-[10px] uppercase tracking-wider text-amber-400 font-medium">Hoje</p>
-                    <p className="text-lg font-bold text-amber-400">{formatBytes(todayBytes)}</p>
+                   <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 p-3 text-center relative group">
+                     <p className="text-[10px] uppercase tracking-wider text-amber-400 font-medium">Total Hoje</p>
+                     <p className="text-lg font-bold text-amber-400">{formatBytes(todayBytes)}</p>
+                     <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-popover text-popover-foreground text-[10px] p-2 rounded border border-border shadow-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+                       Consumo acumulado de todos os usuários da conta
+                     </div>
                   </div>
                 </div>
 

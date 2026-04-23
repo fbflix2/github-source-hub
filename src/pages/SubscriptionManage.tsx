@@ -433,7 +433,9 @@ export default function SubscriptionManage() {
               <div className="grid grid-cols-2 gap-2">
                 <div className="bg-muted/50 rounded-lg p-2.5 border border-border">
                   <p className="text-text-secondary text-[10px] uppercase tracking-wider font-semibold">Plano</p>
-                  <p className="text-foreground font-bold text-lg mt-0.5">{sub.gb_purchased || 0} GB</p>
+                   <p className="text-foreground font-bold text-lg mt-0.5">
+                     {sub.gb_purchased || (customerPrice ? Math.floor(Number(customerPrice) / 50) : 0)} GB
+                   </p>
                 </div>
                 <div className="bg-muted/50 rounded-lg p-2.5 border border-border">
                   <p className="text-text-secondary text-[10px] uppercase tracking-wider font-semibold">Valor Pago</p>
