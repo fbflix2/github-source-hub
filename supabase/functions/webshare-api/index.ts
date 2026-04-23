@@ -1793,8 +1793,9 @@ Deno.serve(async (req) => {
         const plansData = await plansResp.json();
         const plans = plansData.results || [];
 
-        // Find any active plan that has bandwidth limit (usually 'residential' but could be others)
-        const activePlan = plans.find((p: any) => p.status === "active" && (p.proxy_subtype === "residential" || p.bandwidth_limit > 0));
+        // Find the residential (rotating) plan specifically for internal proxy
+        const activePlan = plans.find((p: any) => p.status === "active" && p.proxy_subtype === "residential")
+          || plans.find((p: any) => p.status === "active" && p.bandwidth_limit > 0);
         
         let limitBytes = 0;
         let usedBytes = 0;
