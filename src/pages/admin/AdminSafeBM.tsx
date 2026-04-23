@@ -277,18 +277,23 @@ export default function AdminSafeBM() {
   }, [vaults]);
 
   // ─── Monitoring filtered ───
-  const filtered = useMemo(() => {
-    let items = vaults.filter(v => v.bm_link !== GENERIC_BM_LINK);
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      items = items.filter(v =>
-        (v.client_name || "").toLowerCase().includes(q) ||
-        v.bm_name.toLowerCase().includes(q) ||
-        (v.perfil_backup || "").toLowerCase().includes(q)
-      );
-    }
-    return items;
-  }, [vaults, search]);
+   const filtered = useMemo(() => {
+     let items = vaults;
+     
+     // If not searching, hide BMs that haven't been configured yet (generic link)
+     if (!search.trim()) {
+       items = items.filter(v => v.bm_link !== GENERIC_BM_LINK);
+     } else {
+       const q = search.toLowerCase();
+       items = items.filter(v =>
+         (v.client_name || "").toLowerCase().includes(q) ||
+         v.bm_name.toLowerCase().includes(q) ||
+         (v.perfil_backup || "").toLowerCase().includes(q) ||
+         (v.notes || "").toLowerCase().includes(q)
+       );
+     }
+     return items;
+   }, [vaults, search]);
 
   const lookupClient = async () => {
     if (!formClientEmail.trim()) return;
@@ -706,6 +711,9 @@ export default function AdminSafeBM() {
                                             onClick={() => { setRenamingId(v.id); setRenameValue(v.bm_name); }} title="Clique para renomear">
                                             {v.bm_name}
                                           </span>
+                                          {v.bm_link === GENERIC_BM_LINK && (
+                                            <Badge variant="outline" className="text-[9px] h-4 px-1 bg-amber-500/10 text-amber-500 border-amber-500/20">Link Pendente</Badge>
+                                          )}
                                           <Pencil className="size-3 text-muted-foreground hover:text-primary cursor-pointer"
                                             onClick={() => { setRenamingId(v.id); setRenameValue(v.bm_name); }} />
                                           {displayLink && (
