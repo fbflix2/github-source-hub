@@ -1123,8 +1123,28 @@ export default function AdminEsteiraAdmin() {
                   {selectedProfile.status !== "completed" && (
                     <button
                       onClick={async () => {
-                        const { error } = await supabase.from("warming_profiles").update({ status: "completed", updated_at: new Date().toISOString() }).eq("id", selectedProfile.id);
-                        if (error) { toast.error("Erro ao aprovar"); return; }
+                        const { error } = await supabase
+                          .from("warming_profiles")
+                          .update({ status: "completed", updated_at: new Date().toISOString() })
+                          .eq("id", selectedProfile.id);
+                        
+                        if (error) { 
+                          toast.error("Erro ao aprovar"); 
+                          return; 
+                        }
+
+                        // Also confirm operator earnings to ensure it appears in "Perfis Prontos"
+                        const now = new Date().toISOString();
+                        await supabase
+                          .from("operator_earnings")
+                          .update({ 
+                            status: "confirmed", 
+                            confirmed_at: now,
+                            updated_at: now 
+                          })
+                          .eq("profile_id", selectedProfile.id)
+                          .neq("status", "cancelled");
+
                         toast.success(`Perfil ${selectedProfile.profile_code} aprovado — movido para Perfis Prontos!`);
                         setAnaliseSelectedId(null);
                         fetchProfiles();
