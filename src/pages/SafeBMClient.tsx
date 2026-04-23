@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+ import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import RequestAccessButton from "@/components/safebm/RequestAccessButton";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -7,7 +7,8 @@ import { ptBR } from "date-fns/locale";
 import SecurityMonitor, { type SecurityMonitorHandle } from "@/components/safebm/SecurityMonitor";
 import PricingModal from "@/components/safebm/PricingModal";
 import SafeBMOnboarding from "@/components/safebm/SafeBMOnboarding";
-import SafeBMVaultConfig from "@/components/safebm/SafeBMVaultConfig";
+ import SafeBMVaultConfig from "@/components/safebm/SafeBMVaultConfig";
+ import { BMReportModal } from "@/components/safebm/BMReportModal";
 
 interface SafeBmVault {
   id: string;
@@ -63,7 +64,8 @@ export default function SafeBMClient() {
   const [vaults, setVaults] = useState<SafeBmVault[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [showPricing, setShowPricing] = useState(false);
+   const [showPricing, setShowPricing] = useState(false);
+   const [reportingVault, setReportingVault] = useState<SafeBmVault | null>(null);
   const monitorRef = useRef<SecurityMonitorHandle>(null);
 
   const GENERIC_BM_LINK = "https://business.facebook.com";
@@ -81,7 +83,11 @@ export default function SafeBMClient() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchVaults(); }, []);
+   const onVaultUpdated = useCallback(() => {
+     fetchVaults();
+   }, []);
+ 
+   useEffect(() => { fetchVaults(); }, []);
 
   const configuredVaults = useMemo(() => {
     // Only show vaults that have been fully configured (not generic link, or have tracking/backup)
@@ -236,8 +242,16 @@ export default function SafeBMClient() {
         )}
       </section>
 
-      <PricingModal open={showPricing} onClose={() => setShowPricing(false)} />
-      {/* ───── PROTECTED BMs GRID ───── */}
+       <PricingModal open={showPricing} onClose={() => setShowPricing(false)} />
+ 
+       <BMReportModal 
+         vault={reportingVault ? { id: reportingVault.id, bm_name: reportingVault.bm_name } : null}
+         open={!!reportingVault}
+         onOpenChange={(open) => !open && setReportingVault(null)}
+         onSuccess={onVaultUpdated}
+       />
+ 
+       {/* ───── PROTECTED BMs GRID ───── */}
       <section className="space-y-2">
         <div>
           <h3 className="text-base font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>BMs Protegidas</h3>
@@ -288,22 +302,33 @@ export default function SafeBMClient() {
                 {/* Card content */}
                 <div className="px-3 pb-3 flex flex-col flex-1 justify-between">
                   <div>
-                    <div className="flex justify-between items-start mb-1.5">
-                      <h4 className="text-xs font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{v.bm_name}</h4>
-                      {isExpiringSoon ? (
-                        <div className="px-2 py-0.5 rounded-full bg-[#93000a] text-[#ffdad6] text-[9px] font-bold uppercase tracking-wider">
-                          Crítico
-                        </div>
-                      ) : isActive ? (
-                        <div className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[9px] font-bold uppercase tracking-wider">
-                          Protegido
-                        </div>
-                      ) : (
-                        <div className="px-2 py-0.5 rounded-full bg-[#c6c6c7]/10 text-[#c6c6c7] text-[9px] font-bold uppercase tracking-wider">
-                          Inativo
-                        </div>
-                      )}
-                    </div>
+                     <div className="flex justify-between items-start mb-1.5">
+                       <h4 className="text-xs font-bold truncate pr-1" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{v.bm_name}</h4>
+                       <div className="flex items-center gap-1.5 shrink-0">
+                         {isActive && (
+                           <button 
+                             onClick={(e) => { e.stopPropagation(); setReportingVault(v); }}
+                             className="p-1 rounded-full bg-[#1c2025]/60 hover:bg-[#ffb4aa]/20 text-[#c6c6c7] hover:text-[#ffb4aa] transition-all"
+                             title="Reportar problema"
+                           >
+                             <MaterialIcon name="report_problem" className="!text-[12px]" />
+                           </button>
+                         )}
+                         {isExpiringSoon ? (
+                           <div className="px-2 py-0.5 rounded-full bg-[#93000a] text-[#ffdad6] text-[9px] font-bold uppercase tracking-wider">
+                             Crítico
+                           </div>
+                         ) : isActive ? (
+                           <div className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[9px] font-bold uppercase tracking-wider">
+                             Protegido
+                           </div>
+                         ) : (
+                           <div className="px-2 py-0.5 rounded-full bg-[#c6c6c7]/10 text-[#c6c6c7] text-[9px] font-bold uppercase tracking-wider">
+                             Inativo
+                           </div>
+                         )}
+                       </div>
+                     </div>
                     <p className="text-[9px] text-[#c6c6c7]/50 mb-2 font-mono">ID: {bmId}</p>
 
                     <div className="space-y-1 mb-2">
