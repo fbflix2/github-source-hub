@@ -1814,15 +1814,6 @@ Deno.serve(async (req) => {
               usedBytes = aggData.bandwidth_total || 0;
             }
             
-            // If stats are 0, try account-wide as fallback
-            if (usedBytes === 0) {
-              const accAggResp = await webFetch(`/stats/aggregate/`, WEBSHARE_API_KEY);
-              const accAggData = await accAggResp.json();
-              if (accAggResp.ok && accAggData.bandwidth_total !== undefined) {
-                usedBytes = accAggData.bandwidth_total || 0;
-                console.log(`[get-internal-proxy-config] Fallback to account-wide stats: ${usedBytes}`);
-              }
-            }
           } catch (e: any) {
             console.warn(`[get-internal-proxy-config] plan stats error:`, e.message);
           }
@@ -1856,14 +1847,6 @@ Deno.serve(async (req) => {
             todayBytes = todayData.bandwidth_total || 0;
           }
           
-          // If 0 and we used a plan filter, try without it
-          if (todayBytes === 0 && planFilter) {
-            const todayAccResp = await webFetch(`/stats/aggregate/?timestamp__gte=${todayStart}&timestamp__lte=${todayEnd}`, WEBSHARE_API_KEY);
-            const todayAccData = await todayAccResp.json();
-            if (todayAccResp.ok && todayAccData.bandwidth_total !== undefined) {
-              todayBytes = todayAccData.bandwidth_total || 0;
-            }
-          }
         } catch (e: any) {
           console.warn(`[get-internal-proxy-config] today stats error:`, e.message);
         }
