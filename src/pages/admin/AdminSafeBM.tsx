@@ -277,18 +277,23 @@ export default function AdminSafeBM() {
   }, [vaults]);
 
   // ─── Monitoring filtered ───
-  const filtered = useMemo(() => {
-    let items = vaults.filter(v => v.bm_link !== GENERIC_BM_LINK);
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      items = items.filter(v =>
-        (v.client_name || "").toLowerCase().includes(q) ||
-        v.bm_name.toLowerCase().includes(q) ||
-        (v.perfil_backup || "").toLowerCase().includes(q)
-      );
-    }
-    return items;
-  }, [vaults, search]);
+   const filtered = useMemo(() => {
+     let items = vaults;
+     
+     // If not searching, hide BMs that haven't been configured yet (generic link)
+     if (!search.trim()) {
+       items = items.filter(v => v.bm_link !== GENERIC_BM_LINK);
+     } else {
+       const q = search.toLowerCase();
+       items = items.filter(v =>
+         (v.client_name || "").toLowerCase().includes(q) ||
+         v.bm_name.toLowerCase().includes(q) ||
+         (v.perfil_backup || "").toLowerCase().includes(q) ||
+         (v.notes || "").toLowerCase().includes(q)
+       );
+     }
+     return items;
+   }, [vaults, search]);
 
   const lookupClient = async () => {
     if (!formClientEmail.trim()) return;
