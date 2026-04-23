@@ -294,22 +294,33 @@ export default function SafeBMClient() {
                 {/* Card content */}
                 <div className="px-3 pb-3 flex flex-col flex-1 justify-between">
                   <div>
-                    <div className="flex justify-between items-start mb-1.5">
-                      <h4 className="text-xs font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{v.bm_name}</h4>
-                      {isExpiringSoon ? (
-                        <div className="px-2 py-0.5 rounded-full bg-[#93000a] text-[#ffdad6] text-[9px] font-bold uppercase tracking-wider">
-                          Crítico
-                        </div>
-                      ) : isActive ? (
-                        <div className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[9px] font-bold uppercase tracking-wider">
-                          Protegido
-                        </div>
-                      ) : (
-                        <div className="px-2 py-0.5 rounded-full bg-[#c6c6c7]/10 text-[#c6c6c7] text-[9px] font-bold uppercase tracking-wider">
-                          Inativo
-                        </div>
-                      )}
-                    </div>
+                     <div className="flex justify-between items-start mb-1.5">
+                       <h4 className="text-xs font-bold truncate pr-1" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{v.bm_name}</h4>
+                       <div className="flex items-center gap-1.5 shrink-0">
+                         {isActive && (
+                           <button 
+                             onClick={(e) => { e.stopPropagation(); setReportingVault(v); }}
+                             className="p-1 rounded-full bg-[#1c2025]/60 hover:bg-[#ffb4aa]/20 text-[#c6c6c7] hover:text-[#ffb4aa] transition-all"
+                             title="Reportar problema"
+                           >
+                             <MaterialIcon name="report_problem" className="!text-[12px]" />
+                           </button>
+                         )}
+                         {isExpiringSoon ? (
+                           <div className="px-2 py-0.5 rounded-full bg-[#93000a] text-[#ffdad6] text-[9px] font-bold uppercase tracking-wider">
+                             Crítico
+                           </div>
+                         ) : isActive ? (
+                           <div className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[9px] font-bold uppercase tracking-wider">
+                             Protegido
+                           </div>
+                         ) : (
+                           <div className="px-2 py-0.5 rounded-full bg-[#c6c6c7]/10 text-[#c6c6c7] text-[9px] font-bold uppercase tracking-wider">
+                             Inativo
+                           </div>
+                         )}
+                       </div>
+                     </div>
                     <p className="text-[9px] text-[#c6c6c7]/50 mb-2 font-mono">ID: {bmId}</p>
 
                     <div className="space-y-1 mb-2">
