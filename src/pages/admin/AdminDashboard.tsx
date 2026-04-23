@@ -307,10 +307,10 @@ export default function AdminDashboard() {
       const orderTotalMap: Record<string, number> = {};
       completedOrds.forEach(o => { orderTotalMap[o.id] = o.total || 0; });
 
-      const orderItemCounts: Record<string, number> = {};
+      const orderSubtotals: Record<string, number> = {};
       fetchedOrderItems.forEach(item => {
         if (!completedOrderIds.has(item.order_id)) return;
-        orderItemCounts[item.order_id] = (orderItemCounts[item.order_id] || 0) + 1;
+        orderSubtotals[item.order_id] = (orderSubtotals[item.order_id] || 0) + (item.price * item.quantity);
       });
 
       // Build a name-to-category map for fallback matching (items without product_id)
@@ -343,12 +343,14 @@ export default function AdminDashboard() {
           catId = guessCategoryByName((item as any).name);
         }
         if (catId) {
-          const itemCount = orderItemCounts[item.order_id] || 1;
+          const subtotal = orderSubtotals[item.order_id] || 0;
+          const total = orderTotalMap[item.order_id] || 0;
+          const ratio = subtotal > 0 ? total / subtotal : 1;
           const category = cats.find(c => c.id === catId);
           enrichedCatItems.push({
             catId,
             qty: item.quantity,
-            revenue: (orderTotalMap[item.order_id] || 0) / itemCount,
+            revenue: (item.price * item.quantity) * ratio,
             created_at: orderDateMap[item.order_id] || item.created_at,
             name: item.name,
             slug: category?.slug,
