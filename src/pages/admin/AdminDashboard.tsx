@@ -49,7 +49,7 @@ export default function AdminDashboard() {
   const [showRevenuePeriodPicker, setShowRevenuePeriodPicker] = useState(false);
   const [customRevenueRange, setCustomRevenueRange] = useState<{ from?: Date; to?: Date }>({});
   const [allCompletedOrders, setAllCompletedOrders] = useState<{ total: number; created_at: string; product_name?: string | null }[]>([]);
-  const [allCategoryItems, setAllCategoryItems] = useState<{ catId: string; qty: number; revenue: number; created_at: string; name?: string }[]>([]);
+  const [allCategoryItems, setAllCategoryItems] = useState<{ catId: string; qty: number; revenue: number; created_at: string; name?: string; slug?: string }[]>([]);
   const [categoryList, setCategoryList] = useState<{ id: string; name: string; slug: string }[]>([]);
   const [proxyCatStats, setProxyCatStats] = useState<{ id: string; sales: number; revenue: number } | null>(null);
 
@@ -508,6 +508,16 @@ export default function AdminDashboard() {
   }, [allCompletedOrders, getRevenueSince, getRevenueUntil]);
 
   const categoryStats = useMemo(() => {
+    const isSafeBmName = (value?: string | null) => {
+      const lower = (value || "").toLowerCase();
+      return lower.includes("safe bm") || lower.includes("bm safe");
+    };
+
+    const isContingenciaServiceName = (value?: string | null) => {
+      const lower = (value || "").toLowerCase();
+      return lower.includes("plano black") || lower.includes("plano white");
+    };
+
     // Filter category items by period
     const filtered = allCategoryItems.filter(item => {
       const d = new Date(item.created_at);
@@ -516,12 +526,11 @@ export default function AdminDashboard() {
 
     const catStats: Record<string, { sales: number; revenue: number }> = {};
     filtered.forEach(item => {
-      const lower = (item.name || '').toLowerCase();
-      const isSafeBM = lower.includes('safe bm') || lower.includes('bm safe');
-      const isContingencia = lower.includes('contingência') || lower.includes('contingencia') || lower.includes('plano black') || lower.includes('plano white');
+      const isSafeBM = isSafeBmName(item.name);
+      const isContingenciaService = isContingenciaServiceName(item.name) && item.slug !== "proxy";
 
       // Exclude from regular categories if it's Safe BM or Contingência to avoid double counting
-      if (isSafeBM || isContingencia) return;
+      if (isSafeBM || isContingenciaService) return;
 
       if (!catStats[item.catId]) catStats[item.catId] = { sales: 0, revenue: 0 };
       catStats[item.catId].sales += item.qty;
@@ -545,12 +554,9 @@ export default function AdminDashboard() {
       return d >= getRevenueSince && (!getRevenueUntil || d <= getRevenueUntil);
     });
 
-    const safeBmInvoices = filteredRevenue.filter(o => (o.product_name || '').toLowerCase().includes('safe bm') || (o.product_name || '').toLowerCase().includes('bm safe'));
+    const safeBmInvoices = filteredRevenue.filter(o => isSafeBmName(o.product_name));
     const ctInvoices = filteredRevenue.filter(o => 
-      (o.product_name || '').toLowerCase().includes('contingência') || 
-      (o.product_name || '').toLowerCase().includes('contingencia') ||
-      (o.product_name || '').toLowerCase().includes('plano black') ||
-      (o.product_name || '').toLowerCase().includes('plano white')
+      isContingenciaServiceName(o.product_name)
     );
 
     // Also check allCategoryItems for regular orders that might have these products (if not categorized)
@@ -559,14 +565,9 @@ export default function AdminDashboard() {
       return d >= getRevenueSince && (!getRevenueUntil || d <= getRevenueUntil);
     });
 
-    const safeBmOrderItems = filteredOrderItems.filter(item => 
-      (item.name || '').toLowerCase().includes('safe bm') || (item.name || '').toLowerCase().includes('bm safe')
-    );
+    const safeBmOrderItems = filteredOrderItems.filter(item => isSafeBmName(item.name));
     const ctOrderItems = filteredOrderItems.filter(item => 
-      (item.name || '').toLowerCase().includes('contingência') || 
-      (item.name || '').toLowerCase().includes('contingencia') ||
-      (item.name || '').toLowerCase().includes('plano black') ||
-      (item.name || '').toLowerCase().includes('plano white')
+      isContingenciaServiceName(item.name) && item.slug !== "proxy"
     );
 
     result.push({ 
