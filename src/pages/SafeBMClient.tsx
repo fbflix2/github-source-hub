@@ -64,7 +64,8 @@ export default function SafeBMClient() {
   const [vaults, setVaults] = useState<SafeBmVault[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [showPricing, setShowPricing] = useState(false);
+   const [showPricing, setShowPricing] = useState(false);
+   const [reportingVault, setReportingVault] = useState<SafeBmVault | null>(null);
   const monitorRef = useRef<SecurityMonitorHandle>(null);
 
   const GENERIC_BM_LINK = "https://business.facebook.com";
@@ -82,7 +83,11 @@ export default function SafeBMClient() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchVaults(); }, []);
+   const onVaultUpdated = useCallback(() => {
+     fetchVaults();
+   }, []);
+ 
+   useEffect(() => { fetchVaults(); }, []);
 
   const configuredVaults = useMemo(() => {
     // Only show vaults that have been fully configured (not generic link, or have tracking/backup)
