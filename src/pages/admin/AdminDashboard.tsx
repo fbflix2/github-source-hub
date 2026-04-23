@@ -335,7 +335,7 @@ export default function AdminDashboard() {
       const orderDateMap: Record<string, string> = {};
       completedOrds.forEach(o => { orderDateMap[o.id] = o.created_at; });
 
-  const enrichedCatItems: { catId: string; qty: number; revenue: number; created_at: string; name?: string }[] = [];
+  const enrichedCatItems: { catId: string; qty: number; revenue: number; created_at: string; name?: string; slug?: string }[] = [];
       fetchedOrderItems.forEach(item => {
         if (!completedOrderIds.has(item.order_id)) return;
         let catId = item.product_id ? prodCatMap[item.product_id] : null;
@@ -344,12 +344,14 @@ export default function AdminDashboard() {
         }
         if (catId) {
           const itemCount = orderItemCounts[item.order_id] || 1;
+          const category = cats.find(c => c.id === catId);
           enrichedCatItems.push({
             catId,
             qty: item.quantity,
             revenue: (orderTotalMap[item.order_id] || 0) / itemCount,
             created_at: orderDateMap[item.order_id] || item.created_at,
             name: item.name,
+            slug: category?.slug,
           });
         }
       });
