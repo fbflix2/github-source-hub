@@ -328,7 +328,7 @@ Deno.serve(async (req) => {
                   bm_name: `BM ${(existingCount || 0) + 1}`,
                   bm_link: "https://business.facebook.com",
                   status: "active",
-                  subscription_price: 9.99,
+                  subscription_price: oi.price || 9.99,
                   protection_start: new Date().toISOString(),
                 });
                 console.log(`[webhook-safebm] Created safe_bm_vault #${i + 1} for user ${userId}`);

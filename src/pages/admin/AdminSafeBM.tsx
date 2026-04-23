@@ -187,7 +187,7 @@ export default function AdminSafeBM() {
           bm_name: request.product_name,
           bm_link: request.bm_link || GENERIC_BM_LINK,
           status: "active",
-          subscription_price: 9.99,
+          subscription_price: request.sale_price || 9.99,
           bm_tracking_id: request.id,
         });
       if (vaultError) throw vaultError;
@@ -235,7 +235,7 @@ export default function AdminSafeBM() {
   const activeVaults = vaults.filter(v => v.status === "active" && v.bm_link !== GENERIC_BM_LINK);
   const activeCount = activeVaults.length;
   const inactiveCount = vaults.filter(v => v.status === "inactive").length;
-  const mrr = activeCount * 9.99;
+  const mrr = activeVaults.reduce((sum, v) => sum + (v.subscription_price || 9.99), 0);
   const newActivations7d = vaults.filter(v => isAfter(new Date(v.created_at), subDays(new Date(), 7))).length;
   const uniqueClients = new Set(activeVaults.map(v => v.user_id)).size;
   const ltvPerClient = uniqueClients > 0 ? mrr / uniqueClients : 0;
