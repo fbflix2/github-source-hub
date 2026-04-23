@@ -242,8 +242,16 @@ export default function SafeBMClient() {
         )}
       </section>
 
-      <PricingModal open={showPricing} onClose={() => setShowPricing(false)} />
-      {/* ───── PROTECTED BMs GRID ───── */}
+       <PricingModal open={showPricing} onClose={() => setShowPricing(false)} />
+ 
+       <BMReportModal 
+         vault={reportingVault ? { id: reportingVault.id, bm_name: reportingVault.bm_name } : null}
+         open={!!reportingVault}
+         onOpenChange={(open) => !open && setReportingVault(null)}
+         onSuccess={onVaultUpdated}
+       />
+ 
+       {/* ───── PROTECTED BMs GRID ───── */}
       <section className="space-y-2">
         <div>
           <h3 className="text-base font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>BMs Protegidas</h3>
