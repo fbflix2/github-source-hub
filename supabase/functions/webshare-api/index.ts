@@ -1791,11 +1791,11 @@ Deno.serve(async (req) => {
         // List all plans to find the residential (rotating) one
         const plansResp = await webFetch("/subscription/plan/", WEBSHARE_API_KEY);
         const plansData = await plansResp.json();
-        const plans = plansData.results || [];
+        const plans = (plansData.results || []).filter((p: any) => p.status === "active");
 
         // Find the residential (rotating) plan specifically for internal proxy
-        const activePlan = plans.find((p: any) => p.status === "active" && p.proxy_subtype === "residential")
-          || plans.find((p: any) => p.status === "active" && p.bandwidth_limit > 0);
+        const activePlan = plans.find((p: any) => p.proxy_subtype === "residential")
+          || plans.find((p: any) => p.bandwidth_limit > 0);
         
         let limitBytes = 0;
         let usedBytes = 0;
@@ -1809,12 +1809,24 @@ Deno.serve(async (req) => {
 
           // Fetch aggregate stats filtered by this specific plan_id
           try {
-            const aggResp = await webFetch(`/stats/aggregate/?plan_id=${activePlan.id}`, WEBSHARE_API_KEY);
-            const aggData = await aggResp.json();
-            if (aggResp.ok && aggData.bandwidth_total !== undefined) {
-              usedBytes = aggData.bandwidth_total || 0;
+          const aggResp = await webFetch(`/stats/aggregate/?plan_id=${activePlan.id}`, WEBSHARE_API_KEY);
+          const aggData = await aggResp.json();
+          if (aggResp.ok && aggData.bandwidth_total !== undefined) {
+            usedBytes = aggData.bandwidth_total || 0;
+          }
+          
+          // Fallback to account-wide if 0
+          if (usedBytes === 0) {
+            const accAggResp = await webFetch(`/stats/aggregate/`, WEBSHARE_API_KEY);
+            if (accAggResp.ok) {
+              const accAggData = await accAggResp.json();
+              usedBytes = accAggData.bandwidth_total || 0;
+              console.log(`[get-internal-proxy-config] Fallback to account-wide stats: ${usedBytes}`);
+            } else {
+              console.warn(`[get-internal-proxy-config] Account-wide stats fetch failed: ${accAggResp.status}`);
             }
-            
+          }
+          
           } catch (e: any) {
             console.warn(`[get-internal-proxy-config] plan stats error:`, e.message);
           }
@@ -1832,6 +1844,16 @@ Deno.serve(async (req) => {
           const todayData = await todayResp.json();
           if (todayResp.ok && todayData.bandwidth_total !== undefined) {
             todayBytes = todayData.bandwidth_total || 0;
+          }
+          
+          // Fallback to account-wide if 0 and planFilter was used
+          if (todayBytes === 0 && planFilter) {
+            const accTodayResp = await webFetch(`/stats/aggregate/?timestamp__gte=${todayStart}&timestamp__lte=${todayEnd}`, WEBSHARE_API_KEY);
+            if (accTodayResp.ok) {
+              const accTodayData = await accTodayResp.json();
+              todayBytes = accTodayData.bandwidth_total || 0;
+              console.log(`[get-internal-proxy-config] Fallback to account-wide today stats: ${todayBytes}`);
+            }
           }
           
         } catch (e: any) {
