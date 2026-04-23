@@ -183,13 +183,7 @@ export default function Orders() {
 
       const nonProxyOrders = ordersData.filter((order) => {
         const items = (itemsData || []).filter((i: any) => i.order_id === order.id);
-        const allProxy = items.length > 0 && items.every((i: any) => i.products?.icon_type === 'proxy');
-        if (allProxy) return false;
-
-        // Hide orders where all items are BM Safe (it's a subscription, not shown in orders)
-        const allSafeBm = items.length > 0 && items.every((i: any) => i.product_id === SAFEBM_PRODUCT_ID);
-        if (allSafeBm) return false;
-
+        
         // Hide processing orders that have a completed equivalent
         if (order.status === "processing") {
           const key = items.map((i: any) => i.product_id).sort().join("|");
