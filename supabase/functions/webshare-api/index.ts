@@ -1809,19 +1809,24 @@ Deno.serve(async (req) => {
 
           // Fetch aggregate stats filtered by this specific plan_id
           try {
+          console.log(`[get-internal-proxy-config] Fetching stats for plan ${activePlan.id}...`);
           const aggResp = await webFetch(`/stats/aggregate/?plan_id=${activePlan.id}`, WEBSHARE_API_KEY);
           const aggData = await aggResp.json();
           if (aggResp.ok && aggData.bandwidth_total !== undefined) {
             usedBytes = aggData.bandwidth_total || 0;
+            console.log(`[get-internal-proxy-config] Plan ${activePlan.id} bandwidth: ${usedBytes}`);
           }
           
           // Fallback to account-wide if 0
           if (usedBytes === 0) {
+            console.log(`[get-internal-proxy-config] Plan stats were 0, trying account-wide...`);
             const accAggResp = await webFetch(`/stats/aggregate/`, WEBSHARE_API_KEY);
             if (accAggResp.ok) {
               const accAggData = await accAggResp.json();
               usedBytes = accAggData.bandwidth_total || 0;
               console.log(`[get-internal-proxy-config] Fallback to account-wide stats: ${usedBytes}`);
+            } else {
+              console.warn(`[get-internal-proxy-config] Account-wide stats fetch failed: ${accAggResp.status}`);
             }
           }
           
