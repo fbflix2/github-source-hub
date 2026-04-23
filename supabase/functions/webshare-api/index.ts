@@ -1791,11 +1791,12 @@ Deno.serve(async (req) => {
         // List all plans to find the residential (rotating) one
         const plansResp = await webFetch("/subscription/plan/", WEBSHARE_API_KEY);
         const plansData = await plansResp.json();
-        const plans = plansData.results || [];
+        const plans = (plansData.results || []).filter((p: any) => p.status === "active");
+        console.log(`[get-internal-proxy-config] Found ${plans.length} active plans:`, plans.map((p: any) => `${p.id} (${p.proxy_subtype}) limit=${p.bandwidth_limit}GB`).join(", "));
 
         // Find the residential (rotating) plan specifically for internal proxy
-        const activePlan = plans.find((p: any) => p.status === "active" && p.proxy_subtype === "residential")
-          || plans.find((p: any) => p.status === "active" && p.bandwidth_limit > 0);
+        const activePlan = plans.find((p: any) => p.proxy_subtype === "residential")
+          || plans.find((p: any) => p.bandwidth_limit > 0);
 
         if (activePlan) {
           console.log(`[get-internal-proxy-config] Active plan: ${activePlan.id} name=${activePlan.name} type=${activePlan.proxy_subtype}`);
