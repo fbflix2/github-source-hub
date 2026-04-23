@@ -1817,20 +1817,6 @@ Deno.serve(async (req) => {
           } catch (e: any) {
             console.warn(`[get-internal-proxy-config] plan stats error:`, e.message);
           }
-        } else {
-          console.warn(`[get-internal-proxy-config] No active bandwidth plan found, falling back to subscription`);
-          const subResp = await webFetch("/subscription/", WEBSHARE_API_KEY);
-          const subData = await subResp.json();
-          limitBytes = (subData.bandwidth_limit_backbone || subData.bandwidth_limit || 0);
-          
-          // Fetch account-wide stats since no specific plan was found
-          try {
-            const accAggResp = await webFetch(`/stats/aggregate/`, WEBSHARE_API_KEY);
-            const accAggData = await accAggResp.json();
-            if (accAggResp.ok && accAggData.bandwidth_total !== undefined) {
-              usedBytes = accAggData.bandwidth_total || 0;
-            }
-          } catch {}
         }
 
         // Fetch today's usage (always using account-wide fallback if needed)
