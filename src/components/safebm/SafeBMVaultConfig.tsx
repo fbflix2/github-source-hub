@@ -7,7 +7,7 @@ const MaterialIcon = ({ name, className = "" }: { name: string; className?: stri
 );
 
 const SAFE_EMAILS = [
-  "safe1@rercoverfbflix.com.br",
+  "safe1@recoverfbflix.com.br",
   "safe2@recoverfbflix.com.br",
   "safe3@recoverfbflix.com.br",
   "safe4@recoverfbflix.com.br",
@@ -17,6 +17,12 @@ const SAFE_EMAILS = [
   "safe8@recoverfbflix.com.br",
   "safe9@recoverfbflix.com.br",
   "safe10@recoverfbflix.com.br",
+  "safe11@recoverfbflix.com.br",
+  "safe12@recoverfbflix.com.br",
+  "safe13@recoverfbflix.com.br",
+  "safe14@recoverfbflix.com.br",
+  "safe15@recoverfbflix.com.br",
+  "safe16@recoverfbflix.com.br",
 ];
 
 const GENERIC_BM_LINK = "https://business.facebook.com";
@@ -236,8 +242,9 @@ export default function SafeBMVaultConfig({ vaults, onConfigured }: Props) {
           const form = getForm(v.id);
           const isAnimating = !!animatingVaults[v.id];
           const isSubmitted = !!submittedVaults[v.id];
-          // If vault already has a real bm_name set (not default), treat as already submitted
-          const alreadyConfigured = v.bm_name && v.bm_name.trim() !== "" && v.bm_name !== "BM" && v.bm_name !== "Cofre";
+          // If vault already has a real bm_name set (not auto-generated default), treat as already submitted
+          const defaultNamePattern = /^(BM|Cofre)(\s*\d*)?$/i;
+          const alreadyConfigured = v.bm_name && v.bm_name.trim() !== "" && !defaultNamePattern.test(v.bm_name.trim());
 
           return (
             <div
