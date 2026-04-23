@@ -711,6 +711,9 @@ export default function AdminSafeBM() {
                                             onClick={() => { setRenamingId(v.id); setRenameValue(v.bm_name); }} title="Clique para renomear">
                                             {v.bm_name}
                                           </span>
+                                          {v.bm_link === GENERIC_BM_LINK && (
+                                            <Badge variant="outline" className="text-[9px] h-4 px-1 bg-amber-500/10 text-amber-500 border-amber-500/20">Link Pendente</Badge>
+                                          )}
                                           <Pencil className="size-3 text-muted-foreground hover:text-primary cursor-pointer"
                                             onClick={() => { setRenamingId(v.id); setRenameValue(v.bm_name); }} />
                                           {displayLink && (
