@@ -1784,54 +1784,76 @@ Deno.serve(async (req) => {
         const plansData = await plansResp.json();
         const plans = plansData.results || [];
 
-        // Find the active residential plan (backbone/rotating proxy)
-        const residentialPlan = plans.find((p: any) => p.status === "active" && p.proxy_subtype === "residential");
+        // Find any active plan that has bandwidth limit (usually 'residential' but could be others)
+        const activePlan = plans.find((p: any) => p.status === "active" && (p.proxy_subtype === "residential" || p.bandwidth_limit > 0));
         
         let limitBytes = 0;
         let usedBytes = 0;
+        let todayBytes = 0;
 
-        if (residentialPlan) {
+        if (activePlan) {
           // bandwidth_limit is in GB from the plan
-          const limitGB = residentialPlan.bandwidth_limit || 0;
+          const limitGB = activePlan.bandwidth_limit || 0;
           limitBytes = limitGB * 1024 * 1024 * 1024;
-          console.log(`[get-internal-proxy-config] Found residential plan ${residentialPlan.id}, limit: ${limitGB} GB`);
+          console.log(`[get-internal-proxy-config] Found active plan ${activePlan.id} (${activePlan.proxy_subtype}), limit: ${limitGB} GB`);
 
           // Fetch aggregate stats filtered by this specific plan_id
           try {
-            const aggResp = await webFetch(
-              `/stats/aggregate/?plan_id=${residentialPlan.id}`,
-              WEBSHARE_API_KEY
-            );
+            const aggResp = await webFetch(`/stats/aggregate/?plan_id=${activePlan.id}`, WEBSHARE_API_KEY);
             const aggData = await aggResp.json();
-            console.log(`[get-internal-proxy-config] residential plan stats:`, JSON.stringify(aggData));
             if (aggResp.ok && aggData.bandwidth_total !== undefined) {
               usedBytes = aggData.bandwidth_total || 0;
             }
+            
+            // If stats are 0, try account-wide as fallback
+            if (usedBytes === 0) {
+              const accAggResp = await webFetch(`/stats/aggregate/`, WEBSHARE_API_KEY);
+              const accAggData = await accAggResp.json();
+              if (accAggResp.ok && accAggData.bandwidth_total !== undefined) {
+                usedBytes = accAggData.bandwidth_total || 0;
+                console.log(`[get-internal-proxy-config] Fallback to account-wide stats: ${usedBytes}`);
+              }
+            }
           } catch (e: any) {
-            console.warn(`[get-internal-proxy-config] residential plan stats error:`, e.message);
+            console.warn(`[get-internal-proxy-config] plan stats error:`, e.message);
           }
         } else {
-          console.warn(`[get-internal-proxy-config] No active residential plan found, falling back to subscription`);
-          // Fallback to subscription endpoint
+          console.warn(`[get-internal-proxy-config] No active bandwidth plan found, falling back to subscription`);
           const subResp = await webFetch("/subscription/", WEBSHARE_API_KEY);
           const subData = await subResp.json();
           limitBytes = (subData.bandwidth_limit_backbone || subData.bandwidth_limit || 0);
+          
+          // Fetch account-wide stats since no specific plan was found
+          try {
+            const accAggResp = await webFetch(`/stats/aggregate/`, WEBSHARE_API_KEY);
+            const accAggData = await accAggResp.json();
+            if (accAggResp.ok && accAggData.bandwidth_total !== undefined) {
+              usedBytes = accAggData.bandwidth_total || 0;
+            }
+          } catch {}
         }
 
-        // Fetch today's usage
-        let todayBytes = 0;
+        // Fetch today's usage (always using account-wide fallback if needed)
         try {
           const now = new Date();
-          const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
-          const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).toISOString();
-          const planFilter = residentialPlan ? `&plan_id=${residentialPlan.id}` : "";
-          const todayResp = await webFetch(
-            `/stats/aggregate/?timestamp__gte=${todayStart}&timestamp__lte=${todayEnd}${planFilter}`,
-            WEBSHARE_API_KEY
-          );
+          // Use UTC for dates
+          const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0)).toISOString();
+          const todayEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59)).toISOString();
+          
+          const planFilter = activePlan ? `&plan_id=${activePlan.id}` : "";
+          const todayResp = await webFetch(`/stats/aggregate/?timestamp__gte=${todayStart}&timestamp__lte=${todayEnd}${planFilter}`, WEBSHARE_API_KEY);
           const todayData = await todayResp.json();
           if (todayResp.ok && todayData.bandwidth_total !== undefined) {
             todayBytes = todayData.bandwidth_total || 0;
+          }
+          
+          // If 0 and we used a plan filter, try without it
+          if (todayBytes === 0 && planFilter) {
+            const todayAccResp = await webFetch(`/stats/aggregate/?timestamp__gte=${todayStart}&timestamp__lte=${todayEnd}`, WEBSHARE_API_KEY);
+            const todayAccData = await todayAccResp.json();
+            if (todayAccResp.ok && todayAccData.bandwidth_total !== undefined) {
+              todayBytes = todayAccData.bandwidth_total || 0;
+            }
           }
         } catch (e: any) {
           console.warn(`[get-internal-proxy-config] today stats error:`, e.message);
