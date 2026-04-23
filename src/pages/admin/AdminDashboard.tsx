@@ -581,7 +581,7 @@ export default function AdminDashboard() {
     });
 
     return result;
-  }, [allCategoryItems, categoryList, proxyCatStats, allCompletedOrders, getRevenueSince, getRevenueUntil]);
+  }, [allCategoryItems, categoryList, allCompletedOrders, getRevenueSince, getRevenueUntil]);
 
 
   const dynamicChartData = useMemo(() => {
