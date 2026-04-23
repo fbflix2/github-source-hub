@@ -187,7 +187,7 @@ export default function AdminSafeBM() {
           bm_name: request.product_name,
           bm_link: request.bm_link || GENERIC_BM_LINK,
           status: "active",
-          subscription_price: 9.99,
+          subscription_price: request.sale_price || 9.99,
           bm_tracking_id: request.id,
         });
       if (vaultError) throw vaultError;
