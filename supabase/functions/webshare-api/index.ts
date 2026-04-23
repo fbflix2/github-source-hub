@@ -1793,8 +1793,9 @@ Deno.serve(async (req) => {
         const plansData = await plansResp.json();
         const plans = plansData.results || [];
 
-        // Find any active plan that has bandwidth limit (usually 'residential' but could be others)
-        const activePlan = plans.find((p: any) => p.status === "active" && (p.proxy_subtype === "residential" || p.bandwidth_limit > 0));
+        // Find the residential (rotating) plan specifically for internal proxy
+        const activePlan = plans.find((p: any) => p.status === "active" && p.proxy_subtype === "residential")
+          || plans.find((p: any) => p.status === "active" && p.bandwidth_limit > 0);
         
         let limitBytes = 0;
         let usedBytes = 0;
@@ -1814,32 +1815,9 @@ Deno.serve(async (req) => {
               usedBytes = aggData.bandwidth_total || 0;
             }
             
-            // If stats are 0, try account-wide as fallback
-            if (usedBytes === 0) {
-              const accAggResp = await webFetch(`/stats/aggregate/`, WEBSHARE_API_KEY);
-              const accAggData = await accAggResp.json();
-              if (accAggResp.ok && accAggData.bandwidth_total !== undefined) {
-                usedBytes = accAggData.bandwidth_total || 0;
-                console.log(`[get-internal-proxy-config] Fallback to account-wide stats: ${usedBytes}`);
-              }
-            }
           } catch (e: any) {
             console.warn(`[get-internal-proxy-config] plan stats error:`, e.message);
           }
-        } else {
-          console.warn(`[get-internal-proxy-config] No active bandwidth plan found, falling back to subscription`);
-          const subResp = await webFetch("/subscription/", WEBSHARE_API_KEY);
-          const subData = await subResp.json();
-          limitBytes = (subData.bandwidth_limit_backbone || subData.bandwidth_limit || 0);
-          
-          // Fetch account-wide stats since no specific plan was found
-          try {
-            const accAggResp = await webFetch(`/stats/aggregate/`, WEBSHARE_API_KEY);
-            const accAggData = await accAggResp.json();
-            if (accAggResp.ok && accAggData.bandwidth_total !== undefined) {
-              usedBytes = accAggData.bandwidth_total || 0;
-            }
-          } catch {}
         }
 
         // Fetch today's usage (always using account-wide fallback if needed)
@@ -1856,14 +1834,6 @@ Deno.serve(async (req) => {
             todayBytes = todayData.bandwidth_total || 0;
           }
           
-          // If 0 and we used a plan filter, try without it
-          if (todayBytes === 0 && planFilter) {
-            const todayAccResp = await webFetch(`/stats/aggregate/?timestamp__gte=${todayStart}&timestamp__lte=${todayEnd}`, WEBSHARE_API_KEY);
-            const todayAccData = await todayAccResp.json();
-            if (todayAccResp.ok && todayAccData.bandwidth_total !== undefined) {
-              todayBytes = todayAccData.bandwidth_total || 0;
-            }
-          }
         } catch (e: any) {
           console.warn(`[get-internal-proxy-config] today stats error:`, e.message);
         }
