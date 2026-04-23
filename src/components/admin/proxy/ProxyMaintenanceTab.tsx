@@ -24,6 +24,7 @@ export default function ProxyMaintenanceTab() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("active");
+  const [typeFilter, setTypeFilter] = useState<"all" | "individual" | "rotating">("all");
   const [page, setPage] = useState(1);
   const [quotaModal, setQuotaModal] = useState<{ sub: any; type: "add" | "remove" } | null>(null);
   const [quotaAmount, setQuotaAmount] = useState(1);
@@ -124,6 +125,11 @@ export default function ProxyMaintenanceTab() {
         if (s.status !== "cancelled") return false;
       }
 
+      // Type filter
+      const isRotating = s.type === "webshare_rotating" || (s.type === "webshare" && s.raw_data?.proxy_host);
+      if (typeFilter === "rotating" && !isRotating) return false;
+      if (typeFilter === "individual" && isRotating) return false;
+
       // Search
       if (search.trim()) {
         const q = search.toLowerCase();
@@ -136,7 +142,7 @@ export default function ProxyMaintenanceTab() {
 
       return true;
     });
-  }, [allSubs, statusFilter, search, profileMap]);
+  }, [allSubs, statusFilter, typeFilter, search, profileMap]);
 
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -203,14 +209,25 @@ export default function ProxyMaintenanceTab() {
             />
           </div>
           <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v as StatusFilter); setPage(1); }}>
-            <SelectTrigger className="w-[140px] h-9">
-              <SelectValue />
+            <SelectTrigger className="w-[120px] h-9">
+              <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="all">Todos Status</SelectItem>
               <SelectItem value="active">Ativos</SelectItem>
               <SelectItem value="expired">Expirados</SelectItem>
               <SelectItem value="cancelled">Cancelados</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={typeFilter} onValueChange={(v) => { setTypeFilter(v as any); setPage(1); }}>
+            <SelectTrigger className="w-[140px] h-9">
+              <SelectValue placeholder="Tipo" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos Tipos</SelectItem>
+              <SelectItem value="individual">📌 IP Individual</SelectItem>
+              <SelectItem value="rotating">🔄 Rotativo</SelectItem>
             </SelectContent>
           </Select>
           <Button variant="outline" size="sm" onClick={() => queryClient.invalidateQueries({ queryKey: ["maint-webshare-subs"] })} disabled={isLoading}>
@@ -286,11 +303,16 @@ export default function ProxyMaintenanceTab() {
                       </TableCell>
                       <TableCell className="font-mono text-xs text-muted-foreground">{sub.name}</TableCell>
                       <TableCell className="font-mono text-sm text-foreground">
-                        {isRotating ? (
-                          <span className="text-xs text-muted-foreground">Rotativo</span>
-                        ) : (
-                          `${proxyIp}:${proxyPort}`
-                        )}
+                        <div className="flex flex-col gap-0.5">
+                          {isRotating ? (
+                            <span className="text-xs text-amber-400 font-bold uppercase tracking-wider">Rotativo</span>
+                          ) : (
+                            <span className="text-sm">{proxyIp}:{proxyPort}</span>
+                          )}
+                          <span className="text-[10px] text-muted-foreground font-mono truncate max-w-[120px]">
+                            {raw.username || "—"}
+                          </span>
+                        </div>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground max-w-[150px] truncate">
                         <div className="flex items-center gap-1.5">
