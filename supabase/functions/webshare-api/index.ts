@@ -1530,7 +1530,7 @@ Deno.serve(async (req) => {
       // Get bandwidth limits from the residential plan specifically
       const plansResp = await webFetch("/subscription/plan/", WEBSHARE_API_KEY);
       const plansData = await plansResp.json();
-      const residentialPlan = (plansData.results || []).find((p: any) => p.status === "active" && p.proxy_subtype === "residential");
+      const residentialPlan = (plansData.results || []).find((p: any) => p.status === "active" && (p.proxy_subtype === "residential" || p.bandwidth_limit > 0));
 
       let bandwidthLimit = 0;
       let aggregateUsed = 0;
@@ -1548,6 +1548,15 @@ Deno.serve(async (req) => {
           if (aggResp.ok) {
             const aggData = await aggResp.json();
             aggregateUsed = aggData.bandwidth_total || 0;
+            
+            // Fallback to account-wide if 0
+            if (aggregateUsed === 0) {
+              const accAggResp = await webFetch(`/stats/aggregate/`, WEBSHARE_API_KEY);
+              if (accAggResp.ok) {
+                const accAggData = await accAggResp.json();
+                aggregateUsed = accAggData.bandwidth_total || 0;
+              }
+            }
             console.log(`[get-rotating-credentials] Residential plan ${residentialPlan.id} bandwidth: ${aggregateUsed} bytes`);
           }
         } catch (e) {
