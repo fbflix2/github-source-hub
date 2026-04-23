@@ -44,8 +44,8 @@ function useInternalProxyConfig() {
   return useQuery({
     queryKey: ["internal-proxy-config"],
     queryFn: () => callWebshare("get-internal-proxy-config"),
-    staleTime: 15_000,
-    refetchInterval: 60_000,
+    staleTime: 10_000,
+    refetchInterval: 30_000,
     refetchOnWindowFocus: true,
     retry: false,
   });
@@ -270,7 +270,7 @@ export default function AdminProxyInterno() {
                     )}
                     <Badge variant="secondary" className="text-[10px] gap-1">
                       <Wifi className="size-2.5" />
-                      Auto-refresh 60s
+                      Auto-refresh 30s
                     </Badge>
                   </div>
                 </div>
