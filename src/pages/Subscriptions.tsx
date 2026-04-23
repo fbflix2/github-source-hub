@@ -329,6 +329,7 @@ function SafeBmPromoPanel() {
 /* ─── PROXIES PANEL ─── */
 function ProxiesPanel() {
   const [activeFilter, setActiveFilter] = useState<string>("all");
+  const [typeFilter, setTypeFilter] = useState<"all" | "individual" | "rotating">("all");
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [countryFilter, setCountryFilter] = useState<string>("all");
@@ -381,7 +382,13 @@ function ProxiesPanel() {
     return "OTHER";
   };
 
-  let filtered = enriched.filter((s) => activeFilter === "all" || s.mappedStatus === activeFilter);
+  let filtered = enriched.filter((s) => {
+    const matchesStatus = activeFilter === "all" || s.mappedStatus === activeFilter;
+    const matchesType = typeFilter === "all" || 
+      (typeFilter === "rotating" && s.is_rotating) || 
+      (typeFilter === "individual" && !s.is_rotating);
+    return matchesStatus && matchesType;
+  });
 
   // Advanced filters
   if (advancedOpen) {
@@ -541,6 +548,17 @@ function ProxiesPanel() {
                 ))}
               </select>
             )}
+
+            {/* Type Filter */}
+            <select
+              value={typeFilter}
+              onChange={e => setTypeFilter(e.target.value as any)}
+              className="h-9 rounded-lg border border-border bg-background text-sm text-foreground px-3 appearance-none cursor-pointer"
+            >
+              <option value="all">⚡ Todos os tipos</option>
+              <option value="individual">📌 IP Individual (Estático)</option>
+              <option value="rotating">🔄 Proxy Rotativo</option>
+            </select>
 
             {/* Sort */}
             <select
