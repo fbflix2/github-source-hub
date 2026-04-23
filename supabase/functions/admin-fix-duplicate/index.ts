@@ -202,6 +202,108 @@ Deno.serve(async (req) => {
       }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // Action: report_bm_problem - client reports a problem and provides new BM name
+    if (body.action === "report_bm_problem") {
+      const { vault_id, bm_name, reason } = body;
+      if (!vault_id || !bm_name) {
+        return new Response(JSON.stringify({ error: "vault_id e bm_name são obrigatórios" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      let callerUserId: string | null = null;
+      if (authHeader) {
+        const token = authHeader.replace("Bearer ", "");
+        const anonClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_ANON_KEY")!);
+        const { data: { user } } = await anonClient.auth.getUser(token);
+        callerUserId = user?.id || null;
+      }
+
+      if (!callerUserId) {
+        return new Response(JSON.stringify({ error: "Autenticação necessária" }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: vault, error: vaultErr } = await supabaseAdmin
+        .from("safe_bm_vaults")
+        .select("id, user_id, bm_name")
+        .eq("id", vault_id)
+        .single();
+
+      if (vaultErr || !vault) {
+        return new Response(JSON.stringify({ error: "Cofre não encontrado" }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (vault.user_id !== callerUserId) {
+        return new Response(JSON.stringify({ error: "Sem permissão" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // 1. Update vault: status=pending, clear links
+      const { error: updateErr } = await supabaseAdmin
+        .from("safe_bm_vaults")
+        .update({
+          bm_name: bm_name.trim(),
+          bm_link: "https://business.facebook.com",
+          backup_link: null,
+          bm_tracking_id: null,
+          status: "pending",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", vault_id);
+
+      if (updateErr) {
+        return new Response(JSON.stringify({ error: updateErr.message }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // 2. Create support ticket for the admin
+      const ticketCode = `#BM${Math.floor(1000 + Math.random() * 9000)}`;
+      const { data: ticket } = await supabaseAdmin
+        .from("tickets")
+        .insert({
+          user_id: callerUserId,
+          title: `PROBLEMA BM: ${bm_name.trim()}`,
+          priority: "high",
+          code: ticketCode,
+          status: "open",
+        })
+        .select()
+        .single();
+
+      if (ticket) {
+        await supabaseAdmin.from("ticket_messages").insert({
+          ticket_id: ticket.id,
+          content: `O cliente reportou um problema com a BM "${vault.bm_name}".\n\nMotivo: ${reason === "fallen" ? "A BM Caiu" : "A BM Restringiu"}\nSubstituir por: ${bm_name.trim()}\n\nO cofre foi resetado e aguarda reconfiguração do link pelo admin.`,
+          sender: "user",
+          read: true,
+        });
+
+        // 3. Notify all admins with a popup-able notification
+        const { data: admins } = await supabaseAdmin.from("user_roles").select("user_id").eq("role", "admin");
+        if (admins && admins.length > 0) {
+          const notifications = admins.map(adm => ({
+            user_id: adm.user_id,
+            title: "Novo Problema em BM Safe",
+            message: `Cliente reportou problema na BM "${bm_name.trim()}". Ticket: ${ticketCode}`,
+            type: "info",
+            link: "/admin/safe-bm",
+            cta_text: "Ver Cofre",
+          }));
+          await supabaseAdmin.from("notifications").insert(notifications);
+        }
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Action: configure_vault - client configures their unconfigured safe_bm vault (before admin check - any authenticated user)
     if (body.action === "configure_vault") {
       const { vault_id, bm_name, bm_link } = body;

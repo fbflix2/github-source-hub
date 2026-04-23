@@ -38,26 +38,16 @@
  
      setLoading(true);
      try {
-       const { data, error } = await supabase.functions.invoke("admin-fix-duplicate", {
-         body: {
-           action: "configure_vault",
-           vault_id: vault.id,
-           bm_name: newBmName.trim(),
-           bm_link: "https://business.facebook.com", // Reset link to trigger re-config
-         },
-       });
- 
-       if (error || data?.error) throw new Error(data?.error || error?.message);
- 
-       // Also clear backup_link and tracking if any
-       await supabase
-         .from("safe_bm_vaults" as any)
-         .update({
-           backup_link: null,
-           bm_tracking_id: null,
-           status: "pending"
-         })
-         .eq("id", vault.id);
+      const { data, error } = await supabase.functions.invoke("admin-fix-duplicate", {
+        body: {
+          action: "report_bm_problem",
+          vault_id: vault.id,
+          bm_name: newBmName.trim(),
+          reason,
+        },
+      });
+
+      if (error || data?.error) throw new Error(data?.error || error?.message);
  
        setStep("success");
        onSuccess();
