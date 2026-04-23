@@ -172,7 +172,7 @@ export default function AdminProxyInterno() {
         <div className="flex items-start gap-2">
           <AlertTriangle className="size-4 text-amber-500 mt-0.5 shrink-0" />
           <p className="text-xs text-amber-200/80">
-            Esta tela é exclusiva para uso operacional interno. Alterações aqui <strong>não afetam</strong> assinaturas de clientes, entregas ou cobranças.
+             Esta tela é exclusiva para uso operacional interno. As estatísticas de banda abaixo representam o <strong>consumo total da conta principal</strong> e não o uso individual de cada plano ou colaborador. Alterações aqui <strong>não afetam</strong> assinaturas de clientes, entregas ou cobranças.
           </p>
         </div>
       </div>
