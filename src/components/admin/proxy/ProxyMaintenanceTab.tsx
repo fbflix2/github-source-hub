@@ -286,11 +286,16 @@ export default function ProxyMaintenanceTab() {
                       </TableCell>
                       <TableCell className="font-mono text-xs text-muted-foreground">{sub.name}</TableCell>
                       <TableCell className="font-mono text-sm text-foreground">
-                        {isRotating ? (
-                          <span className="text-xs text-muted-foreground">Rotativo</span>
-                        ) : (
-                          `${proxyIp}:${proxyPort}`
-                        )}
+                        <div className="flex flex-col gap-0.5">
+                          {isRotating ? (
+                            <span className="text-xs text-amber-400 font-bold uppercase tracking-wider">Rotativo</span>
+                          ) : (
+                            <span className="text-sm">{proxyIp}:{proxyPort}</span>
+                          )}
+                          <span className="text-[10px] text-muted-foreground font-mono truncate max-w-[120px]">
+                            {raw.username || "—"}
+                          </span>
+                        </div>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground max-w-[150px] truncate">
                         <div className="flex items-center gap-1.5">
