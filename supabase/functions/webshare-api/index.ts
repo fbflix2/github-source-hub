@@ -1796,6 +1796,10 @@ Deno.serve(async (req) => {
         // Find the residential (rotating) plan specifically for internal proxy
         const activePlan = plans.find((p: any) => p.status === "active" && p.proxy_subtype === "residential")
           || plans.find((p: any) => p.status === "active" && p.bandwidth_limit > 0);
+
+        if (activePlan) {
+          console.log(`[get-internal-proxy-config] Active plan: ${activePlan.id} name=${activePlan.name} type=${activePlan.proxy_subtype}`);
+        }
         
         let limitBytes = 0;
         let usedBytes = 0;
