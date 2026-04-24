@@ -149,8 +149,7 @@ function VaultPendingCard({ bmName }: { bmName: string }) {
   );
 }
 
-export default function SafeBMVaultConfig({ vaults, onConfigured }: Props) {
-  const unconfigured = vaults.filter(v => v.bm_link === GENERIC_BM_LINK);
+ export default function SafeBMVaultConfig({ vaults: unconfigured, onConfigured }: Props) {
 
   const vaultEmails = useMemo(() => {
     const map = new Map<string, string>();
