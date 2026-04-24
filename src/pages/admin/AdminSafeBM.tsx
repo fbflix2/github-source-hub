@@ -115,6 +115,7 @@ export default function AdminSafeBM() {
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [activeTab, setActiveTab] = useState<TabType>("monitoramento");
+  const [pendingSearch, setPendingSearch] = useState("");
 
   const [formClientEmail, setFormClientEmail] = useState("");
   const [formClientName, setFormClientName] = useState("");
