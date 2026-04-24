@@ -627,7 +627,14 @@ function ContactsTab({ logs }: { logs?: any[] }) {
                         <div className="size-8 rounded-full bg-muted flex items-center justify-center border border-border/40 overflow-hidden">
                           {c.profilePicUrl ? <img src={c.profilePicUrl} className="size-full object-cover" /> : <Users className="size-4 text-muted-foreground" />}
                         </div>
-                        <span className="font-medium">{c.name || c.id.split("@")[0]}</span>
+                        <div className="min-w-0">
+                          <p className="font-medium truncate">{c.name || c.id.split("@")[0]}</p>
+                          {logs?.some(l => l.phone === c.id.split("@")[0] && l.status === "sent") && (
+                            <Badge variant="outline" className="text-[8px] h-3 px-1 py-0 bg-green-500/10 text-green-500 border-green-500/20">
+                              Enviado
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td className="p-3 text-muted-foreground font-mono text-[11px]">
