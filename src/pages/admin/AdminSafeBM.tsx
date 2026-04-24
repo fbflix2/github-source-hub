@@ -541,10 +541,23 @@ export default function AdminSafeBM() {
               {unconfiguredVaults.length > 0 && (
                 <Card className="bg-[hsl(var(--card))] border-amber-500/20">
                   <CardContent className="p-0">
-                    <div className="px-5 py-3 border-b border-border flex items-center gap-2">
-                      <Shield className="size-4 text-amber-400" />
-                      <h3 className="font-semibold text-foreground text-sm">BMs Aguardando Configuração</h3>
-                      <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20 text-[10px]">{unconfiguredVaults.length}</Badge>
+                    <div className="px-5 py-3 border-b border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <Shield className="size-4 text-amber-400" />
+                        <h3 className="font-semibold text-foreground text-sm">BMs Aguardando Configuração</h3>
+                        <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20 text-[10px]">
+                          {pendingSearch ? `${filteredUnconfiguredVaults.length}/${unconfiguredVaults.length}` : unconfiguredVaults.length}
+                        </Badge>
+                      </div>
+                      <div className="relative w-full sm:w-72">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                        <Input
+                          placeholder="Filtrar por BM, cliente ou email (ex: safe14)"
+                          value={pendingSearch}
+                          onChange={e => setPendingSearch(e.target.value)}
+                          className="pl-9 h-8 text-xs"
+                        />
+                      </div>
                     </div>
                     <Table>
                       <TableHeader>
@@ -557,7 +570,13 @@ export default function AdminSafeBM() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {unconfiguredVaults.map(v => {
+                        {filteredUnconfiguredVaults.length === 0 ? (
+                          <TableRow className="border-border">
+                            <TableCell colSpan={5} className="text-center text-xs text-muted-foreground py-6">
+                              Nenhuma BM encontrada para "{pendingSearch}".
+                            </TableCell>
+                          </TableRow>
+                        ) : filteredUnconfiguredVaults.map(v => {
                           const email = pendingEmails.get(v.id) || "—";
                           return (
                             <TableRow key={v.id} className="border-border hover:bg-muted/5">
