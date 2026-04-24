@@ -780,7 +780,7 @@ function ContactsTab({ logs }: { logs?: any[] }) {
               disabled={!selectedTemplateId || sendCampaign.isPending}
               onClick={() => sendCampaign.mutate()}
             >
-              {sendCampaign.isPending ? "Iniciando..." : "Confirmar e Enviar"}
+               {sendCampaign.isPending ? "Iniciando..." : `Confirmar e Enviar para ${filteredCount} contatos`}
             </Button>
           </div>
         </DialogContent>
