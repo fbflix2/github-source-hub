@@ -488,9 +488,11 @@ function RenewalsTab() {
    const [selectedTemplateId, setSelectedTemplateId] = useState("");
    const [isBulkByRule, setIsBulkByRule] = useState(false);
  
+   const [forceFallback, setForceFallback] = useState(false);
+ 
    const { data: contactsData, isLoading, refetch } = useQuery({
-     queryKey: ["whatsapp-contacts", page],
-     queryFn: () => callWapi("fetch-contacts", { page, perPage: 100 }),
+     queryKey: ["whatsapp-contacts", page, forceFallback],
+     queryFn: () => callWapi("fetch-contacts", { page, perPage: 500, forceFallback }),
    });
  
    const { data: templates } = useTemplates();
@@ -569,16 +571,27 @@ function RenewalsTab() {
                className="pl-8" 
              />
            </div>
-           <div className="flex items-center gap-2">
-             <Button 
-               variant="outline" 
-               size="sm" 
-               onClick={() => refetch()} 
-               disabled={isLoading}
-             >
-               <RefreshCw className={`size-3.5 mr-1 ${isLoading ? "animate-spin" : ""}`} />
-               Sincronizar
-             </Button>
+             <div className="flex items-center gap-2 flex-wrap">
+               <Button 
+                 variant="outline" 
+                 size="sm" 
+                 onClick={() => { setPage(1); setForceFallback(false); refetch(); }} 
+                 disabled={isLoading}
+               >
+                 <RefreshCw className={`size-3.5 mr-1 ${isLoading && !forceFallback ? "animate-spin" : ""}`} />
+                 Sincronizar
+               </Button>
+               <Button 
+                 variant="outline" 
+                 size="sm" 
+                 className="border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
+                 onClick={() => { setPage(1); setForceFallback(true); refetch(); }} 
+                 disabled={isLoading}
+                 title="Tenta buscar todos os contatos do histórico de conversas"
+               >
+                 <RotateCw className={`size-3.5 mr-1 ${isLoading && forceFallback ? "animate-spin" : ""}`} />
+                 Busca Completa
+               </Button>
              {selectedJids.size > 0 ? (
                <Button 
                  size="sm" 
