@@ -556,9 +556,19 @@ export default function ItemDetails() {
 
   const handleToggleBlocked = async () => {
     if (!stockItemId) return;
+    // One-way action: once blocked by the client, it cannot be unblocked from this screen.
+    if (isBlocked) {
+      toast.error("Este item já foi marcado como bloqueado e não pode ser revertido. Entre em contato com o suporte se for um engano.");
+      return;
+    }
+    const confirmed = window.confirm(
+      "Tem certeza que deseja marcar este item como BLOQUEADO?\n\nApós confirmar, os dados de acesso serão ocultados, não será mais possível baixar o bloco/copiar dados, e esta ação NÃO poderá ser desfeita."
+    );
+    if (!confirmed) return;
     const newStatus = isBlocked ? "vendido" : "bloqueado";
     await supabase.from("stock_items").update({ status: newStatus }).eq("id", stockItemId);
     setIsBlocked(!isBlocked);
+    toast.success("Item marcado como bloqueado. Dados ocultados.");
   };
 
   const handleConfirmOk = async () => {
