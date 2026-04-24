@@ -1327,6 +1327,12 @@ export default function ItemDetails() {
           onOpenChange={setShowWarmingTracker}
           profileCode={stockData.idPerfil || orderItem?.name || ""}
           userId={orderUserId}
+          searchHints={[
+            order?.code,
+            orderItem?.name,
+            stockData.nomePerfil,
+            stockData.idPerfil,
+          ].filter(Boolean) as string[]}
         />
       )}
       {/* Disclaimer Modal */}

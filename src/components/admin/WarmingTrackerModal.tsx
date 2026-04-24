@@ -8,6 +8,10 @@ interface WarmingTrackerModalProps {
   onOpenChange: (open: boolean) => void;
   profileCode: string;
   userId: string;
+  /** Identificadores adicionais para tentar localizar a esteira do cliente
+   *  quando o profile_code dele não for igual ao idPerfil do FB.
+   *  Ex.: código do pedido (ORD-XXXX), nome do item, nome do perfil. */
+  searchHints?: string[];
 }
 
 interface WarmingProfile {
@@ -34,28 +38,66 @@ interface WarmingTask {
 
 type EngagementStatus = "applied" | "partial" | "not_used";
 
-export default function WarmingTrackerModal({ open, onOpenChange, profileCode, userId }: WarmingTrackerModalProps) {
+export default function WarmingTrackerModal({ open, onOpenChange, profileCode, userId, searchHints = [] }: WarmingTrackerModalProps) {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<WarmingProfile | null>(null);
   const [tasks, setTasks] = useState<WarmingTask[]>([]);
 
   useEffect(() => {
-    if (!open || !profileCode || !userId) return;
+    if (!open || !userId) return;
     loadData();
-  }, [open, profileCode, userId]);
+  }, [open, profileCode, userId, JSON.stringify(searchHints)]);
 
   async function loadData() {
     setLoading(true);
-    // Find warming profile by code + user
-    const { data: profiles } = await supabase
-      .from("client_warming_profiles")
-      .select("*")
-      .eq("user_id", userId)
-      .eq("profile_code", profileCode)
-      .order("created_at", { ascending: false })
-      .limit(1);
+    // Build candidate identifiers: idPerfil + extra hints (order code, item name, etc.)
+    const candidates = [profileCode, ...searchHints]
+      .map(s => (s || "").toString().trim())
+      .filter(Boolean);
 
-    const p = profiles?.[0] || null;
+    let p: WarmingProfile | null = null;
+
+    // 1) Exact match on profile_code OR profile_name (any candidate)
+    if (candidates.length > 0) {
+      const orFilter = candidates
+        .flatMap(c => [`profile_code.eq.${c}`, `profile_name.eq.${c}`])
+        .join(",");
+      const { data: exact } = await supabase
+        .from("client_warming_profiles")
+        .select("*")
+        .eq("user_id", userId)
+        .or(orFilter)
+        .order("created_at", { ascending: false })
+        .limit(1);
+      p = exact?.[0] || null;
+    }
+
+    // 2) Fallback: partial match (ILIKE) on profile_code/profile_name
+    if (!p && candidates.length > 0) {
+      const orFilter = candidates
+        .flatMap(c => [`profile_code.ilike.%${c}%`, `profile_name.ilike.%${c}%`])
+        .join(",");
+      const { data: partial } = await supabase
+        .from("client_warming_profiles")
+        .select("*")
+        .eq("user_id", userId)
+        .or(orFilter)
+        .order("created_at", { ascending: false })
+        .limit(1);
+      p = partial?.[0] || null;
+    }
+
+    // 3) Last resort: most recent warming profile of this user
+    if (!p) {
+      const { data: anyProfile } = await supabase
+        .from("client_warming_profiles")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(1);
+      p = anyProfile?.[0] || null;
+    }
+
     setProfile(p);
 
     if (p) {
@@ -131,6 +173,14 @@ export default function WarmingTrackerModal({ open, onOpenChange, profileCode, u
           </div>
         ) : (
           <div className="space-y-4">
+            {/* Aviso quando a esteira encontrada não corresponde exatamente ao profileCode buscado */}
+            {profile && profile.profile_code !== profileCode && (
+              <div className="p-2 rounded-lg bg-blue-500/10 border border-blue-500/20 text-[11px] text-blue-300">
+                <span className="material-symbols-outlined text-[14px] align-middle mr-1">info</span>
+                Esteira do cliente localizada como <strong className="font-mono">{profile.profile_code}</strong>
+                {profile.profile_name ? <> ({profile.profile_name})</> : null}.
+              </div>
+            )}
             {/* Status Badge */}
             <div className={`flex items-center justify-between p-3 rounded-lg border ${statusConfig[engagement].bg}`}>
               <div className="flex items-center gap-2">
