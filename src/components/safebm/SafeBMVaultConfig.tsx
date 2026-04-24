@@ -149,7 +149,8 @@ function VaultPendingCard({ bmName }: { bmName: string }) {
   );
 }
 
- export default function SafeBMVaultConfig({ vaults: unconfigured, onConfigured }: Props) {
+  export default function SafeBMVaultConfig({ vaults: unconfigured, onConfigured }: Props) {
+   const [search, setSearch] = useState("");
 
   const vaultEmails = useMemo(() => {
     const map = new Map<string, string>();
@@ -162,7 +163,19 @@ function VaultPendingCard({ bmName }: { bmName: string }) {
     return map;
   }, [unconfigured.map(v => v.id).join(",")]);
 
-  const [forms, setForms] = useState<Record<string, VaultFormState>>({});
+   const [forms, setForms] = useState<Record<string, VaultFormState>>({});
+
+   const filteredUnconfigured = useMemo(() => {
+     if (!search.trim()) return unconfigured;
+     const q = search.toLowerCase();
+     return unconfigured.filter(v => {
+       const email = vaultEmails.get(v.id) || "";
+       return (
+         v.bm_name.toLowerCase().includes(q) ||
+         email.toLowerCase().includes(q)
+       );
+     });
+   }, [unconfigured, search, vaultEmails]);
 
   // Persist submitted vaults in localStorage so they stay locked after reload
   const SUBMITTED_KEY = "safebm_submitted_vaults";
@@ -234,10 +247,24 @@ function VaultPendingCard({ bmName }: { bmName: string }) {
         </p>
       </div>
 
-      {/* Vault cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2.5">
-        {unconfigured.map((v, idx) => {
-          const email = vaultEmails.get(v.id) || SAFE_EMAILS[idx % SAFE_EMAILS.length];
+       {/* Search Filter */}
+       <div className="flex justify-center mb-4">
+         <div className="relative w-full max-w-md">
+           <MaterialIcon name="search" className="absolute left-3 top-1/2 -translate-y-1/2 !text-lg text-[#c6c6c7]/40" />
+           <input
+             type="text"
+             value={search}
+             onChange={(e) => setSearch(e.target.value)}
+             placeholder="Filtrar por nome ou e-mail safe..."
+             className="w-full bg-[#1c2025]/60 border border-amber-500/20 rounded-xl pl-10 pr-4 py-2.5 text-sm text-[#e0e2ea] placeholder:text-[#c6c6c7]/30 focus:outline-none focus:border-amber-500/50 transition-all"
+           />
+         </div>
+       </div>
+
+       {/* Vault cards */}
+       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2.5">
+         {filteredUnconfigured.map((v, idx) => {
+           const email = vaultEmails.get(v.id) || SAFE_EMAILS[idx % SAFE_EMAILS.length];
           const form = getForm(v.id);
           const isAnimating = !!animatingVaults[v.id];
           const isSubmitted = !!submittedVaults[v.id];
