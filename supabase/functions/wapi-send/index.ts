@@ -239,6 +239,55 @@ Deno.serve(async (req) => {
         });
      }
  
+     // ========= ACTION: check-phone =========
+     if (action === "check-phone") {
+       const { phone } = body;
+       if (!phone) return err("phone is required");
+       
+       const normalizedPhone = normalizePhone(phone);
+       const result = await wapiRequest("/contacts/fetch-contacts", { page: 1, perPage: 10, search: normalizedPhone }, "GET");
+       
+       if (result.ok && result.data) {
+         const data = result.data;
+         const rawContacts = data?.contacts || data?.data || [];
+         const normalized = Array.isArray(rawContacts) ? rawContacts.map((c: any) => ({
+           id: c.id || c.jid || "",
+           name: c.name || c.notify || c.pushName || c.verifiedName || "",
+           pushName: c.pushName || c.notify || c.name || "",
+           profilePicUrl: c.profilePicture || c.profilePicUrl || null,
+           labels: c.labels || [],
+         })) : [];
+         
+         // If not found in contacts, try to at least return the normalized ID
+         if (normalized.length === 0) {
+           return ok({ 
+             contacts: [{ 
+               id: `${normalizedPhone}@c.us`, 
+               name: phone, 
+               pushName: phone,
+               profilePicUrl: null,
+               labels: [] 
+             }],
+             found: false
+           });
+         }
+         
+         return ok({ contacts: normalized, found: true });
+       }
+       
+       // Final fallback if API fails
+       return ok({ 
+         contacts: [{ 
+           id: `${normalizedPhone}@c.us`, 
+           name: phone, 
+           pushName: phone,
+           profilePicUrl: null,
+           labels: [] 
+         }],
+         found: false
+       });
+     }
+
     // ========= ACTION: send-text =========
     if (action === "send-text") {
       const { phone, message, user_id, event_key, template_id, metadata } = body;

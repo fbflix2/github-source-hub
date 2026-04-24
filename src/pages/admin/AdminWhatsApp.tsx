@@ -479,335 +479,225 @@ function RenewalsTab() {
   );
 }
 
- function ContactsTab({ logs }: { logs?: any[] }) {
-   const [page, setPage] = useState(1);
-   const [search, setSearch] = useState("");
-   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
-   const [selectedJids, setSelectedJids] = useState<Set<string>>(new Set());
-   const [showCampaignModal, setShowCampaignModal] = useState(false);
-   const [selectedTemplateId, setSelectedTemplateId] = useState("");
-   const [isBulkByRule, setIsBulkByRule] = useState(false);
- 
-   const [forceFallback, setForceFallback] = useState(false);
- 
-   const { data: contactsData, isLoading, refetch } = useQuery({
-     queryKey: ["whatsapp-contacts", page, forceFallback],
-     queryFn: () => callWapi("fetch-contacts", { page, perPage: 500, forceFallback }),
-   });
- 
-   const { data: templates } = useTemplates();
-   const qc = useQueryClient();
- 
-     const contacts = contactsData?.contacts || contactsData?.data || [];
-     const totalPages = contactsData?.totalPages || 1;
-     const totalContacts = contactsData?.totalContacts || 0;
- 
-   const allLabels = useMemo(() => {
-     const labels = new Set<string>();
-     contacts.forEach((c: any) => {
-       if (c.labels) c.labels.forEach((l: string) => labels.add(l));
-     });
-     return Array.from(labels).sort();
-   }, [contacts]);
- 
-   const filteredContacts = useMemo(() => {
-     return contacts.filter((c: any) => {
-       const matchesSearch = (c.name || "").toLowerCase().includes(search.toLowerCase()) || 
-                            (c.pushName || "").toLowerCase().includes(search.toLowerCase()) ||
-                            (c.id || "").includes(search);
-       
-       const matchesLabels = selectedLabels.length === 0 || 
-                            (c.labels && selectedLabels.some(l => c.labels.includes(l)));
- 
-       return matchesSearch && matchesLabels;
-     });
-   }, [contacts, search, selectedLabels]);
- 
-   const toggleSelect = (jid: string) => {
-     const next = new Set(selectedJids);
-     if (next.has(jid)) next.delete(jid);
-     else next.add(jid);
-     setSelectedJids(next);
-   };
- 
-   const toggleSelectAll = () => {
-     if (selectedJids.size === filteredContacts.length) {
-       setSelectedJids(new Set());
-     } else {
-       setSelectedJids(new Set(filteredContacts.map((c: any) => c.id)));
-     }
-   };
- 
-   const sendCampaign = useMutation({
-     mutationFn: async () => {
-       const targets = isBulkByRule ? filteredContacts : contacts.filter((c: any) => selectedJids.has(c.id));
-       const recipients = targets.map((c: any) => ({
-         phone: c.id.split("@")[0],
-          variables: {
-            nome: c.name || c.verifiedName || c.pushName || "Cliente"
-          }
-       }));
-       return callWapi("send-bulk", { template_id: selectedTemplateId, recipients });
-     },
-     onSuccess: () => {
-       toast.success("Campanha iniciada com sucesso!");
-       setShowCampaignModal(false);
-       setSelectedJids(new Set());
-       qc.invalidateQueries({ queryKey: ["whatsapp-logs"] });
-     },
-     onError: (e: Error) => toast.error(e.message),
-   });
- 
-   return (
-     <div className="space-y-4">
-       <div className="flex flex-col gap-4">
-         <div className="flex items-center justify-between gap-3 flex-wrap">
-           <div className="relative flex-1 max-w-sm">
-             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-             <Input 
-               placeholder="Buscar contatos..." 
-               value={search} 
-               onChange={(e) => setSearch(e.target.value)} 
-               className="pl-8" 
-             />
-           </div>
-             <div className="flex items-center gap-2 flex-wrap">
-               <Button 
-                 variant="outline" 
-                 size="sm" 
-                 onClick={() => { setPage(1); setForceFallback(false); refetch(); }} 
-                 disabled={isLoading}
-               >
-                 <RefreshCw className={`size-3.5 mr-1 ${isLoading && !forceFallback ? "animate-spin" : ""}`} />
-                 Sincronizar
-               </Button>
-               <Button 
-                 variant="outline" 
-                 size="sm" 
-                 className="border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
-                 onClick={() => { setPage(1); setForceFallback(true); refetch(); }} 
-                 disabled={isLoading}
-                 title="Tenta buscar todos os contatos do histórico de conversas"
-               >
-                 <RotateCw className={`size-3.5 mr-1 ${isLoading && forceFallback ? "animate-spin" : ""}`} />
-                 Busca Completa
-               </Button>
-             {selectedJids.size > 0 ? (
-               <Button 
-                 size="sm" 
-                 className="bg-green-600 hover:bg-green-700"
-                 onClick={() => { setIsBulkByRule(false); setShowCampaignModal(true); }}
-               >
-                 <Zap className="size-3.5 mr-1" />
-                 Enviar para Selecionados ({selectedJids.size})
-               </Button>
-             ) : filteredContacts.length > 0 && (selectedLabels.length > 0 || search) && (
-               <Button 
-                 size="sm" 
-                 variant="outline"
-                 className="border-green-500/50 text-green-500 hover:bg-green-500/10"
-                 onClick={() => { setIsBulkByRule(true); setShowCampaignModal(true); }}
-               >
-                 <Zap className="size-3.5 mr-1" />
-                 Enviar para todos do Filtro ({filteredContacts.length})
-               </Button>
-        )}
- 
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between px-2 py-4">
-            <p className="text-xs text-muted-foreground">
-              Mostrando {contacts.length} de {totalContacts} contatos
-            </p>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1 || isLoading}
-                className="h-8 w-8 p-0"
-              >
-                <ChevronLeft className="size-4" />
-              </Button>
-              <span className="text-xs font-medium">
-                Página {page} de {totalPages}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages || isLoading}
-                className="h-8 w-8 p-0"
-              >
-                <ChevronRight className="size-4" />
-              </Button>
-            </div>
+function ContactsTab({ logs }: { logs?: any[] }) {
+  const [search, setSearch] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [addedContacts, setAddedContacts] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showCampaignModal, setShowCampaignModal] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState("");
+  const { data: templates } = useTemplates();
+  const qc = useQueryClient();
+
+  const handleSearch = async () => {
+    if (!search.trim()) return;
+    setIsSearching(true);
+    try {
+      const data = await callWapi("check-phone", { phone: search });
+      setSearchResults(data.contacts || []);
+      if (data.contacts?.length === 0) {
+        toast.error("Contato não encontrado");
+      }
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const addToList = (contact: any) => {
+    if (addedContacts.some(c => c.id === contact.id)) {
+      toast.error("Contato já está na lista");
+      return;
+    }
+    setAddedContacts([...addedContacts, contact]);
+    setSearchResults([]);
+    setSearch("");
+    toast.success("Contato adicionado à lista");
+  };
+
+  const removeFromList = (jid: string) => {
+    setAddedContacts(addedContacts.filter(c => c.id !== jid));
+  };
+
+  const sendCampaign = useMutation({
+    mutationFn: async () => {
+      const recipients = addedContacts.map((c: any) => ({
+        phone: c.id.split("@")[0],
+        variables: {
+          nome: c.name || c.verifiedName || c.pushName || "Cliente"
+        }
+      }));
+      return callWapi("send-bulk", { template_id: selectedTemplateId, recipients });
+    },
+    onSuccess: () => {
+      toast.success("Campanha iniciada com sucesso!");
+      setShowCampaignModal(false);
+      setAddedContacts([]);
+      qc.invalidateQueries({ queryKey: ["whatsapp-logs"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <div className="space-y-6">
+      {/* Search Section */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1">
+            <Phone className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+            <Input 
+              placeholder="Informe o número do WhatsApp (ex: 5511999999999)" 
+              value={search} 
+              onChange={(e) => setSearch(e.target.value)} 
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              className="pl-8" 
+            />
+          </div>
+          <Button onClick={handleSearch} disabled={isSearching} className="bg-blue-600 hover:bg-blue-700">
+            {isSearching ? <RefreshCw className="size-3.5 animate-spin mr-1" /> : <Search className="size-3.5 mr-1" />}
+            Buscar
+          </Button>
+        </div>
+
+        {searchResults.length > 0 && (
+          <div className="border border-blue-500/30 rounded-lg p-4 bg-blue-500/5 space-y-3 animate-in fade-in slide-in-from-top-2">
+            <p className="text-xs font-medium text-blue-400">Resultado da busca:</p>
+            {searchResults.map((c: any) => (
+              <div key={c.id} className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="size-10 rounded-full bg-muted flex items-center justify-center border border-border/40 overflow-hidden">
+                    {c.profilePicUrl ? <img src={c.profilePicUrl} className="size-full object-cover" /> : <Users className="size-5 text-muted-foreground" />}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm">{c.name || c.id.split("@")[0]}</p>
+                    <p className="text-[11px] text-muted-foreground font-mono">{c.id.split("@")[0]}</p>
+                  </div>
+                </div>
+                <Button size="sm" onClick={() => addToList(c)} className="bg-green-600 hover:bg-green-700">
+                  <Plus className="size-3.5 mr-1" /> Adicionar à lista
+                </Button>
+              </div>
+            ))}
           </div>
         )}
-           </div>
-         </div>
- 
-         {allLabels.length > 0 && (
-           <div className="flex flex-wrap gap-2 items-center p-3 rounded-lg bg-card/30 border border-border/40">
-             <span className="text-xs font-medium text-muted-foreground flex items-center gap-1.5 mr-2">
-               <Plus className="size-3" /> Filtrar por etiqueta:
-             </span>
-             {allLabels.map(label => {
-               const isSelected = selectedLabels.includes(label);
-               return (
-                 <Badge 
-                   key={label}
-                   variant={isSelected ? "default" : "outline"}
-                   className={`cursor-pointer transition-all hover:scale-105 ${isSelected ? "bg-blue-600 hover:bg-blue-700" : "hover:border-blue-500/50"}`}
-                   onClick={() => {
-                     if (isSelected) setSelectedLabels(selectedLabels.filter(l => l !== label));
-                     else setSelectedLabels([...selectedLabels, label]);
-                   }}
-                 >
-                   {label}
-                 </Badge>
-               );
-             })}
-             {selectedLabels.length > 0 && (
-               <Button 
-                 variant="ghost" 
-                 size="sm" 
-                 className="h-6 px-2 text-[10px] text-muted-foreground hover:text-foreground"
-                 onClick={() => setSelectedLabels([])}
-               >
-                 Limpar filtros
-               </Button>
-             )}
-           </div>
-         )}
-       </div>
- 
-       {isLoading ? (
-         <div className="text-center py-12 text-muted-foreground">Carregando contatos...</div>
-       ) : filteredContacts.length === 0 ? (
-         <Card>
-           <CardContent className="py-12 text-center">
-             <Users className="size-10 mx-auto text-muted-foreground mb-3" />
-             <p className="text-muted-foreground">Nenhum contato encontrado</p>
-           </CardContent>
-         </Card>
-       ) : (
-         <div className="border border-border/40 rounded-lg overflow-hidden bg-card/30">
-           <table className="w-full text-sm">
-             <thead>
-               <tr className="bg-muted/50 border-b border-border/40">
-                 <th className="p-3 text-left w-10">
-                   <input 
-                     type="checkbox" 
-                     checked={selectedJids.size === filteredContacts.length && filteredContacts.length > 0}
-                     onChange={toggleSelectAll}
-                     className="rounded border-border/40 bg-background"
-                   />
-                 </th>
-                 <th className="p-3 text-left">Contato</th>
-                 <th className="p-3 text-left">WhatsApp</th>
-                 <th className="p-3 text-left">Etiquetas</th>
-               </tr>
-             </thead>
-             <tbody className="divide-y divide-border/30">
-               {filteredContacts.map((c: any) => (
-                 <tr key={c.id} className="hover:bg-muted/20 transition-colors">
-                   <td className="p-3">
-                     <input 
-                       type="checkbox" 
-                       checked={selectedJids.has(c.id)}
-                       onChange={() => toggleSelect(c.id)}
-                       className="rounded border-border/40 bg-background"
-                     />
-                   </td>
-                   <td className="p-3">
-                     <div className="flex items-center gap-3">
-                       <div className="size-9 rounded-full bg-muted overflow-hidden shrink-0 border border-border/40">
-                         {c.profilePicUrl ? (
-                           <img src={c.profilePicUrl} alt="" className="size-full object-cover" />
-                         ) : (
-                           <div className="size-full flex items-center justify-center bg-green-500/10 text-green-500">
-                             <Users className="size-4" />
-                           </div>
-                         )}
-                       </div>
-                       <div className="min-w-0">
-                        <p className="font-medium text-foreground truncate">
-                          {c.name || c.verifiedName || c.pushName || c.id.split("@")[0]}
-                        </p>
-                       <div className="flex items-center gap-1.5">
-                         <p className="text-[10px] text-muted-foreground">{c.pushName ? `@${c.pushName}` : ""}</p>
-                         {logs?.some(l => l.phone === c.id.split("@")[0] && l.status === "sent") && (
-                           <Badge variant="outline" className="text-[8px] h-3 px-1 py-0 bg-green-500/10 text-green-500 border-green-500/20">
-                             Enviado
-                           </Badge>
-                         )}
-                       </div>
-                       </div>
-                     </div>
-                   </td>
-                   <td className="p-3 text-muted-foreground font-mono text-[11px]">
-                     {c.id.split("@")[0]}
-                   </td>
-                   <td className="p-3">
-                     <div className="flex flex-wrap gap-1">
-                       {c.labels && c.labels.length > 0 ? (
-                         c.labels.map((label: string, idx: number) => (
-                           <Badge key={idx} variant="outline" className="text-[9px] py-0 h-4 bg-blue-500/5 text-blue-400 border-blue-500/20">
-                             {label}
-                           </Badge>
-                         ))
-                       ) : (
-                         <span className="text-[10px] text-muted-foreground italic">sem etiquetas</span>
-                       )}
-                     </div>
-                   </td>
-                 </tr>
-               ))}
-             </tbody>
-           </table>
-         </div>
-       )}
- 
-       <Dialog open={showCampaignModal} onOpenChange={setShowCampaignModal}>
-         <DialogContent>
-           <DialogHeader>
-             <DialogTitle>
-               Criar Campanha para {isBulkByRule ? filteredContacts.length : selectedJids.size} contatos
-             </DialogTitle>
-           </DialogHeader>
-           <div className="space-y-4 py-2">
-             <div className="space-y-1.5">
-               <label className="text-xs font-medium text-muted-foreground">Selecione o Template</label>
-               <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
-                 <SelectTrigger>
-                   <SelectValue placeholder="Escolha um template..." />
-                 </SelectTrigger>
-                 <SelectContent>
-                   {templates?.filter(t => t.active).map(t => (
-                     <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                   ))}
-                 </SelectContent>
-               </Select>
-             </div>
-             <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3 flex gap-3">
-               <AlertTriangle className="size-5 text-amber-500 shrink-0" />
-               <p className="text-xs text-amber-200/80 leading-relaxed">
-                 As mensagens serão enviadas com um intervalo aleatório entre 3 e 5 minutos para evitar o bloqueio do seu WhatsApp.
-               </p>
-             </div>
-             <Button 
-               className="w-full bg-green-600 hover:bg-green-700" 
-               disabled={!selectedTemplateId || sendCampaign.isPending}
-               onClick={() => sendCampaign.mutate()}
-             >
-               {sendCampaign.isPending ? "Iniciando..." : "Confirmar e Enviar"}
-             </Button>
-           </div>
-         </DialogContent>
-       </Dialog>
-     </div>
-   );
- }
+      </div>
+
+      {/* Added List Section */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold flex items-center gap-2">
+            <Users className="size-4 text-green-500" />
+            Lista de Contatos ({addedContacts.length})
+          </h3>
+          {addedContacts.length > 0 && (
+            <Button 
+              size="sm" 
+              onClick={() => setShowCampaignModal(true)}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              <Zap className="size-3.5 mr-1" />
+              Criar Campanha
+            </Button>
+          )}
+        </div>
+
+        {addedContacts.length === 0 ? (
+          <Card className="border-dashed">
+            <CardContent className="py-12 text-center">
+              <Users className="size-10 mx-auto text-muted-foreground/30 mb-3" />
+              <p className="text-muted-foreground text-sm">Busque um contato acima para adicioná-lo à sua lista de campanha.</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="border border-border/40 rounded-lg overflow-hidden bg-card/30">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50 border-b border-border/40">
+                <tr>
+                  <th className="p-3 text-left">Contato</th>
+                  <th className="p-3 text-left">WhatsApp</th>
+                  <th className="p-3 text-right">Ação</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/30">
+                {addedContacts.map((c: any) => (
+                  <tr key={c.id} className="hover:bg-muted/10 transition-colors">
+                    <td className="p-3">
+                      <div className="flex items-center gap-3">
+                        <div className="size-8 rounded-full bg-muted flex items-center justify-center border border-border/40 overflow-hidden">
+                          {c.profilePicUrl ? <img src={c.profilePicUrl} className="size-full object-cover" /> : <Users className="size-4 text-muted-foreground" />}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-medium truncate">{c.name || c.id.split("@")[0]}</p>
+                          {logs?.some(l => l.phone === c.id.split("@")[0] && l.status === "sent") && (
+                            <Badge variant="outline" className="text-[8px] h-3 px-1 py-0 bg-green-500/10 text-green-500 border-green-500/20">
+                              Enviado
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-3 text-muted-foreground font-mono text-[11px]">
+                      {c.id.split("@")[0]}
+                    </td>
+                    <td className="p-3 text-right">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => removeFromList(c.id)}
+                        className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-8 w-8 p-0"
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <Dialog open={showCampaignModal} onOpenChange={setShowCampaignModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              Criar Campanha para {addedContacts.length} contatos
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Selecione o Template</label>
+              <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Escolha um template..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {templates?.filter(t => t.active).map(t => (
+                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3 flex gap-3">
+              <AlertTriangle className="size-5 text-amber-500 shrink-0" />
+              <p className="text-xs text-amber-200/80 leading-relaxed">
+                As mensagens serão enviadas com um intervalo aleatório entre 3 e 5 minutos para evitar o bloqueio do seu WhatsApp.
+              </p>
+            </div>
+            <Button 
+              className="w-full bg-green-600 hover:bg-green-700" 
+              disabled={!selectedTemplateId || sendCampaign.isPending}
+              onClick={() => sendCampaign.mutate()}
+            >
+              {sendCampaign.isPending ? "Iniciando..." : "Confirmar e Enviar"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
  
 export default function AdminWhatsApp() {
   const qc = useQueryClient();
