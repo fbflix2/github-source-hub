@@ -709,6 +709,17 @@ export default function ItemDetails() {
                       Este item será liberado automaticamente após o pagamento da diferença de valor da troca ser confirmado no outro item do pedido.
                     </p>
                   </div>
+                ) : isBlocked ? (
+                  <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-5 text-center space-y-2">
+                    <span className="material-symbols-outlined text-destructive text-[32px]">block</span>
+                    <h3 className="text-sm font-bold text-foreground">Item Bloqueado</h3>
+                    <p className="text-xs text-muted-foreground">
+                      Você marcou este item como bloqueado. Por motivos de segurança, os dados de acesso foram ocultados e não é mais possível baixar o bloco ou copiar credenciais.
+                    </p>
+                    <p className="text-[10px] text-muted-foreground/80">
+                      Caso precise de reposição, abra um chamado no suporte com o código do pedido.
+                    </p>
+                  </div>
                 ) : isBM ? (
                   <>
                     <h3 className="text-[10px] font-bold text-foreground mb-2 uppercase tracking-wider">Links das BMs</h3>
