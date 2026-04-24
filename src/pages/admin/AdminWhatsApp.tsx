@@ -556,8 +556,9 @@ function ContactsTab({ logs }: { logs?: any[] }) {
      },
     onSuccess: () => {
       toast.success("Campanha iniciada com sucesso!");
-      setShowCampaignModal(false);
-      setAddedContacts([]);
+       setShowCampaignModal(false);
+       setAddedContacts([]);
+       setSelectedLabelFilter("all");
       qc.invalidateQueries({ queryKey: ["whatsapp-logs"] });
     },
     onError: (e: Error) => toast.error(e.message),
