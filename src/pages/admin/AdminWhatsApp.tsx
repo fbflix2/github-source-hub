@@ -3,7 +3,7 @@ import {
   MessageCircle, Plus, Send, Eye, Trash2, ToggleLeft, ToggleRight, Search, Phone, Clock,
   CheckCircle, XCircle, RefreshCw, Users, Zap, Bell, AlertTriangle, Image, MousePointerClick,
   BarChart3, ArrowUpRight, MessageSquareReply, CheckCheck, Mail, TrendingUp, RotateCw, DollarSign,
-  Calendar, ChevronDown, ChevronUp
+   Calendar, ChevronDown, ChevronUp, ChevronLeft, ChevronRight
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -488,15 +488,19 @@ function RenewalsTab() {
    const [selectedTemplateId, setSelectedTemplateId] = useState("");
    const [isBulkByRule, setIsBulkByRule] = useState(false);
  
+   const [forceFallback, setForceFallback] = useState(false);
+ 
    const { data: contactsData, isLoading, refetch } = useQuery({
-     queryKey: ["whatsapp-contacts", page],
-     queryFn: () => callWapi("fetch-contacts", { page, perPage: 100 }),
+     queryKey: ["whatsapp-contacts", page, forceFallback],
+     queryFn: () => callWapi("fetch-contacts", { page, perPage: 500, forceFallback }),
    });
  
    const { data: templates } = useTemplates();
    const qc = useQueryClient();
  
-    const contacts = contactsData?.contacts || contactsData?.data || [];
+     const contacts = contactsData?.contacts || contactsData?.data || [];
+     const totalPages = contactsData?.totalPages || 1;
+     const totalContacts = contactsData?.totalContacts || 0;
  
    const allLabels = useMemo(() => {
      const labels = new Set<string>();
@@ -567,16 +571,27 @@ function RenewalsTab() {
                className="pl-8" 
              />
            </div>
-           <div className="flex items-center gap-2">
-             <Button 
-               variant="outline" 
-               size="sm" 
-               onClick={() => refetch()} 
-               disabled={isLoading}
-             >
-               <RefreshCw className={`size-3.5 mr-1 ${isLoading ? "animate-spin" : ""}`} />
-               Sincronizar
-             </Button>
+             <div className="flex items-center gap-2 flex-wrap">
+               <Button 
+                 variant="outline" 
+                 size="sm" 
+                 onClick={() => { setPage(1); setForceFallback(false); refetch(); }} 
+                 disabled={isLoading}
+               >
+                 <RefreshCw className={`size-3.5 mr-1 ${isLoading && !forceFallback ? "animate-spin" : ""}`} />
+                 Sincronizar
+               </Button>
+               <Button 
+                 variant="outline" 
+                 size="sm" 
+                 className="border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
+                 onClick={() => { setPage(1); setForceFallback(true); refetch(); }} 
+                 disabled={isLoading}
+                 title="Tenta buscar todos os contatos do histórico de conversas"
+               >
+                 <RotateCw className={`size-3.5 mr-1 ${isLoading && forceFallback ? "animate-spin" : ""}`} />
+                 Busca Completa
+               </Button>
              {selectedJids.size > 0 ? (
                <Button 
                  size="sm" 
@@ -596,7 +611,38 @@ function RenewalsTab() {
                  <Zap className="size-3.5 mr-1" />
                  Enviar para todos do Filtro ({filteredContacts.length})
                </Button>
-             )}
+        )}
+ 
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-2 py-4">
+            <p className="text-xs text-muted-foreground">
+              Mostrando {contacts.length} de {totalContacts} contatos
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1 || isLoading}
+                className="h-8 w-8 p-0"
+              >
+                <ChevronLeft className="size-4" />
+              </Button>
+              <span className="text-xs font-medium">
+                Página {page} de {totalPages}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages || isLoading}
+                className="h-8 w-8 p-0"
+              >
+                <ChevronRight className="size-4" />
+              </Button>
+            </div>
+          </div>
+        )}
            </div>
          </div>
  
