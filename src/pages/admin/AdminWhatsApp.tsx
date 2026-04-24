@@ -536,16 +536,20 @@ function ContactsTab({ logs }: { logs?: any[] }) {
     setAddedContacts(addedContacts.filter(c => c.id !== jid));
   };
 
-  const sendCampaign = useMutation({
-    mutationFn: async () => {
-      const recipients = addedContacts.map((c: any) => ({
-        phone: c.id.split("@")[0],
-        variables: {
-          nome: c.name || c.verifiedName || c.pushName || "Cliente"
-        }
-      }));
-      return callWapi("send-bulk", { template_id: selectedTemplateId, recipients });
-    },
+   const sendCampaign = useMutation({
+     mutationFn: async () => {
+       const filteredContacts = selectedLabelFilter === "all" 
+         ? addedContacts 
+         : addedContacts.filter(c => c.label === selectedLabelFilter);
+ 
+       const recipients = filteredContacts.map((c: any) => ({
+         phone: c.id.split("@")[0],
+         variables: {
+           nome: c.name || c.verifiedName || c.pushName || "Cliente"
+         }
+       }));
+       return callWapi("send-bulk", { template_id: selectedTemplateId, recipients });
+     },
     onSuccess: () => {
       toast.success("Campanha iniciada com sucesso!");
       setShowCampaignModal(false);
