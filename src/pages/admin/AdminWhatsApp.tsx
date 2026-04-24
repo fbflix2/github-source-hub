@@ -489,8 +489,21 @@ function ContactsTab({ logs }: { logs?: any[] }) {
    const [selectedLabelFilter, setSelectedLabelFilter] = useState("all");
    const [editingLabelId, setEditingLabelId] = useState<string | null>(null);
    const [tempLabel, setTempLabel] = useState("");
-  const { data: templates } = useTemplates();
-  const qc = useQueryClient();
+   const { data: templates } = useTemplates();
+   const qc = useQueryClient();
+ 
+   const availableLabels = useMemo(() => {
+     const labels = new Set<string>();
+     addedContacts.forEach(c => {
+       if (c.label) labels.add(c.label);
+     });
+     return Array.from(labels);
+   }, [addedContacts]);
+ 
+   const updateContactLabel = (jid: string, label: string) => {
+     setAddedContacts(addedContacts.map(c => c.id === jid ? { ...c, label } : c));
+     setEditingLabelId(null);
+   };
 
   const handleSearch = async () => {
     if (!search.trim()) return;
