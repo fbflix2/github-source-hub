@@ -485,7 +485,10 @@ function ContactsTab({ logs }: { logs?: any[] }) {
   const [addedContacts, setAddedContacts] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showCampaignModal, setShowCampaignModal] = useState(false);
-  const [selectedTemplateId, setSelectedTemplateId] = useState("");
+   const [selectedTemplateId, setSelectedTemplateId] = useState("");
+   const [selectedLabelFilter, setSelectedLabelFilter] = useState("all");
+   const [editingLabelId, setEditingLabelId] = useState<string | null>(null);
+   const [tempLabel, setTempLabel] = useState("");
   const { data: templates } = useTemplates();
   const qc = useQueryClient();
 
