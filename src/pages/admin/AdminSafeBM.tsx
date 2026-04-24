@@ -266,6 +266,19 @@ export default function AdminSafeBM() {
 
   const pendingTotalCount = unconfiguredVaults.length + pendingRequests.length;
 
+  const filteredUnconfiguredVaults = useMemo(() => {
+    const q = pendingSearch.trim().toLowerCase();
+    if (!q) return unconfiguredVaults;
+    return unconfiguredVaults.filter(v => {
+      const email = (pendingEmails.get(v.id) || "").toLowerCase();
+      return (
+        v.bm_name.toLowerCase().includes(q) ||
+        (v.client_name || "").toLowerCase().includes(q) ||
+        email.includes(q)
+      );
+    });
+  }, [unconfiguredVaults, pendingSearch, pendingEmails]);
+
   // ─── Expiring tab: subscriptions expiring within 3 days ───
   const expiringVaults = useMemo(() => {
     const now = new Date();
