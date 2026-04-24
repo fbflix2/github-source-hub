@@ -99,6 +99,22 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
       toast.error("Preencha ao menos o link ou ID do perfil");
       return;
     }
+    // Aviso preventivo: se faltar campos críticos que o cliente vai precisar,
+    // pede confirmação. Estes são os campos que mais aparecem como "—" para o cliente.
+    const missing: string[] = [];
+    if (!formData.senha?.trim()) missing.push("Senha FB");
+    if (!formData.senhaEmail?.trim()) missing.push("Senha do Email");
+    if (!formData.token2fa?.trim()) missing.push("Token 2FA");
+    if (!formData.emailAcesso?.trim()) missing.push("Login / Email");
+    if (missing.length > 0) {
+      const confirmed = window.confirm(
+        `⚠️ ATENÇÃO: Os seguintes campos estão vazios e aparecerão como "—" para o cliente:\n\n` +
+        missing.map(m => `• ${m}`).join("\n") +
+        `\n\nSe estiver faltando algum dado, o cliente vai abrir um chamado de suporte.\n\n` +
+        `Deseja salvar mesmo assim?`
+      );
+      if (!confirmed) return;
+    }
     setSaving(true);
     const insertData: any = {
       name: formData.nomePerfil || formData.emailAcesso || `Perfil ${formData.idPerfil}`,
