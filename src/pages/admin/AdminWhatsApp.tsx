@@ -725,11 +725,33 @@ function ContactsTab({ logs }: { logs?: any[] }) {
       <Dialog open={showCampaignModal} onOpenChange={setShowCampaignModal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              Criar Campanha para {addedContacts.length} contatos
-            </DialogTitle>
+             <DialogTitle className="flex items-center gap-2">
+               <Zap className="size-5 text-green-500" />
+               Criar Campanha
+             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-2">
+           <div className="space-y-4 py-2">
+             {availableLabels.length > 0 && (
+               <div className="space-y-1.5">
+                 <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                   <Filter className="size-3" /> Filtrar por Etiqueta
+                 </label>
+                 <Select value={selectedLabelFilter} onValueChange={setSelectedLabelFilter}>
+                   <SelectTrigger>
+                     <SelectValue placeholder="Todos os contatos" />
+                   </SelectTrigger>
+                   <SelectContent>
+                     <SelectItem value="all">Todos os contatos ({addedContacts.length})</SelectItem>
+                     {availableLabels.map(label => (
+                       <SelectItem key={label} value={label}>
+                         {label} ({addedContacts.filter(c => c.label === label).length})
+                       </SelectItem>
+                     ))}
+                   </SelectContent>
+                 </Select>
+               </div>
+             )}
+ 
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground">Selecione o Template</label>
               <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
