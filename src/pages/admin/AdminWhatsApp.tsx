@@ -1,9 +1,9 @@
 import { useState, useMemo } from "react";
 import {
-  MessageCircle, Plus, Send, Eye, Trash2, ToggleLeft, ToggleRight, Search, Phone, Clock,
-  CheckCircle, XCircle, RefreshCw, Users, Zap, Bell, AlertTriangle, Image, MousePointerClick,
-  BarChart3, ArrowUpRight, MessageSquareReply, CheckCheck, Mail, TrendingUp, RotateCw, DollarSign,
-   Calendar, ChevronDown, ChevronUp, ChevronLeft, ChevronRight
+   MessageCircle, Plus, Send, Eye, Trash2, ToggleLeft, ToggleRight, Search, Phone, Clock, Tag,
+   CheckCircle, XCircle, RefreshCw, Users, Zap, Bell, AlertTriangle, Image, MousePointerClick,
+   BarChart3, ArrowUpRight, MessageSquareReply, CheckCheck, Mail, TrendingUp, RotateCw, DollarSign,
+    Calendar, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Filter
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -485,9 +485,29 @@ function ContactsTab({ logs }: { logs?: any[] }) {
   const [addedContacts, setAddedContacts] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showCampaignModal, setShowCampaignModal] = useState(false);
-  const [selectedTemplateId, setSelectedTemplateId] = useState("");
-  const { data: templates } = useTemplates();
-  const qc = useQueryClient();
+   const [selectedTemplateId, setSelectedTemplateId] = useState("");
+   const [selectedLabelFilter, setSelectedLabelFilter] = useState("all");
+   const [editingLabelId, setEditingLabelId] = useState<string | null>(null);
+   const [tempLabel, setTempLabel] = useState("");
+   const { data: templates } = useTemplates();
+   const qc = useQueryClient();
+ 
+   const availableLabels = useMemo(() => {
+     const labels = new Set<string>();
+     addedContacts.forEach(c => {
+       if (c.label) labels.add(c.label);
+     });
+     return Array.from(labels);
+   }, [addedContacts]);
+ 
+   const updateContactLabel = (jid: string, label: string) => {
+     setAddedContacts(addedContacts.map(c => c.id === jid ? { ...c, label } : c));
+     setEditingLabelId(null);
+   };
+ 
+   const filteredCount = selectedLabelFilter === "all" 
+     ? addedContacts.length 
+     : addedContacts.filter(c => c.label === selectedLabelFilter).length;
 
   const handleSearch = async () => {
     if (!search.trim()) return;
@@ -520,20 +540,25 @@ function ContactsTab({ logs }: { logs?: any[] }) {
     setAddedContacts(addedContacts.filter(c => c.id !== jid));
   };
 
-  const sendCampaign = useMutation({
-    mutationFn: async () => {
-      const recipients = addedContacts.map((c: any) => ({
-        phone: c.id.split("@")[0],
-        variables: {
-          nome: c.name || c.verifiedName || c.pushName || "Cliente"
-        }
-      }));
-      return callWapi("send-bulk", { template_id: selectedTemplateId, recipients });
-    },
+   const sendCampaign = useMutation({
+     mutationFn: async () => {
+       const filteredContacts = selectedLabelFilter === "all" 
+         ? addedContacts 
+         : addedContacts.filter(c => c.label === selectedLabelFilter);
+ 
+       const recipients = filteredContacts.map((c: any) => ({
+         phone: c.id.split("@")[0],
+         variables: {
+           nome: c.name || c.verifiedName || c.pushName || "Cliente"
+         }
+       }));
+       return callWapi("send-bulk", { template_id: selectedTemplateId, recipients });
+     },
     onSuccess: () => {
       toast.success("Campanha iniciada com sucesso!");
-      setShowCampaignModal(false);
-      setAddedContacts([]);
+       setShowCampaignModal(false);
+       setAddedContacts([]);
+       setSelectedLabelFilter("all");
       qc.invalidateQueries({ queryKey: ["whatsapp-logs"] });
     },
     onError: (e: Error) => toast.error(e.message),
@@ -614,9 +639,10 @@ function ContactsTab({ logs }: { logs?: any[] }) {
             <table className="w-full text-sm">
               <thead className="bg-muted/50 border-b border-border/40">
                 <tr>
-                  <th className="p-3 text-left">Contato</th>
-                  <th className="p-3 text-left">WhatsApp</th>
-                  <th className="p-3 text-right">Ação</th>
+                   <th className="p-3 text-left">Contato</th>
+                   <th className="p-3 text-left">WhatsApp</th>
+                   <th className="p-3 text-left">Etiqueta</th>
+                   <th className="p-3 text-right">Ação</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/30">
@@ -637,10 +663,53 @@ function ContactsTab({ logs }: { logs?: any[] }) {
                         </div>
                       </div>
                     </td>
-                    <td className="p-3 text-muted-foreground font-mono text-[11px]">
-                      {c.id.split("@")[0]}
-                    </td>
-                    <td className="p-3 text-right">
+                     <td className="p-3 text-muted-foreground font-mono text-[11px]">
+                       {c.id.split("@")[0]}
+                     </td>
+                     <td className="p-3">
+                       {editingLabelId === c.id ? (
+                         <div className="flex items-center gap-1">
+                           <Input 
+                             size={10} 
+                             className="h-7 text-[10px] w-24" 
+                             value={tempLabel} 
+                             onChange={(e) => setTempLabel(e.target.value)}
+                             onKeyDown={(e) => {
+                               if (e.key === 'Enter') updateContactLabel(c.id, tempLabel);
+                               if (e.key === 'Escape') setEditingLabelId(null);
+                             }}
+                             autoFocus
+                           />
+                           <Button 
+                             size="sm" 
+                             className="h-7 w-7 p-0" 
+                             onClick={() => updateContactLabel(c.id, tempLabel)}
+                           >
+                             <Plus className="size-3" />
+                           </Button>
+                         </div>
+                       ) : (
+                         <div 
+                           className="flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity"
+                           onClick={() => {
+                             setEditingLabelId(c.id);
+                             setTempLabel(c.label || "");
+                           }}
+                         >
+                           {c.label ? (
+                             <Badge variant="outline" className="text-[10px] bg-blue-500/10 text-blue-400 border-blue-500/20 gap-1">
+                               <Tag className="size-2.5" />
+                               {c.label}
+                             </Badge>
+                           ) : (
+                             <span className="text-[10px] text-muted-foreground italic flex items-center gap-1">
+                               <Tag className="size-2.5" /> sem etiqueta
+                             </span>
+                           )}
+                         </div>
+                       )}
+                     </td>
+                     <td className="p-3 text-right">
                       <Button 
                         variant="ghost" 
                         size="sm" 
@@ -661,11 +730,33 @@ function ContactsTab({ logs }: { logs?: any[] }) {
       <Dialog open={showCampaignModal} onOpenChange={setShowCampaignModal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              Criar Campanha para {addedContacts.length} contatos
-            </DialogTitle>
+             <DialogTitle className="flex items-center gap-2">
+               <Zap className="size-5 text-green-500" />
+               Criar Campanha
+             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-2">
+           <div className="space-y-4 py-2">
+             {availableLabels.length > 0 && (
+               <div className="space-y-1.5">
+                 <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                   <Filter className="size-3" /> Filtrar por Etiqueta
+                 </label>
+                 <Select value={selectedLabelFilter} onValueChange={setSelectedLabelFilter}>
+                   <SelectTrigger>
+                     <SelectValue placeholder="Todos os contatos" />
+                   </SelectTrigger>
+                   <SelectContent>
+                     <SelectItem value="all">Todos os contatos ({addedContacts.length})</SelectItem>
+                     {availableLabels.map(label => (
+                       <SelectItem key={label} value={label}>
+                         {label} ({addedContacts.filter(c => c.label === label).length})
+                       </SelectItem>
+                     ))}
+                   </SelectContent>
+                 </Select>
+               </div>
+             )}
+ 
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground">Selecione o Template</label>
               <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
@@ -690,7 +781,7 @@ function ContactsTab({ logs }: { logs?: any[] }) {
               disabled={!selectedTemplateId || sendCampaign.isPending}
               onClick={() => sendCampaign.mutate()}
             >
-              {sendCampaign.isPending ? "Iniciando..." : "Confirmar e Enviar"}
+               {sendCampaign.isPending ? "Iniciando..." : `Confirmar e Enviar para ${filteredCount} contatos`}
             </Button>
           </div>
         </DialogContent>
