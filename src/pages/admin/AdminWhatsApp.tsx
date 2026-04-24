@@ -634,9 +634,10 @@ function ContactsTab({ logs }: { logs?: any[] }) {
             <table className="w-full text-sm">
               <thead className="bg-muted/50 border-b border-border/40">
                 <tr>
-                  <th className="p-3 text-left">Contato</th>
-                  <th className="p-3 text-left">WhatsApp</th>
-                  <th className="p-3 text-right">Ação</th>
+                   <th className="p-3 text-left">Contato</th>
+                   <th className="p-3 text-left">WhatsApp</th>
+                   <th className="p-3 text-left">Etiqueta</th>
+                   <th className="p-3 text-right">Ação</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/30">
@@ -657,10 +658,53 @@ function ContactsTab({ logs }: { logs?: any[] }) {
                         </div>
                       </div>
                     </td>
-                    <td className="p-3 text-muted-foreground font-mono text-[11px]">
-                      {c.id.split("@")[0]}
-                    </td>
-                    <td className="p-3 text-right">
+                     <td className="p-3 text-muted-foreground font-mono text-[11px]">
+                       {c.id.split("@")[0]}
+                     </td>
+                     <td className="p-3">
+                       {editingLabelId === c.id ? (
+                         <div className="flex items-center gap-1">
+                           <Input 
+                             size={10} 
+                             className="h-7 text-[10px] w-24" 
+                             value={tempLabel} 
+                             onChange={(e) => setTempLabel(e.target.value)}
+                             onKeyDown={(e) => {
+                               if (e.key === 'Enter') updateContactLabel(c.id, tempLabel);
+                               if (e.key === 'Escape') setEditingLabelId(null);
+                             }}
+                             autoFocus
+                           />
+                           <Button 
+                             size="sm" 
+                             className="h-7 w-7 p-0" 
+                             onClick={() => updateContactLabel(c.id, tempLabel)}
+                           >
+                             <Plus className="size-3" />
+                           </Button>
+                         </div>
+                       ) : (
+                         <div 
+                           className="flex items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity"
+                           onClick={() => {
+                             setEditingLabelId(c.id);
+                             setTempLabel(c.label || "");
+                           }}
+                         >
+                           {c.label ? (
+                             <Badge variant="outline" className="text-[10px] bg-blue-500/10 text-blue-400 border-blue-500/20 gap-1">
+                               <Tag className="size-2.5" />
+                               {c.label}
+                             </Badge>
+                           ) : (
+                             <span className="text-[10px] text-muted-foreground italic flex items-center gap-1">
+                               <Tag className="size-2.5" /> sem etiqueta
+                             </span>
+                           )}
+                         </div>
+                       )}
+                     </td>
+                     <td className="p-3 text-right">
                       <Button 
                         variant="ghost" 
                         size="sm" 
