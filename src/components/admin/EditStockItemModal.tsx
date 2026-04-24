@@ -117,6 +117,23 @@ export function EditStockItemModal({ item, open, onOpenChange, onSaved }: EditSt
         ...productMeta,
       };
     } else {
+      // Aviso preventivo de campos vazios (somente para perfis)
+      const missing: string[] = [];
+      if (!formData.senha?.trim()) missing.push("Senha FB");
+      if (!formData.senhaEmail?.trim()) missing.push("Senha do Email");
+      if (!formData.token2fa?.trim()) missing.push("Token 2FA");
+      if (!formData.emailAcesso?.trim()) missing.push("Login / Email");
+      if (missing.length > 0) {
+        const confirmed = window.confirm(
+          `⚠️ ATENÇÃO: Os seguintes campos estão vazios e aparecerão como "—" para o cliente:\n\n` +
+          missing.map(m => `• ${m}`).join("\n") +
+          `\n\nDeseja salvar mesmo assim?`
+        );
+        if (!confirmed) {
+          setSaving(false);
+          return;
+        }
+      }
       updatePayload.name = formData.nomePerfil || formData.emailAcesso || `Perfil ${formData.idPerfil}`;
       updatePayload.identification = formData.idPerfil || null;
       updatePayload.identification_link = formData.linkPerfil || null;
