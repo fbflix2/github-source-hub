@@ -167,10 +167,12 @@ Deno.serve(async (req) => {
      const { action } = body;
  
      // ========= ACTION: fetch-contacts =========
-     if (action === "fetch-contacts") {
-       const { page = 1, perPage = 50 } = body;
-       const result = await wapiRequest("/contacts/fetch-contacts", { page, perPage }, "GET");
-         if (result.ok) {
+      if (action === "fetch-contacts") {
+        const { page = 1, perPage = 50, forceFallback = false } = body;
+        
+        if (!forceFallback) {
+          const result = await wapiRequest("/contacts/fetch-contacts", { page, perPage }, "GET");
+          if (result.ok && result.data && (result.data.contacts || result.data.data)) {
            const data = result.data;
            const rawContacts = data?.contacts || data?.data || data || [];
            const normalized = Array.isArray(rawContacts) ? rawContacts.map((c: any) => ({
@@ -188,11 +190,12 @@ Deno.serve(async (req) => {
              totalPages: data?.totalPages || 1,
              currentPage: data?.currentPage || page,
              _source: "primary"
-           });
-         }
-
-        // Fallback: paginate through all fetch-chats pages to collect individual contacts
-        console.log("fetch-contacts failed, falling back to fetch-chats (all pages)");
+            });
+          }
+        }
+ 
+         // Fallback or Forced: paginate through all fetch-chats pages to collect individual contacts
+         console.log(forceFallback ? "Forced fallback to fetch-chats" : "fetch-contacts failed, falling back to fetch-chats");
         const allContacts: any[] = [];
         let currentPage = 1;
         const maxPages = 30; // safety limit
