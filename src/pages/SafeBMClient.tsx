@@ -90,8 +90,8 @@ export default function SafeBMClient() {
    useEffect(() => { fetchVaults(); }, []);
 
   const configuredVaults = useMemo(() => {
-    // Only show vaults that have been fully configured (not generic link, or have tracking/backup)
-    return vaults.filter(v => v.bm_link !== GENERIC_BM_LINK || !!v.bm_tracking_id || !!v.backup_link);
+    // Only show vaults that have been fully configured (have tracking/backup)
+    return vaults.filter(v => !!v.bm_tracking_id || !!v.backup_link);
   }, [vaults]);
 
   const filtered = useMemo(() => {
