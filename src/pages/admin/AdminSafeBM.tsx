@@ -67,6 +67,12 @@ const SAFE_EMAILS = [
   "safe8@recoverfbflix.com.br",
   "safe9@recoverfbflix.com.br",
   "safe10@recoverfbflix.com.br",
+  "safe11@recoverfbflix.com.br",
+  "safe12@recoverfbflix.com.br",
+  "safe13@recoverfbflix.com.br",
+  "safe14@recoverfbflix.com.br",
+  "safe15@recoverfbflix.com.br",
+  "safe16@recoverfbflix.com.br",
 ];
 
 function pickEmailForVault(vaultId: string, index: number, usedIndices: Set<number>): string {
