@@ -504,6 +504,10 @@ function ContactsTab({ logs }: { logs?: any[] }) {
      setAddedContacts(addedContacts.map(c => c.id === jid ? { ...c, label } : c));
      setEditingLabelId(null);
    };
+ 
+   const filteredCount = selectedLabelFilter === "all" 
+     ? addedContacts.length 
+     : addedContacts.filter(c => c.label === selectedLabelFilter).length;
 
   const handleSearch = async () => {
     if (!search.trim()) return;
