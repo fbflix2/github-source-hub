@@ -173,6 +173,14 @@ export default function WarmingTrackerModal({ open, onOpenChange, profileCode, u
           </div>
         ) : (
           <div className="space-y-4">
+            {/* Aviso quando a esteira encontrada não corresponde exatamente ao profileCode buscado */}
+            {profile && profile.profile_code !== profileCode && (
+              <div className="p-2 rounded-lg bg-blue-500/10 border border-blue-500/20 text-[11px] text-blue-300">
+                <span className="material-symbols-outlined text-[14px] align-middle mr-1">info</span>
+                Esteira do cliente localizada como <strong className="font-mono">{profile.profile_code}</strong>
+                {profile.profile_name ? <> ({profile.profile_name})</> : null}.
+              </div>
+            )}
             {/* Status Badge */}
             <div className={`flex items-center justify-between p-3 rounded-lg border ${statusConfig[engagement].bg}`}>
               <div className="flex items-center gap-2">
