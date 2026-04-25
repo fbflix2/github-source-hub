@@ -157,13 +157,13 @@ serve(async (req) => {
     });
     
     const token = (authHeader || "").replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims?.sub) {
+    const { data: userData, error: userError } = await userClient.auth.getUser(token);
+    if (userError || !userData?.user?.id) {
       return new Response(JSON.stringify({ error: "Não autenticado" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    const userId = claimsData.claims.sub as string;
+    const userId = userData.user.id;
 
     const adminClient = createClient(supabaseUrl, serviceKey);
     const { data: isStaff } = await adminClient.rpc("is_staff", { _user_id: userId });
