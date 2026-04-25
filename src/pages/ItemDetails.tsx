@@ -771,7 +771,7 @@ export default function ItemDetails() {
                         <div className="text-center py-4 space-y-2">
                           <span className="material-symbols-outlined text-green-500 text-[32px]">verified</span>
                           <h3 className="text-sm font-bold text-foreground">Página Recebida!</h3>
-                          <p className="text-xs text-muted-foreground">Obrigado por ter sido nosso cliente! Estamos à disposição. 🙏</p>
+                          <p className="text-xs text-muted-foreground">Você confirmou o recebimento da página{pageName ? ` "${pageName}"` : ''}. Obrigado!</p>
                         </div>
                       ) : pageConfirmedByAdmin ? (
                         <div className="space-y-3">
