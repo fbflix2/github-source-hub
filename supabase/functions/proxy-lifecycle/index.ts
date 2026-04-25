@@ -318,9 +318,9 @@ Deno.serve(async (req) => {
 
         if (isMultiple) {
           const ipsLost = proxyInfos.map(p => `• ${p.code} — IP: ${p.ip}`).join("\n");
-          msg = `❌ *Proxies cancelados — ${nome}*\n\nSeus *${subs.length} proxies* foram cancelados por falta de renovação.\n\nIPs perdidos:\n${ipsLost}\n\nCaso queira adquirir novos proxies, acesse:\n${SITE_URL}/loja\n\n_Proxies cancelados, qualquer dúvida estamos à disposição._ 🙏`;
+          msg = `❌ *Proxies cancelados — ${nome}*\n\nSeus *${subs.length} proxies* foram cancelados por falta de renovação.\n\nIPs perdidos:\n${ipsLost}\n\nCaso queira adquirir novos proxies, acesse:\n${SITE_URL}/loja\n\nQualquer dúvida, estamos à disposição! ✅`;
         } else {
-          msg = `❌ *Proxy cancelado — ${nome}*\n\nSeu proxy *${firstCode}* foi cancelado por falta de renovação.\n\n🌐 IP que foi perdido: ${firstIp}\n\nCaso queira adquirir um novo proxy, acesse:\n${SITE_URL}/loja\n\n_Proxy cancelado, qualquer dúvida estamos à disposição._ 🙏`;
+          msg = `❌ *Proxy cancelado — ${nome}*\n\nSeu proxy *${firstCode}* foi cancelado por falta de renovação.\n\n🌐 IP que foi perdido: ${firstIp}\n\nCaso queira adquirir um novo proxy, acesse:\n${SITE_URL}/loja\n\nQualquer dúvida, estamos à disposição! ✅`;
         }
       }
 
@@ -367,7 +367,9 @@ Deno.serve(async (req) => {
         console.log(`[proxy-lifecycle] BG sender done: ${waQueue.length} messages processed`);
       };
 
-      EdgeRuntime.waitUntil(sendInBackground());
+      // EdgeRuntime is only available in Vercel. In Supabase, we await it or use a different approach.
+      // However, we want background processing. Supabase Edge Functions stay alive for some time.
+      sendInBackground();
     }
 
     console.log(`[proxy-lifecycle] Processed ${results.length} subscriptions, queued ${waQueue.length} WA messages`);

@@ -43,7 +43,7 @@ function QuickTemplateSelector({ clientName, onSelect }: { clientName: string; o
     { label: "Encerrar suporte", text: `${firstName}, posso lhe auxiliar em algo mais ou podemos encerrar esse suporte?` },
     { label: "Fechado por inatividade", text: `Olá ${firstName}, por inatividade esse ticket foi fechado. Caso precise de mais ajuda, fique à vontade para abrir um novo ticket.` },
     { label: "Aguardando resposta", text: `${firstName}, ficamos no aguardo da sua resposta para dar continuidade ao atendimento.` },
-    { label: "Problema resolvido", text: `Obrigado por ter sido nosso cliente! Estamos à disposição. 🙏` },
+    { label: "Problema resolvido", text: `${firstName}, o problema foi resolvido! Caso tenha qualquer outra dúvida, estamos à disposição.` },
   ];
 
   useEffect(() => {
