@@ -44,7 +44,7 @@ export default function TicketRatingPopup({ ticketId, ticketCode, onClose, onSub
         throw error;
       }
 
-      toast.success("Obrigado pela avaliação! 🎉");
+      toast.success("Obrigado por ter sido nosso cliente! Estamos à disposição. 🙏");
       onSubmitted();
     } catch (err) {
       console.error(err);
