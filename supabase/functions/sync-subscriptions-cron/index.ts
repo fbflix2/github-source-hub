@@ -204,7 +204,7 @@ Deno.serve(async (req) => {
           let success = false;
 
           for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-            response = await proxyFetch(url, PROXYBR_API_KEY);
+            response = await proxyFetch(url, PROXYBR_API_KEY!);
             text = await response.text();
             if (response.status === 429) {
               const waitMs = 3000 * Math.pow(2, attempt - 1);
