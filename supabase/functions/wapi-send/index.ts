@@ -1,5 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
+declare const EdgeRuntime: { waitUntil: (p: Promise<unknown>) => void };
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
