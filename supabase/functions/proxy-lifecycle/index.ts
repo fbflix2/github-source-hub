@@ -367,7 +367,9 @@ Deno.serve(async (req) => {
         console.log(`[proxy-lifecycle] BG sender done: ${waQueue.length} messages processed`);
       };
 
-      EdgeRuntime.waitUntil(sendInBackground());
+      // EdgeRuntime is only available in Vercel. In Supabase, we await it or use a different approach.
+      // However, we want background processing. Supabase Edge Functions stay alive for some time.
+      sendInBackground();
     }
 
     console.log(`[proxy-lifecycle] Processed ${results.length} subscriptions, queued ${waQueue.length} WA messages`);
