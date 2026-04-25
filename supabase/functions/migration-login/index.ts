@@ -309,6 +309,13 @@ Deno.serve(async (req) => {
 
     const { data: { user: foundUser } } = await supabaseAdmin.auth.admin.getUserById(foundUserId);
 
+    if (!foundUser) {
+      return new Response(
+        JSON.stringify({ error: "Usuário não encontrado." }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     await supabaseAdmin.auth.admin.updateUserById(foundUser.id, {
       user_metadata: { ...foundUser.user_metadata, must_change_password: true, migrated_at: new Date().toISOString() },
     });

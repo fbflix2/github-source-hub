@@ -129,7 +129,7 @@ function parseAccountLine(raw: string): { login: string | null; password: string
 }
 
 /** Ensure a supplier row exists, return id. */
-async function ensureSupplierId(adminClient: ReturnType<typeof createClient>, supplierLabel: string) {
+async function ensureSupplierId(adminClient: any, supplierLabel: string) {
   const { data: existing } = await adminClient
     .from("suppliers")
     .select("id")
@@ -148,7 +148,7 @@ async function ensureSupplierId(adminClient: ReturnType<typeof createClient>, su
 
 /** Create a new batch for this purchase. */
 async function createBatch(
-  adminClient: ReturnType<typeof createClient>,
+  adminClient: any,
   supplierId: string,
   productId: string | number,
   productName: string | undefined,
@@ -171,7 +171,7 @@ async function createBatch(
 
 /** Insert raw accounts into supplier_accounts. */
 async function saveSupplierAccounts(
-  adminClient: ReturnType<typeof createClient>,
+  adminClient: any,
   supplierId: string,
   batchId: string,
   rawAccounts: string[],

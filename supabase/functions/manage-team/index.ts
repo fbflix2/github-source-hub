@@ -89,7 +89,7 @@ async function handleList(sb: any) {
     return jsonResponse({ members: [] });
   }
 
-  const userIds = [...new Set(roles.map((r: any) => r.user_id))];
+  const userIds = [...new Set(roles.map((r: any) => r.user_id))] as string[];
 
   // Get profiles
   const { data: profiles } = await sb
@@ -97,7 +97,7 @@ async function handleList(sb: any) {
     .select("user_id, full_name, phone, status, avatar_url, created_at, department")
     .in("user_id", userIds);
 
-  const profileMap = new Map((profiles || []).map((p: any) => [p.user_id, p]));
+  const profileMap = new Map<string, any>((profiles || []).map((p: any) => [p.user_id, p]));
 
   // Get all users from auth to map emails efficiently
   const { data: { users: allUsers }, error: authError } = await sb.auth.admin.listUsers();
@@ -118,7 +118,7 @@ async function handleList(sb: any) {
   }
 
   const members = roles.map((r: any) => {
-    const profile = profileMap.get(r.user_id) || {};
+    const profile: any = profileMap.get(r.user_id) || {};
     const email = emailMap.get(r.user_id) || "";
     const name = profile.full_name || email.split("@")[0] || "Sem nome";
     const initials = name

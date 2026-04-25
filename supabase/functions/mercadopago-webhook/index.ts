@@ -271,7 +271,7 @@ Deno.serve(async (req) => {
       // Get order items for fulfillment
       const { data: orderItems } = await supabase
         .from("order_items")
-        .select("id, product_id, delivery_data, quantity")
+        .select("id, product_id, delivery_data, quantity, price, name")
         .eq("order_id", orderId);
 
       if (orderItems) {
