@@ -194,7 +194,7 @@ async function saveSupplierAccounts(
     };
   });
 
-  const { error } = await adminClient.from("supplier_accounts").insert(rows);
+  const { error } = await (adminClient as any).from("supplier_accounts").insert(rows as any);
   if (error) {
     console.error("[shopclone-api] Error saving supplier_accounts:", error);
     return { savedCount: 0, error: error.message };
