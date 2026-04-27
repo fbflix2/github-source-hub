@@ -33,15 +33,15 @@ Deno.serve(async (req) => {
     );
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabase.auth.getUser(token);
-    if (userError || !userData?.user?.id) {
+    const { data: authUserData, error: userError } = await supabase.auth.getUser(token);
+    if (userError || !authUserData?.user?.id) {
       return new Response(JSON.stringify({ error: "Token inválido" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const userId = userData.user.id;
+    const userId = authUserData.user.id;
 
     // Check if user has card payment enabled
     const supabaseAdmin = createClient(
