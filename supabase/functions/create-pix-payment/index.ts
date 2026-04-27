@@ -33,16 +33,16 @@ Deno.serve(async (req) => {
     );
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: userData, error: userError } = await supabase.auth.getUser(token);
+    if (userError || !userData?.user?.id) {
       return new Response(JSON.stringify({ error: "Token inválido" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const userId = claimsData.claims.sub as string;
-    const rawEmail = (claimsData.claims.email as string) || "cliente@email.com";
+    const userId = userData.user.id;
+    const rawEmail = userData.user.email || "cliente@email.com";
     
     // Mercado Pago blocks payments where payer email = seller email.
     const userEmail = `comprador-${userId.slice(0, 8)}@pagamento.com`;
