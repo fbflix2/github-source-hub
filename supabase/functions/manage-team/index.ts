@@ -119,7 +119,7 @@ async function handleList(sb: any) {
   }
 
   const members = roles.map((r: any) => {
-    const profile: any = profileMap.get(r.user_id) || {};
+    const profile: any = (profileMap.get(r.user_id) as any) || ({} as any);
     const email = emailMap.get(r.user_id) || "";
     const name = profile.full_name || email.split("@")[0] || "Sem nome";
     const initials = name
