@@ -89,7 +89,7 @@ async function handleList(sb: any) {
     return jsonResponse({ members: [] });
   }
 
-  const userIds = [...new Set(roles.map((r: any) => r.user_id))] as string[];
+  const userIds: string[] = Array.from(new Set(roles.map((r: any) => String(r.user_id))));
 
   // Get profiles
   const { data: profiles } = await sb
@@ -111,9 +111,10 @@ async function handleList(sb: any) {
 
   // If any user was not in the first page of listUsers, fetch them individually
   for (const uid of userIds) {
-    if (!emailMap.has(uid)) {
-      const { data: { user } } = await sb.auth.admin.getUserById(uid);
-      if (user?.email) emailMap.set(uid, user.email);
+    const uidStr = String(uid);
+    if (!emailMap.has(uidStr)) {
+      const { data: { user } } = await sb.auth.admin.getUserById(uidStr);
+      if (user?.email) emailMap.set(uidStr, user.email);
     }
   }
 
