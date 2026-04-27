@@ -130,20 +130,20 @@ function parseAccountLine(raw: string): { login: string | null; password: string
 
 /** Ensure a supplier row exists, return id. */
 async function ensureSupplierId(adminClient: any, supplierLabel: string) {
-  const { data: existing } = await adminClient
+  const { data: existing } = await (adminClient as any)
     .from("suppliers")
     .select("id")
     .eq("name", supplierLabel)
     .maybeSingle();
-  if (existing?.id) return existing.id as string;
+  if ((existing as any)?.id) return (existing as any).id as string;
 
-  const { data: created, error } = await adminClient
+  const { data: created, error } = await (adminClient as any)
     .from("suppliers")
-    .insert({ name: supplierLabel, status: "active", notes: "Auto-criado pela integração Fornecedor secreto 1" })
+    .insert({ name: supplierLabel, status: "active", notes: "Auto-criado pela integração Fornecedor secreto 1" } as any)
     .select("id")
     .single();
-  if (error || !created?.id) throw new Error(`Erro ao criar fornecedor: ${error?.message || "sem retorno"}`);
-  return created.id as string;
+  if (error || !(created as any)?.id) throw new Error(`Erro ao criar fornecedor: ${error?.message || "sem retorno"}`);
+  return (created as any).id as string;
 }
 
 /** Create a new batch for this purchase. */
@@ -160,13 +160,13 @@ async function createBatch(
   const baseName = productName ? `${productName} (${stamp})` : `Produto ${productId} (${stamp})`;
   const notes = `Compra automática via Fornecedor secreto 1. ID produto: ${productId}${unitPriceBrl ? ` | Custo unit.: R$ ${unitPriceBrl.toFixed(2)}` : ""}`;
 
-  const { data, error } = await adminClient
+  const { data, error } = await (adminClient as any)
     .from("supplier_batches")
-    .insert({ supplier_id: supplierId, name: baseName, notes, created_by: createdBy })
+    .insert({ supplier_id: supplierId, name: baseName, notes, created_by: createdBy } as any)
     .select("id, name")
     .single();
-  if (error || !data?.id) throw new Error(`Erro ao criar lote: ${error?.message || "sem retorno"}`);
-  return { batchId: data.id as string, batchName: data.name as string };
+  if (error || !(data as any)?.id) throw new Error(`Erro ao criar lote: ${error?.message || "sem retorno"}`);
+  return { batchId: (data as any).id as string, batchName: (data as any).name as string };
 }
 
 /** Insert raw accounts into supplier_accounts. */
