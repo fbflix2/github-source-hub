@@ -275,7 +275,8 @@ Deno.serve(async (req) => {
         .eq("order_id", orderId);
 
       if (orderItems) {
-        for (const oi of orderItems) {
+        for (const oiRaw of orderItems) {
+          const oi: any = oiRaw;
           // Legacy proxy_contract delivery_data entries are now handled via Webshare below
           // Skip ProxyBR contracting — all proxy fulfillment is centralized on Webshare
           const dd = typeof oi.delivery_data === 'object' && oi.delivery_data ? oi.delivery_data as Record<string, unknown> : null;
