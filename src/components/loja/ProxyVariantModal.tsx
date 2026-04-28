@@ -68,6 +68,7 @@ export function ProxyVariantModal({ open, onClose, product, localData, proxyImag
         price: Number(price),
         quantity,
         image: imageUrl || "/placeholder.svg",
+        isProxy: true,
       });
       navigate("/checkout");
     }
