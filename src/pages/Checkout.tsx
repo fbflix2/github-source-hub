@@ -56,6 +56,16 @@ export default function Checkout() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [userPhone, setUserPhone] = useState<string | null>(null);
 
+  // Items in the cart that are NOT the main product being checked out.
+  // These are inserted as additional order_items so fulfillment (saldo / PIX webhook /
+  // cartão) processes each one through fulfill_order_item or the proper provider.
+  const extraCartItems = useMemo(() => {
+    if (!product) return [];
+    // When using `?product=` (buy now flow), cartItems may contain unrelated items
+    // that the user explicitly dropped in the cart — still treat them as extras.
+    return cartItems.filter((ci) => ci.productId !== product.id);
+  }, [cartItems, product]);
+
   // Fetch user phone on mount
   useEffect(() => {
     async function fetchUserPhone() {
