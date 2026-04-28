@@ -446,9 +446,9 @@ export default function Checkout() {
         const { data: order, error } = await supabase.from("orders").insert({
           code: orderCode,
           user_id: user.id,
-          subtotal: product.price * quantity,
+          subtotal: product.price * quantity + extraCartItems.reduce((s, ci) => s + ci.price * ci.quantity, 0),
           discount: 0,
-          total: product.price * quantity,
+          total: product.price * quantity + extraCartItems.reduce((s, ci) => s + ci.price * ci.quantity, 0),
           payment_method: null,
           status: "processing",
           coupon_code: null,
@@ -494,6 +494,23 @@ export default function Checkout() {
         if (itemsError) {
           console.error("Error inserting order items:", itemsError);
           throw itemsError;
+        }
+
+        // Insert extra cart items (each as its own order_item, no delivery_data
+        // — server fulfillment will run fulfill_order_item / Webshare / SafeBM
+        // automatically based on product_id).
+        if (extraCartItems.length > 0) {
+          const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+          const extraOrderItems = extraCartItems.map((ci) => ({
+            order_id: order.id,
+            product_id: uuidRe.test(ci.productId) ? ci.productId : null,
+            name: ci.name,
+            price: ci.price,
+            quantity: ci.quantity,
+            delivery_data: null,
+          }));
+          const { error: extraErr } = await supabase.from("order_items").insert(extraOrderItems);
+          if (extraErr) console.error("Error inserting extra cart order_items:", extraErr);
         }
 
         setDraftOrderId(order.id);
