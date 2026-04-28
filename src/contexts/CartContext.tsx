@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, ReactNode } from "react";
+import { toast } from "sonner";
 
 export interface CartItem {
   productId: string;
@@ -6,6 +7,7 @@ export interface CartItem {
   price: number;
   quantity: number;
   image: string;
+  isProxy?: boolean;
 }
 
 interface CartContextType {
@@ -30,6 +32,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
         const updated = [...prev];
         updated[existingIndex].quantity += item.quantity || 1;
         return updated;
+      }
+      // Block adding a 2nd different proxy to the cart — checkout supports only
+      // one proxy auto-fulfillment per order.
+      if (item.isProxy && prev.some((i) => i.isProxy)) {
+        toast.error("Você só pode comprar 1 proxy por vez. Finalize a compra atual antes de adicionar outro.");
+        return prev;
       }
       return [...prev, { ...item, quantity: item.quantity || 1 }];
     });
