@@ -358,18 +358,23 @@ Deno.serve(async (req) => {
             continue; // Skip normal fulfillment
           }
 
-          // ========== WEBSHARE PROXY FULFILLMENT (ALL PROXY PRODUCTS) ==========
-          // All proxy products are now fulfilled via Webshare (centralized provider)
-          if (oi.product_id) {
-            const { data: wsProductInfo } = await supabase
-              .from("products")
-              .select("icon_type, external_id, name, tags")
-              .eq("id", oi.product_id)
-              .single();
+          // ========== WEBSHARE PROXY FULFILLMENT ==========
+          // All proxy products (whether via product_id or delivery_data contract) are fulfilled via Webshare
+          const hasProxyContract = dd && dd.type === "proxy_contract";
+          if (oi.product_id || hasProxyContract) {
+            let wsProductInfo = null;
+            if (oi.product_id) {
+              const { data } = await supabase
+                .from("products")
+                .select("icon_type, external_id, name, tags")
+                .eq("id", oi.product_id)
+                .single();
+              wsProductInfo = data;
+            }
 
-            const isProxyProduct = wsProductInfo?.icon_type === 'proxy';
+            const isProxyProduct = wsProductInfo?.icon_type === 'proxy' || hasProxyContract;
             if (isProxyProduct) {
-              console.log(`[webhook-webshare] Proxy product detected for item ${oi.id}, qty=${oi.quantity || 1} (was external_id=${wsProductInfo.external_id || 'none'})`);
+              console.log(`[webhook-webshare] Proxy product detected for item ${oi.id}, qty=${oi.quantity || 1} (was external_id=${wsProductInfo?.external_id || 'none'})`);
               
               const WEBSHARE_API_KEY = Deno.env.get("WEBSHARE_API_KEY");
               if (!WEBSHARE_API_KEY) {
@@ -409,18 +414,26 @@ Deno.serve(async (req) => {
                   if (raw.webshare_proxy_id) assignedIds.add(raw.webshare_proxy_id);
                 }
 
-                // Detect target country from product info
+                // Detect target country from product info OR delivery_data
                 let targetCountry: string | null = null;
+                const brIndicators = ["brasil", "brazil", "br", "sudeste", "central/sudeste", "nordeste", "sul", "centro-oeste"];
+                const usIndicators = ["usa", "estados unidos", "americano", "us premium"];
+
                 if (wsProductInfo) {
                   const tags = (wsProductInfo.tags || []) as string[];
                   const pName = (wsProductInfo.name || "").toLowerCase();
                   const allText = tags.map((t: string) => t.toLowerCase().trim()).join(" ") + " " + pName;
-                  const brIndicators = ["brasil", "brazil", "br", "sudeste", "central/sudeste", "nordeste", "sul", "centro-oeste"];
-                  const usIndicators = ["usa", "estados unidos", "americano", "us premium"];
                   for (const ind of brIndicators) { if (allText.includes(ind)) { targetCountry = "BR"; break; } }
                   if (!targetCountry) for (const ind of usIndicators) { if (allText.includes(ind)) { targetCountry = "US"; break; } }
-                  if (!targetCountry) targetCountry = "BR"; // Default to BR
                 }
+
+                if (!targetCountry && dd && dd.variant_location) {
+                  const loc = String(dd.variant_location).toLowerCase();
+                  for (const ind of brIndicators) { if (loc.includes(ind)) { targetCountry = "BR"; break; } }
+                  if (!targetCountry) for (const ind of usIndicators) { if (loc.includes(ind)) { targetCountry = "US"; break; } }
+                }
+
+                if (!targetCountry) targetCountry = "BR"; // Default to BR
                 console.log(`[webhook-webshare] Target country: ${targetCountry}`);
 
                 // Find unassigned proxies matching country
