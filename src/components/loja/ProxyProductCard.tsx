@@ -137,7 +137,7 @@ export function ProxyProductCard({ product, proxyImage, quantity, onQuantityChan
           <button
             onClick={() => {
               const localId = localData?.id;
-              addItem({ productId: localId || productId, name: displayName, price: Number(price), quantity, image: imageUrl || "/placeholder.svg" });
+              addItem({ productId: localId || productId, name: displayName, price: Number(price), quantity, image: imageUrl || "/placeholder.svg", isProxy: true });
               toast.success(`${displayName} adicionado ao carrinho!`);
             }}
             className="h-8 w-8 rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all flex items-center justify-center shrink-0"
@@ -168,6 +168,7 @@ export function ProxyProductCard({ product, proxyImage, quantity, onQuantityChan
                   price: Number(price),
                   quantity,
                   image: imageUrl || "/placeholder.svg",
+                  isProxy: true,
                 });
                 navigate("/checkout");
               }
