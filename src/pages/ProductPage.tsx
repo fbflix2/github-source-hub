@@ -70,6 +70,7 @@ export default function ProductPage() {
       price: product.price,
       quantity,
       image: product.image_url || "/placeholder.svg",
+      isProxy: product.icon_type === "proxy",
     });
     toast.success(`${product.name} adicionado ao carrinho!`);
   };

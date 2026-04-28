@@ -56,6 +56,16 @@ export default function Checkout() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [userPhone, setUserPhone] = useState<string | null>(null);
 
+  // Items in the cart that are NOT the main product being checked out.
+  // These are inserted as additional order_items so fulfillment (saldo / PIX webhook /
+  // cartão) processes each one through fulfill_order_item or the proper provider.
+  const extraCartItems = useMemo(() => {
+    if (!product) return [];
+    // When using `?product=` (buy now flow), cartItems may contain unrelated items
+    // that the user explicitly dropped in the cart — still treat them as extras.
+    return cartItems.filter((ci) => ci.productId !== product.id);
+  }, [cartItems, product]);
+
   // Fetch user phone on mount
   useEffect(() => {
     async function fetchUserPhone() {
@@ -436,9 +446,9 @@ export default function Checkout() {
         const { data: order, error } = await supabase.from("orders").insert({
           code: orderCode,
           user_id: user.id,
-          subtotal: product.price * quantity,
+          subtotal: product.price * quantity + extraCartItems.reduce((s, ci) => s + ci.price * ci.quantity, 0),
           discount: 0,
-          total: product.price * quantity,
+          total: product.price * quantity + extraCartItems.reduce((s, ci) => s + ci.price * ci.quantity, 0),
           payment_method: null,
           status: "processing",
           coupon_code: null,
@@ -484,6 +494,23 @@ export default function Checkout() {
         if (itemsError) {
           console.error("Error inserting order items:", itemsError);
           throw itemsError;
+        }
+
+        // Insert extra cart items (each as its own order_item, no delivery_data
+        // — server fulfillment will run fulfill_order_item / Webshare / SafeBM
+        // automatically based on product_id).
+        if (extraCartItems.length > 0) {
+          const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+          const extraOrderItems = extraCartItems.map((ci) => ({
+            order_id: order.id,
+            product_id: uuidRe.test(ci.productId) ? ci.productId : null,
+            name: ci.name,
+            price: ci.price,
+            quantity: ci.quantity,
+            delivery_data: null,
+          }));
+          const { error: extraErr } = await supabase.from("order_items").insert(extraOrderItems);
+          if (extraErr) console.error("Error inserting extra cart order_items:", extraErr);
         }
 
         setDraftOrderId(order.id);
@@ -631,13 +658,17 @@ export default function Checkout() {
     if (!product) return 0;
     let total = product.price * quantity;
 
+    extraCartItems.forEach((ci) => {
+      total += ci.price * ci.quantity;
+    });
+
     selectedBumps.forEach((bumpId) => {
       const bump = bumpProducts.find((b) => b.id === bumpId);
       if (bump) total += bump.price;
     });
 
     return total;
-  }, [product, quantity, selectedBumps, bumpProducts]);
+  }, [product, quantity, selectedBumps, bumpProducts, extraCartItems]);
 
   const total = subtotal - discount;
 
@@ -1511,6 +1542,15 @@ export default function Checkout() {
                     <p className="text-xs text-muted-foreground">R$ {(product.price * quantity).toFixed(2).replace(".", ",")}</p>
                   </div>
                 </div>
+                {extraCartItems.map((ci) => (
+                  <div key={ci.productId} className="flex gap-3 items-center border-t border-border pt-2">
+                    <div className="w-12 h-12 rounded-lg bg-surface border border-border shrink-0 bg-cover bg-center" style={{ backgroundImage: `url('${ci.image || "/placeholder.svg"}')` }} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground leading-tight truncate">{ci.name} {ci.quantity > 1 && `(x${ci.quantity})`}</p>
+                      <p className="text-xs text-muted-foreground">R$ {(ci.price * ci.quantity).toFixed(2).replace(".", ",")}</p>
+                    </div>
+                  </div>
+                ))}
                 {selectedBumps.map((bumpId) => {
                   const bump = bumpProducts.find((b) => b.id === bumpId);
                   if (!bump) return null;

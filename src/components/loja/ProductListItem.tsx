@@ -214,6 +214,7 @@ export function ProductListItem({ product, quantity, onQuantityChange, onReadMor
                   price: product.price,
                   quantity,
                   image: product.image_url || "/placeholder.svg",
+                  isProxy: (product as any).icon_type === "proxy",
                 });
                 toast.success(`${product.name} adicionado ao carrinho!`);
               }}
