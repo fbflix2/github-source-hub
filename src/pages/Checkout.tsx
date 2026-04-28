@@ -1542,6 +1542,15 @@ export default function Checkout() {
                     <p className="text-xs text-muted-foreground">R$ {(product.price * quantity).toFixed(2).replace(".", ",")}</p>
                   </div>
                 </div>
+                {extraCartItems.map((ci) => (
+                  <div key={ci.productId} className="flex gap-3 items-center border-t border-border pt-2">
+                    <div className="w-12 h-12 rounded-lg bg-surface border border-border shrink-0 bg-cover bg-center" style={{ backgroundImage: `url('${ci.image || "/placeholder.svg"}')` }} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground leading-tight truncate">{ci.name} {ci.quantity > 1 && `(x${ci.quantity})`}</p>
+                      <p className="text-xs text-muted-foreground">R$ {(ci.price * ci.quantity).toFixed(2).replace(".", ",")}</p>
+                    </div>
+                  </div>
+                ))}
                 {selectedBumps.map((bumpId) => {
                   const bump = bumpProducts.find((b) => b.id === bumpId);
                   if (!bump) return null;
