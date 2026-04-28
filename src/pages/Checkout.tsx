@@ -641,13 +641,17 @@ export default function Checkout() {
     if (!product) return 0;
     let total = product.price * quantity;
 
+    extraCartItems.forEach((ci) => {
+      total += ci.price * ci.quantity;
+    });
+
     selectedBumps.forEach((bumpId) => {
       const bump = bumpProducts.find((b) => b.id === bumpId);
       if (bump) total += bump.price;
     });
 
     return total;
-  }, [product, quantity, selectedBumps, bumpProducts]);
+  }, [product, quantity, selectedBumps, bumpProducts, extraCartItems]);
 
   const total = subtotal - discount;
 
