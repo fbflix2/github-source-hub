@@ -89,3 +89,6 @@ verify_jwt = false
 
 [functions.invoice-lookup]
 verify_jwt = false
+
+[functions.lauth-transfer]
+verify_jwt = false
