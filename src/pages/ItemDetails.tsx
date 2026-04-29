@@ -447,7 +447,6 @@ export default function ItemDetails() {
   const senha = stockData.senha || "—";
   const senhaEmail = stockData.senhaEmail || "—";
   const token2fa = stockData.token2fa || "—";
-  const fbToken = stockData.fbToken || "—";
   const descricao = stockData.descricao || product?.description || "";
   const tags = product?.tags || [];
   const isBM = product?.icon_type === "bm";
