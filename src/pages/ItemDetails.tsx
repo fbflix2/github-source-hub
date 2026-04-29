@@ -35,8 +35,9 @@ interface StockData {
   foto_url?: string;
   linkPerfil?: string;
   idPerfil?: string;
-  perfilBackup?: string;
-  perfilMatriz?: string;
+   perfilBackup?: string;
+   perfilMatriz?: string;
+   lauthProfileId?: string;
 }
 
 export default function ItemDetails() {
@@ -56,6 +57,10 @@ export default function ItemDetails() {
   const [disclaimerChecked, setDisclaimerChecked] = useState(false);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
   const [stockItemId, setStockItemId] = useState<string | null>(null);
+
+   const [lauthEmail, setLauthEmail] = useState("");
+   const [deliveringLauth, setDeliveringLauth] = useState(false);
+   const [lauthDelivered, setLauthDelivered] = useState(false);
 
   const [order, setOrder] = useState<any>(null);
   const [orderItem, setOrderItem] = useState<any>(null);
