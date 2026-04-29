@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import {
   Plus, Trash2, Pencil, Upload, Package, Building2, Users, BarChart3,
   CheckCircle2, XCircle, AlertTriangle, Clock, Search, Eye, FileText,
-  TrendingUp, Award, ShieldAlert, Copy, IdCard, KeyRound, Mail, Lock, AtSign
+  TrendingUp, Award, ShieldAlert, Copy, IdCard, KeyRound, Mail, Lock, AtSign, ShieldCheck
 } from "lucide-react";
 
 const copyToClipboard = (value: string | null | undefined, label: string) => {
