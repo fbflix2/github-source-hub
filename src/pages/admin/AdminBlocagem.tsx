@@ -62,7 +62,7 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
     senha: "", senhaEmail: "", token2fa: "", tempoPlataforma: "3-meses", statusAtual: "aquecido",
     cookies: "", descricao: "", nomePerfil: "", dataNascimento: "", genero: "masculino",
     linkDocumento: "", fotoUrl: "", preco: "", categoryId: "", tags: [] as string[], nomeProduto: "",
-    bmNames: [] as string[], perfilMatriz: ""
+     bmNames: [] as string[], perfilMatriz: "", lauthProfileId: ""
   };
 
   const [formData, setFormData] = useState(() => {
@@ -144,7 +144,8 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
         tags: formData.tags.length > 0 ? formData.tags : undefined,
         nomeProduto: formData.nomeProduto || undefined,
         bmNames: formData.bmNames.filter(b => b.trim()) || undefined,
-        perfilMatriz: formData.perfilMatriz || undefined,
+         perfilMatriz: formData.perfilMatriz || undefined,
+         lauthProfileId: formData.lauthProfileId || undefined,
       },
     };
     if (formData.categoryId) insertData.product_id = null; // keep clean
@@ -288,12 +289,26 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
                 </label>
                 <div className="relative">
                   <Link className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-                  <Input type="url" placeholder="https://drive.google.com/..." value={formData.linkDocumento} onChange={e => setFormData({ ...formData, linkDocumento: e.target.value })} className="pl-10 bg-black/30 border-white/5 text-white placeholder:text-zinc-600" />
-                </div>
-              </div>
-            </div>
+                   <Input type="url" placeholder="https://drive.google.com/..." value={formData.linkDocumento} onChange={e => setFormData({ ...formData, linkDocumento: e.target.value })} className="pl-10 bg-black/30 border-white/5 text-white placeholder:text-zinc-600" />
+                 </div>
+               </div>
 
-            {/* Right - Segurança */}
+               <div className="flex items-center gap-2 pb-1 border-b border-white/10 mt-2">
+                 <PackageOpen className="h-4 w-4 text-amber-400" />
+                 <h2 className="text-sm font-bold text-white">Integração Lauth</h2>
+               </div>
+               <div className="flex flex-col gap-1 group">
+                 <label className="text-xs font-medium text-zinc-400 group-focus-within:text-white transition-colors">
+                   Lauth Profile ID <span className="text-zinc-600">(opcional para entrega auto)</span>
+                 </label>
+                 <div className="relative">
+                   <Hash className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                   <Input type="text" placeholder="Ex: 507f1f77bcf86cd799439011" value={formData.lauthProfileId} onChange={e => setFormData({ ...formData, lauthProfileId: e.target.value })} className="pl-10 bg-black/30 border-white/5 text-white placeholder:text-zinc-600 font-mono" />
+                 </div>
+               </div>
+             </div>
+ 
+             {/* Right - Segurança */}
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-2 pb-1 border-b border-white/10">
                 <Shield className="h-4 w-4 text-primary" />

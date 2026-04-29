@@ -54,7 +54,7 @@ export function EditStockItemModal({ item, open, onOpenChange, onSaved }: EditSt
     linkPerfil: "", idPerfil: "", emailAcesso: "", emailAlternativo: "", fbToken: "",
     senha: "", senhaEmail: "", token2fa: "", tempoPlataforma: "3-meses", statusAtual: "aquecido",
     cookies: "", descricao: "", nomePerfil: "", dataNascimento: "", genero: "masculino",
-    linkDocumento: "", fotoUrl: ""
+     linkDocumento: "", fotoUrl: "", lauthProfileId: ""
   });
 
   useEffect(() => {
@@ -90,8 +90,9 @@ export function EditStockItemModal({ item, open, onOpenChange, onSaved }: EditSt
         nomePerfil: d.nomePerfil ?? "",
         dataNascimento: d.dataNascimento ?? "",
         genero: d.genero ?? "masculino",
-        linkDocumento: d.linkDocumento ?? "",
-        fotoUrl: d.foto_url ?? "",
+         linkDocumento: d.linkDocumento ?? "",
+         fotoUrl: d.foto_url ?? "",
+         lauthProfileId: d.lauthProfileId ?? "",
       });
     }
   }, [item]);
@@ -152,7 +153,8 @@ export function EditStockItemModal({ item, open, onOpenChange, onSaved }: EditSt
         statusAtual: formData.statusAtual,
         cookies: formData.cookies,
         descricao: formData.descricao,
-        foto_url: formData.fotoUrl || undefined,
+         foto_url: formData.fotoUrl || undefined,
+         lauthProfileId: formData.lauthProfileId || undefined,
         ...productMeta,
       };
     }
@@ -325,22 +327,24 @@ export function EditStockItemModal({ item, open, onOpenChange, onSaved }: EditSt
                       </button>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-medium text-zinc-400">Token 2FA</label>
-                      <div className="relative">
-                        <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-                        <Input value={formData.token2fa} onChange={e => setFormData({ ...formData, token2fa: e.target.value })} placeholder="JBSWY3DPEHPK3PXP" className="pl-10 bg-black/30 border-white/5 text-white font-mono" />
-                      </div>
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-medium text-zinc-400">Token de Acesso (FB)</label>
-                      <div className="relative">
-                        <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-                        <Input value={formData.fbToken} onChange={e => setFormData({ ...formData, fbToken: e.target.value })} placeholder="EAAB..." className="pl-10 bg-black/30 border-white/5 text-white font-mono" />
-                      </div>
-                    </div>
-                  </div>
+                   <div className="flex flex-col gap-1.5">
+                     <label className="text-xs font-medium text-zinc-400">Token 2FA</label>
+                     <div className="relative">
+                       <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                       <Input value={formData.token2fa} onChange={e => setFormData({ ...formData, token2fa: e.target.value })} placeholder="JBSWY3DPEHPK3PXP" className="pl-10 bg-black/30 border-white/5 text-white font-mono" />
+                     </div>
+                   </div>
+
+                   <div className="flex flex-col gap-1.5 pt-2">
+                     <label className="text-xs font-medium text-amber-400 flex items-center gap-1.5">
+                       <Hash className="h-3 w-3" />
+                       Lauth Profile ID <span className="text-zinc-600 text-[10px]">(Entrega direta)</span>
+                     </label>
+                     <div className="relative">
+                       <Hash className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                       <Input value={formData.lauthProfileId} onChange={e => setFormData({ ...formData, lauthProfileId: e.target.value })} placeholder="ID do perfil no Lauth" className="pl-10 bg-black/30 border-white/5 text-white font-mono" />
+                     </div>
+                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="flex flex-col gap-1.5">
                       <label className="text-xs font-medium text-zinc-400">Tempo Plataforma</label>
