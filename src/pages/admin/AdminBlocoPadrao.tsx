@@ -36,7 +36,6 @@ const PLACEHOLDERS = [
   { tag: "{{pedido}}", desc: "Código do pedido" },
   { tag: "{{data}}", desc: "Data da compra" },
   { tag: "{{nomeProduto}}", desc: "Nome do produto" },
-  { tag: "{{fbToken}}", desc: "Token de Acesso FB" },
 ];
 
 const SAMPLE_DATA: Record<string, string> = {
@@ -58,7 +57,6 @@ const SAMPLE_DATA: Record<string, string> = {
   "{{pedido}}": "PED-00123",
   "{{data}}": "26/02/2026",
   "{{nomeProduto}}": "Perfil Premium Netflix",
-  "{{fbToken}}": "EAAB...",
 };
 
 export default function AdminBlocoPadrao() {
