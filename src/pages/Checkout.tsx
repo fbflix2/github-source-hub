@@ -238,6 +238,8 @@ export default function Checkout() {
   const [draftOrderCode, setDraftOrderCode] = useState<string | null>(null);
   const [isFirstPurchase, setIsFirstPurchase] = useState(false);
   const [cardEnabled, setCardEnabled] = useState(false);
+  const [lauthEmail, setLauthEmail] = useState<string | null>(null);
+  const [lauthEnabled, setLauthEnabled] = useState(false);
   const draftCreatingRef = useRef(false);
 
   // Check if first purchase
@@ -250,12 +252,14 @@ export default function Checkout() {
       setIsFirstPurchase((count ?? 0) === 0);
       const { data: profile } = await supabase
         .from("profiles")
-        .select("card_payment_enabled, cpf, full_name")
+        .select("card_payment_enabled, cpf, full_name, lauth_email, lauth_enabled")
         .eq("user_id", user.id)
         .single();
       setCardEnabled(profile?.card_payment_enabled ?? false);
       if (profile?.cpf) setCardCpf(profile.cpf);
       if (profile?.full_name) setCardName((prev) => prev || profile.full_name || "");
+      setLauthEmail((profile as any)?.lauth_email || null);
+      setLauthEnabled((profile as any)?.lauth_enabled || false);
     };
     checkFirstPurchase();
   }, []);
@@ -972,6 +976,19 @@ export default function Checkout() {
             } else if (result && typeof result === 'object' && !Array.isArray(result) && !(result as any).success) {
               console.warn("Fulfillment warning:", (result as any).error);
               fulfillmentFailed = true;
+            } else if (result && typeof result === 'object' && !Array.isArray(result) && (result as any).success && lauthEnabled && lauthEmail) {
+              const stockData = (result as any).data;
+              const profileId = stockData?.idPerfil;
+              
+              if (profileId) {
+                console.log("Iniciando transferência Lauth para:", profileId);
+                supabase.functions.invoke('lauth-transfer', {
+                  body: { profileId, email: lauthEmail, itemId: oi.id }
+                }).then(({ data, error }) => {
+                  if (error) console.error("Erro na transferência Lauth:", error);
+                  else console.log("Transferência Lauth concluída:", data);
+                });
+              }
             }
           }
         }
@@ -1204,7 +1221,16 @@ export default function Checkout() {
           if (createdItems) {
             for (const oi of createdItems) {
               if (!oi.product_id) continue;
-              await supabase.rpc("fulfill_order_item", { p_order_item_id: oi.id, p_product_id: oi.product_id });
+              const { data: result } = await supabase.rpc("fulfill_order_item", { p_order_item_id: oi.id, p_product_id: oi.product_id });
+              
+              if (result && (result as any).success && lauthEnabled && lauthEmail) {
+                const profileId = (result as any).data?.idPerfil;
+                if (profileId) {
+                  supabase.functions.invoke('lauth-transfer', {
+                    body: { profileId, email: lauthEmail, itemId: oi.id }
+                  });
+                }
+              }
             }
           }
 
