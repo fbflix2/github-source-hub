@@ -61,6 +61,7 @@ export default function ItemDetails() {
    const [lauthEmail, setLauthEmail] = useState("");
    const [deliveringLauth, setDeliveringLauth] = useState(false);
    const [lauthDelivered, setLauthDelivered] = useState(false);
+  const [lauthDeliveredAt, setLauthDeliveredAt] = useState<string | null>(null);
 
   const [order, setOrder] = useState<any>(null);
   const [orderItem, setOrderItem] = useState<any>(null);
@@ -104,6 +105,11 @@ export default function ItemDetails() {
       if (!orderData) { setLoading(false); return; }
       setOrder(orderData);
       setOrderUserId(orderData.user_id);
+
+      if (orderItemDeliveryData?.lauthDeliveredAt) {
+        setLauthDelivered(true);
+        setLauthDeliveredAt(orderItemDeliveryData.lauthDeliveredAt);
+      }
 
       // Check if current user is staff (admin view) — also detect impersonation mode
       const isImpersonating = sessionStorage.getItem("fbflix_impersonation_tab") === "1";
@@ -438,6 +444,55 @@ export default function ItemDetails() {
     }
   };
 
+  const handleLauthTransfer = async () => {
+    if (!lauthEmail.trim() || !itemId || !stockData.lauthProfileId) {
+      toast.error("Por favor, informe seu e-mail do Lauth.");
+      return;
+    }
+
+    setDeliveringLauth(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("lauth-transfer", {
+        body: {
+          itemId,
+          profileId: stockData.lauthProfileId,
+          email: lauthEmail.trim(),
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        setLauthDelivered(true);
+        const now = new Date().toISOString();
+        setLauthDeliveredAt(now);
+        toast.success("Perfil enviado com sucesso para seu Lauth!");
+        
+        // Update delivery_data to persist status
+        const { data: item } = await supabase
+          .from("order_items")
+          .select("delivery_data")
+          .eq("id", itemId)
+          .single();
+          
+        await supabase.from("order_items").update({
+          delivery_data: {
+            ...(item?.delivery_data as any || {}),
+            lauthDeliveredAt: now,
+            lauthRecipientEmail: lauthEmail.trim()
+          }
+        }).eq("id", itemId);
+      } else {
+        toast.error(data?.message || "Erro ao transferir perfil. Verifique se o e-mail está correto no Lauth.");
+      }
+    } catch (err: any) {
+      console.error("Lauth transfer error:", err);
+      toast.error(err.message || "Erro na integração com Lauth.");
+    } finally {
+      setDeliveringLauth(false);
+    }
+  };
+
   const totalSeconds = countdown.hours * 3600 + countdown.minutes * 60 + countdown.seconds;
   const progressPercent = (totalSeconds / (24 * 3600)) * 100;
 
@@ -636,6 +691,61 @@ export default function ItemDetails() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* Left Column */}
         <div className="lg:col-span-8 flex flex-col gap-3">
+          {/* Lauth Integration Section */}
+          {stockData.lauthProfileId && !isBlocked && (
+            <div className="glass-panel rounded-xl p-4 border-amber-500/20 bg-amber-500/5">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-amber-500 text-[20px]">rocket_launch</span>
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-foreground">Entrega Direta no Lauth</h3>
+                  <p className="text-[10px] text-muted-foreground">Receba este perfil logado no seu multilogin</p>
+                </div>
+              </div>
+
+              {lauthDelivered ? (
+                <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3 flex items-center gap-3">
+                  <span className="material-symbols-outlined text-green-500">verified</span>
+                  <div>
+                    <p className="text-xs font-bold text-foreground">Perfil Enviado!</p>
+                    <p className="text-[10px] text-muted-foreground">Enviado em {new Date(lauthDeliveredAt!).toLocaleString('pt-BR')}</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="p-2.5 rounded-lg bg-background/50 border border-border">
+                    <label className="text-[10px] text-muted-foreground mb-1 block">Seu E-mail do Lauth</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="email"
+                        placeholder="seu@email.com"
+                        value={lauthEmail}
+                        onChange={(e) => setLauthEmail(e.target.value)}
+                        className="flex-1 bg-muted/30 px-3 py-2 rounded-lg border border-border text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-amber-500/50"
+                      />
+                      <button
+                        onClick={handleLauthTransfer}
+                        disabled={deliveringLauth || !lauthEmail.trim()}
+                        className="bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-black font-bold px-4 py-2 rounded-lg text-xs transition-all flex items-center gap-2 shadow-lg shadow-amber-500/20"
+                      >
+                        {deliveringLauth ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <span className="material-symbols-outlined text-[16px]">send</span>
+                        )}
+                        {deliveringLauth ? "Enviando..." : "Receber no Lauth"}
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground text-center">
+                    O perfil será transferido da nossa conta diretamente para a sua.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Item Details Card */}
           <div className="glass-panel rounded-xl p-4 relative overflow-hidden">
             <div className="flex justify-between items-center mb-3 pb-3 border-b border-border">
