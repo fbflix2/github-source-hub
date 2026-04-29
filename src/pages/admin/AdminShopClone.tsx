@@ -464,7 +464,10 @@ function CategorySection({ category, searchQuery, usdToBrl, onBuyResult, favorit
   const q = searchQuery.toLowerCase();
 
   const products = q
-    ? category.accounts.filter((p) => p.name.toLowerCase().includes(q))
+    ? category.accounts.filter((p) => 
+        p.name.toLowerCase().includes(q) || 
+        String(p.id).toLowerCase().includes(q)
+      )
     : category.accounts;
 
   if (products.length === 0 && q) return null;
