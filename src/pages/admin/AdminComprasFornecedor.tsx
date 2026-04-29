@@ -66,10 +66,8 @@ type Account = {
   has_bm: boolean;
   notes: string | null;
   created_at: string;
+  two_factor?: string | null;
 };
-
-// Local-only field derived from the raw notes (token 2FA base32)
-type AccountWithTwoFactor = Account & { two_factor?: string | null };
 
 const STATUS_LABEL: Record<string, string> = {
   aguardando: "Aguardando",
