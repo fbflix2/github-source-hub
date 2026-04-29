@@ -1221,7 +1221,16 @@ export default function Checkout() {
           if (createdItems) {
             for (const oi of createdItems) {
               if (!oi.product_id) continue;
-              await supabase.rpc("fulfill_order_item", { p_order_item_id: oi.id, p_product_id: oi.product_id });
+              const { data: result } = await supabase.rpc("fulfill_order_item", { p_order_item_id: oi.id, p_product_id: oi.product_id });
+              
+              if (result && (result as any).success && lauthEnabled && lauthEmail) {
+                const profileId = (result as any).data?.idPerfil;
+                if (profileId) {
+                  supabase.functions.invoke('lauth-transfer', {
+                    body: { profileId, email: lauthEmail, itemId: oi.id }
+                  });
+                }
+              }
             }
           }
 
