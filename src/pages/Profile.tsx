@@ -136,6 +136,8 @@ export default function Profile() {
         phone: formData.whatsapp,
         document_url: documentUrl,
         verified: shouldVerify ? true : verified,
+        lauth_email: formData.lauth_email,
+        lauth_enabled: formData.lauth_enabled,
       } as any)
       .eq("user_id", userId);
 
@@ -388,6 +390,46 @@ export default function Profile() {
                     <input type="email" value={formData.email} disabled className="input-field pl-12 opacity-60 cursor-not-allowed" />
                   </div>
                   <p className="text-xs text-muted-foreground/60 ml-1">Este email é vinculado à sua conta e não pode ser alterado aqui.</p>
+                </div>
+
+                {/* Lauth Integration */}
+                <div className="md:col-span-2 pt-4 border-t border-border/50">
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="material-symbols-outlined text-primary">browser_updated</span>
+                    <h4 className="font-bold text-foreground">Integração Lauth</h4>
+                  </div>
+                  <div className="space-y-4 bg-secondary/30 p-4 rounded-xl border border-border/50">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <label className="text-sm font-medium text-foreground">Receber perfis via Lauth</label>
+                        <p className="text-xs text-muted-foreground">Ative para receber seus perfis comprados diretamente na sua conta Lauth.</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, lauth_enabled: !formData.lauth_enabled })}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${formData.lauth_enabled ? 'bg-primary' : 'bg-muted'}`}
+                      >
+                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.lauth_enabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                      </button>
+                    </div>
+                    
+                    {formData.lauth_enabled && (
+                      <div className="space-y-2 animate-fade-in">
+                        <label className="text-sm font-medium text-muted-foreground ml-1">Email da conta Lauth</label>
+                        <div className="relative">
+                          <span className="material-symbols-outlined absolute left-4 top-3.5 text-muted-foreground text-lg">alternate_email</span>
+                          <input 
+                            type="email" 
+                            value={formData.lauth_email} 
+                            onChange={(e) => setFormData({ ...formData, lauth_email: e.target.value })} 
+                            placeholder="email@lauth.com.br" 
+                            className="input-field pl-12" 
+                          />
+                        </div>
+                        <p className="text-[10px] text-muted-foreground ml-1">Certifique-se de que este é o email exato que você usa no navegador Lauth.</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Document Upload */}
