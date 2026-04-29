@@ -208,7 +208,10 @@ function SupplierPanel({ supplier, config }: { supplier: SupplierKey; config: { 
     }
     if (search) {
       const q = search.toLowerCase();
-      products = products.filter(p => p.name.toLowerCase().includes(q));
+      products = products.filter(p => 
+        p.name.toLowerCase().includes(q) || 
+        String(p.id).toLowerCase().includes(q)
+      );
     }
     return { ...cat, accounts: products };
   }).filter(cat => {
