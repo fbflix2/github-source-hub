@@ -106,11 +106,6 @@ export default function ItemDetails() {
       setOrder(orderData);
       setOrderUserId(orderData.user_id);
 
-      if (orderItemDeliveryData?.lauthDeliveredAt) {
-        setLauthDelivered(true);
-        setLauthDeliveredAt(orderItemDeliveryData.lauthDeliveredAt);
-      }
-
       // Check if current user is staff (admin view) — also detect impersonation mode
       const isImpersonating = sessionStorage.getItem("fbflix_impersonation_tab") === "1";
       if (isImpersonating) {
@@ -163,6 +158,14 @@ export default function ItemDetails() {
         }
         if (orderItemDeliveryData._exchange_locked) {
           setExchangeLocked(true);
+        }
+
+        if (orderItemDeliveryData.lauthDeliveredAt) {
+          setLauthDelivered(true);
+          setLauthDeliveredAt(orderItemDeliveryData.lauthDeliveredAt);
+          if (orderItemDeliveryData.lauthRecipientEmail) {
+            setLauthEmail(orderItemDeliveryData.lauthRecipientEmail);
+          }
         }
       }
       // Also check localStorage as fallback
