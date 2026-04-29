@@ -1114,29 +1114,18 @@ export default function ItemDetails() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div>
-                          <label className="text-[10px] text-text-secondary mb-0.5 block">Código 2FA</label>
-                          <div className="flex items-center gap-1">
-                            <code className="flex-1 bg-background/50 px-2 py-1.5 rounded border border-border text-xs font-mono text-foreground">
-                              {showToken ? token2fa : "•••••••••"}
-                            </code>
-                            <button onClick={() => requireDisclaimer(() => setShowToken(!showToken))} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
-                              <span className="material-symbols-outlined text-[14px]">{showToken ? 'visibility_off' : 'visibility'}</span>
-                            </button>
-                            <button onClick={() => requireDisclaimer(() => copyToClipboard(token2fa, '2fa'))} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
-                              <span className="material-symbols-outlined text-[14px]">{copied === '2fa' ? 'check' : 'content_copy'}</span>
-                            </button>
-                          </div>
-                        </div>
-                        <div>
-                          <label className="text-[10px] text-text-secondary mb-0.5 block">Token de Acesso (FB)</label>
-                          <div className="flex items-center gap-1">
-                            <code className="flex-1 bg-background/50 px-2 py-1.5 rounded border border-border text-xs font-mono text-foreground truncate">{fbToken}</code>
-                            <button onClick={() => requireDisclaimer(() => copyToClipboard(fbToken, 'fb-token'))} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
-                              <span className="material-symbols-outlined text-[14px]">{copied === 'fb-token' ? 'check' : 'content_copy'}</span>
-                            </button>
-                          </div>
+                      <div>
+                        <label className="text-[10px] text-text-secondary mb-0.5 block">Código 2FA</label>
+                        <div className="flex items-center gap-1">
+                          <code className="flex-1 bg-background/50 px-2 py-1.5 rounded border border-border text-xs font-mono text-foreground">
+                            {showToken ? token2fa : "•••••••••"}
+                          </code>
+                          <button onClick={() => requireDisclaimer(() => setShowToken(!showToken))} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
+                            <span className="material-symbols-outlined text-[14px]">{showToken ? 'visibility_off' : 'visibility'}</span>
+                          </button>
+                          <button onClick={() => requireDisclaimer(() => copyToClipboard(token2fa, '2fa'))} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
+                            <span className="material-symbols-outlined text-[14px]">{copied === '2fa' ? 'check' : 'content_copy'}</span>
+                          </button>
                         </div>
                       </div>
                     </div>
