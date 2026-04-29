@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import {
   Plus, Trash2, Pencil, Upload, Package, Building2, Users, BarChart3,
   CheckCircle2, XCircle, AlertTriangle, Clock, Search, Eye, FileText,
-  TrendingUp, Award, ShieldAlert, Copy, IdCard, KeyRound, Mail, Lock, AtSign
+  TrendingUp, Award, ShieldAlert, Copy, IdCard, KeyRound, Mail, Lock, AtSign, ShieldCheck
 } from "lucide-react";
 
 const copyToClipboard = (value: string | null | undefined, label: string) => {
@@ -66,6 +66,7 @@ type Account = {
   has_bm: boolean;
   notes: string | null;
   created_at: string;
+  two_factor?: string | null;
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -121,6 +122,18 @@ function normalizeAccountCredentials(account: Account): Account {
     }
   }
 
+  // Detect 2FA token (base32 secret): uppercase A-Z and digits 2-7, length >= 10,
+  // appears between password and emails. Skip if already an email/url/cookie blob.
+  let twoFactor: string | null = account.two_factor ?? null;
+  for (const part of rest) {
+    if (!part) continue;
+    if (part.includes("@") || /^https?:\/\//i.test(part)) break;
+    if (/^[A-Z2-7]{10,}=*$/.test(part)) {
+      twoFactor = part;
+      break;
+    }
+  }
+
   const profileLink = account.profile_link || (/^\d{6,}$/.test(login || "") ? `https://facebook.com/profile.php?id=${login}` : null);
 
   return {
@@ -131,6 +144,7 @@ function normalizeAccountCredentials(account: Account): Account {
     email_password: emailPassword || null,
     email_alt: altEmail || null,
     profile_link: profileLink,
+    two_factor: twoFactor,
   };
 }
 
@@ -818,6 +832,7 @@ export default function AdminComprasFornecedor() {
                                 {[
                                   { icon: IdCard, label: "ID", value: item.login, color: "text-sky-400" },
                                   { icon: KeyRound, label: "Senha FB", value: item.password, color: "text-amber-400", mono: true },
+                                  ...(item.two_factor ? [{ icon: ShieldCheck, label: "2FA", value: item.two_factor, color: "text-cyan-400", mono: true }] : []),
                                   { icon: Mail, label: "Email", value: item.email_principal, color: "text-emerald-400" },
                                   { icon: Lock, label: "Senha email", value: item.email_password, color: "text-orange-400", mono: true },
                                   { icon: AtSign, label: "Email alt", value: item.email_alt, color: "text-purple-400" },
@@ -934,6 +949,7 @@ export default function AdminComprasFornecedor() {
                     {[
                       { icon: IdCard, label: "ID da conta", value: a.login, color: "text-sky-400" },
                       { icon: KeyRound, label: "Senha FB", value: a.password, color: "text-amber-400", mono: true },
+                      ...(a.two_factor ? [{ icon: ShieldCheck, label: "Token 2FA", value: a.two_factor, color: "text-cyan-400", mono: true }] : []),
                       { icon: Mail, label: "Email principal", value: a.email_principal, color: "text-emerald-400" },
                       { icon: Lock, label: "Senha do email", value: a.email_password, color: "text-orange-400", mono: true },
                       { icon: AtSign, label: "Email alternativo", value: a.email_alt, color: "text-purple-400" },
@@ -962,6 +978,7 @@ export default function AdminComprasFornecedor() {
                         const lines = [
                           a.login ? `ID da conta: ${a.login}` : "",
                           a.password ? `Senha FB: ${a.password}` : "",
+                          a.two_factor ? `Token 2FA: ${a.two_factor}` : "",
                           a.email_principal ? `Email principal: ${a.email_principal}` : "",
                           a.email_password ? `Senha do email: ${a.email_password}` : "",
                           a.email_alt ? `Email alternativo: ${a.email_alt}` : "",
