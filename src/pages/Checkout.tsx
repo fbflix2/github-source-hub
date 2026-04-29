@@ -238,6 +238,8 @@ export default function Checkout() {
   const [draftOrderCode, setDraftOrderCode] = useState<string | null>(null);
   const [isFirstPurchase, setIsFirstPurchase] = useState(false);
   const [cardEnabled, setCardEnabled] = useState(false);
+  const [lauthEmail, setLauthEmail] = useState<string | null>(null);
+  const [lauthEnabled, setLauthEnabled] = useState(false);
   const draftCreatingRef = useRef(false);
 
   // Check if first purchase
@@ -250,12 +252,14 @@ export default function Checkout() {
       setIsFirstPurchase((count ?? 0) === 0);
       const { data: profile } = await supabase
         .from("profiles")
-        .select("card_payment_enabled, cpf, full_name")
+        .select("card_payment_enabled, cpf, full_name, lauth_email, lauth_enabled")
         .eq("user_id", user.id)
         .single();
       setCardEnabled(profile?.card_payment_enabled ?? false);
       if (profile?.cpf) setCardCpf(profile.cpf);
       if (profile?.full_name) setCardName((prev) => prev || profile.full_name || "");
+      setLauthEmail((profile as any)?.lauth_email || null);
+      setLauthEnabled((profile as any)?.lauth_enabled || false);
     };
     checkFirstPurchase();
   }, []);
