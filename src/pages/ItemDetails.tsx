@@ -502,7 +502,6 @@ export default function ItemDetails() {
         "{{senha}}": senha,
         "{{senhaEmail}}": stockData.senhaEmail || "—",
         "{{token2fa}}": token2fa,
-        "{{fbToken}}": fbToken,
         "{{dataNascimento}}": stockData.dataNascimento || "—",
         "{{genero}}": stockData.genero || "—",
         "{{tempoPlataforma}}": stockData.tempoPlataforma || "—",
@@ -534,7 +533,6 @@ export default function ItemDetails() {
       ];
       if (emailAlternativo !== "—") lines.push(`Email Alternativo: ${emailAlternativo}`);
       if (senhaEmail !== "—") lines.push(`Senha Email: ${senhaEmail}`);
-      if (fbToken !== "—") lines.push(`Token FB: ${fbToken}`);
       if (stockData.nomePerfil) lines.push(`Nome do Perfil: ${stockData.nomePerfil}`);
       if (stockData.dataNascimento) lines.push(`Data de Nascimento: ${stockData.dataNascimento}`);
       if (stockData.genero) lines.push(`Gênero: ${stockData.genero}`);
