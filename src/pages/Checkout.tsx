@@ -976,6 +976,19 @@ export default function Checkout() {
             } else if (result && typeof result === 'object' && !Array.isArray(result) && !(result as any).success) {
               console.warn("Fulfillment warning:", (result as any).error);
               fulfillmentFailed = true;
+            } else if (result && typeof result === 'object' && !Array.isArray(result) && (result as any).success && lauthEnabled && lauthEmail) {
+              const stockData = (result as any).data;
+              const profileId = stockData?.idPerfil;
+              
+              if (profileId) {
+                console.log("Iniciando transferência Lauth para:", profileId);
+                supabase.functions.invoke('lauth-transfer', {
+                  body: { profileId, email: lauthEmail, itemId: oi.id }
+                }).then(({ data, error }) => {
+                  if (error) console.error("Erro na transferência Lauth:", error);
+                  else console.log("Transferência Lauth concluída:", data);
+                });
+              }
             }
           }
         }
