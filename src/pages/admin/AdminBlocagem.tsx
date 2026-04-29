@@ -309,20 +309,11 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
                   </button>
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1 group">
-                  <label className="text-xs font-medium text-zinc-400">Token 2FA</label>
-                  <div className="relative">
-                    <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-                    <Input type="text" placeholder="JBSWY3DPEHPK3PXP" value={formData.token2fa} onChange={e => setFormData({ ...formData, token2fa: e.target.value })} className="pl-10 bg-black/30 border-white/5 text-white font-mono" />
-                  </div>
-                </div>
-                <div className="flex flex-col gap-1 group">
-                  <label className="text-xs font-medium text-zinc-400">Token de Acesso (FB)</label>
-                  <div className="relative">
-                    <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
-                    <Input type="text" placeholder="EAAB..." value={formData.fbToken} onChange={e => setFormData({ ...formData, fbToken: e.target.value })} className="pl-10 bg-black/30 border-white/5 text-white font-mono" />
-                  </div>
+              <div className="flex flex-col gap-1 group">
+                <label className="text-xs font-medium text-zinc-400">Token 2FA</label>
+                <div className="relative">
+                  <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
+                  <Input type="text" placeholder="JBSWY3DPEHPK3PXP" value={formData.token2fa} onChange={e => setFormData({ ...formData, token2fa: e.target.value })} className="pl-10 bg-black/30 border-white/5 text-white font-mono" />
                 </div>
               </div>
               <div className="grid grid-cols-3 gap-3">
