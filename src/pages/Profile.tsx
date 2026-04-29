@@ -16,6 +16,8 @@ interface ProfileFormData {
   cep: string;
   whatsapp: string;
   email: string;
+  lauth_email: string;
+  lauth_enabled: boolean;
 }
 
 export default function Profile() {
@@ -32,6 +34,8 @@ export default function Profile() {
     cep: "",
     whatsapp: "",
     email: "",
+    lauth_email: "",
+    lauth_enabled: false,
   });
   const [verified, setVerified] = useState(false);
   const [documentUrl, setDocumentUrl] = useState<string | null>(null);
@@ -73,6 +77,8 @@ export default function Profile() {
           cep: profile.cep || "",
           whatsapp: profile.phone || "",
           email: session.user.email || "",
+          lauth_email: (profile as any).lauth_email || "",
+          lauth_enabled: (profile as any).lauth_enabled || false,
         });
         setVerified((profile as any).verified || false);
         setDocumentUrl((profile as any).document_url || null);
