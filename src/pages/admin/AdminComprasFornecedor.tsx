@@ -832,6 +832,7 @@ export default function AdminComprasFornecedor() {
                                 {[
                                   { icon: IdCard, label: "ID", value: item.login, color: "text-sky-400" },
                                   { icon: KeyRound, label: "Senha FB", value: item.password, color: "text-amber-400", mono: true },
+                                  ...(item.two_factor ? [{ icon: ShieldCheck, label: "2FA", value: item.two_factor, color: "text-cyan-400", mono: true }] : []),
                                   { icon: Mail, label: "Email", value: item.email_principal, color: "text-emerald-400" },
                                   { icon: Lock, label: "Senha email", value: item.email_password, color: "text-orange-400", mono: true },
                                   { icon: AtSign, label: "Email alt", value: item.email_alt, color: "text-purple-400" },
