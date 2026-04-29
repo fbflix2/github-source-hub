@@ -949,6 +949,7 @@ export default function AdminComprasFornecedor() {
                     {[
                       { icon: IdCard, label: "ID da conta", value: a.login, color: "text-sky-400" },
                       { icon: KeyRound, label: "Senha FB", value: a.password, color: "text-amber-400", mono: true },
+                      ...(a.two_factor ? [{ icon: ShieldCheck, label: "Token 2FA", value: a.two_factor, color: "text-cyan-400", mono: true }] : []),
                       { icon: Mail, label: "Email principal", value: a.email_principal, color: "text-emerald-400" },
                       { icon: Lock, label: "Senha do email", value: a.email_password, color: "text-orange-400", mono: true },
                       { icon: AtSign, label: "Email alternativo", value: a.email_alt, color: "text-purple-400" },
@@ -977,6 +978,7 @@ export default function AdminComprasFornecedor() {
                         const lines = [
                           a.login ? `ID da conta: ${a.login}` : "",
                           a.password ? `Senha FB: ${a.password}` : "",
+                          a.two_factor ? `Token 2FA: ${a.two_factor}` : "",
                           a.email_principal ? `Email principal: ${a.email_principal}` : "",
                           a.email_password ? `Senha do email: ${a.email_password}` : "",
                           a.email_alt ? `Email alternativo: ${a.email_alt}` : "",
