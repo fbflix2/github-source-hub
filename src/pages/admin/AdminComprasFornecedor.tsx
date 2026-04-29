@@ -122,6 +122,18 @@ function normalizeAccountCredentials(account: Account): Account {
     }
   }
 
+  // Detect 2FA token (base32 secret): uppercase A-Z and digits 2-7, length >= 10,
+  // appears between password and emails. Skip if already an email/url/cookie blob.
+  let twoFactor: string | null = account.two_factor ?? null;
+  for (const part of rest) {
+    if (!part) continue;
+    if (part.includes("@") || /^https?:\/\//i.test(part)) break;
+    if (/^[A-Z2-7]{10,}=*$/.test(part)) {
+      twoFactor = part;
+      break;
+    }
+  }
+
   const profileLink = account.profile_link || (/^\d{6,}$/.test(login || "") ? `https://facebook.com/profile.php?id=${login}` : null);
 
   return {
@@ -132,6 +144,7 @@ function normalizeAccountCredentials(account: Account): Account {
     email_password: emailPassword || null,
     email_alt: altEmail || null,
     profile_link: profileLink,
+    two_factor: twoFactor,
   };
 }
 
