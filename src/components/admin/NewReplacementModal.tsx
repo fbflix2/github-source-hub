@@ -35,6 +35,7 @@ interface StockItemOption {
   product_id: string | null;
   product_name?: string;
   data?: unknown;
+  parent_id?: string | null;
 }
 
 export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplacementModalProps) {
