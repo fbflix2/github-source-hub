@@ -352,16 +352,24 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
           : {};
       const d = (newStockFull.data as Record<string, unknown>) || {};
       const isBmProduct = newStockFull.type === "bm" || productInfo?.icon_type === "bm";
+      const isComboReplacement = Array.isArray(currentDeliveryData.comboItems);
+      const previousReplacedIds = Array.isArray((currentDeliveryData as any)._replaced_stock_item_ids)
+        ? ((currentDeliveryData as any)._replaced_stock_item_ids as string[])
+        : [];
+      const nextReplacedIds = Array.from(new Set([...previousReplacedIds, newStockFull.id]));
       const deliveryData: Record<string, unknown> = {
         ...currentDeliveryData,
-        ...d,
-        ...(newStockFull.identification ? { idPerfil: newStockFull.identification } : {}),
-        ...(newStockFull.identification_link ? { linkPerfil: newStockFull.identification_link } : {}),
+        // For non-combo items, override top-level delivery fields with the new credentials.
+        // For combos, keep the parent-level fields untouched — only the specific child changes.
+        ...(isComboReplacement ? {} : d),
+        ...(!isComboReplacement && newStockFull.identification ? { idPerfil: newStockFull.identification } : {}),
+        ...(!isComboReplacement && newStockFull.identification_link ? { linkPerfil: newStockFull.identification_link } : {}),
         // For BM products, update the bmLinks array so the client sees the new link
-        ...(isBmProduct && newStockFull.identification_link ? { bmLinks: [newStockFull.identification_link] } : {}),
+        ...(!isComboReplacement && isBmProduct && newStockFull.identification_link ? { bmLinks: [newStockFull.identification_link] } : {}),
         _replaced: true,
         _replaced_at: now,
         _replacement_stock_item_id: newStockFull.id,
+        _replaced_stock_item_ids: nextReplacedIds,
         ...(originalStockId ? { _replacement_old_stock_item_id: originalStockId } : {}),
       };
 
@@ -376,6 +384,8 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
               identification: newStockFull.identification,
               identification_link: newStockFull.identification_link,
               data: d,
+              _replaced: true,
+              _replaced_at: now,
             };
           }
           return ci;
