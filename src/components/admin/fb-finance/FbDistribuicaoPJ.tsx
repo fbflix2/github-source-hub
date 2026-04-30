@@ -174,7 +174,9 @@ export function FbDistribuicaoPJ() {
     toast({ title: "Percentuais salvos!" });
   };
 
-  const handleDistribuir = async () => {
+   const handleDistribuir = async () => {
+     const isClosingDay = new Date().getDate() === 30 || (new Date().getDate() === new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate());
+     
     if (!entradaNum || entradaNum <= 0) { toast({ title: "Informe a entrada do dia", variant: "destructive" }); return; }
     if (!isValid) { toast({ title: "A soma dos % deve ser 100%", variant: "destructive" }); return; }
 
@@ -191,14 +193,32 @@ export function FbDistribuicaoPJ() {
       valores.capital_giro = (valores.capital_giro || 0) + debtRepayment;
     }
 
-    // Check Pro Labore meta — use total monthly ENTRIES (not current balance, which decreases with expenses)
+     // Check Pro Labore requirements — on day 30 use real personal costs, otherwise use meta
     const proLaboreCaixa = caixasList.find(c => c.nome === "Pro Labore");
-    if (proLaboreCaixa && proLaboreCaixa.meta > 0 && valores.pro_labore) {
+     if (proLaboreCaixa && (proLaboreCaixa.meta > 0 || isClosingDay) && valores.pro_labore) {
       const now = new Date();
       const mesInicio = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
       const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
       const mesFim = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${lastDay}`;
       
+       let targetValue = proLaboreCaixa.meta;
+ 
+       if (isClosingDay) {
+         // Calculate real personal costs for the month
+         const { data: custosPessoais } = await supabase
+           .from("fb_finance_lancamentos" as any)
+           .select("saida")
+           .eq("tipo", "pessoal")
+           .gte("data", mesInicio)
+           .lte("data", mesFim);
+         
+         const totalCustosPessoais = (custosPessoais as any[] || []).reduce((s: number, l: any) => s + Number(l.saida || 0), 0);
+         
+         // On closing day, we prioritize covering ALL real personal costs if they are higher than the meta
+         targetValue = Math.max(proLaboreCaixa.meta, totalCustosPessoais);
+         console.log("Fechamento mensal - Alvo Pro Labore (Meta vs Custos Reais):", targetValue);
+       }
+ 
       const { data: entradasMes } = await supabase
         .from("fb_finance_lancamentos" as any)
         .select("entrada")
@@ -208,7 +228,7 @@ export function FbDistribuicaoPJ() {
       
       const totalEntradasMes = (entradasMes as any[] || []).reduce((s: number, l: any) => s + Number(l.entrada || 0), 0);
 
-      if (totalEntradasMes >= proLaboreCaixa.meta) {
+       if (totalEntradasMes >= targetValue) {
         // Meta already reached this month — redirect entire Pro Labore allocation
         const excedente = valores.pro_labore;
         valores.pro_labore = 0;
@@ -216,9 +236,9 @@ export function FbDistribuicaoPJ() {
         return;
       }
       const novoTotal = totalEntradasMes + valores.pro_labore;
-      if (novoTotal > proLaboreCaixa.meta) {
-        const excedente = novoTotal - proLaboreCaixa.meta;
-        valores.pro_labore = Math.max(0, proLaboreCaixa.meta - totalEntradasMes);
+       if (novoTotal > targetValue) {
+         const excedente = novoTotal - targetValue;
+         valores.pro_labore = Math.max(0, targetValue - totalEntradasMes);
         setRedirectPopup({ excedente, valores, debtRepayment });
         return;
       }
