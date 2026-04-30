@@ -158,6 +158,9 @@ export default function Orders() {
         // Look up the order item's delivery_data to find which child stock_items have been replaced
         const ownerOrderItem = (itemsData || []).find((oi: any) => oi.id === parent.order_item_id);
         const ownerDelivery = (ownerOrderItem?.delivery_data ?? null) as any;
+        const replacedStockItemIds = Array.isArray(ownerDelivery?._replaced_stock_item_ids)
+          ? new Set<string>(ownerDelivery._replaced_stock_item_ids.filter(Boolean))
+          : new Set<string>();
 
         const children = allChildren
           .filter((child: any) => child.parent_id === parent.id)
@@ -166,7 +169,7 @@ export default function Orders() {
             name: child.name || "Perfil",
             identification: child.identification || null,
             identificationLink: child.identification_link || null,
-            isReplaced: replacementStockItemIds.has(child.id),
+            isReplaced: replacedStockItemIds.has(child.id),
           }));
 
         if (children.length > 0 || parent.type === "combo") {
