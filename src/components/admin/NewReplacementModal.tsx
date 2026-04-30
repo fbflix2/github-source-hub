@@ -35,6 +35,8 @@ interface StockItemOption {
   product_id: string | null;
   product_name?: string;
   data?: unknown;
+  parent_id?: string | null;
+  type?: string | null;
 }
 
 export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplacementModalProps) {
@@ -56,6 +58,8 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
   const [productName, setProductName] = useState("");
   const [itemName, setItemName] = useState("");
   const [originalStockId, setOriginalStockId] = useState<string | null>(null);
+  const [originalItems, setOriginalItems] = useState<StockItemOption[]>([]);
+  const [loadingOriginalItems, setLoadingOriginalItems] = useState(false);
 
   // Auto-filled product context for filtering stock
   const [matchedProductId, setMatchedProductId] = useState<string | null>(null);
@@ -73,6 +77,7 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
       setReason(""); setNotes("");
       setOrderSearch(""); setOrderItems([]); setSelectedOrderItem(null);
       setProductName(""); setItemName(""); setOriginalStockId(null);
+      setOriginalItems([]); setLoadingOriginalItems(false);
       setStockFilter(""); setAllStockItems([]); setSelectedNewItem(null);
       setMatchedProductId(null); setMatchedCategoryId(null);
     }
@@ -225,16 +230,23 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
     setItemName(selectedOrderItem.name);
     setSelectedNewItem(null);
     setOriginalStockId(null);
+    setOriginalItems([]);
+    setLoadingOriginalItems(true);
 
     supabase
       .from("stock_items")
-      .select("id")
+      .select("id, name, identification, identification_link, product_id, type, data, parent_id")
       .eq("order_item_id", selectedOrderItem.id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle()
+      .is("deleted_at", null)
       .then(({ data }) => {
-        setOriginalStockId(data?.id ?? null);
+        if (data && data.length > 0) {
+          const items = data as StockItemOption[];
+          setOriginalItems(items);
+          if (items.length === 1) {
+            setOriginalStockId(items[0].id);
+          }
+        }
+        setLoadingOriginalItems(false);
       });
 
     if (selectedOrderItem.product_id) {
@@ -250,6 +262,16 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
       setProductName(selectedOrderItem.product_name || selectedOrderItem.name);
     }
   }, [selectedOrderItem]);
+
+  // When original item is chosen from multiple, update the display name
+  useEffect(() => {
+    if (originalStockId && originalItems.length > 0) {
+      const selected = originalItems.find(i => i.id === originalStockId);
+      if (selected) {
+        setItemName(selected.name);
+      }
+    }
+  }, [originalStockId, originalItems]);
 
   const handleSave = async () => {
     if (!selectedClient) { toast.error("Selecione o cliente"); return; }
@@ -278,6 +300,9 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
       stock_item_id: originalStockId,
     };
 
+    const originalItem = originalItems.find(i => i.id === originalStockId);
+    const parentId = originalItem?.parent_id || null;
+
     insertData.order_id = selectedOrderItem.order_id;
     insertData.order_item_id = selectedOrderItem.id;
 
@@ -303,10 +328,11 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
         : Promise.resolve(null),
     ]);
 
-    // Mark new item as sold and linked to the same order item
+    // Mark new item as sold and linked to the same order item (and same parent if it was a combo item)
     await supabase.from("stock_items").update({
       status: "vendido",
       order_item_id: selectedOrderItem.id,
+      parent_id: parentId,
       updated_at: now,
     }).eq("id", selectedNewItem.id);
 
@@ -338,6 +364,24 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
         _replacement_stock_item_id: newStockFull.id,
         ...(originalStockId ? { _replacement_old_stock_item_id: originalStockId } : {}),
       };
+
+      // If this order item is a combo, also update the specific entry in comboItems array
+      if (Array.isArray(deliveryData.comboItems)) {
+        deliveryData.comboItems = deliveryData.comboItems.map((ci: any) => {
+          if (ci.stock_item_id === originalStockId) {
+            return {
+              ...ci,
+              ...d,
+              stock_item_id: newStockFull.id,
+              identification: newStockFull.identification,
+              identification_link: newStockFull.identification_link,
+              data: d,
+            };
+          }
+          return ci;
+        });
+      }
+
       await supabase.from("order_items").update({ delivery_data: deliveryData as any }).eq("id", selectedOrderItem.id);
     }
 
@@ -396,18 +440,51 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
               <Package className="h-3.5 w-3.5" /> Pedido *
             </Label>
             {selectedOrderItem ? (
-              <div className="flex items-center gap-2 p-2 rounded-lg bg-zinc-800 border border-yellow-600/40">
-                <div className="flex-1">
-                  <p className="text-xs text-yellow-400">Pedido #{selectedOrderItem.order_code}</p>
-                  <p className="text-sm text-white">{selectedOrderItem.name}</p>
-                  <p className="text-xs text-zinc-400">R$ {selectedOrderItem.price.toFixed(2)}</p>
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 p-2 rounded-lg bg-zinc-800 border border-yellow-600/40">
+                  <div className="flex-1">
+                    <p className="text-xs text-yellow-400">Pedido #{selectedOrderItem.order_code}</p>
+                    <p className="text-sm text-white">{selectedOrderItem.name}</p>
+                    <p className="text-xs text-zinc-400">R$ {selectedOrderItem.price.toFixed(2)}</p>
+                  </div>
+                  <Button size="sm" variant="ghost" className="h-6 px-2 text-zinc-400" onClick={() => {
+                    setSelectedOrderItem(null);
+                    setOriginalStockId(null);
+                    setOriginalItems([]);
+                    setMatchedProductId(null);
+                    setMatchedCategoryId(null);
+                  }}>✕</Button>
                 </div>
-                <Button size="sm" variant="ghost" className="h-6 px-2 text-zinc-400" onClick={() => {
-                  setSelectedOrderItem(null);
-                  setOriginalStockId(null);
-                  setMatchedProductId(null);
-                  setMatchedCategoryId(null);
-                }}>✕</Button>
+
+                {originalItems.length > 1 && (
+                  <div className="space-y-2 pt-1 border-t border-zinc-800">
+                    <Label className="text-xs text-zinc-500 uppercase font-bold tracking-wider">Item específico para reposição</Label>
+                    <Select value={originalStockId || ""} onValueChange={setOriginalStockId}>
+                      <SelectTrigger className="bg-zinc-800 border-zinc-700">
+                        <SelectValue placeholder="Selecione qual item do combo repor..." />
+                      </SelectTrigger>
+                      <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
+                        {originalItems.map((item) => {
+                          const displayName = resolveBmDisplayName({
+                            name: item.name,
+                            identificationLink: item.identification_link,
+                            data: item.data as any
+                          });
+                          return (
+                            <SelectItem key={item.id} value={item.id} className="focus:bg-zinc-800 focus:text-white">
+                              <div className="flex flex-col">
+                                <span className="font-medium">{displayName}</span>
+                                {item.identification && <span className="text-[10px] text-zinc-500">ID: {item.identification}</span>}
+                                {item.type === 'combo' && <Badge className="w-fit text-[8px] h-3 px-1 mt-0.5 bg-yellow-500/10 text-yellow-500 border-yellow-500/20">PAI COMBO</Badge>}
+                              </div>
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[10px] text-zinc-500">Este pedido contém múltiplos itens (combo). Selecione exatamente qual deles deseja substituir.</p>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="space-y-1">
