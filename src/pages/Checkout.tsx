@@ -800,11 +800,12 @@ export default function Checkout() {
           if (!oi.product_id) continue;
           const { data: prodCheck } = await supabase
             .from("products")
-            .select("stock, available")
+            .select("stock, available, icon_type")
             .eq("id", oi.product_id)
             .single();
 
-          if (!prodCheck || prodCheck.stock <= 0 || !prodCheck.available) {
+          const isProxy = prodCheck?.icon_type === 'proxy';
+          if (!prodCheck || (!isProxy && (prodCheck.stock <= 0 || !prodCheck.available))) {
             toast.error(`"${oi.name}" está sem estoque. Remova do carrinho e tente novamente.`);
             setProcessing(false);
             return;
