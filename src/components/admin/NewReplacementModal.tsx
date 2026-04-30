@@ -56,6 +56,8 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
   const [productName, setProductName] = useState("");
   const [itemName, setItemName] = useState("");
   const [originalStockId, setOriginalStockId] = useState<string | null>(null);
+  const [originalItems, setOriginalItems] = useState<StockItemOption[]>([]);
+  const [loadingOriginalItems, setLoadingOriginalItems] = useState(false);
 
   // Auto-filled product context for filtering stock
   const [matchedProductId, setMatchedProductId] = useState<string | null>(null);
@@ -73,6 +75,7 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
       setReason(""); setNotes("");
       setOrderSearch(""); setOrderItems([]); setSelectedOrderItem(null);
       setProductName(""); setItemName(""); setOriginalStockId(null);
+      setOriginalItems([]); setLoadingOriginalItems(false);
       setStockFilter(""); setAllStockItems([]); setSelectedNewItem(null);
       setMatchedProductId(null); setMatchedCategoryId(null);
     }
@@ -225,16 +228,23 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
     setItemName(selectedOrderItem.name);
     setSelectedNewItem(null);
     setOriginalStockId(null);
+    setOriginalItems([]);
+    setLoadingOriginalItems(true);
 
     supabase
       .from("stock_items")
-      .select("id")
+      .select("id, name, identification, identification_link, product_id, type, data, parent_id")
       .eq("order_item_id", selectedOrderItem.id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle()
+      .is("deleted_at", null)
       .then(({ data }) => {
-        setOriginalStockId(data?.id ?? null);
+        if (data && data.length > 0) {
+          const items = data as StockItemOption[];
+          setOriginalItems(items);
+          if (items.length === 1) {
+            setOriginalStockId(items[0].id);
+          }
+        }
+        setLoadingOriginalItems(false);
       });
 
     if (selectedOrderItem.product_id) {
@@ -250,6 +260,16 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
       setProductName(selectedOrderItem.product_name || selectedOrderItem.name);
     }
   }, [selectedOrderItem]);
+
+  // When original item is chosen from multiple, update the display name
+  useEffect(() => {
+    if (originalStockId && originalItems.length > 0) {
+      const selected = originalItems.find(i => i.id === originalStockId);
+      if (selected) {
+        setItemName(selected.name);
+      }
+    }
+  }, [originalStockId, originalItems]);
 
   const handleSave = async () => {
     if (!selectedClient) { toast.error("Selecione o cliente"); return; }
@@ -278,6 +298,9 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
       stock_item_id: originalStockId,
     };
 
+    const originalItem = originalItems.find(i => i.id === originalStockId);
+    const parentId = originalItem?.parent_id || null;
+
     insertData.order_id = selectedOrderItem.order_id;
     insertData.order_item_id = selectedOrderItem.id;
 
@@ -303,10 +326,11 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
         : Promise.resolve(null),
     ]);
 
-    // Mark new item as sold and linked to the same order item
+    // Mark new item as sold and linked to the same order item (and same parent if it was a combo item)
     await supabase.from("stock_items").update({
       status: "vendido",
       order_item_id: selectedOrderItem.id,
+      parent_id: parentId,
       updated_at: now,
     }).eq("id", selectedNewItem.id);
 
@@ -338,6 +362,24 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
         _replacement_stock_item_id: newStockFull.id,
         ...(originalStockId ? { _replacement_old_stock_item_id: originalStockId } : {}),
       };
+
+      // If this order item is a combo, also update the specific entry in comboItems array
+      if (Array.isArray(deliveryData.comboItems)) {
+        deliveryData.comboItems = deliveryData.comboItems.map((ci: any) => {
+          if (ci.stock_item_id === originalStockId) {
+            return {
+              ...ci,
+              ...d,
+              stock_item_id: newStockFull.id,
+              identification: newStockFull.identification,
+              identification_link: newStockFull.identification_link,
+              data: d,
+            };
+          }
+          return ci;
+        });
+      }
+
       await supabase.from("order_items").update({ delivery_data: deliveryData as any }).eq("id", selectedOrderItem.id);
     }
 
