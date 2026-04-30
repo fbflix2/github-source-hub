@@ -163,6 +163,14 @@ export default function Orders() {
           : [];
         const replacedSet = new Set<string>(replacedIds);
 
+        // Also check if individual combo items have the _replaced flag in delivery_data.comboItems
+        const comboItemsInJson = Array.isArray(ownerDelivery?.comboItems) ? ownerDelivery.comboItems : [];
+        const replacedInJson = new Set<string>(
+          comboItemsInJson
+            .filter((ci: any) => ci._replaced || ci.stock_item_id === ownerDelivery?._replacement_stock_item_id)
+            .map((ci: any) => ci.stock_item_id)
+        );
+
         const children = allChildren
           .filter((child: any) => child.parent_id === parent.id)
           .map((child: any) => ({
@@ -170,7 +178,7 @@ export default function Orders() {
             name: child.name || "Perfil",
             identification: child.identification || null,
             identificationLink: child.identification_link || null,
-            isReplaced: replacedSet.has(child.id),
+            isReplaced: replacedSet.has(child.id) || replacedInJson.has(child.id),
           }));
 
         if (children.length > 0 || parent.type === "combo") {
