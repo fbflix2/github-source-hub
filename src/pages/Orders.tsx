@@ -115,10 +115,18 @@ export default function Orders() {
 
       // Fetch ALL stock_items linked to order_items
       const itemIds = (itemsData || []).map((i) => i.id);
-      const { data: allStockItems } = await supabase
-        .from("stock_items")
-        .select("id, order_item_id, status, type, parent_id, name, identification, identification_link")
-        .in("order_item_id", itemIds.length > 0 ? itemIds : ["__none__"]);
+      const [{ data: allStockItems }, { data: replacementsData }] = await Promise.all([
+        supabase
+          .from("stock_items")
+          .select("id, order_item_id, status, type, parent_id, name, identification, identification_link")
+          .in("order_item_id", itemIds.length > 0 ? itemIds : ["__none__"]),
+        supabase
+          .from("replacements")
+          .select("stock_item_id")
+          .in("order_item_id", itemIds.length > 0 ? itemIds : ["__none__"])
+      ]);
+
+      const replacementStockItemIds = new Set((replacementsData || []).map(r => r.stock_item_id));
 
       // Separate parents (no parent_id) and children (have parent_id)
       const parentStockItems = (allStockItems || []).filter((s: any) => !s.parent_id);
