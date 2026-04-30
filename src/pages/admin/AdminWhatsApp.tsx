@@ -3,7 +3,7 @@ import {
    MessageCircle, Plus, Send, Eye, Trash2, ToggleLeft, ToggleRight, Search, Phone, Clock, Tag,
    CheckCircle, XCircle, RefreshCw, Users, Zap, Bell, AlertTriangle, Image, MousePointerClick,
    BarChart3, ArrowUpRight, MessageSquareReply, CheckCheck, Mail, TrendingUp, RotateCw, DollarSign,
-    Calendar, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Filter
+    Calendar, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Filter, FolderPlus, Folder, Save, Pencil, ArrowLeft
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -480,6 +480,14 @@ function RenewalsTab() {
 }
 
 function ContactsTab({ logs }: { logs?: any[] }) {
+  const qc = useQueryClient();
+  const [view, setView] = useState<"lists" | "edit">("lists");
+  const [activeListId, setActiveListId] = useState<string | null>(null);
+  const [activeListName, setActiveListName] = useState<string>("");
+  const [showNewListModal, setShowNewListModal] = useState(false);
+  const [newListName, setNewListName] = useState("");
+  const [newListDescription, setNewListDescription] = useState("");
+
   const [search, setSearch] = useState("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [addedContacts, setAddedContacts] = useState<any[]>([]);
@@ -490,7 +498,85 @@ function ContactsTab({ logs }: { logs?: any[] }) {
    const [editingLabelId, setEditingLabelId] = useState<string | null>(null);
    const [tempLabel, setTempLabel] = useState("");
    const { data: templates } = useTemplates();
-   const qc = useQueryClient();
+
+   // Load all saved lists
+   const { data: savedLists, isLoading: loadingLists } = useQuery({
+     queryKey: ["whatsapp-contact-lists"],
+     queryFn: async () => {
+       const { data, error } = await supabase
+         .from("whatsapp_contact_lists")
+         .select("*")
+         .order("created_at", { ascending: false });
+       if (error) throw error;
+       return data || [];
+     },
+   });
+
+   const createList = useMutation({
+     mutationFn: async ({ name, description }: { name: string; description: string }) => {
+       const { data: { user } } = await supabase.auth.getUser();
+       const { data, error } = await supabase
+         .from("whatsapp_contact_lists")
+         .insert({ name, description: description || null, contacts: [], created_by: user?.id })
+         .select()
+         .single();
+       if (error) throw error;
+       return data;
+     },
+     onSuccess: (list) => {
+       qc.invalidateQueries({ queryKey: ["whatsapp-contact-lists"] });
+       toast.success("Lista criada!");
+       setShowNewListModal(false);
+       setNewListName("");
+       setNewListDescription("");
+       openList(list);
+     },
+     onError: (e: Error) => toast.error(e.message),
+   });
+
+   const saveListContacts = useMutation({
+     mutationFn: async ({ id, contacts }: { id: string; contacts: any[] }) => {
+       const { error } = await supabase
+         .from("whatsapp_contact_lists")
+         .update({ contacts })
+         .eq("id", id);
+       if (error) throw error;
+     },
+     onSuccess: () => {
+       qc.invalidateQueries({ queryKey: ["whatsapp-contact-lists"] });
+       toast.success("Lista salva!");
+     },
+     onError: (e: Error) => toast.error(e.message),
+   });
+
+   const deleteList = useMutation({
+     mutationFn: async (id: string) => {
+       const { error } = await supabase.from("whatsapp_contact_lists").delete().eq("id", id);
+       if (error) throw error;
+     },
+     onSuccess: () => {
+       qc.invalidateQueries({ queryKey: ["whatsapp-contact-lists"] });
+       toast.success("Lista excluída");
+     },
+     onError: (e: Error) => toast.error(e.message),
+   });
+
+   const openList = (list: any) => {
+     setActiveListId(list.id);
+     setActiveListName(list.name);
+     setAddedContacts(Array.isArray(list.contacts) ? list.contacts : []);
+     setView("edit");
+     setSelectedLabelFilter("all");
+   };
+
+   const backToLists = () => {
+     setView("lists");
+     setActiveListId(null);
+     setActiveListName("");
+     setAddedContacts([]);
+     setSearchResults([]);
+     setSearch("");
+   };
  
    const availableLabels = useMemo(() => {
      const labels = new Set<string>();
@@ -530,14 +616,32 @@ function ContactsTab({ logs }: { logs?: any[] }) {
       toast.error("Contato já está na lista");
       return;
     }
-    setAddedContacts([...addedContacts, contact]);
+    const updated = [...addedContacts, contact];
+    setAddedContacts(updated);
+    if (activeListId) {
+      saveListContacts.mutate({ id: activeListId, contacts: updated });
+    }
     setSearchResults([]);
     setSearch("");
     toast.success("Contato adicionado à lista");
   };
 
   const removeFromList = (jid: string) => {
-    setAddedContacts(addedContacts.filter(c => c.id !== jid));
+    const updated = addedContacts.filter(c => c.id !== jid);
+    setAddedContacts(updated);
+    if (activeListId) {
+      saveListContacts.mutate({ id: activeListId, contacts: updated });
+    }
+  };
+
+  // Override updateContactLabel to also persist
+  const updateContactLabelAndSave = (jid: string, label: string) => {
+    const updated = addedContacts.map(c => c.id === jid ? { ...c, label } : c);
+    setAddedContacts(updated);
+    setEditingLabelId(null);
+    if (activeListId) {
+      saveListContacts.mutate({ id: activeListId, contacts: updated });
+    }
   };
 
    const sendCampaign = useMutation({
@@ -557,15 +661,154 @@ function ContactsTab({ logs }: { logs?: any[] }) {
     onSuccess: () => {
       toast.success("Campanha iniciada com sucesso!");
        setShowCampaignModal(false);
-       setAddedContacts([]);
        setSelectedLabelFilter("all");
       qc.invalidateQueries({ queryKey: ["whatsapp-logs"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
+  // === LISTS VIEW ===
+  if (view === "lists") {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-base font-semibold flex items-center gap-2">
+              <Folder className="size-4 text-blue-500" />
+              Minhas Listas de Contatos
+            </h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Crie listas reutilizáveis para suas campanhas de WhatsApp.
+            </p>
+          </div>
+          <Button onClick={() => setShowNewListModal(true)} className="bg-blue-600 hover:bg-blue-700">
+            <FolderPlus className="size-3.5 mr-1.5" /> Nova Lista
+          </Button>
+        </div>
+
+        {loadingLists ? (
+          <Card className="border-dashed">
+            <CardContent className="py-12 text-center">
+              <RefreshCw className="size-6 mx-auto text-muted-foreground/30 mb-3 animate-spin" />
+              <p className="text-sm text-muted-foreground">Carregando listas...</p>
+            </CardContent>
+          </Card>
+        ) : !savedLists || savedLists.length === 0 ? (
+          <Card className="border-dashed">
+            <CardContent className="py-12 text-center">
+              <Folder className="size-10 mx-auto text-muted-foreground/30 mb-3" />
+              <p className="text-muted-foreground text-sm">Nenhuma lista criada ainda.</p>
+              <Button size="sm" className="mt-4" onClick={() => setShowNewListModal(true)}>
+                <FolderPlus className="size-3.5 mr-1.5" /> Criar Primeira Lista
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {savedLists.map((list: any) => {
+              const contactsCount = Array.isArray(list.contacts) ? list.contacts.length : 0;
+              return (
+                <Card key={list.id} className="hover:border-blue-500/40 transition-colors">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="size-9 rounded-lg bg-blue-500/15 flex items-center justify-center shrink-0">
+                          <Folder className="size-4 text-blue-400" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-semibold truncate">{list.name}</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {new Date(list.created_at).toLocaleDateString("pt-BR")}
+                          </p>
+                        </div>
+                      </div>
+                      <Badge variant="outline" className="text-[10px] bg-green-500/10 text-green-400 border-green-500/20 shrink-0">
+                        {contactsCount} {contactsCount === 1 ? "contato" : "contatos"}
+                      </Badge>
+                    </div>
+                    {list.description && (
+                      <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{list.description}</p>
+                    )}
+                    <div className="flex items-center gap-2 mt-3">
+                      <Button size="sm" variant="outline" className="flex-1 h-8 text-xs" onClick={() => openList(list)}>
+                        <Pencil className="size-3 mr-1" /> Abrir
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                        onClick={() => {
+                          if (confirm(`Excluir lista "${list.name}"?`)) deleteList.mutate(list.id);
+                        }}
+                      >
+                        <Trash2 className="size-3" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+
+        <Dialog open={showNewListModal} onOpenChange={setShowNewListModal}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <FolderPlus className="size-5 text-blue-500" /> Nova Lista de Contatos
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">Nome da Lista</label>
+                <Input
+                  placeholder="Ex: Clientes VIPs, Janeiro 2026..."
+                  value={newListName}
+                  onChange={(e) => setNewListName(e.target.value)}
+                  autoFocus
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">Descrição (opcional)</label>
+                <Textarea
+                  placeholder="Para que essa lista será usada?"
+                  value={newListDescription}
+                  onChange={(e) => setNewListDescription(e.target.value)}
+                  rows={2}
+                />
+              </div>
+              <Button
+                className="w-full bg-blue-600 hover:bg-blue-700"
+                disabled={!newListName.trim() || createList.isPending}
+                onClick={() => createList.mutate({ name: newListName.trim(), description: newListDescription.trim() })}
+              >
+                {createList.isPending ? "Criando..." : "Criar Lista"}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+    );
+  }
+
+  // === EDIT LIST VIEW ===
   return (
     <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-3 pb-3 border-b border-border/40">
+        <div className="flex items-center gap-3 min-w-0">
+          <Button size="sm" variant="ghost" onClick={backToLists} className="h-8">
+            <ArrowLeft className="size-3.5 mr-1" /> Voltar
+          </Button>
+          <div className="min-w-0">
+            <p className="font-semibold flex items-center gap-2">
+              <Folder className="size-4 text-blue-500" /> {activeListName}
+            </p>
+            <p className="text-[11px] text-muted-foreground">{addedContacts.length} contato(s) salvos automaticamente</p>
+          </div>
+        </div>
+      </div>
+
       {/* Search Section */}
       <div className="space-y-3">
         <div className="flex items-center gap-3">
@@ -675,7 +918,7 @@ function ContactsTab({ logs }: { logs?: any[] }) {
                              value={tempLabel} 
                              onChange={(e) => setTempLabel(e.target.value)}
                              onKeyDown={(e) => {
-                               if (e.key === 'Enter') updateContactLabel(c.id, tempLabel);
+                               if (e.key === 'Enter') updateContactLabelAndSave(c.id, tempLabel);
                                if (e.key === 'Escape') setEditingLabelId(null);
                              }}
                              autoFocus
@@ -683,7 +926,7 @@ function ContactsTab({ logs }: { logs?: any[] }) {
                            <Button 
                              size="sm" 
                              className="h-7 w-7 p-0" 
-                             onClick={() => updateContactLabel(c.id, tempLabel)}
+                             onClick={() => updateContactLabelAndSave(c.id, tempLabel)}
                            >
                              <Plus className="size-3" />
                            </Button>
