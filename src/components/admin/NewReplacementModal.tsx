@@ -439,18 +439,51 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
               <Package className="h-3.5 w-3.5" /> Pedido *
             </Label>
             {selectedOrderItem ? (
-              <div className="flex items-center gap-2 p-2 rounded-lg bg-zinc-800 border border-yellow-600/40">
-                <div className="flex-1">
-                  <p className="text-xs text-yellow-400">Pedido #{selectedOrderItem.order_code}</p>
-                  <p className="text-sm text-white">{selectedOrderItem.name}</p>
-                  <p className="text-xs text-zinc-400">R$ {selectedOrderItem.price.toFixed(2)}</p>
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 p-2 rounded-lg bg-zinc-800 border border-yellow-600/40">
+                  <div className="flex-1">
+                    <p className="text-xs text-yellow-400">Pedido #{selectedOrderItem.order_code}</p>
+                    <p className="text-sm text-white">{selectedOrderItem.name}</p>
+                    <p className="text-xs text-zinc-400">R$ {selectedOrderItem.price.toFixed(2)}</p>
+                  </div>
+                  <Button size="sm" variant="ghost" className="h-6 px-2 text-zinc-400" onClick={() => {
+                    setSelectedOrderItem(null);
+                    setOriginalStockId(null);
+                    setOriginalItems([]);
+                    setMatchedProductId(null);
+                    setMatchedCategoryId(null);
+                  }}>✕</Button>
                 </div>
-                <Button size="sm" variant="ghost" className="h-6 px-2 text-zinc-400" onClick={() => {
-                  setSelectedOrderItem(null);
-                  setOriginalStockId(null);
-                  setMatchedProductId(null);
-                  setMatchedCategoryId(null);
-                }}>✕</Button>
+
+                {originalItems.length > 1 && (
+                  <div className="space-y-2 pt-1 border-t border-zinc-800">
+                    <Label className="text-xs text-zinc-500 uppercase font-bold tracking-wider">Item específico para reposição</Label>
+                    <Select value={originalStockId || ""} onValueChange={setOriginalStockId}>
+                      <SelectTrigger className="bg-zinc-800 border-zinc-700">
+                        <SelectValue placeholder="Selecione qual item do combo repor..." />
+                      </SelectTrigger>
+                      <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
+                        {originalItems.map((item) => {
+                          const displayName = resolveBmDisplayName({
+                            name: item.name,
+                            identificationLink: item.identification_link,
+                            data: item.data as any
+                          });
+                          return (
+                            <SelectItem key={item.id} value={item.id} className="focus:bg-zinc-800 focus:text-white">
+                              <div className="flex flex-col">
+                                <span className="font-medium">{displayName}</span>
+                                {item.identification && <span className="text-[10px] text-zinc-500">ID: {item.identification}</span>}
+                                {item.type === 'combo' && <Badge className="w-fit text-[8px] h-3 px-1 mt-0.5 bg-yellow-500/10 text-yellow-500 border-yellow-500/20">PAI COMBO</Badge>}
+                              </div>
+                            </SelectItem>
+                          );
+                        })}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[10px] text-zinc-500">Este pedido contém múltiplos itens (combo). Selecione exatamente qual deles deseja substituir.</p>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="space-y-1">
