@@ -10,6 +10,7 @@ interface ComboProfile {
   name: string;
   identification: string | null;
   identificationLink: string | null;
+  isReplaced?: boolean;
 }
 
 interface OrderItem {
