@@ -122,11 +122,14 @@ export default function Orders() {
           .in("order_item_id", itemIds.length > 0 ? itemIds : ["__none__"]),
         supabase
           .from("replacements")
-          .select("stock_item_id")
+          .select("stock_item_id, new_stock_item_id")
           .in("order_item_id", itemIds.length > 0 ? itemIds : ["__none__"])
       ]);
 
-      const replacementStockItemIds = new Set((replacementsData || []).map(r => r.stock_item_id));
+      const replacementStockItemIds = new Set([
+        ...(replacementsData || []).map(r => r.stock_item_id),
+        ...(replacementsData || []).map(r => r.new_stock_item_id)
+      ].filter(Boolean) as string[]);
 
       // Separate parents (no parent_id) and children (have parent_id)
       const parentStockItems = (allStockItems || []).filter((s: any) => !s.parent_id);
