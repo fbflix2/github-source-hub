@@ -821,12 +821,19 @@ export default function AdminComprasFornecedor() {
                         </div>
                         <div className="space-y-1.5">
                           <div className="text-[11px] font-medium text-white/70">Itens desta compra</div>
-                          {b.items.length > 0 ? b.items.slice(0, 4).map((item) => (
+                          {b.items.length > 0 ? (() => {
+                            const item = b.items[0];
+                            return (
                             <div key={item.id} className="rounded-md border border-white/10 bg-white/5 px-2 py-1.5 space-y-1">
                               <div className="flex items-center gap-1 flex-wrap">
                                 <Badge className={`${statusColor(item.status)} border text-[10px] px-1.5 py-0`}>{STATUS_LABEL[item.status]}</Badge>
                                 {item.has_bm && <Badge className="bg-purple-500/15 text-purple-400 border border-purple-500/30 px-1.5 py-0 text-[10px]">BM</Badge>}
                                 {item.login_result && <Badge className="bg-white/10 text-white/70 border border-white/20 px-1.5 py-0 text-[10px]">{LOGIN_RESULT_LABEL[item.login_result]}</Badge>}
+                                {b.items.length > 1 && (
+                                  <Badge className="bg-primary/15 text-primary border border-primary/30 px-1.5 py-0 text-[10px] ml-auto">
+                                    +{b.items.length - 1} no lote
+                                  </Badge>
+                                )}
                               </div>
                               <div className="space-y-0.5">
                                 {[
@@ -855,10 +862,10 @@ export default function AdminComprasFornecedor() {
                                 ))}
                               </div>
                             </div>
-                          )) : (
+                            );
+                          })() : (
                             <div className="rounded-md border border-dashed border-white/10 px-2 py-2 text-[11px] text-white/45">Nenhum item vinculado a este lote ainda.</div>
                           )}
-                          {b.items.length > 4 && <div className="text-[10px] text-white/45">+ {b.items.length - 4} item(ns) neste lote</div>}
                         </div>
                         <Button size="sm" variant="outline" className="w-full" onClick={() => {
                           setFilterBatch(b.id);
