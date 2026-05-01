@@ -2038,7 +2038,12 @@ Deno.serve(async (req) => {
         matchedProduct = (wsProducts || []).find((p: any) => p.name.toLowerCase().includes("residencial") || p.name.toLowerCase().includes("webshare"));
       }
 
-      const renewalPrice = matchedProduct?.price || productInfo?.price || 25;
+      // Prioritize existing product price for renewals, especially if already on Webshare
+      const isExistingWebshareRenewal = ["webshare", "webshare_rotating"].includes(existingSub.type);
+      const renewalPrice = isExistingWebshareRenewal 
+        ? (productInfo?.price || matchedProduct?.price || 25)
+        : (matchedProduct?.price || productInfo?.price || 25);
+
       console.log(`[migrate-proxybr] Renewal price: R$${renewalPrice} product=${matchedProduct?.name || "fallback"}`);
 
       // 4. Check wallet balance
@@ -2057,7 +2062,6 @@ Deno.serve(async (req) => {
       const isEarlyRenewal = currentEndDate && currentEndDate > startDate;
       const endDate = new Date(isEarlyRenewal ? currentEndDate : startDate);
       endDate.setDate(endDate.getDate() + 30);
-      const isExistingWebshareRenewal = ["webshare", "webshare_rotating"].includes(existingSub.type);
       const nextProductId = isExistingWebshareRenewal
         ? existingSub.product_id
         : matchedProduct?.id || existingSub.product_id;
