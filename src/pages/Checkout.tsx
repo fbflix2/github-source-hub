@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { Wallet, QrCode, CreditCard, Lock, ChevronLeft, User, Calendar, Flame, Loader2, Check, Copy, Share2, Mail } from "lucide-react";
+ import { Wallet, QrCode, CreditCard, Lock, ChevronLeft, User, Calendar, Flame, Loader2, Check, Copy, Share2, Mail, Layers } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { invokeProxyBR } from "@/lib/proxybr-client";
 import { toast } from "sonner";
@@ -12,7 +12,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { WhatsAppRequiredPopup } from "@/components/WhatsAppRequiredPopup";
+ import { WhatsAppRequiredPopup } from "@/components/WhatsAppRequiredPopup";
+ import { Badge } from "@/components/ui/badge";
 
 interface DbProduct {
   id: string;
@@ -345,24 +346,35 @@ export default function Checkout() {
 
         const productsMap = new Map((bumpProds || []).map((p: any) => [p.id, p]));
 
-        // Set main promo bump
-        const mainBump = configuredBumps.find((b: any) => b.bump_type === "main");
-        if (mainBump) {
-          const mainProd = productsMap.get(mainBump.bump_product_id);
-          if (mainProd) {
-            const bumpPrice = mainBump.fixed_price != null
-              ? mainBump.fixed_price
-              : mainProd.price * (1 - (mainBump.discount_percent || 0) / 100);
-            setPromoProxy({
-              ...mainProd,
-              price: bumpPrice,
-              _originalPrice: mainProd.price,
-              _label: mainBump.label || "OPORTUNIDADE ÚNICA",
-            } as any);
-          }
-        } else {
-          setPromoProxy(null);
-        }
+         // Auto-select combos
+         const comboBumpIds = configuredBumps.filter((b: any) => b.is_combo).map((b: any) => b.bump_product_id);
+         if (comboBumpIds.length > 0) {
+           setSelectedBumps(prev => {
+             const next = [...prev];
+             comboBumpIds.forEach(id => { if (!next.includes(id)) next.push(id); });
+             return next;
+           });
+         }
+
+         // Set main promo bump
+         const mainBump = configuredBumps.find((b: any) => b.bump_type === "main");
+         if (mainBump) {
+           const mainProd = productsMap.get(mainBump.bump_product_id);
+           if (mainProd) {
+             const bumpPrice = mainBump.fixed_price != null
+               ? mainBump.fixed_price
+               : mainProd.price * (1 - (mainBump.discount_percent || 0) / 100);
+             setPromoProxy({
+               ...mainProd,
+               price: bumpPrice,
+               _originalPrice: mainProd.price,
+               _label: mainBump.label || (mainBump.is_combo ? "COMBO ATIVADO" : "OPORTUNIDADE ÚNICA"),
+               _isCombo: mainBump.is_combo,
+             } as any);
+           }
+         } else {
+           setPromoProxy(null);
+         }
 
         // Set secondary bumps with discounts applied
         const secondaryBumps = configuredBumps
@@ -373,12 +385,13 @@ export default function Checkout() {
             const finalPrice = b.fixed_price != null
               ? b.fixed_price
               : prod.price * (1 - (b.discount_percent || 0) / 100);
-            return {
-              ...prod,
-              price: finalPrice,
-              _originalPrice: prod.price,
-              _hasDiscount: b.fixed_price != null || b.discount_percent > 0,
-            };
+               return {
+                 ...prod,
+                 price: finalPrice,
+                 _originalPrice: prod.price,
+                 _hasDiscount: b.fixed_price != null || b.discount_percent > 0,
+                 _isCombo: b.is_combo,
+               };
           })
           .filter(Boolean);
         setBumpProducts(secondaryBumps);
@@ -1490,7 +1503,12 @@ export default function Checkout() {
                     <input type="checkbox" checked={selectedBumps.includes(bump.id)} onChange={() => toggleBump(bump.id)} className="h-4 w-4 rounded border-2 border-border bg-transparent text-primary shrink-0" />
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-center">
-                        <p className="font-bold text-foreground text-xs">{bump.name}</p>
+                        <p className="font-bold text-foreground text-xs">
+                          {bump.name}
+                          {(bump as any)._isCombo && (
+                            <Badge variant="secondary" className="ml-1 text-[9px] h-3 px-1 bg-indigo-500/20 text-indigo-400 border-indigo-500/30">Combo</Badge>
+                          )}
+                        </p>
                         <div className="flex items-center gap-1.5 ml-2">
                           {(bump as any)._hasDiscount && (bump as any)._originalPrice && (
                             <span className="text-muted-foreground text-[10px] line-through">R$ {(bump as any)._originalPrice.toFixed(2).replace(".", ",")}</span>
@@ -1519,14 +1537,18 @@ export default function Checkout() {
               if (!promoProxy || selectedBumps.includes(promoProxy.id)) return null;
               const PROMO_PRICE = promoProxy.price;
               const originalPrice = (promoProxy as any)?._originalPrice || promoProxy.price * 2.5;
-              const bumpLabel = (promoProxy as any)?._label || "OPORTUNIDADE ÚNICA";
+               const bumpLabel = (promoProxy as any)?._label || ((promoProxy as any)?._isCombo ? "COMBO ATIVADO" : "OPORTUNIDADE ÚNICA");
+               const isCombo = (promoProxy as any)?._isCombo;
               const hasDiscount = originalPrice > PROMO_PRICE;
               return (
                 <div className="rounded-xl border-2 border-primary bg-gradient-to-b from-primary/10 to-background p-4 flex flex-col gap-2 relative overflow-hidden">
-                  <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-500 text-white w-fit">
-                    <Flame className="w-3 h-3" />
-                    {bumpLabel}
-                  </span>
+                   <div className="flex items-center gap-2">
+                     <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full ${isCombo ? 'bg-indigo-500' : 'bg-emerald-500'} text-white w-fit`}>
+                       {isCombo ? <Layers className="w-3 h-3" /> : <Flame className="w-3 h-3" />}
+                       {bumpLabel}
+                     </span>
+                     {isCombo && <span className="text-[10px] font-bold text-indigo-400">Incluído no pacote</span>}
+                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-foreground">Complete sua compra!</h3>
                     <p className="text-xs text-muted-foreground">
@@ -1587,7 +1609,12 @@ export default function Checkout() {
                         {!bump.image_url && <Flame className="w-4 h-4 text-primary/50 m-auto mt-4" />}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-foreground leading-tight truncate">{bump.name}</p>
+                        <p className="text-sm font-semibold text-foreground leading-tight truncate">
+                          {bump.name}
+                          {(bump as any)._isCombo && (
+                            <Badge variant="secondary" className="ml-1 text-[9px] h-3 px-1 bg-indigo-500/20 text-indigo-400 border-indigo-500/30">Combo</Badge>
+                          )}
+                        </p>
                         <p className="text-xs text-muted-foreground">R$ {bump.price.toFixed(2).replace(".", ",")}</p>
                       </div>
                     </div>
