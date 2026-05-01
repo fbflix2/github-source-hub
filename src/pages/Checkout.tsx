@@ -1531,14 +1531,18 @@ export default function Checkout() {
               if (!promoProxy || selectedBumps.includes(promoProxy.id)) return null;
               const PROMO_PRICE = promoProxy.price;
               const originalPrice = (promoProxy as any)?._originalPrice || promoProxy.price * 2.5;
-              const bumpLabel = (promoProxy as any)?._label || "OPORTUNIDADE ÚNICA";
+               const bumpLabel = (promoProxy as any)?._label || ((promoProxy as any)?._isCombo ? "COMBO ATIVADO" : "OPORTUNIDADE ÚNICA");
+               const isCombo = (promoProxy as any)?._isCombo;
               const hasDiscount = originalPrice > PROMO_PRICE;
               return (
                 <div className="rounded-xl border-2 border-primary bg-gradient-to-b from-primary/10 to-background p-4 flex flex-col gap-2 relative overflow-hidden">
-                  <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full bg-emerald-500 text-white w-fit">
-                    <Flame className="w-3 h-3" />
-                    {bumpLabel}
-                  </span>
+                   <div className="flex items-center gap-2">
+                     <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full ${isCombo ? 'bg-indigo-500' : 'bg-emerald-500'} text-white w-fit`}>
+                       {isCombo ? <Layers className="w-3 h-3" /> : <Flame className="w-3 h-3" />}
+                       {bumpLabel}
+                     </span>
+                     {isCombo && <span className="text-[10px] font-bold text-indigo-400">Incluído no pacote</span>}
+                   </div>
                   <div>
                     <h3 className="text-sm font-bold text-foreground">Complete sua compra!</h3>
                     <p className="text-xs text-muted-foreground">
