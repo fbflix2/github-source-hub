@@ -376,14 +376,24 @@ export function OrderBumpsManager({ productId, productName, open, onClose }: Pro
                 </div>
               </div>
 
-              <div>
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Label (opcional)</label>
-                <Input
-                  value={newLabel}
-                  onChange={(e) => setNewLabel(e.target.value)}
-                  placeholder="Ex: OPORTUNIDADE ÚNICA"
-                />
-              </div>
+               <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/20">
+                 <div className="space-y-0.5">
+                   <label className="text-xs font-semibold text-foreground flex items-center gap-1">
+                     <Layers className="size-3 text-primary" /> Ativar como Combo
+                   </label>
+                   <p className="text-[10px] text-muted-foreground">O produto será adicionado automaticamente ao checkout.</p>
+                 </div>
+                 <Switch checked={newIsCombo} onCheckedChange={setNewIsCombo} />
+               </div>
+
+               <div>
+                 <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1 block">Label (opcional)</label>
+                 <Input
+                   value={newLabel}
+                   onChange={(e) => setNewLabel(e.target.value)}
+                   placeholder="Ex: OPORTUNIDADE ÚNICA"
+                 />
+               </div>
 
               <Button onClick={handleAdd} className="w-full">
                 <Plus className="size-4 mr-1" />
