@@ -345,24 +345,35 @@ export default function Checkout() {
 
         const productsMap = new Map((bumpProds || []).map((p: any) => [p.id, p]));
 
-        // Set main promo bump
-        const mainBump = configuredBumps.find((b: any) => b.bump_type === "main");
-        if (mainBump) {
-          const mainProd = productsMap.get(mainBump.bump_product_id);
-          if (mainProd) {
-            const bumpPrice = mainBump.fixed_price != null
-              ? mainBump.fixed_price
-              : mainProd.price * (1 - (mainBump.discount_percent || 0) / 100);
-            setPromoProxy({
-              ...mainProd,
-              price: bumpPrice,
-              _originalPrice: mainProd.price,
-              _label: mainBump.label || "OPORTUNIDADE ÚNICA",
-            } as any);
-          }
-        } else {
-          setPromoProxy(null);
-        }
+         // Auto-select combos
+         const comboBumpIds = configuredBumps.filter((b: any) => b.is_combo).map((b: any) => b.bump_product_id);
+         if (comboBumpIds.length > 0) {
+           setSelectedBumps(prev => {
+             const next = [...prev];
+             comboBumpIds.forEach(id => { if (!next.includes(id)) next.push(id); });
+             return next;
+           });
+         }
+
+         // Set main promo bump
+         const mainBump = configuredBumps.find((b: any) => b.bump_type === "main");
+         if (mainBump) {
+           const mainProd = productsMap.get(mainBump.bump_product_id);
+           if (mainProd) {
+             const bumpPrice = mainBump.fixed_price != null
+               ? mainBump.fixed_price
+               : mainProd.price * (1 - (mainBump.discount_percent || 0) / 100);
+             setPromoProxy({
+               ...mainProd,
+               price: bumpPrice,
+               _originalPrice: mainProd.price,
+               _label: mainBump.label || (mainBump.is_combo ? "COMBO ATIVADO" : "OPORTUNIDADE ÚNICA"),
+               _isCombo: mainBump.is_combo,
+             } as any);
+           }
+         } else {
+           setPromoProxy(null);
+         }
 
         // Set secondary bumps with discounts applied
         const secondaryBumps = configuredBumps
@@ -373,12 +384,13 @@ export default function Checkout() {
             const finalPrice = b.fixed_price != null
               ? b.fixed_price
               : prod.price * (1 - (b.discount_percent || 0) / 100);
-            return {
-              ...prod,
-              price: finalPrice,
-              _originalPrice: prod.price,
-              _hasDiscount: b.fixed_price != null || b.discount_percent > 0,
-            };
+               return {
+                 ...prod,
+                 price: finalPrice,
+                 _originalPrice: prod.price,
+                 _hasDiscount: b.fixed_price != null || b.discount_percent > 0,
+                 _isCombo: b.is_combo,
+               };
           })
           .filter(Boolean);
         setBumpProducts(secondaryBumps);
