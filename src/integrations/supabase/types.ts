@@ -1736,6 +1736,7 @@ export type Database = {
           discount_percent: number
           fixed_price: number | null
           id: string
+          is_combo: boolean | null
           label: string | null
           position: number
           product_id: string
@@ -1749,6 +1750,7 @@ export type Database = {
           discount_percent?: number
           fixed_price?: number | null
           id?: string
+          is_combo?: boolean | null
           label?: string | null
           position?: number
           product_id: string
@@ -1762,6 +1764,7 @@ export type Database = {
           discount_percent?: number
           fixed_price?: number | null
           id?: string
+          is_combo?: boolean | null
           label?: string | null
           position?: number
           product_id?: string

@@ -25,9 +25,10 @@ interface OrderBump {
   discount_percent: number;
   fixed_price: number | null;
   position: number;
-  active: boolean;
-  label: string | null;
-  bump_product?: Product;
+   active: boolean;
+   is_combo: boolean;
+   label: string | null;
+   bump_product?: Product;
 }
 
 interface Props {
@@ -46,8 +47,9 @@ export function OrderBumpsManager({ productId, productName, open, onClose }: Pro
   const [newBumpProductId, setNewBumpProductId] = useState("");
   const [newBumpType, setNewBumpType] = useState<"main" | "secondary">("secondary");
   const [newDiscountPercent, setNewDiscountPercent] = useState(0);
-  const [newFixedPrice, setNewFixedPrice] = useState("");
-  const [newLabel, setNewLabel] = useState("");
+   const [newFixedPrice, setNewFixedPrice] = useState("");
+   const [newIsCombo, setNewIsCombo] = useState(false);
+   const [newLabel, setNewLabel] = useState("");
 
   useEffect(() => {
     if (!open) return;
@@ -111,9 +113,10 @@ export function OrderBumpsManager({ productId, productName, open, onClose }: Pro
       bump_product_id: newBumpProductId,
       bump_type: newBumpType,
       discount_percent: newDiscountPercent,
-      fixed_price: newFixedPrice ? parseFloat(newFixedPrice) : null,
-      position: bumps.length,
-      label: newLabel || null,
+       fixed_price: newFixedPrice ? parseFloat(newFixedPrice) : null,
+       position: bumps.length,
+       is_combo: newIsCombo,
+       label: newLabel || null,
     });
 
     if (error) {
@@ -132,8 +135,9 @@ export function OrderBumpsManager({ productId, productName, open, onClose }: Pro
     setNewBumpProductId("");
     setNewBumpType("secondary");
     setNewDiscountPercent(0);
-    setNewFixedPrice("");
-    setNewLabel("");
+     setNewFixedPrice("");
+     setNewIsCombo(false);
+     setNewLabel("");
   };
 
   const handleRemove = async (bumpId: string) => {
@@ -397,17 +401,17 @@ function BumpCard({
   bump,
   onRemove,
   onToggleActive,
-  onUpdateField,
-  getIconColor,
-  getIconLabel,
-}: {
-  bump: OrderBump;
-  onRemove: (id: string) => void;
-  onToggleActive: (bump: OrderBump) => void;
-  onUpdateField: (id: string, field: string, value: any) => void;
-  getIconColor: (t: string | null) => string;
-  getIconLabel: (t: string | null) => string;
-}) {
+   onUpdateField,
+   getIconColor,
+   getIconLabel,
+ }: {
+   bump: OrderBump;
+   onRemove: (id: string) => void;
+   onToggleActive: (bump: OrderBump) => void;
+   onUpdateField: (id: string, field: string, value: any) => void;
+   getIconColor: (t: string | null) => string;
+   getIconLabel: (t: string | null) => string;
+ }) {
   const bumpProduct = bump.bump_product;
   const displayPrice = bump.fixed_price
     ? bump.fixed_price
@@ -436,12 +440,18 @@ function BumpCard({
           <Badge variant="outline" className={`text-[9px] ${getIconColor(bumpProduct?.icon_type || null)}`}>
             {getIconLabel(bumpProduct?.icon_type || null)}
           </Badge>
-          {bump.bump_type === "main" && (
-            <Badge className="text-[9px] bg-amber-500/20 text-amber-400 border-amber-500/30">
-              <Star className="size-2.5 mr-0.5" />
-              Principal
-            </Badge>
-          )}
+           {bump.bump_type === "main" && (
+             <Badge className="text-[9px] bg-amber-500/20 text-amber-400 border-amber-500/30">
+               <Star className="size-2.5 mr-0.5" />
+               Principal
+             </Badge>
+           )}
+           {bump.is_combo && (
+             <Badge className="text-[9px] bg-indigo-500/20 text-indigo-400 border-indigo-500/30">
+               <Layers className="size-2.5 mr-0.5" />
+               Combo
+             </Badge>
+           )}
           <span className="text-xs font-bold text-foreground truncate">{bumpProduct?.name || "Produto removido"}</span>
         </div>
         <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
@@ -457,9 +467,19 @@ function BumpCard({
             <span>R$ {originalPrice.toFixed(2).replace(".", ",")}</span>
           )}
         </div>
-        {bump.label && (
-          <span className="text-[10px] text-amber-400 font-semibold mt-1 block">{bump.label}</span>
-        )}
+           {bump.label && (
+             <span className="text-[10px] text-amber-400 font-semibold mt-1 block">{bump.label}</span>
+           )}
+           <div className="flex items-center gap-2 mt-2">
+             <div className="flex items-center gap-1">
+               <span className="text-[10px] text-muted-foreground">Combo:</span>
+               <Switch 
+                 checked={bump.is_combo} 
+                 onCheckedChange={(v) => onUpdateField(bump.id, "is_combo", v)}
+                 className="scale-75"
+               />
+             </div>
+           </div>
       </div>
       <div className="flex items-center gap-1">
         <Select
