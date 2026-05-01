@@ -1503,7 +1503,12 @@ export default function Checkout() {
                     <input type="checkbox" checked={selectedBumps.includes(bump.id)} onChange={() => toggleBump(bump.id)} className="h-4 w-4 rounded border-2 border-border bg-transparent text-primary shrink-0" />
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-center">
-                        <p className="font-bold text-foreground text-xs">{bump.name}</p>
+                        <p className="font-bold text-foreground text-xs">
+                          {bump.name}
+                          {(bump as any)._isCombo && (
+                            <Badge variant="secondary" className="ml-1 text-[9px] h-3 px-1 bg-indigo-500/20 text-indigo-400 border-indigo-500/30">Combo</Badge>
+                          )}
+                        </p>
                         <div className="flex items-center gap-1.5 ml-2">
                           {(bump as any)._hasDiscount && (bump as any)._originalPrice && (
                             <span className="text-muted-foreground text-[10px] line-through">R$ {(bump as any)._originalPrice.toFixed(2).replace(".", ",")}</span>
@@ -1604,7 +1609,12 @@ export default function Checkout() {
                         {!bump.image_url && <Flame className="w-4 h-4 text-primary/50 m-auto mt-4" />}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-foreground leading-tight truncate">{bump.name}</p>
+                        <p className="text-sm font-semibold text-foreground leading-tight truncate">
+                          {bump.name}
+                          {(bump as any)._isCombo && (
+                            <Badge variant="secondary" className="ml-1 text-[9px] h-3 px-1 bg-indigo-500/20 text-indigo-400 border-indigo-500/30">Combo</Badge>
+                          )}
+                        </p>
                         <p className="text-xs text-muted-foreground">R$ {bump.price.toFixed(2).replace(".", ",")}</p>
                       </div>
                     </div>
