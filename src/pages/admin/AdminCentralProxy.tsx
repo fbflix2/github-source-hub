@@ -3,6 +3,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import WebshareProxyTab from "@/components/admin/proxy/WebshareProxyTab";
 import ProxyMaintenanceTab from "@/components/admin/proxy/ProxyMaintenanceTab";
 import ProxyAvailableTab from "@/components/admin/proxy/ProxyAvailableTab";
+import ProxyAbuseMonitor from "@/components/admin/proxy/ProxyAbuseMonitor";
+import { ShieldAlert } from "lucide-react";
+
 export default function AdminCentralProxy() {
   return (
     <div className="space-y-6">
@@ -28,6 +31,9 @@ export default function AdminCentralProxy() {
           <TabsTrigger value="available">
             <Package className="size-4 mr-1.5" />Disponíveis
           </TabsTrigger>
+          <TabsTrigger value="abuse">
+            <ShieldAlert className="size-4 mr-1.5" />Abuso
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="dashboard">
@@ -40,6 +46,10 @@ export default function AdminCentralProxy() {
 
         <TabsContent value="available">
           <ProxyAvailableTab />
+        </TabsContent>
+
+        <TabsContent value="abuse">
+          <ProxyAbuseMonitor />
         </TabsContent>
       </Tabs>
     </div>
