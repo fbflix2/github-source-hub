@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Globe, Save, Loader2, Plus, Trash2, Image, Type, Sliders, Users, Star, MessageSquare, LayoutGrid, ChevronDown, ChevronUp, Upload, ExternalLink } from "lucide-react";
+import { Globe, Save, Loader2, Plus, Trash2, Image, Type, Sliders, Users, Star, MessageSquare, LayoutGrid, ChevronDown, ChevronUp, Upload, ExternalLink, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,6 +8,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import SiteImageUpload from "@/components/admin/SiteImageUpload";
 
 /* ─── Default config (mirrors Index.tsx hardcoded data) ─── */
 const DEFAULT_CONFIG = {
@@ -250,13 +251,10 @@ export default function AdminSiteEditor() {
               <Field label="Texto do Botão Principal" value={draft.hero.ctaText} onChange={(v) => update("hero.ctaText", v)} />
               <Field label="Texto do Botão Secundário" value={draft.hero.ctaSecondary} onChange={(v) => update("hero.ctaSecondary", v)} />
             </div>
-            <Field label="Texto do Contador Ao Vivo" value={draft.hero.liveCounter} onChange={(v) => update("hero.liveCounter", v)} />
-            <Field label="URL da Imagem de Fundo" value={draft.hero.backgroundImage} onChange={(v) => update("hero.backgroundImage", v)} />
-            {draft.hero.backgroundImage && (
-              <div className="rounded-xl overflow-hidden border border-white/10 max-w-md">
-                <img src={draft.hero.backgroundImage} alt="Preview" className="w-full h-32 object-cover opacity-40" />
-              </div>
-            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Field label="Texto do Contador Ao Vivo" value={draft.hero.liveCounter} onChange={(v) => update("hero.liveCounter", v)} />
+              <SiteImageUpload label="Imagem de Fundo do Hero" value={draft.hero.backgroundImage} onChange={(v) => update("hero.backgroundImage", v)} />
+            </div>
             <Field label="URL do WhatsApp" value={draft.hero.whatsappUrl} onChange={(v) => update("hero.whatsappUrl", v)} />
             <Field label="Label do WhatsApp" value={draft.hero.whatsappLabel} onChange={(v) => update("hero.whatsappLabel", v)} />
 
@@ -318,12 +316,7 @@ export default function AdminSiteEditor() {
                   <Field label="Preço" value={product.price} onChange={(v) => update(`products.${i}.price`, v)} />
                   <Field label="Unidade (ex: /unid, /mês)" value={product.unit} onChange={(v) => update(`products.${i}.unit`, v)} />
                 </div>
-                <Field label="URL da Imagem" value={product.img} onChange={(v) => update(`products.${i}.img`, v)} />
-                {product.img && (
-                  <div className="rounded-lg overflow-hidden border border-white/10 max-w-xs mt-2 mb-3">
-                    <img src={product.img} alt={product.title} className="w-full h-24 object-cover" />
-                  </div>
-                )}
+                <SiteImageUpload label="Imagem do Produto" value={product.img} onChange={(v) => update(`products.${i}.img`, v)} />
                 <div className="mt-3">
                   <p className="text-xs text-gray-400 font-medium mb-2">Features (uma por linha)</p>
                   {product.features.map((f, fi) => (
@@ -451,7 +444,7 @@ export default function AdminSiteEditor() {
                   <Field label="Nome" value={t.name} onChange={(v) => update(`testimonials.${i}.name`, v)} />
                   <Field label="Cargo / Função" value={t.role} onChange={(v) => update(`testimonials.${i}.role`, v)} />
                 </div>
-                <Field label="URL da Foto" value={t.img} onChange={(v) => update(`testimonials.${i}.img`, v)} />
+                <SiteImageUpload label="Foto do Cliente" value={t.img} onChange={(v) => update(`testimonials.${i}.img`, v)} />
                 <div className="mt-3">
                   <label className="text-xs text-gray-400 font-medium mb-1.5 block">Texto do Depoimento</label>
                   <Textarea value={t.text} onChange={(e) => update(`testimonials.${i}.text`, e.target.value)} className="bg-black/30 border-white/10 text-white text-sm" rows={2} />
