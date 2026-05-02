@@ -12,6 +12,7 @@ const DEFAULTS = {
     liveCounter: "+4.872 contas rodando agora",
     backgroundImage: "https://lh3.googleusercontent.com/aida-public/AB6AXuA6mgEPPp3A8WfZQmpvovGnq8PM9WQg_VkbqFOpX5utcy7JW7eYKsAV9pckAiLW4HXkTuCnkbHEzSZ3XgxxuKvKwpUukxRYguy3lK19izWDcioO08gGeV0zOD1FeiHJuxT3A2T4eviHN7giUTucvUtz0X1X_fv8_p0lyBhXQVoaXqw_kB8a3XkhmnWhIp7aJXlzHp8a8L3FttZWD1Bx6gMZA2n-sMXVQZ-CsESvtzVWY7V9EgAY2K_iL9-Ydu2XDyUc2mCIhqxA_Pc3",
     whatsappUrl: "https://wa.me/55000000000", whatsappLabel: "Fale com um Especialista",
+    logoUrl: "",
   },
   partners: ["Natália Torres", "Conta Simples", "Utmify", "Lauth", "Alan Benites"],
   steps: [
@@ -72,10 +73,12 @@ function useReveal() {
 /* ---------- Component ---------- */
 const Index = () => {
   const navigate = useNavigate();
+  const [cfg, setCfg] = useState(DEFAULTS);
+  const logoUrl = cfg.hero.logoUrl || logoFbflix;
+
   useReveal();
 
   // Load config from DB
-  const [cfg, setCfg] = useState(DEFAULTS);
   useEffect(() => {
     supabase
       .from("site_settings")
@@ -106,7 +109,7 @@ const Index = () => {
       {/* ===== NAV ===== */}
       <nav className="fixed top-0 w-full z-50 bg-[#050505]/80 backdrop-blur-3xl border-b border-[#ff3131]/10 shadow-[0_0_40px_rgba(255,49,49,0.05)]">
         <div className="flex justify-between items-center px-8 py-4 max-w-7xl mx-auto">
-          <img src={logoFbflix} alt="FBFLIX" width={32} height={32} className="h-8 object-contain cursor-pointer transition-all duration-300 hover:scale-105" />
+          <img src={logoUrl} alt="FBFLIX" width={32} height={32} className="h-8 object-contain cursor-pointer transition-all duration-300 hover:scale-105" />
           <div className="hidden md:flex gap-8 items-center font-['Space_Grotesk'] tracking-tighter text-sm uppercase font-bold">
             <a href="#home" className="text-[#ff3131] border-b-2 border-[#ff3131] pb-1 cursor-pointer transition-all duration-300">Home</a>
             <a href="#como-funciona" className="text-white/70 hover:text-white transition-colors cursor-pointer">Como Funciona</a>
@@ -136,9 +139,11 @@ const Index = () => {
 
         <div className="relative z-20 max-w-7xl mx-auto px-8 w-full text-center">
           {/* Shield icon */}
-          <div className="mb-6 flex justify-center lp-reveal">
-            <img src={logoFbflix} alt="FBFLIX" width={80} height={80} className="w-20 h-20 object-contain drop-shadow-[0_0_30px_rgba(255,49,49,0.3)]" fetchPriority="high" />
-          </div>
+          {logoUrl && (
+            <div className="mb-6 flex justify-center lp-reveal">
+              <img src={logoUrl} alt="FBFLIX" width={80} height={80} className="w-20 h-20 object-contain drop-shadow-[0_0_30px_rgba(255,49,49,0.3)]" fetchPriority="high" />
+            </div>
+          )}
 
           <h1 className="font-['Space_Grotesk'] text-6xl md:text-8xl font-black tracking-tighter text-white uppercase leading-[0.9] mb-6 lp-reveal" style={{ transitionDelay: "100ms" }}>
             {cfg.hero.title} <span className="text-[#ff3131] italic">{cfg.hero.titleHighlight}</span>

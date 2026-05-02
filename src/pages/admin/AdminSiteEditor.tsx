@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Globe, Save, Loader2, Plus, Trash2, Image, Type, Sliders, Users, Star, MessageSquare, LayoutGrid, ChevronDown, ChevronUp, Upload, ExternalLink } from "lucide-react";
+import { Globe, Save, Loader2, Plus, Trash2, Image, Type, Sliders, Users, Star, MessageSquare, LayoutGrid, ChevronDown, ChevronUp, Upload, ExternalLink, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,6 +8,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import SiteImageUpload from "@/components/admin/SiteImageUpload";
 
 /* ─── Default config (mirrors Index.tsx hardcoded data) ─── */
 const DEFAULT_CONFIG = {
@@ -21,6 +22,7 @@ const DEFAULT_CONFIG = {
     backgroundImage: "https://lh3.googleusercontent.com/aida-public/AB6AXuA6mgEPPp3A8WfZQmpvovGnq8PM9WQg_VkbqFOpX5utcy7JW7eYKsAV9pckAiLW4HXkTuCnkbHEzSZ3XgxxuKvKwpUukxRYguy3lK19izWDcioO08gGeV0zOD1FeiHJuxT3A2T4eviHN7giUTucvUtz0X1X_fv8_p0lyBhXQVoaXqw_kB8a3XkhmnWhIp7aJXlzHp8a8L3FttZWD1Bx6gMZA2n-sMXVQZ-CsESvtzVWY7V9EgAY2K_iL9-Ydu2XDyUc2mCIhqxA_Pc3",
     whatsappUrl: "https://wa.me/55000000000",
     whatsappLabel: "Fale com um Especialista",
+    logoUrl: "",
   },
   partners: ["Natália Torres", "Conta Simples", "Utmify", "Lauth", "Alan Benites"],
   steps: [
@@ -235,6 +237,9 @@ export default function AdminSiteEditor() {
           <TabsTrigger value="social" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
             <MessageSquare className="w-4 h-4 mr-1" /> Social Proof
           </TabsTrigger>
+          <TabsTrigger value="general" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
+            <Sliders className="w-4 h-4 mr-1" /> Geral
+          </TabsTrigger>
           <TabsTrigger value="footer" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
             <Globe className="w-4 h-4 mr-1" /> Rodapé
           </TabsTrigger>
@@ -243,6 +248,7 @@ export default function AdminSiteEditor() {
         {/* ═══ HERO ═══ */}
         <TabsContent value="hero">
           <Section title="Seção Hero" desc="Configure o título, subtítulo e botões da primeira tela">
+            <SiteImageUpload label="Logo do Site (Deixe vazio para usar o padrão)" value={draft.hero.logoUrl || ""} onChange={(v) => update("hero.logoUrl", v)} />
             <Field label="Título Principal" value={draft.hero.title} onChange={(v) => update("hero.title", v)} />
             <Field label="Palavra Destaque (italic vermelha)" value={draft.hero.titleHighlight} onChange={(v) => update("hero.titleHighlight", v)} />
             <Field label="Subtítulo" value={draft.hero.subtitle} onChange={(v) => update("hero.subtitle", v)} />
@@ -250,13 +256,10 @@ export default function AdminSiteEditor() {
               <Field label="Texto do Botão Principal" value={draft.hero.ctaText} onChange={(v) => update("hero.ctaText", v)} />
               <Field label="Texto do Botão Secundário" value={draft.hero.ctaSecondary} onChange={(v) => update("hero.ctaSecondary", v)} />
             </div>
-            <Field label="Texto do Contador Ao Vivo" value={draft.hero.liveCounter} onChange={(v) => update("hero.liveCounter", v)} />
-            <Field label="URL da Imagem de Fundo" value={draft.hero.backgroundImage} onChange={(v) => update("hero.backgroundImage", v)} />
-            {draft.hero.backgroundImage && (
-              <div className="rounded-xl overflow-hidden border border-white/10 max-w-md">
-                <img src={draft.hero.backgroundImage} alt="Preview" className="w-full h-32 object-cover opacity-40" />
-              </div>
-            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Field label="Texto do Contador Ao Vivo" value={draft.hero.liveCounter} onChange={(v) => update("hero.liveCounter", v)} />
+              <SiteImageUpload label="Imagem de Fundo do Hero" value={draft.hero.backgroundImage} onChange={(v) => update("hero.backgroundImage", v)} />
+            </div>
             <Field label="URL do WhatsApp" value={draft.hero.whatsappUrl} onChange={(v) => update("hero.whatsappUrl", v)} />
             <Field label="Label do WhatsApp" value={draft.hero.whatsappLabel} onChange={(v) => update("hero.whatsappLabel", v)} />
 
@@ -318,12 +321,7 @@ export default function AdminSiteEditor() {
                   <Field label="Preço" value={product.price} onChange={(v) => update(`products.${i}.price`, v)} />
                   <Field label="Unidade (ex: /unid, /mês)" value={product.unit} onChange={(v) => update(`products.${i}.unit`, v)} />
                 </div>
-                <Field label="URL da Imagem" value={product.img} onChange={(v) => update(`products.${i}.img`, v)} />
-                {product.img && (
-                  <div className="rounded-lg overflow-hidden border border-white/10 max-w-xs mt-2 mb-3">
-                    <img src={product.img} alt={product.title} className="w-full h-24 object-cover" />
-                  </div>
-                )}
+                <SiteImageUpload label="Imagem do Produto" value={product.img} onChange={(v) => update(`products.${i}.img`, v)} />
                 <div className="mt-3">
                   <p className="text-xs text-gray-400 font-medium mb-2">Features (uma por linha)</p>
                   {product.features.map((f, fi) => (
@@ -451,7 +449,7 @@ export default function AdminSiteEditor() {
                   <Field label="Nome" value={t.name} onChange={(v) => update(`testimonials.${i}.name`, v)} />
                   <Field label="Cargo / Função" value={t.role} onChange={(v) => update(`testimonials.${i}.role`, v)} />
                 </div>
-                <Field label="URL da Foto" value={t.img} onChange={(v) => update(`testimonials.${i}.img`, v)} />
+                <SiteImageUpload label="Foto do Cliente" value={t.img} onChange={(v) => update(`testimonials.${i}.img`, v)} />
                 <div className="mt-3">
                   <label className="text-xs text-gray-400 font-medium mb-1.5 block">Texto do Depoimento</label>
                   <Textarea value={t.text} onChange={(e) => update(`testimonials.${i}.text`, e.target.value)} className="bg-black/30 border-white/10 text-white text-sm" rows={2} />
@@ -465,6 +463,17 @@ export default function AdminSiteEditor() {
             >
               <Plus className="w-5 h-5 mr-2" /> Adicionar Depoimento
             </Button>
+          </Section>
+        </TabsContent>
+
+        {/* ═══ GENERAL ═══ */}
+        <TabsContent value="general">
+          <Section title="Configurações Gerais" desc="Configure elementos globais do site">
+            <SiteImageUpload label="Logo Principal" value={draft.hero.logoUrl || ""} onChange={(v) => update("hero.logoUrl", v)} />
+            <div className="mt-4 p-4 bg-primary/10 border border-primary/20 rounded-xl">
+              <p className="text-primary text-sm font-medium">Dica:</p>
+              <p className="text-gray-400 text-xs">O logo enviado aqui será usado no cabeçalho e em seções de destaque.</p>
+            </div>
           </Section>
         </TabsContent>
 
