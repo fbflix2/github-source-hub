@@ -22,6 +22,7 @@ const DEFAULT_CONFIG = {
     backgroundImage: "https://lh3.googleusercontent.com/aida-public/AB6AXuA6mgEPPp3A8WfZQmpvovGnq8PM9WQg_VkbqFOpX5utcy7JW7eYKsAV9pckAiLW4HXkTuCnkbHEzSZ3XgxxuKvKwpUukxRYguy3lK19izWDcioO08gGeV0zOD1FeiHJuxT3A2T4eviHN7giUTucvUtz0X1X_fv8_p0lyBhXQVoaXqw_kB8a3XkhmnWhIp7aJXlzHp8a8L3FttZWD1Bx6gMZA2n-sMXVQZ-CsESvtzVWY7V9EgAY2K_iL9-Ydu2XDyUc2mCIhqxA_Pc3",
     whatsappUrl: "https://wa.me/55000000000",
     whatsappLabel: "Fale com um Especialista",
+    logoUrl: "",
   },
   partners: ["Natália Torres", "Conta Simples", "Utmify", "Lauth", "Alan Benites"],
   steps: [
@@ -236,6 +237,9 @@ export default function AdminSiteEditor() {
           <TabsTrigger value="social" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
             <MessageSquare className="w-4 h-4 mr-1" /> Social Proof
           </TabsTrigger>
+          <TabsTrigger value="general" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
+            <Sliders className="w-4 h-4 mr-1" /> Geral
+          </TabsTrigger>
           <TabsTrigger value="footer" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
             <Globe className="w-4 h-4 mr-1" /> Rodapé
           </TabsTrigger>
@@ -244,6 +248,7 @@ export default function AdminSiteEditor() {
         {/* ═══ HERO ═══ */}
         <TabsContent value="hero">
           <Section title="Seção Hero" desc="Configure o título, subtítulo e botões da primeira tela">
+            <SiteImageUpload label="Logo do Site (Deixe vazio para usar o padrão)" value={draft.hero.logoUrl || ""} onChange={(v) => update("hero.logoUrl", v)} />
             <Field label="Título Principal" value={draft.hero.title} onChange={(v) => update("hero.title", v)} />
             <Field label="Palavra Destaque (italic vermelha)" value={draft.hero.titleHighlight} onChange={(v) => update("hero.titleHighlight", v)} />
             <Field label="Subtítulo" value={draft.hero.subtitle} onChange={(v) => update("hero.subtitle", v)} />
@@ -458,6 +463,17 @@ export default function AdminSiteEditor() {
             >
               <Plus className="w-5 h-5 mr-2" /> Adicionar Depoimento
             </Button>
+          </Section>
+        </TabsContent>
+
+        {/* ═══ GENERAL ═══ */}
+        <TabsContent value="general">
+          <Section title="Configurações Gerais" desc="Configure elementos globais do site">
+            <SiteImageUpload label="Logo Principal" value={draft.hero.logoUrl || ""} onChange={(v) => update("hero.logoUrl", v)} />
+            <div className="mt-4 p-4 bg-primary/10 border border-primary/20 rounded-xl">
+              <p className="text-primary text-sm font-medium">Dica:</p>
+              <p className="text-gray-400 text-xs">O logo enviado aqui será usado no cabeçalho e em seções de destaque.</p>
+            </div>
           </Section>
         </TabsContent>
 
