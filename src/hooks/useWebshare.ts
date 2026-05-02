@@ -312,3 +312,47 @@ export function useMigrateProxyBRToWebshare() {
     },
   });
 }
+
+/** Get Webshare Top 10 usage stats */
+export function useWebshareUsageStats(period: "1h" | "24h" | "7d" = "24h") {
+  return useQuery({
+    queryKey: ["webshare-usage-stats", period],
+    queryFn: () => callWebshare("get-usage-stats", { period }),
+    staleTime: 300_000,
+    refetchOnWindowFocus: true,
+    retry: false,
+  });
+}
+
+/** Get proxy usage alerts configuration */
+export function useProxyUsageAlerts() {
+  return useQuery({
+    queryKey: ["proxy-usage-alerts"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("proxy_usage_alerts")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+/** Update/Create usage alert */
+export function useUpsertUsageAlert() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (alert: any) => {
+      const { error } = await supabase
+        .from("proxy_usage_alerts")
+        .upsert(alert, { onConflict: "id" });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Regra de alerta salva!");
+      queryClient.invalidateQueries({ queryKey: ["proxy-usage-alerts"] });
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+}

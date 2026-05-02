@@ -415,6 +415,88 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ========== GET USAGE STATS (Top 10) ==========
+    if (action === "get-usage-stats") {
+      const { data: isAdmin } = await supabaseAdmin.rpc("has_role", { _user_id: user.id, _role: "admin" });
+      if (!isAdmin) throw new Error("Acesso negado: apenas administradores");
+
+      const period = params.period || "24h"; // 1h, 24h, 7d
+      let timestampGte: string;
+      
+      const now = new Date();
+      if (period === "1h") {
+        timestampGte = new Date(now.getTime() - (60 * 60 * 1000)).toISOString();
+      } else if (period === "7d") {
+        timestampGte = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000)).toISOString();
+      } else {
+        timestampGte = new Date(now.getTime() - (24 * 60 * 60 * 1000)).toISOString();
+      }
+
+      // Webshare usage stats endpoint (per proxy)
+      const resp = await webFetch(`/stats/proxy/?timestamp__gte=${timestampGte}`, WEBSHARE_API_KEY);
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(`Webshare stats error [${resp.status}]`);
+
+      // Group by proxy and sum bandwidth
+      const stats = Array.isArray(data.results) ? data.results : [];
+      const proxyMap = new Map<string, { upload: number, download: number, total: number }>();
+
+      for (const s of stats) {
+        const id = String(s.proxy_id);
+        const current = proxyMap.get(id) || { upload: 0, download: 0, total: 0 };
+        current.upload += (s.upload || 0);
+        current.download += (s.download || 0);
+        current.total += ((s.upload || 0) + (s.download || 0));
+        proxyMap.set(id, current);
+      }
+
+      // Get all active subscriptions to link IDs to users
+      const { data: subs } = await supabaseAdmin
+        .from("subscriptions")
+        .select("id, user_id, raw_data, name, profiles(full_name, email)")
+        .eq("type", "webshare")
+        .in("status", ["active", "expiring"]);
+
+      const enriched = Array.from(proxyMap.entries()).map(([proxyId, consumption]) => {
+        const sub = subs?.find(s => String((s.raw_data as any)?.webshare_proxy_id) === proxyId);
+        return {
+          proxy_id: proxyId,
+          usage_gb: Number((consumption.total / (1024 * 1024 * 1024)).toFixed(3)),
+          download_gb: Number((consumption.download / (1024 * 1024 * 1024)).toFixed(3)),
+          upload_gb: Number((consumption.upload / (1024 * 1024 * 1024)).toFixed(3)),
+          user_id: sub?.user_id || null,
+          user_name: (sub?.profiles as any)?.full_name || "Desconhecido",
+          user_email: (sub?.profiles as any)?.email || sub?.name || "N/A",
+          subscription_name: sub?.name || "N/A"
+        };
+      }).sort((a, b) => b.usage_gb - a.usage_gb).slice(0, 10);
+
+      // Check against alerts
+      const { data: alerts } = await supabaseAdmin
+        .from("proxy_usage_alerts")
+        .select("*")
+        .eq("is_active", true);
+
+      const findings = enriched.filter(u => {
+        const matchingAlert = alerts?.find(a => a.period === period);
+        return matchingAlert && u.usage_gb > matchingAlert.threshold;
+      });
+
+      // If findings and period is 1h, it might indicate torrent/heavy download
+      const suspectedAbuse = findings.map(f => ({
+        ...f,
+        reason: "Consumo excessivo detectado no período"
+      }));
+
+      return new Response(JSON.stringify({ 
+        top10: enriched,
+        alerts_triggered: suspectedAbuse,
+        period 
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // ========== GET PROXY CONFIG ==========
     if (action === "get-proxy-config") {
       const resp = await webFetch("/proxy/config/", WEBSHARE_API_KEY);
