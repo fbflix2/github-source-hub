@@ -2560,6 +2560,80 @@ export type Database = {
         }
         Relationships: []
       }
+      proxy_usage_alerts: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          metric: string
+          period: string
+          threshold: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          metric: string
+          period: string
+          threshold: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          metric?: string
+          period?: string
+          threshold?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      proxy_usage_logs: {
+        Row: {
+          bytes_downloaded: number | null
+          bytes_uploaded: number | null
+          created_at: string | null
+          id: string
+          period_end: string
+          period_start: string
+          subscription_id: string | null
+          supplier: string | null
+          user_id: string | null
+        }
+        Insert: {
+          bytes_downloaded?: number | null
+          bytes_uploaded?: number | null
+          created_at?: string | null
+          id?: string
+          period_end: string
+          period_start: string
+          subscription_id?: string | null
+          supplier?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          bytes_downloaded?: number | null
+          bytes_uploaded?: number | null
+          created_at?: string | null
+          id?: string
+          period_end?: string
+          period_start?: string
+          subscription_id?: string | null
+          supplier?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proxy_usage_logs_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       purchases: {
         Row: {
           created_at: string
