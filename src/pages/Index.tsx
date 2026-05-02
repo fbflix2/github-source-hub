@@ -12,6 +12,7 @@ const DEFAULTS = {
     liveCounter: "+4.872 contas rodando agora",
     backgroundImage: "https://lh3.googleusercontent.com/aida-public/AB6AXuA6mgEPPp3A8WfZQmpvovGnq8PM9WQg_VkbqFOpX5utcy7JW7eYKsAV9pckAiLW4HXkTuCnkbHEzSZ3XgxxuKvKwpUukxRYguy3lK19izWDcioO08gGeV0zOD1FeiHJuxT3A2T4eviHN7giUTucvUtz0X1X_fv8_p0lyBhXQVoaXqw_kB8a3XkhmnWhIp7aJXlzHp8a8L3FttZWD1Bx6gMZA2n-sMXVQZ-CsESvtzVWY7V9EgAY2K_iL9-Ydu2XDyUc2mCIhqxA_Pc3",
     whatsappUrl: "https://wa.me/55000000000", whatsappLabel: "Fale com um Especialista",
+    logoUrl: "",
   },
   partners: ["Natália Torres", "Conta Simples", "Utmify", "Lauth", "Alan Benites"],
   steps: [
@@ -71,13 +72,13 @@ function useReveal() {
 
 /* ---------- Component ---------- */
 const Index = () => {
+  const navigate = useNavigate();
+  const [cfg, setCfg] = useState(DEFAULTS);
   const logoUrl = cfg.hero.logoUrl || logoFbflix;
 
-  const navigate = useNavigate();
   useReveal();
 
   // Load config from DB
-  const [cfg, setCfg] = useState(DEFAULTS);
   useEffect(() => {
     supabase
       .from("site_settings")
