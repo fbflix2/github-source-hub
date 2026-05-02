@@ -178,7 +178,7 @@ export default function ProxyAbuseMonitor() {
                   <div key={p} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border border-white/5 bg-white/5">
                     <div>
                       <h4 className="text-sm font-bold text-foreground">Período: {p === "1h" ? "Hora" : p === "24h" ? "Dia" : "Semana"}</h4>
-                      <p className="text-[10px] text-muted-foreground">Alerta para downloads > {val} GB em {p}</p>
+                      <p className="text-[10px] text-muted-foreground">Alerta para downloads {'>'} {val} GB em {p}</p>
                     </div>
                     <div className="flex items-center gap-4">
                       <div className="flex items-center gap-2">
