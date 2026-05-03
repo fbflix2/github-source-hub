@@ -180,7 +180,7 @@ export function useProxyFbflixSubscriptions() {
                 alt_http_port: raw.alt_http_port || 3128,
               }
             : raw.proxy_address ? {
-                id: raw.proxyfbflix_proxy_id,
+                id: raw.fbflix_proxy_id,
                 ip: raw.proxy_address,
                 port: raw.port,
                 username: raw.username,
