@@ -1,6 +1,6 @@
 import { Globe, Wrench, Package } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import WebshareProxyTab from "@/components/admin/proxy/WebshareProxyTab";
+import ProxyFbflixProxyTab from "@/components/admin/proxy/ProxyFbflixTab";
 import ProxyMaintenanceTab from "@/components/admin/proxy/ProxyMaintenanceTab";
 import ProxyAvailableTab from "@/components/admin/proxy/ProxyAvailableTab";
 import ProxyAbuseMonitor from "@/components/admin/proxy/ProxyAbuseMonitor";
@@ -15,7 +15,7 @@ export default function AdminCentralProxy() {
           <Globe className="text-primary-foreground size-5" />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-foreground">Proxy Fbflix</h1>
+          <h1 className="text-xl font-bold text-foreground">ProxyFbflix</h1>
           <p className="text-xs text-muted-foreground">Gestão de proxies do fornecedor Fbflix</p>
         </div>
       </div>
@@ -37,7 +37,7 @@ export default function AdminCentralProxy() {
         </TabsList>
 
         <TabsContent value="dashboard">
-          <WebshareProxyTab />
+          <ProxyFbflixProxyTab />
         </TabsContent>
 
         <TabsContent value="maintenance">

@@ -194,8 +194,8 @@ export default function Dashboard() {
 
   // Local proxy products should show alongside regular products and in Proxy filter
   const isLocalProxy = (p: Product) => p.category_id === proxyCategoryId;
-  const webshareLocalProducts = products.filter(isLocalProxy);
-  console.log("[Loja] proxyCategoryId:", proxyCategoryId, "webshareLocalProducts:", webshareLocalProducts.map(p => p.name), "total products:", products.length);
+  const proxyfbflixLocalProducts = products.filter(isLocalProxy);
+  console.log("[Loja] proxyCategoryId:", proxyCategoryId, "proxyfbflixLocalProducts:", proxyfbflixLocalProducts.map(p => p.name), "total products:", products.length);
 
   const filteredProducts = activeFilter === "Todos"
     ? products.filter((p) => p.category_id !== proxyCategoryId || isLocalProxy(p))
@@ -378,7 +378,7 @@ export default function Dashboard() {
               <p className="text-destructive font-bold">Erro ao carregar proxies</p>
               <p className="text-muted-foreground text-sm mt-1">{(proxyError as Error).message}</p>
             </div>
-          ) : proxyProducts.length === 0 && webshareLocalProducts.length === 0 ? (
+          ) : proxyProducts.length === 0 && proxyfbflixLocalProducts.length === 0 ? (
             <div className="text-center py-12">
               <span className="material-symbols-outlined text-[48px] text-muted-foreground mb-4">inventory_2</span>
               <p className="text-muted-foreground">Nenhum proxy disponível no momento.</p>
@@ -432,8 +432,8 @@ export default function Dashboard() {
                   onReadMore={(info) => { const variants = product.variant || product.variants?.data || product.variants || []; const totalApiStock = variants.reduce((sum: number, v: any) => sum + (v.stocks ?? 0), 0); setDetailProduct({ id: String(product.id), name: info.name, description: info.description, price: info.price, price_label: "mensal", image_url: info.image_url, badge_text: null, badge_color: null, badge_icon: null, stock: totalApiStock > 0 ? totalApiStock : 0, available: true, category_id: null, tags: info.tags } as any); }}
                 />
               ))}
-              {/* Local webshare products */}
-              {webshareLocalProducts.map((product) => {
+              {/* Local proxyfbflix products */}
+              {proxyfbflixLocalProducts.map((product) => {
                 const stockInfo = getStockInfo(product);
                 return (
                   <article

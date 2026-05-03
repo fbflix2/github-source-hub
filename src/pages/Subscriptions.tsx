@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProxyBRSubscriptions } from "@/hooks/useProxyBR";
 import { Play, X, SlidersHorizontal, Search } from "lucide-react";
-import { useWebshareSubscriptions, useMigrateProxyBRToWebshare } from "@/hooks/useWebshare";
+import { useProxyFbflixSubscriptions, useMigrateProxyBRToProxyFbflix } from "@/hooks/useProxyFbflix";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { differenceInDays, parseISO, format } from "date-fns";
@@ -114,12 +114,12 @@ export default function Subscriptions() {
   }, []);
 
   const { data: subscriptionsRaw } = useProxyBRSubscriptions();
-  const { data: webshareRaw } = useWebshareSubscriptions();
+  const { data: proxyfbflixRaw } = useProxyFbflixSubscriptions();
 
   useEffect(() => {
     const allSubs = [
       ...(Array.isArray(subscriptionsRaw) ? subscriptionsRaw : []),
-      ...(Array.isArray(webshareRaw) ? webshareRaw : []),
+      ...(Array.isArray(proxyfbflixRaw) ? proxyfbflixRaw : []),
     ];
     const hasActive = allSubs.some((sub: any) => {
       if (!sub.end_date) return true;
@@ -127,7 +127,7 @@ export default function Subscriptions() {
       return daysLeft >= 0 && sub.status !== "cancelled";
     });
     setHasActiveProxy(hasActive);
-  }, [subscriptionsRaw, webshareRaw]);
+  }, [subscriptionsRaw, proxyfbflixRaw]);
 
   const activeServices: Record<SubscriptionCategory, boolean> = {
     proxies: hasActiveProxy === true,
@@ -336,16 +336,16 @@ function ProxiesPanel() {
   const [tagFilter, setTagFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("newest");
   const { data: subscriptionsRaw, isLoading: proxyLoading, error: proxyError } = useProxyBRSubscriptions();
-  const { data: webshareRaw, isLoading: wsLoading, error: wsError } = useWebshareSubscriptions();
-  const migrateMutation = useMigrateProxyBRToWebshare();
+  const { data: proxyfbflixRaw, isLoading: wsLoading, error: wsError } = useProxyFbflixSubscriptions();
+  const migrateMutation = useMigrateProxyBRToProxyFbflix();
   const [renewingCode, setRenewingCode] = useState<string | null>(null);
 
   const isLoading = proxyLoading || wsLoading;
   const error = proxyError || wsError;
 
   const proxyBRSubs: ProxySubscription[] = Array.isArray(subscriptionsRaw) ? subscriptionsRaw : [];
-  const webshareSubs: ProxySubscription[] = Array.isArray(webshareRaw) ? webshareRaw : [];
-  const subscriptions = [...proxyBRSubs, ...webshareSubs];
+  const proxyfbflixSubs: ProxySubscription[] = Array.isArray(proxyfbflixRaw) ? proxyfbflixRaw : [];
+  const subscriptions = [...proxyBRSubs, ...proxyfbflixSubs];
 
   const enriched = subscriptions.map((sub) => ({
     ...sub,
@@ -418,14 +418,14 @@ function ProxiesPanel() {
 
   const handleRenew = (sub: ProxySubscription & { mappedStatus: SubscriptionStatus }) => {
     const rawData = (sub.raw_data || {}) as Record<string, any>;
-    const isAlreadyWebshare = rawData.provider === "webshare" || rawData.migrated_from_proxybr === true;
-    // For already-migrated Webshare subs, use full name (#1, #2); for ProxyBR multi-proxy, strip #N
-    const subName = isAlreadyWebshare
+    const isAlreadyProxyFbflix = rawData.provider === "proxyfbflix" || rawData.migrated_from_proxybr === true;
+    // For already-migrated ProxyFbflix subs, use full name (#1, #2); for ProxyBR multi-proxy, strip #N
+    const subName = isAlreadyProxyFbflix
       ? (sub.name || sub.code)
       : (sub.name || sub.code).replace(/#\d+$/, "").replace(/__proxy_\d+$/, "");
     setRenewingCode(sub.code);
     migrateMutation.mutate(
-      { subscriptionName: subName, proxyIndex: isAlreadyWebshare ? undefined : sub.proxyIndex, totalProxies: isAlreadyWebshare ? undefined : sub.totalProxies },
+      { subscriptionName: subName, proxyIndex: isAlreadyProxyFbflix ? undefined : sub.proxyIndex, totalProxies: isAlreadyProxyFbflix ? undefined : sub.totalProxies },
       { onSettled: () => setRenewingCode(null) },
     );
   };

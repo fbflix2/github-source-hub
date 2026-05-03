@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { callWebshare } from "@/hooks/useWebshare";
+import { callProxyFbflix } from "@/hooks/useProxyFbflix";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,10 +22,10 @@ function formatGB(bytes: number): number {
   return bytes / (1024 * 1024 * 1024);
 }
 
-export default function WebshareBandwidthCard({ bandwidthLimitGB }: Props) {
+export default function ProxyFbflixBandwidthCard({ bandwidthLimitGB }: Props) {
   const { data, isLoading } = useQuery({
-    queryKey: ["webshare-bandwidth-stats"],
-    queryFn: () => callWebshare("get-bandwidth-stats"),
+    queryKey: ["proxyfbflix-bandwidth-stats"],
+    queryFn: () => callProxyFbflix("get-bandwidth-stats"),
     staleTime: 300_000,
     refetchOnWindowFocus: false,
     retry: false,

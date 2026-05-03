@@ -514,7 +514,7 @@ export default function Checkout() {
         }
 
         // Insert extra cart items (each as its own order_item, no delivery_data
-        // — server fulfillment will run fulfill_order_item / Webshare / SafeBM
+        // — server fulfillment will run fulfill_order_item / ProxyFbflix / SafeBM
         // automatically based on product_id).
         if (extraCartItems.length > 0) {
           const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -860,16 +860,16 @@ export default function Checkout() {
           return;
         }
 
-        // Detect proxy provider: Webshare = icon_type proxy + no external_id; ProxyBR = icon_type proxy + external_id
-        const isWebshareProduct = product?.icon_type === 'proxy' && !product?.external_id;
+        // Detect proxy provider: ProxyFbflix = icon_type proxy + no external_id; ProxyBR = icon_type proxy + external_id
+        const isProxyFbflixProduct = product?.icon_type === 'proxy' && !product?.external_id;
         const isRotatingProxy = product?.tags?.some((t: string) => t.toLowerCase() === 'rotativo');
-        if (isWebshareProduct) {
+        if (isProxyFbflixProduct) {
           updateData.status = "processing";
           await supabase.from("orders").update(updateData).eq("id", orderId);
 
           const wsAction = isRotatingProxy ? "purchase-rotating-proxy" : "purchase-proxy-with-balance";
           toast.info(isRotatingProxy ? "Ativando proxy rotativo..." : "Ativando seu proxy...");
-          const { data: wsResult, error: wsError } = await supabase.functions.invoke("webshare-api", {
+          const { data: wsResult, error: wsError } = await supabase.functions.invoke("proxyfbflix-api", {
             body: {
               action: wsAction,
               order_id: orderId,
@@ -880,7 +880,7 @@ export default function Checkout() {
           });
 
           if (wsError || wsResult?.error) {
-            console.error("Webshare purchase error:", wsError || wsResult?.error);
+            console.error("ProxyFbflix purchase error:", wsError || wsResult?.error);
             toast.error(wsResult?.error || "Erro ao ativar proxy. Contate o suporte.");
             navigate("/orders");
             return;
@@ -892,7 +892,7 @@ export default function Checkout() {
           }
 
           toast.success(isRotatingProxy ? "Proxy rotativo ativado!" : "Proxy ativado com sucesso!");
-          queryClient.invalidateQueries({ queryKey: ["webshare-subscriptions"] });
+          queryClient.invalidateQueries({ queryKey: ["proxyfbflix-subscriptions"] });
           queryClient.invalidateQueries({ queryKey: ["proxybr-subscriptions"] });
           queryClient.invalidateQueries({ queryKey: ["subscriptions"] });
           navigate("/subscriptions");
@@ -1200,12 +1200,12 @@ export default function Checkout() {
         if (cardResult?.status === "approved") {
           // Payment approved — handle fulfillment
           const isProxyPurchase = !!sessionStorage.getItem("proxy_purchase");
-          const isWebshareProduct = product?.icon_type === 'proxy' && !product?.external_id;
+          const isProxyFbflixProduct = product?.icon_type === 'proxy' && !product?.external_id;
 
-          if (isWebshareProduct) {
+          if (isProxyFbflixProduct) {
             const isRotatingProxy = product?.tags?.some((t: string) => t.toLowerCase() === 'rotativo');
             const wsAction = isRotatingProxy ? "purchase-rotating-proxy" : "purchase-proxy-with-balance";
-            const { data: wsResult, error: wsError } = await supabase.functions.invoke("webshare-api", {
+            const { data: wsResult, error: wsError } = await supabase.functions.invoke("proxyfbflix-api", {
               body: { action: wsAction, order_id: orderId, total, product_id: product.id, quantity, skip_balance_debit: true },
             });
             if (wsError || wsResult?.error) {
@@ -1215,7 +1215,7 @@ export default function Checkout() {
             }
             sessionStorage.removeItem("proxy_purchase");
             toast.success("Pagamento aprovado! Proxy ativado.");
-            queryClient.invalidateQueries({ queryKey: ["webshare-subscriptions"] });
+            queryClient.invalidateQueries({ queryKey: ["proxyfbflix-subscriptions"] });
             navigate("/subscriptions");
             return;
           }

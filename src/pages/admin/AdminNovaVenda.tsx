@@ -354,8 +354,8 @@ export default function AdminNovaVenda() {
               if (fulfillData?.error) throw new Error(fulfillData.error);
               console.log("[proxy-fulfill] ProxyBR fulfilled:", fulfillData);
             } else {
-              // Webshare fulfillment
-              const { data: fulfillData, error: fulfillErr } = await supabase.functions.invoke("webshare-api", {
+              // ProxyFbflix fulfillment
+              const { data: fulfillData, error: fulfillErr } = await supabase.functions.invoke("proxyfbflix-api", {
                 body: {
                   action: "admin-allocate-proxy",
                   target_user_id: selectedClient.user_id,
@@ -366,7 +366,7 @@ export default function AdminNovaVenda() {
               });
               if (fulfillErr) throw fulfillErr;
               if (fulfillData?.error) throw new Error(fulfillData.error);
-              console.log("[proxy-fulfill] Webshare fulfilled:", fulfillData);
+              console.log("[proxy-fulfill] ProxyFbflix fulfilled:", fulfillData);
             }
           } catch (proxyErr: any) {
             console.error("[proxy-fulfill] Error:", proxyErr);

@@ -130,14 +130,14 @@ async function fetchAllWebshareProxies(apiKey: string, mode: "direct" | "backbon
 function buildStaticWebshareRawData(proxy: any, currentRaw: Record<string, any> = {}): Record<string, any> {
   return {
     ...currentRaw,
-    webshare_proxy_id: proxy.id,
+    fbflix_proxy_id: proxy.id,
     proxy_address: proxy.proxy_address,
     port: proxy.port,
     username: proxy.username,
     password: proxy.password,
     country_code: proxy.country_code,
     city_name: proxy.city_name,
-    provider: "webshare",
+    provider: "proxyfbflix",
   };
 }
 
@@ -180,11 +180,11 @@ Deno.serve(async (req) => {
       // Get assigned proxy IDs
       const { data: existSubs } = await supabaseInternal
         .from("subscriptions").select("raw_data")
-        .eq("type", "webshare").in("status", ["active", "expiring"]);
+        .eq("type", "proxyfbflix").in("status", ["active", "expiring"]);
       const assignedIds = new Set<string>();
       for (const s of (existSubs || [])) {
         const raw = (s.raw_data || {}) as Record<string, any>;
-        if (raw.webshare_proxy_id) assignedIds.add(raw.webshare_proxy_id);
+        if (raw.fbflix_proxy_id) assignedIds.add(raw.fbflix_proxy_id);
       }
 
       let available = allProxies.filter(p => p.valid && !assignedIds.has(p.id));
@@ -204,21 +204,21 @@ Deno.serve(async (req) => {
         await supabaseInternal.from("subscriptions").insert({
           user_id: target_user_id,
           name: subName,
-          type: "webshare",
+          type: "proxyfbflix",
           status: "active",
           start_date: startDate.toISOString(),
           end_date: endDate.toISOString(),
           product_id: iProdId || null,
           auto_renew: false,
           raw_data: {
-            webshare_proxy_id: proxy.id,
+            fbflix_proxy_id: proxy.id,
             proxy_address: proxy.proxy_address,
             port: proxy.port,
             username: proxy.username,
             password: proxy.password,
             country_code: proxy.country_code,
             city_name: proxy.city_name,
-            provider: "webshare",
+            provider: "proxyfbflix",
             exchange_quota_free: 2,
             exchange_quota_pay: 0,
             admin_allocated: true,
@@ -454,11 +454,11 @@ Deno.serve(async (req) => {
       const { data: subs } = await supabaseAdmin
         .from("subscriptions")
         .select("id, user_id, raw_data, name, profiles(full_name, email)")
-        .eq("type", "webshare")
+        .eq("type", "proxyfbflix")
         .in("status", ["active", "expiring"]);
 
       const enriched = Array.from(proxyMap.entries()).map(([proxyId, consumption]) => {
-        const sub = subs?.find(s => String((s.raw_data as any)?.webshare_proxy_id) === proxyId);
+        const sub = subs?.find(s => String((s.raw_data as any)?.fbflix_proxy_id) === proxyId);
         return {
           proxy_id: proxyId,
           usage_gb: Number((consumption.total / (1024 * 1024 * 1024)).toFixed(3)),
@@ -629,13 +629,13 @@ Deno.serve(async (req) => {
       const { data: existingSubs } = await supabaseAdmin
         .from("subscriptions")
         .select("raw_data")
-        .eq("type", "webshare")
+        .eq("type", "proxyfbflix")
         .in("status", ["active", "expiring"]);
 
       const assignedIds = new Set<string>();
       for (const sub of (existingSubs || [])) {
         const raw = (sub.raw_data || {}) as Record<string, any>;
-        if (raw.webshare_proxy_id) assignedIds.add(raw.webshare_proxy_id);
+        if (raw.fbflix_proxy_id) assignedIds.add(raw.fbflix_proxy_id);
       }
 
       // 4. Find unassigned proxies, filtering by country if specified
@@ -671,21 +671,21 @@ Deno.serve(async (req) => {
         const { error: subErr } = await supabaseAdmin.from("subscriptions").insert({
           user_id: user.id,
           name: subName,
-          type: "webshare",
+          type: "proxyfbflix",
           status: "active",
           start_date: startDate.toISOString(),
           end_date: endDate.toISOString(),
           product_id: product_id || null,
           auto_renew: false,
           raw_data: {
-            webshare_proxy_id: assignedProxy.id,
+            fbflix_proxy_id: assignedProxy.id,
             proxy_address: assignedProxy.proxy_address,
             port: assignedProxy.port,
             username: assignedProxy.username,
             password: assignedProxy.password,
             country_code: assignedProxy.country_code,
             city_name: assignedProxy.city_name,
-            provider: "webshare",
+            provider: "proxyfbflix",
             exchange_quota_free: 2,
             exchange_quota_pay: 0,
           },
@@ -804,13 +804,13 @@ Deno.serve(async (req) => {
       const { data: existingAdminSubs } = await supabaseAdmin
         .from("subscriptions")
         .select("raw_data")
-        .eq("type", "webshare")
+        .eq("type", "proxyfbflix")
         .in("status", ["active", "expiring"]);
 
       const aAssignedIds = new Set<string>();
       for (const sub of (existingAdminSubs || [])) {
         const raw = (sub.raw_data || {}) as Record<string, any>;
-        if (raw.webshare_proxy_id) aAssignedIds.add(raw.webshare_proxy_id);
+        if (raw.fbflix_proxy_id) aAssignedIds.add(raw.fbflix_proxy_id);
       }
 
       let aAvailable = allProxies.filter((p: any) => p.valid && !aAssignedIds.has(p.id));
@@ -836,21 +836,21 @@ Deno.serve(async (req) => {
         await supabaseAdmin.from("subscriptions").insert({
           user_id: target_user_id,
           name: subName,
-          type: "webshare",
+          type: "proxyfbflix",
           status: "active",
           start_date: startDate.toISOString(),
           end_date: endDate.toISOString(),
           product_id: allocProductId || null,
           auto_renew: false,
           raw_data: {
-            webshare_proxy_id: proxy.id,
+            fbflix_proxy_id: proxy.id,
             proxy_address: proxy.proxy_address,
             port: proxy.port,
             username: proxy.username,
             password: proxy.password,
             country_code: proxy.country_code,
             city_name: proxy.city_name,
-            provider: "webshare",
+            provider: "proxyfbflix",
             exchange_quota_free: 2,
             exchange_quota_pay: 0,
           },
@@ -897,13 +897,13 @@ Deno.serve(async (req) => {
       const { data: existingSubs } = await supabaseAdmin
         .from("subscriptions")
         .select("raw_data")
-        .eq("type", "webshare")
+        .eq("type", "proxyfbflix")
         .in("status", ["active", "expiring"]);
 
       const assignedIds = new Set<string>();
       for (const sub of (existingSubs || [])) {
         const raw = (sub.raw_data || {}) as Record<string, any>;
-        if (raw.webshare_proxy_id) assignedIds.add(raw.webshare_proxy_id);
+        if (raw.fbflix_proxy_id) assignedIds.add(raw.fbflix_proxy_id);
       }
 
       const available = allProxies.filter(p => p.valid && !assignedIds.has(p.id));
@@ -926,7 +926,7 @@ Deno.serve(async (req) => {
         .from("subscriptions")
         .select("*")
         .eq("id", subscription_id)
-        .eq("type", "webshare")
+        .eq("type", "proxyfbflix")
         .maybeSingle();
 
       if (subErr || !subRow) throw new Error("Assinatura não encontrada");
@@ -937,7 +937,7 @@ Deno.serve(async (req) => {
       }
 
       const raw = (subRow.raw_data || {}) as Record<string, any>;
-      const proxyId = raw.webshare_proxy_id ? String(raw.webshare_proxy_id) : "";
+      const proxyId = raw.fbflix_proxy_id ? String(raw.fbflix_proxy_id) : "";
       const proxyAddress = raw.proxy_address ? String(raw.proxy_address) : "";
 
       if (!proxyId && !proxyAddress) {
@@ -960,7 +960,7 @@ Deno.serve(async (req) => {
         const { data: allActiveSubs } = await supabaseAdmin
           .from("subscriptions")
           .select("raw_data")
-          .eq("type", "webshare")
+          .eq("type", "proxyfbflix")
           .in("status", ["active", "expiring"])
           .neq("id", subscription_id);
 
@@ -968,7 +968,7 @@ Deno.serve(async (req) => {
         const assignedIPs = new Set<string>();
         for (const s of (allActiveSubs || [])) {
           const r = (s.raw_data || {}) as Record<string, any>;
-          if (r.webshare_proxy_id) assignedIds.add(r.webshare_proxy_id);
+          if (r.fbflix_proxy_id) assignedIds.add(r.fbflix_proxy_id);
           if (r.proxy_address) assignedIPs.add(r.proxy_address);
         }
 
@@ -998,7 +998,7 @@ Deno.serve(async (req) => {
           success: true,
           synced: true,
           reallocated: true,
-          changed_fields: ["proxy_address", "port", "username", "password", "webshare_proxy_id"],
+          changed_fields: ["proxy_address", "port", "username", "password", "fbflix_proxy_id"],
           proxy: {
             id: newProxy.id,
             ip: newProxy.proxy_address,
@@ -1054,7 +1054,7 @@ Deno.serve(async (req) => {
         .from("subscriptions")
         .select("*")
         .eq("id", subscription_id)
-        .eq("type", "webshare")
+        .eq("type", "proxyfbflix")
         .single();
 
       if (subErr || !subRow) throw new Error("Assinatura não encontrada");
@@ -1082,7 +1082,7 @@ Deno.serve(async (req) => {
       }
       console.log(`[webshare-exchange] Target country for exchange: ${targetCountry || 'ANY'}`);
 
-      const currentProxyId = raw.webshare_proxy_id;
+      const currentProxyId = raw.fbflix_proxy_id;
       const oldProxyStr = `${raw.proxy_address || ""}:${raw.port || ""}`;
       let newProxyData: Record<string, any> | null = null;
       let method = "api"; // track which method succeeded
@@ -1160,14 +1160,14 @@ Deno.serve(async (req) => {
               const { data: allActiveSubs } = await supabaseAdmin
                 .from("subscriptions")
                 .select("raw_data")
-                .eq("type", "webshare")
+                .eq("type", "proxyfbflix")
                 .in("status", ["active", "expiring"])
                 .neq("id", subscription_id);
 
               const otherAssignedIds = new Set<string>();
               for (const s of (allActiveSubs || [])) {
                 const r = (s.raw_data || {}) as Record<string, any>;
-                if (r.webshare_proxy_id) otherAssignedIds.add(r.webshare_proxy_id);
+                if (r.fbflix_proxy_id) otherAssignedIds.add(r.fbflix_proxy_id);
               }
 
               // Find a valid proxy not assigned to others, matching the same country
@@ -1179,7 +1179,7 @@ Deno.serve(async (req) => {
               if (candidates.length > 0) {
                 const np = candidates[0];
                 newProxyData = {
-                  webshare_proxy_id: np.id,
+                  fbflix_proxy_id: np.id,
                   proxy_address: np.proxy_address,
                   port: np.port,
                   username: np.username,
@@ -1222,7 +1222,7 @@ Deno.serve(async (req) => {
             .eq("id", stockItem.id);
 
           newProxyData = {
-            webshare_proxy_id: raw.webshare_proxy_id,
+            fbflix_proxy_id: raw.fbflix_proxy_id,
             proxy_address: itemData.proxy_address || itemData.ip || raw.proxy_address,
             port: itemData.port || raw.port,
             username: itemData.username || raw.username,
@@ -1255,7 +1255,7 @@ Deno.serve(async (req) => {
           const { data: allActiveSubs } = await supabaseAdmin
             .from("subscriptions")
             .select("raw_data")
-            .eq("type", "webshare")
+            .eq("type", "proxyfbflix")
             .in("status", ["active", "expiring"])
             .neq("id", subscription_id);
 
@@ -1263,7 +1263,7 @@ Deno.serve(async (req) => {
           const assignedIPs = new Set<string>();
           for (const s of (allActiveSubs || [])) {
             const r = (s.raw_data || {}) as Record<string, any>;
-            if (r.webshare_proxy_id) assignedIds.add(r.webshare_proxy_id);
+            if (r.fbflix_proxy_id) assignedIds.add(r.fbflix_proxy_id);
             if (r.proxy_address) assignedIPs.add(r.proxy_address);
           }
 
@@ -1276,7 +1276,7 @@ Deno.serve(async (req) => {
           if (poolCandidates.length > 0) {
             const np = poolCandidates[0];
             newProxyData = {
-              webshare_proxy_id: np.id,
+              fbflix_proxy_id: np.id,
               proxy_address: np.proxy_address,
               port: np.port,
               username: np.username,
@@ -1303,7 +1303,7 @@ Deno.serve(async (req) => {
       const updatedRaw = {
         ...raw,
         ...newProxyData,
-        provider: "webshare",
+        provider: "proxyfbflix",
         exchange_quota_free: freeLeft - 1,
         exchange_count: prevExchangeCount + 1,
         initial_exchange_quota_free: raw.initial_exchange_quota_free ?? (freeLeft),
@@ -1380,7 +1380,7 @@ Deno.serve(async (req) => {
       }
       console.log(`[admin-maint-exchange] Detected country: ${maintCountry} for sub ${maintSubId}`);
 
-      const maintCurrentProxyId = maintRaw.webshare_proxy_id;
+      const maintCurrentProxyId = maintRaw.fbflix_proxy_id;
       const maintOldProxy = `${maintRaw.proxy_address || ""}:${maintRaw.port || ""}`;
       let maintNewProxy: Record<string, any> | null = null;
       let maintMethod = "api";
@@ -1427,14 +1427,14 @@ Deno.serve(async (req) => {
               const { data: allActiveSubs } = await supabaseAdmin
                 .from("subscriptions")
                 .select("raw_data")
-                .eq("type", "webshare")
+                .eq("type", "proxyfbflix")
                 .in("status", ["active", "expiring"])
                 .neq("id", maintSubId);
 
               const otherIds = new Set<string>();
               for (const s of (allActiveSubs || [])) {
                 const r = (s.raw_data || {}) as Record<string, any>;
-                if (r.webshare_proxy_id) otherIds.add(r.webshare_proxy_id);
+                if (r.fbflix_proxy_id) otherIds.add(r.fbflix_proxy_id);
               }
 
               const candidates = allCurrentProxies.filter(
@@ -1445,7 +1445,7 @@ Deno.serve(async (req) => {
               if (candidates.length > 0) {
                 const np = candidates[0];
                 maintNewProxy = {
-                  webshare_proxy_id: np.id, proxy_address: np.proxy_address,
+                  fbflix_proxy_id: np.id, proxy_address: np.proxy_address,
                   port: np.port, username: np.username, password: np.password,
                   country_code: np.country_code, city_name: np.city_name,
                 };
@@ -1474,14 +1474,14 @@ Deno.serve(async (req) => {
           const { data: allActiveSubs } = await supabaseAdmin
             .from("subscriptions")
             .select("raw_data")
-            .eq("type", "webshare")
+            .eq("type", "proxyfbflix")
             .in("status", ["active", "expiring"])
             .neq("id", maintSubId);
 
           const assignedIds = new Set<string>();
           for (const s of (allActiveSubs || [])) {
             const r = (s.raw_data || {}) as Record<string, any>;
-            if (r.webshare_proxy_id) assignedIds.add(r.webshare_proxy_id);
+            if (r.fbflix_proxy_id) assignedIds.add(r.fbflix_proxy_id);
           }
 
           const poolCandidates = allCurrentProxies.filter(
@@ -1492,7 +1492,7 @@ Deno.serve(async (req) => {
           if (poolCandidates.length > 0) {
             const np = poolCandidates[0];
             maintNewProxy = {
-              webshare_proxy_id: np.id, proxy_address: np.proxy_address,
+              fbflix_proxy_id: np.id, proxy_address: np.proxy_address,
               port: np.port, username: np.username, password: np.password,
               country_code: np.country_code, city_name: np.city_name,
             };
@@ -1518,17 +1518,17 @@ Deno.serve(async (req) => {
       const existingProxies = maintRaw.proxies?.data || [];
       const updatedProxiesData = existingProxies.length > 0
         ? existingProxies.map((p: any, i: number) => {
-            if (i === 0 || String(p.id) === String(maintRaw.webshare_proxy_id)) {
+            if (i === 0 || String(p.id) === String(maintRaw.fbflix_proxy_id)) {
               return { ...p, code: newProxyCode, parsed: newProxyParsed, status: "USED" };
             }
             return p;
           })
-        : [{ id: maintNewProxy.webshare_proxy_id, code: newProxyCode, parsed: newProxyParsed, status: "USED", notes: null }];
+        : [{ id: maintNewProxy.fbflix_proxy_id, code: newProxyCode, parsed: newProxyParsed, status: "USED", notes: null }];
 
       const updatedMaintRaw = {
         ...maintRaw,
         ...maintNewProxy,
-        provider: "webshare",
+        provider: "proxyfbflix",
         proxies: { ...maintRaw.proxies, data: updatedProxiesData, total: updatedProxiesData.length },
         last_maintenance_exchange: new Date().toISOString(),
         last_maintenance_method: maintMethod,
@@ -1747,7 +1747,7 @@ Deno.serve(async (req) => {
         product_id: product_id || null,
         auto_renew: false,
         raw_data: {
-          provider: "webshare",
+          provider: "proxyfbflix",
           proxy_type: "rotating_residential",
           proxy_host: "p.webshare.io",
           converted_host: convertedHost,
@@ -2167,7 +2167,7 @@ Deno.serve(async (req) => {
               country_code: raw.country_code || targetCountry,
             }
           : {
-              id: raw.webshare_proxy_id,
+              id: raw.fbflix_proxy_id,
               proxy_address: raw.proxy_address,
               port: raw.port,
               username: raw.username,
@@ -2180,12 +2180,12 @@ Deno.serve(async (req) => {
         // Get assigned proxy IDs once, then scan Webshare pages until we find the first valid match.
         const { data: existSubs } = await supabaseAdmin
           .from("subscriptions").select("raw_data")
-          .eq("type", "webshare").in("status", ["active", "expiring"]);
+          .eq("type", "proxyfbflix").in("status", ["active", "expiring"]);
 
         const assignedIds = new Set<string>();
         for (const s of (existSubs || [])) {
           const r = (s.raw_data || {}) as Record<string, any>;
-          if (r.webshare_proxy_id) assignedIds.add(r.webshare_proxy_id);
+          if (r.fbflix_proxy_id) assignedIds.add(r.fbflix_proxy_id);
         }
 
         let foundProxy: any = null;
@@ -2210,14 +2210,14 @@ Deno.serve(async (req) => {
         assignedProxy = foundProxy;
         nextType = "webshare";
         nextRawData = {
-          webshare_proxy_id: assignedProxy.id,
+          fbflix_proxy_id: assignedProxy.id,
           proxy_address: assignedProxy.proxy_address,
           port: assignedProxy.port,
           username: assignedProxy.username,
           password: assignedProxy.password,
           country_code: assignedProxy.country_code,
           city_name: assignedProxy.city_name,
-          provider: "webshare",
+          provider: "proxyfbflix",
           exchange_quota_free: 2,
           exchange_quota_pay: 0,
           migrated_from: existingSub.type === "proxybr" ? "proxybr" : undefined,
@@ -2369,11 +2369,11 @@ Deno.serve(async (req) => {
         Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
       );
 
-      const { webshare_proxy_id } = bodyClone;
-      if (!webshare_proxy_id) throw new Error("webshare_proxy_id é obrigatório");
+      const { fbflix_proxy_id } = bodyClone;
+      if (!fbflix_proxy_id) throw new Error("fbflix_proxy_id é obrigatório");
 
       // Delete the proxy from Webshare API
-      const resp = await webFetch(`/proxy/list/${webshare_proxy_id}/`, WEBSHARE_API_KEY, "DELETE");
+      const resp = await webFetch(`/proxy/list/${fbflix_proxy_id}/`, WEBSHARE_API_KEY, "DELETE");
       
       // 204 = success, 404 = already deleted
       if (resp.status !== 204 && resp.status !== 404) {
@@ -2381,8 +2381,8 @@ Deno.serve(async (req) => {
         throw new Error(`Webshare delete error [${resp.status}]: ${text.slice(0, 200)}`);
       }
 
-      console.log(`[internal-delete-proxy] Deleted Webshare proxy ${webshare_proxy_id} (status=${resp.status})`);
-      return new Response(JSON.stringify({ success: true, webshare_proxy_id, status: resp.status }), {
+      console.log(`[internal-delete-proxy] Deleted Webshare proxy ${fbflix_proxy_id} (status=${resp.status})`);
+      return new Response(JSON.stringify({ success: true, fbflix_proxy_id, status: resp.status }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

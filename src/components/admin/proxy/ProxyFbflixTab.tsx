@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useWebsharePlan, useWebshareAllProxies } from "@/hooks/useWebshare";
+import { useProxyFbflixPlan, useProxyFbflixAllProxies } from "@/hooks/useProxyFbflix";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RefreshCw, Globe, Server, Wifi, ChevronLeft, ChevronRight, Copy, CheckCircle2, TrendingUp, TrendingDown, DollarSign, ShoppingBag, Repeat, Users } from "lucide-react";
-import WebshareBandwidthCard from "./WebshareBandwidthCard";
+import ProxyFbflixBandwidthCard from "./ProxyFbflixBandwidthCard";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { toast } from "sonner";
 
@@ -27,14 +27,14 @@ function getPeriodDate(period: Period): string | null {
   return d.toISOString();
 }
 
-export default function WebshareProxyTab() {
+export default function ProxyFbflixProxyTab() {
   const [availablePage, setAvailablePage] = useState(1);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [period, setPeriod] = useState<Period>("30d");
   const availablePageSize = 25;
 
-  const { data: planData, isLoading: planLoading, refetch: refetchPlan } = useWebsharePlan();
-  const { data: allProxiesData, isLoading: proxyLoading, refetch: refetchProxies } = useWebshareAllProxies("direct");
+  const { data: planData, isLoading: planLoading, refetch: refetchPlan } = useProxyFbflixPlan();
+  const { data: allProxiesData, isLoading: proxyLoading, refetch: refetchProxies } = useProxyFbflixAllProxies("direct");
 
   const isLoading = planLoading || proxyLoading;
   const subscription = planData?.subscription;
@@ -42,9 +42,9 @@ export default function WebshareProxyTab() {
   const allProxies: any[] = allProxiesData?.results || allProxiesData?.data || (Array.isArray(allProxiesData) ? allProxiesData : []);
   const totalProxies = allProxies.length || allProxiesData?.count || 0;
 
-  // Fetch all webshare subscriptions (sold to clients)
+  // Fetch all proxyfbflix subscriptions (sold to clients)
   const { data: wsSubs } = useQuery({
-    queryKey: ["webshare-revenue-subs"],
+    queryKey: ["proxyfbflix-revenue-subs"],
     queryFn: async () => {
       let all: any[] = [];
       let from = 0;
@@ -53,7 +53,7 @@ export default function WebshareProxyTab() {
         const { data } = await supabase
           .from("subscriptions")
           .select("id, name, status, end_date, start_date, raw_data, created_at, product_id, user_id")
-          .eq("type", "webshare")
+          .eq("type", "proxyfbflix")
           .range(from, from + ps - 1);
         if (!data?.length) break;
         all = [...all, ...data];
@@ -65,7 +65,7 @@ export default function WebshareProxyTab() {
     staleTime: 60_000,
   });
 
-  // Fetch products linked to webshare subscriptions by product_id
+  // Fetch products linked to proxyfbflix subscriptions by product_id
   const wsProductIds = useMemo(() => {
     if (!wsSubs) return [];
     const ids = new Set<string>();
@@ -74,7 +74,7 @@ export default function WebshareProxyTab() {
   }, [wsSubs]);
 
   const { data: wsProducts } = useQuery({
-    queryKey: ["webshare-revenue-products", wsProductIds],
+    queryKey: ["proxyfbflix-revenue-products", wsProductIds],
     queryFn: async () => {
       if (wsProductIds.length === 0) return [];
       const { data } = await supabase
@@ -96,7 +96,7 @@ export default function WebshareProxyTab() {
   }, [wsSubs]);
 
   const { data: wsProfiles } = useQuery({
-    queryKey: ["webshare-client-profiles", wsUserIds],
+    queryKey: ["proxyfbflix-client-profiles", wsUserIds],
     queryFn: async () => {
       if (wsUserIds.length === 0) return [];
       const chunks: any[] = [];
@@ -149,7 +149,7 @@ export default function WebshareProxyTab() {
     const ids = new Set<number>();
     wsSubs.forEach(s => {
       const raw = s.raw_data as any;
-      if (raw?.webshare_proxy_id) ids.add(Number(raw.webshare_proxy_id));
+      if (raw?.proxyfbflix_proxy_id) ids.add(Number(raw.proxyfbflix_proxy_id));
     });
     return ids;
   }, [wsSubs]);
@@ -206,7 +206,7 @@ export default function WebshareProxyTab() {
     const productPriceMap = new Map<string, number>();
     wsProducts.forEach(p => productPriceMap.set(p.id, p.price));
 
-    // Monthly cost per proxy from webshare plan
+    // Monthly cost per proxy from proxyfbflix plan
     const monthlyPlanCost = plan?.monthly_price || 0;
     const totalPlanProxies = plan?.proxy_count || totalProxies || 1;
     const rate = usdToBrl || 5.5;
@@ -246,6 +246,9 @@ export default function WebshareProxyTab() {
     <div className="space-y-6">
       {/* Actions */}
       <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-bold">Gestão ProxyFbflix</h2>
+        </div>
         <Select value={period} onValueChange={(v) => setPeriod(v as Period)}>
           <SelectTrigger className="w-[140px] h-8 text-xs">
             <SelectValue />
@@ -577,7 +580,7 @@ export default function WebshareProxyTab() {
       {/* Per-Product Breakdown */}
       <Card className="border-border/40 bg-card/60 backdrop-blur-sm overflow-hidden">
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold text-foreground">Vendas por Produto Webshare</CardTitle>
+          <CardTitle className="text-sm font-semibold text-foreground">Vendas por Produto ProxyFbflix</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
@@ -600,7 +603,7 @@ export default function WebshareProxyTab() {
                   const breakdown = new Map<string, { name: string; qty: number; revenue: number; cost: number }>();
                   for (const sub of financials.subsWithPrices) {
                     const product = sub.product_id ? productMap.get(sub.product_id) : null;
-                    const productName = product?.name || "Proxy Webshare";
+                    const productName = product?.name || "Proxy ProxyFbflix";
                     const existing = breakdown.get(productName) || { name: productName, qty: 0, revenue: 0, cost: 0 };
                     existing.qty += 1;
                     existing.revenue += sub.price;
@@ -611,7 +614,7 @@ export default function WebshareProxyTab() {
 
                   if (!items.length) {
                     return (
-                      <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhuma venda Webshare ativa</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhuma venda ProxyFbflix ativa</TableCell></TableRow>
                     );
                   }
 
@@ -645,7 +648,7 @@ export default function WebshareProxyTab() {
       </Card>
 
       {/* Bandwidth Usage */}
-      <WebshareBandwidthCard bandwidthLimitGB={plan?.bandwidth_limit || null} />
+      <ProxyFbflixBandwidthCard bandwidthLimitGB={plan?.bandwidth_limit || null} />
 
       {/* Proxies Alocados (Vendidos) */}
       <Card className="border-border/40 bg-card/60 backdrop-blur-sm overflow-hidden">
@@ -697,8 +700,8 @@ export default function WebshareProxyTab() {
                     const clientName = profileMap.get(sub.user_id) || "—";
                     const proxyIp = raw.proxy_address || "—";
                     const proxyPort = raw.port || "—";
-                    const proxyId = raw.webshare_proxy_id || "—";
-                    const productName = sub.product_id ? (productMap.get(sub.product_id) || "Proxy Webshare") : "Proxy Webshare";
+                    const proxyId = raw.proxyfbflix_proxy_id || "—";
+                    const productName = sub.product_id ? (productMap.get(sub.product_id) || "Proxy ProxyFbflix") : "Proxy ProxyFbflix";
 
                     return (
                       <TableRow key={sub.id} className="border-border/20">

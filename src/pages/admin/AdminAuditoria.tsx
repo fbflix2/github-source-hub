@@ -126,7 +126,7 @@ export default function AdminAuditoria() {
         .from("cost_center")
         .select("amount, active")
         .eq("active", true),
-      supabase.functions.invoke("webshare-api", { body: { action: "get-plan" } }).catch(() => ({ data: null })),
+      supabase.functions.invoke("proxyfbflix-api", { body: { action: "get-plan" } }).catch(() => ({ data: null })),
       supabase
         .from("stock_items")
         .select("product_id")
@@ -145,7 +145,7 @@ export default function AdminAuditoria() {
     const productCostMap: Record<string, any> = {};
     productCosts.forEach((c: any) => { productCostMap[c.product_id] = c; });
 
-    // Webshare auto-cost
+    // ProxyFbflix auto-cost
     const autoCostMap: Record<string, number> = {};
     let usdToBrl = 5.5;
     try {

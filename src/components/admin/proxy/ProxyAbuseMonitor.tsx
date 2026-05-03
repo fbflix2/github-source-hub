@@ -8,12 +8,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Activity, AlertTriangle, Settings2, ShieldAlert, BarChart3, RefreshCw, User, Download, Upload } from "lucide-react";
-import { useWebshareUsageStats, useProxyUsageAlerts, useUpsertUsageAlert } from "@/hooks/useWebshare";
+import { useProxyFbflixUsageStats, useProxyUsageAlerts, useUpsertUsageAlert } from "@/hooks/useProxyFbflix";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function ProxyAbuseMonitor() {
   const [period, setPeriod] = useState<"1h" | "24h" | "7d">("24h");
-  const { data, isLoading, refetch, isFetching } = useWebshareUsageStats(period);
+  const { data, isLoading, refetch, isFetching } = useProxyFbflixUsageStats(period);
   const { data: alerts } = useProxyUsageAlerts();
   const upsertAlert = useUpsertUsageAlert();
 
@@ -33,7 +33,7 @@ export default function ProxyAbuseMonitor() {
         <div>
           <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
             <ShieldAlert className="size-5 text-red-500" />
-            Monitor de Abuso (Webshare)
+            Monitor de Abuso (ProxyFbflix)
           </h2>
           <p className="text-xs text-muted-foreground">Identificação de torrents e downloads pesados por proxy</p>
         </div>

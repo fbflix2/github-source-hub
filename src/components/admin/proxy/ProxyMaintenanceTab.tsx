@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { callWebshare } from "@/hooks/useWebshare";
+import { callProxyFbflix } from "@/hooks/useProxyFbflix";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -30,9 +30,9 @@ export default function ProxyMaintenanceTab() {
   const [quotaAmount, setQuotaAmount] = useState(1);
   const [exchangeConfirm, setExchangeConfirm] = useState<any | null>(null);
 
-  // Fetch all webshare subscriptions
+  // Fetch all proxyfbflix subscriptions
   const { data: allSubs, isLoading } = useQuery({
-    queryKey: ["maint-webshare-subs"],
+    queryKey: ["maint-proxyfbflix-subs"],
     queryFn: async () => {
       let all: any[] = [];
       let from = 0;
@@ -41,7 +41,7 @@ export default function ProxyMaintenanceTab() {
         const { data } = await supabase
           .from("subscriptions")
           .select("id, name, status, end_date, start_date, raw_data, created_at, product_id, user_id, type")
-          .in("type", ["webshare", "webshare_rotating", "proxybr"])
+          .in("type", ["proxyfbflix", "proxyfbflix_rotating", "proxybr"])
           .order("created_at", { ascending: false })
           .range(from, from + ps - 1);
         if (!data?.length) break;
@@ -126,7 +126,7 @@ export default function ProxyMaintenanceTab() {
       }
 
       // Type filter
-      const isRotating = s.type === "webshare_rotating" || (s.type === "webshare" && s.raw_data?.proxy_host);
+      const isRotating = s.type === "proxyfbflix_rotating" || (s.type === "proxyfbflix" && s.raw_data?.proxy_host);
       if (typeFilter === "rotating" && !isRotating) return false;
       if (typeFilter === "individual" && isRotating) return false;
 
@@ -150,11 +150,11 @@ export default function ProxyMaintenanceTab() {
   // Admin maintenance exchange mutation
   const exchangeMutation = useMutation({
     mutationFn: async (subscriptionId: string) => {
-      return callWebshare("admin-maintenance-exchange", { subscription_id: subscriptionId });
+      return callProxyFbflix("admin-maintenance-exchange", { subscription_id: subscriptionId });
     },
     onSuccess: (result: any) => {
       toast.success(`Proxy trocado com sucesso! Novo: ${result?.new_proxy || "—"}`);
-      queryClient.invalidateQueries({ queryKey: ["maint-webshare-subs"] });
+      queryClient.invalidateQueries({ queryKey: ["maint-proxyfbflix-subs"] });
       setExchangeConfirm(null);
     },
     onError: (err: Error) => {
@@ -171,14 +171,14 @@ export default function ProxyMaintenanceTab() {
       const currentFree = raw.exchange_quota_free ?? 0;
       const newFree = Math.max(0, currentFree + delta);
       const updatedRaw = { ...raw, exchange_quota_free: newFree };
-      return callWebshare("admin-update-subscription", {
+      return callProxyFbflix("admin-update-subscription", {
         subscription_id: subId,
         raw_data: updatedRaw,
       });
     },
     onSuccess: () => {
       toast.success("Cota atualizada com sucesso!");
-      queryClient.invalidateQueries({ queryKey: ["maint-webshare-subs"] });
+      queryClient.invalidateQueries({ queryKey: ["maint-proxyfbflix-subs"] });
       setQuotaModal(null);
       setQuotaAmount(1);
     },
@@ -230,7 +230,7 @@ export default function ProxyMaintenanceTab() {
               <SelectItem value="rotating">🔄 Rotativo</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" size="sm" onClick={() => queryClient.invalidateQueries({ queryKey: ["maint-webshare-subs"] })} disabled={isLoading}>
+          <Button variant="outline" size="sm" onClick={() => queryClient.invalidateQueries({ queryKey: ["maint-proxyfbflix-subs"] })} disabled={isLoading}>
             <RefreshCw className={`size-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />Atualizar
           </Button>
           <Badge variant="outline" className="text-xs">
@@ -281,7 +281,7 @@ export default function ProxyMaintenanceTab() {
                   const raw = (sub.raw_data || {}) as Record<string, any>;
                   const clientName = profileMap.get(sub.user_id) || "—";
                   const isProxyBR = sub.type === "proxybr";
-                  const isRotating = sub.type === "webshare_rotating";
+                  const isRotating = sub.type === "proxyfbflix_rotating";
                   // ProxyBR stores proxy data differently
                   const proxyIp = raw.proxy_address || raw.ip || "—";
                   const proxyPort = raw.port || "—";
@@ -289,7 +289,7 @@ export default function ProxyMaintenanceTab() {
                   const statusInfo = getStatusInfo(sub);
                   const freeQuota = raw.exchange_quota_free ?? 0;
                   const maintCount = raw.maintenance_exchange_count || 0;
-                  const providerLabel = isProxyBR ? "ProxyBR" : "Webshare";
+                  const providerLabel = isProxyBR ? "ProxyBR" : "ProxyFbflix";
 
                   return (
                     <TableRow key={sub.id} className="border-border/20 hover:bg-muted/20">
