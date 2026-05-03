@@ -261,26 +261,6 @@ export default function Tutorials() {
         </div>
       )}
 
-      {/* API Documentation Banner */}
-      <div className="mb-10 p-6 rounded-2xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border border-primary/20 flex flex-col md:flex-row items-center justify-between gap-6">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center border border-primary/30">
-            <Code2 className="text-primary size-6" />
-          </div>
-          <div>
-            <h3 className="text-lg font-bold text-foreground">Integração via API</h3>
-            <p className="text-sm text-muted-foreground">Implemente nosso sistema de proxies no seu software ou ferramenta.</p>
-          </div>
-        </div>
-        <button 
-          onClick={() => navigate("/api-docs")}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 transition-all whitespace-nowrap"
-        >
-          Ver Documentação
-          <ArrowRight className="size-4" />
-        </button>
-      </div>
-
       {/* Header + Search */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
         <div>
