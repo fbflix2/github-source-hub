@@ -1,6 +1,6 @@
 import { Globe, Wrench, Package } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import ProxyFbflixProxyTab from "@/components/admin/proxy/ProxyFbflixProxyTab";
+import ProxyFbflixProxyTab from "@/components/admin/proxy/ProxyFbflixTab";
 import ProxyMaintenanceTab from "@/components/admin/proxy/ProxyMaintenanceTab";
 import ProxyAvailableTab from "@/components/admin/proxy/ProxyAvailableTab";
 import ProxyAbuseMonitor from "@/components/admin/proxy/ProxyAbuseMonitor";
