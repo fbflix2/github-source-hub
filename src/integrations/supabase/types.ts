@@ -3295,6 +3295,7 @@ export type Database = {
           country: string | null
           created_at: string
           email_alt: string | null
+          email_password: string | null
           email_password_enc: string | null
           email_principal: string | null
           has_bm: boolean
@@ -3303,6 +3304,7 @@ export type Database = {
           login: string | null
           login_result: string | null
           notes: string | null
+          password: string | null
           password_enc: string | null
           profile_link: string | null
           sold: boolean
@@ -3318,6 +3320,7 @@ export type Database = {
           country?: string | null
           created_at?: string
           email_alt?: string | null
+          email_password?: string | null
           email_password_enc?: string | null
           email_principal?: string | null
           has_bm?: boolean
@@ -3326,6 +3329,7 @@ export type Database = {
           login?: string | null
           login_result?: string | null
           notes?: string | null
+          password?: string | null
           password_enc?: string | null
           profile_link?: string | null
           sold?: boolean
@@ -3341,6 +3345,7 @@ export type Database = {
           country?: string | null
           created_at?: string
           email_alt?: string | null
+          email_password?: string | null
           email_password_enc?: string | null
           email_principal?: string | null
           has_bm?: boolean
@@ -3349,6 +3354,7 @@ export type Database = {
           login?: string | null
           login_result?: string | null
           notes?: string | null
+          password?: string | null
           password_enc?: string | null
           profile_link?: string | null
           sold?: boolean
