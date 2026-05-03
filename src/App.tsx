@@ -21,6 +21,7 @@ import Orders from "./pages/Orders";
 import ItemDetails from "./pages/ItemDetails";
 import ItemDetailsHashRedirect from "./pages/ItemDetailsHashRedirect";
 import Tutorials from "./pages/Tutorials";
+import ApiDocs from "./pages/ApiDocs";
 import Wallet from "./pages/Wallet";
 import Advertise from "./pages/Advertise";
 import Profile from "./pages/Profile";
@@ -165,6 +166,7 @@ function AuthenticatedApp({ user, onLogout }: { user: User; onLogout: () => void
         <Route path="/item-details" element={<ItemDetailsHashRedirect />} />
         <Route path="/item-details/:orderId/:itemId" element={<ItemDetails />} />
         <Route path="/tutorials" element={<Tutorials />} />
+        <Route path="/api-docs" element={<ApiDocs />} />
         <Route path="/wallet" element={<Wallet />} />
         <Route path="/advertise" element={<Advertise />} />
         <Route path="/parceria" element={<GanheAqui />} />
