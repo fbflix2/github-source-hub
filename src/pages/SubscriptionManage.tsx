@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useProxyBRSubscriptions, useExchangeProxy, useRenewSubscription, useToggleAutoRenew, getExchangeHistory } from "@/hooks/useProxyBR";
-import { useProxy FbflixSubscriptions, useExchangeProxy FbflixProxy, getProxy FbflixExchangeHistory, useToggleProxy FbflixAutoRenew, useSyncProxy FbflixProxyCredentials } from "@/hooks/useProxy Fbflix";
+import { useProxyFbflixSubscriptions, useExchangeProxyFbflixProxy, getProxyFbflixExchangeHistory, useToggleProxyFbflixAutoRenew, useSyncProxyFbflixProxyCredentials } from "@/hooks/useProxyFbflix";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
@@ -29,13 +29,13 @@ export default function SubscriptionManage() {
   const { code } = useParams<{ code: string }>();
   const navigate = useNavigate();
   const { data: subscriptions, isLoading } = useProxyBRSubscriptions();
-  const { data: proxy fbflixRaw, isLoading: wsLoading } = useProxy FbflixSubscriptions();
+  const { data: proxyfbflixRaw, isLoading: wsLoading } = useProxyFbflixSubscriptions();
   const exchangeMutation = useExchangeProxy();
-  const wsExchangeMutation = useExchangeProxy FbflixProxy();
-  const syncProxy FbflixCredentialsMutation = useSyncProxy FbflixProxyCredentials();
+  const wsExchangeMutation = useExchangeProxyFbflixProxy();
+  const syncProxyFbflixCredentialsMutation = useSyncProxyFbflixProxyCredentials();
   const renewMutation = useRenewSubscription();
   const autoRenewMutation = useToggleAutoRenew();
-  const wsAutoRenewMutation = useToggleProxy FbflixAutoRenew();
+  const wsAutoRenewMutation = useToggleProxyFbflixAutoRenew();
   const queryClient = useQueryClient();
   const [showExchangeHistory, setShowExchangeHistory] = useState(false);
   const [extraQuotaQty, setExtraQuotaQty] = useState(1);
@@ -48,9 +48,9 @@ export default function SubscriptionManage() {
 
   // Search in both ProxyBR and Proxy Fbflix subscriptions
   const proxyBRSub = (subscriptions as ProxySubscription[] | undefined)?.find((s) => s.code === code);
-  const proxy fbflixSub = (Array.isArray(proxy fbflixRaw) ? proxy fbflixRaw : [])?.find((s: any) => s.code === code);
-  const sub = (proxyBRSub || proxy fbflixSub) as ProxySubscription | undefined;
-  const isProxy Fbflix = !!proxy fbflixSub || (sub as any)?.provider === "proxy fbflix";
+  const proxyfbflixSub = (Array.isArray(proxyfbflixRaw) ? proxyfbflixRaw : [])?.find((s: any) => s.code === code);
+  const sub = (proxyBRSub || proxyfbflixSub) as ProxySubscription | undefined;
+  const isProxyFbflix = !!proxyfbflixSub || (sub as any)?.provider === "proxyfbflix";
   const isRotating = !!(sub as any)?.is_rotating;
   const combinedLoading = isLoading || wsLoading;
 

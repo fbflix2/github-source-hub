@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProxyBRSubscriptions } from "@/hooks/useProxyBR";
 import { Play, X, SlidersHorizontal, Search } from "lucide-react";
-import { useProxy FbflixSubscriptions, useMigrateProxyBRToProxy Fbflix } from "@/hooks/useProxy Fbflix";
+import { useProxyFbflixSubscriptions, useMigrateProxyBRToProxyFbflix } from "@/hooks/useProxyFbflix";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { differenceInDays, parseISO, format } from "date-fns";
@@ -114,12 +114,12 @@ export default function Subscriptions() {
   }, []);
 
   const { data: subscriptionsRaw } = useProxyBRSubscriptions();
-  const { data: proxy fbflixRaw } = useProxy FbflixSubscriptions();
+  const { data: proxyfbflixRaw } = useProxyFbflixSubscriptions();
 
   useEffect(() => {
     const allSubs = [
       ...(Array.isArray(subscriptionsRaw) ? subscriptionsRaw : []),
-      ...(Array.isArray(proxy fbflixRaw) ? proxy fbflixRaw : []),
+      ...(Array.isArray(proxyfbflixRaw) ? proxyfbflixRaw : []),
     ];
     const hasActive = allSubs.some((sub: any) => {
       if (!sub.end_date) return true;
@@ -127,7 +127,7 @@ export default function Subscriptions() {
       return daysLeft >= 0 && sub.status !== "cancelled";
     });
     setHasActiveProxy(hasActive);
-  }, [subscriptionsRaw, proxy fbflixRaw]);
+  }, [subscriptionsRaw, proxyfbflixRaw]);
 
   const activeServices: Record<SubscriptionCategory, boolean> = {
     proxies: hasActiveProxy === true,
@@ -336,16 +336,16 @@ function ProxiesPanel() {
   const [tagFilter, setTagFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("newest");
   const { data: subscriptionsRaw, isLoading: proxyLoading, error: proxyError } = useProxyBRSubscriptions();
-  const { data: proxy fbflixRaw, isLoading: wsLoading, error: wsError } = useProxy FbflixSubscriptions();
-  const migrateMutation = useMigrateProxyBRToProxy Fbflix();
+  const { data: proxyfbflixRaw, isLoading: wsLoading, error: wsError } = useProxyFbflixSubscriptions();
+  const migrateMutation = useMigrateProxyBRToProxyFbflix();
   const [renewingCode, setRenewingCode] = useState<string | null>(null);
 
   const isLoading = proxyLoading || wsLoading;
   const error = proxyError || wsError;
 
   const proxyBRSubs: ProxySubscription[] = Array.isArray(subscriptionsRaw) ? subscriptionsRaw : [];
-  const proxy fbflixSubs: ProxySubscription[] = Array.isArray(proxy fbflixRaw) ? proxy fbflixRaw : [];
-  const subscriptions = [...proxyBRSubs, ...proxy fbflixSubs];
+  const proxyfbflixSubs: ProxySubscription[] = Array.isArray(proxyfbflixRaw) ? proxyfbflixRaw : [];
+  const subscriptions = [...proxyBRSubs, ...proxyfbflixSubs];
 
   const enriched = subscriptions.map((sub) => ({
     ...sub,
