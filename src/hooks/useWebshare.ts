@@ -9,7 +9,7 @@ type FunctionInvokeError = Error & {
   };
 };
 
-async function extractWebshareErrorMessage(error: unknown, fallback = "Erro Webshare API") {
+async function extractWebshareErrorMessage(error: unknown, fallback = "Erro Proxy Fbflix API") {
   const err = error as FunctionInvokeError;
 
   try {
@@ -48,7 +48,7 @@ async function callWebshare(action: string, params: Record<string, unknown> = {}
   const { data, error } = await invokeWebshare();
 
   if (error) {
-    const realErrorMsg = await extractWebshareErrorMessage(error, data?.error || "Erro Webshare API");
+    const realErrorMsg = await extractWebshareErrorMessage(error, data?.error || "Erro Proxy Fbflix API");
 
     // Retry once on auth failure
     if (error.message?.includes("401") || realErrorMsg.includes("Token inválido")) {
@@ -56,7 +56,7 @@ async function callWebshare(action: string, params: Record<string, unknown> = {}
       if (!refreshErr) {
         const retry = await invokeWebshare();
         if (retry.error) {
-          const retryRealErr = await extractWebshareErrorMessage(retry.error, retry.data?.error || "Erro Webshare API");
+          const retryRealErr = await extractWebshareErrorMessage(retry.error, retry.data?.error || "Erro Proxy Fbflix API");
           throw new Error(retryRealErr);
         }
         if (retry.data?.error && !retry.data?.data) throw new Error(retry.data.error);
@@ -259,7 +259,7 @@ export function useSyncWebshareProxyCredentials() {
     onSuccess: (result: any) => {
       queryClient.invalidateQueries({ queryKey: ["webshare-subscriptions"] });
       if (result?.synced) {
-        toast.success("Credenciais do proxy sincronizadas com a Webshare.");
+        toast.success("Credenciais do proxy sincronizadas com o Proxy Fbflix.");
       }
     },
     onError: (err: Error) => {

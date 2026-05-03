@@ -246,6 +246,9 @@ export default function WebshareProxyTab() {
     <div className="space-y-6">
       {/* Actions */}
       <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-bold">Gestão Proxy Fbflix</h2>
+        </div>
         <Select value={period} onValueChange={(v) => setPeriod(v as Period)}>
           <SelectTrigger className="w-[140px] h-8 text-xs">
             <SelectValue />
