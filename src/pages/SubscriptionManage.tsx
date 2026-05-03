@@ -46,7 +46,7 @@ export default function SubscriptionManage() {
   // Extract the real subscription name (strip __proxy_XXX suffix for multi-proxy codes)
   const realSubName = code?.includes("__proxy_") ? code.split("__proxy_")[0] : code;
 
-  // Search in both ProxyBR and Proxy Fbflix subscriptions
+  // Search in both ProxyBR and ProxyFbflix subscriptions
   const proxyBRSub = (subscriptions as ProxySubscription[] | undefined)?.find((s) => s.code === code);
   const proxyfbflixSub = (Array.isArray(proxyfbflixRaw) ? proxyfbflixRaw : [])?.find((s: any) => s.code === code);
   const sub = (proxyBRSub || proxyfbflixSub) as ProxySubscription | undefined;
@@ -60,7 +60,7 @@ export default function SubscriptionManage() {
     queryFn: async () => {
       if (!realSubName) return null;
 
-      // For Proxy Fbflix subs, use the price from the join
+      // For ProxyFbflix subs, use the price from the join
       if ((sub as any)?.customer_price != null) {
         return Number((sub as any).customer_price);
       }
@@ -152,7 +152,7 @@ export default function SubscriptionManage() {
 
     // Persist to DB in raw_data
     if (code) {
-      const subType = isProxy Fbflix ? "proxy fbflix" : "proxybr";
+      const subType = isProxyFbflix ? "proxyfbflix" : "proxybr";
       const { data: subRow } = await supabase
         .from("subscriptions")
         .select("id, raw_data")
@@ -163,7 +163,7 @@ export default function SubscriptionManage() {
       if (subRow) {
         const updatedRaw = { ...((subRow.raw_data as Record<string, any>) || {}), [tagKey]: trimmed || null };
         await supabase.from("subscriptions").update({ raw_data: updatedRaw as any }).eq("id", subRow.id);
-        queryClient.invalidateQueries({ queryKey: isProxy Fbflix ? ["proxy fbflix-subscriptions"] : ["proxybr-subscriptions"] });
+        queryClient.invalidateQueries({ queryKey: isProxyFbflix ? ["proxyfbflix-subscriptions"] : ["proxybr-subscriptions"] });
       }
     }
 
@@ -175,7 +175,7 @@ export default function SubscriptionManage() {
     setProfileName("");
 
     if (code) {
-      const subType = isProxy Fbflix ? "proxy fbflix" : "proxybr";
+      const subType = isProxyFbflix ? "proxyfbflix" : "proxybr";
       const { data: subRow } = await supabase
         .from("subscriptions")
         .select("id, raw_data")
@@ -186,7 +186,7 @@ export default function SubscriptionManage() {
       if (subRow) {
         const updatedRaw = { ...((subRow.raw_data as Record<string, any>) || {}), [tagKey]: null };
         await supabase.from("subscriptions").update({ raw_data: updatedRaw as any }).eq("id", subRow.id);
-        queryClient.invalidateQueries({ queryKey: isProxy Fbflix ? ["proxy fbflix-subscriptions"] : ["proxybr-subscriptions"] });
+        queryClient.invalidateQueries({ queryKey: isProxyFbflix ? ["proxyfbflix-subscriptions"] : ["proxybr-subscriptions"] });
       }
     }
 
@@ -266,7 +266,7 @@ export default function SubscriptionManage() {
                 style={{ width: `${progress}%` }}
               />
             </div>
-            {!isProxy Fbflix && (status === "expiring" || status === "expired") && (
+            {!isProxyFbflix && (status === "expiring" || status === "expired") && (
               <Button size="sm" onClick={() => renewMutation.mutate(sub.name)} disabled={renewMutation.isPending} className="bg-primary hover:bg-primary/80 text-primary-foreground font-bold text-xs">
                 <span className="material-symbols-outlined mr-1 text-sm">replay</span>
                 {renewMutation.isPending ? "Renovando..." : "Renovar"}
@@ -287,7 +287,7 @@ export default function SubscriptionManage() {
                   {/* Rotating proxy: show all endpoint variants */}
                   {(() => {
                     const proxyData = sub.proxy as any;
-                    const host = proxyData.ip || "p.proxy fbflix.io";
+                    const host = proxyData.ip || "p.proxyfbflix.io";
                     const convertedHost = proxyData.converted_host;
                     const altPort = proxyData.alt_http_port || 3128;
                     const socks5Port = proxyData.socks5_port || 1080;
@@ -530,9 +530,9 @@ export default function SubscriptionManage() {
                 </div>
                 <Switch
                   checked={!!sub.auto_renew}
-                  disabled={isProxy Fbflix ? wsAutoRenewMutation.isPending : autoRenewMutation.isPending}
+                  disabled={isProxyFbflix ? wsAutoRenewMutation.isPending : autoRenewMutation.isPending}
                   onCheckedChange={(checked) => {
-                    if (isProxy Fbflix) {
+                    if (isProxyFbflix) {
                       wsAutoRenewMutation.mutate({ subscriptionId: (sub as any).id || sub.code, auto_renew: checked });
                     } else {
                       autoRenewMutation.mutate({ subscriptionCode: sub.name, auto_renew: checked });
@@ -551,8 +551,8 @@ export default function SubscriptionManage() {
                 Trocar Proxy
               </h2>
               {(() => {
-                const history = isProxy Fbflix
-                  ? getProxy FbflixExchangeHistory((sub as any).id || sub.code)
+                const history = isProxyFbflix
+                  ? getProxyFbflixExchangeHistory((sub as any).id || sub.code)
                   : getExchangeHistory(sub.name);
                 if (history.length === 0) return null;
                 return (
@@ -571,7 +571,7 @@ export default function SubscriptionManage() {
               const raw = (sub.raw_data || {}) as Record<string, any>;
               const freeExchanges = raw.exchange_quota_free ?? raw.subscription?.exchange_quota_free ?? 0;
               const paidExchanges = raw.exchange_quota_pay ?? raw.subscription?.exchange_quota_pay ?? 0;
-              const activeMutation = isProxy Fbflix ? wsExchangeMutation : exchangeMutation;
+              const activeMutation = isProxyFbflix ? wsExchangeMutation : exchangeMutation;
               return (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-xs">
@@ -583,7 +583,7 @@ export default function SubscriptionManage() {
                       size="sm"
                       onClick={() => {
                         const oldProxyString = sub.proxy ? `${sub.proxy.ip}:${sub.proxy.port}:${sub.proxy.username || ""}:${sub.proxy.password || ""}` : undefined;
-                        if (isProxy Fbflix) {
+                        if (isProxyFbflix) {
                           const subId = (sub as any).id || sub.code;
                           wsExchangeMutation.mutate({ subscriptionId: subId, oldProxyString });
                         } else {
@@ -639,14 +639,14 @@ export default function SubscriptionManage() {
                             const totalCost = customerPrice * 0.5 * extraQuotaQty;
                             if (!profile || profile.balance < totalCost) { toast.error(`Saldo insuficiente.`); return; }
                             await supabase.from("profiles").update({ balance: profile.balance - totalCost }).eq("user_id", user.id);
-                            const subType = isProxy Fbflix ? "proxy fbflix" : "proxybr";
+                            const subType = isProxyFbflix ? "proxyfbflix" : "proxybr";
                             const { data: subRow } = await supabase.from("subscriptions").select("id, raw_data").eq("name", realSubName!).eq("type", subType).maybeSingle();
                             if (subRow) {
                               const currentRaw = (subRow.raw_data || {}) as Record<string, any>;
                               const updatedRaw = { ...currentRaw, exchange_quota_free: (currentRaw.exchange_quota_free ?? 0) + extraQuotaQty };
                               await supabase.from("subscriptions").update({ raw_data: updatedRaw as any }).eq("id", subRow.id);
                             }
-                            queryClient.invalidateQueries({ queryKey: isProxy Fbflix ? ["proxy fbflix-subscriptions"] : ["proxybr-subscriptions"] });
+                            queryClient.invalidateQueries({ queryKey: isProxyFbflix ? ["proxyfbflix-subscriptions"] : ["proxybr-subscriptions"] });
                             toast.success(`${extraQuotaQty} cota${extraQuotaQty > 1 ? 's' : ''} adicionada${extraQuotaQty > 1 ? 's' : ''}!`);
                             setExtraQuotaQty(1);
                           } catch (err: any) { toast.error(err.message || "Erro ao comprar cotas"); } finally { setIsBuyingQuota(false); }
@@ -710,10 +710,10 @@ export default function SubscriptionManage() {
 
                     let data = await runTest(buildProxyString());
 
-                    const authFailed = !isRotating && isProxy Fbflix && !data?.success && typeof data?.error === "string" && /autentica/i.test(data.error);
+                    const authFailed = !isRotating && isProxyFbflix && !data?.success && typeof data?.error === "string" && /autentica/i.test(data.error);
 
                     if (authFailed && (sub as any)?.id) {
-                      const syncResult = await syncProxy FbflixCredentialsMutation.mutateAsync({ subscriptionId: (sub as any).id });
+                      const syncResult = await syncProxyFbflixCredentialsMutation.mutateAsync({ subscriptionId: (sub as any).id });
                       const syncedProxy = syncResult?.proxy;
                       if (syncedProxy?.ip && syncedProxy?.port) {
                         data = await runTest(buildProxyString({
@@ -854,8 +854,8 @@ export default function SubscriptionManage() {
           </DialogHeader>
           <div className="space-y-3 max-h-[400px] overflow-y-auto">
             {(() => {
-              const history = isProxy Fbflix
-                ? getProxy FbflixExchangeHistory((sub as any).id || sub.code)
+              const history = isProxyFbflix
+                ? getProxyFbflixExchangeHistory((sub as any).id || sub.code)
                 : getExchangeHistory(sub.name);
               return history.length === 0 ? (
                 <p className="text-muted-foreground text-xs text-center py-4">Nenhuma troca registrada.</p>

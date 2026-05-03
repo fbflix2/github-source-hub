@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { callProxy Fbflix } from "@/hooks/useProxy Fbflix";
+import { callProxyFbflix } from "@/hooks/useProxyFbflix";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 function formatBytes(bytes: number) {
@@ -43,7 +43,7 @@ function CopyField({ label, value }: { label: string; value: string }) {
 function useInternalProxyConfig() {
   return useQuery({
     queryKey: ["internal-proxy-config"],
-    queryFn: () => callProxy Fbflix("get-internal-proxy-config"),
+    queryFn: () => callProxyFbflix("get-internal-proxy-config"),
     staleTime: 10_000,
     refetchInterval: 30_000,
     refetchOnWindowFocus: true,
@@ -54,7 +54,7 @@ function useInternalProxyConfig() {
 function useSaveInternalProxyConfig() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (config: Record<string, any>) => callProxy Fbflix("save-internal-proxy-config", { config }),
+    mutationFn: (config: Record<string, any>) => callProxyFbflix("save-internal-proxy-config", { config }),
     onSuccess: () => {
       toast.success("Configuração salva!");
       qc.invalidateQueries({ queryKey: ["internal-proxy-config"] });
@@ -84,7 +84,7 @@ export default function AdminProxyInterno() {
     if (data?.saved_override) {
       const s = data.saved_override;
       setForm({
-        host: s.host || "p.proxy fbflix.io",
+        host: s.host || "p.proxyfbflix.io",
         converted_host: s.converted_host || "",
         http_port: String(s.http_port || 80),
         socks5_port: String(s.socks5_port || 1080),
@@ -96,7 +96,7 @@ export default function AdminProxyInterno() {
     } else if (data?.auto_suggested) {
       const a = data.auto_suggested;
       setForm({
-        host: a.host || "p.proxy fbflix.io",
+        host: a.host || "p.proxyfbflix.io",
         converted_host: "",
         http_port: String(a.http_port || 80),
         socks5_port: String(a.socks5_port || 1080),
@@ -124,13 +124,13 @@ export default function AdminProxyInterno() {
   };
 
   const handleResetToAuto = () => {
-    saveMutation.mutate({ source: "proxy fbflix_auto" });
+    saveMutation.mutate({ source: "proxyfbflix_auto" });
     setEditMode(false);
   };
 
   // Active config for display
   const active = data?.active;
-  const activeSource = data?.active_source || "proxy fbflix_auto";
+  const activeSource = data?.active_source || "proxyfbflix_auto";
   const bw = data?.bandwidth || {};
   const usedBytes = bw.used_bytes || 0;
   const limitBytes = bw.limit_bytes || 0;
@@ -216,7 +216,7 @@ export default function AdminProxyInterno() {
                 {active ? (
                   <>
                     <div className="grid gap-2 sm:grid-cols-3">
-                      <CopyField label="Host" value={active.host || "p.proxy fbflix.io"} />
+                      <CopyField label="Host" value={active.host || "p.proxyfbflix.io"} />
                       <CopyField label="Usuário" value={active.username || ""} />
                       <CopyField label="Senha" value={active.password || ""} />
                     </div>
@@ -231,9 +231,9 @@ export default function AdminProxyInterno() {
 
                     <div className="pt-2 border-t border-border/50 space-y-2">
                       <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Strings prontas — host:porta:usuario:senha</p>
-                      <CopyField label="HTTP :80" value={`${active.host || "p.proxy fbflix.io"}:${active.http_port || 80}:${active.username || ""}:${active.password || ""}`} />
-                      <CopyField label="HTTP :3128" value={`${active.host || "p.proxy fbflix.io"}:${active.alt_http_port || 3128}:${active.username || ""}:${active.password || ""}`} />
-                      <CopyField label="SOCKS5 :1080" value={`${active.host || "p.proxy fbflix.io"}:${active.socks5_port || 1080}:${active.username || ""}:${active.password || ""}`} />
+                      <CopyField label="HTTP :80" value={`${active.host || "p.proxyfbflix.io"}:${active.http_port || 80}:${active.username || ""}:${active.password || ""}`} />
+                      <CopyField label="HTTP :3128" value={`${active.host || "p.proxyfbflix.io"}:${active.alt_http_port || 3128}:${active.username || ""}:${active.password || ""}`} />
+                      <CopyField label="SOCKS5 :1080" value={`${active.host || "p.proxyfbflix.io"}:${active.socks5_port || 1080}:${active.username || ""}:${active.password || ""}`} />
                     </div>
 
                     {hasConvertedHost && (
@@ -315,7 +315,7 @@ export default function AdminProxyInterno() {
                       <ul className="list-disc pl-3 space-y-0.5">
                         <li>Em ferramentas com seletor, use <strong>Ponto final de proxy rotativo</strong>, não <strong>Conexão de Backbone</strong>.</li>
                         <li>Use autenticação por <strong>Nome de usuário/Senha</strong>.</li>
-                        <li>Se a ferramenta falhar com <code className="text-amber-400">p.proxy fbflix.io</code>, salve o IP convertido no override manual.</li>
+                        <li>Se a ferramenta falhar com <code className="text-amber-400">p.proxyfbflix.io</code>, salve o IP convertido no override manual.</li>
                         <li>Para SOCKS5, use porta <strong>1080</strong>.</li>
                         <li>Para HTTP, tente porta <strong>80</strong> e depois <strong>3128</strong>.</li>
                         <li>O IP será rotacionado automaticamente a cada requisição.</li>
@@ -343,7 +343,7 @@ export default function AdminProxyInterno() {
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
                     <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Host (domínio)</label>
-                    <Input value={form.host} onChange={e => setForm(f => ({ ...f, host: e.target.value }))} placeholder="p.proxy fbflix.io" />
+                    <Input value={form.host} onChange={e => setForm(f => ({ ...f, host: e.target.value }))} placeholder="p.proxyfbflix.io" />
                   </div>
                   <div>
                     <label className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">IP Convertido (opcional)</label>
@@ -393,7 +393,7 @@ export default function AdminProxyInterno() {
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm flex items-center gap-2">
                   <Zap className="size-4 text-muted-foreground" />
-                  Sugestão Automática (Proxy Fbflix API)
+                  Sugestão Automática (ProxyFbflix API)
                   <Badge variant="secondary" className="text-[10px]">Referência</Badge>
                 </CardTitle>
               </CardHeader>

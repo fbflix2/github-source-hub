@@ -69,13 +69,13 @@ export default function AdminCentralInvestimentos() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   // ProxyBR costs are ignored here — variable cost paid by client
-  // Focus only on Proxy Fbflix (fixed monthly plan)
+  // Focus only on ProxyFbflix (fixed monthly plan)
 
-  // Fetch Proxy Fbflix plan for cost per proxy
+  // Fetch ProxyFbflix plan for cost per proxy
   const { data: webSharePlan } = useQuery({
-    queryKey: ["proxy fbflix-plan-invest"],
+    queryKey: ["proxyfbflix-plan-invest"],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke("proxy fbflix-api", { body: { action: "get-plan" } });
+      const { data, error } = await supabase.functions.invoke("proxyfbflix-api", { body: { action: "get-plan" } });
       if (error) return null;
       return data;
     },
@@ -83,11 +83,11 @@ export default function AdminCentralInvestimentos() {
     refetchOnWindowFocus: false,
   });
 
-  // Fetch total proxy count from Proxy Fbflix (reliable count)
-  const { data: proxy fbflixProxyCount } = useQuery({
-    queryKey: ["proxy fbflix-proxy-count-invest"],
+  // Fetch total proxy count from ProxyFbflix (reliable count)
+  const { data: proxyfbflixProxyCount } = useQuery({
+    queryKey: ["proxyfbflix-proxy-count-invest"],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke("proxy fbflix-api", { body: { action: "get-proxy-list", mode: "direct", page: 1, page_size: 1 } });
+      const { data, error } = await supabase.functions.invoke("proxyfbflix-api", { body: { action: "get-proxy-list", mode: "direct", page: 1, page_size: 1 } });
       if (error) return null;
       return data?.count || null;
     },
@@ -95,7 +95,7 @@ export default function AdminCentralInvestimentos() {
     refetchOnWindowFocus: false,
   });
 
-  // Fetch proxy category to identify proxy fbflix products
+  // Fetch proxy category to identify proxyfbflix products
   const { data: proxyCategory } = useQuery({
     queryKey: ["proxy-category-id"],
     queryFn: async () => {
@@ -137,38 +137,38 @@ export default function AdminCentralInvestimentos() {
     refetchOnWindowFocus: false,
   });
 
-  // Build auto-cost maps (only Proxy Fbflix — ProxyBR is variable/client-paid)
+  // Build auto-cost maps (only ProxyFbflix — ProxyBR is variable/client-paid)
   const proxyCosts = useMemo(() => {
     const map: Record<string, { cost: number; source: string }> = {};
 
     if (webSharePlan && usdToBrl) {
       const plan = webSharePlan?.plan;
       const monthlyPlanCost = plan?.monthly_price || 0;
-      const totalPlanProxies = plan?.proxy_count || proxy fbflixProxyCount || 1;
+      const totalPlanProxies = plan?.proxy_count || proxyfbflixProxyCount || 1;
       const costPerProxyBRL = (monthlyPlanCost / totalPlanProxies) * usdToBrl;
-      console.log("[invest] Proxy Fbflix plan cost:", monthlyPlanCost, "proxies:", totalPlanProxies, "rate:", usdToBrl, "=> per proxy BRL:", costPerProxyBRL);
+      console.log("[invest] ProxyFbflix plan cost:", monthlyPlanCost, "proxies:", totalPlanProxies, "rate:", usdToBrl, "=> per proxy BRL:", costPerProxyBRL);
 
       if (costPerProxyBRL > 0) {
         products.forEach(p => {
-          const isProxy Fbflix = p.icon_type === 'proxy' && !p.external_id;
-          if (isProxy Fbflix) {
-            map[p.id] = { cost: costPerProxyBRL, source: "Proxy Fbflix" };
+          const isProxyFbflix = p.icon_type === 'proxy' && !p.external_id;
+          if (isProxyFbflix) {
+            map[p.id] = { cost: costPerProxyBRL, source: "ProxyFbflix" };
           }
         });
       }
     }
 
     return map;
-  }, [products, webSharePlan, proxyCategory, usdToBrl, proxy fbflixProxyCount]);
+  }, [products, webSharePlan, proxyCategory, usdToBrl, proxyfbflixProxyCount]);
 
-  // Fetch active Proxy Fbflix subscriptions count for dilution
+  // Fetch active ProxyFbflix subscriptions count for dilution
   const { data: activeWsSubsCount } = useQuery({
     queryKey: ["ws-active-subs-count"],
     queryFn: async () => {
       const { count } = await supabase
         .from("subscriptions")
         .select("id", { count: "exact", head: true })
-        .eq("type", "proxy fbflix")
+        .eq("type", "proxyfbflix")
         .eq("status", "active");
       return count || 0;
     },
@@ -318,7 +318,7 @@ export default function AdminCentralInvestimentos() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Central de Investimentos</h1>
           <p className="text-sm text-muted-foreground">
-            Custos de proxies são preenchidos automaticamente via ProxyBR e Proxy Fbflix. Demais produtos requerem lançamento manual.
+            Custos de proxies são preenchidos automaticamente via ProxyBR e ProxyFbflix. Demais produtos requerem lançamento manual.
           </p>
         </div>
       </div>

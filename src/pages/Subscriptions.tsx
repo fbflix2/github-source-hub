@@ -418,14 +418,14 @@ function ProxiesPanel() {
 
   const handleRenew = (sub: ProxySubscription & { mappedStatus: SubscriptionStatus }) => {
     const rawData = (sub.raw_data || {}) as Record<string, any>;
-    const isAlreadyProxy Fbflix = rawData.provider === "proxy fbflix" || rawData.migrated_from_proxybr === true;
-    // For already-migrated Proxy Fbflix subs, use full name (#1, #2); for ProxyBR multi-proxy, strip #N
-    const subName = isAlreadyProxy Fbflix
+    const isAlreadyProxyFbflix = rawData.provider === "proxyfbflix" || rawData.migrated_from_proxybr === true;
+    // For already-migrated ProxyFbflix subs, use full name (#1, #2); for ProxyBR multi-proxy, strip #N
+    const subName = isAlreadyProxyFbflix
       ? (sub.name || sub.code)
       : (sub.name || sub.code).replace(/#\d+$/, "").replace(/__proxy_\d+$/, "");
     setRenewingCode(sub.code);
     migrateMutation.mutate(
-      { subscriptionName: subName, proxyIndex: isAlreadyProxy Fbflix ? undefined : sub.proxyIndex, totalProxies: isAlreadyProxy Fbflix ? undefined : sub.totalProxies },
+      { subscriptionName: subName, proxyIndex: isAlreadyProxyFbflix ? undefined : sub.proxyIndex, totalProxies: isAlreadyProxyFbflix ? undefined : sub.totalProxies },
       { onSettled: () => setRenewingCode(null) },
     );
   };
