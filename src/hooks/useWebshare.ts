@@ -9,7 +9,7 @@ type FunctionInvokeError = Error & {
   };
 };
 
-async function extractProxy FbflixErrorMessage(error: unknown, fallback = "Erro Proxy Fbflix API") {
+async function extractProxyFbflixErrorMessage(error: unknown, fallback = "Erro ProxyFbflix API") {
   const err = error as FunctionInvokeError;
 
   try {
@@ -37,26 +37,26 @@ async function extractProxy FbflixErrorMessage(error: unknown, fallback = "Erro 
   return err?.message || fallback;
 }
 
-async function callProxy Fbflix(action: string, params: Record<string, unknown> = {}) {
+async function callProxyFbflix(action: string, params: Record<string, unknown> = {}) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return null;
 
-  const invokeProxy Fbflix = () => supabase.functions.invoke("proxy fbflix-api", {
+  const invokeProxyFbflix = () => supabase.functions.invoke("proxyfbflix-api", {
     body: { action, ...params },
   });
 
-  const { data, error } = await invokeProxy Fbflix();
+  const { data, error } = await invokeProxyFbflix();
 
   if (error) {
-    const realErrorMsg = await extractProxy FbflixErrorMessage(error, data?.error || "Erro Proxy Fbflix API");
+    const realErrorMsg = await extractProxyFbflixErrorMessage(error, data?.error || "Erro ProxyFbflix API");
 
     // Retry once on auth failure
     if (error.message?.includes("401") || realErrorMsg.includes("Token inválido")) {
       const { error: refreshErr } = await supabase.auth.refreshSession();
       if (!refreshErr) {
-        const retry = await invokeProxy Fbflix();
+        const retry = await invokeProxyFbflix();
         if (retry.error) {
-          const retryRealErr = await extractProxy FbflixErrorMessage(retry.error, retry.data?.error || "Erro Proxy Fbflix API");
+          const retryRealErr = await extractProxyFbflixErrorMessage(retry.error, retry.data?.error || "Erro ProxyFbflix API");
           throw new Error(retryRealErr);
         }
         if (retry.data?.error && !retry.data?.data) throw new Error(retry.data.error);
@@ -71,13 +71,13 @@ async function callProxy Fbflix(action: string, params: Record<string, unknown> 
   return data;
 }
 
-export { callProxy Fbflix };
+export { callProxyFbflix };
 
-/** Get Proxy Fbflix account profile */
-export function useProxy FbflixProfile() {
+/** Get ProxyFbflix account profile */
+export function useProxyFbflixProfile() {
   return useQuery({
-    queryKey: ["proxy fbflix-profile"],
-    queryFn: () => callProxy Fbflix("get-profile"),
+    queryKey: ["proxyfbflix-profile"],
+    queryFn: () => callProxyFbflix("get-profile"),
     staleTime: 300_000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
@@ -85,11 +85,11 @@ export function useProxy FbflixProfile() {
   });
 }
 
-/** Get Proxy Fbflix subscription + active plan */
-export function useProxy FbflixPlan() {
+/** Get ProxyFbflix subscription + active plan */
+export function useProxyFbflixPlan() {
   return useQuery({
-    queryKey: ["proxy fbflix-plan"],
-    queryFn: () => callProxy Fbflix("get-plan"),
+    queryKey: ["proxyfbflix-plan"],
+    queryFn: () => callProxyFbflix("get-plan"),
     staleTime: 300_000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
@@ -98,20 +98,20 @@ export function useProxy FbflixPlan() {
 }
 
 /** Get proxy list (paginated) */
-export function useProxy FbflixProxyList(page = 1, pageSize = 25, mode: "direct" | "backbone" = "direct") {
+export function useProxyFbflixProxyList(page = 1, pageSize = 25, mode: "direct" | "backbone" = "direct") {
   return useQuery({
-    queryKey: ["proxy fbflix-proxy-list", mode, page, pageSize],
-    queryFn: () => callProxy Fbflix("get-proxy-list", { mode, page, page_size: pageSize }),
+    queryKey: ["proxyfbflix-proxy-list", mode, page, pageSize],
+    queryFn: () => callProxyFbflix("get-proxy-list", { mode, page, page_size: pageSize }),
     staleTime: 120_000,
     refetchOnWindowFocus: false,
   });
 }
 
 /** Get all proxies (fetches all pages server-side) */
-export function useProxy FbflixAllProxies(mode: "direct" | "backbone" = "direct") {
+export function useProxyFbflixAllProxies(mode: "direct" | "backbone" = "direct") {
   return useQuery({
-    queryKey: ["proxy fbflix-all-proxies", mode],
-    queryFn: () => callProxy Fbflix("get-all-proxies", { mode }),
+    queryKey: ["proxyfbflix-all-proxies", mode],
+    queryFn: () => callProxyFbflix("get-all-proxies", { mode }),
     staleTime: 300_000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
@@ -120,20 +120,20 @@ export function useProxy FbflixAllProxies(mode: "direct" | "backbone" = "direct"
 }
 
 /** Get proxy config (auth mode, etc.) */
-export function useProxy FbflixProxyConfig() {
+export function useProxyFbflixProxyConfig() {
   return useQuery({
-    queryKey: ["proxy fbflix-proxy-config"],
-    queryFn: () => callProxy Fbflix("get-proxy-config"),
+    queryKey: ["proxyfbflix-proxy-config"],
+    queryFn: () => callProxyFbflix("get-proxy-config"),
     staleTime: 300_000,
     refetchOnWindowFocus: false,
     retry: false,
   });
 }
 
-/** Get client's Proxy Fbflix subscriptions from local DB */
-export function useProxy FbflixSubscriptions() {
+/** Get client's ProxyFbflix subscriptions from local DB */
+export function useProxyFbflixSubscriptions() {
   return useQuery({
-    queryKey: ["proxy fbflix-subscriptions"],
+    queryKey: ["proxyfbflix-subscriptions"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
@@ -142,7 +142,7 @@ export function useProxy FbflixSubscriptions() {
         .from("subscriptions")
         .select("*, products:product_id(name, price)")
         .eq("user_id", user.id)
-        .in("type", ["proxy fbflix", "proxy fbflix_rotating"])
+        .in("type", ["proxyfbflix", "proxyfbflix_rotating"])
         .order("created_at", { ascending: false });
 
       if (error) throw new Error(error.message);
@@ -150,7 +150,7 @@ export function useProxy FbflixSubscriptions() {
       return (data || []).map((sub) => {
         const raw = (sub.raw_data || {}) as Record<string, any>;
         const productInfo = sub.products as any;
-        const isRotating = sub.type === "proxy fbflix_rotating";
+        const isRotating = sub.type === "proxyfbflix_rotating";
         const productName = productInfo?.name || raw.product_name || (isRotating ? "Proxy Rotativo BR" : "Proxy Residencial");
         const customerPrice = productInfo?.price || null;
         return {
@@ -165,12 +165,12 @@ export function useProxy FbflixSubscriptions() {
           auto_renew: sub.auto_renew,
           raw_data: raw,
           profile_tag: raw.profile_tag || null,
-          provider: "proxy fbflix",
+          provider: "proxyfbflix",
           is_rotating: isRotating,
           gb_purchased: isRotating ? (raw.gb_purchased || 0) : undefined,
           proxy: isRotating
             ? {
-                ip: raw.proxy_host || "p.proxy fbflix.io",
+                ip: raw.proxy_host || "p.proxyfbflix.io",
                 port: raw.http_port || 80,
                 username: raw.username,
                 password: raw.password,
@@ -180,7 +180,7 @@ export function useProxy FbflixSubscriptions() {
                 alt_http_port: raw.alt_http_port || 3128,
               }
             : raw.proxy_address ? {
-                id: raw.proxy fbflix_proxy_id,
+                id: raw.proxyfbflix_proxy_id,
                 ip: raw.proxy_address,
                 port: raw.port,
                 username: raw.username,
@@ -194,53 +194,53 @@ export function useProxy FbflixSubscriptions() {
   });
 }
 
-/** Get Proxy Fbflix rotating proxy bandwidth stats */
-export function useProxy FbflixRotatingBandwidth() {
+/** Get ProxyFbflix rotating proxy bandwidth stats */
+export function useProxyFbflixRotatingBandwidth() {
   return useQuery({
-    queryKey: ["proxy fbflix-rotating-bandwidth"],
-    queryFn: () => callProxy Fbflix("get-rotating-credentials"),
+    queryKey: ["proxyfbflix-rotating-bandwidth"],
+    queryFn: () => callProxyFbflix("get-rotating-credentials"),
     staleTime: 60_000,
     refetchOnWindowFocus: false,
     retry: false,
   });
 }
 
-/** Exchange history for Proxy Fbflix proxies (localStorage) */
-export interface Proxy FbflixExchangeRecord {
+/** Exchange history for ProxyFbflix proxies (localStorage) */
+export interface ProxyFbflixExchangeRecord {
   date: string;
   oldProxy: string;
   newProxy: string;
   method: string;
 }
 
-export function getProxy FbflixExchangeHistory(subscriptionId: string): Proxy FbflixExchangeRecord[] {
+export function getProxyFbflixExchangeHistory(subscriptionId: string): ProxyFbflixExchangeRecord[] {
   try {
     return JSON.parse(localStorage.getItem(`ws-exchange-history-${subscriptionId}`) || "[]");
   } catch { return []; }
 }
 
-function saveProxy FbflixExchangeRecord(subscriptionId: string, oldProxy: string, newProxy: string, method: string) {
+function saveProxyFbflixExchangeRecord(subscriptionId: string, oldProxy: string, newProxy: string, method: string) {
   const key = `ws-exchange-history-${subscriptionId}`;
-  const history = getProxy FbflixExchangeHistory(subscriptionId);
+  const history = getProxyFbflixExchangeHistory(subscriptionId);
   history.unshift({ date: new Date().toISOString(), oldProxy, newProxy, method });
   localStorage.setItem(key, JSON.stringify(history.slice(0, 20)));
 }
 
-/** Exchange a Proxy Fbflix proxy (API first, stock fallback) */
-export function useExchangeProxy FbflixProxy() {
+/** Exchange a ProxyFbflix proxy (API first, stock fallback) */
+export function useExchangeProxyFbflixProxy() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ subscriptionId, oldProxyString }: { subscriptionId: string; oldProxyString?: string }) => {
-      const result = await callProxy Fbflix("exchange-proxy fbflix-proxy", { subscription_id: subscriptionId });
+      const result = await callProxyFbflix("exchange-proxyfbflix-proxy", { subscription_id: subscriptionId });
       return { result, oldProxyString, subscriptionId };
     },
     onSuccess: ({ result, oldProxyString, subscriptionId }) => {
       const newProxy = result?.new_proxy || "";
       if (oldProxyString && newProxy) {
-        saveProxy FbflixExchangeRecord(subscriptionId, oldProxyString, newProxy, result?.method || "unknown");
+        saveProxyFbflixExchangeRecord(subscriptionId, oldProxyString, newProxy, result?.method || "unknown");
       }
       toast.success("Proxy trocado com sucesso!");
-      queryClient.invalidateQueries({ queryKey: ["proxy fbflix-subscriptions"] });
+      queryClient.invalidateQueries({ queryKey: ["proxyfbflix-subscriptions"] });
     },
     onError: (err: Error) => {
       toast.error(`Erro ao trocar proxy: ${err.message}`);
@@ -248,18 +248,18 @@ export function useExchangeProxy FbflixProxy() {
   });
 }
 
-export function useSyncProxy FbflixProxyCredentials() {
+export function useSyncProxyFbflixProxyCredentials() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ subscriptionId }: { subscriptionId: string }) => {
-      const result = await callProxy Fbflix("sync-proxy fbflix-proxy-credentials", { subscription_id: subscriptionId });
+      const result = await callProxyFbflix("sync-proxyfbflix-proxy-credentials", { subscription_id: subscriptionId });
       return result;
     },
     onSuccess: (result: any) => {
-      queryClient.invalidateQueries({ queryKey: ["proxy fbflix-subscriptions"] });
+      queryClient.invalidateQueries({ queryKey: ["proxyfbflix-subscriptions"] });
       if (result?.synced) {
-        toast.success("Credenciais do proxy sincronizadas com o Proxy Fbflix.");
+        toast.success("Credenciais do proxy sincronizadas com o ProxyFbflix.");
       }
     },
     onError: (err: Error) => {
@@ -268,8 +268,8 @@ export function useSyncProxy FbflixProxyCredentials() {
   });
 }
 
-/** Toggle auto-renew for a Proxy Fbflix subscription (direct DB update) */
-export function useToggleProxy FbflixAutoRenew() {
+/** Toggle auto-renew for a ProxyFbflix subscription (direct DB update) */
+export function useToggleProxyFbflixAutoRenew() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ subscriptionId, auto_renew }: { subscriptionId: string; auto_renew: boolean }) => {
@@ -281,7 +281,7 @@ export function useToggleProxy FbflixAutoRenew() {
     },
     onSuccess: () => {
       toast.success("Renovação automática atualizada!");
-      queryClient.invalidateQueries({ queryKey: ["proxy fbflix-subscriptions"] });
+      queryClient.invalidateQueries({ queryKey: ["proxyfbflix-subscriptions"] });
     },
     onError: (err: Error) => {
       toast.error(`Erro ao atualizar: ${err.message}`);
@@ -289,12 +289,12 @@ export function useToggleProxy FbflixAutoRenew() {
   });
 }
 
-/** Migrate a ProxyBR expired/cancelled subscription to Proxy Fbflix on renewal */
-export function useMigrateProxyBRToProxy Fbflix() {
+/** Migrate a ProxyBR expired/cancelled subscription to ProxyFbflix on renewal */
+export function useMigrateProxyBRToProxyFbflix() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ subscriptionName, proxyIndex, totalProxies }: { subscriptionName: string; proxyIndex?: number; totalProxies?: number }) => {
-      const result = await callProxy Fbflix("migrate-proxybr-renewal", {
+      const result = await callProxyFbflix("migrate-proxybr-renewal", {
         subscription_name: subscriptionName,
         proxy_index: proxyIndex,
         total_proxies: totalProxies,
@@ -305,7 +305,7 @@ export function useMigrateProxyBRToProxy Fbflix() {
       const price = result?.price ? `R$ ${Number(result.price).toFixed(2).replace('.', ',')}` : '';
       toast.success(`Proxy renovado com sucesso!${price ? ` • ${price}` : ''}`);
       queryClient.invalidateQueries({ queryKey: ["proxybr-subscriptions"] });
-      queryClient.invalidateQueries({ queryKey: ["proxy fbflix-subscriptions"] });
+      queryClient.invalidateQueries({ queryKey: ["proxyfbflix-subscriptions"] });
     },
     onError: (err: Error) => {
       toast.error(`Erro ao renovar: ${err.message}`);
@@ -313,11 +313,11 @@ export function useMigrateProxyBRToProxy Fbflix() {
   });
 }
 
-/** Get Proxy Fbflix Top 10 usage stats */
-export function useProxy FbflixUsageStats(period: "1h" | "24h" | "7d" = "24h") {
+/** Get ProxyFbflix Top 10 usage stats */
+export function useProxyFbflixUsageStats(period: "1h" | "24h" | "7d" = "24h") {
   return useQuery({
-    queryKey: ["proxy fbflix-usage-stats", period],
-    queryFn: () => callProxy Fbflix("get-usage-stats", { period }),
+    queryKey: ["proxyfbflix-usage-stats", period],
+    queryFn: () => callProxyFbflix("get-usage-stats", { period }),
     staleTime: 300_000,
     refetchOnWindowFocus: true,
     retry: false,
