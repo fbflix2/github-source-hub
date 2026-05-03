@@ -9,7 +9,7 @@ type FunctionInvokeError = Error & {
   };
 };
 
-async function extractWebshareErrorMessage(error: unknown, fallback = "Erro Proxy Fbflix API") {
+async function extractProxy FbflixErrorMessage(error: unknown, fallback = "Erro Proxy Fbflix API") {
   const err = error as FunctionInvokeError;
 
   try {
@@ -37,26 +37,26 @@ async function extractWebshareErrorMessage(error: unknown, fallback = "Erro Prox
   return err?.message || fallback;
 }
 
-async function callWebshare(action: string, params: Record<string, unknown> = {}) {
+async function callProxy Fbflix(action: string, params: Record<string, unknown> = {}) {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return null;
 
-  const invokeWebshare = () => supabase.functions.invoke("webshare-api", {
+  const invokeProxy Fbflix = () => supabase.functions.invoke("proxy fbflix-api", {
     body: { action, ...params },
   });
 
-  const { data, error } = await invokeWebshare();
+  const { data, error } = await invokeProxy Fbflix();
 
   if (error) {
-    const realErrorMsg = await extractWebshareErrorMessage(error, data?.error || "Erro Proxy Fbflix API");
+    const realErrorMsg = await extractProxy FbflixErrorMessage(error, data?.error || "Erro Proxy Fbflix API");
 
     // Retry once on auth failure
     if (error.message?.includes("401") || realErrorMsg.includes("Token inválido")) {
       const { error: refreshErr } = await supabase.auth.refreshSession();
       if (!refreshErr) {
-        const retry = await invokeWebshare();
+        const retry = await invokeProxy Fbflix();
         if (retry.error) {
-          const retryRealErr = await extractWebshareErrorMessage(retry.error, retry.data?.error || "Erro Proxy Fbflix API");
+          const retryRealErr = await extractProxy FbflixErrorMessage(retry.error, retry.data?.error || "Erro Proxy Fbflix API");
           throw new Error(retryRealErr);
         }
         if (retry.data?.error && !retry.data?.data) throw new Error(retry.data.error);
@@ -71,13 +71,13 @@ async function callWebshare(action: string, params: Record<string, unknown> = {}
   return data;
 }
 
-export { callWebshare };
+export { callProxy Fbflix };
 
-/** Get Webshare account profile */
-export function useWebshareProfile() {
+/** Get Proxy Fbflix account profile */
+export function useProxy FbflixProfile() {
   return useQuery({
-    queryKey: ["webshare-profile"],
-    queryFn: () => callWebshare("get-profile"),
+    queryKey: ["proxy fbflix-profile"],
+    queryFn: () => callProxy Fbflix("get-profile"),
     staleTime: 300_000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
@@ -85,11 +85,11 @@ export function useWebshareProfile() {
   });
 }
 
-/** Get Webshare subscription + active plan */
-export function useWebsharePlan() {
+/** Get Proxy Fbflix subscription + active plan */
+export function useProxy FbflixPlan() {
   return useQuery({
-    queryKey: ["webshare-plan"],
-    queryFn: () => callWebshare("get-plan"),
+    queryKey: ["proxy fbflix-plan"],
+    queryFn: () => callProxy Fbflix("get-plan"),
     staleTime: 300_000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
@@ -98,20 +98,20 @@ export function useWebsharePlan() {
 }
 
 /** Get proxy list (paginated) */
-export function useWebshareProxyList(page = 1, pageSize = 25, mode: "direct" | "backbone" = "direct") {
+export function useProxy FbflixProxyList(page = 1, pageSize = 25, mode: "direct" | "backbone" = "direct") {
   return useQuery({
-    queryKey: ["webshare-proxy-list", mode, page, pageSize],
-    queryFn: () => callWebshare("get-proxy-list", { mode, page, page_size: pageSize }),
+    queryKey: ["proxy fbflix-proxy-list", mode, page, pageSize],
+    queryFn: () => callProxy Fbflix("get-proxy-list", { mode, page, page_size: pageSize }),
     staleTime: 120_000,
     refetchOnWindowFocus: false,
   });
 }
 
 /** Get all proxies (fetches all pages server-side) */
-export function useWebshareAllProxies(mode: "direct" | "backbone" = "direct") {
+export function useProxy FbflixAllProxies(mode: "direct" | "backbone" = "direct") {
   return useQuery({
-    queryKey: ["webshare-all-proxies", mode],
-    queryFn: () => callWebshare("get-all-proxies", { mode }),
+    queryKey: ["proxy fbflix-all-proxies", mode],
+    queryFn: () => callProxy Fbflix("get-all-proxies", { mode }),
     staleTime: 300_000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
@@ -120,20 +120,20 @@ export function useWebshareAllProxies(mode: "direct" | "backbone" = "direct") {
 }
 
 /** Get proxy config (auth mode, etc.) */
-export function useWebshareProxyConfig() {
+export function useProxy FbflixProxyConfig() {
   return useQuery({
-    queryKey: ["webshare-proxy-config"],
-    queryFn: () => callWebshare("get-proxy-config"),
+    queryKey: ["proxy fbflix-proxy-config"],
+    queryFn: () => callProxy Fbflix("get-proxy-config"),
     staleTime: 300_000,
     refetchOnWindowFocus: false,
     retry: false,
   });
 }
 
-/** Get client's Webshare subscriptions from local DB */
-export function useWebshareSubscriptions() {
+/** Get client's Proxy Fbflix subscriptions from local DB */
+export function useProxy FbflixSubscriptions() {
   return useQuery({
-    queryKey: ["webshare-subscriptions"],
+    queryKey: ["proxy fbflix-subscriptions"],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
@@ -142,7 +142,7 @@ export function useWebshareSubscriptions() {
         .from("subscriptions")
         .select("*, products:product_id(name, price)")
         .eq("user_id", user.id)
-        .in("type", ["webshare", "webshare_rotating"])
+        .in("type", ["proxy fbflix", "proxy fbflix_rotating"])
         .order("created_at", { ascending: false });
 
       if (error) throw new Error(error.message);
@@ -150,7 +150,7 @@ export function useWebshareSubscriptions() {
       return (data || []).map((sub) => {
         const raw = (sub.raw_data || {}) as Record<string, any>;
         const productInfo = sub.products as any;
-        const isRotating = sub.type === "webshare_rotating";
+        const isRotating = sub.type === "proxy fbflix_rotating";
         const productName = productInfo?.name || raw.product_name || (isRotating ? "Proxy Rotativo BR" : "Proxy Residencial");
         const customerPrice = productInfo?.price || null;
         return {
@@ -165,12 +165,12 @@ export function useWebshareSubscriptions() {
           auto_renew: sub.auto_renew,
           raw_data: raw,
           profile_tag: raw.profile_tag || null,
-          provider: "webshare",
+          provider: "proxy fbflix",
           is_rotating: isRotating,
           gb_purchased: isRotating ? (raw.gb_purchased || 0) : undefined,
           proxy: isRotating
             ? {
-                ip: raw.proxy_host || "p.webshare.io",
+                ip: raw.proxy_host || "p.proxy fbflix.io",
                 port: raw.http_port || 80,
                 username: raw.username,
                 password: raw.password,
@@ -180,7 +180,7 @@ export function useWebshareSubscriptions() {
                 alt_http_port: raw.alt_http_port || 3128,
               }
             : raw.proxy_address ? {
-                id: raw.webshare_proxy_id,
+                id: raw.proxy fbflix_proxy_id,
                 ip: raw.proxy_address,
                 port: raw.port,
                 username: raw.username,
@@ -194,53 +194,53 @@ export function useWebshareSubscriptions() {
   });
 }
 
-/** Get Webshare rotating proxy bandwidth stats */
-export function useWebshareRotatingBandwidth() {
+/** Get Proxy Fbflix rotating proxy bandwidth stats */
+export function useProxy FbflixRotatingBandwidth() {
   return useQuery({
-    queryKey: ["webshare-rotating-bandwidth"],
-    queryFn: () => callWebshare("get-rotating-credentials"),
+    queryKey: ["proxy fbflix-rotating-bandwidth"],
+    queryFn: () => callProxy Fbflix("get-rotating-credentials"),
     staleTime: 60_000,
     refetchOnWindowFocus: false,
     retry: false,
   });
 }
 
-/** Exchange history for Webshare proxies (localStorage) */
-export interface WebshareExchangeRecord {
+/** Exchange history for Proxy Fbflix proxies (localStorage) */
+export interface Proxy FbflixExchangeRecord {
   date: string;
   oldProxy: string;
   newProxy: string;
   method: string;
 }
 
-export function getWebshareExchangeHistory(subscriptionId: string): WebshareExchangeRecord[] {
+export function getProxy FbflixExchangeHistory(subscriptionId: string): Proxy FbflixExchangeRecord[] {
   try {
     return JSON.parse(localStorage.getItem(`ws-exchange-history-${subscriptionId}`) || "[]");
   } catch { return []; }
 }
 
-function saveWebshareExchangeRecord(subscriptionId: string, oldProxy: string, newProxy: string, method: string) {
+function saveProxy FbflixExchangeRecord(subscriptionId: string, oldProxy: string, newProxy: string, method: string) {
   const key = `ws-exchange-history-${subscriptionId}`;
-  const history = getWebshareExchangeHistory(subscriptionId);
+  const history = getProxy FbflixExchangeHistory(subscriptionId);
   history.unshift({ date: new Date().toISOString(), oldProxy, newProxy, method });
   localStorage.setItem(key, JSON.stringify(history.slice(0, 20)));
 }
 
-/** Exchange a Webshare proxy (API first, stock fallback) */
-export function useExchangeWebshareProxy() {
+/** Exchange a Proxy Fbflix proxy (API first, stock fallback) */
+export function useExchangeProxy FbflixProxy() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ subscriptionId, oldProxyString }: { subscriptionId: string; oldProxyString?: string }) => {
-      const result = await callWebshare("exchange-webshare-proxy", { subscription_id: subscriptionId });
+      const result = await callProxy Fbflix("exchange-proxy fbflix-proxy", { subscription_id: subscriptionId });
       return { result, oldProxyString, subscriptionId };
     },
     onSuccess: ({ result, oldProxyString, subscriptionId }) => {
       const newProxy = result?.new_proxy || "";
       if (oldProxyString && newProxy) {
-        saveWebshareExchangeRecord(subscriptionId, oldProxyString, newProxy, result?.method || "unknown");
+        saveProxy FbflixExchangeRecord(subscriptionId, oldProxyString, newProxy, result?.method || "unknown");
       }
       toast.success("Proxy trocado com sucesso!");
-      queryClient.invalidateQueries({ queryKey: ["webshare-subscriptions"] });
+      queryClient.invalidateQueries({ queryKey: ["proxy fbflix-subscriptions"] });
     },
     onError: (err: Error) => {
       toast.error(`Erro ao trocar proxy: ${err.message}`);
@@ -248,16 +248,16 @@ export function useExchangeWebshareProxy() {
   });
 }
 
-export function useSyncWebshareProxyCredentials() {
+export function useSyncProxy FbflixProxyCredentials() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ subscriptionId }: { subscriptionId: string }) => {
-      const result = await callWebshare("sync-webshare-proxy-credentials", { subscription_id: subscriptionId });
+      const result = await callProxy Fbflix("sync-proxy fbflix-proxy-credentials", { subscription_id: subscriptionId });
       return result;
     },
     onSuccess: (result: any) => {
-      queryClient.invalidateQueries({ queryKey: ["webshare-subscriptions"] });
+      queryClient.invalidateQueries({ queryKey: ["proxy fbflix-subscriptions"] });
       if (result?.synced) {
         toast.success("Credenciais do proxy sincronizadas com o Proxy Fbflix.");
       }
@@ -268,8 +268,8 @@ export function useSyncWebshareProxyCredentials() {
   });
 }
 
-/** Toggle auto-renew for a Webshare subscription (direct DB update) */
-export function useToggleWebshareAutoRenew() {
+/** Toggle auto-renew for a Proxy Fbflix subscription (direct DB update) */
+export function useToggleProxy FbflixAutoRenew() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ subscriptionId, auto_renew }: { subscriptionId: string; auto_renew: boolean }) => {
@@ -281,7 +281,7 @@ export function useToggleWebshareAutoRenew() {
     },
     onSuccess: () => {
       toast.success("Renovação automática atualizada!");
-      queryClient.invalidateQueries({ queryKey: ["webshare-subscriptions"] });
+      queryClient.invalidateQueries({ queryKey: ["proxy fbflix-subscriptions"] });
     },
     onError: (err: Error) => {
       toast.error(`Erro ao atualizar: ${err.message}`);
@@ -289,12 +289,12 @@ export function useToggleWebshareAutoRenew() {
   });
 }
 
-/** Migrate a ProxyBR expired/cancelled subscription to Webshare on renewal */
-export function useMigrateProxyBRToWebshare() {
+/** Migrate a ProxyBR expired/cancelled subscription to Proxy Fbflix on renewal */
+export function useMigrateProxyBRToProxy Fbflix() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ subscriptionName, proxyIndex, totalProxies }: { subscriptionName: string; proxyIndex?: number; totalProxies?: number }) => {
-      const result = await callWebshare("migrate-proxybr-renewal", {
+      const result = await callProxy Fbflix("migrate-proxybr-renewal", {
         subscription_name: subscriptionName,
         proxy_index: proxyIndex,
         total_proxies: totalProxies,
@@ -305,7 +305,7 @@ export function useMigrateProxyBRToWebshare() {
       const price = result?.price ? `R$ ${Number(result.price).toFixed(2).replace('.', ',')}` : '';
       toast.success(`Proxy renovado com sucesso!${price ? ` • ${price}` : ''}`);
       queryClient.invalidateQueries({ queryKey: ["proxybr-subscriptions"] });
-      queryClient.invalidateQueries({ queryKey: ["webshare-subscriptions"] });
+      queryClient.invalidateQueries({ queryKey: ["proxy fbflix-subscriptions"] });
     },
     onError: (err: Error) => {
       toast.error(`Erro ao renovar: ${err.message}`);
@@ -313,11 +313,11 @@ export function useMigrateProxyBRToWebshare() {
   });
 }
 
-/** Get Webshare Top 10 usage stats */
-export function useWebshareUsageStats(period: "1h" | "24h" | "7d" = "24h") {
+/** Get Proxy Fbflix Top 10 usage stats */
+export function useProxy FbflixUsageStats(period: "1h" | "24h" | "7d" = "24h") {
   return useQuery({
-    queryKey: ["webshare-usage-stats", period],
-    queryFn: () => callWebshare("get-usage-stats", { period }),
+    queryKey: ["proxy fbflix-usage-stats", period],
+    queryFn: () => callProxy Fbflix("get-usage-stats", { period }),
     staleTime: 300_000,
     refetchOnWindowFocus: true,
     retry: false,

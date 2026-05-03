@@ -112,10 +112,10 @@ export function useProxyBRSubscriptions() {
           };
         };
 
-        const buildMigratedWebshareProxyInfo = () => {
+        const buildMigratedProxy FbflixProxyInfo = () => {
           if (raw.proxy_address && raw.port) {
             return {
-              id: raw.webshare_proxy_id,
+              id: raw.proxy fbflix_proxy_id,
               ip: raw.proxy_address,
               port: raw.port,
               username: raw.username,
@@ -126,7 +126,7 @@ export function useProxyBRSubscriptions() {
 
           if (raw.proxy_host && raw.http_port) {
             return {
-              id: raw.webshare_proxy_id,
+              id: raw.proxy fbflix_proxy_id,
               ip: raw.proxy_host,
               port: raw.http_port,
               username: raw.username,
@@ -157,12 +157,12 @@ export function useProxyBRSubscriptions() {
           raw_data: raw,
           profile_tag: raw.profile_tag || null,
           provider: raw.provider,
-          is_rotating: raw.provider === "webshare" && !!raw.proxy_host,
+          is_rotating: raw.provider === "proxy fbflix" && !!raw.proxy_host,
         };
 
         if (proxies.length === 0) {
-          const migratedProxy = raw.provider === "webshare" || raw.migrated_from_proxybr === true
-            ? buildMigratedWebshareProxyInfo()
+          const migratedProxy = raw.provider === "proxy fbflix" || raw.migrated_from_proxybr === true
+            ? buildMigratedProxy FbflixProxyInfo()
             : undefined;
 
           results.push({ ...baseEntry, proxy: migratedProxy });
@@ -177,7 +177,7 @@ export function useProxyBRSubscriptions() {
           const perProxyPaid = Math.floor(rawPaidQuota / proxies.length);
 
           proxies.forEach((proxy: any, index: number) => {
-            // Skip proxies already migrated to Webshare
+            // Skip proxies already migrated to Proxy Fbflix
             if (migratedProxies.includes(index + 1)) return;
             const proxyTagKey = `profile_tag_${proxy.id}`;
             const parsed = buildProxyInfo(proxy);

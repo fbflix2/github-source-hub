@@ -1,6 +1,6 @@
 import { Globe, Wrench, Package } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import WebshareProxyTab from "@/components/admin/proxy/WebshareProxyTab";
+import Proxy FbflixProxyTab from "@/components/admin/proxy/Proxy FbflixProxyTab";
 import ProxyMaintenanceTab from "@/components/admin/proxy/ProxyMaintenanceTab";
 import ProxyAvailableTab from "@/components/admin/proxy/ProxyAvailableTab";
 import ProxyAbuseMonitor from "@/components/admin/proxy/ProxyAbuseMonitor";
@@ -37,7 +37,7 @@ export default function AdminCentralProxy() {
         </TabsList>
 
         <TabsContent value="dashboard">
-          <WebshareProxyTab />
+          <Proxy FbflixProxyTab />
         </TabsContent>
 
         <TabsContent value="maintenance">

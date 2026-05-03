@@ -141,7 +141,7 @@ export default function AdminBalanco() {
       supabase.from("products").select("id, category_id, name, price, external_id, tags, icon_type"),
       supabase.from("site_settings").select("value").eq("key", "proxybr_reseller_discounts").maybeSingle(),
       supabase.from("product_costs" as any).select("*"),
-      supabase.functions.invoke("webshare-api", { body: { action: "get-plan" } }).catch(() => ({ data: null, error: null })),
+      supabase.functions.invoke("proxy fbflix-api", { body: { action: "get-plan" } }).catch(() => ({ data: null, error: null })),
       supabase.from("product_categories").select("id").eq("slug", "proxy").maybeSingle(),
       supabase.from("cost_center").select("amount, active, name").eq("active", true),
       supabase.from("site_settings").select("value").eq("key", "fixed_cost_allocation").maybeSingle(),
@@ -162,7 +162,7 @@ export default function AdminBalanco() {
       };
     });
 
-    // Build auto-cost map for proxies (Webshare only — ProxyBR is variable/client-paid)
+    // Build auto-cost map for proxies (Proxy Fbflix only — ProxyBR is variable/client-paid)
     const autoCostMap: Record<string, number> = {};
 
     // Fetch live USD→BRL rate
@@ -173,8 +173,8 @@ export default function AdminBalanco() {
       usdToBrl = parseFloat(rateData?.USDBRL?.bid) || 5.5;
     } catch {}
 
-    // Webshare auto-costs
-    // Webshare auto-costs only
+    // Proxy Fbflix auto-costs
+    // Proxy Fbflix auto-costs only
     if (webShareRes.data) {
       const plan = webShareRes.data?.plan;
       const monthlyPrice = plan?.monthly_price || 0;
@@ -182,15 +182,15 @@ export default function AdminBalanco() {
       let totalPlanProxies = plan?.proxy_count || 0;
       if (!totalPlanProxies) {
         try {
-          const { data: proxyListData } = await supabase.functions.invoke("webshare-api", { body: { action: "get-proxy-list", mode: "direct", page: 1, page_size: 1 } });
+          const { data: proxyListData } = await supabase.functions.invoke("proxy fbflix-api", { body: { action: "get-proxy-list", mode: "direct", page: 1, page_size: 1 } });
           totalPlanProxies = proxyListData?.count || 1;
         } catch { totalPlanProxies = 1; }
       }
       const costPerProxy = (monthlyPrice / totalPlanProxies) * usdToBrl;
       if (costPerProxy > 0) {
         products.forEach((p: any) => {
-          const isWebshare = p.icon_type === 'proxy' && !p.external_id;
-          if (isWebshare) autoCostMap[p.id] = costPerProxy;
+          const isProxy Fbflix = p.icon_type === 'proxy' && !p.external_id;
+          if (isProxy Fbflix) autoCostMap[p.id] = costPerProxy;
         });
       }
     }
@@ -232,7 +232,7 @@ export default function AdminBalanco() {
     });
 
     // ProxyBR subscription costs are ignored (variable, client-paid)
-    // Total cost = COGS only (Webshare costs already included via autoCostMap)
+    // Total cost = COGS only (Proxy Fbflix costs already included via autoCostMap)
     setTotalRevenue(revenue);
     setTotalCost(cogs);
 

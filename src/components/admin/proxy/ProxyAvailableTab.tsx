@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { callWebshare } from "@/hooks/useWebshare";
+import { callProxy Fbflix } from "@/hooks/useProxy Fbflix";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -23,7 +23,7 @@ type ProxyRecord = {
   valid?: boolean;
 };
 
-type WebshareSubscription = {
+type Proxy FbflixSubscription = {
   id: string;
   status: string;
   end_date: string | null;
@@ -39,8 +39,8 @@ type SubscriptionRow = {
 
 const normalizeProxyId = (value: unknown) => String(value ?? "").trim();
 
-const isStillOccupying = (subscription: WebshareSubscription) => {
-  const proxyId = normalizeProxyId(subscription.raw_data?.webshare_proxy_id);
+const isStillOccupying = (subscription: Proxy FbflixSubscription) => {
+  const proxyId = normalizeProxyId(subscription.raw_data?.proxy fbflix_proxy_id);
   if (!proxyId) return false;
   if (!subscription.end_date) return true;
   return new Date(subscription.end_date).getTime() >= Date.now();
@@ -54,17 +54,17 @@ export default function ProxyAvailableTab() {
   const [usPage, setUsPage] = useState(1);
   const canLoad = isAdmin === true && !authLoading;
 
-  // Fetch all proxies from Webshare API
+  // Fetch all proxies from Proxy Fbflix API
   const {
     data: allProxies = [],
     isLoading: proxyLoading,
     error: proxyError,
     refetch: refetchProxies,
   } = useQuery<ProxyRecord[]>({
-    queryKey: ["webshare-available-all-proxies", "direct"],
+    queryKey: ["proxy fbflix-available-all-proxies", "direct"],
     enabled: canLoad,
     queryFn: async () => {
-      const response = await callWebshare("get-all-proxies", { mode: "direct" });
+      const response = await callProxy Fbflix("get-all-proxies", { mode: "direct" });
       if (!response) {
         throw new Error("Sessão administrativa ainda não foi carregada.");
       }
@@ -85,11 +85,11 @@ export default function ProxyAvailableTab() {
     isLoading: subsLoading,
     error: subsError,
     refetch: refetchSubs,
-  } = useQuery<WebshareSubscription[]>({
-    queryKey: ["webshare-active-subs-for-available-v2"],
+  } = useQuery<Proxy FbflixSubscription[]>({
+    queryKey: ["proxy fbflix-active-subs-for-available-v2"],
     enabled: canLoad,
     queryFn: async () => {
-      let all: WebshareSubscription[] = [];
+      let all: Proxy FbflixSubscription[] = [];
       let from = 0;
       const ps = 1000;
 
@@ -97,7 +97,7 @@ export default function ProxyAvailableTab() {
         const { data, error } = await supabase
           .from("subscriptions")
           .select("id, status, end_date, raw_data")
-          .eq("type", "webshare")
+          .eq("type", "proxy fbflix")
           .in("status", [...ACTIVE_STATUSES])
           .range(from, from + ps - 1);
 
@@ -126,7 +126,7 @@ export default function ProxyAvailableTab() {
   const soldProxyIds = useMemo(() => {
     const ids = new Set<string>();
     wsSubs.forEach(s => {
-      const proxyId = normalizeProxyId(s.raw_data?.webshare_proxy_id);
+      const proxyId = normalizeProxyId(s.raw_data?.proxy fbflix_proxy_id);
       if (proxyId) ids.add(proxyId);
     });
     return ids;
@@ -281,7 +281,7 @@ export default function ProxyAvailableTab() {
         <Card className="border-border/40 bg-card/60">
           <CardContent className="flex items-center gap-3 p-4 text-sm text-muted-foreground">
             <AlertCircle className="size-4 text-destructive" />
-            Sessão administrativa não encontrada para carregar os proxies da Webshare.
+            Sessão administrativa não encontrada para carregar os proxies da Proxy Fbflix.
           </CardContent>
         </Card>
       )}
