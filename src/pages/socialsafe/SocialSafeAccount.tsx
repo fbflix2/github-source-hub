@@ -45,8 +45,8 @@ export default function SocialSafeAccount() {
 
     const [listings, buys, sales] = await Promise.all([
       supabase.from("ss_listings").select("*").eq("seller_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("ss_transactions").select("*, ss_listings(title, platform, price)").eq("buyer_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("ss_transactions").select("*, ss_listings(title, platform, price)").eq("seller_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("ss_transactions_safe").select("*, ss_listings(title, platform, price)").eq("buyer_id", user.id).order("created_at", { ascending: false }),
+      supabase.from("ss_transactions_safe").select("*, ss_listings(title, platform, price)").eq("seller_id", user.id).order("created_at", { ascending: false }),
     ]);
 
     setMyListings((listings.data as any[]) || []);
