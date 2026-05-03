@@ -246,7 +246,7 @@ export default function Profile() {
           <p className="text-muted-foreground">Gerencie suas informações pessoais e de contato.</p>
         </div>
         <div className="flex gap-3">
-          {isPartner && (
+          {(isPartner || isApiAuthorized) && (
             <div className="flex gap-1 bg-secondary rounded-lg p-1 border border-border">
               <button
                 onClick={() => setActiveTab("profile")}
@@ -254,12 +254,22 @@ export default function Profile() {
               >
                 Perfil
               </button>
-              <button
-                onClick={() => setActiveTab("partner")}
-                className={`text-sm font-medium px-4 py-2 rounded-md transition-all ${activeTab === "partner" ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:text-foreground"}`}
-              >
-                Parceiro
-              </button>
+              {isPartner && (
+                <button
+                  onClick={() => setActiveTab("partner")}
+                  className={`text-sm font-medium px-4 py-2 rounded-md transition-all ${activeTab === "partner" ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:text-foreground"}`}
+                >
+                  Parceiro
+                </button>
+              )}
+              {isApiAuthorized && (
+                <button
+                  onClick={() => setActiveTab("api")}
+                  className={`text-sm font-medium px-4 py-2 rounded-md transition-all ${activeTab === "api" ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:text-foreground"}`}
+                >
+                  API
+                </button>
+              )}
             </div>
           )}
         </div>
