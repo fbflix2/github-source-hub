@@ -89,17 +89,17 @@ async function webFetch(path: string, apiKey: string, method = "GET", body?: str
   } catch (e: any) {
     clearTimeout(timeout);
     if (e.name === "AbortError") {
-      throw new Error("Webshare API timeout (25s). Tente novamente.");
+      throw new Error("Proxy Fbflix API timeout (25s). Tente novamente.");
     }
     throw e;
   }
   clearTimeout(timeout);
 
   if (resp.status === 429) {
-    throw new Error("Webshare rate limit atingido. Tente novamente em 60s.");
+    throw new Error("Proxy Fbflix rate limit atingido. Tente novamente em 60s.");
   }
   if (resp.status >= 500) {
-    throw new Error(`Webshare API indisponível (${resp.status}). Tente novamente em alguns minutos.`);
+    throw new Error(`Proxy Fbflix API indisponível (${resp.status}). Tente novamente em alguns minutos.`);
   }
   return resp;
 }
@@ -110,13 +110,13 @@ async function fetchAllWebshareProxies(apiKey: string, mode: "direct" | "backbon
 
   while (true) {
     const resp = await webFetch(`/proxy/list/?mode=${mode}&page=${page}&page_size=250`, apiKey);
-    if (!resp.ok) throw new Error(`Webshare API error [${resp.status}]`);
+    if (!resp.ok) throw new Error(`Proxy Fbflix API error [${resp.status}]`);
     const text = await resp.text();
     let data: any;
     try {
       data = JSON.parse(text);
     } catch {
-      throw new Error(`Webshare retornou resposta inválida (${resp.status}). Tente novamente.`);
+      throw new Error(`Proxy Fbflix retornou resposta inválida (${resp.status}). Tente novamente.`);
     }
 
     if (data.results?.length) proxies.push(...data.results);
@@ -623,7 +623,7 @@ Deno.serve(async (req) => {
         page++;
       }
 
-      if (allProxies.length === 0) throw new Error("Nenhum proxy disponível na Webshare");
+      if (allProxies.length === 0) throw new Error("Nenhum proxy disponível no Proxy Fbflix");
 
       // 3. Get already-assigned proxy IDs from local subscriptions
       const { data: existingSubs } = await supabaseAdmin
@@ -731,7 +731,7 @@ Deno.serve(async (req) => {
       // 9. Notify admin
       const productLabel = product_id
         ? (await supabaseAdmin.from("products").select("name").eq("id", product_id).single())?.data?.name || "Proxy"
-        : "Proxy Webshare";
+        : "Proxy Fbflix";
       const clientName = (await supabaseAdmin.from("profiles").select("full_name").eq("user_id", user.id).single())?.data?.full_name || "Cliente";
 
       const proxyList = allocatedProxies.map(p => `${p.proxy_address}:${p.port}`).join(", ");
