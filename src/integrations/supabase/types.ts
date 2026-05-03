@@ -3295,7 +3295,6 @@ export type Database = {
           country: string | null
           created_at: string
           email_alt: string | null
-          email_password: string | null
           email_password_enc: string | null
           email_principal: string | null
           has_bm: boolean
@@ -3304,7 +3303,6 @@ export type Database = {
           login: string | null
           login_result: string | null
           notes: string | null
-          password: string | null
           password_enc: string | null
           profile_link: string | null
           sold: boolean
@@ -3320,7 +3318,6 @@ export type Database = {
           country?: string | null
           created_at?: string
           email_alt?: string | null
-          email_password?: string | null
           email_password_enc?: string | null
           email_principal?: string | null
           has_bm?: boolean
@@ -3329,7 +3326,6 @@ export type Database = {
           login?: string | null
           login_result?: string | null
           notes?: string | null
-          password?: string | null
           password_enc?: string | null
           profile_link?: string | null
           sold?: boolean
@@ -3345,7 +3341,6 @@ export type Database = {
           country?: string | null
           created_at?: string
           email_alt?: string | null
-          email_password?: string | null
           email_password_enc?: string | null
           email_principal?: string | null
           has_bm?: boolean
@@ -3354,7 +3349,6 @@ export type Database = {
           login?: string | null
           login_result?: string | null
           notes?: string | null
-          password?: string | null
           password_enc?: string | null
           profile_link?: string | null
           sold?: boolean
@@ -4011,6 +4005,7 @@ export type Database = {
       }
       ss_transactions_safe: {
         Row: {
+          account_credentials: Json | null
           amount: number | null
           buyer_id: string | null
           confirmed_at: string | null
@@ -4032,6 +4027,7 @@ export type Database = {
           validation_checklist: Json | null
         }
         Insert: {
+          account_credentials?: never
           amount?: number | null
           buyer_id?: string | null
           confirmed_at?: string | null
@@ -4053,6 +4049,7 @@ export type Database = {
           validation_checklist?: Json | null
         }
         Update: {
+          account_credentials?: never
           amount?: number | null
           buyer_id?: string | null
           confirmed_at?: string | null
@@ -4091,6 +4088,10 @@ export type Database = {
         Returns: Json
       }
       get_client_count: { Args: never; Returns: number }
+      get_ss_transaction_credentials: {
+        Args: { _transaction_id: string }
+        Returns: Json
+      }
       get_supplier_account_credentials: {
         Args: { _account_id: string }
         Returns: {
