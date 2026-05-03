@@ -277,6 +277,8 @@ export default function Profile() {
 
       {activeTab === "partner" && isPartner ? (
         <PartnerDashboard />
+      ) : activeTab === "api" && isApiAuthorized ? (
+        <ApiManagement />
       ) : (
       <>
       {/* Main Content Grid */}
