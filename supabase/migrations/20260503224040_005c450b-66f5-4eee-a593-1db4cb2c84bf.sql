@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN is_api_authorized BOOLEAN DEFAULT false;
