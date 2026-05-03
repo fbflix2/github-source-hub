@@ -31,6 +31,7 @@ export default function ClientEditModal({ open, onClose, client, onUpdate }: Cli
   const [balance, setBalance] = useState("0");
   const [status, setStatus] = useState("active");
   const [cardPaymentEnabled, setCardPaymentEnabled] = useState(false);
+  const [apiAuthorized, setApiAuthorized] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -40,8 +41,9 @@ export default function ClientEditModal({ open, onClose, client, onUpdate }: Cli
       setBalance(client.balance.toString());
       setStatus(client.status);
       // Fetch card_payment_enabled
-      supabase.from("profiles").select("card_payment_enabled").eq("user_id", client.user_id).single().then(({ data }) => {
+      supabase.from("profiles").select("card_payment_enabled, is_api_authorized").eq("user_id", client.user_id).single().then(({ data }) => {
         setCardPaymentEnabled(data?.card_payment_enabled ?? false);
+        setApiAuthorized((data as any)?.is_api_authorized ?? false);
       });
     }
   }, [client]);
@@ -58,6 +60,7 @@ export default function ClientEditModal({ open, onClose, client, onUpdate }: Cli
           balance: parseFloat(balance) || 0,
           status,
           card_payment_enabled: cardPaymentEnabled,
+          is_api_authorized: apiAuthorized,
         })
         .eq("user_id", client.user_id);
 
@@ -110,12 +113,22 @@ export default function ClientEditModal({ open, onClose, client, onUpdate }: Cli
               </SelectContent>
             </Select>
           </div>
-          <div className="flex items-center justify-between rounded-lg border border-border p-3">
-            <div>
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Pagamento via Cartão</Label>
-              <p className="text-[10px] text-muted-foreground mt-0.5">Liberar crédito/débito para este cliente</p>
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between rounded-lg border border-border p-3">
+              <div>
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Pagamento via Cartão</Label>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Liberar crédito/débito para este cliente</p>
+              </div>
+              <Switch checked={cardPaymentEnabled} onCheckedChange={setCardPaymentEnabled} />
             </div>
-            <Switch checked={cardPaymentEnabled} onCheckedChange={setCardPaymentEnabled} />
+
+            <div className="flex items-center justify-between rounded-lg border border-border p-3">
+              <div>
+                <Label className="text-xs uppercase tracking-wider text-muted-foreground">Acesso à API</Label>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Liberar integração via API para este usuário</p>
+              </div>
+              <Switch checked={apiAuthorized} onCheckedChange={setApiAuthorized} />
+            </div>
           </div>
           <Button onClick={handleSave} disabled={saving} className="w-full gap-2">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}

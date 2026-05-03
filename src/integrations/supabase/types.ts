@@ -2492,6 +2492,7 @@ export type Database = {
           first_login_at: string | null
           full_name: string | null
           id: string
+          is_api_authorized: boolean | null
           lauth_email: string | null
           lauth_enabled: boolean | null
           numero: string | null
@@ -2520,6 +2521,7 @@ export type Database = {
           first_login_at?: string | null
           full_name?: string | null
           id?: string
+          is_api_authorized?: boolean | null
           lauth_email?: string | null
           lauth_enabled?: boolean | null
           numero?: string | null
@@ -2548,6 +2550,7 @@ export type Database = {
           first_login_at?: string | null
           full_name?: string | null
           id?: string
+          is_api_authorized?: boolean | null
           lauth_email?: string | null
           lauth_enabled?: boolean | null
           numero?: string | null

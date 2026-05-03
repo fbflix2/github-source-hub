@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { PartnerDashboard } from "@/components/partner/PartnerDashboard";
+import { ApiManagement } from "@/components/partner/ApiManagement";
 
 interface ProfileFormData {
   full_name: string;
@@ -39,8 +40,9 @@ export default function Profile() {
   });
   const [verified, setVerified] = useState(false);
   const [documentUrl, setDocumentUrl] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"profile" | "partner">("profile");
+  const [activeTab, setActiveTab] = useState<"profile" | "partner" | "api">("profile");
   const [isPartner, setIsPartner] = useState(false);
+  const [isApiAuthorized, setIsApiAuthorized] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -83,6 +85,7 @@ export default function Profile() {
         setVerified((profile as any).verified || false);
         setDocumentUrl((profile as any).document_url || null);
         setAvatarUrl(profile.avatar_url || null);
+        setIsApiAuthorized((profile as any).is_api_authorized || false);
       }
 
       // Fetch user role
@@ -243,7 +246,7 @@ export default function Profile() {
           <p className="text-muted-foreground">Gerencie suas informações pessoais e de contato.</p>
         </div>
         <div className="flex gap-3">
-          {isPartner && (
+          {(isPartner || isApiAuthorized) && (
             <div className="flex gap-1 bg-secondary rounded-lg p-1 border border-border">
               <button
                 onClick={() => setActiveTab("profile")}
@@ -251,12 +254,22 @@ export default function Profile() {
               >
                 Perfil
               </button>
-              <button
-                onClick={() => setActiveTab("partner")}
-                className={`text-sm font-medium px-4 py-2 rounded-md transition-all ${activeTab === "partner" ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:text-foreground"}`}
-              >
-                Parceiro
-              </button>
+              {isPartner && (
+                <button
+                  onClick={() => setActiveTab("partner")}
+                  className={`text-sm font-medium px-4 py-2 rounded-md transition-all ${activeTab === "partner" ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:text-foreground"}`}
+                >
+                  Parceiro
+                </button>
+              )}
+              {isApiAuthorized && (
+                <button
+                  onClick={() => setActiveTab("api")}
+                  className={`text-sm font-medium px-4 py-2 rounded-md transition-all ${activeTab === "api" ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:text-foreground"}`}
+                >
+                  API
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -264,6 +277,8 @@ export default function Profile() {
 
       {activeTab === "partner" && isPartner ? (
         <PartnerDashboard />
+      ) : activeTab === "api" && isApiAuthorized ? (
+        <ApiManagement />
       ) : (
       <>
       {/* Main Content Grid */}
