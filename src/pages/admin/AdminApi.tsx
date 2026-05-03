@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   PlusCircle,
   Server,
@@ -18,6 +18,12 @@ import {
   Clipboard,
   EyeOff,
   Loader2,
+  ArrowRight,
+  Zap,
+  Globe,
+  Shield,
+  Terminal,
+  Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -249,8 +255,83 @@ export default function AdminApi() {
     });
   };
 
+  const CodeBlock = ({ code, id, language = "json" }: { code: string; id: string; language?: string }) => (
+    <div className="relative group mt-2">
+      <pre className="bg-slate-950 p-4 rounded-lg overflow-x-auto text-xs font-mono text-slate-300 border border-white/10">
+        <code>{code}</code>
+      </pre>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 text-white hover:bg-white/10"
+        onClick={() => {
+          navigator.clipboard.writeText(code);
+          toast.success("Copiado!");
+        }}
+      >
+        <Copy className="size-4" />
+      </Button>
+    </div>
+  );
+
   return (
     <div className="flex flex-col gap-8 py-6">
+      {/* Documentation Section */}
+      <div className="grid grid-cols-1 gap-6 mb-4">
+        <div className="bg-primary/5 border border-primary/20 rounded-2xl p-8 relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-4 opacity-10">
+            <Terminal size={120} />
+          </div>
+          
+          <div className="flex flex-col md:flex-row gap-8 items-start relative z-10">
+            <div className="flex-1 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-primary/20 rounded-lg">
+                  <Code2 className="text-primary size-6" />
+                </div>
+                <h2 className="text-2xl font-black text-white">Documentação ProxyFbflix</h2>
+              </div>
+              <p className="text-gray-400 text-sm leading-relaxed max-w-xl">
+                Esta documentação é restrita a parceiros e administradores. Utilize os endpoints abaixo para integrar a infraestrutura de proxies do Fbflix em sistemas externos.
+              </p>
+              <div className="flex flex-wrap gap-4 pt-2">
+                <div className="flex items-center gap-2 text-xs font-medium text-gray-300 bg-white/5 px-3 py-1.5 rounded-full border border-white/10">
+                  <Shield className="size-3 text-primary" /> Auth JWT Bearer
+                </div>
+                <div className="flex items-center gap-2 text-xs font-medium text-gray-300 bg-white/5 px-3 py-1.5 rounded-full border border-white/10">
+                  <Zap className="size-3 text-yellow-500" /> Compra Automática
+                </div>
+                <div className="flex items-center gap-2 text-xs font-medium text-gray-300 bg-white/5 px-3 py-1.5 rounded-full border border-white/10">
+                  <Globe className="size-3 text-blue-500" /> Gestão de IPs
+                </div>
+              </div>
+              <Button 
+                onClick={() => navigate("/api-docs")}
+                className="bg-primary hover:bg-primary/90 text-white font-bold rounded-xl px-6"
+              >
+                Ver Documentação Completa
+                <ArrowRight className="size-4 ml-2" />
+              </Button>
+            </div>
+            
+            <div className="w-full md:w-80 space-y-3">
+              <div className="p-4 rounded-xl bg-black/40 border border-white/5 space-y-2">
+                <p className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">Exemplo de Compra</p>
+                <pre className="text-[10px] font-mono text-primary/80 overflow-x-auto">
+                  {`POST /proxyfbflix-api
+{
+  "action": "purchase-proxy-with-balance",
+  "total": 9.90,
+  "product_id": "...",
+  "quantity": 1
+}`}
+                </pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Header */}
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-2 border-b border-white/5">
         <div className="flex flex-col gap-2">
