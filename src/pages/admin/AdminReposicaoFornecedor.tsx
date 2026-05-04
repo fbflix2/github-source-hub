@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RefreshCw, Upload, Link, FileText, Loader2, History, Trash2, UserPlus, Plus, ExternalLink, Copy } from "lucide-react";
+ import { RefreshCw, Upload, Link, FileText, Loader2, History, Trash2, UserPlus, Plus, ExternalLink, Copy, ListTodo, Send } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -31,7 +31,8 @@ export default function AdminReposicaoFornecedor() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [notes, setNotes] = useState("");
-  const [history, setHistory] = useState<ReplacementRecord[]>([]);
+   const [history, setHistory] = useState<ReplacementRecord[]>([]);
+   const [activeRequests, setActiveRequests] = useState<any[]>([]);
   const [isCreatingSupplier, setIsCreatingSupplier] = useState(false);
   const [newSupplierName, setNewSupplierName] = useState("");
   const [creatingSupplier, setCreatingSupplier] = useState(false);
@@ -42,10 +43,56 @@ export default function AdminReposicaoFornecedor() {
   // BM links state
   const [bmLinks, setBmLinks] = useState("");
 
-  useEffect(() => {
-    fetchSuppliers();
-    fetchHistory();
-  }, []);
+  // Request state
+  const [requestUnitPrice, setRequestUnitPrice] = useState("");
+  const [requestReason, setRequestReason] = useState("");
+  const [requestStatus, setRequestStatus] = useState("pending_replenishment");
+  const [requestType, setRequestType] = useState<"perfil" | "bm">("bm");
+  const [requestContent, setRequestContent] = useState("");
+
+   useEffect(() => {
+     fetchSuppliers();
+     fetchHistory();
+     fetchActiveRequests();
+   }, [selectedSupplier]);
+   const fetchActiveRequests = async () => {
+     let query = supabase
+       .from("supplier_requests")
+       .select("*, items:supplier_request_items(*)")
+       .order("created_at", { ascending: false });
+     
+     if (selectedSupplier) {
+       query = query.eq("supplier_id", selectedSupplier);
+     }
+
+     const { data } = await query;
+     setActiveRequests(data || []);
+   };
+
+   const handleUpdateStatus = async (id: string, newStatus: string) => {
+     const { error } = await supabase
+       .from("supplier_requests")
+       .update({ status: newStatus })
+       .eq("id", id);
+     
+     if (error) {
+       toast.error("Erro ao atualizar status: " + error.message);
+     } else {
+       toast.success("Status atualizado");
+       fetchActiveRequests();
+     }
+   };
+
+   const deleteRequest = async (id: string) => {
+     if (!confirm("Excluir esta solicitação?")) return;
+     const { error } = await supabase.from("supplier_requests").delete().eq("id", id);
+     if (error) {
+       toast.error("Erro ao excluir: " + error.message);
+     } else {
+       toast.success("Solicitação excluída");
+       fetchActiveRequests();
+     }
+   };
 
   const fetchSuppliers = async () => {
     const { data } = await supabase.from("suppliers").select("id, name, access_token").eq("status", "active").order("name");
@@ -258,6 +305,57 @@ export default function AdminReposicaoFornecedor() {
     }
   };
 
+  const handleCreateRequest = async () => {
+    if (!selectedSupplier) {
+      toast.error("Selecione um fornecedor");
+      return;
+    }
+    if (!requestContent.trim()) {
+      toast.error("Insira os itens para reposição");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      // 1. Create request
+      const { data: request, error: reqError } = await supabase
+        .from("supplier_requests")
+        .insert({
+          supplier_id: selectedSupplier,
+          title: `Solicitação de Reposição - ${requestType === "bm" ? "BMs" : "Perfis"}`,
+          description: `Valor Unitário: R$ ${requestUnitPrice || '0'} | Motivo: ${requestReason}`,
+          status: requestStatus,
+          type: "replacement",
+          unit_price: requestUnitPrice ? parseFloat(requestUnitPrice) : 0,
+          reason: requestReason
+        })
+        .select()
+        .single();
+
+      if (reqError) throw reqError;
+
+      // 2. Create items
+      const lines = requestContent.split('\n').filter(l => l.trim());
+      const items = lines.map(line => ({
+        request_id: request.id,
+        details: line
+      }));
+
+      const { error: itemsError } = await supabase.from("supplier_request_items").insert(items);
+      if (itemsError) throw itemsError;
+
+       toast.success("Solicitação criada com sucesso!");
+       setRequestContent("");
+       setRequestUnitPrice("");
+       setRequestReason("");
+       fetchActiveRequests();
+    } catch (err: any) {
+      toast.error("Erro ao criar solicitação: " + err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const deleteBatch = async (id: string) => {
     if (!confirm("Excluir este registro de reposição?")) return;
     const { error } = await supabase.from("supplier_batches").delete().eq("id", id);
@@ -320,8 +418,8 @@ export default function AdminReposicaoFornecedor() {
         </Card>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
+       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+         <div className="lg:col-span-2 space-y-6">
           <Card className="bg-zinc-900/50 border-zinc-800">
             <CardHeader>
               <CardTitle className="text-lg text-white">Nova Solicitação</CardTitle>
@@ -343,13 +441,16 @@ export default function AdminReposicaoFornecedor() {
                 </Select>
               </div>
 
-              <Tabs defaultValue="perfil" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 bg-zinc-950 border border-zinc-800">
+               <Tabs defaultValue="perfil" className="w-full">
+                 <TabsList className="grid w-full grid-cols-3 bg-zinc-950 border border-zinc-800">
                   <TabsTrigger value="perfil" className="data-[state=active]:bg-primary">
                     <FileText className="h-4 w-4 mr-2" /> Perfis
                   </TabsTrigger>
                   <TabsTrigger value="bm" className="data-[state=active]:bg-primary">
                     <Link className="h-4 w-4 mr-2" /> BMs
+                  </TabsTrigger>
+                  <TabsTrigger value="request" className="data-[state=active]:bg-primary">
+                    <ListTodo className="h-4 w-4 mr-2" /> Solicitar
                   </TabsTrigger>
                 </TabsList>
 
@@ -420,12 +521,151 @@ export default function AdminReposicaoFornecedor() {
                     Registrar Reposição de BMs
                   </Button>
                 </TabsContent>
+                <TabsContent value="request" className="space-y-4 mt-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-zinc-400">Tipo</label>
+                      <Select value={requestType} onValueChange={(v: any) => setRequestType(v)}>
+                        <SelectTrigger className="bg-zinc-950 border-zinc-800 text-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
+                          <SelectItem value="bm">BMs</SelectItem>
+                          <SelectItem value="perfil">Perfis</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-zinc-400">Status Inicial</label>
+                      <Select value={requestStatus} onValueChange={setRequestStatus}>
+                        <SelectTrigger className="bg-zinc-950 border-zinc-800 text-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
+                          <SelectItem value="pending_replenishment">Aguardando Reposição</SelectItem>
+                          <SelectItem value="accepted">Aceito</SelectItem>
+                          <SelectItem value="testing">Em Teste</SelectItem>
+                          <SelectItem value="completed">Concluído</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-zinc-400">Valor Unitário (R$)</label>
+                      <Input 
+                        type="number" 
+                        placeholder="0.00"
+                        value={requestUnitPrice}
+                        onChange={e => setRequestUnitPrice(e.target.value)}
+                        className="bg-zinc-950 border-zinc-800 text-white"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-zinc-400">Motivo da Reposição</label>
+                      <Input 
+                        placeholder="Ex: Block, Link Expirado, etc."
+                        value={requestReason}
+                        onChange={e => setRequestReason(e.target.value)}
+                        className="bg-zinc-950 border-zinc-800 text-white"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-zinc-400">
+                      {requestType === 'bm' ? 'Links das BMs' : 'Dados dos Perfis'} (um por linha)
+                    </label>
+                    <Textarea 
+                      placeholder={requestType === 'bm' ? "https://fb.me/..." : "login|senha|..."}
+                      value={requestContent}
+                      onChange={e => setRequestContent(e.target.value)}
+                      className="bg-zinc-950 border-zinc-800 text-white min-h-[150px] font-mono text-sm"
+                    />
+                  </div>
+
+                  <Button 
+                    className="w-full bg-primary hover:bg-primary/90 text-white font-bold h-12"
+                    onClick={handleCreateRequest}
+                    disabled={submitting || !requestContent || !selectedSupplier}
+                  >
+                    {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
+                    Enviar Solicitação ao Fornecedor
+                  </Button>
+                </TabsContent>
               </Tabs>
             </CardContent>
           </Card>
         </div>
 
-        <div className="space-y-6">
+         <div className="lg:col-span-2 space-y-6">
+           <Card className="bg-zinc-900/50 border-zinc-800">
+             <CardHeader>
+               <CardTitle className="text-lg text-white flex items-center gap-2">
+                 <History className="h-5 w-5 text-primary" />
+                 Solicitações Ativas
+               </CardTitle>
+             </CardHeader>
+             <CardContent className="p-0">
+               <div className="max-h-[600px] overflow-auto">
+                 <Table>
+                   <TableHeader>
+                     <TableRow className="border-zinc-800 hover:bg-transparent">
+                       <TableHead className="text-zinc-400">Solicitação</TableHead>
+                       <TableHead className="text-zinc-400">Status</TableHead>
+                       <TableHead className="text-zinc-400 text-right">Ações</TableHead>
+                     </TableRow>
+                   </TableHeader>
+                   <TableBody>
+                     {activeRequests.length === 0 ? (
+                       <TableRow>
+                         <TableCell colSpan={3} className="text-center py-8 text-zinc-500">
+                           Nenhuma solicitação ativa.
+                         </TableCell>
+                       </TableRow>
+                     ) : activeRequests.map((req) => (
+                       <TableRow key={req.id} className="border-zinc-800 hover:bg-zinc-800/30">
+                         <TableCell>
+                           <div className="space-y-1">
+                             <div className="font-bold text-white text-sm">{req.title}</div>
+                             <div className="text-xs text-zinc-500">{new Date(req.created_at).toLocaleDateString()}</div>
+                             {req.reason && <div className="text-[10px] text-primary">{req.reason}</div>}
+                           </div>
+                         </TableCell>
+                         <TableCell>
+                           <Select 
+                             value={req.status} 
+                             onValueChange={(val) => handleUpdateStatus(req.id, val)}
+                           >
+                             <SelectTrigger className="h-8 bg-zinc-950 border-zinc-800 text-[10px] w-[140px]">
+                               <SelectValue />
+                             </SelectTrigger>
+                             <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
+                               <SelectItem value="pending_replenishment">Aguardando Reposição</SelectItem>
+                               <SelectItem value="accepted">Aceito</SelectItem>
+                               <SelectItem value="testing">Em Teste</SelectItem>
+                               <SelectItem value="completed">Concluído</SelectItem>
+                             </SelectContent>
+                           </Select>
+                         </TableCell>
+                         <TableCell className="text-right">
+                           <Button 
+                             variant="ghost" 
+                             size="icon" 
+                             className="h-8 w-8 text-red-400 hover:text-red-300 hover:bg-red-400/10"
+                             onClick={() => deleteRequest(req.id)}
+                           >
+                             <Trash2 className="h-4 w-4" />
+                           </Button>
+                         </TableCell>
+                       </TableRow>
+                     ))}
+                   </TableBody>
+                 </Table>
+               </div>
+             </CardContent>
+           </Card>
           {selectedSupplier && (
             <Card className="bg-primary/5 border-primary/20">
               <CardHeader className="pb-2">

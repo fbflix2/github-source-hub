@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Send, FileText, CheckCircle2, Clock, AlertCircle } from "lucide-react";
+ import { Loader2, Send, FileText, CheckCircle2, Clock, AlertCircle, ExternalLink, Copy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -54,14 +54,49 @@ export default function FornecedorPublicPage() {
     }
   };
 
-  const fetchRequests = async (supplierId: string) => {
-    const { data } = await supabase
-      .from("supplier_requests")
-      .select("*")
-      .eq("supplier_id", supplierId)
-      .order("created_at", { ascending: false });
-    setRequests(data || []);
-  };
+   const fetchRequests = async (supplierId: string) => {
+     const { data, error } = await supabase
+       .from("supplier_requests")
+       .select(`
+         *,
+         items:supplier_request_items(*)
+       `)
+       .eq("supplier_id", supplierId)
+       .order("created_at", { ascending: false });
+     
+     if (error) {
+       console.error("Error fetching requests:", error);
+       return;
+     }
+     setRequests(data || []);
+   };
+
+   const getStatusLabel = (status: string) => {
+     const labels: Record<string, string> = {
+       'pending_replenishment': 'Aguardando Reposição',
+       'accepted': 'Aceito',
+       'testing': 'Em Teste',
+       'completed': 'Concluído',
+       'pending': 'Pendente'
+     };
+     return labels[status] || status;
+   };
+
+   const getStatusColor = (status: string) => {
+     const colors: Record<string, string> = {
+       'pending_replenishment': 'bg-yellow-500/20 text-yellow-500',
+       'accepted': 'bg-blue-500/20 text-blue-500',
+       'testing': 'bg-purple-500/20 text-purple-500',
+       'completed': 'bg-green-500/20 text-green-500',
+       'pending': 'bg-zinc-500/20 text-zinc-400'
+     };
+     return colors[status] || 'bg-zinc-500/20 text-zinc-400';
+   };
+
+   const copyToClipboard = (text: string) => {
+     navigator.clipboard.writeText(text);
+     toast.success("Copiado para a área de transferência");
+   };
 
   const handleSubmit = async () => {
     if (!content.trim()) {
@@ -211,23 +246,68 @@ export default function FornecedorPublicPage() {
                   <CheckCircle2 className="h-10 w-10 text-zinc-700 mx-auto mb-3" />
                   <p className="text-zinc-500">Nenhuma solicitação pendente no momento.</p>
                 </div>
-              ) : requests.map(req => (
-                <Card key={req.id} className="bg-zinc-900 border-zinc-800">
-                  <CardContent className="p-4 flex items-start justify-between gap-4">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <Badge className={req.status === 'completed' ? 'bg-green-500/20 text-green-500' : 'bg-yellow-500/20 text-yellow-500'}>
-                          {req.status === 'completed' ? 'Concluído' : 'Pendente'}
-                        </Badge>
-                        <span className="text-xs text-zinc-500">{new Date(req.created_at).toLocaleDateString()}</span>
-                      </div>
-                      <h3 className="font-bold text-white">{req.title}</h3>
-                      <p className="text-sm text-zinc-400">{req.description}</p>
-                    </div>
-                    {req.priority === 'high' && <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0" />}
-                  </CardContent>
-                </Card>
-              ))}
+               ) : requests.map(req => (
+                 <Card key={req.id} className="bg-zinc-900 border-zinc-800 overflow-hidden">
+                   <CardContent className="p-4 space-y-4">
+                     <div className="flex items-start justify-between gap-4">
+                       <div className="space-y-1">
+                         <div className="flex items-center gap-2 flex-wrap">
+                           <Badge className={getStatusColor(req.status)}>
+                             {getStatusLabel(req.status)}
+                           </Badge>
+                           <span className="text-xs text-zinc-500">{new Date(req.created_at).toLocaleString('pt-BR')}</span>
+                           {req.unit_price > 0 && (
+                             <Badge variant="outline" className="border-emerald-500/30 text-emerald-400">
+                               Unitário: R$ {req.unit_price.toFixed(2)}
+                             </Badge>
+                           )}
+                         </div>
+                         <h3 className="font-bold text-white text-lg">{req.title}</h3>
+                         {req.reason && (
+                           <p className="text-xs text-primary font-medium bg-primary/10 inline-block px-2 py-0.5 rounded">
+                             Motivo: {req.reason}
+                           </p>
+                         )}
+                         <p className="text-sm text-zinc-400">{req.description}</p>
+                       </div>
+                       {req.priority === 'high' && <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0" />}
+                     </div>
+
+                     {req.items && req.items.length > 0 && (
+                       <div className="space-y-2 pt-2 border-t border-zinc-800/50">
+                         <p className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Itens solicitados ({req.items.length})</p>
+                         <div className="space-y-2">
+                           {req.items.map((item: any) => (
+                             <div key={item.id} className="flex items-center justify-between gap-3 p-2 bg-black/40 rounded-lg group">
+                               <span className="text-xs font-mono text-zinc-300 truncate flex-1">{item.details}</span>
+                               <div className="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                                 {item.details.startsWith('http') && (
+                                   <Button 
+                                     size="icon" 
+                                     variant="ghost" 
+                                     className="h-7 w-7 text-primary hover:text-primary hover:bg-primary/10"
+                                     onClick={() => window.open(item.details, '_blank')}
+                                   >
+                                     <ExternalLink className="h-3.5 w-3.5" />
+                                   </Button>
+                                 )}
+                                 <Button 
+                                   size="icon" 
+                                   variant="ghost" 
+                                   className="h-7 w-7 text-zinc-400 hover:text-white"
+                                   onClick={() => copyToClipboard(item.details)}
+                                 >
+                                   <Copy className="h-3.5 w-3.5" />
+                                 </Button>
+                               </div>
+                             </div>
+                           ))}
+                         </div>
+                       </div>
+                     )}
+                   </CardContent>
+                 </Card>
+               ))}
             </div>
           </div>
         </div>
