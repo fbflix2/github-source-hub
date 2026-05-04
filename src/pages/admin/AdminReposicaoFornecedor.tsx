@@ -357,7 +357,7 @@ export default function AdminReposicaoFornecedor() {
         .from("supplier_requests")
         .insert({
           supplier_id: selectedSupplier,
-          title: `${requestCategory === "purchase" ? "COMPRA" : "REQ"}-${Math.random().toString(36).substring(2, 7).toUpperCase()} - ${requestType === "bm" ? "BMs" : "Perfis"}`,
+          title: `${requestCategory === "purchase" ? "COMPRA" : "REQ"}-${Math.random().toString(36).substring(2, 7).toUpperCase()}${requestCategory === "replacement" ? ` - ${requestType === "bm" ? "BMs" : "Perfis"}` : ""}`,
           description: `Valor Unitário: R$ ${requestUnitPrice || '0'} | Motivo: ${requestReason}`,
           status: requestStatus,
           type: requestCategory,
