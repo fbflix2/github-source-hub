@@ -584,6 +584,7 @@ export default function FornecedorPublicPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {requests
                   .filter(r => {
+                    if (r.type === 'purchase') return false;
                     const matchesStatus = filterType === 'all' 
                       ? true 
                       : filterType === 'pending' 
@@ -603,6 +604,7 @@ export default function FornecedorPublicPage() {
                 ) : (
                   requests
                     .filter(r => {
+                      if (r.type === 'purchase') return false;
                       const matchesStatus = filterType === 'all' 
                         ? true 
                         : filterType === 'pending' 
