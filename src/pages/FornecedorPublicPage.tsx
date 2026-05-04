@@ -35,7 +35,8 @@ export default function FornecedorPublicPage() {
   const [pixType, setPixType] = useState("cpf"); // 'cpf', 'email', 'phone', 'random'
   const [pixKey, setPixKey] = useState("");
   const [bankData, setBankData] = useState({ bank: "", agency: "", account: "", holder: "", document: "" });
-   const [offerData, setOfferData] = useState({ type: "bm", description: "", price: "", content: "" });
+   const [offerData, setOfferData] = useState({ type: "bm" as "bm" | "perfil", description: "", price: "", content: "" });
+   const [replenishItemContent, setReplenishItemContent] = useState<Record<string, string>>({});
    const [selectedRequest, setSelectedRequest] = useState<any>(null);
 
   useEffect(() => {
