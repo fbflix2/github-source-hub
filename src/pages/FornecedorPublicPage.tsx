@@ -387,26 +387,25 @@ export default function FornecedorPublicPage() {
             </div>
           )}
           {activeTab === 'reposicoes' && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-700">
-              <div className="flex flex-col md:flex-row gap-3 items-center bg-[#0a0a0a] p-4 rounded-xl border border-zinc-800 shadow-lg">
-                <div className="flex-1 flex gap-3 items-center w-full">
-                  <div className="p-2 bg-primary/10 rounded-lg">
-                    <Search className="h-4 w-4 text-primary" />
-                  </div>
+            <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-700">
+              <div className="flex flex-col md:flex-row gap-3 items-center bg-[#0a0a0a]/80 backdrop-blur-md p-3 rounded-2xl border border-zinc-800/50 shadow-2xl">
+                <div className="flex-1 flex gap-3 items-center w-full px-2">
+                  <Search className="h-4 w-4 text-zinc-500" />
                   <Tabs value={filterItemType} onValueChange={setFilterItemType} className="flex-1">
-                    <TabsList className="bg-black border border-zinc-800 w-full h-9 p-1">
-                      <TabsTrigger value="all" className="flex-1 data-[state=active]:bg-zinc-800 font-black text-[9px] uppercase tracking-wider">Todos Itens</TabsTrigger>
-                      <TabsTrigger value="bm" className="flex-1 data-[state=active]:bg-zinc-800 font-black text-[9px] uppercase tracking-wider">BMs</TabsTrigger>
-                      <TabsTrigger value="perfil" className="flex-1 data-[state=active]:bg-zinc-800 font-black text-[9px] uppercase tracking-wider">Perfis</TabsTrigger>
+                    <TabsList className="bg-black/40 border border-zinc-800/50 w-full h-8 p-1">
+                      <TabsTrigger value="all" className="flex-1 data-[state=active]:bg-zinc-800 font-black text-[8px] uppercase tracking-widest">Todos</TabsTrigger>
+                      <TabsTrigger value="bm" className="flex-1 data-[state=active]:bg-zinc-800 font-black text-[8px] uppercase tracking-widest">BMs</TabsTrigger>
+                      <TabsTrigger value="perfil" className="flex-1 data-[state=active]:bg-zinc-800 font-black text-[8px] uppercase tracking-widest">Perfis</TabsTrigger>
                     </TabsList>
                   </Tabs>
                 </div>
-                <div className="flex-1 w-full">
+                <div className="h-4 w-px bg-zinc-800 hidden md:block" />
+                <div className="flex-1 w-full px-2">
                   <Tabs value={filterType} onValueChange={setFilterStatus} className="w-full">
-                    <TabsList className="bg-black border border-zinc-800 w-full h-9 p-1">
-                      <TabsTrigger value="all" className="flex-1 data-[state=active]:bg-zinc-800 font-black text-[9px] uppercase tracking-wider">Todos Status</TabsTrigger>
-                      <TabsTrigger value="pending" className="flex-1 data-[state=active]:bg-zinc-800 font-black text-[9px] uppercase tracking-wider text-yellow-500">Pendentes</TabsTrigger>
-                      <TabsTrigger value="completed" className="flex-1 data-[state=active]:bg-zinc-800 font-black text-[9px] uppercase tracking-wider text-emerald-500">Concluídos</TabsTrigger>
+                    <TabsList className="bg-black/40 border border-zinc-800/50 w-full h-8 p-1">
+                      <TabsTrigger value="all" className="flex-1 data-[state=active]:bg-zinc-800 font-black text-[8px] uppercase tracking-widest">Status</TabsTrigger>
+                      <TabsTrigger value="pending" className="flex-1 data-[state=active]:bg-zinc-800 font-black text-[8px] uppercase tracking-widest text-yellow-500/80">Pendentes</TabsTrigger>
+                      <TabsTrigger value="completed" className="flex-1 data-[state=active]:bg-zinc-800 font-black text-[8px] uppercase tracking-widest text-emerald-500/80">Concluídos</TabsTrigger>
                     </TabsList>
                   </Tabs>
                 </div>
