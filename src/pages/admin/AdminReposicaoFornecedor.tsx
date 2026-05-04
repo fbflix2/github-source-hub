@@ -49,7 +49,8 @@ export default function AdminReposicaoFornecedor() {
   const [requestStatus, setRequestStatus] = useState("pending_replenishment");
   const [requestType, setRequestType] = useState<"perfil" | "bm">("bm");
   const [requestCategory, setRequestCategory] = useState<"replacement" | "purchase">("replacement");
-   const [requestItems, setRequestItems] = useState<{ details: string; reason: string }[]>([{ details: "", reason: "" }]);
+    const [requestItems, setRequestItems] = useState<{ details: string; reason: string }[]>([{ details: "", reason: "" }]);
+    const [purchaseDescription, setPurchaseDescription] = useState("");
 
    useEffect(() => {
      fetchSuppliers();
@@ -328,10 +329,25 @@ export default function AdminReposicaoFornecedor() {
       toast.error("Selecione um fornecedor");
       return;
     }
-     const validItems = requestItems.filter(item => item.details.trim());
-     if (validItems.length === 0) {
-       toast.error("Insira pelo menos um item para reposição");
-       return;
+     let validItems: { details: string; reason: string }[] = [];
+     
+     if (requestCategory === "purchase") {
+       if (!purchaseDescription.trim()) {
+         toast.error("Descreva o que deseja comprar");
+         return;
+       }
+       // Split description by lines to create separate items if multiple lines are provided
+       validItems = purchaseDescription
+         .split("\n")
+         .map(line => line.trim())
+         .filter(Boolean)
+         .map(line => ({ details: line, reason: requestReason }));
+     } else {
+       validItems = requestItems.filter(item => item.details.trim());
+       if (validItems.length === 0) {
+         toast.error("Insira pelo menos um item para reposição");
+         return;
+       }
      }
 
     setSubmitting(true);
@@ -371,6 +387,7 @@ export default function AdminReposicaoFornecedor() {
 
         toast.success("Solicitação criada com sucesso!");
         setRequestItems([{ details: "", reason: "" }]);
+        setPurchaseDescription("");
         setRequestUnitPrice("");
         setRequestReason("");
         fetchActiveRequests();
@@ -594,112 +611,149 @@ export default function AdminReposicaoFornecedor() {
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-zinc-400">Tipo</label>
-                      <Select value={requestType} onValueChange={(v: any) => setRequestType(v)}>
-                        <SelectTrigger className="bg-zinc-950 border-zinc-800 text-white">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
-                          <SelectItem value="bm">BMs</SelectItem>
-                          <SelectItem value="perfil">Perfis</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-zinc-400">Status Inicial</label>
-                      <Select value={requestStatus} onValueChange={setRequestStatus}>
-                        <SelectTrigger className="bg-zinc-950 border-zinc-800 text-white">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
-                          <SelectItem value="pending_replenishment">Aguardando Reposição</SelectItem>
-                          <SelectItem value="accepted">Aceito</SelectItem>
-                          <SelectItem value="testing">Em Teste</SelectItem>
-                          <SelectItem value="completed">Concluído</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
+                  {requestCategory === "replacement" ? (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-zinc-400">Tipo</label>
+                          <Select value={requestType} onValueChange={(v: any) => setRequestType(v)}>
+                            <SelectTrigger className="bg-zinc-950 border-zinc-800 text-white">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
+                              <SelectItem value="bm">BMs</SelectItem>
+                              <SelectItem value="perfil">Perfis</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-zinc-400">Status Inicial</label>
+                          <Select value={requestStatus} onValueChange={setRequestStatus}>
+                            <SelectTrigger className="bg-zinc-950 border-zinc-800 text-white">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
+                              <SelectItem value="pending_replenishment">Aguardando Reposição</SelectItem>
+                              <SelectItem value="accepted">Aceito</SelectItem>
+                              <SelectItem value="testing">Em Teste</SelectItem>
+                              <SelectItem value="completed">Concluído</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-zinc-400">Valor Unitário (R$)</label>
-                      <Input 
-                        type="number" 
-                        placeholder="0.00"
-                        value={requestUnitPrice}
-                        onChange={e => setRequestUnitPrice(e.target.value)}
-                        className="bg-zinc-950 border-zinc-800 text-white"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium text-zinc-400">{requestCategory === "purchase" ? "Observação" : "Motivo da Reposição"}</label>
-                      <Input 
-                        placeholder={requestCategory === "purchase" ? "Ex: Lote semanal, urgência, etc." : "Ex: Block, Link Expirado, etc."}
-                        value={requestReason}
-                        onChange={e => setRequestReason(e.target.value)}
-                        className="bg-zinc-950 border-zinc-800 text-white"
-                      />
-                    </div>
-                  </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-zinc-400">Valor Unitário (R$)</label>
+                          <Input 
+                            type="number" 
+                            placeholder="0.00"
+                            value={requestUnitPrice}
+                            onChange={e => setRequestUnitPrice(e.target.value)}
+                            className="bg-zinc-950 border-zinc-800 text-white"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-zinc-400">Motivo da Reposição</label>
+                          <Input 
+                            placeholder="Ex: Block, Link Expirado, etc."
+                            value={requestReason}
+                            onChange={e => setRequestReason(e.target.value)}
+                            className="bg-zinc-950 border-zinc-800 text-white"
+                          />
+                        </div>
+                      </div>
 
-                   <div className="space-y-4">
-                     <div className="flex items-center justify-between">
-                       <label className="text-sm font-medium text-zinc-400">
-                         {requestCategory === "purchase" ? "Itens para Compra" : "Itens para Reposição"}
-                       </label>
-                       <Button 
-                         type="button" 
-                         variant="outline" 
-                         size="sm" 
-                         onClick={addRequestItem}
-                         className="bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-white h-7 text-[10px]"
-                       >
-                         <Plus className="h-3 w-3 mr-1" /> Adicionar Item
-                       </Button>
-                     </div>
-                     
-                     <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                       {requestItems.map((item, index) => (
-                         <div key={index} className="flex flex-col gap-2 p-3 bg-zinc-950/50 border border-zinc-800 rounded-lg animate-in fade-in slide-in-from-top-1">
-                           <div className="flex items-center justify-between">
-                             <span className="text-[10px] font-bold text-zinc-500 uppercase">Item #{index + 1}</span>
-                             {requestItems.length > 1 && (
-                               <Button 
-                                 type="button" 
-                                 variant="ghost" 
-                                 size="icon" 
-                                 onClick={() => removeRequestItem(index)}
-                                 className="h-6 w-6 text-zinc-600 hover:text-red-400"
-                               >
-                                 <Trash2 className="h-3 w-3" />
-                               </Button>
-                             )}
-                           </div>
-                           <Input 
-                             placeholder={requestType === 'bm' ? "Link da BM (https://fb.me/...)" : "Dados do Perfil (login|senha|...)"}
-                             value={item.details}
-                             onChange={e => updateRequestItem(index, 'details', e.target.value)}
-                             className="bg-zinc-900 border-zinc-800 text-white text-xs h-8"
-                           />
-                           <Input 
-                             placeholder="Motivo específico (opcional)"
-                             value={item.reason}
-                             onChange={e => updateRequestItem(index, 'reason', e.target.value)}
-                             className="bg-zinc-900 border-zinc-800 text-white text-xs h-8"
-                           />
-                         </div>
-                       ))}
-                     </div>
-                   </div>
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <label className="text-sm font-medium text-zinc-400">Itens para Reposição</label>
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={addRequestItem}
+                            className="bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-white h-7 text-[10px]"
+                          >
+                            <Plus className="h-3 w-3 mr-1" /> Adicionar Item
+                          </Button>
+                        </div>
+                        
+                        <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                          {requestItems.map((item, index) => (
+                            <div key={index} className="flex flex-col gap-2 p-3 bg-zinc-950/50 border border-zinc-800 rounded-lg animate-in fade-in slide-in-from-top-1">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-bold text-zinc-500 uppercase">Item #{index + 1}</span>
+                                {requestItems.length > 1 && (
+                                  <Button 
+                                    type="button" 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    onClick={() => removeRequestItem(index)}
+                                    className="h-6 w-6 text-zinc-600 hover:text-red-400"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                )}
+                              </div>
+                              <Input 
+                                placeholder={requestType === 'bm' ? "Link da BM (https://fb.me/...)" : "Dados do Perfil (login|senha|...)"}
+                                value={item.details}
+                                onChange={e => updateRequestItem(index, 'details', e.target.value)}
+                                className="bg-zinc-900 border-zinc-800 text-white text-xs h-8"
+                              />
+                              <Input 
+                                placeholder="Motivo específico (opcional)"
+                                value={item.reason}
+                                onChange={e => updateRequestItem(index, 'reason', e.target.value)}
+                                className="bg-zinc-900 border-zinc-800 text-white text-xs h-8"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-zinc-400">Valor Unitário Ofertado (R$)</label>
+                          <Input 
+                            type="number" 
+                            placeholder="0.00"
+                            value={requestUnitPrice}
+                            onChange={e => setRequestUnitPrice(e.target.value)}
+                            className="bg-zinc-950 border-zinc-800 text-white"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-zinc-400">Observação da Compra</label>
+                          <Input 
+                            placeholder="Ex: Lote semanal, reposição de estoque, etc."
+                            value={requestReason}
+                            onChange={e => setRequestReason(e.target.value)}
+                            className="bg-zinc-950 border-zinc-800 text-white"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-zinc-400">O que você precisa comprar?</label>
+                        <Textarea 
+                          placeholder="Escreva aqui os itens que você está precisando...&#10;Ex: 10 Perfis com 2FA&#10;5 BMs Ilimitadas"
+                          value={purchaseDescription}
+                          onChange={e => setPurchaseDescription(e.target.value)}
+                          className="bg-zinc-950 border-zinc-800 text-white min-h-[150px]"
+                        />
+                        <p className="text-[10px] text-zinc-500">Dica: Você pode escrever vários itens, um por linha.</p>
+                      </div>
+                    </>
+                  )}
 
                   <Button 
                     className={`w-full text-white font-bold h-12 ${requestCategory === "purchase" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-primary hover:bg-primary/90"}`}
-                     onClick={handleCreateRequest}
-                     disabled={submitting || requestItems.filter(i => i.details.trim()).length === 0 || !selectedSupplier}
-                   >
+                    onClick={handleCreateRequest}
+                    disabled={submitting || (!selectedSupplier) || (requestCategory === 'replacement' ? requestItems.filter(i => i.details.trim()).length === 0 : !purchaseDescription.trim())}
+                  >
                     {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
                     {requestCategory === "purchase" ? "Enviar Pedido de Compra" : "Enviar Solicitação de Reposição"}
                   </Button>
