@@ -400,13 +400,16 @@ export default function AdminReposicaoFornecedor() {
                 </Select>
               </div>
 
-              <Tabs defaultValue="perfil" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 bg-zinc-950 border border-zinc-800">
+               <Tabs defaultValue="perfil" className="w-full">
+                 <TabsList className="grid w-full grid-cols-3 bg-zinc-950 border border-zinc-800">
                   <TabsTrigger value="perfil" className="data-[state=active]:bg-primary">
                     <FileText className="h-4 w-4 mr-2" /> Perfis
                   </TabsTrigger>
                   <TabsTrigger value="bm" className="data-[state=active]:bg-primary">
                     <Link className="h-4 w-4 mr-2" /> BMs
+                  </TabsTrigger>
+                  <TabsTrigger value="request" className="data-[state=active]:bg-primary">
+                    <ListTodo className="h-4 w-4 mr-2" /> Solicitar
                   </TabsTrigger>
                 </TabsList>
 
@@ -475,6 +478,79 @@ export default function AdminReposicaoFornecedor() {
                   >
                     {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
                     Registrar Reposição de BMs
+                  </Button>
+                </TabsContent>
+                <TabsContent value="request" className="space-y-4 mt-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-zinc-400">Tipo</label>
+                      <Select value={requestType} onValueChange={(v: any) => setRequestType(v)}>
+                        <SelectTrigger className="bg-zinc-950 border-zinc-800 text-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
+                          <SelectItem value="bm">BMs</SelectItem>
+                          <SelectItem value="perfil">Perfis</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-zinc-400">Status Inicial</label>
+                      <Select value={requestStatus} onValueChange={setRequestStatus}>
+                        <SelectTrigger className="bg-zinc-950 border-zinc-800 text-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
+                          <SelectItem value="pending_replenishment">Aguardando Reposição</SelectItem>
+                          <SelectItem value="accepted">Aceito</SelectItem>
+                          <SelectItem value="testing">Em Teste</SelectItem>
+                          <SelectItem value="completed">Concluído</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-zinc-400">Valor Unitário (R$)</label>
+                      <Input 
+                        type="number" 
+                        placeholder="0.00"
+                        value={requestUnitPrice}
+                        onChange={e => setRequestUnitPrice(e.target.value)}
+                        className="bg-zinc-950 border-zinc-800 text-white"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-zinc-400">Motivo da Reposição</label>
+                      <Input 
+                        placeholder="Ex: Block, Link Expirado, etc."
+                        value={requestReason}
+                        onChange={e => setRequestReason(e.target.value)}
+                        className="bg-zinc-950 border-zinc-800 text-white"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-zinc-400">
+                      {requestType === 'bm' ? 'Links das BMs' : 'Dados dos Perfis'} (um por linha)
+                    </label>
+                    <Textarea 
+                      placeholder={requestType === 'bm' ? "https://fb.me/..." : "login|senha|..."}
+                      value={requestContent}
+                      onChange={e => setRequestContent(e.target.value)}
+                      className="bg-zinc-950 border-zinc-800 text-white min-h-[150px] font-mono text-sm"
+                    />
+                  </div>
+
+                  <Button 
+                    className="w-full bg-primary hover:bg-primary/90 text-white font-bold h-12"
+                    onClick={handleCreateRequest}
+                    disabled={submitting || !requestContent || !selectedSupplier}
+                  >
+                    {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
+                    Enviar Solicitação ao Fornecedor
                   </Button>
                 </TabsContent>
               </Tabs>
