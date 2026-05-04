@@ -3474,6 +3474,7 @@ export type Database = {
           created_at: string | null
           details: string | null
           id: string
+          reason: string | null
           request_id: string | null
           updated_at: string | null
         }
@@ -3482,6 +3483,7 @@ export type Database = {
           created_at?: string | null
           details?: string | null
           id?: string
+          reason?: string | null
           request_id?: string | null
           updated_at?: string | null
         }
@@ -3490,6 +3492,7 @@ export type Database = {
           created_at?: string | null
           details?: string | null
           id?: string
+          reason?: string | null
           request_id?: string | null
           updated_at?: string | null
         }
