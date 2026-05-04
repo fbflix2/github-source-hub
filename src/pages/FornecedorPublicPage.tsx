@@ -507,49 +507,45 @@ export default function FornecedorPublicPage() {
                 <div className="space-y-6">
                   <Card className="bg-[#0a0a0a] border-zinc-800 p-6 shadow-2xl flex flex-col h-full">
                     <CardTitle className="text-sm font-black text-zinc-500 uppercase tracking-widest mb-6 flex items-center justify-between">
-                      Solicitação de Compra
+                      Reposições Pendentes
                       <Badge className="bg-primary/10 text-primary border-primary/20 text-[9px] uppercase font-black animate-pulse">Live</Badge>
                     </CardTitle>
                     
                     <div className="flex-1 space-y-4 overflow-y-auto max-h-[350px] pr-2 custom-scrollbar">
-                      {purchaseRequests.length === 0 ? (
+                      {requests.filter(r => r.type !== 'purchase' && r.status !== 'completed').length === 0 ? (
                         <div className="text-center py-10 opacity-40">
-                          <PackagePlus className="h-8 w-8 mx-auto mb-2" />
-                          <p className="text-[10px] font-bold uppercase tracking-widest">Nenhuma demanda no momento</p>
+                          <Inbox className="h-8 w-8 mx-auto mb-2" />
+                          <p className="text-[10px] font-bold uppercase tracking-widest">Tudo em dia por aqui</p>
                         </div>
                       ) : (
-                        purchaseRequests.map((req) => (
-                          <div key={req.id} className="bg-zinc-900/50 border border-zinc-800 p-3 rounded-xl space-y-2 hover:border-primary/30 transition-all group">
-                            <div className="flex items-start justify-between">
-                              <div className="space-y-1">
-                                <div className="text-xs font-black text-white group-hover:text-primary transition-colors">{req.title}</div>
-                                <div className="flex gap-2">
-                                  <Badge className="bg-zinc-800 text-zinc-400 text-[8px] uppercase font-black">{req.type}</Badge>
-                                  <Badge className="bg-emerald-500/10 text-emerald-500 text-[8px] uppercase font-black">Qtd: {req.quantity}</Badge>
+                        requests
+                          .filter(r => r.type !== 'purchase' && r.status !== 'completed')
+                          .slice(0, 5)
+                          .map((req) => (
+                            <div key={req.id} className="bg-zinc-900/50 border border-zinc-800 p-3 rounded-xl space-y-2 hover:border-primary/30 transition-all group cursor-pointer" onClick={() => setActiveTab('reposicoes')}>
+                              <div className="flex items-start justify-between">
+                                <div className="space-y-1">
+                                  <div className="text-xs font-black text-white group-hover:text-primary transition-colors">{req.title}</div>
+                                  <div className="flex gap-2">
+                                    <Badge className={`${getStatusColor(req.status)} text-[8px] uppercase font-black`}>{getStatusLabel(req.status)}</Badge>
+                                    <Badge className="bg-zinc-800 text-zinc-400 text-[8px] uppercase font-black">{new Date(req.created_at).toLocaleDateString('pt-BR')}</Badge>
+                                  </div>
                                 </div>
                               </div>
+                              {req.reason && <p className="text-[10px] text-zinc-500 line-clamp-1 italic">Motivo: {req.reason}</p>}
                             </div>
-                            {req.description && <p className="text-[10px] text-zinc-500 line-clamp-2 leading-relaxed">{req.description}</p>}
-                            <Button 
-                              variant="outline" 
-                              className="w-full h-7 text-[9px] font-black uppercase tracking-widest border-zinc-800 hover:bg-primary hover:text-white hover:border-primary"
-                              onClick={() => {
-                                setActiveTab('vendas');
-                                setOfferData({ ...offerData, type: req.type as "bm" | "perfil", description: req.title });
-                              }}
-                            >
-                              Ofertar agora
-                            </Button>
-                          </div>
-                        ))
+                          ))
                       )}
                     </div>
 
                     <div className="mt-6 pt-6 border-t border-zinc-800/50">
-                      <p className="text-[9px] text-zinc-500 font-bold italic text-center">
-                        Deseja vender algo que não está na lista? <br/> 
-                        Use a aba <span className="text-primary cursor-pointer hover:underline" onClick={() => setActiveTab('vendas')}>Vendas</span> para ofertar.
-                      </p>
+                      <Button 
+                        variant="ghost" 
+                        className="w-full text-[9px] font-black uppercase tracking-widest text-primary hover:bg-primary/5"
+                        onClick={() => setActiveTab('reposicoes')}
+                      >
+                        Ver todas as reposições
+                      </Button>
                     </div>
                   </Card>
                 </div>
