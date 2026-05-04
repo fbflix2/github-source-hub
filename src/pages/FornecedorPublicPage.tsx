@@ -35,7 +35,7 @@ export default function FornecedorPublicPage() {
   const [pixType, setPixType] = useState("cpf"); // 'cpf', 'email', 'phone', 'random'
   const [pixKey, setPixKey] = useState("");
   const [bankData, setBankData] = useState({ bank: "", agency: "", account: "", holder: "", document: "" });
-   const [offerContent, setOfferContent] = useState("");
+   const [offerData, setOfferData] = useState({ type: "bm", description: "", price: "", content: "" });
    const [selectedRequest, setSelectedRequest] = useState<any>(null);
 
   useEffect(() => {
@@ -314,6 +314,35 @@ export default function FornecedorPublicPage() {
       }
     } catch (err: any) {
       toast.error("Erro ao enviar: " + err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleOffer = async () => {
+    if (!offerData.description || !offerData.price) {
+      toast.error("Preencha a descrição e o preço da oferta");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from("supplier_batches")
+        .insert({
+          supplier_id: supplier.id,
+          name: `Oferta: ${offerData.type.toUpperCase()} - ${offerData.description}`,
+          notes: `OFERTA DE VENDA\nTipo: ${offerData.type}\nPreço sugerido: R$ ${offerData.price}\nDescrição: ${offerData.description}\nConteúdo: ${offerData.content}`,
+          purchased_at: new Date().toISOString().split('T')[0],
+          type: "offer"
+        });
+
+      if (error) throw error;
+
+      toast.success("Sua oferta foi enviada! Nossa equipe analisará em breve.");
+      setOfferData({ type: "bm", description: "", price: "", content: "" });
+    } catch (err: any) {
+      toast.error("Erro ao enviar oferta: " + err.message);
     } finally {
       setSubmitting(false);
     }
