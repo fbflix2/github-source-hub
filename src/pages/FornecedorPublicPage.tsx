@@ -378,10 +378,10 @@ export default function FornecedorPublicPage() {
                     <div className="p-1.5 bg-emerald-500/10 rounded-lg"><TrendingUp className="h-3.5 w-3.5 text-emerald-500"/></div>
                     <span className="text-xs font-black text-zinc-500 uppercase tracking-widest">Saldo a Receber</span>
                   </div>
-                  <div className="space-y-0.5">
-                    <span className="text-xl font-black text-white">R$ {(requests.length * 45).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
-                    <div className="flex items-center gap-1 text-[9px] text-emerald-500 font-bold"><ArrowUpRight className="h-2.5 w-2.5"/> +12.5%</div>
-                  </div>
+                   <div className="space-y-0.5">
+                     <span className="text-xl font-black text-white">R$ 0,00</span>
+                     <div className="flex items-center gap-1 text-[9px] text-zinc-500 font-bold italic">Processando...</div>
+                   </div>
                 </Card>
                 
                 <Card className="bg-[#0a0a0a] border-zinc-800 p-4 flex flex-col gap-3 relative overflow-hidden group">
@@ -402,10 +402,10 @@ export default function FornecedorPublicPage() {
                     <div className="p-1.5 bg-blue-500/10 rounded-lg"><Send className="h-3.5 w-3.5 text-blue-500"/></div>
                     <span className="text-xs font-black text-zinc-500 uppercase tracking-widest">Total Enviado</span>
                   </div>
-                  <div className="space-y-0.5">
-                    <span className="text-xl font-black text-white">{requests.length * 15}</span>
-                    <div className="flex items-center gap-1 text-[9px] text-primary font-bold"><ArrowUpRight className="h-2.5 w-2.5"/> Taxa: 98%</div>
-                  </div>
+                   <div className="space-y-0.5">
+                     <span className="text-xl font-black text-white">0</span>
+                     <div className="flex items-center gap-1 text-[9px] text-zinc-500 font-bold italic">Aguardando envios</div>
+                   </div>
                 </Card>
 
                 <Card className="bg-[#0a0a0a] border-zinc-800 p-4 flex flex-col gap-3 relative overflow-hidden group">
@@ -414,12 +414,12 @@ export default function FornecedorPublicPage() {
                     <div className="p-1.5 bg-zinc-800 rounded-lg"><Activity className="h-3.5 w-3.5 text-zinc-400"/></div>
                     <span className="text-xs font-black text-zinc-500 uppercase tracking-widest">Health Score</span>
                   </div>
-                  <div className="space-y-1">
-                    <span className="text-xl font-black text-emerald-500">9.8</span>
-                    <div className="flex items-center gap-1 w-20">
-                      {[1,2,3,4,5].map(i => <div key={i} className="h-1 flex-1 bg-emerald-500 rounded-full"/>)}
-                    </div>
-                  </div>
+                   <div className="space-y-1">
+                     <span className="text-xl font-black text-zinc-500">N/A</span>
+                     <div className="flex items-center gap-1 w-20">
+                       {[1,2,3,4,5].map(i => <div key={i} className="h-1 flex-1 bg-zinc-800 rounded-full"/>)}
+                     </div>
+                   </div>
                 </Card>
               </div>
 
@@ -433,29 +433,12 @@ export default function FornecedorPublicPage() {
                       <p className="text-[10px] text-zinc-600 font-bold uppercase">Volume de faturamento nos últimos 7 dias</p>
                     </div>
                   </div>
-                  <div className="h-[240px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={[
-                        { name: 'Seg', valor: 2400 }, { name: 'Ter', valor: 1398 }, { name: 'Qua', valor: 5800 },
-                        { name: 'Qui', valor: 3908 }, { name: 'Sex', valor: 4800 }, { name: 'Sáb', valor: 3800 }, { name: 'Dom', valor: 4300 }
-                      ]}>
-                        <defs>
-                          <linearGradient id="colorVal" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#D946EF" stopOpacity={0.3}/>
-                            <stop offset="95%" stopColor="#D946EF" stopOpacity={0}/>
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#18181b" vertical={false} />
-                        <XAxis dataKey="name" stroke="#52525b" fontSize={10} axisLine={false} tickLine={false}/>
-                        <YAxis hide/>
-                        <RechartsTooltip 
-                          contentStyle={{ backgroundColor: '#0a0a0a', border: '1px solid #27272a', borderRadius: '12px' }}
-                          itemStyle={{ color: '#D946EF', fontWeight: 900, fontSize: '12px' }}
-                        />
-                        <Area type="monotone" dataKey="valor" stroke="#D946EF" strokeWidth={4} fillOpacity={1} fill="url(#colorVal)" />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
+                   <div className="h-[240px] w-full flex items-center justify-center border border-dashed border-zinc-800 rounded-xl bg-zinc-950/20">
+                     <div className="text-center space-y-2">
+                       <Activity className="h-8 w-8 text-zinc-800 mx-auto" />
+                       <p className="text-[10px] font-black text-zinc-700 uppercase tracking-widest">Sem dados de performance no momento</p>
+                     </div>
+                   </div>
                 </Card>
 
                 <div className="space-y-6">
