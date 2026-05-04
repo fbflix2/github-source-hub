@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
- import { RefreshCw, Upload, Link, FileText, Loader2, History, Trash2, UserPlus, Plus, ExternalLink, Copy, ListTodo, Send } from "lucide-react";
+  import { RefreshCw, Upload, Link, FileText, Loader2, History, Trash2, UserPlus, Plus, ExternalLink, Copy, ListTodo, Send, LayoutDashboard, Calendar, Hash } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -322,12 +322,14 @@ export default function AdminReposicaoFornecedor() {
         .from("supplier_requests")
         .insert({
           supplier_id: selectedSupplier,
-          title: `Solicitação de Reposição - ${requestType === "bm" ? "BMs" : "Perfis"}`,
+          title: `REQ-${Math.random().toString(36).substring(2, 7).toUpperCase()} - ${requestType === "bm" ? "BMs" : "Perfis"}`,
           description: `Valor Unitário: R$ ${requestUnitPrice || '0'} | Motivo: ${requestReason}`,
           status: requestStatus,
           type: "replacement",
           unit_price: requestUnitPrice ? parseFloat(requestUnitPrice) : 0,
-          reason: requestReason
+          reason: requestReason,
+          // Assuming created_at is automatic, but ensuring context
+          priority: "normal"
         })
         .select()
         .single();
@@ -379,19 +381,37 @@ export default function AdminReposicaoFornecedor() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-black text-white flex items-center gap-2">
-            <RefreshCw className="h-8 w-8 text-primary" />
-            Reposição Fornecedor
-          </h1>
-          <p className="text-zinc-400 mt-1">Solicite e registre reposições de fornecedores manualmente.</p>
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <LayoutDashboard className="h-6 w-6 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-black text-white">Dashboard de Reposição</h1>
+              <p className="text-zinc-400 text-sm">Controle de pedidos, auditoria e fornecedores.</p>
+            </div>
+          </div>
         </div>
-        <Button 
-          onClick={() => setIsCreatingSupplier(!isCreatingSupplier)}
-          className="bg-zinc-800 hover:bg-zinc-700 text-white"
-        >
-          <UserPlus className="h-4 w-4 mr-2" />
-          Cadastrar Fornecedor
-        </Button>
+        <div className="flex items-center gap-3">
+          <Card className="bg-zinc-900 border-zinc-800 p-3 flex items-center gap-4">
+            <div className="text-right border-r border-zinc-800 pr-4">
+              <p className="text-[10px] text-zinc-500 uppercase font-bold">Solicitações</p>
+              <p className="text-xl font-black text-white">{activeRequests.length}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] text-zinc-500 uppercase font-bold">Hoje</p>
+              <p className="text-xl font-black text-primary">
+                {new Date().toLocaleDateString("pt-BR", { day: '2-digit', month: '2-digit' })}
+              </p>
+            </div>
+          </Card>
+          <Button 
+            onClick={() => setIsCreatingSupplier(!isCreatingSupplier)}
+            className="bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20"
+          >
+            <UserPlus className="h-4 w-4 mr-2" />
+            Novo Fornecedor
+          </Button>
+        </div>
       </div>
 
       {isCreatingSupplier && (
@@ -420,9 +440,11 @@ export default function AdminReposicaoFornecedor() {
 
        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
          <div className="lg:col-span-2 space-y-6">
-          <Card className="bg-zinc-900/50 border-zinc-800">
-            <CardHeader>
-              <CardTitle className="text-lg text-white">Nova Solicitação</CardTitle>
+          <Card className="bg-zinc-900 border-zinc-800 shadow-xl overflow-hidden">
+            <CardHeader className="bg-zinc-950/50 border-b border-zinc-800">
+              <CardTitle className="text-lg text-white flex items-center gap-2">
+                <Plus className="h-5 w-5 text-primary" /> Criar Pedido de Reposição
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -600,9 +622,9 @@ export default function AdminReposicaoFornecedor() {
         </div>
 
          <div className="lg:col-span-2 space-y-6">
-           <Card className="bg-zinc-900/50 border-zinc-800">
-             <CardHeader>
-               <CardTitle className="text-lg text-white flex items-center gap-2">
+           <Card className="bg-zinc-900 border-zinc-800 shadow-xl overflow-hidden">
+             <CardHeader className="bg-zinc-950/50 border-b border-zinc-800">
+               <CardTitle className="text-lg text-white flex items-center gap-2 font-bold">
                  <History className="h-5 w-5 text-primary" />
                  Solicitações Ativas
                </CardTitle>
@@ -628,9 +650,14 @@ export default function AdminReposicaoFornecedor() {
                        <TableRow key={req.id} className="border-zinc-800 hover:bg-zinc-800/30">
                          <TableCell>
                            <div className="space-y-1">
-                             <div className="font-bold text-white text-sm">{req.title}</div>
-                             <div className="text-xs text-zinc-500">{new Date(req.created_at).toLocaleDateString()}</div>
-                             {req.reason && <div className="text-[10px] text-primary">{req.reason}</div>}
+                             <div className="flex items-center gap-2 font-black text-white text-sm">
+                               <Hash className="h-3 w-3 text-primary" />
+                               {req.title}
+                             </div>
+                             <div className="flex items-center gap-1 text-[10px] text-zinc-500 font-medium">
+                               <Calendar className="h-3 w-3" />
+                               {new Date(req.created_at).toLocaleString('pt-BR')}
+                             </div>
                            </div>
                          </TableCell>
                          <TableCell>
@@ -667,8 +694,8 @@ export default function AdminReposicaoFornecedor() {
              </CardContent>
            </Card>
           {selectedSupplier && (
-            <Card className="bg-primary/5 border-primary/20">
-              <CardHeader className="pb-2">
+            <Card className="bg-primary/5 border-primary/20 shadow-lg shadow-primary/5">
+              <CardHeader className="pb-2 border-b border-primary/10">
                 <CardTitle className="text-sm font-bold text-primary flex items-center gap-2">
                   <ExternalLink className="h-4 w-4" /> Link do Fornecedor
                 </CardTitle>
