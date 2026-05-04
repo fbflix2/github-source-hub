@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RefreshCw, Upload, Link, FileText, Loader2, History, Trash2, UserPlus, Plus, ExternalLink, Copy } from "lucide-react";
+ import { RefreshCw, Upload, Link, FileText, Loader2, History, Trash2, UserPlus, Plus, ExternalLink, Copy, ListTodo } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -41,6 +41,13 @@ export default function AdminReposicaoFornecedor() {
   
   // BM links state
   const [bmLinks, setBmLinks] = useState("");
+
+  // Request state
+  const [requestUnitPrice, setRequestUnitPrice] = useState("");
+  const [requestReason, setRequestReason] = useState("");
+  const [requestStatus, setRequestStatus] = useState("pending_replenishment");
+  const [requestType, setRequestType] = useState<"perfil" | "bm">("bm");
+  const [requestContent, setRequestContent] = useState("");
 
   useEffect(() => {
     fetchSuppliers();
@@ -253,6 +260,56 @@ export default function AdminReposicaoFornecedor() {
     } catch (err: any) {
       console.error(err);
       toast.error("Erro ao registrar reposição: " + err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleCreateRequest = async () => {
+    if (!selectedSupplier) {
+      toast.error("Selecione um fornecedor");
+      return;
+    }
+    if (!requestContent.trim()) {
+      toast.error("Insira os itens para reposição");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      // 1. Create request
+      const { data: request, error: reqError } = await supabase
+        .from("supplier_requests")
+        .insert({
+          supplier_id: selectedSupplier,
+          title: `Solicitação de Reposição - ${requestType === "bm" ? "BMs" : "Perfis"}`,
+          description: `Valor Unitário: R$ ${requestUnitPrice || '0'} | Motivo: ${requestReason}`,
+          status: requestStatus,
+          type: "replacement",
+          unit_price: requestUnitPrice ? parseFloat(requestUnitPrice) : 0,
+          reason: requestReason
+        })
+        .select()
+        .single();
+
+      if (reqError) throw reqError;
+
+      // 2. Create items
+      const lines = requestContent.split('\n').filter(l => l.trim());
+      const items = lines.map(line => ({
+        request_id: request.id,
+        details: line
+      }));
+
+      const { error: itemsError } = await supabase.from("supplier_request_items").insert(items);
+      if (itemsError) throw itemsError;
+
+      toast.success("Solicitação criada com sucesso!");
+      setRequestContent("");
+      setRequestUnitPrice("");
+      setRequestReason("");
+    } catch (err: any) {
+      toast.error("Erro ao criar solicitação: " + err.message);
     } finally {
       setSubmitting(false);
     }
