@@ -487,21 +487,44 @@ export default function FornecedorPublicPage() {
                               <div className="space-y-4">
                                 <p className="text-[9px] font-black text-zinc-500 uppercase tracking-[0.2em]">Itens para Reposição ({req.items?.length || 0})</p>
                                 <div className="space-y-2 max-h-[280px] overflow-y-auto pr-2 custom-scrollbar">
-                                  {req.items && req.items.length > 0 ? req.items.map((item: any) => (
-                                    <div key={item.id} className="flex items-center justify-between bg-zinc-900/30 border border-zinc-800/50 p-2.5 rounded-xl group/item">
-                                      <code className="text-[11px] font-black text-primary/80 truncate pr-4">{item.details}</code>
-                                      <div className="flex items-center gap-1 shrink-0">
-                                        {item.details.startsWith('http') && (
-                                          <Button size="icon" variant="ghost" className="h-7 w-7 text-zinc-500 hover:text-white hover:bg-zinc-800" onClick={() => window.open(item.details, '_blank')}>
-                                            <ExternalLink className="h-3.5 w-3.5"/>
-                                          </Button>
+                                  {req.items && req.items.length > 0 ? req.items.map((item: any) => {
+                                    const hasSeparator = item.details.includes('|');
+                                    const [id, link] = hasSeparator ? item.details.split('|') : [null, item.details];
+                                    const displayValue = link || id;
+                                    const cleanLink = link?.trim() || id?.trim();
+
+                                    return (
+                                      <div key={item.id} className="flex flex-col bg-zinc-900/30 border border-zinc-800/50 p-3 rounded-xl group/item gap-2">
+                                        {id && hasSeparator && (
+                                          <div className="flex items-center justify-between border-b border-zinc-800/50 pb-2">
+                                            <div className="flex flex-col">
+                                              <span className="text-[8px] font-black text-zinc-600 uppercase">ID BM</span>
+                                              <code className="text-[10px] font-black text-zinc-400">{id}</code>
+                                            </div>
+                                            <Button size="icon" variant="ghost" className="h-6 w-6 text-zinc-600 hover:text-white" onClick={() => copyToClipboard(id)}>
+                                              <Copy className="h-3 w-3"/>
+                                            </Button>
+                                          </div>
                                         )}
-                                        <Button size="icon" variant="ghost" className="h-7 w-7 text-zinc-500 hover:text-white hover:bg-zinc-800" onClick={() => copyToClipboard(item.details)}>
-                                          <Copy className="h-3.5 w-3.5"/>
-                                        </Button>
+                                        <div className="flex items-center justify-between">
+                                          <div className="flex flex-col overflow-hidden">
+                                            <span className="text-[8px] font-black text-zinc-600 uppercase">{id && hasSeparator ? 'LINK CONVITE' : 'IDENTIFICADOR / LINK'}</span>
+                                            <code className="text-[10px] font-black text-primary/80 truncate pr-4">{displayValue}</code>
+                                          </div>
+                                          <div className="flex items-center gap-1 shrink-0">
+                                            {cleanLink && (cleanLink.startsWith('http') || cleanLink.includes('business.facebook.com')) && (
+                                              <Button size="icon" variant="ghost" className="h-7 w-7 text-zinc-500 hover:text-white hover:bg-zinc-800" onClick={() => window.open(cleanLink.startsWith('http') ? cleanLink : `https://${cleanLink}`, '_blank')}>
+                                                <ExternalLink className="h-3.5 w-3.5"/>
+                                              </Button>
+                                            )}
+                                            <Button size="icon" variant="ghost" className="h-7 w-7 text-zinc-500 hover:text-white hover:bg-zinc-800" onClick={() => copyToClipboard(displayValue)}>
+                                              <Copy className="h-3.5 w-3.5"/>
+                                            </Button>
+                                          </div>
+                                        </div>
                                       </div>
-                                    </div>
-                                  )) : (
+                                    );
+                                  }) : (
                                     <p className="text-xs text-zinc-500 italic p-4 bg-black/20 rounded-xl border border-dashed border-zinc-800">
                                       {req.description || 'Sem detalhes técnicos.'}
                                     </p>
