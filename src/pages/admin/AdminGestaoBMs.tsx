@@ -129,7 +129,7 @@ export default function AdminGestaoBMs() {
     setLoading(true);
     const { data, error } = await supabase
       .from("bm_tracking")
-      .select("*, stock_items:stock_item_id(data)")
+      .select("*, stock_items:stock_item_id(name, identification_link, data)")
       .order("created_at", { ascending: false });
     if (error) {
       toast.error("Erro ao carregar BMs: " + error.message);
@@ -162,6 +162,11 @@ export default function AdminGestaoBMs() {
         ...item,
         client_name: item.client_name || profileMap[item.client_user_id] || null,
         perfil_matriz: item.stock_items?.data?.perfilBackup || null,
+        bm_display_name: extractBmNameFromInput(item.stock_items?.data?.rawBmInput)
+          || item.stock_items?.name
+          || extractBmNameFromInput(item.stock_items?.identification_link)
+          || extractBmNameFromInput(item.bm_link)
+          || item.product_name,
         stock_items: undefined,
       }));
       setItems(mapped as BmTracking[]);
@@ -246,7 +251,7 @@ export default function AdminGestaoBMs() {
           (item.client_email || "").toLowerCase().includes(q) ||
           item.bm_link.toLowerCase().includes(q) ||
           item.product_name.toLowerCase().includes(q) ||
-          extractBmNameFromInput(item.bm_link).toLowerCase().includes(q)
+          getBmDisplayName(item).toLowerCase().includes(q)
         );
       }
       return true;
@@ -269,7 +274,7 @@ export default function AdminGestaoBMs() {
   }, [items]);
 
   const handleOpenProtect = (item: BmTracking) => {
-    const bmNameFromLink = extractBmNameFromInput(item.bm_link);
+    const bmNameFromLink = getBmDisplayName(item);
     setProtectItem(item);
     setProtectForm({ bmName: bmNameFromLink, bmLink: "" });
     setProtectOpen(true);
