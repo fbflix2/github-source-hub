@@ -560,7 +560,7 @@ export default function AdminGestaoBMs() {
                     {/* BM Name + Link */}
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <p className="text-sm font-medium text-foreground truncate">
+                        <p className="text-sm font-medium text-foreground truncate" title={bmName || item.product_name || "—"}>
                           {bmName || item.product_name || "—"}
                         </p>
                         <a
