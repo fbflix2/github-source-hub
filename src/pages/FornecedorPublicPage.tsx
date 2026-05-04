@@ -559,7 +559,7 @@ export default function FornecedorPublicPage() {
                             <div className="text-[11px] font-bold text-white/70 uppercase tracking-tighter italic">Conteúdo da Reposição</div>
                             <div className="space-y-2">
                               {req.items && req.items.length > 0 ? (
-                                <div className="rounded-md border border-white/10 bg-white/5 p-2 space-y-2">
+                                <div className={`rounded-md border border-white/10 bg-white/5 p-2 space-y-2 ${expandedRequests[req.id] ? 'max-h-[300px] overflow-y-auto custom-scrollbar' : ''}`}>
                                   {req.items.slice(0, expandedRequests[req.id] ? undefined : 1).map((item: any) => {
                                     const hasSeparator = item.details.includes('|');
                                     const [id, link] = hasSeparator ? item.details.split('|') : [null, item.details];
@@ -598,7 +598,7 @@ export default function FornecedorPublicPage() {
                                   })}
                                   {!expandedRequests[req.id] && req.items.length > 1 && (
                                     <div className="text-[10px] text-center text-primary font-bold uppercase py-1 border-t border-white/5">
-                                      +{req.items.length - 1} itens no lote (clique em ver mais)
+                                      +{req.items.length - 1} itens no lote (clique em ver todos os itens)
                                     </div>
                                   )}
                                 </div>
