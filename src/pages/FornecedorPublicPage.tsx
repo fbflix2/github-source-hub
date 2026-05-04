@@ -88,66 +88,81 @@ export default function FornecedorPublicPage() {
       setIsAuth(true);
       fetchRequests(data.id);
       fetchPaymentMethods(data.id);
-    const fetchPaymentMethods = async (supplierId: string) => {
+      
+      if (rememberMe) {
+        localStorage.setItem("supplier_token", token);
+      } else {
+        localStorage.removeItem("supplier_token");
+      }
+      
+      toast.success("Acesso liberado, " + data.name);
+    } catch (err) {
+      toast.error("Erro ao autenticar");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchPaymentMethods = async (supplierId: string) => {
+    const { data, error } = await supabase
+      .from("supplier_payment_methods")
+      .select("*")
+      .eq("supplier_id", supplierId)
+      .order("created_at", { ascending: false });
+    
+    if (error) {
+      console.error("Error fetching payment methods:", error);
+      return;
+    }
+    setPaymentMethods(data || []);
+  };
+
+  const handleAddPaymentMethod = async () => {
+    if (!newPaymentDetails.trim()) {
+      toast.error("Informe os detalhes do recebimento");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
       const { data, error } = await supabase
         .from("supplier_payment_methods")
-        .select("*")
-        .eq("supplier_id", supplierId)
-        .order("created_at", { ascending: false });
-      
-      if (error) {
-        console.error("Error fetching payment methods:", error);
-        return;
-      }
-      setPaymentMethods(data || []);
-    };
+        .insert({
+          supplier_id: supplier.id,
+          type: newPaymentType,
+          details: newPaymentDetails,
+          is_primary: paymentMethods.length === 0
+        })
+        .select()
+        .single();
 
-    const handleAddPaymentMethod = async () => {
-      if (!newPaymentDetails.trim()) {
-        toast.error("Informe os detalhes do recebimento");
-        return;
-      }
+      if (error) throw error;
 
-      setSubmitting(true);
-      try {
-        const { data, error } = await supabase
-          .from("supplier_payment_methods")
-          .insert({
-            supplier_id: supplier.id,
-            type: newPaymentType,
-            details: newPaymentDetails,
-            is_primary: paymentMethods.length === 0
-          })
-          .select()
-          .single();
+      setPaymentMethods([data, ...paymentMethods]);
+      setNewPaymentDetails("");
+      toast.success("Forma de recebimento cadastrada!");
+    } catch (err: any) {
+      toast.error("Erro ao cadastrar: " + err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
-        if (error) throw error;
+  const handleDeletePaymentMethod = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("supplier_payment_methods")
+        .delete()
+        .eq("id", id);
 
-        setPaymentMethods([data, ...paymentMethods]);
-        setNewPaymentDetails("");
-        toast.success("Forma de recebimento cadastrada!");
-      } catch (err: any) {
-        toast.error("Erro ao cadastrar: " + err.message);
-      } finally {
-        setSubmitting(false);
-      }
-    };
+      if (error) throw error;
 
-    const handleDeletePaymentMethod = async (id: string) => {
-      try {
-        const { error } = await supabase
-          .from("supplier_payment_methods")
-          .delete()
-          .eq("id", id);
-
-        if (error) throw error;
-
-        setPaymentMethods(paymentMethods.filter(pm => pm.id !== id));
-        toast.success("Removido com sucesso");
-      } catch (err: any) {
-        toast.error("Erro ao remover: " + err.message);
-      }
-    };
+      setPaymentMethods(paymentMethods.filter(pm => pm.id !== id));
+      toast.success("Removido com sucesso");
+    } catch (err: any) {
+      toast.error("Erro ao remover: " + err.message);
+    }
+  };
 
       
       if (rememberMe) {
