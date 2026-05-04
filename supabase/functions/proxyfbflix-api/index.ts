@@ -434,8 +434,25 @@ Deno.serve(async (req) => {
 
       // Webshare usage stats endpoint (per proxy)
       const resp = await webFetch(`/stats/proxy/?timestamp__gte=${timestampGte}`, WEBSHARE_API_KEY);
-      const data = await resp.json();
-      if (!resp.ok) throw new Error(`Webshare stats error [${resp.status}]`);
+      const rawText = await resp.text();
+      if (!resp.ok) {
+        console.error(`[get-usage-stats] Webshare error ${resp.status}: ${rawText.slice(0, 200)}`);
+        // Return empty stats instead of crashing the UI when endpoint is unavailable
+        return new Response(
+          JSON.stringify({ data: [], warning: `Estatísticas de uso indisponíveis no momento (Webshare ${resp.status}).` }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      let data: any;
+      try {
+        data = JSON.parse(rawText);
+      } catch {
+        console.error(`[get-usage-stats] Webshare returned non-JSON: ${rawText.slice(0, 200)}`);
+        return new Response(
+          JSON.stringify({ data: [], warning: "Estatísticas de uso temporariamente indisponíveis." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
 
       // Group by proxy and sum bandwidth
       const stats = Array.isArray(data.results) ? data.results : [];
