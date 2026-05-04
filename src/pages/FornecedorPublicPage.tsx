@@ -1,4 +1,5 @@
  import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -34,7 +35,8 @@ export default function FornecedorPublicPage() {
   const [pixType, setPixType] = useState("cpf"); // 'cpf', 'email', 'phone', 'random'
   const [pixKey, setPixKey] = useState("");
   const [bankData, setBankData] = useState({ bank: "", agency: "", account: "", holder: "", document: "" });
-  const [offerContent, setOfferContent] = useState("");
+   const [offerContent, setOfferContent] = useState("");
+   const [selectedRequest, setSelectedRequest] = useState<any>(null);
 
   useEffect(() => {
     const savedToken = localStorage.getItem("supplier_token");
@@ -586,8 +588,8 @@ export default function FornecedorPublicPage() {
                             <div className="text-[11px] font-bold text-white/70 uppercase tracking-tighter italic">Conteúdo da Reposição</div>
                             <div className="space-y-2">
                               {req.items && req.items.length > 0 ? (
-                                <div className={`rounded-md border border-white/10 bg-white/5 p-2 space-y-2 ${expandedRequests[req.id] ? 'max-h-[300px] overflow-y-auto custom-scrollbar' : ''}`}>
-                                  {req.items.slice(0, expandedRequests[req.id] ? undefined : 1).map((item: any) => {
+                                 <div className="rounded-md border border-white/10 bg-white/5 p-2 space-y-2">
+                                   {req.items.slice(0, 1).map((item: any) => {
                                     const hasSeparator = item.details.includes('|');
                                     const [id, link] = hasSeparator ? item.details.split('|') : [null, item.details];
                                     const displayValue = link || id;
@@ -661,13 +663,23 @@ export default function FornecedorPublicPage() {
                             </div>
                           )}
 
-                          <Button 
-                            variant="outline" 
-                            className="w-full h-8 text-[10px] font-bold border-white/10 hover:bg-white/5"
-                            onClick={() => toggleRequestExpand(req.id)}
-                          >
-                            {expandedRequests[req.id] ? 'RECOLHER DETALHES' : 'VER TODOS OS ITENS'}
-                          </Button>
+                           {req.items && req.items.length > 1 ? (
+                             <Button 
+                               variant="outline" 
+                               className="w-full h-8 text-[10px] font-bold border-white/10 hover:bg-white/5"
+                               onClick={() => setSelectedRequest(req)}
+                             >
+                               VER TODOS OS ITENS ({req.items.length})
+                             </Button>
+                           ) : (
+                             <Button 
+                               variant="outline" 
+                               className="w-full h-8 text-[10px] font-bold border-white/10 hover:bg-white/5"
+                               onClick={() => toggleRequestExpand(req.id)}
+                             >
+                               {expandedRequests[req.id] ? 'RECOLHER DETALHES' : 'RESPONDER REPOSIÇÃO'}
+                             </Button>
+                           )}
                         </CardContent>
                       </Card>
                     ))
@@ -838,8 +850,93 @@ export default function FornecedorPublicPage() {
               </div>
             </div>
           )}
-        </div>
-      </main>
-    </div>
-  );
-}
+         </div>
+       </main>
+ 
+       <Dialog open={!!selectedRequest} onOpenChange={(open) => !open && setSelectedRequest(null)}>
+         <DialogContent className="bg-[#0a0a0a] border-zinc-800 text-white max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
+           <DialogHeader className="p-6 border-b border-white/5">
+             <DialogTitle className="text-xl font-black uppercase italic tracking-tighter flex items-center gap-2">
+               {selectedRequest?.title || 'Detalhes do Lote'}
+               <Badge className={`${selectedRequest ? getStatusColor(selectedRequest.status) : ''} border text-[10px] uppercase font-black`}>
+                 {selectedRequest ? getStatusLabel(selectedRequest.status) : ''}
+               </Badge>
+             </DialogTitle>
+             <DialogDescription className="text-zinc-500 text-xs uppercase font-bold tracking-widest mt-1">
+               Lote ID: {selectedRequest?.id?.slice(0, 8)} • {selectedRequest?.items?.length} itens detectados
+             </DialogDescription>
+           </DialogHeader>
+           
+           <div className="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+             <div className="grid grid-cols-1 gap-3">
+               {selectedRequest?.items?.map((item: any, idx: number) => {
+                 const hasSeparator = item.details.includes('|');
+                 const [id, link] = hasSeparator ? item.details.split('|') : [null, item.details];
+                 const displayValue = link || id;
+                 const cleanLink = link?.trim() || id?.trim();
+ 
+                 return (
+                   <div key={item.id} className="bg-white/5 border border-white/5 rounded-lg p-3 space-y-2 group hover:border-primary/30 transition-all">
+                     <div className="flex items-center justify-between">
+                       <span className="text-[10px] font-black text-white/20 uppercase">Item #{idx + 1}</span>
+                     </div>
+                     
+                     {id && hasSeparator && (
+                       <div className="flex items-center gap-2 text-[11px]">
+                         <IdCard className="size-3.5 text-sky-400 shrink-0" />
+                         <span className="text-white/40 shrink-0 w-[50px]">ID BM:</span>
+                         <span className="flex-1 truncate text-white/90 font-mono font-bold">{id}</span>
+                         <Button size="icon" variant="ghost" className="h-6 w-6 p-0 hover:bg-white/10" onClick={() => copyToClipboard(id)}>
+                           <Copy className="size-3" />
+                         </Button>
+                       </div>
+                     )}
+                     
+                     <div className="flex items-center gap-2 text-[11px]">
+                       <ExternalLink className="size-3.5 text-primary shrink-0" />
+                       <span className="text-white/40 shrink-0 w-[50px]">Link:</span>
+                       <span className="flex-1 truncate text-white/90 font-mono font-bold">{displayValue}</span>
+                       <div className="flex gap-1 shrink-0">
+                         {cleanLink && (cleanLink.startsWith('http') || cleanLink.includes('business.facebook.com')) && (
+                           <Button size="icon" variant="ghost" className="h-6 w-6 p-0 hover:bg-white/10" onClick={() => window.open(cleanLink.startsWith('http') ? cleanLink : `https://${cleanLink}`, '_blank')}>
+                             <ExternalLink className="size-3" />
+                           </Button>
+                         )}
+                         <Button size="icon" variant="ghost" className="h-6 w-6 p-0 hover:bg-white/10" onClick={() => copyToClipboard(displayValue)}>
+                           <Copy className="size-3" />
+                         </Button>
+                       </div>
+                     </div>
+                   </div>
+                 );
+               })}
+             </div>
+ 
+             <div className="pt-4 border-t border-white/5 space-y-3">
+               <div className="flex items-center gap-2 text-[10px] font-black text-emerald-400 uppercase tracking-widest">
+                 <RefreshCw className="size-3" /> Responder Todo o Lote
+               </div>
+               <Textarea 
+                 className="bg-black border-white/10 min-h-[120px] text-[12px] font-mono focus:border-emerald-500/50 transition-all resize-none" 
+                 placeholder="Insira os novos dados para reposição deste lote..."
+                 value={content}
+                 onChange={e => setContent(e.target.value)}
+               />
+               <Button 
+                 className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black h-12 uppercase tracking-widest text-xs" 
+                 onClick={() => {
+                   handleSubmit(selectedRequest.id);
+                   setSelectedRequest(null);
+                 }} 
+                 disabled={submitting}
+               >
+                 {submitting ? <Loader2 className="animate-spin h-5 w-5 mr-2" /> : <CheckCircle2 className="h-5 w-5 mr-2" />}
+                 Confirmar Reposição do Lote
+               </Button>
+             </div>
+           </div>
+         </DialogContent>
+       </Dialog>
+     </div>
+   );
+ }
