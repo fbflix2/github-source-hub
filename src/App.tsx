@@ -116,6 +116,7 @@ import AdminSafeBM from "./pages/admin/AdminSafeBM";
 import AdminContingencia from "./pages/admin/AdminContingencia";
 import AdminCobrancaAvulsa from "./pages/admin/AdminCobrancaAvulsa";
 import AdminDashFabricio from "./pages/admin/AdminDashFabricio";
+import AdminReposicaoFornecedor from "./pages/admin/AdminReposicaoFornecedor";
 import AdminSiteEditor from "./pages/admin/AdminSiteEditor";
 import AdminComprasFornecedor from "./pages/admin/AdminComprasFornecedor";
 import { AdminLayout } from "./components/admin/AdminLayout";
@@ -403,6 +404,7 @@ const App = () => {
                   <Route path="safe-bm" element={<AdminSafeBM />} />
                   <Route path="contingencia" element={<AdminContingencia />} />
                   <Route path="cobranca-avulsa" element={<AdminCobrancaAvulsa />} />
+                  <Route path="reposicao-fornecedor" element={<AdminReposicaoFornecedor />} />
                   <Route path="configuracoes/site" element={<AdminSiteEditor />} />
                   <Route path="whatsapp" element={<AdminWhatsApp />} />
                   <Route path="compras-fornecedor" element={<AdminComprasFornecedor />} />
