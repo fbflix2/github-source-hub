@@ -791,7 +791,12 @@ export default function AdminComprasFornecedor() {
                       <CardContent className="p-4 space-y-3">
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0 flex-1">
-                            <div className="font-bold text-base truncate">{b.name}</div>
+                            <div className="font-bold text-base truncate flex items-center gap-2">
+                              {b.name}
+                              {(b as any).type === "replacement" && (
+                                <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30 text-[9px] px-1.5 py-0">Reposição</Badge>
+                              )}
+                            </div>
                             <div className="text-xs text-white/50 mt-0.5">{supplierMap[b.supplier_id]?.name || "-"}</div>
                             <div className="text-[10px] text-white/40 mt-0.5">
                               {new Date(b.purchased_at || b.created_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "short" })}
