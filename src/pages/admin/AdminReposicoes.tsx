@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import { RefreshCw, Search, Loader2, Trash2, Download, Calendar, Plus, PackagePlus } from "lucide-react";
+import { RefreshCw, Search, Loader2, Trash2, Download, Calendar, Plus, PackagePlus, Inbox } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -46,6 +47,7 @@ export default function AdminReposicoes() {
   });
 
   const [orderCodes, setOrderCodes] = useState<Record<string, string>>({});
+  const [activeTab, setActiveTab] = useState("reposicoes");
   const [showNewModal, setShowNewModal] = useState(false);
 
   // Purchase requests
