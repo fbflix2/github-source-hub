@@ -413,11 +413,11 @@ export default function FornecedorPublicPage() {
       <aside className="w-64 bg-[#0a0a0a] border-r border-zinc-800 p-6 flex flex-col gap-10">
         <div className="text-2xl font-black text-primary tracking-tighter">FBFLIX <span className="text-white text-sm font-medium block mt-1">Fornecedor</span></div>
         <nav className="flex flex-col gap-2 flex-1">
-          <Button variant={activeTab === 'dashboard' ? 'default' : 'ghost'} className="justify-start gap-3 h-12" onClick={() => setActiveTab('dashboard')}><LayoutDashboard className="h-5 w-5"/> Dashboard</Button>
-          <Button variant={activeTab === 'reposicoes' ? 'default' : 'ghost'} className="justify-start gap-3 h-12" onClick={() => setActiveTab('reposicoes')}><Inbox className="h-5 w-5"/> Reposições</Button>
-          <Button variant={activeTab === 'compras' ? 'default' : 'ghost'} className="justify-start gap-3 h-12" onClick={() => setActiveTab('compras')}><ShoppingBag className="h-5 w-5"/> Solicitações de Compra</Button>
-          <Button variant={activeTab === 'vendas' ? 'default' : 'ghost'} className="justify-start gap-3 h-12" onClick={() => setActiveTab('vendas')}><BriefcaseBusiness className="h-5 w-5"/> Vender</Button>
-          <Button variant={activeTab === 'financeiro' ? 'default' : 'ghost'} className="justify-start gap-3 h-12" onClick={() => setActiveTab('financeiro')}><CreditCard className="h-5 w-5"/> Financeiro</Button>
+          <Button variant={activeTab === 'dashboard' ? 'default' : 'ghost'} className="justify-start gap-3 h-12" onClick={() => setActiveTab('dashboard')}><LayoutDashboard className="h-5 w-5"/> Início</Button>
+          <Button variant={activeTab === 'compras' ? 'default' : 'ghost'} className="justify-start gap-3 h-12" onClick={() => setActiveTab('compras')}><ShoppingBag className="h-5 w-5"/> Demandas de Compra</Button>
+          <Button variant={activeTab === 'reposicoes' ? 'default' : 'ghost'} className="justify-start gap-3 h-12" onClick={() => setActiveTab('reposicoes')}><Inbox className="h-5 w-5"/> Painel de Reposição</Button>
+          <Button variant={activeTab === 'vendas' ? 'default' : 'ghost'} className="justify-start gap-3 h-12" onClick={() => setActiveTab('vendas')}><BriefcaseBusiness className="h-5 w-5"/> Ofertar Estoque</Button>
+          <Button variant={activeTab === 'financeiro' ? 'default' : 'ghost'} className="justify-start gap-3 h-12" onClick={() => setActiveTab('financeiro')}><CreditCard className="h-5 w-5"/> Minhas Contas</Button>
         </nav>
         <Button variant="ghost" className="justify-start text-zinc-500 hover:text-red-400" onClick={() => {
           localStorage.removeItem("supplier_token");
