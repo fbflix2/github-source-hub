@@ -1,4 +1,5 @@
  import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -34,7 +35,8 @@ export default function FornecedorPublicPage() {
   const [pixType, setPixType] = useState("cpf"); // 'cpf', 'email', 'phone', 'random'
   const [pixKey, setPixKey] = useState("");
   const [bankData, setBankData] = useState({ bank: "", agency: "", account: "", holder: "", document: "" });
-  const [offerContent, setOfferContent] = useState("");
+   const [offerContent, setOfferContent] = useState("");
+   const [selectedRequest, setSelectedRequest] = useState<any>(null);
 
   useEffect(() => {
     const savedToken = localStorage.getItem("supplier_token");
