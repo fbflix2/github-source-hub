@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { extractBmNameFromInput, extractBmUrlFromInput } from "@/lib/bm-link";
 
 interface BmTracking {
   id: string;
@@ -37,6 +38,7 @@ interface BmTracking {
   created_at: string;
   updated_at: string;
   perfil_matriz?: string | null;
+  bm_display_name?: string | null;
 }
 
 function useCountdown(expiresAt: string) {
@@ -95,11 +97,13 @@ function StatusBadge({ status }: { status: string }) {
   return <Badge className={`${s.bg} ${s.color} ${s.border} text-[11px] font-semibold`}>{s.label}</Badge>;
 }
 
-import { extractBmNameFromInput, extractBmUrlFromInput } from "@/lib/bm-link";
-
 const formatPrice = (v: number) => {
   if (!v || v === 0) return null;
   return `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+};
+
+const getBmDisplayName = (item: BmTracking) => {
+  return item.bm_display_name || extractBmNameFromInput(item.bm_link) || item.product_name || "—";
 };
 
 export default function AdminGestaoBMs() {
