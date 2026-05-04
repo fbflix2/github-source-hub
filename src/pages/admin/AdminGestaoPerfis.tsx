@@ -62,31 +62,34 @@ export default function AdminGestaoPerfis() {
   const fetchItems = async () => {
     setLoading(true);
     try {
-      // Fetch perfil stock items that went through blocagem (have bmNames or perfilMatriz in data)
+      // Fetch perfil stock items. We want ALL relevant profiles regardless of specific data fields.
       const { data: stockItems, error } = await supabase
         .from("stock_items")
         .select("id, name, identification, identification_link, status, product_id, data, folder, created_at, order_item_id")
         .eq("type", "perfil")
         .is("deleted_at", null)
-        .in("status", ["revisado", "vendido", "usado", "aguardando", "ok", "bloqueado", "reservado"])
         .order("created_at", { ascending: false });
 
       if (error) throw error;
 
-      // Include all profiles that are sold, used, or ready in the store.
-      // Also include any profile that has BM/Matriz tracking info regardless of status.
+      // Include all profiles that are in a meaningful state (sold or available)
       const rows = (stockItems || []).filter(r => {
-        if (r.status === "vendido" || r.status === "usado") return true;
-        if (r.status === "revisado" && r.product_id && !r.order_item_id) return true;
+        const statusesToShow = ["revisado", "vendido", "usado", "aguardando", "ok", "bloqueado", "reservado"];
+        if (!statusesToShow.includes(r.status)) return false;
         
+        // Show if sold/used
+        if (r.status === "vendido" || r.status === "usado") return true;
+        
+        // Show if in store (revisado/ok/aguardando) and linked to a product
+        if (r.product_id) return true;
+
+        // Show if it has management data
         const d = r.data as any;
         const hasBm = Array.isArray(d?.bmNames) && d.bmNames.some((b: string) => b.trim());
         const hasMatriz = !!d?.perfilMatriz;
         if (hasBm || hasMatriz) return true;
         
-        // For other statuses (aguardando, ok, etc), only show if they are actually being managed/tracked
-        // but the user complained about missing items, so let's be more inclusive if they are searching.
-        return ["aguardando", "ok", "bloqueado", "reservado"].includes(r.status);
+        return false;
       });
 
       // Get order_item_ids to resolve orders (direct link)
