@@ -360,9 +360,13 @@ export default function AdminReposicaoFornecedor() {
          details: item.details,
          reason: item.reason || requestReason // Use individual reason if exists, otherwise general
        }));
-
-      const { error: itemsError } = await supabase.from("supplier_request_items").insert(items);
-      if (itemsError) throw itemsError;
+ 
+       console.log("Inserindo itens na solicitação:", items);
+       const { error: itemsError } = await supabase.from("supplier_request_items").insert(items);
+       if (itemsError) {
+         console.error("Erro ao inserir itens:", itemsError);
+         throw itemsError;
+       }
 
         toast.success("Solicitação criada com sucesso!");
         setRequestItems([{ details: "", reason: "" }]);
