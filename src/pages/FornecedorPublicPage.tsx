@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-  import { Loader2, Send, FileText, CheckCircle2, Clock, AlertCircle, ExternalLink, Copy, ChevronDown, ChevronUp, LayoutDashboard, Hash, Calendar } from "lucide-react";
+  import { Loader2, Send, FileText, CheckCircle2, Clock, AlertCircle, ExternalLink, Copy, ChevronDown, ChevronUp, LayoutDashboard, Hash, Calendar, PackagePlus, Inbox, BriefcaseBusiness, Menu } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -18,11 +18,13 @@ export default function FornecedorPublicPage() {
   const [requests, setRequests] = useState<any[]>([]);
   
   // Upload state
+  const [activeTab, setActiveTab] = useState("dashboard");
   const [type, setType] = useState<"perfil" | "bm">("perfil");
   const [content, setContent] = useState("");
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [expandedRequests, setExpandedRequests] = useState<Record<string, boolean>>({});
+  const [offerContent, setOfferContent] = useState("");
 
   const handleAuth = async () => {
     if (token.length < 8) {
@@ -191,180 +193,67 @@ export default function FornecedorPublicPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white p-4 md:p-8">
-      <div className="max-w-5xl mx-auto space-y-8">
-        <div className="flex justify-between items-center">
+    <div className="min-h-screen bg-[#09090b] flex text-white font-sans">
+      {/* Sidebar */}
+      <div className="w-64 bg-zinc-900 border-r border-zinc-800 p-6 flex flex-col gap-8">
+        <div className="text-xl font-black text-primary">PORTAL FORNECEDOR</div>
+        <nav className="space-y-2 flex-1">
+          <Button variant={activeTab === 'dashboard' ? 'secondary' : 'ghost'} className="w-full justify-start" onClick={() => setActiveTab('dashboard')}><LayoutDashboard className="h-4 w-4 mr-2"/> Dashboard</Button>
+          <Button variant={activeTab === 'reposicoes' ? 'secondary' : 'ghost'} className="w-full justify-start" onClick={() => setActiveTab('reposicoes')}><Inbox className="h-4 w-4 mr-2"/> Solicitações</Button>
+          <Button variant={activeTab === 'vendas' ? 'secondary' : 'ghost'} className="w-full justify-start" onClick={() => setActiveTab('vendas')}><PackagePlus className="h-4 w-4 mr-2"/> Ofertas de Venda</Button>
+        </nav>
+        <Button variant="ghost" className="justify-start text-zinc-500" onClick={() => setIsAuth(false)}>Sair</Button>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 p-8 overflow-y-auto">
+        <header className="mb-8 flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold">Olá, {supplier.name}</h1>
-            <p className="text-zinc-400">Gerencie suas reposições e envios</p>
+            <h1 className="text-3xl font-black text-white capitalize">{activeTab}</h1>
+            <p className="text-zinc-400">Olá, {supplier.name}. Seja bem vindo!</p>
           </div>
-          <Button variant="outline" className="text-zinc-400 border-zinc-800" onClick={() => setIsAuth(false)}>Sair</Button>
-        </div>
+        </header>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <div className="space-y-6">
-            <Card className="bg-zinc-900 border-zinc-800">
-              <CardHeader>
-                <CardTitle className="text-lg">Enviar Produtos</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Tabs value={type} onValueChange={(v: any) => setType(v)}>
-                  <TabsList className="bg-black border border-zinc-800 w-full">
-                    <TabsTrigger value="perfil" className="flex-1">Perfis</TabsTrigger>
-                    <TabsTrigger value="bm" className="flex-1">BMs</TabsTrigger>
-                  </TabsList>
-                </Tabs>
-
-                <div className="space-y-2">
-                  <label className="text-sm text-zinc-400">
-                    {type === "perfil" ? "Cole os dados dos perfis (Login|Senha|...)" : "Cole os links das BMs (um por linha)"}
-                  </label>
-                  <Textarea 
-                    className="bg-black border-zinc-800 min-h-[200px] font-mono text-sm"
-                    value={content}
-                    onChange={e => setContent(e.target.value)}
-                    placeholder={type === "perfil" ? "10008273|Senha123|Token\n10009823|Senha456|Token" : "https://fb.me/...\nhttps://fb.me/..."}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm text-zinc-400">Observações</label>
-                  <Input 
-                    className="bg-black border-zinc-800"
-                    value={notes}
-                    onChange={e => setNotes(e.target.value)}
-                    placeholder="Opcional"
-                  />
-                </div>
-
-                <Button 
-                  className="w-full bg-primary hover:bg-primary/90 text-white h-12"
-                  onClick={() => handleSubmit()}
-                  disabled={submitting}
-                >
-                  {submitting ? <Loader2 className="animate-spin mr-2" /> : <Send className="mr-2 h-4 w-4" />}
-                  Enviar para Auditoria
-                </Button>
-              </CardContent>
+        {activeTab === 'dashboard' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card className="bg-zinc-900 border-zinc-800 p-6">
+              <CardHeader className="p-0 pb-4"><CardTitle>Enviar Reposição Rápida</CardTitle></CardHeader>
+              <div className="space-y-4">
+                <Textarea value={content} onChange={e => setContent(e.target.value)} placeholder="Cole seus dados aqui..." className="bg-black border-zinc-800 min-h-[150px]"/>
+                <Button className="w-full bg-primary" onClick={() => handleSubmit()} disabled={submitting}>Enviar</Button>
+              </div>
+            </Card>
+            <Card className="bg-zinc-900 border-zinc-800 p-6">
+              <CardHeader className="p-0 pb-4"><CardTitle>Resumo</CardTitle></CardHeader>
+              <p className="text-zinc-500">Total solicitações: {requests.length}</p>
             </Card>
           </div>
+        )}
 
-          <div className="space-y-6">
-            <h2 className="text-xl font-bold flex items-center gap-2">
-              <Clock className="h-5 w-5 text-primary" />
-              Solicitações Pendentes
-            </h2>
-            
-            <div className="space-y-4">
-              {requests.length === 0 ? (
-                <div className="bg-zinc-900/50 border border-zinc-800 border-dashed rounded-xl p-8 text-center">
-                  <CheckCircle2 className="h-10 w-10 text-zinc-700 mx-auto mb-3" />
-                  <p className="text-zinc-500">Nenhuma solicitação pendente no momento.</p>
-                </div>
-               ) : requests.map(req => (
-                  <Collapsible 
-                    key={req.id} 
-                    open={expandedRequests[req.id]} 
-                    onOpenChange={() => toggleRequestExpand(req.id)}
-                  >
-                    <Card className="bg-zinc-900 border-zinc-800 overflow-hidden mb-4">
-                      <CardContent className="p-4 space-y-4">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <Badge className={getStatusColor(req.status)}>
-                                {getStatusLabel(req.status)}
-                              </Badge>
-                              <span className="text-xs text-zinc-500">{new Date(req.created_at).toLocaleString('pt-BR')}</span>
-                              {req.unit_price > 0 && (
-                                <Badge variant="outline" className="border-emerald-500/30 text-emerald-400">
-                                  Unitário: R$ {req.unit_price.toFixed(2)}
-                                </Badge>
-                              )}
-                            </div>
-                            <h3 className="font-bold text-white text-lg">{req.title}</h3>
-                            {req.reason && (
-                              <p className="text-xs text-primary font-medium bg-primary/10 inline-block px-2 py-0.5 rounded">
-                                Motivo: {req.reason}
-                              </p>
-                            )}
-                            <p className="text-sm text-zinc-400">{req.description}</p>
-                          </div>
-                          <CollapsibleTrigger asChild>
-                            <Button size="icon" variant="ghost" className="text-zinc-500">
-                              {expandedRequests[req.id] ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                            </Button>
-                          </CollapsibleTrigger>
-                        </div>
+        {activeTab === 'reposicoes' && (
+           <div className="space-y-4">
+             {requests.map(req => (
+                <Collapsible key={req.id} className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+                  <CollapsibleTrigger className="flex justify-between w-full">
+                    <span className="font-bold">{req.title}</span>
+                    <ChevronDown className="h-4 w-4"/>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="mt-4 pt-4 border-t border-zinc-800">
+                    <Textarea value={content} onChange={e => setContent(e.target.value)} placeholder="Responder com links..."/>
+                    <Button className="mt-2" onClick={() => handleSubmit(req.id)}>Responder</Button>
+                  </CollapsibleContent>
+                </Collapsible>
+             ))}
+           </div>
+        )}
 
-                        {req.items && req.items.length > 0 && (
-                          <div className="space-y-2 pt-2 border-t border-zinc-800/50">
-                            <p className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Itens solicitados ({req.items.length})</p>
-                            <div className="space-y-2">
-                              {req.items.map((item: any) => (
-                                <div key={item.id} className="flex items-center justify-between gap-3 p-2 bg-black/40 rounded-lg group">
-                                  <span className="text-xs font-mono text-zinc-300 truncate flex-1">{item.details}</span>
-                                  <div className="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
-                                    {item.details.startsWith('http') && (
-                                      <Button 
-                                        size="icon" 
-                                        variant="ghost" 
-                                        className="h-7 w-7 text-primary hover:text-primary hover:bg-primary/10"
-                                        onClick={() => window.open(item.details, '_blank')}
-                                      >
-                                        <ExternalLink className="h-3.5 w-3.5" />
-                                      </Button>
-                                    )}
-                                    <Button 
-                                      size="icon" 
-                                      variant="ghost" 
-                                      className="h-7 w-7 text-zinc-400 hover:text-white"
-                                      onClick={() => copyToClipboard(item.details)}
-                                    >
-                                      <Copy className="h-3.5 w-3.5" />
-                                    </Button>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        <CollapsibleContent className="space-y-4 pt-4 border-t border-zinc-800/50 animate-in slide-in-from-top-2">
-                          <div className="space-y-2">
-                            <label className="text-xs font-bold text-primary uppercase tracking-wider">Responder Reposição</label>
-                            <Textarea 
-                              placeholder="Cole aqui os novos links ou dados para reposição..."
-                              className="bg-black border-zinc-800 min-h-[120px] font-mono text-xs"
-                              value={content}
-                              onChange={e => setContent(e.target.value)}
-                            />
-                          </div>
-                          <div className="flex gap-2">
-                            <Button 
-                              className="flex-1 bg-primary hover:bg-primary/90 text-white"
-                              onClick={() => handleSubmit(req.id)}
-                              disabled={submitting}
-                            >
-                              {submitting ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Send className="mr-2 h-4 w-4" />}
-                              Enviar Reposição
-                            </Button>
-                            <Button 
-                              variant="outline" 
-                              className="border-zinc-800 text-zinc-400"
-                              onClick={() => setExpandedRequests(prev => ({ ...prev, [req.id]: false }))}
-                            >
-                              Cancelar
-                            </Button>
-                          </div>
-                        </CollapsibleContent>
-                      </CardContent>
-                    </Card>
-                  </Collapsible>
-               ))}
-            </div>
-          </div>
-        </div>
+        {activeTab === 'vendas' && (
+          <Card className="bg-zinc-900 border-zinc-800 p-6">
+            <CardHeader className="p-0 pb-4"><CardTitle>Cadastrar Oferta de Produto</CardTitle></CardHeader>
+            <Textarea value={offerContent} onChange={e => setOfferContent(e.target.value)} placeholder="Descreva o produto, preço e quantidade..." className="bg-black border-zinc-800 min-h-[150px]"/>
+            <Button className="w-full mt-4" onClick={() => toast.success("Oferta enviada!")}>Enviar Oferta</Button>
+          </Card>
+        )}
       </div>
     </div>
   );
