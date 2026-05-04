@@ -101,6 +101,25 @@ async function webFetch(path: string, apiKey: string, method = "GET", body?: str
   if (resp.status >= 500) {
     throw new Error(`Proxy Fbflix API indisponível (${resp.status}). Tente novamente em alguns minutos.`);
   }
+  // Safe JSON wrapper: prevents "Unexpected token '<'" crashes when Webshare
+  // returns an HTML error page (404/auth/maintenance).
+  const originalJson = resp.json.bind(resp);
+  (resp as any).json = async () => {
+    const text = await resp.text();
+    if (!text || !text.trim()) return {};
+    const trimmed = text.trimStart();
+    if (trimmed.startsWith("<")) {
+      console.error(`[webFetch] Non-JSON response from ${url} [${resp.status}]: ${trimmed.slice(0, 200)}`);
+      throw new Error(`Proxy Fbflix retornou resposta inválida (${resp.status}). Tente novamente em alguns minutos.`);
+    }
+    try {
+      return JSON.parse(text);
+    } catch {
+      console.error(`[webFetch] Invalid JSON from ${url}: ${text.slice(0, 200)}`);
+      throw new Error(`Proxy Fbflix retornou resposta inválida (${resp.status}). Tente novamente.`);
+    }
+  };
+  void originalJson;
   return resp;
 }
 
