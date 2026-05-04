@@ -1,3 +1,4 @@
+ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -29,8 +30,10 @@ export default function FornecedorPublicPage() {
   const [submitting, setSubmitting] = useState(false);
   const [expandedRequests, setExpandedRequests] = useState<Record<string, boolean>>({});
   const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
-  const [newPaymentType, setNewPaymentType] = useState("pix");
-  const [newPaymentDetails, setNewPaymentDetails] = useState("");
+  const [newPaymentType, setNewPaymentType] = useState("pix"); // 'pix' or 'bank'
+  const [pixType, setPixType] = useState("cpf"); // 'cpf', 'email', 'phone', 'random'
+  const [pixKey, setPixKey] = useState("");
+  const [bankData, setBankData] = useState({ bank: "", agency: "", account: "", holder: "", document: "" });
   const [offerContent, setOfferContent] = useState("");
 
   useEffect(() => {
@@ -117,10 +120,29 @@ export default function FornecedorPublicPage() {
     setPaymentMethods(data || []);
   };
 
+  const validatePix = (type: string, key: string) => {
+    if (!key.trim()) return "Informe a chave PIX";
+    if (type === 'cpf' && !/^\d{11}$|^\d{3}\.\d{3}\.\d{3}-\d{2}$/.test(key)) return "CPF inválido";
+    if (type === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(key)) return "E-mail inválido";
+    if (type === 'phone' && !/^\d{10,11}$/.test(key.replace(/\D/g, ''))) return "Telefone inválido";
+    return null;
+  };
+
   const handleAddPaymentMethod = async () => {
-    if (!newPaymentDetails.trim()) {
-      toast.error("Informe os detalhes do recebimento");
-      return;
+    let details = "";
+    if (newPaymentType === 'pix') {
+      const error = validatePix(pixType, pixKey);
+      if (error) {
+        toast.error(error);
+        return;
+      }
+      details = `PIX (${pixType.toUpperCase()}): ${pixKey}`;
+    } else {
+      if (!bankData.bank || !bankData.agency || !bankData.account || !bankData.holder) {
+        toast.error("Preencha todos os dados bancários");
+        return;
+      }
+      details = `${bankData.bank} | Ag: ${bankData.agency} | Cc: ${bankData.account} | Titular: ${bankData.holder}`;
     }
 
     setSubmitting(true);
@@ -130,7 +152,7 @@ export default function FornecedorPublicPage() {
         .insert({
           supplier_id: supplier.id,
           type: newPaymentType,
-          details: newPaymentDetails,
+          details: details,
           is_primary: paymentMethods.length === 0
         })
         .select()
@@ -139,7 +161,8 @@ export default function FornecedorPublicPage() {
       if (error) throw error;
 
       setPaymentMethods([data, ...paymentMethods]);
-      setNewPaymentDetails("");
+      setPixKey("");
+      setBankData({ bank: "", agency: "", account: "", holder: "", document: "" });
       toast.success("Forma de recebimento cadastrada!");
     } catch (err: any) {
       toast.error("Erro ao cadastrar: " + err.message);
@@ -668,15 +691,74 @@ export default function FornecedorPublicPage() {
                         </TabsList>
                       </Tabs>
                     </div>
-                    <div className="space-y-2">
-                      <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Detalhes (Chave ou Dados)</label>
-                      <Textarea 
-                        value={newPaymentDetails}
-                        onChange={e => setNewPaymentDetails(e.target.value)}
-                        placeholder={newPaymentType === 'pix' ? "Ex: CPF, E-mail, Celular ou Chave Aleatória" : "Banco, Agência, Conta e Titular"}
-                        className="bg-black border-zinc-800 min-h-[120px] text-sm"
-                      />
-                    </div>
+                    {newPaymentType === 'pix' ? (
+                      <div className="space-y-4 animate-in fade-in duration-300">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Tipo de Chave PIX</label>
+                          <Select value={pixType} onValueChange={setPixType}>
+                            <SelectTrigger className="bg-black border-zinc-800 h-10 text-[11px] font-bold uppercase">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="bg-zinc-900 border-zinc-800">
+                              <SelectItem value="cpf">CPF</SelectItem>
+                              <SelectItem value="email">E-mail</SelectItem>
+                              <SelectItem value="phone">Telefone</SelectItem>
+                              <SelectItem value="random">Chave Aleatória</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Chave PIX</label>
+                          <Input 
+                            value={pixKey}
+                            onChange={e => setPixKey(e.target.value)}
+                            placeholder={pixType === 'cpf' ? "000.000.000-00" : pixType === 'phone' ? "(00) 00000-0000" : "Digite sua chave..."}
+                            className="bg-black border-zinc-800 h-10 text-sm"
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-3 animate-in fade-in duration-300">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-black text-zinc-500 uppercase">Banco</label>
+                            <Input 
+                              value={bankData.bank}
+                              onChange={e => setBankData({...bankData, bank: e.target.value})}
+                              placeholder="Ex: Nubank"
+                              className="bg-black border-zinc-800 h-9 text-xs"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[9px] font-black text-zinc-500 uppercase">Agência</label>
+                            <Input 
+                              value={bankData.agency}
+                              onChange={e => setBankData({...bankData, agency: e.target.value})}
+                              placeholder="0001"
+                              className="bg-black border-zinc-800 h-9 text-xs"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black text-zinc-500 uppercase">Número da Conta</label>
+                          <Input 
+                            value={bankData.account}
+                            onChange={e => setBankData({...bankData, account: e.target.value})}
+                            placeholder="00000-0"
+                            className="bg-black border-zinc-800 h-9 text-xs"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[9px] font-black text-zinc-500 uppercase">Nome do Titular</label>
+                          <Input 
+                            value={bankData.holder}
+                            onChange={e => setBankData({...bankData, holder: e.target.value})}
+                            placeholder="Nome Completo"
+                            className="bg-black border-zinc-800 h-9 text-xs"
+                          />
+                        </div>
+                      </div>
+                    )}
                     <Button 
                       className="w-full bg-primary hover:bg-primary/90 text-white font-black h-12" 
                       onClick={handleAddPaymentMethod}
