@@ -77,17 +77,34 @@ export default function AdminGestaoPerfis() {
         const statusesToShow = ["revisado", "vendido", "usado", "aguardando", "ok", "bloqueado", "reservado"];
         if (!statusesToShow.includes(r.status)) return false;
         
-        // Show if sold/used
+        // If status is sold or used, show it
         if (r.status === "vendido" || r.status === "usado") return true;
         
-        // Show if in store (revisado/ok/aguardando) and linked to a product
-        if (r.product_id) return true;
-
-        // Show if it has management data
+        // For available items (revisado, ok, aguardando, etc), we only want to show
+        // those that were MANUALLY uploaded or have management data.
+        // We EXCLUDE automated imports (like 'Perfil instagram') unless they were sold.
+        
+        // Check if it has management data (manually managed)
         const d = r.data as any;
         const hasBm = Array.isArray(d?.bmNames) && d.bmNames.some((b: string) => b.trim());
         const hasMatriz = !!d?.perfilMatriz;
-        if (hasBm || hasMatriz) return true;
+        const hasGestaoNotes = !!(d?.gestaoNotes?.trim());
+        
+        if (hasBm || hasMatriz || hasGestaoNotes) return true;
+        
+        // If it's linked to a product, we usually show it in "Na Loja",
+        // BUT the user says 143 is too many. Most of these (100) are "Perfil instagram".
+        // Let's hide items that are from specific automated products unless they have management data.
+        const automatedProductNames = ["Perfil instagram", "Perfil spam place"];
+        const productName = d?.nomeProduto || "";
+        
+        if (automatedProductNames.includes(productName)) {
+          // Only show automated profiles if they were sold (handled above) or have management data (handled above)
+          return false;
+        }
+
+        // For other profiles (CA, Comum, etc), show if they are in store and linked to product
+        if (r.product_id) return true;
         
         return false;
       });
