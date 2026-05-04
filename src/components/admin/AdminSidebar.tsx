@@ -105,6 +105,7 @@ const allMenuItems: MenuItem[] = [
   { title: "Como Funciona?", icon: HelpCircle, path: "/admin/aquecimento-guia", operatorOnly: true },
   { title: "Ferramentas", icon: KeyRound, path: "/admin/ferramentas-2fa", subItems: [
     { title: "Ferramentas", icon: KeyRound, path: "/admin/ferramentas-2fa" },
+    { title: "Reposição Fornecedor", icon: RefreshCw, path: "/admin/reposicao-fornecedor" },
     { title: "Esteira Admin", icon: Settings, path: "/admin/esteira-admin" },
     { title: "Imagens", icon: ImageIcon, path: "/admin/imagens" },
   ]},
