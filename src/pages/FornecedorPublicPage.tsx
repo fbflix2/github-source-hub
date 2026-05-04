@@ -513,136 +513,137 @@ export default function FornecedorPublicPage() {
                           : r.title?.toLowerCase().includes('perfil') || r.title?.toLowerCase().includes('perfis');
                       return matchesStatus && matchesType;
                     })
-                    .map(req => {
-                      const isExpanded = expandedRequests[req.id];
-                      return (
-                        <Card key={req.id} className={`bg-[#0a0a0a] border-zinc-800 overflow-hidden rounded-2xl transition-all duration-500 ${isExpanded ? 'ring-1 ring-primary/30 shadow-[0_0_50px_-12px_rgba(217,70,239,0.1)]' : 'hover:border-zinc-700'} group`}>
-                          <div className={`p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition-colors ${isExpanded ? 'bg-primary/5' : 'bg-gradient-to-r from-zinc-900/40 to-transparent'}`}>
-                            <div className="flex items-center gap-5">
-                              <div className={`p-3 rounded-2xl border transition-all duration-500 ${isExpanded ? 'bg-primary text-white border-primary shadow-[0_0_20px_rgba(217,70,239,0.4)]' : 'bg-zinc-900/50 text-zinc-500 border-zinc-800 group-hover:border-primary/50 group-hover:text-primary'}`}>
-                                <ShieldAlert className="h-5 w-5" />
+                    .map(req => (
+                      <Card key={req.id} className="bg-white/5 border-white/10 hover:border-primary/30 transition-all duration-300">
+                        <CardContent className="p-4 space-y-4">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <div className="font-bold text-base truncate flex items-center gap-2 text-white">
+                                {req.title || 'Solicitação'}
+                                <Badge className={`${getStatusColor(req.status)} border text-[9px] px-1.5 py-0 uppercase font-black`}>
+                                  {getStatusLabel(req.status)}
+                                </Badge>
                               </div>
-                              <div>
-                                <div className="flex items-center gap-3">
-                                  <h3 className="text-sm font-black text-white uppercase tracking-tighter italic">{req.title || 'Solicitação'}</h3>
-                                  <Badge className={`${getStatusColor(req.status)} h-5 px-2 text-[8px] font-black border shadow-sm uppercase tracking-widest`}>
-                                    {getStatusLabel(req.status)}
-                                  </Badge>
-                                </div>
-                                <div className="flex items-center gap-4 mt-1.5 opacity-40">
-                                  <span className="text-[9px] font-black uppercase tracking-[0.2em] flex items-center gap-1.5"><Hash className="h-2.5 w-2.5"/> {req.id.slice(0, 8)}</span>
-                                  <div className="w-1 h-1 rounded-full bg-zinc-700" />
-                                  <span className="text-[9px] font-black uppercase tracking-[0.2em] flex items-center gap-1.5"><Calendar className="h-2.5 w-2.5"/> {new Date(req.created_at).toLocaleDateString('pt-BR')}</span>
-                                </div>
+                              <div className="text-[10px] text-white/40 mt-1 flex items-center gap-2">
+                                <Hash className="size-2.5" /> {req.id.slice(0, 8)} 
+                                <span className="text-white/20">|</span> 
+                                <Calendar className="size-2.5" /> {new Date(req.created_at).toLocaleDateString('pt-BR')}
                               </div>
                             </div>
-                            
-                            <div className="flex items-center gap-4 w-full md:w-auto">
-                              {req.reason && (
-                                <div className="hidden lg:flex flex-col items-end px-4 border-r border-zinc-800/50">
-                                  <span className="text-[7px] font-black text-zinc-600 uppercase tracking-[0.3em] mb-0.5">Motivo Crítico</span>
-                                  <span className="text-[10px] font-black text-red-500 uppercase italic">{req.reason}</span>
-                                </div>
-                              )}
+                            <div className="flex flex-col gap-1">
                               <Button 
+                                size="icon" 
+                                variant="ghost" 
+                                className="size-8 text-white/50 hover:text-white hover:bg-white/10"
                                 onClick={() => toggleRequestExpand(req.id)}
-                                className={`h-11 px-6 rounded-xl font-black text-[10px] uppercase tracking-[0.15em] transition-all duration-300 ${isExpanded ? 'bg-white text-black hover:bg-zinc-200' : 'bg-zinc-900 text-zinc-400 border border-zinc-800 hover:border-primary/50 hover:text-white'}`}
                               >
-                                {isExpanded ? 'Fechar Detalhes' : 'Ver Solicitação'}
-                                <ChevronDown className={`ml-2.5 h-3.5 w-3.5 transition-transform duration-500 ${isExpanded ? 'rotate-180' : ''}`} />
+                                {expandedRequests[req.id] ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
                               </Button>
                             </div>
                           </div>
 
-                          <Collapsible open={isExpanded}>
-                            <CollapsibleContent className="animate-in slide-in-from-top-4 duration-500">
-                              <div className="p-8 border-t border-zinc-800/50 bg-[#070707]">
-                                <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-                                  <div className="lg:col-span-7 space-y-6">
-                                    <div className="flex items-center justify-between">
-                                      <p className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em] flex items-center gap-2">
-                                        <PackagePlus className="h-3.5 w-3.5 text-primary" />
-                                        Itens Bloqueados ({req.items?.length || 0})
-                                      </p>
-                                    </div>
-                                    <div className="grid grid-cols-1 gap-3 max-h-[400px] overflow-y-auto pr-3 custom-scrollbar">
-                                      {req.items && req.items.length > 0 ? req.items.map((item: any) => {
-                                        const hasSeparator = item.details.includes('|');
-                                        const [id, link] = hasSeparator ? item.details.split('|') : [null, item.details];
-                                        const displayValue = link || id;
-                                        const cleanLink = link?.trim() || id?.trim();
-
-                                        return (
-                                          <div key={item.id} className="group/item relative bg-zinc-900/20 border border-zinc-800/40 p-4 rounded-2xl hover:bg-zinc-900/40 hover:border-primary/20 transition-all duration-300">
-                                            {id && hasSeparator && (
-                                              <div className="flex items-center justify-between mb-3 pb-3 border-b border-zinc-800/30">
-                                                <div className="flex flex-col">
-                                                  <span className="text-[7px] font-black text-zinc-600 uppercase tracking-widest mb-1">ID da Business</span>
-                                                  <code className="text-xs font-black text-zinc-400 tracking-wider">{id}</code>
-                                                </div>
-                                                <Button size="icon" variant="ghost" className="h-8 w-8 text-zinc-600 hover:text-white hover:bg-zinc-800/50 rounded-lg" onClick={() => copyToClipboard(id)}>
-                                                  <Copy className="h-3.5 w-3.5"/>
-                                                </Button>
-                                              </div>
-                                            )}
-                                            <div className="flex items-center justify-between">
-                                              <div className="flex flex-col overflow-hidden">
-                                                <span className="text-[7px] font-black text-zinc-600 uppercase tracking-widest mb-1">{id && hasSeparator ? 'Link de Convite' : 'Identificador Técnico'}</span>
-                                                <code className="text-[11px] font-black text-primary/80 truncate pr-6 tracking-tight">{displayValue}</code>
-                                              </div>
-                                              <div className="flex items-center gap-2 shrink-0">
-                                                {cleanLink && (cleanLink.startsWith('http') || cleanLink.includes('business.facebook.com')) && (
-                                                  <Button size="icon" variant="ghost" className="h-9 w-9 text-zinc-500 hover:text-white hover:bg-primary/10 rounded-xl transition-all" onClick={() => window.open(cleanLink.startsWith('http') ? cleanLink : `https://${cleanLink}`, '_blank')}>
-                                                    <ExternalLink className="h-4 w-4"/>
-                                                  </Button>
-                                                )}
-                                                <Button size="icon" variant="ghost" className="h-9 w-9 text-zinc-500 hover:text-white hover:bg-zinc-800/50 rounded-xl transition-all" onClick={() => copyToClipboard(displayValue)}>
-                                                  <Copy className="h-4 w-4"/>
-                                                </Button>
-                                              </div>
-                                            </div>
-                                          </div>
-                                        );
-                                      }) : (
-                                        <div className="p-8 text-center bg-black/40 rounded-3xl border border-dashed border-zinc-800/50">
-                                          <p className="text-[10px] font-black text-zinc-600 uppercase tracking-widest italic">{req.description || 'Nenhuma informação técnica vinculada.'}</p>
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-
-                                  <div className="lg:col-span-5 space-y-6">
-                                    <div className="p-6 bg-zinc-900/30 border border-zinc-800/50 rounded-3xl space-y-6">
-                                      <div className="flex flex-col gap-1">
-                                        <p className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.3em] flex items-center gap-2">
-                                          <RefreshCw className="h-3.5 w-3.5"/>
-                                          Enviar Reposição
-                                        </p>
-                                        <p className="text-[9px] text-zinc-500 font-medium">Insira os novos dados abaixo para finalizar.</p>
-                                      </div>
-                                      <Textarea 
-                                        className="bg-black border-zinc-800 min-h-[180px] font-mono text-[11px] focus:ring-emerald-500/10 p-5 leading-relaxed rounded-2xl focus:border-emerald-500/30 resize-none transition-all" 
-                                        placeholder="Formato sugerido: Login|Senha|2FA|E-mail"
-                                        value={content}
-                                        onChange={e => setContent(e.target.value)}
-                                      />
-                                      <Button 
-                                        className="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-black h-14 text-xs rounded-2xl transition-all shadow-[0_10px_30px_-10px_rgba(16,185,129,0.3)] hover:shadow-[0_15px_40px_-10px_rgba(16,185,129,0.4)] hover:-translate-y-0.5 active:translate-y-0" 
-                                        onClick={() => handleSubmit(req.id)} 
-                                        disabled={submitting}
-                                      >
-                                        {submitting ? <Loader2 className="animate-spin h-5 w-5 mr-3" /> : <CheckCircle2 className="h-5 w-5 mr-3" />}
-                                        FINALIZAR LOTE DE REPOSIÇÃO
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </div>
+                          <div className="grid grid-cols-2 gap-2 text-center">
+                            <div className="bg-white/5 p-2 rounded-md border border-white/5">
+                              <div className="text-[10px] text-white/50 uppercase font-bold tracking-wider">Itens</div>
+                              <div className="font-black text-white">{req.items?.length || 0}</div>
+                            </div>
+                            <div className={`p-2 rounded-md border ${req.reason ? 'bg-red-500/10 border-red-500/20' : 'bg-white/5 border-white/5'}`}>
+                              <div className={`text-[10px] uppercase font-bold tracking-wider ${req.reason ? 'text-red-400' : 'text-white/50'}`}>Motivo</div>
+                              <div className={`font-black truncate px-1 ${req.reason ? 'text-red-400' : 'text-white'}`}>
+                                {req.reason ? req.reason.toUpperCase() : '-'}
                               </div>
-                            </CollapsibleContent>
-                          </Collapsible>
-                        </Card>
-                      );
-                    })
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <div className="text-[11px] font-bold text-white/70 uppercase tracking-tighter italic">Conteúdo da Reposição</div>
+                            <div className="space-y-2">
+                              {req.items && req.items.length > 0 ? (
+                                <div className="rounded-md border border-white/10 bg-white/5 p-2 space-y-2">
+                                  {req.items.slice(0, expandedRequests[req.id] ? undefined : 1).map((item: any) => {
+                                    const hasSeparator = item.details.includes('|');
+                                    const [id, link] = hasSeparator ? item.details.split('|') : [null, item.details];
+                                    const displayValue = link || id;
+                                    const cleanLink = link?.trim() || id?.trim();
+
+                                    return (
+                                      <div key={item.id} className="space-y-1.5 pb-2 last:pb-0 last:border-0 border-b border-white/5">
+                                        {id && hasSeparator && (
+                                          <div className="flex items-center gap-1 text-[10px]">
+                                            <IdCard className="size-3 text-sky-400 shrink-0" />
+                                            <span className="text-white/40 shrink-0 w-[50px]">ID BM:</span>
+                                            <span className="flex-1 truncate text-white/85 font-mono">{id}</span>
+                                            <Button size="icon" variant="ghost" className="h-5 w-5 p-0 opacity-50 hover:opacity-100" onClick={() => copyToClipboard(id)}>
+                                              <Copy className="size-2.5" />
+                                            </Button>
+                                          </div>
+                                        )}
+                                        <div className="flex items-center gap-1 text-[10px]">
+                                          <ExternalLink className="size-3 text-primary shrink-0" />
+                                          <span className="text-white/40 shrink-0 w-[50px]">Link:</span>
+                                          <span className="flex-1 truncate text-white/85 font-mono">{displayValue}</span>
+                                          <div className="flex gap-1 shrink-0">
+                                            {cleanLink && (cleanLink.startsWith('http') || cleanLink.includes('business.facebook.com')) && (
+                                              <Button size="icon" variant="ghost" className="h-5 w-5 p-0 opacity-50 hover:opacity-100" onClick={() => window.open(cleanLink.startsWith('http') ? cleanLink : `https://${cleanLink}`, '_blank')}>
+                                                <ExternalLink className="size-2.5"/>
+                                              </Button>
+                                            )}
+                                            <Button size="icon" variant="ghost" className="h-5 w-5 p-0 opacity-50 hover:opacity-100" onClick={() => copyToClipboard(displayValue)}>
+                                              <Copy className="size-2.5" />
+                                            </Button>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                  {!expandedRequests[req.id] && req.items.length > 1 && (
+                                    <div className="text-[10px] text-center text-primary font-bold uppercase py-1 border-t border-white/5">
+                                      +{req.items.length - 1} itens no lote (clique em ver mais)
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="rounded-md border border-dashed border-white/10 px-2 py-4 text-center">
+                                  <p className="text-[10px] text-white/40 italic">{req.description || 'Sem detalhes técnicos.'}</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {expandedRequests[req.id] && (
+                            <div className="pt-2 space-y-3 animate-in fade-in duration-300">
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2 text-[10px] font-black text-emerald-400 uppercase tracking-widest">
+                                  <RefreshCw className="size-3" /> Responder Reposição
+                                </div>
+                                <Textarea 
+                                  className="bg-black/50 border-white/10 min-h-[100px] text-[11px] font-mono focus:border-emerald-500/50 transition-all resize-none" 
+                                  placeholder="Novos links/dados..."
+                                  value={content}
+                                  onChange={e => setContent(e.target.value)}
+                                />
+                              </div>
+                              <Button 
+                                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black h-9 text-[10px] uppercase tracking-widest" 
+                                onClick={() => handleSubmit(req.id)} 
+                                disabled={submitting}
+                              >
+                                {submitting ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
+                                Enviar Reposição
+                              </Button>
+                            </div>
+                          )}
+
+                          <Button 
+                            variant="outline" 
+                            className="w-full h-8 text-[10px] font-bold border-white/10 hover:bg-white/5"
+                            onClick={() => toggleRequestExpand(req.id)}
+                          >
+                            {expandedRequests[req.id] ? 'RECOLHER DETALHES' : 'VER TODOS OS ITENS'}
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ))
                 )}
               </div>
             </div>
