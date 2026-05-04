@@ -31,7 +31,8 @@ export default function AdminReposicaoFornecedor() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [notes, setNotes] = useState("");
-  const [history, setHistory] = useState<ReplacementRecord[]>([]);
+   const [history, setHistory] = useState<ReplacementRecord[]>([]);
+   const [activeRequests, setActiveRequests] = useState<any[]>([]);
   const [isCreatingSupplier, setIsCreatingSupplier] = useState(false);
   const [newSupplierName, setNewSupplierName] = useState("");
   const [creatingSupplier, setCreatingSupplier] = useState(false);
@@ -49,10 +50,49 @@ export default function AdminReposicaoFornecedor() {
   const [requestType, setRequestType] = useState<"perfil" | "bm">("bm");
   const [requestContent, setRequestContent] = useState("");
 
-  useEffect(() => {
-    fetchSuppliers();
-    fetchHistory();
-  }, []);
+   useEffect(() => {
+     fetchSuppliers();
+     fetchHistory();
+     fetchActiveRequests();
+   }, [selectedSupplier]);
+   const fetchActiveRequests = async () => {
+     let query = supabase
+       .from("supplier_requests")
+       .select("*, items:supplier_request_items(*)")
+       .order("created_at", { ascending: false });
+     
+     if (selectedSupplier) {
+       query = query.eq("supplier_id", selectedSupplier);
+     }
+
+     const { data } = await query;
+     setActiveRequests(data || []);
+   };
+
+   const handleUpdateStatus = async (id: string, newStatus: string) => {
+     const { error } = await supabase
+       .from("supplier_requests")
+       .update({ status: newStatus })
+       .eq("id", id);
+     
+     if (error) {
+       toast.error("Erro ao atualizar status: " + error.message);
+     } else {
+       toast.success("Status atualizado");
+       fetchActiveRequests();
+     }
+   };
+
+   const deleteRequest = async (id: string) => {
+     if (!confirm("Excluir esta solicitação?")) return;
+     const { error } = await supabase.from("supplier_requests").delete().eq("id", id);
+     if (error) {
+       toast.error("Erro ao excluir: " + error.message);
+     } else {
+       toast.success("Solicitação excluída");
+       fetchActiveRequests();
+     }
+   };
 
   const fetchSuppliers = async () => {
     const { data } = await supabase.from("suppliers").select("id, name, access_token").eq("status", "active").order("name");
@@ -377,8 +417,8 @@ export default function AdminReposicaoFornecedor() {
         </Card>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
+       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+         <div className="lg:col-span-2 space-y-6">
           <Card className="bg-zinc-900/50 border-zinc-800">
             <CardHeader>
               <CardTitle className="text-lg text-white">Nova Solicitação</CardTitle>
@@ -558,7 +598,73 @@ export default function AdminReposicaoFornecedor() {
           </Card>
         </div>
 
-        <div className="space-y-6">
+         <div className="lg:col-span-2 space-y-6">
+           <Card className="bg-zinc-900/50 border-zinc-800">
+             <CardHeader>
+               <CardTitle className="text-lg text-white flex items-center gap-2">
+                 <History className="h-5 w-5 text-primary" />
+                 Solicitações Ativas
+               </CardTitle>
+             </CardHeader>
+             <CardContent className="p-0">
+               <div className="max-h-[600px] overflow-auto">
+                 <Table>
+                   <TableHeader>
+                     <TableRow className="border-zinc-800 hover:bg-transparent">
+                       <TableHead className="text-zinc-400">Solicitação</TableHead>
+                       <TableHead className="text-zinc-400">Status</TableHead>
+                       <TableHead className="text-zinc-400 text-right">Ações</TableHead>
+                     </TableRow>
+                   </TableHeader>
+                   <TableBody>
+                     {activeRequests.length === 0 ? (
+                       <TableRow>
+                         <TableCell colSpan={3} className="text-center py-8 text-zinc-500">
+                           Nenhuma solicitação ativa.
+                         </TableCell>
+                       </TableRow>
+                     ) : activeRequests.map((req) => (
+                       <TableRow key={req.id} className="border-zinc-800 hover:bg-zinc-800/30">
+                         <TableCell>
+                           <div className="space-y-1">
+                             <div className="font-bold text-white text-sm">{req.title}</div>
+                             <div className="text-xs text-zinc-500">{new Date(req.created_at).toLocaleDateString()}</div>
+                             {req.reason && <div className="text-[10px] text-primary">{req.reason}</div>}
+                           </div>
+                         </TableCell>
+                         <TableCell>
+                           <Select 
+                             value={req.status} 
+                             onValueChange={(val) => handleUpdateStatus(req.id, val)}
+                           >
+                             <SelectTrigger className="h-8 bg-zinc-950 border-zinc-800 text-[10px] w-[140px]">
+                               <SelectValue />
+                             </SelectTrigger>
+                             <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
+                               <SelectItem value="pending_replenishment">Aguardando Reposição</SelectItem>
+                               <SelectItem value="accepted">Aceito</SelectItem>
+                               <SelectItem value="testing">Em Teste</SelectItem>
+                               <SelectItem value="completed">Concluído</SelectItem>
+                             </SelectContent>
+                           </Select>
+                         </TableCell>
+                         <TableCell className="text-right">
+                           <Button 
+                             variant="ghost" 
+                             size="icon" 
+                             className="h-8 w-8 text-red-400 hover:text-red-300 hover:bg-red-400/10"
+                             onClick={() => deleteRequest(req.id)}
+                           >
+                             <Trash2 className="h-4 w-4" />
+                           </Button>
+                         </TableCell>
+                       </TableRow>
+                     ))}
+                   </TableBody>
+                 </Table>
+               </div>
+             </CardContent>
+           </Card>
           {selectedSupplier && (
             <Card className="bg-primary/5 border-primary/20">
               <CardHeader className="pb-2">
