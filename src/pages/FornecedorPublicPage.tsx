@@ -588,8 +588,8 @@ export default function FornecedorPublicPage() {
                             <div className="text-[11px] font-bold text-white/70 uppercase tracking-tighter italic">Conteúdo da Reposição</div>
                             <div className="space-y-2">
                               {req.items && req.items.length > 0 ? (
-                                <div className={`rounded-md border border-white/10 bg-white/5 p-2 space-y-2 ${expandedRequests[req.id] ? 'max-h-[300px] overflow-y-auto custom-scrollbar' : ''}`}>
-                                  {req.items.slice(0, expandedRequests[req.id] ? undefined : 1).map((item: any) => {
+                                 <div className="rounded-md border border-white/10 bg-white/5 p-2 space-y-2">
+                                   {req.items.slice(0, 1).map((item: any) => {
                                     const hasSeparator = item.details.includes('|');
                                     const [id, link] = hasSeparator ? item.details.split('|') : [null, item.details];
                                     const displayValue = link || id;
@@ -663,13 +663,23 @@ export default function FornecedorPublicPage() {
                             </div>
                           )}
 
-                          <Button 
-                            variant="outline" 
-                            className="w-full h-8 text-[10px] font-bold border-white/10 hover:bg-white/5"
-                            onClick={() => toggleRequestExpand(req.id)}
-                          >
-                            {expandedRequests[req.id] ? 'RECOLHER DETALHES' : 'VER TODOS OS ITENS'}
-                          </Button>
+                           {req.items && req.items.length > 1 ? (
+                             <Button 
+                               variant="outline" 
+                               className="w-full h-8 text-[10px] font-bold border-white/10 hover:bg-white/5"
+                               onClick={() => setSelectedRequest(req)}
+                             >
+                               VER TODOS OS ITENS ({req.items.length})
+                             </Button>
+                           ) : (
+                             <Button 
+                               variant="outline" 
+                               className="w-full h-8 text-[10px] font-bold border-white/10 hover:bg-white/5"
+                               onClick={() => toggleRequestExpand(req.id)}
+                             >
+                               {expandedRequests[req.id] ? 'RECOLHER DETALHES' : 'RESPONDER REPOSIÇÃO'}
+                             </Button>
+                           )}
                         </CardContent>
                       </Card>
                     ))
