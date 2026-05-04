@@ -33,6 +33,7 @@ const allMenuItems = [
   { title: "Central Proxy", icon: Globe, path: "/admin/central-proxy" },
   { title: "Fornecedor AccFace", icon: Store, path: "/admin/fornecedor" },
   { title: "Ferramentas", icon: KeyRound, path: "/admin/ferramentas-2fa" },
+  { title: "Reposição Fornecedor", icon: RefreshCw, path: "/admin/reposicao-fornecedor" },
   { title: "Imagens", icon: ImageIcon, path: "/admin/imagens" },
   { title: "Clientes", icon: Users, path: "/admin/clientes" },
   { title: "Afiliados", icon: UserCheck, path: "/admin/afiliados" },
