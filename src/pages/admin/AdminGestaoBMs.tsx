@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { extractBmNameFromInput, extractBmUrlFromInput } from "@/lib/bm-link";
 
 interface BmTracking {
   id: string;
@@ -37,6 +38,7 @@ interface BmTracking {
   created_at: string;
   updated_at: string;
   perfil_matriz?: string | null;
+  bm_display_name?: string | null;
 }
 
 function useCountdown(expiresAt: string) {
@@ -95,11 +97,13 @@ function StatusBadge({ status }: { status: string }) {
   return <Badge className={`${s.bg} ${s.color} ${s.border} text-[11px] font-semibold`}>{s.label}</Badge>;
 }
 
-import { extractBmNameFromInput, extractBmUrlFromInput } from "@/lib/bm-link";
-
 const formatPrice = (v: number) => {
   if (!v || v === 0) return null;
   return `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+};
+
+const getBmDisplayName = (item: BmTracking) => {
+  return item.bm_display_name || extractBmNameFromInput(item.bm_link) || item.product_name || "—";
 };
 
 export default function AdminGestaoBMs() {
@@ -125,7 +129,7 @@ export default function AdminGestaoBMs() {
     setLoading(true);
     const { data, error } = await supabase
       .from("bm_tracking")
-      .select("*, stock_items:stock_item_id(data)")
+      .select("*, stock_items:stock_item_id(name, identification_link, data)")
       .order("created_at", { ascending: false });
     if (error) {
       toast.error("Erro ao carregar BMs: " + error.message);
@@ -158,6 +162,11 @@ export default function AdminGestaoBMs() {
         ...item,
         client_name: item.client_name || profileMap[item.client_user_id] || null,
         perfil_matriz: item.stock_items?.data?.perfilBackup || null,
+        bm_display_name: extractBmNameFromInput(item.stock_items?.data?.rawBmInput)
+          || item.stock_items?.name
+          || extractBmNameFromInput(item.stock_items?.identification_link)
+          || extractBmNameFromInput(item.bm_link)
+          || item.product_name,
         stock_items: undefined,
       }));
       setItems(mapped as BmTracking[]);
@@ -242,7 +251,7 @@ export default function AdminGestaoBMs() {
           (item.client_email || "").toLowerCase().includes(q) ||
           item.bm_link.toLowerCase().includes(q) ||
           item.product_name.toLowerCase().includes(q) ||
-          extractBmNameFromInput(item.bm_link).toLowerCase().includes(q)
+          getBmDisplayName(item).toLowerCase().includes(q)
         );
       }
       return true;
@@ -265,7 +274,7 @@ export default function AdminGestaoBMs() {
   }, [items]);
 
   const handleOpenProtect = (item: BmTracking) => {
-    const bmNameFromLink = extractBmNameFromInput(item.bm_link);
+    const bmNameFromLink = getBmDisplayName(item);
     setProtectItem(item);
     setProtectForm({ bmName: bmNameFromLink, bmLink: "" });
     setProtectOpen(true);
@@ -521,7 +530,7 @@ export default function AdminGestaoBMs() {
           </div>
 
           {filtered.map(item => {
-            const bmName = extractBmNameFromInput(item.bm_link);
+            const bmName = getBmDisplayName(item);
             const bmUrl = extractBmUrlFromInput(item.bm_link);
             const price = formatPrice(Number(item.sale_price));
             const dateStr = item.status === "em_estoque"
@@ -560,8 +569,8 @@ export default function AdminGestaoBMs() {
                     {/* BM Name + Link */}
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <p className="text-sm font-medium text-foreground truncate" title={bmName || item.product_name || "—"}>
-                          {bmName || item.product_name || "—"}
+                        <p className="text-sm font-medium text-foreground truncate" title={bmName}>
+                          {bmName}
                         </p>
                         <a
                           href={bmUrl}
@@ -655,7 +664,7 @@ export default function AdminGestaoBMs() {
 
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs mb-2">
                       <span className="text-muted-foreground">
-                        BM: <span className="font-medium text-foreground">{bmName || item.product_name}</span>
+                        BM: <span className="font-medium text-foreground">{bmName}</span>
                       </span>
                       {price && (
                         <span className="font-semibold text-foreground">{price}</span>
