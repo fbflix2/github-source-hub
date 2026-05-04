@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-  import { Loader2, Send, FileText, CheckCircle2, Clock, AlertCircle, ExternalLink, Copy, ChevronDown, ChevronUp, LayoutDashboard, Hash, Calendar, PackagePlus, Inbox, BriefcaseBusiness, Menu, RefreshCw, History, TrendingUp, ArrowUpRight, ArrowDownRight, DollarSign, Activity, Users, IdCard, KeyRound, Mail, Lock, AtSign, ShieldCheck, ShieldAlert, Award, Search, CreditCard, Plus, Trash2 } from "lucide-react";
+import { Loader2, Send, FileText, CheckCircle2, Clock, AlertCircle, ExternalLink, Copy, ChevronDown, ChevronUp, LayoutDashboard, Hash, Calendar, PackagePlus, Inbox, BriefcaseBusiness, Menu, RefreshCw, History, TrendingUp, ArrowUpRight, ArrowDownRight, DollarSign, Activity, Users, IdCard, KeyRound, Mail, Lock, AtSign, ShieldCheck, ShieldAlert, Award, Search, CreditCard, Plus, Trash2, ShoppingBag } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, Cell, PieChart, Pie } from 'recharts';
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -415,6 +415,7 @@ export default function FornecedorPublicPage() {
         <nav className="flex flex-col gap-2 flex-1">
           <Button variant={activeTab === 'dashboard' ? 'default' : 'ghost'} className="justify-start gap-3 h-12" onClick={() => setActiveTab('dashboard')}><LayoutDashboard className="h-5 w-5"/> Dashboard</Button>
           <Button variant={activeTab === 'reposicoes' ? 'default' : 'ghost'} className="justify-start gap-3 h-12" onClick={() => setActiveTab('reposicoes')}><Inbox className="h-5 w-5"/> Reposições</Button>
+          <Button variant={activeTab === 'compras' ? 'default' : 'ghost'} className="justify-start gap-3 h-12" onClick={() => setActiveTab('compras')}><ShoppingBag className="h-5 w-5"/> Solicitações de Compra</Button>
           <Button variant={activeTab === 'vendas' ? 'default' : 'ghost'} className="justify-start gap-3 h-12" onClick={() => setActiveTab('vendas')}><BriefcaseBusiness className="h-5 w-5"/> Vender</Button>
           <Button variant={activeTab === 'financeiro' ? 'default' : 'ghost'} className="justify-start gap-3 h-12" onClick={() => setActiveTab('financeiro')}><CreditCard className="h-5 w-5"/> Financeiro</Button>
         </nav>
@@ -583,6 +584,7 @@ export default function FornecedorPublicPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {requests
                   .filter(r => {
+                    if (r.type === 'purchase') return false;
                     const matchesStatus = filterType === 'all' 
                       ? true 
                       : filterType === 'pending' 
@@ -602,6 +604,7 @@ export default function FornecedorPublicPage() {
                 ) : (
                   requests
                     .filter(r => {
+                      if (r.type === 'purchase') return false;
                       const matchesStatus = filterType === 'all' 
                         ? true 
                         : filterType === 'pending' 
@@ -752,6 +755,152 @@ export default function FornecedorPublicPage() {
                                {expandedRequests[req.id] ? 'RECOLHER DETALHES' : 'RESPONDER REPOSIÇÃO'}
                              </Button>
                            )}
+                        </CardContent>
+                      </Card>
+                    ))
+                )}
+              </div>
+            </div>
+          )}
+          {activeTab === 'compras' && (
+            <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-700">
+              <div className="flex flex-col md:flex-row gap-3 items-center bg-[#0a0a0a]/80 backdrop-blur-md p-3 rounded-2xl border border-zinc-800/50 shadow-2xl">
+                <div className="flex-1 flex gap-3 items-center w-full px-2">
+                  <Search className="h-4 w-4 text-zinc-500" />
+                  <Tabs value={filterItemType} onValueChange={setFilterItemType} className="flex-1">
+                    <TabsList className="bg-black/40 border border-zinc-800/50 w-full h-8 p-1">
+                      <TabsTrigger value="all" className="flex-1 data-[state=active]:bg-zinc-800 font-black text-[8px] uppercase tracking-widest">Todos</TabsTrigger>
+                      <TabsTrigger value="bm" className="flex-1 data-[state=active]:bg-zinc-800 font-black text-[8px] uppercase tracking-widest">BMs</TabsTrigger>
+                      <TabsTrigger value="perfil" className="flex-1 data-[state=active]:bg-zinc-800 font-black text-[8px] uppercase tracking-widest">Perfis</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                </div>
+                <div className="h-4 w-px bg-zinc-800 hidden md:block" />
+                <div className="flex-1 w-full px-2">
+                  <Tabs value={filterType} onValueChange={setFilterStatus} className="w-full">
+                    <TabsList className="bg-black/40 border border-zinc-800/50 w-full h-8 p-1">
+                      <TabsTrigger value="all" className="flex-1 data-[state=active]:bg-zinc-800 font-black text-[8px] uppercase tracking-widest">Status</TabsTrigger>
+                      <TabsTrigger value="pending" className="flex-1 data-[state=active]:bg-zinc-800 font-black text-[8px] uppercase tracking-widest text-yellow-500/80">Pendentes</TabsTrigger>
+                      <TabsTrigger value="completed" className="flex-1 data-[state=active]:bg-zinc-800 font-black text-[8px] uppercase tracking-widest text-emerald-500/80">Concluídos</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {requests
+                  .filter(r => {
+                    if (r.type !== 'purchase') return false;
+                    const matchesStatus = filterType === 'all' 
+                      ? true 
+                      : filterType === 'pending' 
+                        ? r.status !== 'completed' 
+                        : r.status === 'completed';
+                    const matchesType = filterItemType === 'all'
+                      ? true
+                      : filterItemType === 'bm'
+                        ? r.title?.toLowerCase().includes('bm')
+                        : r.title?.toLowerCase().includes('perfil') || r.title?.toLowerCase().includes('perfis');
+                    return matchesStatus && matchesType;
+                  }).length === 0 ? (
+                  <div className="text-center py-16 bg-black/20 rounded-2xl border border-dashed border-zinc-800/50">
+                    <ShoppingBag className="h-12 w-12 text-zinc-800 mx-auto mb-4 opacity-50"/>
+                    <p className="text-zinc-600 font-black text-sm uppercase tracking-widest">Nenhuma solicitação de compra</p>
+                  </div>
+                ) : (
+                  requests
+                    .filter(r => {
+                      if (r.type !== 'purchase') return false;
+                      const matchesStatus = filterType === 'all' 
+                        ? true 
+                        : filterType === 'pending' 
+                          ? r.status !== 'completed' 
+                          : r.status === 'completed';
+                      const matchesType = filterItemType === 'all'
+                        ? true
+                        : filterItemType === 'bm'
+                          ? r.title?.toLowerCase().includes('bm')
+                          : r.title?.toLowerCase().includes('perfil') || r.title?.toLowerCase().includes('perfis');
+                      return matchesStatus && matchesType;
+                    })
+                    .map(req => (
+                      <Card key={req.id} className="bg-white/5 border-white/10 hover:border-emerald-500/30 transition-all duration-300">
+                        <CardContent className="p-4 space-y-4">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <div className="font-bold text-base truncate flex items-center gap-2 text-white">
+                                {req.title || 'Compra'}
+                                <Badge className={`${getStatusColor(req.status)} border text-[9px] px-1.5 py-0 uppercase font-black`}>
+                                  {getStatusLabel(req.status)}
+                                </Badge>
+                              </div>
+                              <div className="text-[10px] text-white/40 mt-1 flex items-center gap-2">
+                                <Hash className="size-2.5" /> {req.id.slice(0, 8)} 
+                                <span className="text-white/20">|</span> 
+                                <Calendar className="size-2.5" /> {new Date(req.created_at).toLocaleDateString('pt-BR')}
+                              </div>
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              <Button 
+                                size="icon" 
+                                variant="ghost" 
+                                className="size-8 text-white/50 hover:text-white hover:bg-white/10"
+                                onClick={() => toggleRequestExpand(req.id)}
+                              >
+                                {expandedRequests[req.id] ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+                              </Button>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2 text-center">
+                            <div className="bg-white/5 p-2 rounded-md border border-white/5">
+                              <div className="text-[10px] text-white/50 uppercase font-bold tracking-wider">Itens Pedidos</div>
+                              <div className="font-black text-white">{req.items?.length || 0}</div>
+                            </div>
+                            <div className="bg-white/5 p-2 rounded-md border border-white/5">
+                              <div className="text-[10px] text-white/50 uppercase font-bold tracking-wider">Preço Unit.</div>
+                              <div className="font-black text-emerald-400">R$ {req.unit_price || '0,00'}</div>
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <div className="text-[11px] font-bold text-white/70 uppercase tracking-tighter italic">Detalhes do Pedido</div>
+                            <div className="p-2 rounded-md bg-white/5 border border-white/10 text-[11px] text-white/80 leading-relaxed whitespace-pre-wrap">
+                              {req.items?.map((item: any) => item.details).join('\n') || req.description || 'Sem detalhes.'}
+                            </div>
+                          </div>
+
+                          {expandedRequests[req.id] && (
+                            <div className="pt-2 space-y-3 animate-in fade-in duration-300">
+                              <div className="space-y-2">
+                                <div className="flex items-center gap-2 text-[10px] font-black text-emerald-400 uppercase tracking-widest">
+                                  <ShoppingBag className="size-3" /> Entregar Itens
+                                </div>
+                                <Textarea 
+                                  className="bg-black/50 border-white/10 min-h-[100px] text-[11px] font-mono focus:border-emerald-500/50 transition-all resize-none" 
+                                  placeholder="Cole aqui os dados dos itens vendidos..."
+                                  value={content}
+                                  onChange={e => setContent(e.target.value)}
+                                />
+                              </div>
+                              <Button 
+                                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black h-9 text-[10px] uppercase tracking-widest" 
+                                onClick={() => handleSubmit(req.id)} 
+                                disabled={submitting}
+                              >
+                                {submitting ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
+                                Confirmar Entrega
+                              </Button>
+                            </div>
+                          )}
+
+                          <Button 
+                            variant="outline" 
+                            className="w-full h-8 text-[10px] font-bold border-white/10 hover:bg-white/5"
+                            onClick={() => toggleRequestExpand(req.id)}
+                          >
+                            {expandedRequests[req.id] ? 'RECOLHER DETALHES' : 'ENTREGAR PEDIDO'}
+                          </Button>
                         </CardContent>
                       </Card>
                     ))
