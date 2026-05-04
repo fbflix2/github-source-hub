@@ -48,7 +48,7 @@ export default function AdminReposicaoFornecedor() {
   const [requestReason, setRequestReason] = useState("");
   const [requestStatus, setRequestStatus] = useState("pending_replenishment");
   const [requestType, setRequestType] = useState<"perfil" | "bm">("bm");
-  const [requestContent, setRequestContent] = useState("");
+   const [requestItems, setRequestItems] = useState<{ details: string; reason: string }[]>([{ details: "", reason: "" }]);
 
    useEffect(() => {
      fetchSuppliers();
@@ -81,6 +81,23 @@ export default function AdminReposicaoFornecedor() {
        toast.success("Status atualizado");
        fetchActiveRequests();
      }
+   };
+
+   const addRequestItem = () => {
+     setRequestItems([...requestItems, { details: "", reason: "" }]);
+   };
+
+   const removeRequestItem = (index: number) => {
+     if (requestItems.length === 1) return;
+     const newItems = [...requestItems];
+     newItems.splice(index, 1);
+     setRequestItems(newItems);
+   };
+
+   const updateRequestItem = (index: number, field: 'details' | 'reason', value: string) => {
+     const newItems = [...requestItems];
+     newItems[index][field] = value;
+     setRequestItems(newItems);
    };
 
    const deleteRequest = async (id: string) => {
@@ -310,10 +327,11 @@ export default function AdminReposicaoFornecedor() {
       toast.error("Selecione um fornecedor");
       return;
     }
-    if (!requestContent.trim()) {
-      toast.error("Insira os itens para reposição");
-      return;
-    }
+     const validItems = requestItems.filter(item => item.details.trim());
+     if (validItems.length === 0) {
+       toast.error("Insira pelo menos um item para reposição");
+       return;
+     }
 
     setSubmitting(true);
     try {
@@ -336,21 +354,21 @@ export default function AdminReposicaoFornecedor() {
 
       if (reqError) throw reqError;
 
-      // 2. Create items
-      const lines = requestContent.split('\n').filter(l => l.trim());
-      const items = lines.map(line => ({
-        request_id: request.id,
-        details: line
-      }));
+       // 2. Create items with individual reasons if provided, or fallback to general reason
+       const items = validItems.map(item => ({
+         request_id: request.id,
+         details: item.details,
+         reason: item.reason || requestReason // Use individual reason if exists, otherwise general
+       }));
 
       const { error: itemsError } = await supabase.from("supplier_request_items").insert(items);
       if (itemsError) throw itemsError;
 
-       toast.success("Solicitação criada com sucesso!");
-       setRequestContent("");
-       setRequestUnitPrice("");
-       setRequestReason("");
-       fetchActiveRequests();
+        toast.success("Solicitação criada com sucesso!");
+        setRequestItems([{ details: "", reason: "" }]);
+        setRequestUnitPrice("");
+        setRequestReason("");
+        fetchActiveRequests();
     } catch (err: any) {
       toast.error("Erro ao criar solicitação: " + err.message);
     } finally {
@@ -595,23 +613,61 @@ export default function AdminReposicaoFornecedor() {
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-zinc-400">
-                      {requestType === 'bm' ? 'Links das BMs' : 'Dados dos Perfis'} (um por linha)
-                    </label>
-                    <Textarea 
-                      placeholder={requestType === 'bm' ? "https://fb.me/..." : "login|senha|..."}
-                      value={requestContent}
-                      onChange={e => setRequestContent(e.target.value)}
-                      className="bg-zinc-950 border-zinc-800 text-white min-h-[150px] font-mono text-sm"
-                    />
-                  </div>
+                   <div className="space-y-4">
+                     <div className="flex items-center justify-between">
+                       <label className="text-sm font-medium text-zinc-400">
+                         Itens para Reposição
+                       </label>
+                       <Button 
+                         type="button" 
+                         variant="outline" 
+                         size="sm" 
+                         onClick={addRequestItem}
+                         className="bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-white h-7 text-[10px]"
+                       >
+                         <Plus className="h-3 w-3 mr-1" /> Adicionar Item
+                       </Button>
+                     </div>
+                     
+                     <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                       {requestItems.map((item, index) => (
+                         <div key={index} className="flex flex-col gap-2 p-3 bg-zinc-950/50 border border-zinc-800 rounded-lg animate-in fade-in slide-in-from-top-1">
+                           <div className="flex items-center justify-between">
+                             <span className="text-[10px] font-bold text-zinc-500 uppercase">Item #{index + 1}</span>
+                             {requestItems.length > 1 && (
+                               <Button 
+                                 type="button" 
+                                 variant="ghost" 
+                                 size="icon" 
+                                 onClick={() => removeRequestItem(index)}
+                                 className="h-6 w-6 text-zinc-600 hover:text-red-400"
+                               >
+                                 <Trash2 className="h-3 w-3" />
+                               </Button>
+                             )}
+                           </div>
+                           <Input 
+                             placeholder={requestType === 'bm' ? "Link da BM (https://fb.me/...)" : "Dados do Perfil (login|senha|...)"}
+                             value={item.details}
+                             onChange={e => updateRequestItem(index, 'details', e.target.value)}
+                             className="bg-zinc-900 border-zinc-800 text-white text-xs h-8"
+                           />
+                           <Input 
+                             placeholder="Motivo específico (opcional)"
+                             value={item.reason}
+                             onChange={e => updateRequestItem(index, 'reason', e.target.value)}
+                             className="bg-zinc-900 border-zinc-800 text-white text-xs h-8"
+                           />
+                         </div>
+                       ))}
+                     </div>
+                   </div>
 
                   <Button 
                     className="w-full bg-primary hover:bg-primary/90 text-white font-bold h-12"
-                    onClick={handleCreateRequest}
-                    disabled={submitting || !requestContent || !selectedSupplier}
-                  >
+                     onClick={handleCreateRequest}
+                     disabled={submitting || requestItems.filter(i => i.details.trim()).length === 0 || !selectedSupplier}
+                   >
                     {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
                     Enviar Solicitação ao Fornecedor
                   </Button>
