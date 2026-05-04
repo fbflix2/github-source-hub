@@ -530,7 +530,7 @@ export default function AdminGestaoBMs() {
           </div>
 
           {filtered.map(item => {
-            const bmName = extractBmNameFromInput(item.bm_link);
+            const bmName = getBmDisplayName(item);
             const bmUrl = extractBmUrlFromInput(item.bm_link);
             const price = formatPrice(Number(item.sale_price));
             const dateStr = item.status === "em_estoque"
@@ -569,8 +569,8 @@ export default function AdminGestaoBMs() {
                     {/* BM Name + Link */}
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <p className="text-sm font-medium text-foreground truncate" title={bmName || item.product_name || "—"}>
-                          {bmName || item.product_name || "—"}
+                        <p className="text-sm font-medium text-foreground truncate" title={bmName}>
+                          {bmName}
                         </p>
                         <a
                           href={bmUrl}
@@ -664,7 +664,7 @@ export default function AdminGestaoBMs() {
 
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs mb-2">
                       <span className="text-muted-foreground">
-                        BM: <span className="font-medium text-foreground">{bmName || item.product_name}</span>
+                        BM: <span className="font-medium text-foreground">{bmName}</span>
                       </span>
                       {price && (
                         <span className="font-semibold text-foreground">{price}</span>
