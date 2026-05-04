@@ -119,10 +119,29 @@ export default function FornecedorPublicPage() {
     setPaymentMethods(data || []);
   };
 
+  const validatePix = (type: string, key: string) => {
+    if (!key.trim()) return "Informe a chave PIX";
+    if (type === 'cpf' && !/^\d{11}$|^\d{3}\.\d{3}\.\d{3}-\d{2}$/.test(key)) return "CPF inválido";
+    if (type === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(key)) return "E-mail inválido";
+    if (type === 'phone' && !/^\d{10,11}$/.test(key.replace(/\D/g, ''))) return "Telefone inválido";
+    return null;
+  };
+
   const handleAddPaymentMethod = async () => {
-    if (!newPaymentDetails.trim()) {
-      toast.error("Informe os detalhes do recebimento");
-      return;
+    let details = "";
+    if (newPaymentType === 'pix') {
+      const error = validatePix(pixType, pixKey);
+      if (error) {
+        toast.error(error);
+        return;
+      }
+      details = `PIX (${pixType.toUpperCase()}): ${pixKey}`;
+    } else {
+      if (!bankData.bank || !bankData.agency || !bankData.account || !bankData.holder) {
+        toast.error("Preencha todos os dados bancários");
+        return;
+      }
+      details = `${bankData.bank} | Ag: ${bankData.agency} | Cc: ${bankData.account} | Titular: ${bankData.holder}`;
     }
 
     setSubmitting(true);
@@ -132,7 +151,7 @@ export default function FornecedorPublicPage() {
         .insert({
           supplier_id: supplier.id,
           type: newPaymentType,
-          details: newPaymentDetails,
+          details: details,
           is_primary: paymentMethods.length === 0
         })
         .select()
@@ -141,7 +160,8 @@ export default function FornecedorPublicPage() {
       if (error) throw error;
 
       setPaymentMethods([data, ...paymentMethods]);
-      setNewPaymentDetails("");
+      setPixKey("");
+      setBankData({ bank: "", agency: "", account: "", holder: "", document: "" });
       toast.success("Forma de recebimento cadastrada!");
     } catch (err: any) {
       toast.error("Erro ao cadastrar: " + err.message);
