@@ -40,6 +40,9 @@ const statusMap: Record<string, { label: string; color: string }> = {
   vendido: { label: "Vendido", color: "bg-green-500/15 text-green-400 border-green-500/30" },
   reservado: { label: "Reservado", color: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30" },
   usado: { label: "Usado", color: "bg-zinc-500/15 text-zinc-400 border-zinc-500/30" },
+  aguardando: { label: "Aguardando", color: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
+  ok: { label: "OK", color: "bg-cyan-500/15 text-cyan-400 border-cyan-500/30" },
+  bloqueado: { label: "Bloqueado", color: "bg-red-500/15 text-red-400 border-red-500/30" },
 };
 
 function getProfileLast4(identification: string | null): string {
@@ -205,6 +208,7 @@ export default function AdminGestaoPerfis() {
 
       if (statusFilter === "vendido" && !isSold) return false;
       if (statusFilter === "na_loja" && !isInStore) return false;
+      if (statusFilter === "outros" && (isSold || isInStore)) return false;
 
       const bmNames: string[] = item.data?.bmNames || [];
       if (bmFilter === "com_bm" && bmNames.length === 0) return false;
@@ -304,6 +308,7 @@ export default function AdminGestaoPerfis() {
                 <SelectItem value="all">Todos Status</SelectItem>
                 <SelectItem value="vendido">Vendidos</SelectItem>
                 <SelectItem value="na_loja">Na Loja</SelectItem>
+                <SelectItem value="outros">Outros Status</SelectItem>
               </SelectContent>
             </Select>
             <Select value={bmFilter} onValueChange={setBmFilter}>
