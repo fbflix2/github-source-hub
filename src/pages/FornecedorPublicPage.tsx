@@ -28,6 +28,35 @@ export default function FornecedorPublicPage() {
   const [expandedRequests, setExpandedRequests] = useState<Record<string, boolean>>({});
   const [offerContent, setOfferContent] = useState("");
 
+  useEffect(() => {
+    const savedToken = localStorage.getItem("supplier_token");
+    if (savedToken && !isAuth) {
+      autoAuth(savedToken);
+    }
+  }, []);
+
+  const autoAuth = async (tokenToUse: string) => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("suppliers")
+        .select("id, name, status")
+        .eq("access_token", tokenToUse)
+        .eq("status", "active")
+        .maybeSingle();
+
+      if (!error && data) {
+        setSupplier(data);
+        setIsAuth(true);
+        fetchRequests(data.id);
+      }
+    } catch (err) {
+      console.error("Auto-auth failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleAuth = async () => {
     if (token.length < 8) {
       toast.error("O token deve ter pelo menos 8 dígitos");
@@ -52,6 +81,13 @@ export default function FornecedorPublicPage() {
       setSupplier(data);
       setIsAuth(true);
       fetchRequests(data.id);
+      
+      if (rememberMe) {
+        localStorage.setItem("supplier_token", token);
+      } else {
+        localStorage.removeItem("supplier_token");
+      }
+      
       toast.success("Acesso liberado, " + data.name);
     } catch (err) {
       toast.error("Erro ao autenticar");
@@ -221,7 +257,10 @@ export default function FornecedorPublicPage() {
           <Button variant={activeTab === 'reposicoes' ? 'default' : 'ghost'} className="justify-start gap-3 h-12" onClick={() => setActiveTab('reposicoes')}><Inbox className="h-5 w-5"/> Reposições</Button>
           <Button variant={activeTab === 'vendas' ? 'default' : 'ghost'} className="justify-start gap-3 h-12" onClick={() => setActiveTab('vendas')}><BriefcaseBusiness className="h-5 w-5"/> Vender</Button>
         </nav>
-        <Button variant="ghost" className="justify-start text-zinc-500 hover:text-red-400" onClick={() => setIsAuth(false)}>Sair</Button>
+        <Button variant="ghost" className="justify-start text-zinc-500 hover:text-red-400" onClick={() => {
+          localStorage.removeItem("supplier_token");
+          setIsAuth(false);
+        }}>Sair</Button>
       </aside>
       <main className="flex-1 bg-[#09090b]">
         <div className="h-20 border-b border-zinc-800 flex items-center px-10 justify-between">
