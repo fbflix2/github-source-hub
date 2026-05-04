@@ -149,6 +149,22 @@ export default function FornecedorPublicPage() {
   };
 
 
+  const handleDeletePaymentMethod = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("supplier_payment_methods")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+
+      setPaymentMethods(paymentMethods.filter(pm => pm.id !== id));
+      toast.success("Removido com sucesso");
+    } catch (err: any) {
+      toast.error("Erro ao remover: " + err.message);
+    }
+  };
+
    const fetchRequests = async (supplierId: string) => {
      const { data, error } = await supabase
        .from("supplier_requests")
