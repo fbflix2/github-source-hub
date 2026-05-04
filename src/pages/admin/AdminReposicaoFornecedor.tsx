@@ -48,6 +48,7 @@ export default function AdminReposicaoFornecedor() {
   const [requestReason, setRequestReason] = useState("");
   const [requestStatus, setRequestStatus] = useState("pending_replenishment");
   const [requestType, setRequestType] = useState<"perfil" | "bm">("bm");
+  const [requestCategory, setRequestCategory] = useState<"replacement" | "purchase">("replacement");
    const [requestItems, setRequestItems] = useState<{ details: string; reason: string }[]>([{ details: "", reason: "" }]);
 
    useEffect(() => {
@@ -340,10 +341,10 @@ export default function AdminReposicaoFornecedor() {
         .from("supplier_requests")
         .insert({
           supplier_id: selectedSupplier,
-          title: `REQ-${Math.random().toString(36).substring(2, 7).toUpperCase()} - ${requestType === "bm" ? "BMs" : "Perfis"}`,
+          title: `${requestCategory === "purchase" ? "COMPRA" : "REQ"}-${Math.random().toString(36).substring(2, 7).toUpperCase()} - ${requestType === "bm" ? "BMs" : "Perfis"}`,
           description: `Valor Unitário: R$ ${requestUnitPrice || '0'} | Motivo: ${requestReason}`,
           status: requestStatus,
-          type: "replacement",
+          type: requestCategory,
           unit_price: requestUnitPrice ? parseFloat(requestUnitPrice) : 0,
           reason: requestReason,
           // Assuming created_at is automatic, but ensuring context
@@ -566,6 +567,33 @@ export default function AdminReposicaoFornecedor() {
                   </Button>
                 </TabsContent>
                 <TabsContent value="request" className="space-y-4 mt-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-zinc-400">Natureza da Solicitação</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        type="button"
+                        variant={requestCategory === "replacement" ? "default" : "outline"}
+                        onClick={() => setRequestCategory("replacement")}
+                        className={requestCategory === "replacement" ? "bg-primary text-white" : "bg-zinc-950 border-zinc-800 text-zinc-400"}
+                      >
+                        <RefreshCw className="h-4 w-4 mr-2" /> Reposição
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={requestCategory === "purchase" ? "default" : "outline"}
+                        onClick={() => setRequestCategory("purchase")}
+                        className={requestCategory === "purchase" ? "bg-emerald-600 text-white hover:bg-emerald-700" : "bg-zinc-950 border-zinc-800 text-zinc-400"}
+                      >
+                        <Send className="h-4 w-4 mr-2" /> Compra Nova
+                      </Button>
+                    </div>
+                    <p className="text-[10px] text-zinc-500">
+                      {requestCategory === "replacement"
+                        ? "Solicite a reposição de itens com problema (block, link expirado, etc.)."
+                        : "Solicite a compra de novos itens ao fornecedor."}
+                    </p>
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-zinc-400">Tipo</label>
@@ -607,9 +635,9 @@ export default function AdminReposicaoFornecedor() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-zinc-400">Motivo da Reposição</label>
+                      <label className="text-sm font-medium text-zinc-400">{requestCategory === "purchase" ? "Observação" : "Motivo da Reposição"}</label>
                       <Input 
-                        placeholder="Ex: Block, Link Expirado, etc."
+                        placeholder={requestCategory === "purchase" ? "Ex: Lote semanal, urgência, etc." : "Ex: Block, Link Expirado, etc."}
                         value={requestReason}
                         onChange={e => setRequestReason(e.target.value)}
                         className="bg-zinc-950 border-zinc-800 text-white"
@@ -620,7 +648,7 @@ export default function AdminReposicaoFornecedor() {
                    <div className="space-y-4">
                      <div className="flex items-center justify-between">
                        <label className="text-sm font-medium text-zinc-400">
-                         Itens para Reposição
+                         {requestCategory === "purchase" ? "Itens para Compra" : "Itens para Reposição"}
                        </label>
                        <Button 
                          type="button" 
@@ -668,12 +696,12 @@ export default function AdminReposicaoFornecedor() {
                    </div>
 
                   <Button 
-                    className="w-full bg-primary hover:bg-primary/90 text-white font-bold h-12"
+                    className={`w-full text-white font-bold h-12 ${requestCategory === "purchase" ? "bg-emerald-600 hover:bg-emerald-700" : "bg-primary hover:bg-primary/90"}`}
                      onClick={handleCreateRequest}
                      disabled={submitting || requestItems.filter(i => i.details.trim()).length === 0 || !selectedSupplier}
                    >
                     {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
-                    Enviar Solicitação ao Fornecedor
+                    {requestCategory === "purchase" ? "Enviar Pedido de Compra" : "Enviar Solicitação de Reposição"}
                   </Button>
                 </TabsContent>
               </Tabs>
