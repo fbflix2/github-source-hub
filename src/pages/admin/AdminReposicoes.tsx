@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { RefreshCw, Search, Loader2, Trash2, Download, Calendar, Plus } from "lucide-react";
+import { RefreshCw, Search, Loader2, Trash2, Download, Calendar, Plus, PackagePlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -47,6 +47,17 @@ export default function AdminReposicoes() {
 
   const [orderCodes, setOrderCodes] = useState<Record<string, string>>({});
   const [showNewModal, setShowNewModal] = useState(false);
+
+  // Purchase requests
+  const [purchaseRequests, setPurchaseRequests] = useState<any[]>([]);
+  const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+  const [purchaseForm, setPurchaseForm] = useState({ title: "", type: "bm", quantity: 1, description: "" });
+  const [purchaseLoading, setPurchaseLoading] = useState(false);
+
+  const fetchPurchaseRequests = async () => {
+    const { data, error } = await supabase.from("purchase_requests").select("*").order("created_at", { ascending: false });
+    if (!error) setPurchaseRequests(data || []);
+  };
 
   const fetchReplacements = async () => {
     setLoading(true);
@@ -129,7 +140,42 @@ export default function AdminReposicoes() {
     setLoading(false);
   };
 
-  useEffect(() => { fetchReplacements(); }, [selectedMonth]);
+  useEffect(() => { 
+    fetchReplacements(); 
+    fetchPurchaseRequests();
+  }, [selectedMonth]);
+
+  const handleSavePurchaseRequest = async () => {
+    if (!purchaseForm.title) {
+      toast.error("Preencha o título");
+      return;
+    }
+    setPurchaseLoading(true);
+    try {
+      const { error } = await supabase.from("purchase_requests").insert([purchaseForm]);
+      if (error) throw error;
+      toast.success("Solicitação de compra criada!");
+      setShowPurchaseModal(false);
+      setPurchaseForm({ title: "", type: "bm", quantity: 1, description: "" });
+      fetchPurchaseRequests();
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setPurchaseLoading(false);
+    }
+  };
+
+  const handleDeletePurchaseRequest = async (id: string) => {
+    if (!window.confirm("Remover esta solicitação de compra?")) return;
+    try {
+      const { error } = await supabase.from("purchase_requests").delete().eq("id", id);
+      if (error) throw error;
+      toast.success("Solicitação removida");
+      fetchPurchaseRequests();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
 
   const handleDelete = async (id: string) => {
     if (!window.confirm("Excluir este registro de reposição?")) return;
