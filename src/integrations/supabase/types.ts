@@ -3430,16 +3430,60 @@ export type Database = {
           },
         ]
       }
+      supplier_request_items: {
+        Row: {
+          account_id: string | null
+          created_at: string | null
+          details: string | null
+          id: string
+          request_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          created_at?: string | null
+          details?: string | null
+          id?: string
+          request_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          created_at?: string | null
+          details?: string | null
+          id?: string
+          request_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_request_items_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_request_items_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       supplier_requests: {
         Row: {
           created_at: string | null
           description: string | null
           id: string
           priority: string | null
+          reason: string | null
           status: string | null
           supplier_id: string | null
           title: string
           type: string | null
+          unit_price: number | null
           updated_at: string | null
         }
         Insert: {
@@ -3447,10 +3491,12 @@ export type Database = {
           description?: string | null
           id?: string
           priority?: string | null
+          reason?: string | null
           status?: string | null
           supplier_id?: string | null
           title: string
           type?: string | null
+          unit_price?: number | null
           updated_at?: string | null
         }
         Update: {
@@ -3458,10 +3504,12 @@ export type Database = {
           description?: string | null
           id?: string
           priority?: string | null
+          reason?: string | null
           status?: string | null
           supplier_id?: string | null
           title?: string
           type?: string | null
+          unit_price?: number | null
           updated_at?: string | null
         }
         Relationships: [
