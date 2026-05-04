@@ -148,36 +148,6 @@ export default function FornecedorPublicPage() {
     }
   };
 
-  const handleDeletePaymentMethod = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from("supplier_payment_methods")
-        .delete()
-        .eq("id", id);
-
-      if (error) throw error;
-
-      setPaymentMethods(paymentMethods.filter(pm => pm.id !== id));
-      toast.success("Removido com sucesso");
-    } catch (err: any) {
-      toast.error("Erro ao remover: " + err.message);
-    }
-  };
-
-      
-      if (rememberMe) {
-        localStorage.setItem("supplier_token", token);
-      } else {
-        localStorage.removeItem("supplier_token");
-      }
-      
-      toast.success("Acesso liberado, " + data.name);
-    } catch (err) {
-      toast.error("Erro ao autenticar");
-    } finally {
-      setLoading(false);
-    }
-  };
 
    const fetchRequests = async (supplierId: string) => {
      const { data, error } = await supabase
