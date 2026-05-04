@@ -271,9 +271,117 @@ export default function FornecedorPublicPage() {
         </div>
         <div className="p-10">
           {activeTab === 'dashboard' && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <Card className="col-span-2 bg-[#0a0a0a] border-zinc-800 p-6"><CardTitle className="mb-4 text-sm font-bold text-zinc-500 uppercase tracking-widest">Resumo de Atividade</CardTitle></Card>
-              <Card className="bg-[#0a0a0a] border-zinc-800 p-6"><CardTitle className="mb-4 text-sm font-bold text-zinc-500 uppercase tracking-widest">Status da Conta</CardTitle></Card>
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <Card className="bg-[#0a0a0a] border-zinc-800 p-6 flex flex-col gap-4 relative overflow-hidden group">
+                  <div className="absolute -right-2 -top-2 bg-primary/5 rounded-full p-8 transition-transform group-hover:scale-110"><DollarSign className="h-8 w-8 text-primary/20"/></div>
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-emerald-500/10 rounded-lg"><TrendingUp className="h-4 w-4 text-emerald-500"/></div>
+                    <span className="text-xs font-black text-zinc-500 uppercase tracking-widest">Saldo a Receber</span>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-3xl font-black text-white">R$ {(requests.length * 45).toLocaleString('pt-BR', {minimumFractionDigits: 2})}</span>
+                    <div className="flex items-center gap-1 text-[10px] text-emerald-500 font-bold"><ArrowUpRight className="h-3 w-3"/> +12.5% vs mês anterior</div>
+                  </div>
+                </Card>
+                
+                <Card className="bg-[#0a0a0a] border-zinc-800 p-6 flex flex-col gap-4 relative overflow-hidden group">
+                  <div className="absolute -right-2 -top-2 bg-primary/5 rounded-full p-8 transition-transform group-hover:scale-110"><Activity className="h-8 w-8 text-primary/20"/></div>
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-primary/10 rounded-lg"><Clock className="h-4 w-4 text-primary"/></div>
+                    <span className="text-xs font-black text-zinc-500 uppercase tracking-widest">Aguardando Reposição</span>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-3xl font-black text-white">{requests.filter(r => r.status === 'pending_replenishment').length}</span>
+                    <div className="flex items-center gap-1 text-[10px] text-zinc-500 font-bold italic">Processamento médio: 4h</div>
+                  </div>
+                </Card>
+
+                <Card className="bg-[#0a0a0a] border-zinc-800 p-6 flex flex-col gap-4 relative overflow-hidden group">
+                  <div className="absolute -right-2 -top-2 bg-primary/5 rounded-full p-8 transition-transform group-hover:scale-110"><PackagePlus className="h-8 w-8 text-primary/20"/></div>
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-500/10 rounded-lg"><Send className="h-4 w-4 text-blue-500"/></div>
+                    <span className="text-xs font-black text-zinc-500 uppercase tracking-widest">Total Enviado</span>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-3xl font-black text-white">{requests.length * 15}</span>
+                    <div className="flex items-center gap-1 text-[10px] text-primary font-bold"><ArrowUpRight className="h-3 w-3"/> Taxa de aceitação: 98%</div>
+                  </div>
+                </Card>
+
+                <Card className="bg-[#0a0a0a] border-zinc-800 p-6 flex flex-col gap-4 relative overflow-hidden group">
+                  <div className="absolute -right-2 -top-2 bg-primary/5 rounded-full p-8 transition-transform group-hover:scale-110"><BriefcaseBusiness className="h-8 w-8 text-primary/20"/></div>
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-zinc-800 rounded-lg"><Activity className="h-4 w-4 text-zinc-400"/></div>
+                    <span className="text-xs font-black text-zinc-500 uppercase tracking-widest">Health Score</span>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-3xl font-black text-emerald-500">9.8</span>
+                    <div className="flex items-center gap-1">
+                      {[1,2,3,4,5].map(i => <div key={i} className="h-1 flex-1 bg-emerald-500 rounded-full"/>)}
+                    </div>
+                  </div>
+                </Card>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <Card className="lg:col-span-2 bg-[#0a0a0a] border-zinc-800 p-8 shadow-2xl">
+                  <div className="flex items-center justify-between mb-8">
+                    <div>
+                      <CardTitle className="text-sm font-black text-zinc-500 uppercase tracking-widest mb-1 flex items-center gap-2">
+                        <TrendingUp className="h-4 w-4"/> Performance de Vendas
+                      </CardTitle>
+                      <p className="text-[10px] text-zinc-600 font-bold uppercase">Volume de faturamento nos últimos 7 dias</p>
+                    </div>
+                  </div>
+                  <div className="h-[300px] w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={[
+                        { name: 'Seg', valor: 2400 }, { name: 'Ter', valor: 1398 }, { name: 'Qua', valor: 9800 },
+                        { name: 'Qui', valor: 3908 }, { name: 'Sex', valor: 4800 }, { name: 'Sáb', valor: 3800 }, { name: 'Dom', valor: 4300 }
+                      ]}>
+                        <defs>
+                          <linearGradient id="colorVal" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#D946EF" stopOpacity={0.3}/>
+                            <stop offset="95%" stopColor="#D946EF" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#18181b" vertical={false}/>
+                        <XAxis dataKey="name" stroke="#52525b" fontSize={10} axisLine={false} tickLine={false}/>
+                        <YAxis hide/>
+                        <RechartsTooltip 
+                          contentStyle={{ backgroundColor: '#0a0a0a', border: '1px solid #27272a', borderRadius: '12px' }}
+                          itemStyle={{ color: '#D946EF', fontWeight: 900, fontSize: '12px' }}
+                        />
+                        <Area type="monotone" dataKey="valor" stroke="#D946EF" strokeWidth={4} fillOpacity={1} fill="url(#colorVal)" />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </Card>
+
+                <div className="space-y-8">
+                  <Card className="bg-[#0a0a0a] border-zinc-800 p-8 shadow-2xl">
+                    <CardTitle className="text-sm font-black text-zinc-500 uppercase tracking-widest mb-8">Envio Rápido</CardTitle>
+                    <div className="space-y-6">
+                      <Tabs value={type} onValueChange={(v: any) => setType(v)} className="w-full">
+                        <TabsList className="bg-black border border-zinc-800 w-full h-12 p-1">
+                          <TabsTrigger value="perfil" className="flex-1 data-[state=active]:bg-zinc-800 font-bold text-xs uppercase tracking-wider">Perfis</TabsTrigger>
+                          <TabsTrigger value="bm" className="flex-1 data-[state=active]:bg-zinc-800 font-bold text-xs uppercase tracking-wider">BMs</TabsTrigger>
+                        </TabsList>
+                      </Tabs>
+                      <Textarea 
+                        className="bg-black border-zinc-800 min-h-[150px] font-mono text-xs focus:ring-primary/20" 
+                        placeholder={type === 'perfil' ? "123456|Senha123\n987654|Senha456" : "https://fb.me/..."}
+                        value={content}
+                        onChange={e => setContent(e.target.value)}
+                      />
+                      <Button className="w-full bg-primary hover:bg-primary/90 text-white font-black h-12" onClick={() => handleSubmit()} disabled={submitting}>
+                        {submitting ? <Loader2 className="animate-spin h-5 w-5" /> : "PROCESSAR ENVIO"}
+                      </Button>
+                    </div>
+                  </Card>
+                </div>
+              </div>
             </div>
           )}
           {activeTab === 'reposicoes' && (
