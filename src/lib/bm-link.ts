@@ -2,11 +2,13 @@ export function extractBmNameFromInput(value?: string | null): string {
   const input = value?.trim() ?? "";
   if (!input) return "";
 
-  const beforePipe = input.split("|")[0]?.trim() ?? "";
-  if (beforePipe && !/^https?:\/\//i.test(beforePipe)) {
-    return beforePipe.replace(/[\s:\-]+$/, "").trim();
+  // Always look for the part before |https:
+  const pipeMatch = input.match(/^(.*?)\|https?:/i);
+  if (pipeMatch) {
+    return pipeMatch[1].trim();
   }
 
+  // Fallback for formats without pipe but with URL
   return input.match(/^(.*?)https?:\/\//i)?.[1]?.replace(/[\s|:\-]+$/, "").trim() ?? "";
 }
 
