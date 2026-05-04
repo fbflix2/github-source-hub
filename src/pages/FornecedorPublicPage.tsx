@@ -504,24 +504,51 @@ export default function FornecedorPublicPage() {
                 </Card>
 
                 <div className="space-y-6">
-                  <Card className="bg-[#0a0a0a] border-zinc-800 p-6 shadow-2xl">
-                    <CardTitle className="text-sm font-black text-zinc-500 uppercase tracking-widest mb-6">Envio Rápido</CardTitle>
-                    <div className="space-y-6">
-                      <Tabs value={type} onValueChange={(v: any) => setType(v)} className="w-full">
-                        <TabsList className="bg-black border border-zinc-800 w-full h-12 p-1">
-                          <TabsTrigger value="perfil" className="flex-1 data-[state=active]:bg-zinc-800 font-bold text-xs uppercase tracking-wider">Perfis</TabsTrigger>
-                          <TabsTrigger value="bm" className="flex-1 data-[state=active]:bg-zinc-800 font-bold text-xs uppercase tracking-wider">BMs</TabsTrigger>
-                        </TabsList>
-                      </Tabs>
-                      <Textarea 
-                        className="bg-black border-zinc-800 min-h-[120px] font-mono text-xs focus:ring-primary/20" 
-                        placeholder={type === 'perfil' ? "123456|Senha123\n987654|Senha456" : "https://fb.me/..."}
-                        value={content}
-                        onChange={e => setContent(e.target.value)}
-                      />
-                      <Button className="w-full bg-primary hover:bg-primary/90 text-white font-black h-10 text-xs" onClick={() => handleSubmit()} disabled={submitting}>
-                        {submitting ? <Loader2 className="animate-spin h-5 w-5" /> : "PROCESSAR ENVIO"}
-                      </Button>
+                  <Card className="bg-[#0a0a0a] border-zinc-800 p-6 shadow-2xl flex flex-col h-full">
+                    <CardTitle className="text-sm font-black text-zinc-500 uppercase tracking-widest mb-6 flex items-center justify-between">
+                      Solicitação de Compra
+                      <Badge className="bg-primary/10 text-primary border-primary/20 text-[9px] uppercase font-black animate-pulse">Live</Badge>
+                    </CardTitle>
+                    
+                    <div className="flex-1 space-y-4 overflow-y-auto max-h-[350px] pr-2 custom-scrollbar">
+                      {purchaseRequests.length === 0 ? (
+                        <div className="text-center py-10 opacity-40">
+                          <PackagePlus className="h-8 w-8 mx-auto mb-2" />
+                          <p className="text-[10px] font-bold uppercase tracking-widest">Nenhuma demanda no momento</p>
+                        </div>
+                      ) : (
+                        purchaseRequests.map((req) => (
+                          <div key={req.id} className="bg-zinc-900/50 border border-zinc-800 p-3 rounded-xl space-y-2 hover:border-primary/30 transition-all group">
+                            <div className="flex items-start justify-between">
+                              <div className="space-y-1">
+                                <div className="text-xs font-black text-white group-hover:text-primary transition-colors">{req.title}</div>
+                                <div className="flex gap-2">
+                                  <Badge className="bg-zinc-800 text-zinc-400 text-[8px] uppercase font-black">{req.type}</Badge>
+                                  <Badge className="bg-emerald-500/10 text-emerald-500 text-[8px] uppercase font-black">Qtd: {req.quantity}</Badge>
+                                </div>
+                              </div>
+                            </div>
+                            {req.description && <p className="text-[10px] text-zinc-500 line-clamp-2 leading-relaxed">{req.description}</p>}
+                            <Button 
+                              variant="outline" 
+                              className="w-full h-7 text-[9px] font-black uppercase tracking-widest border-zinc-800 hover:bg-primary hover:text-white hover:border-primary"
+                              onClick={() => {
+                                setActiveTab('vendas');
+                                setOfferData({ ...offerData, type: req.type as "bm" | "perfil", description: req.title });
+                              }}
+                            >
+                              Ofertar agora
+                            </Button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                    <div className="mt-6 pt-6 border-t border-zinc-800/50">
+                      <p className="text-[9px] text-zinc-500 font-bold italic text-center">
+                        Deseja vender algo que não está na lista? <br/> 
+                        Use a aba <span className="text-primary cursor-pointer hover:underline" onClick={() => setActiveTab('vendas')}>Vendas</span> para ofertar.
+                      </p>
                     </div>
                   </Card>
                 </div>
