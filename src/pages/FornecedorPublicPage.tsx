@@ -1016,6 +1016,43 @@ export default function FornecedorPublicPage() {
                          </Button>
                        </div>
                      </div>
+
+                      <Collapsible className="pt-2 mt-2 border-t border-white/5">
+                        <CollapsibleTrigger asChild>
+                          <Button variant="ghost" className="w-full h-8 text-[9px] font-black text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/5 uppercase tracking-widest flex items-center justify-center gap-1">
+                            <RefreshCw className="size-3" /> Repor apenas este item
+                            <ChevronDown className="size-3 ml-1" />
+                          </Button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="pt-2 space-y-2 animate-in fade-in slide-in-from-top-1 duration-300">
+                          <Textarea 
+                            className="bg-black/60 border-emerald-500/20 min-h-[70px] text-[11px] font-mono focus:border-emerald-500/50 transition-all resize-none" 
+                            placeholder="Cole aqui o novo link/dados apenas para este item..."
+                            value={replenishItemContent[item.id] || ""}
+                            onChange={e => setReplenishItemContent(prev => ({ ...prev, [item.id]: e.target.value }))}
+                          />
+                          <Button 
+                            className="w-full bg-emerald-600/90 hover:bg-emerald-500 text-white font-black h-9 text-[10px] uppercase tracking-widest" 
+                            onClick={async () => {
+                              const itemContent = replenishItemContent[item.id];
+                              if (!itemContent?.trim()) {
+                                toast.error("Insira o conteúdo de reposição deste item");
+                                return;
+                              }
+                              const prevContent = content;
+                              setContent(itemContent);
+                              await new Promise(r => setTimeout(r, 50));
+                              await handleSubmit(selectedRequest.id, item.id);
+                              setReplenishItemContent(prev => ({ ...prev, [item.id]: "" }));
+                              setContent(prevContent);
+                            }} 
+                            disabled={submitting}
+                          >
+                            {submitting ? <Loader2 className="animate-spin h-3 w-3 mr-2" /> : <CheckCircle2 className="h-3 w-3 mr-2" />}
+                            ENVIAR REPOSIÇÃO INDIVIDUAL
+                          </Button>
+                        </CollapsibleContent>
+                      </Collapsible>
                    </div>
                  );
                })}
@@ -1023,7 +1060,7 @@ export default function FornecedorPublicPage() {
  
              <div className="pt-4 border-t border-white/5 space-y-3">
                <div className="flex items-center gap-2 text-[10px] font-black text-emerald-400 uppercase tracking-widest">
-                 <RefreshCw className="size-3" /> Responder Todo o Lote
+                  <RefreshCw className="size-3" /> OU Responder Todo o Lote de uma vez
                </div>
                <Textarea 
                  className="bg-black border-white/10 min-h-[120px] text-[12px] font-mono focus:border-emerald-500/50 transition-all resize-none" 
