@@ -236,7 +236,121 @@ export default function FornecedorPublicPage() {
               <Card className="bg-[#0a0a0a] border-zinc-800 p-6"><CardTitle className="mb-4 text-sm font-bold text-zinc-500 uppercase tracking-widest">Status da Conta</CardTitle></Card>
             </div>
           )}
-          {activeTab === 'reposicoes' && <div className="space-y-4">...</div>}
+          {activeTab === 'reposicoes' && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-black text-zinc-500 uppercase tracking-widest">Lista de Pedidos para Reposição</p>
+                <Badge className="bg-primary/10 text-primary border-primary/20">{requests.length} Pedidos</Badge>
+              </div>
+              <div className="grid grid-cols-1 gap-4">
+                {requests.length === 0 ? (
+                  <div className="text-center py-20 bg-black/20 rounded-2xl border border-dashed border-zinc-800">
+                    <Inbox className="h-10 w-10 text-zinc-700 mx-auto mb-4"/>
+                    <p className="text-zinc-500 font-bold">Nenhum pedido pendente.</p>
+                  </div>
+                ) : requests.map(req => (
+                  <Collapsible 
+                    key={req.id} 
+                    open={expandedRequests[req.id]} 
+                    onOpenChange={() => toggleRequestExpand(req.id)}
+                    className="bg-[#0a0a0a] border border-zinc-800 rounded-2xl overflow-hidden shadow-lg transition-all hover:border-zinc-700"
+                  >
+                    <CollapsibleTrigger className="flex items-center justify-between w-full p-6 text-left hover:bg-white/[0.02]">
+                      <div className="flex items-center gap-6">
+                        <div className="flex flex-col">
+                          <span className="text-xs font-black text-primary uppercase mb-1 flex items-center gap-2">
+                            <Hash className="h-3 w-3"/>
+                            {req.title || `REQ-${req.id.slice(0, 5)}`}
+                          </span>
+                          <div className="flex items-center gap-3">
+                            <span className="text-lg font-black text-white tracking-tight">Reposição Solicitada</span>
+                            {req.reason && (
+                              <Badge variant="outline" className="border-red-500/30 text-red-400 bg-red-500/5 text-[10px]">
+                                MOTIVO: {req.reason.toUpperCase()}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <Badge className={getStatusColor(req.status)}>{getStatusLabel(req.status)}</Badge>
+                        <ChevronDown className={`h-5 w-5 text-zinc-500 transition-transform ${expandedRequests[req.id] ? 'rotate-180' : ''}`}/>
+                      </div>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="p-6 bg-black/40 border-t border-zinc-800 space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="space-y-4">
+                          <p className="text-xs font-black text-zinc-500 uppercase tracking-widest">Itens para Reposição</p>
+                          <div className="space-y-2">
+                            {req.items && req.items.length > 0 ? req.items.map((item: any) => (
+                              <div key={item.id} className="flex items-center justify-between bg-zinc-900/50 p-3 rounded-xl border border-zinc-800 group">
+                                <div className="flex flex-col gap-1 overflow-hidden">
+                                  <span className="text-[10px] font-black text-zinc-600 uppercase">IDENTIFICADOR / LINK</span>
+                                  <code className="text-xs text-primary truncate pr-4">{item.details}</code>
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                  {item.details.startsWith('http') && (
+                                    <Button 
+                                      size="icon" 
+                                      variant="ghost" 
+                                      className="h-8 w-8 text-zinc-400 hover:text-white"
+                                      onClick={() => window.open(item.details, '_blank')}
+                                    >
+                                      <ExternalLink className="h-4 w-4"/>
+                                    </Button>
+                                  )}
+                                  <Button 
+                                    size="icon" 
+                                    variant="ghost" 
+                                    className="h-8 w-8 text-zinc-400 hover:text-white"
+                                    onClick={() => copyToClipboard(item.details)}
+                                  >
+                                    <Copy className="h-4 w-4"/>
+                                  </Button>
+                                </div>
+                              </div>
+                            )) : (
+                              <p className="text-xs text-zinc-500 italic p-4 bg-black/20 rounded-xl border border-dashed border-zinc-800">
+                                Detalhes descritos: {req.description}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="space-y-4">
+                          <p className="text-xs font-black text-zinc-500 uppercase tracking-widest">Realizar Reposição</p>
+                          <div className="space-y-4">
+                            <Textarea 
+                              className="bg-black border-zinc-800 min-h-[160px] font-mono text-xs focus:ring-primary/20 p-4 leading-relaxed" 
+                              placeholder="Cole aqui os novos links ou dados dos perfis/BMs para repor os itens acima..."
+                              value={content}
+                              onChange={e => setContent(e.target.value)}
+                            />
+                            <div className="flex gap-3">
+                              <Button 
+                                className="flex-1 bg-primary hover:bg-primary/90 text-white font-black h-12 tracking-tight" 
+                                onClick={() => handleSubmit(req.id)} 
+                                disabled={submitting}
+                              >
+                                {submitting ? <Loader2 className="animate-spin h-5 w-5 mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                                EFETUAR REPOSIÇÃO
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                className="border-zinc-800 text-zinc-500 font-bold" 
+                                onClick={() => setExpandedRequests(prev => ({ ...prev, [req.id]: false }))}
+                              >
+                                CANCELAR
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                ))}
+              </div>
+            </div>
+          )}
           {activeTab === 'vendas' && <div className="space-y-4">...</div>}
         </div>
       </main>
