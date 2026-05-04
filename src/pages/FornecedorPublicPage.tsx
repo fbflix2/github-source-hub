@@ -18,6 +18,8 @@ export default function FornecedorPublicPage() {
   const [supplier, setSupplier] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [requests, setRequests] = useState<any[]>([]);
+  const [filterType, setFilterStatus] = useState<string>("all");
+  const [filterItemType, setFilterItemType] = useState<string>("all");
   
   // Upload state
   const [activeTab, setActiveTab] = useState("dashboard");
