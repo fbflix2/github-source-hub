@@ -166,26 +166,44 @@ export default function FornecedorPublicPage() {
 
   if (!isAuth) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-4">
-        <Card className="w-full max-w-md bg-zinc-900 border-zinc-800">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold text-white">Portal do Fornecedor</CardTitle>
-            <p className="text-zinc-400 text-sm">Informe seu token de acesso para continuar</p>
+      <div className="min-h-screen bg-[#050505] flex items-center justify-center p-4">
+        <Card className="w-full max-w-md bg-[#0a0a0a] border-zinc-800 shadow-2xl p-6">
+          <CardHeader className="text-center pb-8">
+            <div className="text-3xl font-black text-primary tracking-tighter mb-2">FBFLIX</div>
+            <CardTitle className="text-xl font-bold text-white">Portal do Fornecedor</CardTitle>
+            <p className="text-zinc-500 text-sm">Autenticação obrigatória para acessar pedidos.</p>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <Input 
-              placeholder="Digite seu token de 8 dígitos" 
-              value={token} 
-              onChange={e => setToken(e.target.value)}
-              className="bg-black border-zinc-700 text-white text-center text-lg tracking-widest"
-              maxLength={8}
-            />
+          <CardContent className="space-y-6">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-zinc-500 uppercase">Token de Acesso</label>
+                <Input 
+                  placeholder="Digite seu token de 8 dígitos" 
+                  value={token} 
+                  onChange={e => setToken(e.target.value)}
+                  className="bg-black border-zinc-800 text-white text-center text-lg tracking-[0.5em] h-14 font-mono"
+                  maxLength={8}
+                />
+              </div>
+              <div className="flex items-center space-x-2 px-1">
+                <input 
+                  type="checkbox" 
+                  id="remember" 
+                  checked={rememberMe} 
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 rounded border-zinc-800 bg-zinc-900 text-primary focus:ring-primary"
+                />
+                <label htmlFor="remember" className="text-sm text-zinc-500 cursor-pointer select-none">
+                  Manter conectado neste navegador
+                </label>
+              </div>
+            </div>
             <Button 
-              className="w-full bg-primary hover:bg-primary/90 text-white" 
+              className="w-full bg-primary hover:bg-primary/90 text-white h-14 font-bold text-lg" 
               onClick={handleAuth}
               disabled={loading}
             >
-              {loading ? <Loader2 className="animate-spin mr-2" /> : "Acessar Portal"}
+              {loading ? <Loader2 className="animate-spin mr-2" /> : "Entrar no Painel"}
             </Button>
           </CardContent>
         </Card>
