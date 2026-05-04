@@ -344,10 +344,11 @@ export default function AdminReposicaoFornecedor() {
       const { error: itemsError } = await supabase.from("supplier_request_items").insert(items);
       if (itemsError) throw itemsError;
 
-      toast.success("Solicitação criada com sucesso!");
-      setRequestContent("");
-      setRequestUnitPrice("");
-      setRequestReason("");
+       toast.success("Solicitação criada com sucesso!");
+       setRequestContent("");
+       setRequestUnitPrice("");
+       setRequestReason("");
+       fetchActiveRequests();
     } catch (err: any) {
       toast.error("Erro ao criar solicitação: " + err.message);
     } finally {
