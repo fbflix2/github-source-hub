@@ -3303,6 +3303,7 @@ export type Database = {
           email_principal: string | null
           has_bm: boolean
           id: string
+          is_replacement: boolean | null
           logged_in: boolean
           login: string | null
           login_result: string | null
@@ -3328,6 +3329,7 @@ export type Database = {
           email_principal?: string | null
           has_bm?: boolean
           id?: string
+          is_replacement?: boolean | null
           logged_in?: boolean
           login?: string | null
           login_result?: string | null
@@ -3353,6 +3355,7 @@ export type Database = {
           email_principal?: string | null
           has_bm?: boolean
           id?: string
+          is_replacement?: boolean | null
           logged_in?: boolean
           login?: string | null
           login_result?: string | null
@@ -3392,6 +3395,7 @@ export type Database = {
           notes: string | null
           purchased_at: string
           supplier_id: string
+          type: string | null
           updated_at: string
         }
         Insert: {
@@ -3402,6 +3406,7 @@ export type Database = {
           notes?: string | null
           purchased_at?: string
           supplier_id: string
+          type?: string | null
           updated_at?: string
         }
         Update: {
@@ -3412,6 +3417,7 @@ export type Database = {
           notes?: string | null
           purchased_at?: string
           supplier_id?: string
+          type?: string | null
           updated_at?: string
         }
         Relationships: [
