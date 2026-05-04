@@ -512,27 +512,29 @@ export default function FornecedorPublicPage() {
                     </CardTitle>
                     
                     <div className="flex-1 space-y-4 overflow-y-auto max-h-[350px] pr-2 custom-scrollbar">
-                      {requests.filter(r => r.type !== 'purchase' && r.status !== 'completed').length === 0 ? (
+                      {requests.filter(r => r.type === 'purchase' && r.status !== 'completed').length === 0 ? (
                         <div className="text-center py-10 opacity-40">
-                          <Inbox className="h-8 w-8 mx-auto mb-2" />
-                          <p className="text-[10px] font-bold uppercase tracking-widest">Tudo em dia por aqui</p>
+                          <ShoppingBag className="h-8 w-8 mx-auto mb-2" />
+                          <p className="text-[10px] font-bold uppercase tracking-widest">Nenhum pedido de compra pendente</p>
                         </div>
                       ) : (
                         requests
-                          .filter(r => r.type !== 'purchase' && r.status !== 'completed')
+                          .filter(r => r.type === 'purchase' && r.status !== 'completed')
                           .slice(0, 5)
                           .map((req) => (
-                            <div key={req.id} className="bg-zinc-900/50 border border-zinc-800 p-3 rounded-xl space-y-2 hover:border-primary/30 transition-all group cursor-pointer" onClick={() => setActiveTab('reposicoes')}>
+                            <div key={req.id} className="bg-zinc-900/50 border border-zinc-800 p-3 rounded-xl space-y-2 hover:border-emerald-500/30 transition-all group cursor-pointer" onClick={() => setActiveTab('compras')}>
                               <div className="flex items-start justify-between">
                                 <div className="space-y-1">
-                                  <div className="text-xs font-black text-white group-hover:text-primary transition-colors">{req.title}</div>
+                                  <div className="text-xs font-black text-white group-hover:text-emerald-400 transition-colors">{req.title}</div>
                                   <div className="flex gap-2">
                                     <Badge className={`${getStatusColor(req.status)} text-[8px] uppercase font-black`}>{getStatusLabel(req.status)}</Badge>
-                                    <Badge className="bg-zinc-800 text-zinc-400 text-[8px] uppercase font-black">{new Date(req.created_at).toLocaleDateString('pt-BR')}</Badge>
+                                    <Badge className="bg-emerald-500/10 text-emerald-500 text-[8px] uppercase font-black">Preço: R$ {req.unit_price || '0'}</Badge>
                                   </div>
                                 </div>
                               </div>
-                              {req.reason && <p className="text-[10px] text-zinc-500 line-clamp-1 italic">Motivo: {req.reason}</p>}
+                              <p className="text-[10px] text-zinc-500 line-clamp-2 leading-relaxed">
+                                {req.items?.map((item: any) => item.details).join(', ') || req.description}
+                              </p>
                             </div>
                           ))
                       )}
@@ -541,10 +543,10 @@ export default function FornecedorPublicPage() {
                     <div className="mt-6 pt-6 border-t border-zinc-800/50">
                       <Button 
                         variant="ghost" 
-                        className="w-full text-[9px] font-black uppercase tracking-widest text-primary hover:bg-primary/5"
-                        onClick={() => setActiveTab('reposicoes')}
+                        className="w-full text-[9px] font-black uppercase tracking-widest text-emerald-500 hover:bg-emerald-500/5"
+                        onClick={() => setActiveTab('compras')}
                       >
-                        Ver todas as reposições
+                        Ver todos os pedidos de compra
                       </Button>
                     </div>
                   </Card>
