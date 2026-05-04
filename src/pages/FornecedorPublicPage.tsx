@@ -239,7 +239,7 @@ export default function FornecedorPublicPage() {
 
                 <Button 
                   className="w-full bg-primary hover:bg-primary/90 text-white h-12"
-                  onClick={handleSubmit}
+                  onClick={() => handleSubmit()}
                   disabled={submitting}
                 >
                   {submitting ? <Loader2 className="animate-spin mr-2" /> : <Send className="mr-2 h-4 w-4" />}
