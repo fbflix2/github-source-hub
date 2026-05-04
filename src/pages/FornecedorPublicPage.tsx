@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-  import { Loader2, Send, FileText, CheckCircle2, Clock, AlertCircle, ExternalLink, Copy, ChevronDown, ChevronUp, LayoutDashboard, Hash, Calendar, PackagePlus, Inbox, BriefcaseBusiness, Menu, RefreshCw, History, TrendingUp, ArrowUpRight, ArrowDownRight, DollarSign, Activity, Users, IdCard, KeyRound, Mail, Lock, AtSign, ShieldCheck, ShieldAlert, Award, Search } from "lucide-react";
+  import { Loader2, Send, FileText, CheckCircle2, Clock, AlertCircle, ExternalLink, Copy, ChevronDown, ChevronUp, LayoutDashboard, Hash, Calendar, PackagePlus, Inbox, BriefcaseBusiness, Menu, RefreshCw, History, TrendingUp, ArrowUpRight, ArrowDownRight, DollarSign, Activity, Users, IdCard, KeyRound, Mail, Lock, AtSign, ShieldCheck, ShieldAlert, Award, Search, CreditCard, Plus, Trash2 } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, Cell, PieChart, Pie } from 'recharts';
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -28,6 +28,9 @@ export default function FornecedorPublicPage() {
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [expandedRequests, setExpandedRequests] = useState<Record<string, boolean>>({});
+  const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
+  const [newPaymentType, setNewPaymentType] = useState("pix");
+  const [newPaymentDetails, setNewPaymentDetails] = useState("");
   const [offerContent, setOfferContent] = useState("");
 
   useEffect(() => {
@@ -51,6 +54,7 @@ export default function FornecedorPublicPage() {
         setSupplier(data);
         setIsAuth(true);
         fetchRequests(data.id);
+        fetchPaymentMethods(data.id);
       }
     } catch (err) {
       console.error("Auto-auth failed");
@@ -83,6 +87,7 @@ export default function FornecedorPublicPage() {
       setSupplier(data);
       setIsAuth(true);
       fetchRequests(data.id);
+      fetchPaymentMethods(data.id);
       
       if (rememberMe) {
         localStorage.setItem("supplier_token", token);
@@ -95,6 +100,68 @@ export default function FornecedorPublicPage() {
       toast.error("Erro ao autenticar");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchPaymentMethods = async (supplierId: string) => {
+    const { data, error } = await supabase
+      .from("supplier_payment_methods")
+      .select("*")
+      .eq("supplier_id", supplierId)
+      .order("created_at", { ascending: false });
+    
+    if (error) {
+      console.error("Error fetching payment methods:", error);
+      return;
+    }
+    setPaymentMethods(data || []);
+  };
+
+  const handleAddPaymentMethod = async () => {
+    if (!newPaymentDetails.trim()) {
+      toast.error("Informe os detalhes do recebimento");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const { data, error } = await supabase
+        .from("supplier_payment_methods")
+        .insert({
+          supplier_id: supplier.id,
+          type: newPaymentType,
+          details: newPaymentDetails,
+          is_primary: paymentMethods.length === 0
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setPaymentMethods([data, ...paymentMethods]);
+      setNewPaymentDetails("");
+      toast.success("Forma de recebimento cadastrada!");
+    } catch (err: any) {
+      toast.error("Erro ao cadastrar: " + err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+
+  const handleDeletePaymentMethod = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from("supplier_payment_methods")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+
+      setPaymentMethods(paymentMethods.filter(pm => pm.id !== id));
+      toast.success("Removido com sucesso");
+    } catch (err: any) {
+      toast.error("Erro ao remover: " + err.message);
     }
   };
 
@@ -258,6 +325,7 @@ export default function FornecedorPublicPage() {
           <Button variant={activeTab === 'dashboard' ? 'default' : 'ghost'} className="justify-start gap-3 h-12" onClick={() => setActiveTab('dashboard')}><LayoutDashboard className="h-5 w-5"/> Dashboard</Button>
           <Button variant={activeTab === 'reposicoes' ? 'default' : 'ghost'} className="justify-start gap-3 h-12" onClick={() => setActiveTab('reposicoes')}><Inbox className="h-5 w-5"/> Reposições</Button>
           <Button variant={activeTab === 'vendas' ? 'default' : 'ghost'} className="justify-start gap-3 h-12" onClick={() => setActiveTab('vendas')}><BriefcaseBusiness className="h-5 w-5"/> Vender</Button>
+          <Button variant={activeTab === 'financeiro' ? 'default' : 'ghost'} className="justify-start gap-3 h-12" onClick={() => setActiveTab('financeiro')}><CreditCard className="h-5 w-5"/> Financeiro</Button>
         </nav>
         <Button variant="ghost" className="justify-start text-zinc-500 hover:text-red-400" onClick={() => {
           localStorage.removeItem("supplier_token");
@@ -559,6 +627,89 @@ export default function FornecedorPublicPage() {
             </div>
           )}
           {activeTab === 'vendas' && <div className="space-y-4">...</div>}
+          {activeTab === 'financeiro' && (
+            <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-700">
+              <div className="flex flex-col gap-2">
+                <h3 className="text-2xl font-black text-white tracking-tighter uppercase italic">Dados Financeiros</h3>
+                <p className="text-zinc-500 text-sm">Gerencie suas formas de recebimento para pagamentos automáticos.</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <Card className="md:col-span-1 bg-[#0a0a0a] border-zinc-800 p-6 space-y-6">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Tipo de Conta</label>
+                      <Tabs value={newPaymentType} onValueChange={setNewPaymentType} className="w-full">
+                        <TabsList className="bg-black border border-zinc-800 w-full h-10 p-1">
+                          <TabsTrigger value="pix" className="flex-1 data-[state=active]:bg-zinc-800 font-bold text-[10px] uppercase">PIX</TabsTrigger>
+                          <TabsTrigger value="bank" className="flex-1 data-[state=active]:bg-zinc-800 font-bold text-[10px] uppercase">Conta</TabsTrigger>
+                        </TabsList>
+                      </Tabs>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Detalhes (Chave ou Dados)</label>
+                      <Textarea 
+                        value={newPaymentDetails}
+                        onChange={e => setNewPaymentDetails(e.target.value)}
+                        placeholder={newPaymentType === 'pix' ? "Ex: CPF, E-mail, Celular ou Chave Aleatória" : "Banco, Agência, Conta e Titular"}
+                        className="bg-black border-zinc-800 min-h-[120px] text-sm"
+                      />
+                    </div>
+                    <Button 
+                      className="w-full bg-primary hover:bg-primary/90 text-white font-black h-12" 
+                      onClick={handleAddPaymentMethod}
+                      disabled={submitting}
+                    >
+                      {submitting ? <Loader2 className="animate-spin h-5 w-5" /> : <Plus className="h-4 w-4 mr-2" />}
+                      CADASTRAR
+                    </Button>
+                  </div>
+                </Card>
+
+                <Card className="md:col-span-2 bg-[#0a0a0a] border-zinc-800 overflow-hidden">
+                  <div className="p-6 border-b border-zinc-800/50 flex items-center justify-between">
+                    <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Contas Cadastradas</span>
+                    <Badge className="bg-zinc-800 text-zinc-400 border-zinc-700">{paymentMethods.length}</Badge>
+                  </div>
+                  <div className="p-0">
+                    {paymentMethods.length === 0 ? (
+                      <div className="p-12 text-center text-zinc-600">
+                        <CreditCard className="h-10 w-10 mx-auto mb-4 opacity-20" />
+                        <p className="text-sm font-medium">Nenhuma forma de recebimento cadastrada.</p>
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-zinc-800/50">
+                        {paymentMethods.map(pm => (
+                          <div key={pm.id} className="p-6 flex items-center justify-between hover:bg-white/[0.01] transition-colors group">
+                            <div className="flex items-center gap-4">
+                              <div className="p-3 bg-zinc-900 rounded-xl border border-zinc-800">
+                                <CreditCard className="h-5 w-5 text-primary" />
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-black text-white uppercase tracking-wider">{pm.type}</span>
+                                  {pm.is_primary && <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[8px] font-black uppercase">Principal</Badge>}
+                                </div>
+                                <p className="text-zinc-400 text-sm mt-1 font-mono">{pm.details}</p>
+                              </div>
+                            </div>
+                            <Button 
+                              size="icon" 
+                              variant="ghost" 
+                              className="opacity-0 group-hover:opacity-100 text-zinc-600 hover:text-red-500 transition-all"
+                              onClick={() => handleDeletePaymentMethod(pm.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              </div>
+            </div>
+          )}
         </div>
       </main>
     </div>

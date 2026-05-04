@@ -3430,6 +3430,44 @@ export type Database = {
           },
         ]
       }
+      supplier_payment_methods: {
+        Row: {
+          created_at: string
+          details: string
+          id: string
+          is_primary: boolean | null
+          supplier_id: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          details: string
+          id?: string
+          is_primary?: boolean | null
+          supplier_id: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          details?: string
+          id?: string
+          is_primary?: boolean | null
+          supplier_id?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_payment_methods_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       supplier_request_items: {
         Row: {
           account_id: string | null
