@@ -720,7 +720,78 @@ export default function FornecedorPublicPage() {
               </div>
             </div>
           )}
-          {activeTab === 'vendas' && <div className="space-y-4">...</div>}
+          {activeTab === 'vendas' && (
+            <div className="max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-6 duration-700">
+              <Card className="bg-[#0a0a0a] border-zinc-800 p-8 shadow-2xl space-y-8">
+                <div className="text-center space-y-2">
+                  <div className="inline-flex p-3 bg-primary/10 rounded-2xl mb-2">
+                    <BriefcaseBusiness className="h-8 w-8 text-primary" />
+                  </div>
+                  <h3 className="text-2xl font-black text-white tracking-tighter uppercase italic">Ofertagem de Estoque</h3>
+                  <p className="text-zinc-500 text-sm">Tem estoque parado? Oferte para a FBFLIX agora mesmo.</p>
+                </div>
+
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">O que você quer vender?</label>
+                    <Tabs value={offerData.type} onValueChange={(v: any) => setOfferData({...offerData, type: v})} className="w-full">
+                      <TabsList className="bg-black border border-zinc-800 w-full h-12 p-1">
+                        <TabsTrigger value="bm" className="flex-1 data-[state=active]:bg-zinc-800 font-bold text-xs uppercase tracking-wider">BMs</TabsTrigger>
+                        <TabsTrigger value="perfil" className="flex-1 data-[state=active]:bg-zinc-800 font-bold text-xs uppercase tracking-wider">Perfis</TabsTrigger>
+                      </TabsList>
+                    </Tabs>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Título/Descrição Curta</label>
+                      <Input 
+                        placeholder="Ex: BM ILIMITADA MATURADA" 
+                        className="bg-black border-zinc-800 h-12 text-sm"
+                        value={offerData.description}
+                        onChange={e => setOfferData({...offerData, description: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Preço Sugerido (R$)</label>
+                      <Input 
+                        placeholder="0,00" 
+                        className="bg-black border-zinc-800 h-12 text-sm"
+                        value={offerData.price}
+                        onChange={e => setOfferData({...offerData, price: e.target.value})}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Detalhes Adicionais (Opcional)</label>
+                    <Textarea 
+                      placeholder="Informe detalhes como tempo de criação, se tem limite de gasto, etc." 
+                      className="bg-black border-zinc-800 min-h-[100px] text-sm resize-none"
+                      value={offerData.content}
+                      onChange={e => setOfferData({...offerData, content: e.target.value})}
+                    />
+                  </div>
+
+                  <Button 
+                    className="w-full bg-primary hover:bg-primary/90 text-white font-black h-14 text-sm uppercase tracking-widest shadow-lg shadow-primary/20" 
+                    onClick={handleOffer}
+                    disabled={submitting}
+                  >
+                    {submitting ? <Loader2 className="animate-spin h-5 w-5 mr-2" /> : <Send className="h-5 w-5 mr-2" />}
+                    ENVIAR OFERTA PARA ANÁLISE
+                  </Button>
+                  
+                  <div className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-xl">
+                    <p className="text-[10px] text-zinc-500 leading-relaxed text-center">
+                      As ofertas são analisadas manualmente por nossa equipe comercial. <br/>
+                      Caso aprovada, você receberá o saldo diretamente em seu painel após o envio dos itens.
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          )}
           {activeTab === 'financeiro' && (
             <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-700">
               <div className="flex flex-col gap-2">
