@@ -513,115 +513,136 @@ export default function FornecedorPublicPage() {
                           : r.title?.toLowerCase().includes('perfil') || r.title?.toLowerCase().includes('perfis');
                       return matchesStatus && matchesType;
                     })
-                    .map(req => (
-                    <Card key={req.id} className="bg-[#0a0a0a] border-zinc-800 overflow-hidden rounded-2xl transition-all duration-300 hover:border-primary/20 group">
-                      <div className="p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-br from-zinc-900/10 to-transparent">
-                        <div className="flex items-center gap-4">
-                          <div className="p-2.5 bg-primary/5 rounded-xl border border-primary/10 group-hover:bg-primary/10 transition-colors">
-                            <ShieldAlert className="h-5 w-5 text-primary" />
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <h3 className="text-sm font-black text-white uppercase tracking-tight italic">{req.title || 'Solicitação'}</h3>
-                              <Badge className={`${getStatusColor(req.status)} h-5 px-2 text-[9px] font-black border shadow-sm uppercase`}>
-                                {getStatusLabel(req.status)}
-                              </Badge>
-                            </div>
-                            <div className="flex items-center gap-3 mt-1 opacity-50">
-                              <span className="text-[9px] font-black uppercase tracking-wider flex items-center gap-1"><Hash className="h-2.5 w-2.5"/> {req.id.slice(0, 8)}</span>
-                              <span className="text-[9px] font-black uppercase tracking-wider flex items-center gap-1"><Calendar className="h-2.5 w-2.5"/> {new Date(req.created_at).toLocaleDateString('pt-BR')}</span>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center gap-3 w-full md:w-auto">
-                          {req.reason && (
-                            <Badge variant="outline" className="border-red-500/20 bg-red-500/5 text-red-400 font-black text-[9px] px-3 py-1 rounded-lg italic flex-1 md:flex-none justify-center">
-                              MOTIVO: {req.reason.toUpperCase()}
-                            </Badge>
-                          )}
-                          <Button size="sm" variant="outline" className="h-8 border-zinc-800 text-[10px] font-black bg-zinc-900/50 hover:bg-zinc-800" onClick={() => toggleRequestExpand(req.id)}>
-                            {expandedRequests[req.id] ? 'RECOLHER' : 'ABRIR REPOSIÇÃO'}
-                            <ChevronDown className={`ml-2 h-3 w-3 transition-transform ${expandedRequests[req.id] ? 'rotate-180' : ''}`} />
-                          </Button>
-                        </div>
-                      </div>
-
-                      <Collapsible open={expandedRequests[req.id]}>
-                        <CollapsibleContent className="animate-in slide-in-from-top-2 duration-300">
-                          <div className="p-6 border-t border-zinc-800/50 bg-black/40">
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                              <div className="space-y-4">
-                                <p className="text-[9px] font-black text-zinc-500 uppercase tracking-[0.2em]">Itens para Reposição ({req.items?.length || 0})</p>
-                                <div className="space-y-2 max-h-[280px] overflow-y-auto pr-2 custom-scrollbar">
-                                  {req.items && req.items.length > 0 ? req.items.map((item: any) => {
-                                    const hasSeparator = item.details.includes('|');
-                                    const [id, link] = hasSeparator ? item.details.split('|') : [null, item.details];
-                                    const displayValue = link || id;
-                                    const cleanLink = link?.trim() || id?.trim();
-
-                                    return (
-                                      <div key={item.id} className="flex flex-col bg-zinc-900/30 border border-zinc-800/50 p-3 rounded-xl group/item gap-2">
-                                        {id && hasSeparator && (
-                                          <div className="flex items-center justify-between border-b border-zinc-800/50 pb-2">
-                                            <div className="flex flex-col">
-                                              <span className="text-[8px] font-black text-zinc-600 uppercase">ID BM</span>
-                                              <code className="text-[10px] font-black text-zinc-400">{id}</code>
-                                            </div>
-                                            <Button size="icon" variant="ghost" className="h-6 w-6 text-zinc-600 hover:text-white" onClick={() => copyToClipboard(id)}>
-                                              <Copy className="h-3 w-3"/>
-                                            </Button>
-                                          </div>
-                                        )}
-                                        <div className="flex items-center justify-between">
-                                          <div className="flex flex-col overflow-hidden">
-                                            <span className="text-[8px] font-black text-zinc-600 uppercase">{id && hasSeparator ? 'LINK CONVITE' : 'IDENTIFICADOR / LINK'}</span>
-                                            <code className="text-[10px] font-black text-primary/80 truncate pr-4">{displayValue}</code>
-                                          </div>
-                                          <div className="flex items-center gap-1 shrink-0">
-                                            {cleanLink && (cleanLink.startsWith('http') || cleanLink.includes('business.facebook.com')) && (
-                                              <Button size="icon" variant="ghost" className="h-7 w-7 text-zinc-500 hover:text-white hover:bg-zinc-800" onClick={() => window.open(cleanLink.startsWith('http') ? cleanLink : `https://${cleanLink}`, '_blank')}>
-                                                <ExternalLink className="h-3.5 w-3.5"/>
-                                              </Button>
-                                            )}
-                                            <Button size="icon" variant="ghost" className="h-7 w-7 text-zinc-500 hover:text-white hover:bg-zinc-800" onClick={() => copyToClipboard(displayValue)}>
-                                              <Copy className="h-3.5 w-3.5"/>
-                                            </Button>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    );
-                                  }) : (
-                                    <p className="text-xs text-zinc-500 italic p-4 bg-black/20 rounded-xl border border-dashed border-zinc-800">
-                                      {req.description || 'Sem detalhes técnicos.'}
-                                    </p>
-                                  )}
+                    .map(req => {
+                      const isExpanded = expandedRequests[req.id];
+                      return (
+                        <Card key={req.id} className={`bg-[#0a0a0a] border-zinc-800 overflow-hidden rounded-2xl transition-all duration-500 ${isExpanded ? 'ring-1 ring-primary/30 shadow-[0_0_50px_-12px_rgba(217,70,239,0.1)]' : 'hover:border-zinc-700'} group`}>
+                          <div className={`p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition-colors ${isExpanded ? 'bg-primary/5' : 'bg-gradient-to-r from-zinc-900/40 to-transparent'}`}>
+                            <div className="flex items-center gap-5">
+                              <div className={`p-3 rounded-2xl border transition-all duration-500 ${isExpanded ? 'bg-primary text-white border-primary shadow-[0_0_20px_rgba(217,70,239,0.4)]' : 'bg-zinc-900/50 text-zinc-500 border-zinc-800 group-hover:border-primary/50 group-hover:text-primary'}`}>
+                                <ShieldAlert className="h-5 w-5" />
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-3">
+                                  <h3 className="text-sm font-black text-white uppercase tracking-tighter italic">{req.title || 'Solicitação'}</h3>
+                                  <Badge className={`${getStatusColor(req.status)} h-5 px-2 text-[8px] font-black border shadow-sm uppercase tracking-widest`}>
+                                    {getStatusLabel(req.status)}
+                                  </Badge>
+                                </div>
+                                <div className="flex items-center gap-4 mt-1.5 opacity-40">
+                                  <span className="text-[9px] font-black uppercase tracking-[0.2em] flex items-center gap-1.5"><Hash className="h-2.5 w-2.5"/> {req.id.slice(0, 8)}</span>
+                                  <div className="w-1 h-1 rounded-full bg-zinc-700" />
+                                  <span className="text-[9px] font-black uppercase tracking-[0.2em] flex items-center gap-1.5"><Calendar className="h-2.5 w-2.5"/> {new Date(req.created_at).toLocaleDateString('pt-BR')}</span>
                                 </div>
                               </div>
-
-                              <div className="space-y-4">
-                                <p className="text-[9px] font-black text-emerald-500 uppercase tracking-[0.2em] flex items-center gap-2"><ShieldCheck className="h-3 w-3"/> Responder com novos dados</p>
-                                <Textarea 
-                                  className="bg-black border-zinc-800 min-h-[140px] font-mono text-[11px] focus:ring-emerald-500/10 p-4 leading-relaxed rounded-xl focus:border-emerald-500/30" 
-                                  placeholder="Novos dados (Login|Senha|...)"
-                                  value={content}
-                                  onChange={e => setContent(e.target.value)}
-                                />
-                                <Button 
-                                  className="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-black h-10 text-[11px] rounded-xl transition-all" 
-                                  onClick={() => handleSubmit(req.id)} 
-                                  disabled={submitting}
-                                >
-                                  {submitting ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-                                  FINALIZAR REPOSIÇÃO
-                                </Button>
-                              </div>
+                            </div>
+                            
+                            <div className="flex items-center gap-4 w-full md:w-auto">
+                              {req.reason && (
+                                <div className="hidden lg:flex flex-col items-end px-4 border-r border-zinc-800/50">
+                                  <span className="text-[7px] font-black text-zinc-600 uppercase tracking-[0.3em] mb-0.5">Motivo Crítico</span>
+                                  <span className="text-[10px] font-black text-red-500 uppercase italic">{req.reason}</span>
+                                </div>
+                              )}
+                              <Button 
+                                onClick={() => toggleRequestExpand(req.id)}
+                                className={`h-11 px-6 rounded-xl font-black text-[10px] uppercase tracking-[0.15em] transition-all duration-300 ${isExpanded ? 'bg-white text-black hover:bg-zinc-200' : 'bg-zinc-900 text-zinc-400 border border-zinc-800 hover:border-primary/50 hover:text-white'}`}
+                              >
+                                {isExpanded ? 'Fechar Detalhes' : 'Ver Solicitação'}
+                                <ChevronDown className={`ml-2.5 h-3.5 w-3.5 transition-transform duration-500 ${isExpanded ? 'rotate-180' : ''}`} />
+                              </Button>
                             </div>
                           </div>
-                        </CollapsibleContent>
-                      </Collapsible>
-                    </Card>
-                  ))
+
+                          <Collapsible open={isExpanded}>
+                            <CollapsibleContent className="animate-in slide-in-from-top-4 duration-500">
+                              <div className="p-8 border-t border-zinc-800/50 bg-[#070707]">
+                                <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+                                  <div className="lg:col-span-7 space-y-6">
+                                    <div className="flex items-center justify-between">
+                                      <p className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em] flex items-center gap-2">
+                                        <PackagePlus className="h-3.5 w-3.5 text-primary" />
+                                        Itens Bloqueados ({req.items?.length || 0})
+                                      </p>
+                                    </div>
+                                    <div className="grid grid-cols-1 gap-3 max-h-[400px] overflow-y-auto pr-3 custom-scrollbar">
+                                      {req.items && req.items.length > 0 ? req.items.map((item: any) => {
+                                        const hasSeparator = item.details.includes('|');
+                                        const [id, link] = hasSeparator ? item.details.split('|') : [null, item.details];
+                                        const displayValue = link || id;
+                                        const cleanLink = link?.trim() || id?.trim();
+
+                                        return (
+                                          <div key={item.id} className="group/item relative bg-zinc-900/20 border border-zinc-800/40 p-4 rounded-2xl hover:bg-zinc-900/40 hover:border-primary/20 transition-all duration-300">
+                                            {id && hasSeparator && (
+                                              <div className="flex items-center justify-between mb-3 pb-3 border-b border-zinc-800/30">
+                                                <div className="flex flex-col">
+                                                  <span className="text-[7px] font-black text-zinc-600 uppercase tracking-widest mb-1">ID da Business</span>
+                                                  <code className="text-xs font-black text-zinc-400 tracking-wider">{id}</code>
+                                                </div>
+                                                <Button size="icon" variant="ghost" className="h-8 w-8 text-zinc-600 hover:text-white hover:bg-zinc-800/50 rounded-lg" onClick={() => copyToClipboard(id)}>
+                                                  <Copy className="h-3.5 w-3.5"/>
+                                                </Button>
+                                              </div>
+                                            )}
+                                            <div className="flex items-center justify-between">
+                                              <div className="flex flex-col overflow-hidden">
+                                                <span className="text-[7px] font-black text-zinc-600 uppercase tracking-widest mb-1">{id && hasSeparator ? 'Link de Convite' : 'Identificador Técnico'}</span>
+                                                <code className="text-[11px] font-black text-primary/80 truncate pr-6 tracking-tight">{displayValue}</code>
+                                              </div>
+                                              <div className="flex items-center gap-2 shrink-0">
+                                                {cleanLink && (cleanLink.startsWith('http') || cleanLink.includes('business.facebook.com')) && (
+                                                  <Button size="icon" variant="ghost" className="h-9 w-9 text-zinc-500 hover:text-white hover:bg-primary/10 rounded-xl transition-all" onClick={() => window.open(cleanLink.startsWith('http') ? cleanLink : `https://${cleanLink}`, '_blank')}>
+                                                    <ExternalLink className="h-4 w-4"/>
+                                                  </Button>
+                                                )}
+                                                <Button size="icon" variant="ghost" className="h-9 w-9 text-zinc-500 hover:text-white hover:bg-zinc-800/50 rounded-xl transition-all" onClick={() => copyToClipboard(displayValue)}>
+                                                  <Copy className="h-4 w-4"/>
+                                                </Button>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        );
+                                      }) : (
+                                        <div className="p-8 text-center bg-black/40 rounded-3xl border border-dashed border-zinc-800/50">
+                                          <p className="text-[10px] font-black text-zinc-600 uppercase tracking-widest italic">{req.description || 'Nenhuma informação técnica vinculada.'}</p>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  <div className="lg:col-span-5 space-y-6">
+                                    <div className="p-6 bg-zinc-900/30 border border-zinc-800/50 rounded-3xl space-y-6">
+                                      <div className="flex flex-col gap-1">
+                                        <p className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.3em] flex items-center gap-2">
+                                          <RefreshCw className="h-3.5 w-3.5"/>
+                                          Enviar Reposição
+                                        </p>
+                                        <p className="text-[9px] text-zinc-500 font-medium">Insira os novos dados abaixo para finalizar.</p>
+                                      </div>
+                                      <Textarea 
+                                        className="bg-black border-zinc-800 min-h-[180px] font-mono text-[11px] focus:ring-emerald-500/10 p-5 leading-relaxed rounded-2xl focus:border-emerald-500/30 resize-none transition-all" 
+                                        placeholder="Formato sugerido: Login|Senha|2FA|E-mail"
+                                        value={content}
+                                        onChange={e => setContent(e.target.value)}
+                                      />
+                                      <Button 
+                                        className="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-black h-14 text-xs rounded-2xl transition-all shadow-[0_10px_30px_-10px_rgba(16,185,129,0.3)] hover:shadow-[0_15px_40px_-10px_rgba(16,185,129,0.4)] hover:-translate-y-0.5 active:translate-y-0" 
+                                        onClick={() => handleSubmit(req.id)} 
+                                        disabled={submitting}
+                                      >
+                                        {submitting ? <Loader2 className="animate-spin h-5 w-5 mr-3" /> : <CheckCircle2 className="h-5 w-5 mr-3" />}
+                                        FINALIZAR LOTE DE REPOSIÇÃO
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </CollapsibleContent>
+                          </Collapsible>
+                        </Card>
+                      );
+                    })
                 )}
               </div>
             </div>
