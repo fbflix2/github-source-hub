@@ -426,7 +426,6 @@ export default function AdminReposicaoFornecedor() {
         </div>
 
         <div className="space-y-6">
-        <div className="space-y-6">
           {selectedSupplier && (
             <Card className="bg-primary/5 border-primary/20">
               <CardHeader className="pb-2">
