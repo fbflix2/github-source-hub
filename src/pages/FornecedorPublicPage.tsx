@@ -11,7 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 export default function FornecedorPublicPage() {
-  const [token, setToken] = useState("");
+  const [token, setToken] = useState(localStorage.getItem("supplier_token") || "");
+  const [rememberMe, setRememberMe] = useState(true);
   const [isAuth, setIsAuth] = useState(false);
   const [supplier, setSupplier] = useState<any>(null);
   const [loading, setLoading] = useState(false);
