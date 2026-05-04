@@ -245,7 +245,7 @@ export default function FornecedorPublicPage() {
     }));
   };
 
-  const handleSubmit = async (requestId?: string) => {
+   const handleSubmit = async (requestId?: string, itemId?: string) => {
     if (!content.trim()) {
       toast.error("Insira o conteúdo (links ou dados)");
       return;
@@ -261,7 +261,9 @@ export default function FornecedorPublicPage() {
           name: requestId 
             ? `Reposição via Portal - Req #${requestId.slice(0, 4)}`
             : `Envio Fornecedor (${type}) - ${new Date().toLocaleDateString("pt-BR")}`,
-          notes: notes || (requestId ? `Reposição para solicitação ${requestId}` : `Envio via portal público`),
+          notes: notes || (itemId 
+            ? `Reposição individual para item ${itemId} da solicitação ${requestId}` 
+            : requestId ? `Reposição para solicitação ${requestId}` : `Envio via portal público`),
           purchased_at: new Date().toISOString().split('T')[0],
           type: "replacement"
         })
@@ -285,12 +287,30 @@ export default function FornecedorPublicPage() {
       const { error: insertError } = await supabase.from("supplier_accounts").insert(accounts);
       if (insertError) throw insertError;
 
+      // If it's a specific item replacement, we might want to mark just that item
+      // But for now, we'll keep the current logic of notifying the team for audit
+      if (itemId) {
+        // Update item details in local state to show it was replied if we had a status there
+        // Or just show the success toast
+      }
+
       toast.success(`${accounts.length} itens enviados com sucesso! Nossa equipe irá auditar.`);
       setContent("");
       setNotes("");
       
       if (requestId) {
-        setExpandedRequests(prev => ({ ...prev, [requestId]: false }));
+        if (!itemId) {
+          setExpandedRequests(prev => ({ ...prev, [requestId]: false }));
+        } else {
+          // If it was an individual item, refresh the selected request to show any state changes if needed
+          const updatedRequests = requests.map(r => {
+            if (r.id === requestId) {
+              // We'd ideally fetch again, but for now just clear the input
+              return r;
+            }
+            return r;
+          });
+        }
       }
     } catch (err: any) {
       toast.error("Erro ao enviar: " + err.message);
@@ -860,8 +880,13 @@ export default function FornecedorPublicPage() {
  
                  return (
                    <div key={item.id} className="bg-white/5 border border-white/5 rounded-lg p-3 space-y-2 group hover:border-primary/30 transition-all">
-                     <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between mb-1">
                        <span className="text-[10px] font-black text-white/20 uppercase">Item #{idx + 1}</span>
+                        {item.reason && (
+                          <Badge className="bg-red-500/10 text-red-400 border-red-500/20 text-[8px] px-1.5 py-0 uppercase font-black">
+                            {item.reason}
+                          </Badge>
+                        )}
                      </div>
                      
                      {id && hasSeparator && (
