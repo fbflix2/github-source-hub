@@ -5,9 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
- import { Loader2, Send, FileText, CheckCircle2, Clock, AlertCircle, ExternalLink, Copy } from "lucide-react";
+  import { Loader2, Send, FileText, CheckCircle2, Clock, AlertCircle, ExternalLink, Copy, ChevronDown, ChevronUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 export default function FornecedorPublicPage() {
   const [token, setToken] = useState("");
@@ -21,6 +22,7 @@ export default function FornecedorPublicPage() {
   const [content, setContent] = useState("");
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [expandedRequests, setExpandedRequests] = useState<Record<string, boolean>>({});
 
   const handleAuth = async () => {
     if (token.length < 8) {
@@ -98,7 +100,14 @@ export default function FornecedorPublicPage() {
      toast.success("Copiado para a área de transferência");
    };
 
-  const handleSubmit = async () => {
+  const toggleRequestExpand = (requestId: string) => {
+    setExpandedRequests(prev => ({
+      ...prev,
+      [requestId]: !prev[requestId]
+    }));
+  };
+
+  const handleSubmit = async (requestId?: string) => {
     if (!content.trim()) {
       toast.error("Insira o conteúdo (links ou dados)");
       return;
@@ -111,8 +120,10 @@ export default function FornecedorPublicPage() {
         .from("supplier_batches")
         .insert({
           supplier_id: supplier.id,
-          name: `Envio Fornecedor (${type}) - ${new Date().toLocaleDateString("pt-BR")}`,
-          notes: notes || `Envio via portal público`,
+          name: requestId 
+            ? `Reposição via Portal - Req #${requestId.slice(0, 4)}`
+            : `Envio Fornecedor (${type}) - ${new Date().toLocaleDateString("pt-BR")}`,
+          notes: notes || (requestId ? `Reposição para solicitação ${requestId}` : `Envio via portal público`),
           purchased_at: new Date().toISOString().split('T')[0],
           type: "replacement"
         })
@@ -139,6 +150,10 @@ export default function FornecedorPublicPage() {
       toast.success(`${accounts.length} itens enviados com sucesso! Nossa equipe irá auditar.`);
       setContent("");
       setNotes("");
+      
+      if (requestId) {
+        setExpandedRequests(prev => ({ ...prev, [requestId]: false }));
+      }
     } catch (err: any) {
       toast.error("Erro ao enviar: " + err.message);
     } finally {
@@ -247,66 +262,105 @@ export default function FornecedorPublicPage() {
                   <p className="text-zinc-500">Nenhuma solicitação pendente no momento.</p>
                 </div>
                ) : requests.map(req => (
-                 <Card key={req.id} className="bg-zinc-900 border-zinc-800 overflow-hidden">
-                   <CardContent className="p-4 space-y-4">
-                     <div className="flex items-start justify-between gap-4">
-                       <div className="space-y-1">
-                         <div className="flex items-center gap-2 flex-wrap">
-                           <Badge className={getStatusColor(req.status)}>
-                             {getStatusLabel(req.status)}
-                           </Badge>
-                           <span className="text-xs text-zinc-500">{new Date(req.created_at).toLocaleString('pt-BR')}</span>
-                           {req.unit_price > 0 && (
-                             <Badge variant="outline" className="border-emerald-500/30 text-emerald-400">
-                               Unitário: R$ {req.unit_price.toFixed(2)}
-                             </Badge>
-                           )}
-                         </div>
-                         <h3 className="font-bold text-white text-lg">{req.title}</h3>
-                         {req.reason && (
-                           <p className="text-xs text-primary font-medium bg-primary/10 inline-block px-2 py-0.5 rounded">
-                             Motivo: {req.reason}
-                           </p>
-                         )}
-                         <p className="text-sm text-zinc-400">{req.description}</p>
-                       </div>
-                       {req.priority === 'high' && <AlertCircle className="h-5 w-5 text-red-500 flex-shrink-0" />}
-                     </div>
+                  <Collapsible 
+                    key={req.id} 
+                    open={expandedRequests[req.id]} 
+                    onOpenChange={() => toggleRequestExpand(req.id)}
+                  >
+                    <Card className="bg-zinc-900 border-zinc-800 overflow-hidden mb-4">
+                      <CardContent className="p-4 space-y-4">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <Badge className={getStatusColor(req.status)}>
+                                {getStatusLabel(req.status)}
+                              </Badge>
+                              <span className="text-xs text-zinc-500">{new Date(req.created_at).toLocaleString('pt-BR')}</span>
+                              {req.unit_price > 0 && (
+                                <Badge variant="outline" className="border-emerald-500/30 text-emerald-400">
+                                  Unitário: R$ {req.unit_price.toFixed(2)}
+                                </Badge>
+                              )}
+                            </div>
+                            <h3 className="font-bold text-white text-lg">{req.title}</h3>
+                            {req.reason && (
+                              <p className="text-xs text-primary font-medium bg-primary/10 inline-block px-2 py-0.5 rounded">
+                                Motivo: {req.reason}
+                              </p>
+                            )}
+                            <p className="text-sm text-zinc-400">{req.description}</p>
+                          </div>
+                          <CollapsibleTrigger asChild>
+                            <Button size="icon" variant="ghost" className="text-zinc-500">
+                              {expandedRequests[req.id] ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                            </Button>
+                          </CollapsibleTrigger>
+                        </div>
 
-                     {req.items && req.items.length > 0 && (
-                       <div className="space-y-2 pt-2 border-t border-zinc-800/50">
-                         <p className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Itens solicitados ({req.items.length})</p>
-                         <div className="space-y-2">
-                           {req.items.map((item: any) => (
-                             <div key={item.id} className="flex items-center justify-between gap-3 p-2 bg-black/40 rounded-lg group">
-                               <span className="text-xs font-mono text-zinc-300 truncate flex-1">{item.details}</span>
-                               <div className="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
-                                 {item.details.startsWith('http') && (
-                                   <Button 
-                                     size="icon" 
-                                     variant="ghost" 
-                                     className="h-7 w-7 text-primary hover:text-primary hover:bg-primary/10"
-                                     onClick={() => window.open(item.details, '_blank')}
-                                   >
-                                     <ExternalLink className="h-3.5 w-3.5" />
-                                   </Button>
-                                 )}
-                                 <Button 
-                                   size="icon" 
-                                   variant="ghost" 
-                                   className="h-7 w-7 text-zinc-400 hover:text-white"
-                                   onClick={() => copyToClipboard(item.details)}
-                                 >
-                                   <Copy className="h-3.5 w-3.5" />
-                                 </Button>
-                               </div>
-                             </div>
-                           ))}
-                         </div>
-                       </div>
-                     )}
-                   </CardContent>
-                 </Card>
+                        {req.items && req.items.length > 0 && (
+                          <div className="space-y-2 pt-2 border-t border-zinc-800/50">
+                            <p className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Itens solicitados ({req.items.length})</p>
+                            <div className="space-y-2">
+                              {req.items.map((item: any) => (
+                                <div key={item.id} className="flex items-center justify-between gap-3 p-2 bg-black/40 rounded-lg group">
+                                  <span className="text-xs font-mono text-zinc-300 truncate flex-1">{item.details}</span>
+                                  <div className="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                                    {item.details.startsWith('http') && (
+                                      <Button 
+                                        size="icon" 
+                                        variant="ghost" 
+                                        className="h-7 w-7 text-primary hover:text-primary hover:bg-primary/10"
+                                        onClick={() => window.open(item.details, '_blank')}
+                                      >
+                                        <ExternalLink className="h-3.5 w-3.5" />
+                                      </Button>
+                                    )}
+                                    <Button 
+                                      size="icon" 
+                                      variant="ghost" 
+                                      className="h-7 w-7 text-zinc-400 hover:text-white"
+                                      onClick={() => copyToClipboard(item.details)}
+                                    >
+                                      <Copy className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        <CollapsibleContent className="space-y-4 pt-4 border-t border-zinc-800/50 animate-in slide-in-from-top-2">
+                          <div className="space-y-2">
+                            <label className="text-xs font-bold text-primary uppercase tracking-wider">Responder Reposição</label>
+                            <Textarea 
+                              placeholder="Cole aqui os novos links ou dados para reposição..."
+                              className="bg-black border-zinc-800 min-h-[120px] font-mono text-xs"
+                              value={content}
+                              onChange={e => setContent(e.target.value)}
+                            />
+                          </div>
+                          <div className="flex gap-2">
+                            <Button 
+                              className="flex-1 bg-primary hover:bg-primary/90 text-white"
+                              onClick={() => handleSubmit(req.id)}
+                              disabled={submitting}
+                            >
+                              {submitting ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : <Send className="mr-2 h-4 w-4" />}
+                              Enviar Reposição
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              className="border-zinc-800 text-zinc-400"
+                              onClick={() => setExpandedRequests(prev => ({ ...prev, [req.id]: false }))}
+                            >
+                              Cancelar
+                            </Button>
+                          </div>
+                        </CollapsibleContent>
+                      </CardContent>
+                    </Card>
+                  </Collapsible>
                ))}
             </div>
           </div>
