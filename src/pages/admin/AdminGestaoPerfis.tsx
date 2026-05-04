@@ -40,6 +40,9 @@ const statusMap: Record<string, { label: string; color: string }> = {
   vendido: { label: "Vendido", color: "bg-green-500/15 text-green-400 border-green-500/30" },
   reservado: { label: "Reservado", color: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30" },
   usado: { label: "Usado", color: "bg-zinc-500/15 text-zinc-400 border-zinc-500/30" },
+  aguardando: { label: "Aguardando", color: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
+  ok: { label: "OK", color: "bg-cyan-500/15 text-cyan-400 border-cyan-500/30" },
+  bloqueado: { label: "Bloqueado", color: "bg-red-500/15 text-red-400 border-red-500/30" },
 };
 
 function getProfileLast4(identification: string | null): string {
@@ -65,20 +68,25 @@ export default function AdminGestaoPerfis() {
         .select("id, name, identification, identification_link, status, product_id, data, folder, created_at, order_item_id")
         .eq("type", "perfil")
         .is("deleted_at", null)
-        .in("status", ["revisado", "vendido", "usado"])
+        .in("status", ["revisado", "vendido", "usado", "aguardando", "ok", "bloqueado", "reservado"])
         .order("created_at", { ascending: false });
 
       if (error) throw error;
 
-      // Only show items that passed through blocagem (have bmNames or perfilMatriz filled)
+      // Include all profiles that are sold, used, or ready in the store.
+      // Also include any profile that has BM/Matriz tracking info regardless of status.
       const rows = (stockItems || []).filter(r => {
+        if (r.status === "vendido" || r.status === "usado") return true;
+        if (r.status === "revisado" && r.product_id && !r.order_item_id) return true;
+        
         const d = r.data as any;
         const hasBm = Array.isArray(d?.bmNames) && d.bmNames.some((b: string) => b.trim());
         const hasMatriz = !!d?.perfilMatriz;
-        if (!hasBm && !hasMatriz) return false;
-        if (r.status === "vendido" || r.status === "usado") return true;
-        if (r.status === "revisado" && r.product_id && !r.order_item_id) return true;
-        return false;
+        if (hasBm || hasMatriz) return true;
+        
+        // For other statuses (aguardando, ok, etc), only show if they are actually being managed/tracked
+        // but the user complained about missing items, so let's be more inclusive if they are searching.
+        return ["aguardando", "ok", "bloqueado", "reservado"].includes(r.status);
       });
 
       // Get order_item_ids to resolve orders (direct link)
@@ -200,6 +208,7 @@ export default function AdminGestaoPerfis() {
 
       if (statusFilter === "vendido" && !isSold) return false;
       if (statusFilter === "na_loja" && !isInStore) return false;
+      if (statusFilter === "outros" && (isSold || isInStore)) return false;
 
       const bmNames: string[] = item.data?.bmNames || [];
       if (bmFilter === "com_bm" && bmNames.length === 0) return false;
@@ -299,6 +308,7 @@ export default function AdminGestaoPerfis() {
                 <SelectItem value="all">Todos Status</SelectItem>
                 <SelectItem value="vendido">Vendidos</SelectItem>
                 <SelectItem value="na_loja">Na Loja</SelectItem>
+                <SelectItem value="outros">Outros Status</SelectItem>
               </SelectContent>
             </Select>
             <Select value={bmFilter} onValueChange={setBmFilter}>
