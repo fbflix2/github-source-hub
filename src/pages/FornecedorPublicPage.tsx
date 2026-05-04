@@ -38,6 +38,7 @@ export default function FornecedorPublicPage() {
    const [offerData, setOfferData] = useState({ type: "bm" as "bm" | "perfil", description: "", price: "", content: "" });
    const [replenishItemContent, setReplenishItemContent] = useState<Record<string, string>>({});
    const [selectedRequest, setSelectedRequest] = useState<any>(null);
+   const [purchaseRequests, setPurchaseRequests] = useState<any[]>([]);
 
   useEffect(() => {
     const savedToken = localStorage.getItem("supplier_token");
@@ -61,6 +62,7 @@ export default function FornecedorPublicPage() {
         setIsAuth(true);
         fetchRequests(data.id);
         fetchPaymentMethods(data.id);
+        fetchPurchaseRequests();
       }
     } catch (err) {
       console.error("Auto-auth failed");
@@ -210,6 +212,16 @@ export default function FornecedorPublicPage() {
        return;
      }
      setRequests(data || []);
+   };
+
+   const fetchPurchaseRequests = async () => {
+     const { data, error } = await supabase
+       .from("purchase_requests")
+       .select("*")
+       .eq("status", "open")
+       .order("created_at", { ascending: false });
+     
+     if (!error) setPurchaseRequests(data || []);
    };
 
    const getStatusLabel = (status: string) => {
