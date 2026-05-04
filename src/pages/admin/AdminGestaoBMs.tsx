@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { 
   Search, ExternalLink, Bell, CheckCircle, Clock, AlertTriangle, 
-  ShieldAlert, Plus, Loader2, RefreshCw, Shield, Filter, X
+  ShieldAlert, Plus, Loader2, RefreshCw, Shield, Filter, X, Type
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription
@@ -95,13 +95,7 @@ function StatusBadge({ status }: { status: string }) {
   return <Badge className={`${s.bg} ${s.color} ${s.border} text-[11px] font-semibold`}>{s.label}</Badge>;
 }
 
-function extractBmName(bmLink: string) {
-  return bmLink.match(/^(.*?)https?:\/\//)?.[1]?.replace(/[\s|:\-]+$/, '').trim() || "";
-}
-
-function extractBmUrl(bmLink: string) {
-  return bmLink.match(/https?:\/\/\S+/)?.[0] || bmLink;
-}
+import { extractBmNameFromInput, extractBmUrlFromInput } from "@/lib/bm-link";
 
 const formatPrice = (v: number) => {
   if (!v || v === 0) return null;
@@ -248,7 +242,7 @@ export default function AdminGestaoBMs() {
           (item.client_email || "").toLowerCase().includes(q) ||
           item.bm_link.toLowerCase().includes(q) ||
           item.product_name.toLowerCase().includes(q) ||
-          extractBmName(item.bm_link).toLowerCase().includes(q)
+          extractBmNameFromInput(item.bm_link).toLowerCase().includes(q)
         );
       }
       return true;
@@ -271,7 +265,7 @@ export default function AdminGestaoBMs() {
   }, [items]);
 
   const handleOpenProtect = (item: BmTracking) => {
-    const bmNameFromLink = extractBmName(item.bm_link);
+    const bmNameFromLink = extractBmNameFromInput(item.bm_link);
     setProtectItem(item);
     setProtectForm({ bmName: bmNameFromLink, bmLink: "" });
     setProtectOpen(true);
@@ -527,8 +521,8 @@ export default function AdminGestaoBMs() {
           </div>
 
           {filtered.map(item => {
-            const bmName = extractBmName(item.bm_link);
-            const bmUrl = extractBmUrl(item.bm_link);
+            const bmName = extractBmNameFromInput(item.bm_link);
+            const bmUrl = extractBmUrlFromInput(item.bm_link);
             const price = formatPrice(Number(item.sale_price));
             const dateStr = item.status === "em_estoque"
               ? new Date(item.created_at).toLocaleDateString("pt-BR")
@@ -564,19 +558,24 @@ export default function AdminGestaoBMs() {
                     </div>
 
                     {/* BM Name + Link */}
-                    <div className="min-w-0 flex items-center gap-2">
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-foreground truncate">{bmName || "—"}</p>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="text-sm font-medium text-foreground truncate">
+                          {bmName || item.product_name || "—"}
+                        </p>
+                        <a
+                          href={bmUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:text-primary/80 transition-colors shrink-0"
+                          title="Abrir BM"
+                        >
+                          <ExternalLink className="size-3.5" />
+                        </a>
                       </div>
-                      <a
-                        href={bmUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary hover:text-primary/80 transition-colors shrink-0"
-                        title="Abrir BM"
-                      >
-                        <ExternalLink className="size-3.5" />
-                      </a>
+                      <p className="text-[10px] text-muted-foreground/60 truncate flex items-center gap-1">
+                        <Type className="size-2.5" /> {item.product_name}
+                      </p>
                     </div>
 
                     {/* Price */}
@@ -654,15 +653,10 @@ export default function AdminGestaoBMs() {
                       </a>
                     </div>
 
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs">
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs mb-2">
                       <span className="text-muted-foreground">
-                        <span className="font-medium text-foreground">{item.product_name}</span>
+                        BM: <span className="font-medium text-foreground">{bmName || item.product_name}</span>
                       </span>
-                      {bmName && (
-                        <span className="text-muted-foreground">
-                          BM: <span className="font-medium text-foreground">{bmName}</span>
-                        </span>
-                      )}
                       {price && (
                         <span className="font-semibold text-foreground">{price}</span>
                       )}
