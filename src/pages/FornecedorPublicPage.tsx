@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-  import { Loader2, Send, FileText, CheckCircle2, Clock, AlertCircle, ExternalLink, Copy, ChevronDown, ChevronUp, LayoutDashboard, Hash, Calendar, PackagePlus, Inbox, BriefcaseBusiness, Menu, RefreshCw, History, TrendingUp, ArrowUpRight, ArrowDownRight, DollarSign, Activity, Users, IdCard, KeyRound, Mail, Lock, AtSign, ShieldCheck, ShieldAlert, Award } from "lucide-react";
+  import { Loader2, Send, FileText, CheckCircle2, Clock, AlertCircle, ExternalLink, Copy, ChevronDown, ChevronUp, LayoutDashboard, Hash, Calendar, PackagePlus, Inbox, BriefcaseBusiness, Menu, RefreshCw, History, TrendingUp, ArrowUpRight, ArrowDownRight, DollarSign, Activity, Users, IdCard, KeyRound, Mail, Lock, AtSign, ShieldCheck, ShieldAlert, Award, Search } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, Cell, PieChart, Pie } from 'recharts';
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -387,117 +387,152 @@ export default function FornecedorPublicPage() {
             </div>
           )}
           {activeTab === 'reposicoes' && (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-xs font-black text-zinc-500 uppercase tracking-widest">Lista de Pedidos para Reposição</p>
-                <Badge className="bg-primary/10 text-primary border-primary/20">{requests.length} Pedidos</Badge>
-              </div>
-              <div className="grid grid-cols-1 gap-4">
-                {requests.length === 0 ? (
-                  <div className="text-center py-20 bg-black/20 rounded-2xl border border-dashed border-zinc-800">
-                    <Inbox className="h-10 w-10 text-zinc-700 mx-auto mb-4"/>
-                    <p className="text-zinc-500 font-bold">Nenhum pedido pendente.</p>
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-700">
+              <div className="flex flex-col md:flex-row gap-3 items-center bg-[#0a0a0a] p-4 rounded-xl border border-zinc-800 shadow-lg">
+                <div className="flex-1 flex gap-3 items-center w-full">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <Search className="h-4 w-4 text-primary" />
                   </div>
-                ) : requests.map(req => (
-                  <Collapsible 
-                    key={req.id} 
-                    open={expandedRequests[req.id]} 
-                    onOpenChange={() => toggleRequestExpand(req.id)}
-                    className="bg-[#0a0a0a] border border-zinc-800 rounded-2xl overflow-hidden shadow-lg transition-all hover:border-zinc-700"
-                  >
-                    <CollapsibleTrigger className="flex items-center justify-between w-full p-6 text-left hover:bg-white/[0.02]">
-                      <div className="flex items-center gap-6">
-                        <div className="flex flex-col">
-                          <span className="text-xs font-black text-primary uppercase mb-1 flex items-center gap-2">
-                            <Hash className="h-3 w-3"/>
-                            {req.title || `REQ-${req.id.slice(0, 5)}`}
-                          </span>
-                          <div className="flex items-center gap-3">
-                            <span className="text-lg font-black text-white tracking-tight">Reposição Solicitada</span>
-                            {req.reason && (
-                              <Badge variant="outline" className="border-red-500/30 text-red-400 bg-red-500/5 text-[10px]">
-                                MOTIVO: {req.reason.toUpperCase()}
+                  <Tabs value={filterItemType} onValueChange={setFilterItemType} className="flex-1">
+                    <TabsList className="bg-black border border-zinc-800 w-full h-9 p-1">
+                      <TabsTrigger value="all" className="flex-1 data-[state=active]:bg-zinc-800 font-black text-[9px] uppercase tracking-wider">Todos Itens</TabsTrigger>
+                      <TabsTrigger value="bm" className="flex-1 data-[state=active]:bg-zinc-800 font-black text-[9px] uppercase tracking-wider">BMs</TabsTrigger>
+                      <TabsTrigger value="perfil" className="flex-1 data-[state=active]:bg-zinc-800 font-black text-[9px] uppercase tracking-wider">Perfis</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                </div>
+                <div className="flex-1 w-full">
+                  <Tabs value={filterType} onValueChange={setFilterStatus} className="w-full">
+                    <TabsList className="bg-black border border-zinc-800 w-full h-9 p-1">
+                      <TabsTrigger value="all" className="flex-1 data-[state=active]:bg-zinc-800 font-black text-[9px] uppercase tracking-wider">Todos Status</TabsTrigger>
+                      <TabsTrigger value="pending" className="flex-1 data-[state=active]:bg-zinc-800 font-black text-[9px] uppercase tracking-wider text-yellow-500">Pendentes</TabsTrigger>
+                      <TabsTrigger value="completed" className="flex-1 data-[state=active]:bg-zinc-800 font-black text-[9px] uppercase tracking-wider text-emerald-500">Concluídos</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-4">
+                {requests
+                  .filter(r => {
+                    const matchesStatus = filterType === 'all' 
+                      ? true 
+                      : filterType === 'pending' 
+                        ? r.status !== 'completed' 
+                        : r.status === 'completed';
+                    const matchesType = filterItemType === 'all'
+                      ? true
+                      : filterItemType === 'bm'
+                        ? r.title?.toLowerCase().includes('bm')
+                        : r.title?.toLowerCase().includes('perfil') || r.title?.toLowerCase().includes('perfis');
+                    return matchesStatus && matchesType;
+                  }).length === 0 ? (
+                  <div className="text-center py-16 bg-black/20 rounded-2xl border border-dashed border-zinc-800/50">
+                    <Inbox className="h-12 w-12 text-zinc-800 mx-auto mb-4 opacity-50"/>
+                    <p className="text-zinc-600 font-black text-sm uppercase tracking-widest">Nenhuma solicitação encontrada</p>
+                  </div>
+                ) : (
+                  requests
+                    .filter(r => {
+                      const matchesStatus = filterType === 'all' 
+                        ? true 
+                        : filterType === 'pending' 
+                          ? r.status !== 'completed' 
+                          : r.status === 'completed';
+                      const matchesType = filterItemType === 'all'
+                        ? true
+                        : filterItemType === 'bm'
+                          ? r.title?.toLowerCase().includes('bm')
+                          : r.title?.toLowerCase().includes('perfil') || r.title?.toLowerCase().includes('perfis');
+                      return matchesStatus && matchesType;
+                    })
+                    .map(req => (
+                    <Card key={req.id} className="bg-[#0a0a0a] border-zinc-800 overflow-hidden rounded-2xl transition-all duration-300 hover:border-primary/20 group">
+                      <div className="p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gradient-to-br from-zinc-900/10 to-transparent">
+                        <div className="flex items-center gap-4">
+                          <div className="p-2.5 bg-primary/5 rounded-xl border border-primary/10 group-hover:bg-primary/10 transition-colors">
+                            <ShieldAlert className="h-5 w-5 text-primary" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h3 className="text-sm font-black text-white uppercase tracking-tight italic">{req.title || 'Solicitação'}</h3>
+                              <Badge className={`${getStatusColor(req.status)} h-5 px-2 text-[9px] font-black border shadow-sm uppercase`}>
+                                {getStatusLabel(req.status)}
                               </Badge>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <Badge className={getStatusColor(req.status)}>{getStatusLabel(req.status)}</Badge>
-                        <ChevronDown className={`h-5 w-5 text-zinc-500 transition-transform ${expandedRequests[req.id] ? 'rotate-180' : ''}`}/>
-                      </div>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="p-6 bg-black/40 border-t border-zinc-800 space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <div className="space-y-4">
-                          <p className="text-xs font-black text-zinc-500 uppercase tracking-widest">Itens para Reposição</p>
-                          <div className="space-y-2">
-                            {req.items && req.items.length > 0 ? req.items.map((item: any) => (
-                              <div key={item.id} className="flex items-center justify-between bg-zinc-900/50 p-3 rounded-xl border border-zinc-800 group">
-                                <div className="flex flex-col gap-1 overflow-hidden">
-                                  <span className="text-[10px] font-black text-zinc-600 uppercase">IDENTIFICADOR / LINK</span>
-                                  <code className="text-xs text-primary truncate pr-4">{item.details}</code>
-                                </div>
-                                <div className="flex items-center gap-2 shrink-0">
-                                  {item.details.startsWith('http') && (
-                                    <Button 
-                                      size="icon" 
-                                      variant="ghost" 
-                                      className="h-8 w-8 text-zinc-400 hover:text-white"
-                                      onClick={() => window.open(item.details, '_blank')}
-                                    >
-                                      <ExternalLink className="h-4 w-4"/>
-                                    </Button>
-                                  )}
-                                  <Button 
-                                    size="icon" 
-                                    variant="ghost" 
-                                    className="h-8 w-8 text-zinc-400 hover:text-white"
-                                    onClick={() => copyToClipboard(item.details)}
-                                  >
-                                    <Copy className="h-4 w-4"/>
-                                  </Button>
-                                </div>
-                              </div>
-                            )) : (
-                              <p className="text-xs text-zinc-500 italic p-4 bg-black/20 rounded-xl border border-dashed border-zinc-800">
-                                Detalhes descritos: {req.description}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                        <div className="space-y-4">
-                          <p className="text-xs font-black text-zinc-500 uppercase tracking-widest">Realizar Reposição</p>
-                          <div className="space-y-4">
-                            <Textarea 
-                              className="bg-black border-zinc-800 min-h-[160px] font-mono text-xs focus:ring-primary/20 p-4 leading-relaxed" 
-                              placeholder="Cole aqui os novos links ou dados dos perfis/BMs para repor os itens acima..."
-                              value={content}
-                              onChange={e => setContent(e.target.value)}
-                            />
-                            <div className="flex gap-3">
-                              <Button 
-                                className="flex-1 bg-primary hover:bg-primary/90 text-white font-black h-12 tracking-tight" 
-                                onClick={() => handleSubmit(req.id)} 
-                                disabled={submitting}
-                              >
-                                {submitting ? <Loader2 className="animate-spin h-5 w-5 mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-                                EFETUAR REPOSIÇÃO
-                              </Button>
-                              <Button 
-                                variant="outline" 
-                                className="border-zinc-800 text-zinc-500 font-bold" 
-                                onClick={() => setExpandedRequests(prev => ({ ...prev, [req.id]: false }))}
-                              >
-                                CANCELAR
-                              </Button>
+                            </div>
+                            <div className="flex items-center gap-3 mt-1 opacity-50">
+                              <span className="text-[9px] font-black uppercase tracking-wider flex items-center gap-1"><Hash className="h-2.5 w-2.5"/> {req.id.slice(0, 8)}</span>
+                              <span className="text-[9px] font-black uppercase tracking-wider flex items-center gap-1"><Calendar className="h-2.5 w-2.5"/> {new Date(req.created_at).toLocaleDateString('pt-BR')}</span>
                             </div>
                           </div>
                         </div>
+                        
+                        <div className="flex items-center gap-3 w-full md:w-auto">
+                          {req.reason && (
+                            <Badge variant="outline" className="border-red-500/20 bg-red-500/5 text-red-400 font-black text-[9px] px-3 py-1 rounded-lg italic flex-1 md:flex-none justify-center">
+                              MOTIVO: {req.reason.toUpperCase()}
+                            </Badge>
+                          )}
+                          <Button size="sm" variant="outline" className="h-8 border-zinc-800 text-[10px] font-black bg-zinc-900/50 hover:bg-zinc-800" onClick={() => toggleRequestExpand(req.id)}>
+                            {expandedRequests[req.id] ? 'RECOLHER' : 'ABRIR REPOSIÇÃO'}
+                            <ChevronDown className={`ml-2 h-3 w-3 transition-transform ${expandedRequests[req.id] ? 'rotate-180' : ''}`} />
+                          </Button>
+                        </div>
                       </div>
-                    </CollapsibleContent>
-                  </Collapsible>
-                ))}
+
+                      <Collapsible open={expandedRequests[req.id]}>
+                        <CollapsibleContent className="animate-in slide-in-from-top-2 duration-300">
+                          <div className="p-6 border-t border-zinc-800/50 bg-black/40">
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                              <div className="space-y-4">
+                                <p className="text-[9px] font-black text-zinc-500 uppercase tracking-[0.2em]">Itens para Reposição ({req.items?.length || 0})</p>
+                                <div className="space-y-2 max-h-[280px] overflow-y-auto pr-2 custom-scrollbar">
+                                  {req.items && req.items.length > 0 ? req.items.map((item: any) => (
+                                    <div key={item.id} className="flex items-center justify-between bg-zinc-900/30 border border-zinc-800/50 p-2.5 rounded-xl group/item">
+                                      <code className="text-[11px] font-black text-primary/80 truncate pr-4">{item.details}</code>
+                                      <div className="flex items-center gap-1 shrink-0">
+                                        {item.details.startsWith('http') && (
+                                          <Button size="icon" variant="ghost" className="h-7 w-7 text-zinc-500 hover:text-white hover:bg-zinc-800" onClick={() => window.open(item.details, '_blank')}>
+                                            <ExternalLink className="h-3.5 w-3.5"/>
+                                          </Button>
+                                        )}
+                                        <Button size="icon" variant="ghost" className="h-7 w-7 text-zinc-500 hover:text-white hover:bg-zinc-800" onClick={() => copyToClipboard(item.details)}>
+                                          <Copy className="h-3.5 w-3.5"/>
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  )) : (
+                                    <p className="text-xs text-zinc-500 italic p-4 bg-black/20 rounded-xl border border-dashed border-zinc-800">
+                                      {req.description || 'Sem detalhes técnicos.'}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="space-y-4">
+                                <p className="text-[9px] font-black text-emerald-500 uppercase tracking-[0.2em] flex items-center gap-2"><ShieldCheck className="h-3 w-3"/> Responder com novos dados</p>
+                                <Textarea 
+                                  className="bg-black border-zinc-800 min-h-[140px] font-mono text-[11px] focus:ring-emerald-500/10 p-4 leading-relaxed rounded-xl focus:border-emerald-500/30" 
+                                  placeholder="Novos dados (Login|Senha|...)"
+                                  value={content}
+                                  onChange={e => setContent(e.target.value)}
+                                />
+                                <Button 
+                                  className="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-black h-10 text-[11px] rounded-xl transition-all" 
+                                  onClick={() => handleSubmit(req.id)} 
+                                  disabled={submitting}
+                                >
+                                  {submitting ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                                  FINALIZAR REPOSIÇÃO
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </CollapsibleContent>
+                      </Collapsible>
+                    </Card>
+                  ))
+                )}
               </div>
             </div>
           )}
