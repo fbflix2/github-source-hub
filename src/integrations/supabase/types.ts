@@ -3430,8 +3430,53 @@ export type Database = {
           },
         ]
       }
+      supplier_requests: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          priority: string | null
+          status: string | null
+          supplier_id: string | null
+          title: string
+          type: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          priority?: string | null
+          status?: string | null
+          supplier_id?: string | null
+          title: string
+          type?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          priority?: string | null
+          status?: string | null
+          supplier_id?: string | null
+          title?: string
+          type?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_requests_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suppliers: {
         Row: {
+          access_token: string | null
           created_at: string
           created_by: string | null
           id: string
@@ -3441,6 +3486,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          access_token?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
@@ -3450,6 +3496,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          access_token?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
@@ -4098,6 +4145,7 @@ export type Database = {
     }
     Functions: {
       _supplier_enc_key: { Args: never; Returns: string }
+      check_supplier_token: { Args: { token: string }; Returns: string }
       fulfill_order_item: {
         Args: { p_order_item_id: string; p_product_id: string }
         Returns: Json

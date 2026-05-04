@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RefreshCw, Upload, Link, FileText, Loader2, History, Trash2 } from "lucide-react";
+import { RefreshCw, Upload, Link, FileText, Loader2, History, Trash2, UserPlus, Plus, ExternalLink, Copy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -32,6 +32,9 @@ export default function AdminReposicaoFornecedor() {
   const [submitting, setSubmitting] = useState(false);
   const [notes, setNotes] = useState("");
   const [history, setHistory] = useState<ReplacementRecord[]>([]);
+  const [isCreatingSupplier, setIsCreatingSupplier] = useState(false);
+  const [newSupplierName, setNewSupplierName] = useState("");
+  const [creatingSupplier, setCreatingSupplier] = useState(false);
 
   // Profile upload state
   const [txtContent, setTxtContent] = useState("");
@@ -45,9 +48,43 @@ export default function AdminReposicaoFornecedor() {
   }, []);
 
   const fetchSuppliers = async () => {
-    const { data } = await supabase.from("suppliers").select("id, name").eq("status", "active").order("name");
+    const { data } = await supabase.from("suppliers").select("id, name, access_token").eq("status", "active").order("name");
     setSuppliers(data || []);
     setLoading(false);
+  };
+
+  const handleCreateSupplier = async () => {
+    if (!newSupplierName.trim()) {
+      toast.error("Informe o nome do fornecedor");
+      return;
+    }
+
+    setCreatingSupplier(true);
+    try {
+      // Generate 8 digit token
+      const token = Math.random().toString(36).substring(2, 10).toUpperCase();
+      
+      const { data, error } = await supabase
+        .from("suppliers")
+        .insert({
+          name: newSupplierName.trim(),
+          access_token: token,
+          status: "active"
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast.success("Fornecedor criado com sucesso!");
+      setNewSupplierName("");
+      setIsCreatingSupplier(false);
+      fetchSuppliers();
+    } catch (err: any) {
+      toast.error("Erro ao criar fornecedor: " + err.message);
+    } finally {
+      setCreatingSupplier(false);
+    }
   };
 
   const fetchHistory = async () => {
@@ -242,13 +279,46 @@ export default function AdminReposicaoFornecedor() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-black text-white flex items-center gap-2">
-          <RefreshCw className="h-8 w-8 text-primary" />
-          Reposição Fornecedor
-        </h1>
-        <p className="text-zinc-400 mt-1">Solicite e registre reposições de fornecedores manualmente.</p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-black text-white flex items-center gap-2">
+            <RefreshCw className="h-8 w-8 text-primary" />
+            Reposição Fornecedor
+          </h1>
+          <p className="text-zinc-400 mt-1">Solicite e registre reposições de fornecedores manualmente.</p>
+        </div>
+        <Button 
+          onClick={() => setIsCreatingSupplier(!isCreatingSupplier)}
+          className="bg-zinc-800 hover:bg-zinc-700 text-white"
+        >
+          <UserPlus className="h-4 w-4 mr-2" />
+          Cadastrar Fornecedor
+        </Button>
       </div>
+
+      {isCreatingSupplier && (
+        <Card className="bg-zinc-900/80 border-primary/20 animate-in fade-in slide-in-from-top-4">
+          <CardContent className="p-4 flex flex-col sm:flex-row items-end gap-4">
+            <div className="flex-1 space-y-2">
+              <label className="text-sm font-medium text-zinc-400">Nome do Novo Fornecedor</label>
+              <Input 
+                placeholder="Ex: Fornecedor de Perfis VIP"
+                value={newSupplierName}
+                onChange={(e) => setNewSupplierName(e.target.value)}
+                className="bg-zinc-950 border-zinc-800 text-white"
+              />
+            </div>
+            <Button 
+              onClick={handleCreateSupplier} 
+              disabled={creatingSupplier}
+              className="bg-primary text-white"
+            >
+              {creatingSupplier ? <Loader2 className="animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
+              Criar Fornecedor
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
@@ -265,7 +335,9 @@ export default function AdminReposicaoFornecedor() {
                   </SelectTrigger>
                   <SelectContent className="bg-zinc-950 border-zinc-800 text-white">
                     {suppliers.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                      <SelectItem key={s.id} value={s.id}>
+                        {s.name} {(s as any).access_token ? `(${ (s as any).access_token })` : ''}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -354,6 +426,38 @@ export default function AdminReposicaoFornecedor() {
         </div>
 
         <div className="space-y-6">
+          {selectedSupplier && (
+            <Card className="bg-primary/5 border-primary/20">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-bold text-primary flex items-center gap-2">
+                  <ExternalLink className="h-4 w-4" /> Link do Fornecedor
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-xs text-zinc-400">Envie este link e o token para seu fornecedor:</p>
+                <div className="flex items-center gap-2">
+                  <Input 
+                    readOnly 
+                    value={`${window.location.origin}/fornecedor/portal`} 
+                    className="bg-black/40 border-zinc-800 text-[10px] h-8"
+                  />
+                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/fornecedor/portal`);
+                    toast.success("Link copiado!");
+                  }}>
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                </div>
+                <div className="flex items-center justify-between p-2 bg-black/40 rounded border border-zinc-800">
+                  <span className="text-[10px] text-zinc-400">TOKEN:</span>
+                  <span className="font-mono font-bold text-primary text-sm">
+                    {(suppliers.find(s => s.id === selectedSupplier) as any)?.access_token || "SEM TOKEN"}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <Card className="bg-zinc-900/50 border-zinc-800">
             <CardHeader>
               <CardTitle className="text-lg text-white flex items-center gap-2">
