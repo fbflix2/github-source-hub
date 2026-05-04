@@ -761,144 +761,87 @@ export default function FornecedorPublicPage() {
             </div>
           )}
           {activeTab === 'compras' && (
-            <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-700">
-              <div className="flex flex-col md:flex-row gap-3 items-center bg-[#0a0a0a]/80 backdrop-blur-md p-3 rounded-2xl border border-zinc-800/50 shadow-2xl">
-                <div className="flex-1 flex gap-3 items-center w-full px-2">
-                  <Search className="h-4 w-4 text-zinc-500" />
-                  <Tabs value={filterItemType} onValueChange={setFilterItemType} className="flex-1">
-                    <TabsList className="bg-black/40 border border-zinc-800/50 w-full h-8 p-1">
-                      <TabsTrigger value="all" className="flex-1 data-[state=active]:bg-zinc-800 font-black text-[8px] uppercase tracking-widest">Todos</TabsTrigger>
-                      <TabsTrigger value="bm" className="flex-1 data-[state=active]:bg-zinc-800 font-black text-[8px] uppercase tracking-widest">BMs</TabsTrigger>
-                      <TabsTrigger value="perfil" className="flex-1 data-[state=active]:bg-zinc-800 font-black text-[8px] uppercase tracking-widest">Perfis</TabsTrigger>
-                    </TabsList>
-                  </Tabs>
-                </div>
-                <div className="h-4 w-px bg-zinc-800 hidden md:block" />
-                <div className="flex-1 w-full px-2">
-                  <Tabs value={filterType} onValueChange={setFilterStatus} className="w-full">
-                    <TabsList className="bg-black/40 border border-zinc-800/50 w-full h-8 p-1">
-                      <TabsTrigger value="all" className="flex-1 data-[state=active]:bg-zinc-800 font-black text-[8px] uppercase tracking-widest">Status</TabsTrigger>
-                      <TabsTrigger value="pending" className="flex-1 data-[state=active]:bg-zinc-800 font-black text-[8px] uppercase tracking-widest text-yellow-500/80">Pendentes</TabsTrigger>
-                      <TabsTrigger value="completed" className="flex-1 data-[state=active]:bg-zinc-800 font-black text-[8px] uppercase tracking-widest text-emerald-500/80">Concluídos</TabsTrigger>
-                    </TabsList>
-                  </Tabs>
-                </div>
+            <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-700">
+              <div className="flex flex-col gap-2">
+                <h3 className="text-2xl font-black text-white tracking-tighter uppercase italic">Solicitações de Compra</h3>
+                <p className="text-zinc-500 text-sm">Visualize as demandas da FBFLIX e envie suas ofertas/entrega.</p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {requests
-                  .filter(r => {
-                    if (r.type !== 'purchase') return false;
-                    const matchesStatus = filterType === 'all' 
-                      ? true 
-                      : filterType === 'pending' 
-                        ? r.status !== 'completed' 
-                        : r.status === 'completed';
-                    const matchesType = filterItemType === 'all'
-                      ? true
-                      : filterItemType === 'bm'
-                        ? r.title?.toLowerCase().includes('bm')
-                        : r.title?.toLowerCase().includes('perfil') || r.title?.toLowerCase().includes('perfis');
-                    return matchesStatus && matchesType;
-                  }).length === 0 ? (
-                  <div className="text-center py-16 bg-black/20 rounded-2xl border border-dashed border-zinc-800/50">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {requests.filter(r => r.type === 'purchase').length === 0 ? (
+                  <div className="col-span-full text-center py-16 bg-black/20 rounded-2xl border border-dashed border-zinc-800/50">
                     <ShoppingBag className="h-12 w-12 text-zinc-800 mx-auto mb-4 opacity-50"/>
-                    <p className="text-zinc-600 font-black text-sm uppercase tracking-widest">Nenhuma solicitação de compra</p>
+                    <p className="text-zinc-600 font-black text-sm uppercase tracking-widest">Nenhum pedido de compra no momento</p>
                   </div>
                 ) : (
                   requests
-                    .filter(r => {
-                      if (r.type !== 'purchase') return false;
-                      const matchesStatus = filterType === 'all' 
-                        ? true 
-                        : filterType === 'pending' 
-                          ? r.status !== 'completed' 
-                          : r.status === 'completed';
-                      const matchesType = filterItemType === 'all'
-                        ? true
-                        : filterItemType === 'bm'
-                          ? r.title?.toLowerCase().includes('bm')
-                          : r.title?.toLowerCase().includes('perfil') || r.title?.toLowerCase().includes('perfis');
-                      return matchesStatus && matchesType;
-                    })
+                    .filter(r => r.type === 'purchase')
                     .map(req => (
-                      <Card key={req.id} className="bg-white/5 border-white/10 hover:border-emerald-500/30 transition-all duration-300">
-                        <CardContent className="p-4 space-y-4">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="min-w-0 flex-1">
-                              <div className="font-bold text-base truncate flex items-center gap-2 text-white">
-                                {req.title || 'Compra'}
-                                <Badge className={`${getStatusColor(req.status)} border text-[9px] px-1.5 py-0 uppercase font-black`}>
-                                  {getStatusLabel(req.status)}
-                                </Badge>
-                              </div>
-                              <div className="text-[10px] text-white/40 mt-1 flex items-center gap-2">
-                                <Hash className="size-2.5" /> {req.id.slice(0, 8)} 
-                                <span className="text-white/20">|</span> 
-                                <Calendar className="size-2.5" /> {new Date(req.created_at).toLocaleDateString('pt-BR')}
-                              </div>
-                            </div>
-                            <div className="flex flex-col gap-1">
-                              <Button 
-                                size="icon" 
-                                variant="ghost" 
-                                className="size-8 text-white/50 hover:text-white hover:bg-white/10"
-                                onClick={() => toggleRequestExpand(req.id)}
-                              >
-                                {expandedRequests[req.id] ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
-                              </Button>
-                            </div>
+                      <Card key={req.id} className="bg-[#0a0a0a] border-zinc-800 overflow-hidden shadow-2xl hover:border-emerald-500/30 transition-all flex flex-col">
+                        <CardHeader className="bg-zinc-950/50 border-b border-zinc-800 p-4">
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-sm font-black text-white flex items-center gap-2 uppercase tracking-tighter">
+                              <ShoppingBag className="h-4 w-4 text-emerald-500" />
+                              {req.title}
+                            </CardTitle>
+                            <Badge className={`${getStatusColor(req.status)} text-[8px] uppercase font-black`}>
+                              {getStatusLabel(req.status)}
+                            </Badge>
                           </div>
-
-                          <div className="grid grid-cols-2 gap-2 text-center">
-                            <div className="bg-white/5 p-2 rounded-md border border-white/5">
-                              <div className="text-[10px] text-white/50 uppercase font-bold tracking-wider">Itens Pedidos</div>
-                              <div className="font-black text-white">{req.items?.length || 0}</div>
+                        </CardHeader>
+                        <CardContent className="p-6 space-y-6 flex-1 flex flex-col">
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                              <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Valor Sugerido</p>
+                              <p className="text-lg font-black text-emerald-500">R$ {req.unit_price || '0,00'}</p>
                             </div>
-                            <div className="bg-white/5 p-2 rounded-md border border-white/5">
-                              <div className="text-[10px] text-white/50 uppercase font-bold tracking-wider">Preço Unit.</div>
-                              <div className="font-black text-emerald-400">R$ {req.unit_price || '0,00'}</div>
+                            <div className="space-y-1">
+                              <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Data Pedido</p>
+                              <p className="text-sm font-bold text-white">{new Date(req.created_at).toLocaleDateString('pt-BR')}</p>
                             </div>
                           </div>
 
                           <div className="space-y-2">
-                            <div className="text-[11px] font-bold text-white/70 uppercase tracking-tighter italic">Detalhes do Pedido</div>
-                            <div className="p-2 rounded-md bg-white/5 border border-white/10 text-[11px] text-white/80 leading-relaxed whitespace-pre-wrap">
-                              {req.items?.map((item: any) => item.details).join('\n') || req.description || 'Sem detalhes.'}
+                            <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">O que precisamos:</p>
+                            <div className="p-3 bg-zinc-900/50 border border-zinc-800 rounded-lg text-xs text-zinc-300 leading-relaxed whitespace-pre-wrap min-h-[60px]">
+                              {req.items?.map((item: any) => item.details).join('\n') || req.description}
                             </div>
                           </div>
 
-                          {expandedRequests[req.id] && (
-                            <div className="pt-2 space-y-3 animate-in fade-in duration-300">
-                              <div className="space-y-2">
-                                <div className="flex items-center gap-2 text-[10px] font-black text-emerald-400 uppercase tracking-widest">
-                                  <ShoppingBag className="size-3" /> Entregar Itens
+                          <div className="space-y-4 pt-4 border-t border-zinc-800 mt-auto">
+                             <div className="space-y-2">
+                                <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest flex items-center gap-2">
+                                  <Send className="h-3 w-3" /> Formulário de Envio / Amostra
+                                </p>
+                                <div className="grid grid-cols-1 gap-3">
+                                   <div className="space-y-1">
+                                      <label className="text-[9px] font-black text-zinc-500 uppercase">Preço Final do Fornecedor (R$)</label>
+                                      <Input 
+                                        type="number"
+                                        placeholder="0,00"
+                                        className="bg-black border-zinc-800 h-9 text-xs font-bold text-emerald-500"
+                                      />
+                                   </div>
+                                   <div className="space-y-1">
+                                      <label className="text-[9px] font-black text-zinc-500 uppercase">Amostra / Dados (Links/Contas)</label>
+                                      <Textarea 
+                                        className="bg-black border-zinc-800 min-h-[100px] text-[11px] font-mono resize-none"
+                                        placeholder="Cole aqui a amostra ou os dados finais para entrega..."
+                                        value={content}
+                                        onChange={e => setContent(e.target.value)}
+                                      />
+                                   </div>
                                 </div>
-                                <Textarea 
-                                  className="bg-black/50 border-white/10 min-h-[100px] text-[11px] font-mono focus:border-emerald-500/50 transition-all resize-none" 
-                                  placeholder="Cole aqui os dados dos itens vendidos..."
-                                  value={content}
-                                  onChange={e => setContent(e.target.value)}
-                                />
-                              </div>
-                              <Button 
-                                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black h-9 text-[10px] uppercase tracking-widest" 
-                                onClick={() => handleSubmit(req.id)} 
+                             </div>
+                             <Button 
+                                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black h-12 uppercase tracking-widest text-xs shadow-lg shadow-emerald-900/20"
+                                onClick={() => handleSubmit(req.id)}
                                 disabled={submitting}
                               >
-                                {submitting ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
-                                Confirmar Entrega
+                                {submitting ? <Loader2 className="animate-spin h-5 w-5 mr-2" /> : <CheckCircle2 className="h-5 w-5 mr-2" />}
+                                {req.status === 'completed' ? 'ENTREGUE COM SUCESSO' : 'ENVIAR PARA ANÁLISE'}
                               </Button>
-                            </div>
-                          )}
-
-                          <Button 
-                            variant="outline" 
-                            className="w-full h-8 text-[10px] font-bold border-white/10 hover:bg-white/5"
-                            onClick={() => toggleRequestExpand(req.id)}
-                          >
-                            {expandedRequests[req.id] ? 'RECOLHER DETALHES' : 'ENTREGAR PEDIDO'}
-                          </Button>
+                          </div>
                         </CardContent>
                       </Card>
                     ))
