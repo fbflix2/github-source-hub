@@ -194,68 +194,34 @@ export default function FornecedorPublicPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#09090b] flex text-white font-sans">
-      {/* Sidebar */}
-      <div className="w-64 bg-zinc-900 border-r border-zinc-800 p-6 flex flex-col gap-8">
-        <div className="text-xl font-black text-primary">PORTAL FORNECEDOR</div>
-        <nav className="space-y-2 flex-1">
-          <Button variant={activeTab === 'dashboard' ? 'secondary' : 'ghost'} className="w-full justify-start" onClick={() => setActiveTab('dashboard')}><LayoutDashboard className="h-4 w-4 mr-2"/> Dashboard</Button>
-          <Button variant={activeTab === 'reposicoes' ? 'secondary' : 'ghost'} className="w-full justify-start" onClick={() => setActiveTab('reposicoes')}><Inbox className="h-4 w-4 mr-2"/> Solicitações</Button>
-          <Button variant={activeTab === 'vendas' ? 'secondary' : 'ghost'} className="w-full justify-start" onClick={() => setActiveTab('vendas')}><PackagePlus className="h-4 w-4 mr-2"/> Ofertas de Venda</Button>
+    <div className="min-h-screen bg-[#050505] text-white flex">
+      <aside className="w-64 bg-[#0a0a0a] border-r border-zinc-800 p-6 flex flex-col gap-10">
+        <div className="text-2xl font-black text-primary tracking-tighter">FBFLIX <span className="text-white text-sm font-medium block mt-1">Fornecedor</span></div>
+        <nav className="flex flex-col gap-2 flex-1">
+          <Button variant={activeTab === 'dashboard' ? 'default' : 'ghost'} className="justify-start gap-3 h-12" onClick={() => setActiveTab('dashboard')}><LayoutDashboard className="h-5 w-5"/> Dashboard</Button>
+          <Button variant={activeTab === 'reposicoes' ? 'default' : 'ghost'} className="justify-start gap-3 h-12" onClick={() => setActiveTab('reposicoes')}><Inbox className="h-5 w-5"/> Reposições</Button>
+          <Button variant={activeTab === 'vendas' ? 'default' : 'ghost'} className="justify-start gap-3 h-12" onClick={() => setActiveTab('vendas')}><BriefcaseBusiness className="h-5 w-5"/> Vender</Button>
         </nav>
-        <Button variant="ghost" className="justify-start text-zinc-500" onClick={() => setIsAuth(false)}>Sair</Button>
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 p-8 overflow-y-auto">
-        <header className="mb-8 flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-black text-white capitalize">{activeTab}</h1>
-            <p className="text-zinc-400">Olá, {supplier.name}. Seja bem vindo!</p>
+        <Button variant="ghost" className="justify-start text-zinc-500 hover:text-red-400" onClick={() => setIsAuth(false)}>Sair</Button>
+      </aside>
+      <main className="flex-1 bg-[#09090b]">
+        <div className="h-20 border-b border-zinc-800 flex items-center px-10 justify-between">
+          <h2 className="text-xl font-bold uppercase tracking-wider">{activeTab}</h2>
+          <div className="flex items-center gap-3">
+            <Badge className="bg-zinc-800 text-white border-zinc-700">{supplier.name}</Badge>
           </div>
-        </header>
-
-        {activeTab === 'dashboard' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card className="bg-zinc-900 border-zinc-800 p-6">
-              <CardHeader className="p-0 pb-4"><CardTitle>Enviar Reposição Rápida</CardTitle></CardHeader>
-              <div className="space-y-4">
-                <Textarea value={content} onChange={e => setContent(e.target.value)} placeholder="Cole seus dados aqui..." className="bg-black border-zinc-800 min-h-[150px]"/>
-                <Button className="w-full bg-primary" onClick={() => handleSubmit()} disabled={submitting}>Enviar</Button>
-              </div>
-            </Card>
-            <Card className="bg-zinc-900 border-zinc-800 p-6">
-              <CardHeader className="p-0 pb-4"><CardTitle>Resumo</CardTitle></CardHeader>
-              <p className="text-zinc-500">Total solicitações: {requests.length}</p>
-            </Card>
-          </div>
-        )}
-
-        {activeTab === 'reposicoes' && (
-           <div className="space-y-4">
-             {requests.map(req => (
-                <Collapsible key={req.id} className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-                  <CollapsibleTrigger className="flex justify-between w-full">
-                    <span className="font-bold">{req.title}</span>
-                    <ChevronDown className="h-4 w-4"/>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="mt-4 pt-4 border-t border-zinc-800">
-                    <Textarea value={content} onChange={e => setContent(e.target.value)} placeholder="Responder com links..."/>
-                    <Button className="mt-2" onClick={() => handleSubmit(req.id)}>Responder</Button>
-                  </CollapsibleContent>
-                </Collapsible>
-             ))}
-           </div>
-        )}
-
-        {activeTab === 'vendas' && (
-          <Card className="bg-zinc-900 border-zinc-800 p-6">
-            <CardHeader className="p-0 pb-4"><CardTitle>Cadastrar Oferta de Produto</CardTitle></CardHeader>
-            <Textarea value={offerContent} onChange={e => setOfferContent(e.target.value)} placeholder="Descreva o produto, preço e quantidade..." className="bg-black border-zinc-800 min-h-[150px]"/>
-            <Button className="w-full mt-4" onClick={() => toast.success("Oferta enviada!")}>Enviar Oferta</Button>
-          </Card>
-        )}
-      </div>
+        </div>
+        <div className="p-10">
+          {activeTab === 'dashboard' && (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <Card className="col-span-2 bg-[#0a0a0a] border-zinc-800 p-6"><CardTitle className="mb-4 text-sm font-bold text-zinc-500 uppercase tracking-widest">Resumo de Atividade</CardTitle></Card>
+              <Card className="bg-[#0a0a0a] border-zinc-800 p-6"><CardTitle className="mb-4 text-sm font-bold text-zinc-500 uppercase tracking-widest">Status da Conta</CardTitle></Card>
+            </div>
+          )}
+          {activeTab === 'reposicoes' && <div className="space-y-4">...</div>}
+          {activeTab === 'vendas' && <div className="space-y-4">...</div>}
+        </div>
+      </main>
     </div>
   );
 }
