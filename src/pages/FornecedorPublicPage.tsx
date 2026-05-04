@@ -136,7 +136,11 @@ export default function FornecedorPublicPage() {
         toast.error(error);
         return;
       }
-      details = `PIX (${pixType.toUpperCase()}): ${pixKey}`;
+       if (!bankData.bank || !bankData.holder) {
+         toast.error("Preencha o banco e o nome do titular");
+         return;
+       }
+       details = `PIX (${pixType.toUpperCase()}) | ${bankData.bank} | Chave: ${pixKey} | Titular: ${bankData.holder}`;
     } else {
       if (!bankData.bank || !bankData.agency || !bankData.account || !bankData.holder) {
         toast.error("Preencha todos os dados bancários");
@@ -691,33 +695,53 @@ export default function FornecedorPublicPage() {
                         </TabsList>
                       </Tabs>
                     </div>
-                    {newPaymentType === 'pix' ? (
-                      <div className="space-y-4 animate-in fade-in duration-300">
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Tipo de Chave PIX</label>
-                          <Select value={pixType} onValueChange={setPixType}>
-                            <SelectTrigger className="bg-black border-zinc-800 h-10 text-[11px] font-bold uppercase">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent className="bg-zinc-900 border-zinc-800">
-                              <SelectItem value="cpf">CPF</SelectItem>
-                              <SelectItem value="email">E-mail</SelectItem>
-                              <SelectItem value="phone">Telefone</SelectItem>
-                              <SelectItem value="random">Chave Aleatória</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Chave PIX</label>
-                          <Input 
-                            value={pixKey}
-                            onChange={e => setPixKey(e.target.value)}
-                            placeholder={pixType === 'cpf' ? "000.000.000-00" : pixType === 'phone' ? "(00) 00000-0000" : "Digite sua chave..."}
-                            className="bg-black border-zinc-800 h-10 text-sm"
-                          />
-                        </div>
-                      </div>
-                    ) : (
+                     {newPaymentType === 'pix' ? (
+                       <div className="space-y-3 animate-in fade-in duration-300">
+                         <div className="space-y-1">
+                           <label className="text-[9px] font-black text-zinc-500 uppercase">Banco</label>
+                           <Input 
+                             value={bankData.bank}
+                             onChange={e => setBankData({...bankData, bank: e.target.value})}
+                             placeholder="Ex: Nubank"
+                             className="bg-black border-zinc-800 h-9 text-xs"
+                           />
+                         </div>
+                         <div className="grid grid-cols-2 gap-2">
+                           <div className="space-y-1">
+                             <label className="text-[9px] font-black text-zinc-500 uppercase">Tipo de Chave</label>
+                             <Select value={pixType} onValueChange={setPixType}>
+                               <SelectTrigger className="bg-black border-zinc-800 h-9 text-[10px] font-bold uppercase">
+                                 <SelectValue />
+                               </SelectTrigger>
+                               <SelectContent className="bg-zinc-900 border-zinc-800">
+                                 <SelectItem value="cpf">CPF</SelectItem>
+                                 <SelectItem value="email">E-mail</SelectItem>
+                                 <SelectItem value="phone">Telefone</SelectItem>
+                                 <SelectItem value="random">Aleatória</SelectItem>
+                               </SelectContent>
+                             </Select>
+                           </div>
+                           <div className="space-y-1">
+                             <label className="text-[9px] font-black text-zinc-500 uppercase">Chave PIX</label>
+                             <Input 
+                               value={pixKey}
+                               onChange={e => setPixKey(e.target.value)}
+                               placeholder={pixType === 'cpf' ? "000.000.000-00" : pixType === 'phone' ? "(00) 00..." : "Chave..."}
+                               className="bg-black border-zinc-800 h-9 text-xs"
+                             />
+                           </div>
+                         </div>
+                         <div className="space-y-1">
+                           <label className="text-[9px] font-black text-zinc-500 uppercase">Nome do Titular</label>
+                           <Input 
+                             value={bankData.holder}
+                             onChange={e => setBankData({...bankData, holder: e.target.value})}
+                             placeholder="Nome Completo"
+                             className="bg-black border-zinc-800 h-9 text-xs"
+                           />
+                         </div>
+                       </div>
+                     ) : (
                       <div className="space-y-3 animate-in fade-in duration-300">
                         <div className="grid grid-cols-2 gap-2">
                           <div className="space-y-1">
