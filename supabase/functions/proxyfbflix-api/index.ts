@@ -2156,11 +2156,9 @@ Deno.serve(async (req) => {
         matchedProduct = (wsProducts || []).find((p: any) => p.name.toLowerCase().includes("residencial") || p.name.toLowerCase().includes("webshare"));
       }
 
-      // Prioritize existing product price for renewals, especially if already on Webshare
-      const isExistingWebshareRenewal = ["webshare", "webshare_rotating"].includes(existingSub.type);
-      const renewalPrice = isExistingWebshareRenewal 
-        ? (productInfo?.price || matchedProduct?.price || 25)
-        : (matchedProduct?.price || productInfo?.price || 25);
+      // Always prioritize the price of the product actually linked to the subscription.
+      // Fallback to the matched product's price or a default if no product is linked.
+      const renewalPrice = Number(productInfo?.price || matchedProduct?.price || 25);
 
       console.log(`[migrate-proxybr] Renewal price: R$${renewalPrice} product=${matchedProduct?.name || "fallback"}`);
 
