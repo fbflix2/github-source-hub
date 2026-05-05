@@ -1353,23 +1353,34 @@ Deno.serve(async (req) => {
             const WEBSHARE_API_KEY = Deno.env.get("WEBSHARE_API_KEY") || "";
             if (!WEBSHARE_API_KEY) throw new Error("WEBSHARE_API_KEY not configured");
 
-            // Get available Webshare proxy
-            const listResp = await webshareFetch("/proxy/list/?mode=direct&page=1&page_size=100", WEBSHARE_API_KEY);
-            const listData = await listResp.json();
-            const allProxies = listData?.results || [];
-
-            // Find unassigned proxy (not linked to any subscription)
+            // Get available Webshare proxy (scanned)
+            let availableProxy = null;
+            let wsPage = 1;
+            const maxPages = 10;
+            
             const { data: assignedProxies } = await supabaseAdmin
               .from("subscriptions")
               .select("raw_data")
-              .eq("type", "proxybr")
-              .in("status", ["active", "pending_renewal"])
-              .not("raw_data->provider", "is", null);
-
+              .in("type", ["proxybr", "webshare"])
+              .in("status", ["active", "expiring", "pending_renewal"]);
+            
             const usedProxyIds = new Set(
-              (assignedProxies || []).map((s: any) => (s.raw_data as any)?.webshare_proxy_id).filter(Boolean)
+              (assignedProxies || []).map((s: any) => String((s.raw_data as any)?.webshare_proxy_id)).filter(id => id !== "undefined" && id !== "null")
             );
-            const availableProxy = allProxies.find((p: any) => !usedProxyIds.has(String(p.id)));
+
+            while (!availableProxy && wsPage <= maxPages) {
+              const listResp = await webshareFetch(`/proxy/list/?mode=direct&page=${wsPage}&page_size=250`, WEBSHARE_API_KEY);
+              if (!listResp.ok) {
+                console.error(`[renew-fallback] Webshare API error [${listResp.status}]`);
+                break;
+              }
+              const listData = await listResp.json();
+              const results = listData.results || [];
+              if (results.length === 0) break;
+              availableProxy = results.find((p: any) => p.valid && !usedProxyIds.has(String(p.id)));
+              if (!listData.next) break;
+              wsPage++;
+            }
 
             if (!availableProxy) {
               return new Response(
@@ -1674,11 +1685,32 @@ Deno.serve(async (req) => {
 
           const allCurrentProxies: any[] = [];
           let page = 1;
-          while (true) {
-            const listResp = await webshareFetch(`/proxy/list/?mode=direct&page=${page}&page_size=250`, WEBSHARE_API_KEY);
+          const maxWSScanPages = 15;
+          while (allCurrentProxies.length < 5 && page <= maxWSScanPages) {
+            const listResp = await webshareFetch(`/proxy/list/?mode=direct&page=${page}&page_size=250&country_code__in=${targetCountry}`, WEBSHARE_API_KEY);
+            if (!listResp.ok) {
+              const errTxt = await listResp.text().catch(() => "Unknown");
+              console.error(`Webshare API error [${listResp.status}] on page ${page}: ${errTxt.substring(0, 100)}`);
+              break;
+            }
             const listData = await listResp.json().catch(() => ({}));
-            if (!listResp.ok) throw new Error(`Webshare API error [${listResp.status}]`);
-            if (listData.results?.length) allCurrentProxies.push(...listData.results);
+            const results = listData.results || [];
+            if (results.length === 0) break;
+            
+            // Add only unassigned proxies from this page to candidates
+            const { data: allActiveSubs } = await supabaseAdmin
+              .from("subscriptions")
+              .select("raw_data")
+              .in("type", ["webshare", "proxybr"])
+              .in("status", ["active", "expiring", "pending_renewal"]);
+            const assignedIds = new Set((allActiveSubs || []).map((s: any) => String((s.raw_data as any)?.webshare_proxy_id)).filter(id => id !== "undefined" && id !== "null"));
+
+            for (const p of results) {
+              if (p.valid && !assignedIds.has(String(p.id)) && p.id !== localRaw.webshare_proxy_id) {
+                allCurrentProxies.push(p);
+                if (allCurrentProxies.length >= 5) break;
+              }
+            }
             if (!listData.next) break;
             page++;
           }
