@@ -29,13 +29,25 @@ export async function invokeProxyBR(action: string, params: ProxyBRParams = {}) 
     return { data, error };
   };
 
+  // Proactively refresh if the token expires within 60 seconds
+  const { data: { session } } = await supabase.auth.getSession();
+  const expiresAt = session?.expires_at ?? 0;
+  const nowSec = Math.floor(Date.now() / 1000);
+  if (!session?.access_token || expiresAt - nowSec < 60) {
+    await supabase.auth.refreshSession();
+  }
+
   let token = await getAccessToken();
   let { data, error } = await attempt(token);
 
+  const errMsg = `${error?.message ?? ""} ${data?.error ?? ""}`.toLowerCase();
   const hasTokenError =
-    !!error?.message?.includes("401") ||
-    !!data?.error?.includes?.("Token inválido") ||
-    !!data?.error?.includes?.("expirado");
+    errMsg.includes("401") ||
+    errMsg.includes("400") ||
+    errMsg.includes("jwt") ||
+    errMsg.includes("token inválido") ||
+    errMsg.includes("expirado") ||
+    errMsg.includes("expired");
 
   if (hasTokenError) {
     const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
