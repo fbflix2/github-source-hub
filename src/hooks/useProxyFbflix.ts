@@ -164,6 +164,7 @@ export function useProxyFbflixSubscriptions() {
           end_date: sub.end_date || sub.start_date,
           auto_renew: sub.auto_renew,
           raw_data: raw,
+          type: sub.type,
           profile_tag: raw.profile_tag || null,
           provider: "proxyfbflix",
           is_rotating: isRotating,
