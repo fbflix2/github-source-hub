@@ -41,7 +41,7 @@ export default function ProxyMaintenanceTab() {
         const { data } = await supabase
           .from("subscriptions")
           .select("id, name, status, end_date, start_date, raw_data, created_at, product_id, user_id, type")
-          .in("type", ["proxyfbflix", "proxyfbflix_rotating", "proxybr"])
+          .in("type", ["proxyfbflix", "proxyfbflix_rotating", "proxybr", "webshare"])
           .order("created_at", { ascending: false })
           .range(from, from + ps - 1);
         if (!data?.length) break;
