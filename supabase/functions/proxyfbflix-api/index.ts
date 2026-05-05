@@ -1081,7 +1081,7 @@ Deno.serve(async (req) => {
     }
 
     // ========== EXCHANGE WEBSHARE PROXY ==========
-    if (action === "exchange-webshare-proxy") {
+    if (action === "exchange-webshare-proxy" || action === "exchange-proxyfbflix-proxy") {
       const { subscription_id, target_country: overrideCountry } = params as { subscription_id: string; target_country?: string };
       if (!subscription_id) throw new Error("subscription_id é obrigatório");
 
