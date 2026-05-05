@@ -639,7 +639,7 @@ export default function SubscriptionManage() {
                             const totalCost = customerPrice * 0.5 * extraQuotaQty;
                             if (!profile || profile.balance < totalCost) { toast.error(`Saldo insuficiente.`); return; }
                             await supabase.from("profiles").update({ balance: profile.balance - totalCost }).eq("user_id", user.id);
-                            const subType = isProxyFbflix ? "proxyfbflix" : "proxybr";
+                            const subType = String(sub.type || (isProxyFbflix ? "proxyfbflix" : "proxybr"));
                             const { data: subRow } = await supabase.from("subscriptions").select("id, raw_data").eq("name", realSubName!).eq("type", subType).maybeSingle();
                             if (subRow) {
                               const currentRaw = (subRow.raw_data || {}) as Record<string, any>;
