@@ -97,7 +97,7 @@ export default function ProxyAvailableTab() {
         const { data, error } = await supabase
           .from("subscriptions")
           .select("id, status, end_date, raw_data")
-          .eq("type", "proxyfbflix")
+          .in("type", ["proxyfbflix", "webshare"])
           .in("status", [...ACTIVE_STATUSES])
           .range(from, from + ps - 1);
 
