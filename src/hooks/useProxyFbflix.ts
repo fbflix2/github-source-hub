@@ -142,7 +142,7 @@ export function useProxyFbflixSubscriptions() {
         .from("subscriptions")
         .select("*, products:product_id(name, price)")
         .eq("user_id", user.id)
-        .in("type", ["proxyfbflix", "proxyfbflix_rotating"])
+        .in("type", ["proxyfbflix", "proxyfbflix_rotating", "webshare"])
         .order("created_at", { ascending: false });
 
       if (error) throw new Error(error.message);
@@ -180,7 +180,7 @@ export function useProxyFbflixSubscriptions() {
                 alt_http_port: raw.alt_http_port || 3128,
               }
             : raw.proxy_address ? {
-                id: raw.fbflix_proxy_id,
+                id: raw.fbflix_proxy_id || raw.webshare_proxy_id,
                 ip: raw.proxy_address,
                 port: raw.port,
                 username: raw.username,
