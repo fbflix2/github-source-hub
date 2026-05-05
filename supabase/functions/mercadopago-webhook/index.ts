@@ -386,34 +386,6 @@ Deno.serve(async (req) => {
               const itemQty = oi.quantity || 1;
               
               try {
-                // Fetch all Webshare proxies
-                const allProxies: any[] = [];
-                let wsPage = 1;
-                while (true) {
-                  const resp = await fetch(
-                    `${WEBSHARE_BASE}/proxy/list/?mode=direct&page=${wsPage}&page_size=250`,
-                    { headers: { Authorization: `Token ${WEBSHARE_API_KEY}`, Accept: "application/json" } }
-                  );
-                  const data = await resp.json();
-                  if (!resp.ok) throw new Error(`Webshare API error [${resp.status}]`);
-                  if (data.results?.length) allProxies.push(...data.results);
-                  if (!data.next) break;
-                  wsPage++;
-                }
-
-                // Get already-assigned proxy IDs
-                const { data: existingWsSubs } = await supabase
-                  .from("subscriptions")
-                  .select("raw_data")
-                  .eq("type", "webshare")
-                  .in("status", ["active", "expiring"]);
-
-                const assignedIds = new Set<string>();
-                for (const sub of (existingWsSubs || [])) {
-                  const raw = (sub.raw_data || {}) as Record<string, any>;
-                  if (raw.webshare_proxy_id) assignedIds.add(raw.webshare_proxy_id);
-                }
-
                 // Detect target country from product info OR delivery_data
                 let targetCountry: string | null = null;
                 const brIndicators = ["brasil", "brazil", "br", "sudeste", "central/sudeste", "nordeste", "sul", "centro-oeste"];
@@ -436,20 +408,63 @@ Deno.serve(async (req) => {
                 if (!targetCountry) targetCountry = "BR"; // Default to BR
                 console.log(`[webhook-webshare] Target country: ${targetCountry}`);
 
-                // Find unassigned proxies matching country
-                const available = allProxies.filter((p: any) =>
-                  p.valid && !assignedIds.has(p.id)
-                  && (!targetCountry || String(p.country_code).toUpperCase() === targetCountry)
-                );
-                console.log(`[webhook-webshare] ${available.length} ${targetCountry || 'ANY'} proxies available, need ${itemQty}`);
+                // Get already-assigned proxy IDs to exclude them
+                const { data: existingWsSubs } = await supabase
+                  .from("subscriptions")
+                  .select("raw_data")
+                  .eq("type", "webshare")
+                  .in("status", ["active", "expiring"]);
 
-                if (available.length < itemQty) {
-                  console.error(`[webhook-webshare] Not enough proxies: ${available.length} available, ${itemQty} needed`);
+                const assignedIds = new Set<string>();
+                for (const sub of (existingWsSubs || [])) {
+                  const raw = (sub.raw_data || {}) as Record<string, any>;
+                  if (raw.webshare_proxy_id) assignedIds.add(String(raw.webshare_proxy_id));
                 }
 
-                const assignedCount = Math.min(itemQty, available.length);
+                const itemQty = oi.quantity || 1;
+                const selectedProxies: any[] = [];
+                let wsPage = 1;
+                const maxPages = 15; // Safety cap
+
+                while (selectedProxies.length < itemQty && wsPage <= maxPages) {
+                  const url = `${WEBSHARE_BASE}/proxy/list/?mode=direct&page=${wsPage}&page_size=250&country_code__in=${targetCountry}`;
+                  console.log(`[webhook-webshare] Fetching page ${wsPage} for country ${targetCountry}...`);
+                  
+                  const resp = await fetch(url, { 
+                    headers: { Authorization: `Token ${WEBSHARE_API_KEY}`, Accept: "application/json" } 
+                  });
+
+                  if (!resp.ok) {
+                    const errText = await resp.text().catch(() => "Unknown error");
+                    throw new Error(`Webshare API error [${resp.status}]: ${errText.substring(0, 100)}`);
+                  }
+
+                  const data = await resp.json();
+                  const results = data.results || [];
+                  
+                  if (results.length === 0) break;
+
+                  for (const p of results) {
+                    if (p.valid && !assignedIds.has(String(p.id))) {
+                      selectedProxies.push(p);
+                      assignedIds.add(String(p.id)); // Mark as assigned for this loop
+                      if (selectedProxies.length >= itemQty) break;
+                    }
+                  }
+
+                  if (!data.next) break;
+                  wsPage++;
+                }
+
+                console.log(`[webhook-webshare] ${selectedProxies.length} proxies found, need ${itemQty}`);
+
+                if (selectedProxies.length < itemQty) {
+                  console.error(`[webhook-webshare] Not enough proxies: ${selectedProxies.length} available, ${itemQty} needed`);
+                }
+
+                const assignedCount = selectedProxies.length;
                 for (let i = 0; i < assignedCount; i++) {
-                  const assignedProxy = available[i];
+                  const assignedProxy = selectedProxies[i];
                   const startDate = new Date();
                   const endDate = new Date(startDate);
                   endDate.setDate(endDate.getDate() + 30);
