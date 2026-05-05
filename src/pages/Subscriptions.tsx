@@ -35,6 +35,7 @@ export interface ProxySubscription {
     protocol?: string;
     socks5_port?: number;
   };
+  type: string;
   profile_tag?: string | null;
   proxyIndex?: number;
   totalProxies?: number;
