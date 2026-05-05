@@ -665,7 +665,7 @@ Deno.serve(async (req) => {
       const { data: existingSubs } = await supabaseAdmin
         .from("subscriptions")
         .select("raw_data")
-        .eq("type", "proxyfbflix")
+        .in("type", ["proxyfbflix", "webshare"])
         .in("status", ["active", "expiring"]);
 
       const assignedIds = new Set<string>();
