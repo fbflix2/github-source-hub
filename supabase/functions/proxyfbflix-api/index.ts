@@ -490,7 +490,7 @@ Deno.serve(async (req) => {
       const { data: subs } = await supabaseAdmin
         .from("subscriptions")
         .select("id, user_id, raw_data, name, profiles(full_name, email)")
-        .eq("type", "proxyfbflix")
+        .in("type", ["proxyfbflix", "webshare"])
         .in("status", ["active", "expiring"]);
 
       const enriched = Array.from(proxyMap.entries()).map(([proxyId, consumption]) => {
