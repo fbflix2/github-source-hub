@@ -53,7 +53,7 @@ export default function ProxyFbflixProxyTab() {
         const { data } = await supabase
           .from("subscriptions")
           .select("id, name, status, end_date, start_date, raw_data, created_at, product_id, user_id")
-          .eq("type", "proxyfbflix")
+          .in("type", ["proxyfbflix", "webshare"])
           .range(from, from + ps - 1);
         if (!data?.length) break;
         all = [...all, ...data];

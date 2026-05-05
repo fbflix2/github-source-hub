@@ -156,6 +156,7 @@ export function useProxyBRSubscriptions() {
           auto_renew: sub.auto_renew,
           raw_data: raw,
           profile_tag: raw.profile_tag || null,
+          type: sub.type,
           provider: raw.provider,
           is_rotating: raw.provider === "proxyfbflix" && !!raw.proxy_host,
         };

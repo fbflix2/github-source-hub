@@ -168,7 +168,7 @@ export default function AdminCentralInvestimentos() {
       const { count } = await supabase
         .from("subscriptions")
         .select("id", { count: "exact", head: true })
-        .eq("type", "proxyfbflix")
+                .in("type", ["proxyfbflix", "webshare"])
         .eq("status", "active");
       return count || 0;
     },
