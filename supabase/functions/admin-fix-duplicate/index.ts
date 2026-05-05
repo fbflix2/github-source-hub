@@ -166,20 +166,30 @@ Deno.serve(async (req) => {
       const assignedIds = new Set<string>();
       for (const s of (allSubs || [])) { const r = (s.raw_data || {}) as Record<string, any>; if (r.webshare_proxy_id) assignedIds.add(r.webshare_proxy_id); }
 
-      // Scan all pages
-      const allProxies: any[] = [];
+      // Scan pages for candidates
+      const candidates: any[] = [];
       let page = 1;
-      while (true) {
+      const maxPages = 20;
+      while (candidates.length < 5 && page <= maxPages) {
         const listResp = await wsFetch(`/proxy/list/?mode=direct&page=${page}&page_size=250&country_code__in=${country}`);
+        if (!listResp.ok) {
+          console.error(`[admin-exchange] Webshare API error [${listResp.status}] on page ${page}`);
+          break;
+        }
         const listData = await listResp.json();
-        if (!listResp.ok) break;
-        if (listData.results?.length) allProxies.push(...listData.results);
+        const results = listData.results || [];
+        if (results.length === 0) break;
+        
+        for (const p of results) {
+          if (p.valid && !assignedIds.has(p.id) && p.id !== raw.webshare_proxy_id) {
+            candidates.push(p);
+            if (candidates.length >= 5) break;
+          }
+        }
         if (!listData.next) break;
         page++;
       }
-      console.log(`[admin-exchange] Found ${allProxies.length} ${country} proxies total`);
-
-      const candidates = allProxies.filter((p: any) => p.valid && !assignedIds.has(p.id) && p.id !== raw.webshare_proxy_id);
+      console.log(`[admin-exchange] Found ${candidates.length} ${country} candidates`);
       if (candidates.length === 0) throw new Error("No proxy available for country " + country);
 
       const np = candidates[0];
