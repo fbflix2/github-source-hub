@@ -1383,7 +1383,7 @@ Deno.serve(async (req) => {
 
     // ========== ADMIN: MAINTENANCE EXCHANGE (no quota deduction) ==========
     if (action === "admin-maintenance-exchange") {
-      const { subscription_id: maintSubId } = params as { subscription_id: string };
+      const { subscription_id: maintSubId, target_city: maintTargetCity } = params as { subscription_id: string; target_city?: string };
       if (!maintSubId) throw new Error("subscription_id é obrigatório");
 
       // Only admins or service role can do maintenance exchanges
@@ -1424,7 +1424,7 @@ Deno.serve(async (req) => {
       }
       console.log(`[admin-maint-exchange] Detected country: ${maintCountry} for sub ${maintSubId}`);
 
-      const maintCurrentProxyId = maintRaw.fbflix_proxy_id;
+      const maintCurrentProxyId = maintRaw.fbflix_proxy_id || maintRaw.webshare_proxy_id;
       const maintOldProxy = `${maintRaw.proxy_address || ""}:${maintRaw.port || ""}`;
       let maintNewProxy: Record<string, any> | null = null;
       let maintMethod = "api";
@@ -1432,9 +1432,19 @@ Deno.serve(async (req) => {
       // Try API replace first
       if (maintCurrentProxyId && maintRaw.proxy_address) {
         try {
+          // Prepare replace_with block
+          let replaceWith: any;
+          if (maintTargetCity) {
+            replaceWith = { type: "city", city_name: maintTargetCity, count: 1 };
+          } else if (maintCountry) {
+            replaceWith = { type: "country", country_code: maintCountry, count: 1 };
+          } else {
+            replaceWith = { type: "any", count: 1 };
+          }
+
           const replacePayload = {
             to_replace: { type: "ip_address", ip_addresses: [maintRaw.proxy_address], count: 1 },
-            replace_with: [maintCountry ? { type: "country", country_code: maintCountry, count: 1 } : { type: "any", count: 1 }],
+            replace_with: [replaceWith],
             dry_run: false,
           };
 
@@ -1481,10 +1491,13 @@ Deno.serve(async (req) => {
                 if (r.fbflix_proxy_id) otherIds.add(r.fbflix_proxy_id);
               }
 
-              const candidates = allCurrentProxies.filter(
-                (p: any) => p.valid && !otherIds.has(p.id) && p.id !== maintCurrentProxyId && p.proxy_address !== maintRaw.proxy_address
-                  && (!maintCountry || String(p.country_code).toUpperCase() === maintCountry),
-              );
+              const candidates = allCurrentProxies.filter((p: any) => {
+                const sameId = p.id === maintCurrentProxyId;
+                const sameIp = p.proxy_address === maintRaw.proxy_address;
+                const countryMatch = !maintCountry || String(p.country_code).toUpperCase() === maintCountry;
+                const cityMatch = !maintTargetCity || String(p.city_name).toLowerCase().includes(maintTargetCity.toLowerCase());
+                return p.valid && !otherIds.has(p.id) && !sameId && !sameIp && countryMatch && cityMatch;
+              });
 
               if (candidates.length > 0) {
                 const np = candidates[0];
@@ -1528,10 +1541,12 @@ Deno.serve(async (req) => {
             if (r.fbflix_proxy_id) assignedIds.add(r.fbflix_proxy_id);
           }
 
-          const poolCandidates = allCurrentProxies.filter(
-            (p: any) => p.valid && !assignedIds.has(p.id) && p.id !== maintCurrentProxyId
-              && (!maintCountry || String(p.country_code).toUpperCase() === maintCountry),
-          );
+          const poolCandidates = allCurrentProxies.filter((p: any) => {
+            const sameId = p.id === maintCurrentProxyId;
+            const countryMatch = !maintCountry || String(p.country_code).toUpperCase() === maintCountry;
+            const cityMatch = !maintTargetCity || String(p.city_name).toLowerCase().includes(maintTargetCity.toLowerCase());
+            return p.valid && !assignedIds.has(p.id) && !sameId && countryMatch && cityMatch;
+          });
 
           if (poolCandidates.length > 0) {
             const np = poolCandidates[0];
