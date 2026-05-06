@@ -498,9 +498,41 @@ Deno.serve(async (req) => {
                   end_date: newEnd.toISOString(),
                 }).eq("id", sub.id);
 
-                console.log(`Auto-renewal SUCCESS ${sub.name}: R$${totalPrice} debited, new end: ${newEnd.toISOString()}`);
-
-                console.log(`Auto-renewal SUCCESS ${sub.name}: R$${totalPrice} debited, new end: ${newEnd.toISOString()}`);
+                 console.log(`Auto-renewal SUCCESS ${sub.name}: R$${totalPrice} debited, new end: ${newEnd.toISOString()}`);
+ 
+                 // 10. WhatsApp confirmation to client
+                 if (profile?.phone) {
+                   try {
+                     const { data: tpl } = await sb
+                       .from("whatsapp_templates")
+                       .select("id")
+                       .eq("event_key", "proxy_renewed")
+                       .eq("active", true)
+                       .maybeSingle();
+ 
+                     if (tpl) {
+                       const productName = sub.product_id ? (await sb.from("products").select("name").eq("id", sub.product_id).maybeSingle()).data?.name : null;
+                       const formattedExpDate = newEnd.toLocaleDateString("pt-BR");
+                       
+                       await sb.functions.invoke("wapi-send", {
+                         body: {
+                           action: "send-template",
+                           template_id: tpl.id,
+                           phone: profile.phone,
+                           user_id: sub.user_id,
+                           variables: {
+                             nome: profile.full_name || "Cliente",
+                             produto: productName || sub.name,
+                             vencimento: formattedExpDate
+                           }
+                         }
+                       });
+                       console.log(`Auto-renewal: WhatsApp notification sent to ${profile.phone}`);
+                     }
+                   } catch (waErr: any) {
+                     console.error(`Auto-renewal: WhatsApp notification error: ${waErr.message}`);
+                   }
+                 }
               } catch (err: any) {
                 console.error(`Auto-renewal error for ${sub.name}:`, err.message);
               }
