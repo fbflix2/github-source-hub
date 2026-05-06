@@ -226,6 +226,21 @@ export default function Checkout() {
   const [cardName, setCardName] = useState("");
   const [cardCpf, setCardCpf] = useState("");
   const [cardEmail, setCardEmail] = useState("");
+  const [targetCity, setTargetCity] = useState("all");
+
+  const CITIES = [
+    { value: "all", label: "Aleatório (Brasil)" },
+    { value: "São Paulo", label: "São Paulo" },
+    { value: "Rio de Janeiro", label: "Rio de Janeiro" },
+    { value: "Belo Horizonte", label: "Belo Horizonte" },
+    { value: "Curitiba", label: "Curitiba" },
+    { value: "Porto Alegre", label: "Porto Alegre" },
+    { value: "Brasília", label: "Brasília" },
+    { value: "Fortaleza", label: "Fortaleza" },
+    { value: "Salvador", label: "Salvador" },
+    { value: "Recife", label: "Recife" },
+    { value: "Goiânia", label: "Goiânia" }
+  ];
   const mpInstanceRef = useRef<any>(null);
   const cardFieldsRef = useRef<{ cardNumber: any; expirationDate: any; securityCode: any } | null>(null);
   const fieldsInitializedRef = useRef(false);
@@ -838,6 +853,24 @@ export default function Checkout() {
         coupon_code: couponApplied ? coupon.trim().toUpperCase() : null,
       };
 
+      // Update main proxy item with target_city if applicable
+      if (product?.icon_type === 'proxy' && !product?.external_id) {
+        const { data: mainItem } = await supabase
+          .from("order_items")
+          .select("id, delivery_data")
+          .eq("order_id", orderId)
+          .eq("product_id", product.id)
+          .maybeSingle();
+
+        if (mainItem) {
+          const newDeliveryData = {
+            ...(mainItem.delivery_data as object || {}),
+            target_city: targetCity !== "all" ? targetCity : undefined
+          };
+          await supabase.from("order_items").update({ delivery_data: newDeliveryData }).eq("id", mainItem.id);
+        }
+      }
+
       // Add bump order items if any
       const extraItems: any[] = [];
       selectedBumps.forEach(bumpId => {
@@ -871,12 +904,13 @@ export default function Checkout() {
           toast.info(isRotatingProxy ? "Ativando proxy rotativo..." : "Ativando seu proxy...");
           const { data: wsResult, error: wsError } = await supabase.functions.invoke("proxyfbflix-api", {
             body: {
-              action: wsAction,
-              order_id: orderId,
-              total,
-              product_id: product.id,
-              quantity: quantity,
-            },
+           action: wsAction,
+           order_id: orderId,
+           total,
+           product_id: product.id,
+           quantity: quantity,
+           target_city: targetCity !== "all" ? targetCity : undefined,
+         },
           });
 
           if (wsError || wsResult?.error) {
@@ -1351,9 +1385,38 @@ export default function Checkout() {
               </div>
             )}
 
-            {/* GB Quantity selector for rotating proxy */}
-            {product.tags?.some((t: string) => t.toLowerCase() === 'rotativo') && (
-              <div className="flex items-center justify-between pt-2 border-t border-border">
+             {/* City selector for any FBFlix Proxy */}
+             {product.icon_type === 'proxy' && !product.external_id && (
+               <div className="flex flex-col gap-3 pt-3 border-t border-border mt-1">
+                 <div className="flex flex-col gap-1">
+                   <span className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                     <span className="material-symbols-outlined text-primary text-sm">location_on</span>
+                     Localização do Proxy
+                   </span>
+                   <p className="text-[10px] text-muted-foreground">Escolha a cidade desejada ou deixe aleatório para o sistema definir</p>
+                 </div>
+                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                   {CITIES.map((city) => (
+                     <button
+                       key={city.value}
+                       onClick={() => setTargetCity(city.value)}
+                       type="button"
+                       className={`px-3 py-2 rounded-lg border text-[11px] font-medium transition-all ${
+                         targetCity === city.value
+                           ? "bg-primary/10 border-primary text-primary"
+                           : "bg-surface/50 border-border text-muted-foreground hover:border-primary/30"
+                       }`}
+                     >
+                       {city.label}
+                     </button>
+                   ))}
+                 </div>
+               </div>
+             )}
+
+             {/* GB Quantity selector for rotating proxy */}
+             {product.tags?.some((t: string) => t.toLowerCase() === 'rotativo') && (
+               <div className="flex items-center justify-between pt-3 border-t border-border mt-1">
                 <div>
                   <span className="text-sm font-semibold text-foreground">Quantidade de GB</span>
                   <p className="text-[10px] text-muted-foreground">Selecione quantos GB deseja contratar</p>
