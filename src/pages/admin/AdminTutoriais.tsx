@@ -296,7 +296,7 @@ export default function AdminTutoriais() {
       description: videoDescription.trim() || null,
       thumbnail_url: videoThumbnailUrl.trim() || null,
       content: videoTags.trim() || null, // using content field to store tags string
-      published: false,
+      published: editingTutorial ? editingTutorial.published : false,
       attachments: attachments.filter((a) => a.url.trim()),
       copy_items: copyItems.filter((c) => c.value.trim()),
     };
