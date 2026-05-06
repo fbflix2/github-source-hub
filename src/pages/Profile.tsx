@@ -423,27 +423,27 @@ export default function Profile() {
                 </div>
 
                 {/* Cidade + Estado */}
-                <div className="md:col-span-1 space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground ml-1">Cidade</label>
+                <div className="md:col-span-1 space-y-0.5">
+                  <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Cidade</label>
                   <div className="relative">
-                    <span className="material-symbols-outlined absolute left-3 top-2 text-muted-foreground text-base">location_city</span>
-                    <input type="text" value={formData.cidade} onChange={(e) => setFormData({ ...formData, cidade: e.target.value })} placeholder="Cidade" className="input-field pl-10 h-9 text-sm" />
+                    <span className="material-symbols-outlined absolute left-3 top-2.5 text-muted-foreground text-base">location_city</span>
+                    <input type="text" value={formData.cidade} onChange={(e) => setFormData({ ...formData, cidade: e.target.value })} placeholder="Cidade" className="input-field pl-10 h-10 text-sm" />
                   </div>
                 </div>
 
-                <div className="md:col-span-1 space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground ml-1">Estado</label>
+                <div className="md:col-span-1 space-y-0.5">
+                  <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Estado</label>
                   <div className="relative">
-                    <span className="material-symbols-outlined absolute left-3 top-2 text-muted-foreground text-base">map</span>
-                    <input type="text" value={formData.estado} onChange={(e) => setFormData({ ...formData, estado: e.target.value })} placeholder="UF" className="input-field pl-10 h-9 text-sm" maxLength={2} />
+                    <span className="material-symbols-outlined absolute left-3 top-2.5 text-muted-foreground text-base">map</span>
+                    <input type="text" value={formData.estado} onChange={(e) => setFormData({ ...formData, estado: e.target.value })} placeholder="UF" className="input-field pl-10 h-10 text-sm" maxLength={2} />
                   </div>
                 </div>
 
                 {/* CEP */}
-                <div className="md:col-span-1 space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground ml-1">CEP</label>
+                <div className="md:col-span-1 space-y-0.5">
+                  <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">CEP</label>
                   <div className="relative">
-                    <span className="material-symbols-outlined absolute left-3 top-2 text-muted-foreground text-base">markunread_mailbox</span>
+                    <span className="material-symbols-outlined absolute left-3 top-2.5 text-muted-foreground text-base">markunread_mailbox</span>
                     <input 
                       type="text" 
                       value={formData.cep} 
@@ -455,7 +455,7 @@ export default function Profile() {
                         }
                       }} 
                       placeholder="00000-000" 
-                      className="input-field pl-10 h-9 text-sm" 
+                      className="input-field pl-10 h-10 text-sm" 
                     />
                   </div>
                 </div>
