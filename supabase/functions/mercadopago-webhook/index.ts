@@ -242,7 +242,17 @@ Deno.serve(async (req) => {
       console.log(`Credited R$ ${amount} to user ${userId}. New balance: ${newBalance}`);
     } else if (orderId) {
       // ========== ORDER PAYMENT FLOW ==========
-      console.log(`Processing order payment for order ${orderId}`);
+       console.log(`Processing order payment for order ${orderId} (user: ${userId})`);
+ 
+       // Fetch user profile for Lauth integration
+       const { data: userProfile } = await supabase
+         .from("profiles")
+         .select("lauth_email, lauth_enabled")
+         .eq("user_id", userId)
+         .maybeSingle();
+       
+       const lauthEnabled = userProfile?.lauth_enabled || false;
+       const lauthEmail = userProfile?.lauth_email;
 
       // Fetch order code for the transaction title
       const { data: orderData } = await supabase
@@ -536,9 +546,30 @@ Deno.serve(async (req) => {
 
           if (rpcError) {
             console.error(`Fulfillment error for item ${oi.id}:`, rpcError);
-          } else {
-            console.log(`Fulfillment result for item ${oi.id}:`, result);
-          }
+           } else if (result && (result as any).success && lauthEnabled && lauthEmail) {
+             console.log(`Fulfillment successful for item ${oi.id}, checking Lauth transfer...`);
+             const profileId = (result as any).data?.idPerfil;
+             if (profileId) {
+               console.log(`Triggering Lauth transfer for profile ${profileId} to ${lauthEmail}`);
+               // Call lauth-transfer function via internal fetch to avoid CORS/auth issues
+               // We use the service role key to authenticate
+               fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/lauth-transfer`, {
+                 method: 'POST',
+                 headers: {
+                   'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+                   'Content-Type': 'application/json'
+                 },
+                 body: JSON.stringify({ profileId, email: lauthEmail, itemId: oi.id })
+               }).then(async (resp) => {
+                 const res = await resp.json();
+                 console.log(`Lauth transfer response for item ${oi.id}:`, res);
+               }).catch(err => {
+                 console.error(`Lauth transfer error for item ${oi.id}:`, err);
+               });
+             }
+           } else {
+             console.log(`Fulfillment result for item ${oi.id}:`, result);
+           }
         }
       }
 

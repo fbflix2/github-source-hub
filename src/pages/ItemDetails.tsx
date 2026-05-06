@@ -34,10 +34,9 @@ interface StockData {
   statusAtual?: string;
   foto_url?: string;
   linkPerfil?: string;
-  idPerfil?: string;
+   idPerfil?: string;
    perfilBackup?: string;
    perfilMatriz?: string;
-   lauthProfileId?: string;
 }
 
 export default function ItemDetails() {
@@ -357,8 +356,19 @@ export default function ItemDetails() {
       // Fetch client name for feedback
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data: profileData } = await supabase.from("profiles").select("full_name").eq("user_id", user.id).maybeSingle();
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("full_name, lauth_email, lauth_enabled")
+          .eq("user_id", user.id)
+          .maybeSingle();
+          
         if (profileData?.full_name) setClientFullName(profileData.full_name);
+        
+        // Pre-fill lauth email if not already set from delivery data
+        setLauthEmail(prev => {
+          if (prev) return prev;
+          return profileData?.lauth_email || "";
+        });
       }
 
       setLoading(false);
@@ -448,8 +458,10 @@ export default function ItemDetails() {
   };
 
   const handleLauthTransfer = async () => {
-    if (!lauthEmail.trim() || !itemId || !stockData.lauthProfileId) {
-      toast.error("Por favor, informe seu e-mail do Lauth.");
+    const profileId = stockData.idPerfil;
+    
+    if (!lauthEmail.trim() || !itemId || !profileId) {
+      toast.error("Dados insuficientes para transferência.");
       return;
     }
 
@@ -458,7 +470,7 @@ export default function ItemDetails() {
       const { data, error } = await supabase.functions.invoke("lauth-transfer", {
         body: {
           itemId,
-          profileId: stockData.lauthProfileId,
+          profileId,
           email: lauthEmail.trim(),
         },
       });
@@ -695,7 +707,7 @@ export default function ItemDetails() {
         {/* Left Column */}
         <div className="lg:col-span-8 flex flex-col gap-3">
           {/* Lauth Integration Section */}
-          {stockData.lauthProfileId && !isBlocked && (
+           {stockData.idPerfil && !isBlocked && (
             <div className="glass-panel rounded-xl p-4 border-amber-500/20 bg-amber-500/5">
               <div className="flex items-center gap-2 mb-3">
                 <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center">

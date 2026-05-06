@@ -320,9 +320,26 @@ export default function AdminNovaVenda() {
               console.error("Fulfill error:", fulfillErr);
               fulfillFailed = true;
             } else if (result && !(result as any).success) {
-              console.error("Fulfill failed:", result);
-              fulfillFailed = true;
-            }
+               console.error("Fulfill failed:", result);
+               fulfillFailed = true;
+             } else if (result && (result as any).success) {
+               // Check for Lauth transfer
+               const { data: userProfile } = await supabase
+                 .from("profiles")
+                 .select("lauth_email, lauth_enabled")
+                 .eq("user_id", selectedClient.user_id)
+                 .maybeSingle();
+               
+               if (userProfile?.lauth_enabled && userProfile?.lauth_email) {
+                 const profileId = (result as any).data?.idPerfil;
+                 if (profileId) {
+                   console.log(`[admin-sale] Triggering Lauth transfer for profile ${profileId}`);
+                   supabase.functions.invoke('lauth-transfer', {
+                     body: { profileId, email: userProfile.lauth_email, itemId: oi.id }
+                   });
+                 }
+               }
+             }
           }
         }
         if (fulfillFailed) {
