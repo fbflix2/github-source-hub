@@ -149,20 +149,27 @@ export default function ClientEditModal({ open, onClose, client, onUpdate }: Cli
               <Button 
                 variant="outline" 
                 className="w-full gap-2 border-primary/20 hover:bg-primary/5 text-primary h-10"
-                  onClick={() => {
-                    // Para evitar o bloqueio direto do domínio do Supabase por extensões,
-                    // usamos uma Edge Function como proxy para servir o arquivo.
+                  onClick={async () => {
+                    // Nova abordagem: Baixar o arquivo como Blob e criar uma URL local temporária.
+                    // Isso evita que o navegador tente carregar diretamente do domínio bloqueado.
                     try {
-                      const urlObj = new URL(documentUrl);
-                      const pathParts = urlObj.pathname.split('/documents/');
-                      if (pathParts.length > 1) {
-                        const filePath = pathParts[1];
-                        const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/view-document?path=${encodeURIComponent(filePath)}`;
-                        window.open(proxyUrl, "_blank");
-                      } else {
-                        window.open(documentUrl, "_blank");
+                      const response = await fetch(documentUrl);
+                      if (!response.ok) throw new Error("Erro ao baixar documento");
+                      
+                      const blob = await response.blob();
+                      const blobUrl = URL.createObjectURL(blob);
+                      
+                      // Abrir o blob local em uma nova aba
+                      const newWindow = window.open(blobUrl, "_blank");
+                      
+                      // Limpar a URL da memória após um tempo para não vazar memória
+                      if (newWindow) {
+                        newWindow.onload = () => {
+                          setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+                        };
                       }
                     } catch (e) {
+                      // Se falhar, tenta o método tradicional
                       window.open(documentUrl, "_blank");
                     }
                   }}
