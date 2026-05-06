@@ -1635,7 +1635,18 @@ Deno.serve(async (req) => {
               })
             : [{ id: newProxyData.webshare_proxy_id, code: newProxyCode, parsed: newProxyParsed, status: "USED", notes: null }];
 
-          const nextFreeQuota = Math.max(0, Number(localRaw.exchange_quota_free ?? localRaw.subscription?.exchange_quota_free ?? 0) - 1);
+          const currentFree = Number(localRaw.exchange_quota_free ?? localRaw.subscription?.exchange_quota_free ?? 0);
+          const currentPay = Number(localRaw.exchange_quota_pay ?? localRaw.subscription?.exchange_quota_pay ?? 0);
+          
+          let nextFree = currentFree;
+          let nextPay = currentPay;
+          
+          if (currentFree > 0) {
+            nextFree = currentFree - 1;
+          } else if (currentPay > 0) {
+            nextPay = currentPay - 1;
+          }
+
           const updatedRaw = {
             ...localRaw,
             provider: "webshare",
@@ -1646,7 +1657,8 @@ Deno.serve(async (req) => {
             password: newProxyData.password,
             country_code: newProxyData.country_code || localRaw.country_code || "BR",
             city_name: newProxyData.city_name || localRaw.city_name || "São Paulo",
-            exchange_quota_free: nextFreeQuota,
+            exchange_quota_free: nextFree,
+            exchange_quota_pay: nextPay,
             exchange_count: Number(localRaw.exchange_count || 0) + 1,
             last_exchange: new Date().toISOString(),
             last_exchange_method: methodName,
@@ -1824,7 +1836,12 @@ Deno.serve(async (req) => {
           if (freshResp.ok) {
             const freshData = JSON.parse(freshText);
             const existingRaw = (localSub?.raw_data || {}) as Record<string, any>;
-            const mergedData = { ...freshData, ...Object.fromEntries(Object.entries(existingRaw).filter(([key]) => key.startsWith("profile_tag"))) };
+            const mergedData = { 
+              ...freshData, 
+              ...Object.fromEntries(Object.entries(existingRaw).filter(([key]) => 
+                key.startsWith("profile_tag") || key === "exchange_quota_pay"
+              )) 
+            };
             await supabaseAdmin
               .from("subscriptions")
               .update({ raw_data: mergedData, updated_at: new Date().toISOString() })
