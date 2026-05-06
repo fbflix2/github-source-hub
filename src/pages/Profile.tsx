@@ -444,7 +444,19 @@ export default function Profile() {
                   <label className="text-sm font-medium text-muted-foreground ml-1">CEP</label>
                   <div className="relative">
                     <span className="material-symbols-outlined absolute left-4 top-3.5 text-muted-foreground text-lg">markunread_mailbox</span>
-                    <input type="text" value={formData.cep} onChange={(e) => setFormData({ ...formData, cep: e.target.value })} placeholder="00000-000" className="input-field pl-12" />
+                    <input 
+                      type="text" 
+                      value={formData.cep} 
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setFormData({ ...formData, cep: val });
+                        if (val.replace(/\D/g, "").length === 8) {
+                          fetchAddressByCep(val);
+                        }
+                      }} 
+                      placeholder="00000-000" 
+                      className="input-field pl-12" 
+                    />
                   </div>
                 </div>
 
