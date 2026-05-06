@@ -104,6 +104,7 @@ export default function AdminTutoriais() {
   const [videoCategory, setVideoCategory] = useState("");
   const [videoTags, setVideoTags] = useState("");
   const [videoDescription, setVideoDescription] = useState("");
+  const [videoThumbnailUrl, setVideoThumbnailUrl] = useState("");
   const [attachments, setAttachments] = useState<{ label: string; url: string }[]>([]);
   const [copyItems, setCopyItems] = useState<{ label: string; value: string }[]>([]);
   const [editingTutorial, setEditingTutorial] = useState<Tutorial | null>(null);
@@ -241,9 +242,43 @@ export default function AdminTutoriais() {
     setVideoCategory("");
     setVideoTags("");
     setVideoDescription("");
+    setVideoThumbnailUrl("");
     setAttachments([]);
     setCopyItems([]);
     setEditingTutorial(null);
+  };
+
+  const getVimeoId = (url: string | null) => {
+    if (!url) return null;
+    const match = url.match(/vimeo\.com\/(?:manage\/videos\/|video\/|channels\/[^/]+\/|groups\/[^/]+\/videos\/)?(\d+)/);
+    return match ? match[1] : null;
+  };
+
+  const fetchVimeoThumbnail = async (url: string) => {
+    const { data } = await supabase.functions.invoke("vimeo-thumbnail", { body: { url } });
+    return data?.thumbnailUrl || null;
+  };
+
+  const handleFetchThumbnail = async () => {
+    if (!videoUrl.trim()) {
+      toast.error("Informe a URL do vídeo primeiro");
+      return;
+    }
+    const youtubeThumb = getYouTubeThumbnail(videoUrl);
+    if (youtubeThumb) {
+      setVideoThumbnailUrl(youtubeThumb);
+      toast.success("Miniatura encontrada");
+      return;
+    }
+    if (getVimeoId(videoUrl)) {
+      const thumb = await fetchVimeoThumbnail(videoUrl);
+      if (thumb) {
+        setVideoThumbnailUrl(thumb);
+        toast.success("Miniatura do Vimeo encontrada");
+      } else {
+        toast.error("O Vimeo não liberou a miniatura. Cole uma URL de imagem manualmente.");
+      }
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
