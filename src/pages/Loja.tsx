@@ -215,14 +215,23 @@ export default function Dashboard() {
     return 3;
   };
 
-  const allProducts = (showProxiesInAll
-    ? [...filteredProducts, ...proxyAsProducts]
+  const allProducts = (activeFilter === "Todos"
+    ? (showProxiesInAll ? [...filteredProducts, ...proxyAsProducts] : filteredProducts)
+    : activeFilter === "Proxy"
+    ? proxyAsProducts
     : filteredProducts
   ).sort((a, b) => {
+    // First by priority if in "Todos"
     if (activeFilter === "Todos") {
-      return getCategoryPriority(a) - getCategoryPriority(b);
+      const priorityA = getCategoryPriority(a);
+      const priorityB = getCategoryPriority(b);
+      if (priorityA !== priorityB) {
+        return priorityA - priorityB;
+      }
     }
-    return 0;
+    
+    // Then by price ascending (cheapest first)
+    return (a.price || 0) - (b.price || 0);
   });
 
   const getQuantity = (id: string) => quantities[id] || 1;
