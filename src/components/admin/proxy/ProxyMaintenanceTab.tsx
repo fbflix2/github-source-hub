@@ -29,6 +29,7 @@ export default function ProxyMaintenanceTab() {
   const [quotaModal, setQuotaModal] = useState<{ sub: any; type: "add" | "remove" } | null>(null);
   const [quotaAmount, setQuotaAmount] = useState(1);
   const [exchangeConfirm, setExchangeConfirm] = useState<any | null>(null);
+  const [targetCity, setTargetCity] = useState("");
 
   // Fetch all proxyfbflix subscriptions
   const { data: allSubs, isLoading } = useQuery({
@@ -149,8 +150,11 @@ export default function ProxyMaintenanceTab() {
 
   // Admin maintenance exchange mutation
   const exchangeMutation = useMutation({
-    mutationFn: async (subscriptionId: string) => {
-      return callProxyFbflix("admin-maintenance-exchange", { subscription_id: subscriptionId });
+    mutationFn: async ({ subscriptionId, city }: { subscriptionId: string; city?: string }) => {
+      return callProxyFbflix("admin-maintenance-exchange", { 
+        subscription_id: subscriptionId,
+        target_city: city 
+      });
     },
     onSuccess: (result: any) => {
       toast.success(`Proxy trocado com sucesso! Novo: ${result?.new_proxy || "—"}`);
@@ -255,6 +259,7 @@ export default function ProxyMaintenanceTab() {
                   <TableHead>Cliente</TableHead>
                   <TableHead>Código</TableHead>
                   <TableHead>Proxy</TableHead>
+                  <TableHead>Localização</TableHead>
                   <TableHead>Produto</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-center">Cotas Grátis</TableHead>
@@ -311,6 +316,14 @@ export default function ProxyMaintenanceTab() {
                           )}
                           <span className="text-[10px] text-muted-foreground font-mono truncate max-w-[120px]">
                             {raw.username || "—"}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1.5">
+                          <Globe className="size-3.5 text-muted-foreground" />
+                          <span className="text-sm text-foreground">
+                            {raw.city_name || raw.country_code || "—"}
                           </span>
                         </div>
                       </TableCell>
@@ -394,7 +407,12 @@ export default function ProxyMaintenanceTab() {
       </Card>
 
       {/* Exchange Confirmation Dialog */}
-      <Dialog open={!!exchangeConfirm} onOpenChange={(v) => !v && setExchangeConfirm(null)}>
+      <Dialog open={!!exchangeConfirm} onOpenChange={(v) => {
+        if (!v) {
+          setExchangeConfirm(null);
+          setTargetCity("");
+        }
+      }}>
         <DialogContent className="border-border/40 bg-card max-w-md">
           <DialogHeader>
             <DialogTitle className="text-foreground flex items-center gap-2">
@@ -424,13 +442,39 @@ export default function ProxyMaintenanceTab() {
                     <span className="text-foreground font-mono">{raw.proxy_address}:{raw.port}</span>
                   </div>
                 </div>
+
+                <div className="space-y-2 pt-2">
+                  <label className="text-sm font-medium text-foreground">Nova Localização (Opcional)</label>
+                  <Select value={targetCity} onValueChange={setTargetCity}>
+                    <SelectTrigger className="w-full bg-background/50 border-border/40">
+                      <SelectValue placeholder="Manter mesma ou aleatória" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Manter mesma / Aleatória</SelectItem>
+                      <SelectItem value="São Paulo">São Paulo, BR</SelectItem>
+                      <SelectItem value="Rio de Janeiro">Rio de Janeiro, BR</SelectItem>
+                      <SelectItem value="Fortaleza">Fortaleza, BR (Ceará)</SelectItem>
+                      <SelectItem value="Curitiba">Curitiba, BR</SelectItem>
+                      <SelectItem value="Belo Horizonte">Belo Horizonte, BR</SelectItem>
+                      <SelectItem value="Porto Alegre">Porto Alegre, BR</SelectItem>
+                      <SelectItem value="Salvador">Salvador, BR</SelectItem>
+                      <SelectItem value="Brasília">Brasília, BR</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-[10px] text-muted-foreground">
+                    Se selecionar uma cidade e não houver estoque, o sistema tentará uma localização próxima.
+                  </p>
+                </div>
               </div>
             );
           })()}
           <DialogFooter>
             <Button variant="outline" onClick={() => setExchangeConfirm(null)}>Cancelar</Button>
             <Button
-              onClick={() => exchangeMutation.mutate(exchangeConfirm.id)}
+              onClick={() => exchangeMutation.mutate({ 
+                subscriptionId: exchangeConfirm.id, 
+                city: targetCity === "none" ? undefined : targetCity 
+              })}
               disabled={exchangeMutation.isPending}
               className="bg-primary hover:bg-primary/90"
             >
