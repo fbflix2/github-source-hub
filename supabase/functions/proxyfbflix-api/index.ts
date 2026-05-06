@@ -1124,7 +1124,7 @@ Deno.serve(async (req) => {
       }
       console.log(`[webshare-exchange] Target country for exchange: ${targetCountry || 'ANY'}`);
 
-      const currentProxyId = raw.fbflix_proxy_id;
+      const currentProxyId = raw.fbflix_proxy_id || raw.webshare_proxy_id;
       const oldProxyStr = `${raw.proxy_address || ""}:${raw.port || ""}`;
       let newProxyData: Record<string, any> | null = null;
       let method = "api"; // track which method succeeded
@@ -1204,7 +1204,7 @@ Deno.serve(async (req) => {
                 .select("raw_data")
                 .in("type", ["proxyfbflix", "webshare"])
                 .in("status", ["active", "expiring"])
-                .neq("id", subscription_id);
+                .neq("id", subRow.id);
 
               const otherAssignedIds = new Set<string>();
               for (const s of (allActiveSubs || [])) {
@@ -1222,6 +1222,7 @@ Deno.serve(async (req) => {
                 const np = candidates[0];
                 newProxyData = {
                   fbflix_proxy_id: np.id,
+                  webshare_proxy_id: np.id,
                   proxy_address: np.proxy_address,
                   port: np.port,
                   username: np.username,
@@ -1299,7 +1300,7 @@ Deno.serve(async (req) => {
             .select("raw_data")
             .in("type", ["proxyfbflix", "webshare"])
             .in("status", ["active", "expiring"])
-            .neq("id", subscription_id);
+            .neq("id", subRow.id);
 
           const assignedIds = new Set<string>();
           const assignedIPs = new Set<string>();
@@ -1319,6 +1320,7 @@ Deno.serve(async (req) => {
             const np = poolCandidates[0];
             newProxyData = {
               fbflix_proxy_id: np.id,
+              webshare_proxy_id: np.id,
               proxy_address: np.proxy_address,
               port: np.port,
               username: np.username,
@@ -1356,7 +1358,7 @@ Deno.serve(async (req) => {
       const { error: updateErr } = await supabaseAdmin
         .from("subscriptions")
         .update({ raw_data: updatedRaw, updated_at: new Date().toISOString() })
-        .eq("id", subscription_id);
+        .eq("id", subRow.id);
 
       if (updateErr) throw new Error(`Erro ao atualizar assinatura: ${updateErr.message}`);
 
