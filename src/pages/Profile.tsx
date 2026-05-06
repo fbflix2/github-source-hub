@@ -470,8 +470,8 @@ export default function Profile() {
                 </div>
 
                 {/* Email */}
-                <div className="md:col-span-2 space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground ml-1">Email Principal</label>
+                <div className="md:col-span-2 space-y-0.5">
+                  <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Email Principal</label>
                   <div className="relative">
                     <span className="material-symbols-outlined absolute left-3 top-2 text-muted-foreground text-base">email</span>
                     <input type="email" value={formData.email} disabled className="input-field pl-10 h-9 text-sm opacity-60 cursor-not-allowed" />
