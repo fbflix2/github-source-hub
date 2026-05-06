@@ -14,6 +14,9 @@ import {
   Check,
   FolderPlus,
   Settings,
+  Download,
+  Copy as CopyIcon,
+  Plus,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -64,6 +67,8 @@ interface Tutorial {
   thumbnail_url: string | null;
   content: string | null;
   created_at: string;
+  attachments?: { label: string; url: string }[] | null;
+  copy_items?: { label: string; value: string }[] | null;
 }
 
 interface TutorialCategory {
@@ -99,6 +104,8 @@ export default function AdminTutoriais() {
   const [videoCategory, setVideoCategory] = useState("");
   const [videoTags, setVideoTags] = useState("");
   const [videoDescription, setVideoDescription] = useState("");
+  const [attachments, setAttachments] = useState<{ label: string; url: string }[]>([]);
+  const [copyItems, setCopyItems] = useState<{ label: string; value: string }[]>([]);
   const [editingTutorial, setEditingTutorial] = useState<Tutorial | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -127,7 +134,7 @@ export default function AdminTutoriais() {
     if (error) {
       toast.error("Erro ao carregar tutoriais");
     } else {
-      setTutorials(data || []);
+      setTutorials((data as unknown as Tutorial[]) || []);
     }
     setLoading(false);
   };
@@ -234,6 +241,8 @@ export default function AdminTutoriais() {
     setVideoCategory("");
     setVideoTags("");
     setVideoDescription("");
+    setAttachments([]);
+    setCopyItems([]);
     setEditingTutorial(null);
   };
 
@@ -252,6 +261,8 @@ export default function AdminTutoriais() {
       description: videoDescription.trim() || null,
       content: videoTags.trim() || null, // using content field to store tags string
       published: false,
+      attachments: attachments.filter((a) => a.url.trim()),
+      copy_items: copyItems.filter((c) => c.value.trim()),
     };
 
     if (editingTutorial) {
@@ -288,6 +299,8 @@ export default function AdminTutoriais() {
     setVideoCategory(tutorial.category || "");
     setVideoDescription(tutorial.description || "");
     setVideoTags(tutorial.content || "");
+    setAttachments(Array.isArray(tutorial.attachments) ? tutorial.attachments : []);
+    setCopyItems(Array.isArray(tutorial.copy_items) ? tutorial.copy_items : []);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -458,6 +471,118 @@ export default function AdminTutoriais() {
               rows={3}
               className="w-full rounded-xl py-3 px-4 bg-black/40 border border-white/10 text-white placeholder:text-gray-500 focus:border-primary focus-visible:ring-1 focus-visible:ring-primary transition-all resize-none"
             />
+          </div>
+
+          {/* Materiais para download */}
+          <div className="col-span-1 md:col-span-12">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                <Download className="w-4 h-4" /> Materiais para download
+              </label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setAttachments([...attachments, { label: "", url: "" }])}
+                className="border-white/10 text-gray-300 hover:text-white hover:bg-white/10"
+              >
+                <Plus className="w-4 h-4 mr-1" /> Adicionar
+              </Button>
+            </div>
+            <div className="space-y-2">
+              {attachments.length === 0 && (
+                <p className="text-xs text-gray-500 italic">Nenhum material. Adicione PDFs, planilhas ou outros arquivos.</p>
+              )}
+              {attachments.map((a, idx) => (
+                <div key={idx} className="flex gap-2 items-center">
+                  <Input
+                    value={a.label}
+                    onChange={(e) => {
+                      const next = [...attachments];
+                      next[idx] = { ...next[idx], label: e.target.value };
+                      setAttachments(next);
+                    }}
+                    placeholder="Nome (ex: Manual em PDF)"
+                    className="flex-1 bg-black/40 border-white/10 text-white"
+                  />
+                  <Input
+                    value={a.url}
+                    onChange={(e) => {
+                      const next = [...attachments];
+                      next[idx] = { ...next[idx], url: e.target.value };
+                      setAttachments(next);
+                    }}
+                    placeholder="https://..."
+                    className="flex-[2] bg-black/40 border-white/10 text-white"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setAttachments(attachments.filter((_, i) => i !== idx))}
+                    className="text-gray-400 hover:text-red-400"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Links / dados copiáveis */}
+          <div className="col-span-1 md:col-span-12">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                <CopyIcon className="w-4 h-4" /> Links / dados para copiar
+              </label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setCopyItems([...copyItems, { label: "", value: "" }])}
+                className="border-white/10 text-gray-300 hover:text-white hover:bg-white/10"
+              >
+                <Plus className="w-4 h-4 mr-1" /> Adicionar
+              </Button>
+            </div>
+            <div className="space-y-2">
+              {copyItems.length === 0 && (
+                <p className="text-xs text-gray-500 italic">Adicione URLs, comandos ou textos que o usuário possa copiar com um clique.</p>
+              )}
+              {copyItems.map((c, idx) => (
+                <div key={idx} className="flex gap-2 items-center">
+                  <Input
+                    value={c.label}
+                    onChange={(e) => {
+                      const next = [...copyItems];
+                      next[idx] = { ...next[idx], label: e.target.value };
+                      setCopyItems(next);
+                    }}
+                    placeholder="Rótulo (ex: Link do checkout)"
+                    className="flex-1 bg-black/40 border-white/10 text-white"
+                  />
+                  <Input
+                    value={c.value}
+                    onChange={(e) => {
+                      const next = [...copyItems];
+                      next[idx] = { ...next[idx], value: e.target.value };
+                      setCopyItems(next);
+                    }}
+                    placeholder="Valor a ser copiado"
+                    className="flex-[2] bg-black/40 border-white/10 text-white"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setCopyItems(copyItems.filter((_, i) => i !== idx))}
+                    className="text-gray-400 hover:text-red-400"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Botão */}

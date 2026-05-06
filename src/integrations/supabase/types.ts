@@ -3779,10 +3779,50 @@ export type Database = {
         }
         Relationships: []
       }
+      tutorial_feedback: {
+        Row: {
+          comment: string | null
+          created_at: string
+          helpful: boolean | null
+          id: string
+          tutorial_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          helpful?: boolean | null
+          id?: string
+          tutorial_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          helpful?: boolean | null
+          id?: string
+          tutorial_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tutorial_feedback_tutorial_id_fkey"
+            columns: ["tutorial_id"]
+            isOneToOne: false
+            referencedRelation: "tutorials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tutorials: {
         Row: {
+          attachments: Json
           category: string | null
           content: string | null
+          copy_items: Json
           created_at: string
           description: string | null
           id: string
@@ -3794,8 +3834,10 @@ export type Database = {
           video_url: string | null
         }
         Insert: {
+          attachments?: Json
           category?: string | null
           content?: string | null
+          copy_items?: Json
           created_at?: string
           description?: string | null
           id?: string
@@ -3807,8 +3849,10 @@ export type Database = {
           video_url?: string | null
         }
         Update: {
+          attachments?: Json
           category?: string | null
           content?: string | null
+          copy_items?: Json
           created_at?: string
           description?: string | null
           id?: string
