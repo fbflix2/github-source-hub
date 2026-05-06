@@ -134,7 +134,7 @@ export default function AdminTutoriais() {
     if (error) {
       toast.error("Erro ao carregar tutoriais");
     } else {
-      setTutorials(data || []);
+      setTutorials((data as unknown as Tutorial[]) || []);
     }
     setLoading(false);
   };
