@@ -180,10 +180,8 @@ export default function Dashboard() {
     return getCheapestPrice(a, localA) - getCheapestPrice(b, localB);
   });
 
-  const proxyAsProducts: Product[] = proxyProducts.map((p: any) => {
+  const apiProxyAsProducts: Product[] = proxyProducts.map((p: any) => {
     const local = getLocalProxyData(p);
-    // If local product exists and is in the active products list, use its available status
-    // If local product doesn't exist, show the API product by default
     const variants = p.variant || p.variants?.data || p.variants || [];
     const cheapestVariant = variants.length
       ? variants.reduce((min: any, v: any) => ((v.price || 0) < (min.price || 0) ? v : min), variants[0])
@@ -207,6 +205,11 @@ export default function Dashboard() {
       slug: local?.slug || null,
     };
   }).filter(p => p.available);
+
+  const matchedLocalIds = new Set(apiProxyAsProducts.map(p => p.id));
+  const standaloneLocalProxies = proxyfbflixLocalProducts.filter(p => !matchedLocalIds.has(p.id));
+  
+  const proxyAsProducts = [...apiProxyAsProducts, ...standaloneLocalProxies].sort((a, b) => (a.price || 0) - (b.price || 0));
 
   // Local proxy products should show alongside regular products and in Proxy filter
   const isLocalProxy = (p: Product) => p.category_id === proxyCategoryId;
