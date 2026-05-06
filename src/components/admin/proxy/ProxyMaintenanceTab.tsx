@@ -262,7 +262,7 @@ export default function ProxyMaintenanceTab() {
                   <TableHead>Localização</TableHead>
                   <TableHead>Produto</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="text-center">Cotas Grátis</TableHead>
+                  <TableHead className="text-center">Cotas (Grátis/Paga)</TableHead>
                   <TableHead>Vencimento</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
@@ -293,6 +293,7 @@ export default function ProxyMaintenanceTab() {
                   const product = sub.product_id ? productMap.get(sub.product_id) : null;
                   const statusInfo = getStatusInfo(sub);
                   const freeQuota = raw.exchange_quota_free ?? 0;
+                  const payQuota = raw.exchange_quota_pay ?? 0;
                   const maintCount = raw.maintenance_exchange_count || 0;
                   const providerLabel = isProxyBR ? "ProxyBR" : "ProxyFbflix";
 
@@ -344,9 +345,16 @@ export default function ProxyMaintenanceTab() {
                         )}
                       </TableCell>
                       <TableCell className="text-center">
-                        <span className={`font-mono text-sm font-bold ${freeQuota > 0 ? "text-green-400" : "text-destructive"}`}>
-                          {freeQuota}
-                        </span>
+                        <div className="flex flex-col items-center">
+                          <span className={`font-mono text-sm font-bold ${freeQuota > 0 ? "text-green-400" : "text-muted-foreground"}`}>
+                            {freeQuota}
+                          </span>
+                          {payQuota > 0 && (
+                            <span className="font-mono text-[10px] font-bold text-primary">
+                              +{payQuota} pagas
+                            </span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
                         {sub.end_date ? new Date(sub.end_date).toLocaleDateString("pt-BR") : "—"}
