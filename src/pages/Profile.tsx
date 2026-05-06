@@ -457,6 +457,19 @@ export default function Profile() {
                     <span className="material-symbols-outlined absolute right-4 top-3.5 text-muted-foreground pointer-events-none">expand_more</span>
                   </div>
                   <p className="text-xs text-muted-foreground/60 ml-1">Define qual cidade virá pré-selecionada ao comprar um novo proxy.</p>
+                  <div className="flex items-center justify-between bg-secondary/30 p-3 rounded-xl border border-border/50 mt-2">
+                    <div className="space-y-0.5 pr-3">
+                      <label className="text-sm font-medium text-foreground">Mostrar opções de cidade no checkout</label>
+                      <p className="text-xs text-muted-foreground">Se ativado, você poderá escolher a cidade do proxy a cada compra. Caso contrário, será usada a cidade padrão acima.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, show_proxy_city_on_checkout: !formData.show_proxy_city_on_checkout })}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none shrink-0 ${formData.show_proxy_city_on_checkout ? 'bg-primary' : 'bg-muted'}`}
+                    >
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.show_proxy_city_on_checkout ? 'translate-x-6' : 'translate-x-1'}`} />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Lauth Integration */}
