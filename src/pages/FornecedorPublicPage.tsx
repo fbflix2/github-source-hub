@@ -47,21 +47,25 @@ export default function FornecedorPublicPage() {
     }
   }, []);
 
+  const callPortal = async (action: string, payload: Record<string, any> = {}, tokenOverride?: string) => {
+    const useToken = tokenOverride ?? token;
+    const { data, error } = await supabase.functions.invoke("supplier-portal", {
+      body: { action, token: useToken, ...payload },
+    });
+    if (error) throw new Error(error.message || "Erro de comunicação");
+    if (data?.error) throw new Error(data.error);
+    return data;
+  };
+
   const autoAuth = async (tokenToUse: string) => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("suppliers")
-        .select("id, name, status")
-        .eq("access_token", tokenToUse)
-        .eq("status", "active")
-        .maybeSingle();
-
-      if (!error && data) {
-        setSupplier(data);
+      const data = await callPortal("auth", {}, tokenToUse);
+      if (data?.supplier) {
+        setSupplier(data.supplier);
         setIsAuth(true);
-        fetchRequests(data.id);
-        fetchPaymentMethods(data.id);
+        fetchRequests(data.supplier.id);
+        fetchPaymentMethods(data.supplier.id);
         fetchPurchaseRequests();
       }
     } catch (err) {
@@ -79,50 +83,36 @@ export default function FornecedorPublicPage() {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("suppliers")
-        .select("id, name, status")
-        .eq("access_token", token)
-        .eq("status", "active")
-        .maybeSingle();
-
-      if (error || !data) {
+      const data = await callPortal("auth");
+      if (!data?.supplier) {
         toast.error("Token inválido ou fornecedor inativo");
         setLoading(false);
         return;
       }
-
-      setSupplier(data);
+      setSupplier(data.supplier);
       setIsAuth(true);
-      fetchRequests(data.id);
-      fetchPaymentMethods(data.id);
-      
-      if (rememberMe) {
-        localStorage.setItem("supplier_token", token);
-      } else {
-        localStorage.removeItem("supplier_token");
-      }
-      
-      toast.success("Acesso liberado, " + data.name);
-    } catch (err) {
-      toast.error("Erro ao autenticar");
+      fetchRequests(data.supplier.id);
+      fetchPaymentMethods(data.supplier.id);
+      fetchPurchaseRequests();
+
+      if (rememberMe) localStorage.setItem("supplier_token", token);
+      else localStorage.removeItem("supplier_token");
+
+      toast.success("Acesso liberado, " + data.supplier.name);
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao autenticar");
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchPaymentMethods = async (supplierId: string) => {
-    const { data, error } = await supabase
-      .from("supplier_payment_methods")
-      .select("*")
-      .eq("supplier_id", supplierId)
-      .order("created_at", { ascending: false });
-    
-    if (error) {
-      console.error("Error fetching payment methods:", error);
-      return;
+  const fetchPaymentMethods = async (_supplierId: string) => {
+    try {
+      const data = await callPortal("list-payment-methods");
+      setPaymentMethods(data?.payment_methods || []);
+    } catch (err) {
+      console.error("Error fetching payment methods", err);
     }
-    setPaymentMethods(data || []);
   };
 
   const validatePix = (type: string, key: string) => {
@@ -156,20 +146,12 @@ export default function FornecedorPublicPage() {
 
     setSubmitting(true);
     try {
-      const { data, error } = await supabase
-        .from("supplier_payment_methods")
-        .insert({
-          supplier_id: supplier.id,
-          type: newPaymentType,
-          details: details,
-          is_primary: paymentMethods.length === 0
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      setPaymentMethods([data, ...paymentMethods]);
+      const data = await callPortal("add-payment-method", {
+        type: newPaymentType,
+        details,
+        is_primary: paymentMethods.length === 0,
+      });
+      setPaymentMethods([data.payment_method, ...paymentMethods]);
       setPixKey("");
       setBankData({ bank: "", agency: "", account: "", holder: "", document: "" });
       toast.success("Forma de recebimento cadastrada!");
@@ -183,13 +165,7 @@ export default function FornecedorPublicPage() {
 
   const handleDeletePaymentMethod = async (id: string) => {
     try {
-      const { error } = await supabase
-        .from("supplier_payment_methods")
-        .delete()
-        .eq("id", id);
-
-      if (error) throw error;
-
+      await callPortal("delete-payment-method", { id });
       setPaymentMethods(paymentMethods.filter(pm => pm.id !== id));
       toast.success("Removido com sucesso");
     } catch (err: any) {
@@ -197,31 +173,22 @@ export default function FornecedorPublicPage() {
     }
   };
 
-   const fetchRequests = async (supplierId: string) => {
-     const { data, error } = await supabase
-       .from("supplier_requests")
-       .select(`
-         *,
-         items:supplier_request_items(*)
-       `)
-       .eq("supplier_id", supplierId)
-       .order("created_at", { ascending: false });
-     
-     if (error) {
-       console.error("Error fetching requests:", error);
-       return;
+   const fetchRequests = async (_supplierId: string) => {
+     try {
+       const data = await callPortal("list-requests");
+       setRequests(data?.requests || []);
+     } catch (err) {
+       console.error("Error fetching requests", err);
      }
-     setRequests(data || []);
    };
 
    const fetchPurchaseRequests = async () => {
-     const { data, error } = await supabase
-       .from("purchase_requests")
-       .select("*")
-       .eq("status", "open")
-       .order("created_at", { ascending: false });
-     
-     if (!error) setPurchaseRequests(data || []);
+     try {
+       const data = await callPortal("list-purchase-requests");
+       setPurchaseRequests(data?.purchase_requests || []);
+     } catch (err) {
+       console.error("Error fetching purchase requests", err);
+     }
    };
 
    const getStatusLabel = (status: string) => {
@@ -266,39 +233,21 @@ export default function FornecedorPublicPage() {
 
     setSubmitting(true);
     try {
-      // 1. Create batch
-      const { data: batch, error: batchError } = await supabase
-        .from("supplier_batches")
-        .insert({
-          supplier_id: supplier.id,
-          name: requestId 
-            ? `Reposição via Portal - Req #${requestId.slice(0, 4)}`
-            : `Envio Fornecedor (${type}) - ${new Date().toLocaleDateString("pt-BR")}`,
-          notes: notes || (itemId 
-            ? `Reposição individual para item ${itemId} da solicitação ${requestId}` 
-            : requestId ? `Reposição para solicitação ${requestId}` : `Envio via portal público`),
-          purchased_at: new Date().toISOString().split('T')[0],
-          type: "replacement"
-        })
-        .select()
-        .single();
-
-      if (batchError) throw batchError;
-
-      // 2. Simple parse and insert
       const lines = content.split('\n').filter(l => l.trim());
       const accounts = lines.map(line => ({
-        batch_id: batch.id,
-        supplier_id: supplier.id,
         login: type === "bm" ? "BM_PORTAL" : (line.split('|')[0] || line).trim(),
         password: type === "bm" ? "N/A" : (line.split('|')[1] || "").trim(),
         notes: line,
-        status: "aguardando",
-        has_bm: type === "bm"
+        has_bm: type === "bm",
       }));
+      const batchName = requestId
+        ? `Reposição via Portal - Req #${requestId.slice(0, 4)}`
+        : `Envio Fornecedor (${type}) - ${new Date().toLocaleDateString("pt-BR")}`;
+      const batchNotes = notes || (itemId
+        ? `Reposição individual para item ${itemId} da solicitação ${requestId}`
+        : requestId ? `Reposição para solicitação ${requestId}` : `Envio via portal público`);
 
-      const { error: insertError } = await supabase.from("supplier_accounts").insert(accounts);
-      if (insertError) throw insertError;
+      await callPortal("submit-replenishment", { name: batchName, notes: batchNotes, accounts });
 
       // If it's a specific item replacement, we might want to mark just that item
       // But for now, we'll keep the current logic of notifying the team for audit
@@ -340,17 +289,10 @@ export default function FornecedorPublicPage() {
 
     setSubmitting(true);
     try {
-      const { error } = await supabase
-        .from("supplier_batches")
-        .insert({
-          supplier_id: supplier.id,
-          name: `Oferta: ${offerData.type.toUpperCase()} - ${offerData.description}`,
-          notes: `OFERTA DE VENDA\nTipo: ${offerData.type}\nPreço sugerido: R$ ${offerData.price}\nDescrição: ${offerData.description}\nConteúdo: ${offerData.content}`,
-          purchased_at: new Date().toISOString().split('T')[0],
-          type: "offer"
-        });
-
-      if (error) throw error;
+      await callPortal("submit-offer", {
+        name: `Oferta: ${offerData.type.toUpperCase()} - ${offerData.description}`,
+        notes: `OFERTA DE VENDA\nTipo: ${offerData.type}\nPreço sugerido: R$ ${offerData.price}\nDescrição: ${offerData.description}\nConteúdo: ${offerData.content}`,
+      });
 
       toast.success("Sua oferta foi enviada! Nossa equipe analisará em breve.");
       setOfferData({ type: "bm", description: "", price: "", content: "" });
