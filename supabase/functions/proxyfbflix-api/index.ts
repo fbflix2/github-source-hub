@@ -2229,11 +2229,11 @@ Deno.serve(async (req) => {
       console.log(`[migrate-proxybr] Renewal price: R$${renewalPrice} product=${matchedProduct?.name || "fallback"}`);
 
       // 4. Check wallet balance
-      const { data: profile } = await supabaseAdmin
-        .from("profiles")
-        .select("balance, full_name")
-        .eq("user_id", targetUserId)
-        .single();
+       const { data: profile } = await supabaseAdmin
+         .from("profiles")
+         .select("balance, full_name, phone")
+         .eq("user_id", targetUserId)
+         .single();
 
       if (!profile) throw new Error("Perfil não encontrado");
       if (profile.balance < renewalPrice) throw new Error(`Saldo insuficiente. Necessário: R$ ${renewalPrice.toFixed(2)}, disponível: R$ ${profile.balance.toFixed(2)}`);
