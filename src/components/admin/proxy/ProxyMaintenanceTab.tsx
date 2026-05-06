@@ -166,19 +166,25 @@ export default function ProxyMaintenanceTab() {
     },
   });
 
+  const [quotaType, setQuotaType] = useState<"free" | "pay">("free");
+
   // Quota adjustment mutation
   const quotaMutation = useMutation({
     mutationFn: async ({ subId, delta }: { subId: string; delta: number }) => {
       const sub = allSubs?.find((s: any) => s.id === subId);
       if (!sub) throw new Error("Assinatura não encontrada");
       const raw = (sub.raw_data || {}) as Record<string, any>;
-      const currentFree = raw.exchange_quota_free ?? 0;
-      const newFree = Math.max(0, currentFree + delta);
-      const updatedRaw = { ...raw, exchange_quota_free: newFree };
-      return callProxyFbflix("admin-update-subscription", {
-        subscription_id: subId,
-        raw_data: updatedRaw,
+      const key = quotaType === "pay" ? "exchange_quota_pay" : "exchange_quota_free";
+      const currentVal = raw[key] ?? 0;
+      const newVal = Math.max(0, currentVal + delta);
+      const updatedRaw = { ...raw, [key]: newVal };
+
+      const functionName = (sub.type === "proxybr") ? "proxybr-api" : "proxyfbflix-api";
+      const { data, error } = await supabase.functions.invoke(functionName, {
+        body: { action: "admin-update-subscription", subscription_id: subId, raw_data: updatedRaw }
       });
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       toast.success("Cota atualizada com sucesso!");
