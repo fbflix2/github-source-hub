@@ -412,64 +412,63 @@ export default function Dashboard() {
               <span className="material-symbols-outlined text-[48px] text-muted-foreground mb-4">inventory_2</span>
               <p className="text-muted-foreground">Nenhum proxy disponível no momento.</p>
             </div>
-          ) : viewMode === "list" ? (
-            <div key="proxy-list" className="flex flex-col gap-3">
-              {proxyProducts.map((product: any) => {
-                const local = getLocalProxyData(product);
-                const variants = product.variant || product.variants?.data || product.variants || [];
-                const cheapestVariant = variants.length
-                  ? variants.reduce((min: any, v: any) => ((v.price || 0) < (min.price || 0) ? v : min), variants[0])
-                  : null;
-                const price = (local?.price != null && local.price > 0) ? local.price : (cheapestVariant?.price || product.price || 0);
-                const totalApiStock = variants.reduce((sum: number, v: any) => sum + (v.stocks ?? 0), 0);
-                const asProduct: Product = {
-                  id: local?.id || String(product.id),
-                  name: local?.name || product.name,
-                  description: local?.description || product.description || null,
-                  price: Number(price),
-                  price_label: "mensal",
-                  image_url: local?.image_url || getProxyImage(product.name),
-                  badge_text: local?.badge_text || null,
-                  badge_color: local?.badge_color || null,
-                  badge_icon: local?.badge_icon || null,
-                  stock: totalApiStock > 0 ? totalApiStock : (local?.stock ?? 0),
-                  available: true,
-                  category_id: null,
-                  tags: local?.tags || null,
-                };
-                return (
-                  <ProductListItem
-                    key={`list-${product.id}`}
-                    product={asProduct}
-                    quantity={getProxyQty(String(product.id))}
-                    onQuantityChange={(id, delta, max) => updateProxyQty(String(product.id), delta)}
-                    onReadMore={setDetailProduct}
-                  />
-                );
-              })}
-            </div>
           ) : (
-            <div key="proxy-grid" className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {proxyProducts.map((product: any) => (
-                <ProxyProductCard
-                  key={`grid-${product.id}`}
-                  product={product}
-                  proxyImage={getProxyImage(product.name)}
-                  quantity={getProxyQty(String(product.id))}
-                  onQuantityChange={updateProxyQty}
-                  localData={getLocalProxyData(product)}
-                  onReadMore={(info) => { const variants = product.variant || product.variants?.data || product.variants || []; const totalApiStock = variants.reduce((sum: number, v: any) => sum + (v.stocks ?? 0), 0); setDetailProduct({ id: String(product.id), name: info.name, description: info.description, price: info.price, price_label: "mensal", image_url: info.image_url, badge_text: null, badge_color: null, badge_icon: null, stock: totalApiStock > 0 ? totalApiStock : 0, available: true, category_id: null, tags: info.tags } as any); }}
-                />
-              ))}
-              {/* Local proxyfbflix products */}
-              {proxyfbflixLocalProducts.map((product) => {
+            <div key="proxy-content" className={viewMode === "grid" ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" : "flex flex-col gap-3"}>
+              {allProducts.map((product: any) => {
+                // Find if this is an API product (via original external_id or matching)
+                const apiProduct = rawProxyProductsData.find(ap => String(ap.id) === product.id || String(ap.id) === product.external_id);
+                
+                if (viewMode === "list") {
+                  return (
+                    <ProductListItem
+                      key={`list-${product.id}`}
+                      product={product}
+                      quantity={apiProduct ? getProxyQty(String(apiProduct.id)) : getQuantity(product.id)}
+                      onQuantityChange={(id, delta, max) => apiProduct ? updateProxyQty(String(apiProduct.id), delta) : updateQuantity(product.id, delta, product.stock)}
+                      onReadMore={setDetailProduct}
+                    />
+                  );
+                }
+                
+                if (apiProduct) {
+                  return (
+                    <ProxyProductCard
+                      key={`grid-${apiProduct.id}`}
+                      product={apiProduct}
+                      proxyImage={getProxyImage(apiProduct.name)}
+                      quantity={getProxyQty(String(apiProduct.id))}
+                      onQuantityChange={updateProxyQty}
+                      localData={getLocalProxyData(apiProduct)}
+                      onReadMore={(info) => { 
+                        const variants = apiProduct.variant || apiProduct.variants?.data || apiProduct.variants || []; 
+                        const totalApiStock = variants.reduce((sum: number, v: any) => sum + (v.stocks ?? 0), 0); 
+                        setDetailProduct({ 
+                          id: String(apiProduct.id), 
+                          name: info.name, 
+                          description: info.description, 
+                          price: info.price, 
+                          price_label: "mensal", 
+                          image_url: info.image_url, 
+                          badge_text: null, 
+                          badge_color: null, 
+                          badge_icon: null, 
+                          stock: totalApiStock > 0 ? totalApiStock : 0, 
+                          available: true, 
+                          category_id: null, 
+                          tags: info.tags 
+                        } as any); 
+                      }}
+                    />
+                  );
+                }
+                
                 const stockInfo = getStockInfo(product);
                 return (
                   <article
                     key={product.id}
-                    className={`glass-card rounded-2xl overflow-hidden flex flex-col group h-full relative ${product.tags?.some(t => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes("promoc")) ? "ring-1 ring-red-500/30" : ""}`}
+                    className={`glass-card rounded-2xl overflow-hidden flex flex-col group h-full relative ${product.tags?.some((t: string) => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes("promoc")) ? "ring-1 ring-red-500/30" : ""}`}
                   >
-                    {product.tags?.some(t => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes("promoc")) && (
+                    {product.tags?.some((t: string) => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes("promoc")) && (
                       <div className="absolute top-0 left-0 z-10 overflow-hidden w-24 h-24 pointer-events-none">
                         <div className="absolute top-[10px] left-[-28px] w-[120px] text-center text-[10px] font-extrabold uppercase tracking-wider bg-gradient-to-r from-red-600 to-orange-500 text-white py-1 rotate-[-45deg] shadow-lg shadow-red-500/30">
                           Promoção
