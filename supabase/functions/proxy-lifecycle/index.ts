@@ -290,9 +290,9 @@ Deno.serve(async (req) => {
           let deleteResult = "no_proxy_id";
 
           if (!dryRun) {
-            if (webshareProxyId && sub.type === "webshare") {
+            if (webshareProxyId && (sub.type === "webshare" || sub.type === "proxyfbflix")) {
               try {
-                const deleteResp = await admin.functions.invoke("webshare-api", {
+                const deleteResp = await admin.functions.invoke("proxyfbflix-api", {
                   body: { action: "internal-delete-webshare-proxy", webshare_proxy_id: webshareProxyId },
                 });
                 deleteResult = deleteResp.data?.success ? "deleted" : (deleteResp.data?.error || "failed");

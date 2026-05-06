@@ -206,11 +206,14 @@ Deno.serve(async (req) => {
       // Get assigned proxy IDs
       const { data: existSubs } = await supabaseInternal
         .from("subscriptions").select("raw_data")
-        .eq("type", "proxyfbflix").in("status", ["active", "expiring"]);
+        .in("type", ["proxyfbflix", "webshare", "proxyfbflix_rotating", "webshare_rotating"])
+        .in("status", ["active", "expiring"]);
+
       const assignedIds = new Set<string>();
       for (const s of (existSubs || [])) {
         const raw = (s.raw_data || {}) as Record<string, any>;
-        if (raw.fbflix_proxy_id) assignedIds.add(raw.fbflix_proxy_id);
+        const pid = raw.fbflix_proxy_id || raw.webshare_proxy_id;
+        if (pid) assignedIds.add(String(pid));
       }
 
       let available = allProxies.filter(p => p.valid && !assignedIds.has(p.id));
@@ -1115,7 +1118,9 @@ Deno.serve(async (req) => {
       let subQuery = supabaseAdmin
         .from("subscriptions")
         .select("*")
-        .in("type", ["proxyfbflix", "webshare"])
+        .from("subscriptions")
+        .select("*")
+        .in("type", ["proxyfbflix", "proxyfbflix_rotating", "webshare", "webshare_rotating"])
         .limit(1);
       subQuery = isUuid ? subQuery.eq("id", subscription_id) : subQuery.eq("name", subscription_id);
       const { data: subRows, error: subErr } = await subQuery;
@@ -2150,7 +2155,7 @@ Deno.serve(async (req) => {
             .select("*, products:product_id(name, price, tags)")
             .eq("user_id", targetUserId)
             .eq("name", subscription_name)
-            .in("type", ["webshare", "webshare_rotating"])
+            .in("type", ["webshare", "webshare_rotating", "proxyfbflix", "proxyfbflix_rotating"])
             .maybeSingle();
           
           if (wsSub) {
@@ -2161,7 +2166,7 @@ Deno.serve(async (req) => {
               .from("subscriptions")
               .select("*, products:product_id(name, price, tags)")
               .eq("name", subscription_name)
-              .in("type", ["proxybr", "webshare", "webshare_rotating"])
+            .in("type", ["proxybr", "webshare", "webshare_rotating", "proxyfbflix", "proxyfbflix_rotating"])
               .limit(1)
               .maybeSingle();
             existingSub = anySub;
@@ -2169,6 +2174,8 @@ Deno.serve(async (req) => {
         }
       }
       if (!existingSub) throw new Error("Assinatura não encontrada");
+
+      const isExistingWebshareRenewal = ["webshare", "webshare_rotating", "proxyfbflix", "proxyfbflix_rotating"].includes(existingSub.type);
 
       // For single-proxy subs or non-exploded, check if still active
       // Allow renewal when ≤3 days remaining (status "expiring" in frontend)

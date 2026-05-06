@@ -39,7 +39,8 @@ verify_jwt = false
 [functions.manage-team]
 verify_jwt = false
 
-[functions.webshare-api]
+
+[functions.proxyfbflix-api]
 verify_jwt = false
 
 [functions.list-user-emails]
