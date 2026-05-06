@@ -1085,15 +1085,21 @@ Deno.serve(async (req) => {
       const { subscription_id, target_country: overrideCountry } = params as { subscription_id: string; target_country?: string };
       if (!subscription_id) throw new Error("subscription_id é obrigatório");
 
-      // 1. Get subscription
-      const { data: subRow, error: subErr } = await supabaseAdmin
+      // 1. Get subscription. The UI can pass either the UUID id or the public code (WS-...).
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(subscription_id);
+      let subQuery = supabaseAdmin
         .from("subscriptions")
         .select("*")
-        .eq("id", subscription_id)
-        .eq("type", "proxyfbflix")
-        .single();
+        .in("type", ["proxyfbflix", "webshare"])
+        .limit(1);
+      subQuery = isUuid ? subQuery.eq("id", subscription_id) : subQuery.eq("name", subscription_id);
+      const { data: subRows, error: subErr } = await subQuery;
+      const subRow = subRows?.[0];
 
-      if (subErr || !subRow) throw new Error("Assinatura não encontrada");
+      if (subErr || !subRow) {
+        console.error(`[webshare-exchange] Subscription not found for ${subscription_id} (uuid=${isUuid})`);
+        throw new Error("Assinatura não encontrada");
+      }
       if (!isServiceRole && subRow.user_id !== user?.id) {
         // Check if staff
         const { data: isStaff } = await supabaseAdmin.rpc("is_staff", { _user_id: user?.id });
@@ -1118,7 +1124,7 @@ Deno.serve(async (req) => {
       }
       console.log(`[webshare-exchange] Target country for exchange: ${targetCountry || 'ANY'}`);
 
-      const currentProxyId = raw.fbflix_proxy_id;
+      const currentProxyId = raw.fbflix_proxy_id || raw.webshare_proxy_id;
       const oldProxyStr = `${raw.proxy_address || ""}:${raw.port || ""}`;
       let newProxyData: Record<string, any> | null = null;
       let method = "api"; // track which method succeeded
@@ -1196,9 +1202,9 @@ Deno.serve(async (req) => {
               const { data: allActiveSubs } = await supabaseAdmin
                 .from("subscriptions")
                 .select("raw_data")
-                .eq("type", "proxyfbflix")
+                .in("type", ["proxyfbflix", "webshare"])
                 .in("status", ["active", "expiring"])
-                .neq("id", subscription_id);
+                .neq("id", subRow.id);
 
               const otherAssignedIds = new Set<string>();
               for (const s of (allActiveSubs || [])) {
@@ -1216,6 +1222,7 @@ Deno.serve(async (req) => {
                 const np = candidates[0];
                 newProxyData = {
                   fbflix_proxy_id: np.id,
+                  webshare_proxy_id: np.id,
                   proxy_address: np.proxy_address,
                   port: np.port,
                   username: np.username,
@@ -1291,9 +1298,9 @@ Deno.serve(async (req) => {
           const { data: allActiveSubs } = await supabaseAdmin
             .from("subscriptions")
             .select("raw_data")
-            .eq("type", "proxyfbflix")
+            .in("type", ["proxyfbflix", "webshare"])
             .in("status", ["active", "expiring"])
-            .neq("id", subscription_id);
+            .neq("id", subRow.id);
 
           const assignedIds = new Set<string>();
           const assignedIPs = new Set<string>();
@@ -1313,6 +1320,7 @@ Deno.serve(async (req) => {
             const np = poolCandidates[0];
             newProxyData = {
               fbflix_proxy_id: np.id,
+              webshare_proxy_id: np.id,
               proxy_address: np.proxy_address,
               port: np.port,
               username: np.username,
@@ -1350,7 +1358,7 @@ Deno.serve(async (req) => {
       const { error: updateErr } = await supabaseAdmin
         .from("subscriptions")
         .update({ raw_data: updatedRaw, updated_at: new Date().toISOString() })
-        .eq("id", subscription_id);
+        .eq("id", subRow.id);
 
       if (updateErr) throw new Error(`Erro ao atualizar assinatura: ${updateErr.message}`);
 
