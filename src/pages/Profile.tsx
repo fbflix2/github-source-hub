@@ -398,13 +398,32 @@ export default function Profile() {
                 </div>
 
                 {/* Email */}
-                <div className="md:col-span-2 space-y-2">
+                <div className="md:col-span-1 space-y-2">
                   <label className="text-sm font-medium text-muted-foreground ml-1">Email Principal</label>
                   <div className="relative">
                     <span className="material-symbols-outlined absolute left-4 top-3.5 text-muted-foreground text-lg">email</span>
                     <input type="email" value={formData.email} disabled className="input-field pl-12 opacity-60 cursor-not-allowed" />
                   </div>
                   <p className="text-xs text-muted-foreground/60 ml-1">Este email é vinculado à sua conta e não pode ser alterado aqui.</p>
+                </div>
+
+                {/* Preferência de Localização do Proxy */}
+                <div className="md:col-span-1 space-y-2">
+                  <label className="text-sm font-medium text-muted-foreground ml-1">Localização Padrão para Proxies</label>
+                  <div className="relative">
+                    <span className="material-symbols-outlined absolute left-4 top-3.5 text-muted-foreground text-lg">location_on</span>
+                    <select
+                      value={formData.preferred_proxy_city}
+                      onChange={(e) => setFormData({ ...formData, preferred_proxy_city: e.target.value })}
+                      className="input-field pl-12 appearance-none"
+                    >
+                      {PROXY_CITIES.map(city => (
+                        <option key={city.value} value={city.value}>{city.label}</option>
+                      ))}
+                    </select>
+                    <span className="material-symbols-outlined absolute right-4 top-3.5 text-muted-foreground pointer-events-none">expand_more</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground/60 ml-1">Define qual cidade virá pré-selecionada ao comprar um novo proxy.</p>
                 </div>
 
                 {/* Lauth Integration */}
