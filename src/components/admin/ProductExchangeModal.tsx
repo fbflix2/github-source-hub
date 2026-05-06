@@ -399,7 +399,29 @@ export default function ProductExchangeModal({ open, onOpenChange, orderItem, or
       const successMsg = priceDiff > 0
         ? `Troca realizada! Cliente precisa pagar R$ ${priceDiff.toFixed(2).replace(".", ",")} para acessar o item.`
         : `Troca realizada! ${totalNewItems} item(ns) vinculado(s).`;
-      toast.success(successMsg);
+       // 8. Trigger Lauth transfer if applicable
+       const { data: userProfile } = await supabase
+         .from("profiles")
+         .select("lauth_email, lauth_enabled")
+         .eq("user_id", clientUserId)
+         .maybeSingle();
+ 
+       if (userProfile?.lauth_enabled && userProfile?.lauth_email) {
+         for (const item of linkedItems) {
+           if (item.deliveryData.idPerfil) {
+             console.log(`[exchange] Triggering Lauth transfer for profile ${item.deliveryData.idPerfil}`);
+             supabase.functions.invoke('lauth-transfer', {
+               body: { 
+                 profileId: item.deliveryData.idPerfil, 
+                 email: userProfile.lauth_email, 
+                 itemId: orderItem.order_item_id // Use the first order item id as reference
+               }
+             });
+           }
+         }
+       }
+ 
+       toast.success(successMsg);
       onExchangeComplete();
       onOpenChange(false);
     } catch (err: any) {
