@@ -20,6 +20,7 @@ interface ProfileFormData {
   lauth_email: string;
   lauth_enabled: boolean;
   preferred_proxy_city: string;
+  show_proxy_city_on_checkout: boolean;
 }
 
 export default function Profile() {
@@ -39,19 +40,31 @@ export default function Profile() {
     lauth_email: "",
     lauth_enabled: false,
     preferred_proxy_city: "all",
+    show_proxy_city_on_checkout: false,
   });
   const PROXY_CITIES = [
-    { value: "all", label: "Aleatório (Brasil)" },
-    { value: "São Paulo", label: "São Paulo" },
-    { value: "Rio de Janeiro", label: "Rio de Janeiro" },
-    { value: "Belo Horizonte", label: "Belo Horizonte" },
-    { value: "Curitiba", label: "Curitiba" },
-    { value: "Porto Alegre", label: "Porto Alegre" },
-    { value: "Brasília", label: "Brasília" },
-    { value: "Fortaleza", label: "Fortaleza" },
-    { value: "Salvador", label: "Salvador" },
-    { value: "Recife", label: "Recife" },
-    { value: "Goiânia", label: "Goiânia" }
+    { value: "all", label: "🇧🇷 Aleatório (Brasil)" },
+    { value: "São Paulo", label: "🇧🇷 São Paulo" },
+    { value: "Rio de Janeiro", label: "🇧🇷 Rio de Janeiro" },
+    { value: "Belo Horizonte", label: "🇧🇷 Belo Horizonte" },
+    { value: "Curitiba", label: "🇧🇷 Curitiba" },
+    { value: "Porto Alegre", label: "🇧🇷 Porto Alegre" },
+    { value: "Brasília", label: "🇧🇷 Brasília" },
+    { value: "Fortaleza", label: "🇧🇷 Fortaleza" },
+    { value: "Salvador", label: "🇧🇷 Salvador" },
+    { value: "Recife", label: "🇧🇷 Recife" },
+    { value: "Goiânia", label: "🇧🇷 Goiânia" },
+    { value: "all_us", label: "🇺🇸 Aleatório (EUA)" },
+    { value: "New York", label: "🇺🇸 New York" },
+    { value: "Los Angeles", label: "🇺🇸 Los Angeles" },
+    { value: "Chicago", label: "🇺🇸 Chicago" },
+    { value: "Miami", label: "🇺🇸 Miami" },
+    { value: "Dallas", label: "🇺🇸 Dallas" },
+    { value: "Atlanta", label: "🇺🇸 Atlanta" },
+    { value: "Seattle", label: "🇺🇸 Seattle" },
+    { value: "San Francisco", label: "🇺🇸 San Francisco" },
+    { value: "Houston", label: "🇺🇸 Houston" },
+    { value: "Phoenix", label: "🇺🇸 Phoenix" }
   ];
 
   const [verified, setVerified] = useState(false);
@@ -98,6 +111,7 @@ export default function Profile() {
           lauth_email: (profile as any).lauth_email || "",
           lauth_enabled: (profile as any).lauth_enabled || false,
           preferred_proxy_city: (profile as any).preferred_proxy_city || "all",
+          show_proxy_city_on_checkout: (profile as any).show_proxy_city_on_checkout ?? false,
         });
         setVerified((profile as any).verified || false);
         setDocumentUrl((profile as any).document_url || null);
@@ -159,6 +173,7 @@ export default function Profile() {
         lauth_email: formData.lauth_email,
         lauth_enabled: formData.lauth_enabled,
         preferred_proxy_city: formData.preferred_proxy_city,
+        show_proxy_city_on_checkout: formData.show_proxy_city_on_checkout,
       } as any)
       .eq("user_id", userId);
 
@@ -442,6 +457,19 @@ export default function Profile() {
                     <span className="material-symbols-outlined absolute right-4 top-3.5 text-muted-foreground pointer-events-none">expand_more</span>
                   </div>
                   <p className="text-xs text-muted-foreground/60 ml-1">Define qual cidade virá pré-selecionada ao comprar um novo proxy.</p>
+                  <div className="flex items-center justify-between bg-secondary/30 p-3 rounded-xl border border-border/50 mt-2">
+                    <div className="space-y-0.5 pr-3">
+                      <label className="text-sm font-medium text-foreground">Mostrar opções de cidade no checkout</label>
+                      <p className="text-xs text-muted-foreground">Se ativado, você poderá escolher a cidade do proxy a cada compra. Caso contrário, será usada a cidade padrão acima.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, show_proxy_city_on_checkout: !formData.show_proxy_city_on_checkout })}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none shrink-0 ${formData.show_proxy_city_on_checkout ? 'bg-primary' : 'bg-muted'}`}
+                    >
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.show_proxy_city_on_checkout ? 'translate-x-6' : 'translate-x-1'}`} />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Lauth Integration */}

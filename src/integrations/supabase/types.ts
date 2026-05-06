@@ -2499,6 +2499,7 @@ export type Database = {
           phone: string | null
           preferred_proxy_city: string | null
           rua: string | null
+          show_proxy_city_on_checkout: boolean
           status: string
           updated_at: string
           user_id: string
@@ -2529,6 +2530,7 @@ export type Database = {
           phone?: string | null
           preferred_proxy_city?: string | null
           rua?: string | null
+          show_proxy_city_on_checkout?: boolean
           status?: string
           updated_at?: string
           user_id: string
@@ -2559,6 +2561,7 @@ export type Database = {
           phone?: string | null
           preferred_proxy_city?: string | null
           rua?: string | null
+          show_proxy_city_on_checkout?: boolean
           status?: string
           updated_at?: string
           user_id?: string

@@ -652,6 +652,13 @@ Deno.serve(async (req) => {
       
       console.log(`[webshare-api] Target country for allocation: ${targetCountryCode || "any"}`);
 
+      // If user explicitly chose a US selection, override country to US
+      const US_CITIES = ["new york","los angeles","chicago","miami","dallas","atlanta","seattle","san francisco","houston","phoenix"];
+      if (target_city === "all_us" || (target_city && US_CITIES.includes(target_city.toLowerCase()))) {
+        targetCountryCode = "US";
+        console.log(`[webshare-api] Country overridden to US based on user city selection`);
+      }
+
       // 2. Fetch all Webshare proxies
       const allProxies: any[] = [];
       let page = 1;
@@ -690,7 +697,7 @@ Deno.serve(async (req) => {
          console.log(`[webshare-api] Found ${available.length} proxies for country ${targetCountryCode}`);
        }
 
-       if (target_city && target_city !== "all") {
+       if (target_city && target_city !== "all" && target_city !== "all_us") {
          const normalizedTargetCity = target_city.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "");
          const cityFiltered = available.filter(p => {
            if (!p.city_name) return false;
