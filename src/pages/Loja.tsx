@@ -118,7 +118,7 @@ export default function Dashboard() {
     return () => document.removeEventListener("visibilitychange", handleVisibility);
   }, [fetchData]);
 
-  const proxyProducts: any[] = (Array.isArray(proxyProductsData?.data)
+  const rawProxyProductsData: any[] = (Array.isArray(proxyProductsData?.data)
     ? proxyProductsData.data
     : Array.isArray(proxyProductsData)
     ? proxyProductsData
@@ -140,7 +140,7 @@ export default function Dashboard() {
   };
 
   const isProxyFilter = activeFilter === "Proxy";
-  const showProxiesInAll = activeFilter === "Todos" && !proxyLoading && !proxyError && proxyProducts.length > 0;
+  const showProxiesInAll = activeFilter === "Todos" && !proxyLoading && !proxyError && rawProxyProductsData.length > 0;
 
   const proxyCategoryId = categories.find((c) => c.slug === "proxy")?.id;
   const localProxyProducts = proxyCategoryId ? products.filter((p) => p.category_id === proxyCategoryId) : [];
@@ -164,10 +164,28 @@ export default function Dashboard() {
 
   const filters = ["Todos", ...categories.filter((c) => c.slug !== "proxy").map((c) => c.name), "Proxy"];
 
-  const proxyAsProducts: Product[] = proxyProducts.map((p: any) => {
+  const proxyProducts = [...rawProxyProductsData].sort((a, b) => {
+    const localA = getLocalProxyData(a);
+    const localB = getLocalProxyData(b);
+    
+    const getCheapestPrice = (p: any, local: any) => {
+      if (local?.price != null && local.price > 0) return local.price;
+      const variants = p.variant || p.variants?.data || p.variants || [];
+      if (variants.length > 0) {
+        return Math.min(...variants.map((v: any) => v.price || 0));
+      }
+      return p.price || 0;
+    };
+    
+    return getCheapestPrice(a, localA) - getCheapestPrice(b, localB);
+  });
+
+  // Local proxy products should show alongside regular products and in Proxy filter
+  const isLocalProxy = (p: Product) => p.category_id === proxyCategoryId;
+  const proxyfbflixLocalProducts = products.filter(isLocalProxy);
+
+  const apiProxyAsProducts: Product[] = proxyProducts.map((p: any) => {
     const local = getLocalProxyData(p);
-    // If local product exists and is in the active products list, use its available status
-    // If local product doesn't exist, show the API product by default
     const variants = p.variant || p.variants?.data || p.variants || [];
     const cheapestVariant = variants.length
       ? variants.reduce((min: any, v: any) => ((v.price || 0) < (min.price || 0) ? v : min), variants[0])
@@ -192,9 +210,11 @@ export default function Dashboard() {
     };
   }).filter(p => p.available);
 
-  // Local proxy products should show alongside regular products and in Proxy filter
-  const isLocalProxy = (p: Product) => p.category_id === proxyCategoryId;
-  const proxyfbflixLocalProducts = products.filter(isLocalProxy);
+  const matchedLocalIds = new Set(apiProxyAsProducts.map(p => p.id));
+  const standaloneLocalProxies = proxyfbflixLocalProducts.filter(p => !matchedLocalIds.has(p.id));
+  
+  const proxyAsProducts = [...apiProxyAsProducts, ...standaloneLocalProxies].sort((a, b) => (a.price || 0) - (b.price || 0));
+
   console.log("[Loja] proxyCategoryId:", proxyCategoryId, "proxyfbflixLocalProducts:", proxyfbflixLocalProducts.map(p => p.name), "total products:", products.length);
 
   const filteredProducts = activeFilter === "Todos"
@@ -215,14 +235,23 @@ export default function Dashboard() {
     return 3;
   };
 
-  const allProducts = (showProxiesInAll
-    ? [...filteredProducts, ...proxyAsProducts]
+  const allProducts = (activeFilter === "Todos"
+    ? (showProxiesInAll ? [...filteredProducts, ...proxyAsProducts] : filteredProducts)
+    : activeFilter === "Proxy"
+    ? proxyAsProducts
     : filteredProducts
   ).sort((a, b) => {
+    // First by priority if in "Todos"
     if (activeFilter === "Todos") {
-      return getCategoryPriority(a) - getCategoryPriority(b);
+      const priorityA = getCategoryPriority(a);
+      const priorityB = getCategoryPriority(b);
+      if (priorityA !== priorityB) {
+        return priorityA - priorityB;
+      }
     }
-    return 0;
+    
+    // Then by price ascending (cheapest first)
+    return (a.price || 0) - (b.price || 0);
   });
 
   const getQuantity = (id: string) => quantities[id] || 1;
@@ -383,64 +412,63 @@ export default function Dashboard() {
               <span className="material-symbols-outlined text-[48px] text-muted-foreground mb-4">inventory_2</span>
               <p className="text-muted-foreground">Nenhum proxy disponível no momento.</p>
             </div>
-          ) : viewMode === "list" ? (
-            <div key="proxy-list" className="flex flex-col gap-3">
-              {proxyProducts.map((product: any) => {
-                const local = getLocalProxyData(product);
-                const variants = product.variant || product.variants?.data || product.variants || [];
-                const cheapestVariant = variants.length
-                  ? variants.reduce((min: any, v: any) => ((v.price || 0) < (min.price || 0) ? v : min), variants[0])
-                  : null;
-                const price = (local?.price != null && local.price > 0) ? local.price : (cheapestVariant?.price || product.price || 0);
-                const totalApiStock = variants.reduce((sum: number, v: any) => sum + (v.stocks ?? 0), 0);
-                const asProduct: Product = {
-                  id: local?.id || String(product.id),
-                  name: local?.name || product.name,
-                  description: local?.description || product.description || null,
-                  price: Number(price),
-                  price_label: "mensal",
-                  image_url: local?.image_url || getProxyImage(product.name),
-                  badge_text: local?.badge_text || null,
-                  badge_color: local?.badge_color || null,
-                  badge_icon: local?.badge_icon || null,
-                  stock: totalApiStock > 0 ? totalApiStock : (local?.stock ?? 0),
-                  available: true,
-                  category_id: null,
-                  tags: local?.tags || null,
-                };
-                return (
-                  <ProductListItem
-                    key={`list-${product.id}`}
-                    product={asProduct}
-                    quantity={getProxyQty(String(product.id))}
-                    onQuantityChange={(id, delta, max) => updateProxyQty(String(product.id), delta)}
-                    onReadMore={setDetailProduct}
-                  />
-                );
-              })}
-            </div>
           ) : (
-            <div key="proxy-grid" className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {proxyProducts.map((product: any) => (
-                <ProxyProductCard
-                  key={`grid-${product.id}`}
-                  product={product}
-                  proxyImage={getProxyImage(product.name)}
-                  quantity={getProxyQty(String(product.id))}
-                  onQuantityChange={updateProxyQty}
-                  localData={getLocalProxyData(product)}
-                  onReadMore={(info) => { const variants = product.variant || product.variants?.data || product.variants || []; const totalApiStock = variants.reduce((sum: number, v: any) => sum + (v.stocks ?? 0), 0); setDetailProduct({ id: String(product.id), name: info.name, description: info.description, price: info.price, price_label: "mensal", image_url: info.image_url, badge_text: null, badge_color: null, badge_icon: null, stock: totalApiStock > 0 ? totalApiStock : 0, available: true, category_id: null, tags: info.tags } as any); }}
-                />
-              ))}
-              {/* Local proxyfbflix products */}
-              {proxyfbflixLocalProducts.map((product) => {
+            <div key="proxy-content" className={viewMode === "grid" ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" : "flex flex-col gap-3"}>
+              {allProducts.map((product: any) => {
+                // Find if this is an API product (via original external_id or matching)
+                const apiProduct = rawProxyProductsData.find(ap => String(ap.id) === product.id || String(ap.id) === product.external_id);
+                
+                if (viewMode === "list") {
+                  return (
+                    <ProductListItem
+                      key={`list-${product.id}`}
+                      product={product}
+                      quantity={apiProduct ? getProxyQty(String(apiProduct.id)) : getQuantity(product.id)}
+                      onQuantityChange={(id, delta, max) => apiProduct ? updateProxyQty(String(apiProduct.id), delta) : updateQuantity(product.id, delta, product.stock)}
+                      onReadMore={setDetailProduct}
+                    />
+                  );
+                }
+                
+                if (apiProduct) {
+                  return (
+                    <ProxyProductCard
+                      key={`grid-${apiProduct.id}`}
+                      product={apiProduct}
+                      proxyImage={getProxyImage(apiProduct.name)}
+                      quantity={getProxyQty(String(apiProduct.id))}
+                      onQuantityChange={updateProxyQty}
+                      localData={getLocalProxyData(apiProduct)}
+                      onReadMore={(info) => { 
+                        const variants = apiProduct.variant || apiProduct.variants?.data || apiProduct.variants || []; 
+                        const totalApiStock = variants.reduce((sum: number, v: any) => sum + (v.stocks ?? 0), 0); 
+                        setDetailProduct({ 
+                          id: String(apiProduct.id), 
+                          name: info.name, 
+                          description: info.description, 
+                          price: info.price, 
+                          price_label: "mensal", 
+                          image_url: info.image_url, 
+                          badge_text: null, 
+                          badge_color: null, 
+                          badge_icon: null, 
+                          stock: totalApiStock > 0 ? totalApiStock : 0, 
+                          available: true, 
+                          category_id: null, 
+                          tags: info.tags 
+                        } as any); 
+                      }}
+                    />
+                  );
+                }
+                
                 const stockInfo = getStockInfo(product);
                 return (
                   <article
                     key={product.id}
-                    className={`glass-card rounded-2xl overflow-hidden flex flex-col group h-full relative ${product.tags?.some(t => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes("promoc")) ? "ring-1 ring-red-500/30" : ""}`}
+                    className={`glass-card rounded-2xl overflow-hidden flex flex-col group h-full relative ${product.tags?.some((t: string) => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes("promoc")) ? "ring-1 ring-red-500/30" : ""}`}
                   >
-                    {product.tags?.some(t => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes("promoc")) && (
+                    {product.tags?.some((t: string) => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes("promoc")) && (
                       <div className="absolute top-0 left-0 z-10 overflow-hidden w-24 h-24 pointer-events-none">
                         <div className="absolute top-[10px] left-[-28px] w-[120px] text-center text-[10px] font-extrabold uppercase tracking-wider bg-gradient-to-r from-red-600 to-orange-500 text-white py-1 rotate-[-45deg] shadow-lg shadow-red-500/30">
                           Promoção
