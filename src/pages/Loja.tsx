@@ -61,6 +61,7 @@ export default function Dashboard() {
   const [products, setProducts] = useState<Product[]>([]);
   const [inactiveProxyExternalIds, setInactiveProxyExternalIds] = useState<Set<string>>(new Set());
   const [categories, setCategories] = useState<Category[]>([]);
+  const [activePurpose, setActivePurpose] = useState("Todos");
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [detailProduct, setDetailProduct] = useState<Product | null>(null);
