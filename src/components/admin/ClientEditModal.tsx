@@ -134,18 +134,28 @@ export default function ClientEditModal({ open, onClose, client, onUpdate }: Cli
           </div>
 
           {documentUrl && (
-            <div className="space-y-2 pt-2 border-t border-border">
+            <div className="space-y-3 pt-3 border-t border-border">
               <Label className="text-xs uppercase tracking-wider text-muted-foreground">Documento Enviado</Label>
-              <div className="flex items-center gap-2">
-                <Button 
-                  variant="outline" 
-                  className="w-full gap-2 border-primary/20 hover:bg-primary/5 text-primary"
-                  onClick={() => window.open(documentUrl, "_blank")}
-                >
-                  <span className="material-symbols-outlined text-lg">description</span>
-                  Ver Documento
-                </Button>
-              </div>
+              
+              {/\.(jpg|jpeg|png|webp|gif)$/i.test(documentUrl) && (
+                <div className="rounded-lg overflow-hidden border border-border bg-secondary/30 aspect-video flex items-center justify-center relative group">
+                  <img src={documentUrl} alt="Documento" className="w-full h-full object-contain cursor-pointer transition-transform group-hover:scale-105" onClick={() => window.open(documentUrl, "_blank")} />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                    <span className="material-symbols-outlined text-white text-3xl">zoom_in</span>
+                  </div>
+                </div>
+              )}
+
+              <Button 
+                variant="outline" 
+                className="w-full gap-2 border-primary/20 hover:bg-primary/5 text-primary h-10"
+                onClick={() => window.open(documentUrl, "_blank")}
+              >
+                <span className="material-symbols-outlined text-lg">
+                  {/\.pdf$/i.test(documentUrl) ? "picture_as_pdf" : "description"}
+                </span>
+                {/\.pdf$/i.test(documentUrl) ? "Abrir PDF em nova aba" : "Ver Documento Completo"}
+              </Button>
             </div>
           )}
 
