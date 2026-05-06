@@ -651,7 +651,7 @@ export default function SubscriptionManage() {
                             const { data: subRow } = await supabase.from("subscriptions").select("id, raw_data").eq("name", realSubName!).eq("type", subType).maybeSingle();
                             if (subRow) {
                               const currentRaw = (subRow.raw_data || {}) as Record<string, any>;
-                              const updatedRaw = { ...currentRaw, exchange_quota_free: (currentRaw.exchange_quota_free ?? 0) + extraQuotaQty };
+                              const updatedRaw = { ...currentRaw, exchange_quota_pay: (currentRaw.exchange_quota_pay ?? 0) + extraQuotaQty };
                               await supabase.from("subscriptions").update({ raw_data: updatedRaw as any }).eq("id", subRow.id);
                             }
                             queryClient.invalidateQueries({ queryKey: isProxyFbflix ? ["proxyfbflix-subscriptions"] : ["proxybr-subscriptions"] });
