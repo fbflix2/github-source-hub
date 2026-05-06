@@ -33,6 +33,7 @@ export default function ClientEditModal({ open, onClose, client, onUpdate }: Cli
   const [cardPaymentEnabled, setCardPaymentEnabled] = useState(false);
   const [apiAuthorized, setApiAuthorized] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [documentUrl, setDocumentUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (client) {
@@ -41,9 +42,10 @@ export default function ClientEditModal({ open, onClose, client, onUpdate }: Cli
       setBalance(client.balance.toString());
       setStatus(client.status);
       // Fetch card_payment_enabled
-      supabase.from("profiles").select("card_payment_enabled, is_api_authorized").eq("user_id", client.user_id).single().then(({ data }) => {
+      supabase.from("profiles").select("card_payment_enabled, is_api_authorized, document_url").eq("user_id", client.user_id).single().then(({ data }) => {
         setCardPaymentEnabled(data?.card_payment_enabled ?? false);
         setApiAuthorized((data as any)?.is_api_authorized ?? false);
+        setDocumentUrl((data as any)?.document_url ?? null);
       });
     }
   }, [client]);
@@ -130,6 +132,23 @@ export default function ClientEditModal({ open, onClose, client, onUpdate }: Cli
               <Switch checked={apiAuthorized} onCheckedChange={setApiAuthorized} />
             </div>
           </div>
+
+          {documentUrl && (
+            <div className="space-y-2 pt-2 border-t border-border">
+              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Documento Enviado</Label>
+              <div className="flex items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  className="w-full gap-2 border-primary/20 hover:bg-primary/5 text-primary"
+                  onClick={() => window.open(documentUrl, "_blank")}
+                >
+                  <span className="material-symbols-outlined text-lg">description</span>
+                  Ver Documento
+                </Button>
+              </div>
+            </div>
+          )}
+
           <Button onClick={handleSave} disabled={saving} className="w-full gap-2">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             Salvar Alterações
