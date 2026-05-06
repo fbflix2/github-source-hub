@@ -309,7 +309,7 @@ export default function AdminTutoriais() {
       toast.error("Informe a URL do vídeo primeiro");
       return;
     }
-    const youtubeThumb = getYouTubeThumbnail(videoUrl);
+    const youtubeThumb = getYouTubeThumbnailUrl(videoUrl);
     if (youtubeThumb) {
       setVideoThumbnailUrl(youtubeThumb);
       toast.success("Miniatura encontrada");
@@ -420,14 +420,6 @@ export default function AdminTutoriais() {
     if (statusFilter === "published") return matchesSearch && tutorial.published;
     return matchesSearch && !tutorial.published;
   });
-
-  const getYouTubeThumbnail = (url: string | null) => {
-    if (!url) return null;
-    const match = url.match(
-      /(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/
-    );
-    return match ? `https://img.youtube.com/vi/${match[1]}/mqdefault.jpg` : null;
-  };
 
   return (
     <div className="flex flex-col gap-8 py-6">
