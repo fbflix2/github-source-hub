@@ -6,9 +6,11 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-function extractVimeoId(url: string): string | null {
-  const match = url.match(/vimeo\.com\/(?:manage\/videos\/|video\/|channels\/[^/]+\/|groups\/[^/]+\/videos\/)?(\d+)/i);
-  return match?.[1] ?? null;
+function extractVimeoParts(url: string): { id: string; hash: string | null } | null {
+  const match = url.match(/vimeo\.com\/(?:manage\/videos\/|video\/|channels\/[^/]+\/|groups\/[^/]+\/videos\/)?(\d+)(?:\/([a-zA-Z0-9]+))?/i);
+  if (!match?.[1]) return null;
+  const parsed = new URL(url.startsWith("http") ? url : `https://${url}`);
+  return { id: match[1], hash: match[2] || parsed.searchParams.get("h") };
 }
 
 async function fetchJson(url: string) {
@@ -36,15 +38,15 @@ serve(async (req) => {
       });
     }
 
-    const id = extractVimeoId(videoUrl);
-    if (!id) {
+    const parts = extractVimeoParts(videoUrl);
+    if (!parts) {
       return new Response(JSON.stringify({ ok: false, error: "URL do Vimeo inválida" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const publicUrl = `https://vimeo.com/${id}`;
+    const publicUrl = `https://vimeo.com/${parts.id}${parts.hash ? `/${parts.hash}` : ""}`;
 
     const oembed = await fetchJson(`https://vimeo.com/api/oembed.json?url=${encodeURIComponent(publicUrl)}`);
     if (oembed?.thumbnail_url) {
@@ -53,7 +55,7 @@ serve(async (req) => {
       });
     }
 
-    const legacy = await fetchJson(`https://vimeo.com/api/v2/video/${id}.json`);
+    const legacy = await fetchJson(`https://vimeo.com/api/v2/video/${parts.id}.json`);
     const legacyThumb = legacy?.[0]?.thumbnail_large || legacy?.[0]?.thumbnail_medium || legacy?.[0]?.thumbnail_small;
     if (legacyThumb) {
       return new Response(JSON.stringify({ ok: true, thumbnailUrl: legacyThumb }), {
