@@ -14,6 +14,9 @@ import {
   Check,
   FolderPlus,
   Settings,
+  Download,
+  Copy as CopyIcon,
+  Plus,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -64,6 +67,8 @@ interface Tutorial {
   thumbnail_url: string | null;
   content: string | null;
   created_at: string;
+  attachments?: { label: string; url: string }[] | null;
+  copy_items?: { label: string; value: string }[] | null;
 }
 
 interface TutorialCategory {
@@ -99,6 +104,8 @@ export default function AdminTutoriais() {
   const [videoCategory, setVideoCategory] = useState("");
   const [videoTags, setVideoTags] = useState("");
   const [videoDescription, setVideoDescription] = useState("");
+  const [attachments, setAttachments] = useState<{ label: string; url: string }[]>([]);
+  const [copyItems, setCopyItems] = useState<{ label: string; value: string }[]>([]);
   const [editingTutorial, setEditingTutorial] = useState<Tutorial | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -234,6 +241,8 @@ export default function AdminTutoriais() {
     setVideoCategory("");
     setVideoTags("");
     setVideoDescription("");
+    setAttachments([]);
+    setCopyItems([]);
     setEditingTutorial(null);
   };
 
@@ -252,6 +261,8 @@ export default function AdminTutoriais() {
       description: videoDescription.trim() || null,
       content: videoTags.trim() || null, // using content field to store tags string
       published: false,
+      attachments: attachments.filter((a) => a.url.trim()),
+      copy_items: copyItems.filter((c) => c.value.trim()),
     };
 
     if (editingTutorial) {
@@ -288,6 +299,8 @@ export default function AdminTutoriais() {
     setVideoCategory(tutorial.category || "");
     setVideoDescription(tutorial.description || "");
     setVideoTags(tutorial.content || "");
+    setAttachments(Array.isArray(tutorial.attachments) ? tutorial.attachments : []);
+    setCopyItems(Array.isArray(tutorial.copy_items) ? tutorial.copy_items : []);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
