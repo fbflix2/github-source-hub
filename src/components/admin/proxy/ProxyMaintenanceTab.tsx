@@ -513,6 +513,8 @@ export default function ProxyMaintenanceTab() {
           {quotaModal && (() => {
             const raw = (quotaModal.sub.raw_data || {}) as Record<string, any>;
             const currentFree = raw.exchange_quota_free ?? 0;
+            const currentPay = raw.exchange_quota_pay ?? 0;
+            const currentTotal = quotaType === "pay" ? currentPay : currentFree;
             const clientName = profileMap.get(quotaModal.sub.user_id) || "—";
             return (
               <div className="space-y-4">
@@ -523,13 +525,28 @@ export default function ProxyMaintenanceTab() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Cotas Atuais</span>
-                    <span className="text-foreground font-bold">{currentFree}</span>
+                  <span className="text-foreground font-bold">
+                    {quotaType === "free" ? `${currentFree} grátis` : `${currentPay} pagas`}
+                  </span>
                   </div>
                 </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm text-muted-foreground block">Tipo de Cota</label>
+                  <Select value={quotaType} onValueChange={(v: any) => setQuotaType(v)}>
+                    <SelectTrigger className="w-full bg-background/50 border-border/40 h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="free">Grátis (Normal)</SelectItem>
+                      <SelectItem value="pay">Paga (Adicional)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div>
                   <label className="text-sm text-muted-foreground mb-1.5 block">Quantidade</label>
                   <Input
-                    type="number" min={1} max={quotaModal.type === "remove" ? currentFree : 50}
+                    type="number" min={1} max={quotaModal.type === "remove" ? currentTotal : 50}
                     value={quotaAmount}
                     onChange={(e) => setQuotaAmount(Math.max(1, parseInt(e.target.value) || 1))}
                     className="bg-background/50 border-border/40"
@@ -538,7 +555,7 @@ export default function ProxyMaintenanceTab() {
                 <div className="p-2 rounded bg-muted/20 text-sm text-center">
                   <span className="text-muted-foreground">Resultado: </span>
                   <span className="font-bold text-foreground">
-                    {quotaModal.type === "add" ? currentFree + quotaAmount : Math.max(0, currentFree - quotaAmount)} cotas
+                    {quotaModal.type === "add" ? currentTotal + quotaAmount : Math.max(0, currentTotal - quotaAmount)} cotas
                   </span>
                 </div>
               </div>
@@ -550,7 +567,7 @@ export default function ProxyMaintenanceTab() {
               onClick={() => {
                 if (!quotaModal) return;
                 const delta = quotaModal.type === "add" ? quotaAmount : -quotaAmount;
-                quotaMutation.mutate({ subId: quotaModal.sub.id, delta });
+                quotaMutation.mutate({ subId: quotaModal.sub.id, delta, type: quotaType });
               }}
               disabled={quotaMutation.isPending}
               className={quotaModal?.type === "add" ? "bg-green-600 hover:bg-green-700" : "bg-destructive hover:bg-destructive/90"}
