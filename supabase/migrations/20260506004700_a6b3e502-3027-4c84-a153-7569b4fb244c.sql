@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS show_proxy_city_on_checkout boolean NOT NULL DEFAULT false;
