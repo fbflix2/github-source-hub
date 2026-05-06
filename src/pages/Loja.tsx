@@ -180,6 +180,10 @@ export default function Dashboard() {
     return getCheapestPrice(a, localA) - getCheapestPrice(b, localB);
   });
 
+  // Local proxy products should show alongside regular products and in Proxy filter
+  const isLocalProxy = (p: Product) => p.category_id === proxyCategoryId;
+  const proxyfbflixLocalProducts = products.filter(isLocalProxy);
+
   const apiProxyAsProducts: Product[] = proxyProducts.map((p: any) => {
     const local = getLocalProxyData(p);
     const variants = p.variant || p.variants?.data || p.variants || [];
@@ -211,9 +215,6 @@ export default function Dashboard() {
   
   const proxyAsProducts = [...apiProxyAsProducts, ...standaloneLocalProxies].sort((a, b) => (a.price || 0) - (b.price || 0));
 
-  // Local proxy products should show alongside regular products and in Proxy filter
-  const isLocalProxy = (p: Product) => p.category_id === proxyCategoryId;
-  const proxyfbflixLocalProducts = products.filter(isLocalProxy);
   console.log("[Loja] proxyCategoryId:", proxyCategoryId, "proxyfbflixLocalProducts:", proxyfbflixLocalProducts.map(p => p.name), "total products:", products.length);
 
   const filteredProducts = activeFilter === "Todos"
