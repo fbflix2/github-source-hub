@@ -356,8 +356,19 @@ export default function ItemDetails() {
       // Fetch client name for feedback
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const { data: profileData } = await supabase.from("profiles").select("full_name").eq("user_id", user.id).maybeSingle();
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("full_name, lauth_email, lauth_enabled")
+          .eq("user_id", user.id)
+          .maybeSingle();
+          
         if (profileData?.full_name) setClientFullName(profileData.full_name);
+        
+        // Pre-fill lauth email if not already set from delivery data
+        setLauthEmail(prev => {
+          if (prev) return prev;
+          return profileData?.lauth_email || "";
+        });
       }
 
       setLoading(false);
