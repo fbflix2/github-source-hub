@@ -91,6 +91,51 @@ const colorMap: Record<string, { text: string; bg: string; border: string }> = {
   rose: { text: "text-rose-400", bg: "bg-rose-500/10", border: "border-rose-500/20" },
 };
 
+const getYouTubeThumbnailUrl = (url: string | null) => {
+  if (!url) return null;
+  const match = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  return match ? `https://img.youtube.com/vi/${match[1]}/mqdefault.jpg` : null;
+};
+
+const getVimeoIdFromUrl = (url: string | null) => {
+  if (!url) return null;
+  const match = url.match(/vimeo\.com\/(?:manage\/videos\/|video\/|channels\/[^/]+\/|groups\/[^/]+\/videos\/)?(\d+)/);
+  return match ? match[1] : null;
+};
+
+const AdminTutorialThumbnail = ({ tutorial }: { tutorial: Tutorial }) => {
+  const [thumbnail, setThumbnail] = useState<string | null>(
+    tutorial.thumbnail_url || getYouTubeThumbnailUrl(tutorial.video_url)
+  );
+
+  useEffect(() => {
+    const immediate = tutorial.thumbnail_url || getYouTubeThumbnailUrl(tutorial.video_url);
+    if (immediate) {
+      setThumbnail(immediate);
+      return;
+    }
+
+    if (getVimeoIdFromUrl(tutorial.video_url)) {
+      supabase.functions
+        .invoke("vimeo-thumbnail", { body: { url: tutorial.video_url } })
+        .then(({ data }) => {
+          if (data?.thumbnailUrl) setThumbnail(data.thumbnailUrl);
+        })
+        .catch(() => {});
+    }
+  }, [tutorial]);
+
+  if (thumbnail) {
+    return <img src={thumbnail} alt={tutorial.title} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />;
+  }
+
+  return (
+    <div className="w-full h-full flex items-center justify-center text-gray-600">
+      <Video className="w-8 h-8" />
+    </div>
+  );
+};
+
 export default function AdminTutoriais() {
   const [tutorials, setTutorials] = useState<Tutorial[]>([]);
   const [categories, setCategories] = useState<TutorialCategory[]>([]);
