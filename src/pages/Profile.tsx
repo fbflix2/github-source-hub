@@ -479,20 +479,20 @@ export default function Profile() {
                 </div>
 
                 {/* Preferência de Localização do Proxy */}
-                <div className="md:col-span-2 space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground ml-1">Localização Padrão para Proxies</label>
+                <div className="md:col-span-2 space-y-0.5">
+                  <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Localização Padrão para Proxies</label>
                   <div className="relative">
-                    <span className="material-symbols-outlined absolute left-3 top-2 text-muted-foreground text-base">location_on</span>
+                    <span className="material-symbols-outlined absolute left-3 top-2.5 text-muted-foreground text-base">location_on</span>
                     <select
                       value={formData.preferred_proxy_city}
                       onChange={(e) => setFormData({ ...formData, preferred_proxy_city: e.target.value })}
-                      className="input-field pl-10 h-9 text-sm appearance-none"
+                      className="input-field pl-10 h-10 text-sm appearance-none py-1"
                     >
                       {PROXY_CITIES.map(city => (
                         <option key={city.value} value={city.value}>{city.label}</option>
                       ))}
                     </select>
-                    <span className="material-symbols-outlined absolute right-4 top-2 text-muted-foreground pointer-events-none text-base">expand_more</span>
+                    <span className="material-symbols-outlined absolute right-4 top-2.5 text-muted-foreground pointer-events-none text-base">expand_more</span>
                   </div>
                   <div className="flex items-center justify-between bg-secondary/30 p-1.5 rounded-lg border border-border/50 mt-1">
                     <div className="pr-3">
