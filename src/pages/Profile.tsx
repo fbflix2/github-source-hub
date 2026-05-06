@@ -370,80 +370,80 @@ export default function Profile() {
             <form onSubmit={handleSave} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 {/* Full Name */}
-                <div className="md:col-span-2 space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground ml-1">Nome Completo</label>
+                <div className="md:col-span-2 space-y-0.5">
+                  <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Nome Completo</label>
                   <div className="relative">
-                    <span className="material-symbols-outlined absolute left-3 top-2 text-muted-foreground text-base">badge</span>
-                    <input type="text" value={formData.full_name} onChange={(e) => setFormData({ ...formData, full_name: e.target.value })} placeholder="Nome completo" className="input-field pl-10 h-9 text-sm" />
+                    <span className="material-symbols-outlined absolute left-3 top-2.5 text-muted-foreground text-base">badge</span>
+                    <input type="text" value={formData.full_name} onChange={(e) => setFormData({ ...formData, full_name: e.target.value })} placeholder="Nome completo" className="input-field pl-10 h-10 text-sm" />
                   </div>
                 </div>
 
                 {/* CPF */}
-                <div className="md:col-span-1 space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground ml-1">CPF</label>
+                <div className="md:col-span-1 space-y-0.5">
+                  <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">CPF</label>
                   <div className="relative">
-                    <span className="material-symbols-outlined absolute left-3 top-2 text-muted-foreground text-base">fingerprint</span>
-                    <input type="text" value={formData.cpf} onChange={(e) => setFormData({ ...formData, cpf: formatCpf(e.target.value) })} placeholder="CPF" className="input-field pl-10 h-9 text-sm" maxLength={14} />
+                    <span className="material-symbols-outlined absolute left-3 top-2.5 text-muted-foreground text-base">fingerprint</span>
+                    <input type="text" value={formData.cpf} onChange={(e) => setFormData({ ...formData, cpf: formatCpf(e.target.value) })} placeholder="CPF" className="input-field pl-10 h-10 text-sm" maxLength={14} />
                   </div>
                 </div>
 
                 {/* Birth Date */}
-                <div className="md:col-span-1 space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground ml-1">Data de Nascimento</label>
+                <div className="md:col-span-1 space-y-0.5">
+                  <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Data de Nascimento</label>
                   <div className="relative">
-                    <span className="material-symbols-outlined absolute left-3 top-2 text-muted-foreground text-base">cake</span>
-                    <input type="date" value={formData.birth_date} onChange={(e) => setFormData({ ...formData, birth_date: e.target.value })} className="input-field pl-10 h-9 text-sm" />
+                    <span className="material-symbols-outlined absolute left-3 top-2.5 text-muted-foreground text-base">cake</span>
+                    <input type="date" value={formData.birth_date} onChange={(e) => setFormData({ ...formData, birth_date: e.target.value })} className="input-field pl-10 h-10 text-sm" />
                   </div>
                 </div>
 
                 {/* Rua */}
-                <div className="md:col-span-3 space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground ml-1">Rua</label>
+                <div className="md:col-span-3 space-y-0.5">
+                  <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Rua</label>
                   <div className="relative">
-                    <span className="material-symbols-outlined absolute left-3 top-2 text-muted-foreground text-base">location_on</span>
-                    <input type="text" value={formData.rua} onChange={(e) => setFormData({ ...formData, rua: e.target.value })} placeholder="Rua" className="input-field pl-10 h-9 text-sm" />
+                    <span className="material-symbols-outlined absolute left-3 top-2.5 text-muted-foreground text-base">location_on</span>
+                    <input type="text" value={formData.rua} onChange={(e) => setFormData({ ...formData, rua: e.target.value })} placeholder="Rua" className="input-field pl-10 h-10 text-sm" />
                   </div>
                 </div>
 
                 {/* Número + Bairro */}
-                <div className="md:col-span-1 space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground ml-1">Número</label>
+                <div className="md:col-span-1 space-y-0.5">
+                  <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Número</label>
                   <div className="relative">
-                    <span className="material-symbols-outlined absolute left-3 top-2 text-muted-foreground text-base">pin</span>
-                    <input type="text" value={formData.numero} onChange={(e) => setFormData({ ...formData, numero: e.target.value })} placeholder="Nº" className="input-field pl-10 h-9 text-sm" />
+                    <span className="material-symbols-outlined absolute left-3 top-2.5 text-muted-foreground text-base">pin</span>
+                    <input type="text" value={formData.numero} onChange={(e) => setFormData({ ...formData, numero: e.target.value })} placeholder="Nº" className="input-field pl-10 h-10 text-sm" />
                   </div>
                 </div>
 
-                <div className="md:col-span-1 space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground ml-1">Bairro</label>
+                <div className="md:col-span-1 space-y-0.5">
+                  <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Bairro</label>
                   <div className="relative">
-                    <span className="material-symbols-outlined absolute left-3 top-2 text-muted-foreground text-base">holiday_village</span>
-                    <input type="text" value={formData.bairro} onChange={(e) => setFormData({ ...formData, bairro: e.target.value })} placeholder="Bairro" className="input-field pl-10 h-9 text-sm" />
+                    <span className="material-symbols-outlined absolute left-3 top-2.5 text-muted-foreground text-base">holiday_village</span>
+                    <input type="text" value={formData.bairro} onChange={(e) => setFormData({ ...formData, bairro: e.target.value })} placeholder="Bairro" className="input-field pl-10 h-10 text-sm" />
                   </div>
                 </div>
 
                 {/* Cidade + Estado */}
-                <div className="md:col-span-1 space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground ml-1">Cidade</label>
+                <div className="md:col-span-1 space-y-0.5">
+                  <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Cidade</label>
                   <div className="relative">
-                    <span className="material-symbols-outlined absolute left-3 top-2 text-muted-foreground text-base">location_city</span>
-                    <input type="text" value={formData.cidade} onChange={(e) => setFormData({ ...formData, cidade: e.target.value })} placeholder="Cidade" className="input-field pl-10 h-9 text-sm" />
+                    <span className="material-symbols-outlined absolute left-3 top-2.5 text-muted-foreground text-base">location_city</span>
+                    <input type="text" value={formData.cidade} onChange={(e) => setFormData({ ...formData, cidade: e.target.value })} placeholder="Cidade" className="input-field pl-10 h-10 text-sm" />
                   </div>
                 </div>
 
-                <div className="md:col-span-1 space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground ml-1">Estado</label>
+                <div className="md:col-span-1 space-y-0.5">
+                  <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Estado</label>
                   <div className="relative">
-                    <span className="material-symbols-outlined absolute left-3 top-2 text-muted-foreground text-base">map</span>
-                    <input type="text" value={formData.estado} onChange={(e) => setFormData({ ...formData, estado: e.target.value })} placeholder="UF" className="input-field pl-10 h-9 text-sm" maxLength={2} />
+                    <span className="material-symbols-outlined absolute left-3 top-2.5 text-muted-foreground text-base">map</span>
+                    <input type="text" value={formData.estado} onChange={(e) => setFormData({ ...formData, estado: e.target.value })} placeholder="UF" className="input-field pl-10 h-10 text-sm" maxLength={2} />
                   </div>
                 </div>
 
                 {/* CEP */}
-                <div className="md:col-span-1 space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground ml-1">CEP</label>
+                <div className="md:col-span-1 space-y-0.5">
+                  <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">CEP</label>
                   <div className="relative">
-                    <span className="material-symbols-outlined absolute left-3 top-2 text-muted-foreground text-base">markunread_mailbox</span>
+                    <span className="material-symbols-outlined absolute left-3 top-2.5 text-muted-foreground text-base">markunread_mailbox</span>
                     <input 
                       type="text" 
                       value={formData.cep} 
@@ -455,44 +455,44 @@ export default function Profile() {
                         }
                       }} 
                       placeholder="00000-000" 
-                      className="input-field pl-10 h-9 text-sm" 
+                      className="input-field pl-10 h-10 text-sm" 
                     />
                   </div>
                 </div>
 
                 {/* WhatsApp */}
-                <div className="md:col-span-2 space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground ml-1">WhatsApp</label>
+                <div className="md:col-span-2 space-y-0.5">
+                  <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">WhatsApp</label>
                   <div className="relative">
-                    <span className="material-symbols-outlined absolute left-3 top-2 text-muted-foreground text-base">chat</span>
-                    <input type="tel" value={formData.whatsapp} onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })} placeholder="(00) 00000-0000" className="input-field pl-10 h-9 text-sm" />
+                    <span className="material-symbols-outlined absolute left-3 top-2.5 text-muted-foreground text-base">chat</span>
+                    <input type="tel" value={formData.whatsapp} onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })} placeholder="(00) 00000-0000" className="input-field pl-10 h-10 text-sm" />
                   </div>
                 </div>
 
                 {/* Email */}
-                <div className="md:col-span-2 space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground ml-1">Email Principal</label>
+                <div className="md:col-span-2 space-y-0.5">
+                  <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Email Principal</label>
                   <div className="relative">
-                    <span className="material-symbols-outlined absolute left-3 top-2 text-muted-foreground text-base">email</span>
-                    <input type="email" value={formData.email} disabled className="input-field pl-10 h-9 text-sm opacity-60 cursor-not-allowed" />
+                    <span className="material-symbols-outlined absolute left-3 top-2.5 text-muted-foreground text-base">email</span>
+                    <input type="email" value={formData.email} disabled className="input-field pl-10 h-10 text-sm opacity-60 cursor-not-allowed" />
                   </div>
                 </div>
 
                 {/* Preferência de Localização do Proxy */}
-                <div className="md:col-span-2 space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground ml-1">Localização Padrão para Proxies</label>
+                <div className="md:col-span-2 space-y-0.5">
+                  <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Localização Padrão para Proxies</label>
                   <div className="relative">
-                    <span className="material-symbols-outlined absolute left-3 top-2 text-muted-foreground text-base">location_on</span>
+                    <span className="material-symbols-outlined absolute left-3 top-2.5 text-muted-foreground text-base">location_on</span>
                     <select
                       value={formData.preferred_proxy_city}
                       onChange={(e) => setFormData({ ...formData, preferred_proxy_city: e.target.value })}
-                      className="input-field pl-10 h-9 text-sm appearance-none"
+                      className="input-field pl-10 h-10 text-sm appearance-none py-1"
                     >
                       {PROXY_CITIES.map(city => (
                         <option key={city.value} value={city.value}>{city.label}</option>
                       ))}
                     </select>
-                    <span className="material-symbols-outlined absolute right-4 top-2 text-muted-foreground pointer-events-none text-base">expand_more</span>
+                    <span className="material-symbols-outlined absolute right-4 top-2.5 text-muted-foreground pointer-events-none text-base">expand_more</span>
                   </div>
                   <div className="flex items-center justify-between bg-secondary/30 p-1.5 rounded-lg border border-border/50 mt-1">
                     <div className="pr-3">
