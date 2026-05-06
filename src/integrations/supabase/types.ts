@@ -2497,6 +2497,7 @@ export type Database = {
           lauth_enabled: boolean | null
           numero: string | null
           phone: string | null
+          preferred_proxy_city: string | null
           rua: string | null
           status: string
           updated_at: string
@@ -2526,6 +2527,7 @@ export type Database = {
           lauth_enabled?: boolean | null
           numero?: string | null
           phone?: string | null
+          preferred_proxy_city?: string | null
           rua?: string | null
           status?: string
           updated_at?: string
@@ -2555,6 +2557,7 @@ export type Database = {
           lauth_enabled?: boolean | null
           numero?: string | null
           phone?: string | null
+          preferred_proxy_city?: string | null
           rua?: string | null
           status?: string
           updated_at?: string

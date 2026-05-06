@@ -268,7 +268,7 @@ export default function Checkout() {
       setIsFirstPurchase((count ?? 0) === 0);
       const { data: profile } = await supabase
         .from("profiles")
-        .select("card_payment_enabled, cpf, full_name, lauth_email, lauth_enabled")
+        .select("card_payment_enabled, cpf, full_name, lauth_email, lauth_enabled, preferred_proxy_city")
         .eq("user_id", user.id)
         .single();
       setCardEnabled(profile?.card_payment_enabled ?? false);
@@ -276,6 +276,9 @@ export default function Checkout() {
       if (profile?.full_name) setCardName((prev) => prev || profile.full_name || "");
       setLauthEmail((profile as any)?.lauth_email || null);
       setLauthEnabled((profile as any)?.lauth_enabled || false);
+      if ((profile as any)?.preferred_proxy_city) {
+        setTargetCity((profile as any).preferred_proxy_city);
+      }
     };
     checkFirstPurchase();
   }, []);

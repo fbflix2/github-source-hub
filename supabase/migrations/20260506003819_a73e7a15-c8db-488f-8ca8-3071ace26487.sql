@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN preferred_proxy_city TEXT;

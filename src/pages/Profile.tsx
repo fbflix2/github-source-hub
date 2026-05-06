@@ -19,6 +19,7 @@ interface ProfileFormData {
   email: string;
   lauth_email: string;
   lauth_enabled: boolean;
+  preferred_proxy_city: string;
 }
 
 export default function Profile() {
@@ -37,7 +38,22 @@ export default function Profile() {
     email: "",
     lauth_email: "",
     lauth_enabled: false,
+    preferred_proxy_city: "all",
   });
+  const PROXY_CITIES = [
+    { value: "all", label: "Aleatório (Brasil)" },
+    { value: "São Paulo", label: "São Paulo" },
+    { value: "Rio de Janeiro", label: "Rio de Janeiro" },
+    { value: "Belo Horizonte", label: "Belo Horizonte" },
+    { value: "Curitiba", label: "Curitiba" },
+    { value: "Porto Alegre", label: "Porto Alegre" },
+    { value: "Brasília", label: "Brasília" },
+    { value: "Fortaleza", label: "Fortaleza" },
+    { value: "Salvador", label: "Salvador" },
+    { value: "Recife", label: "Recife" },
+    { value: "Goiânia", label: "Goiânia" }
+  ];
+
   const [verified, setVerified] = useState(false);
   const [documentUrl, setDocumentUrl] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"profile" | "partner" | "api">("profile");
@@ -81,6 +97,7 @@ export default function Profile() {
           email: session.user.email || "",
           lauth_email: (profile as any).lauth_email || "",
           lauth_enabled: (profile as any).lauth_enabled || false,
+          preferred_proxy_city: (profile as any).preferred_proxy_city || "all",
         });
         setVerified((profile as any).verified || false);
         setDocumentUrl((profile as any).document_url || null);
@@ -141,6 +158,7 @@ export default function Profile() {
         verified: shouldVerify ? true : verified,
         lauth_email: formData.lauth_email,
         lauth_enabled: formData.lauth_enabled,
+        preferred_proxy_city: formData.preferred_proxy_city,
       } as any)
       .eq("user_id", userId);
 
@@ -398,13 +416,32 @@ export default function Profile() {
                 </div>
 
                 {/* Email */}
-                <div className="md:col-span-2 space-y-2">
+                <div className="md:col-span-1 space-y-2">
                   <label className="text-sm font-medium text-muted-foreground ml-1">Email Principal</label>
                   <div className="relative">
                     <span className="material-symbols-outlined absolute left-4 top-3.5 text-muted-foreground text-lg">email</span>
                     <input type="email" value={formData.email} disabled className="input-field pl-12 opacity-60 cursor-not-allowed" />
                   </div>
                   <p className="text-xs text-muted-foreground/60 ml-1">Este email é vinculado à sua conta e não pode ser alterado aqui.</p>
+                </div>
+
+                {/* Preferência de Localização do Proxy */}
+                <div className="md:col-span-1 space-y-2">
+                  <label className="text-sm font-medium text-muted-foreground ml-1">Localização Padrão para Proxies</label>
+                  <div className="relative">
+                    <span className="material-symbols-outlined absolute left-4 top-3.5 text-muted-foreground text-lg">location_on</span>
+                    <select
+                      value={formData.preferred_proxy_city}
+                      onChange={(e) => setFormData({ ...formData, preferred_proxy_city: e.target.value })}
+                      className="input-field pl-12 appearance-none"
+                    >
+                      {PROXY_CITIES.map(city => (
+                        <option key={city.value} value={city.value}>{city.label}</option>
+                      ))}
+                    </select>
+                    <span className="material-symbols-outlined absolute right-4 top-3.5 text-muted-foreground pointer-events-none">expand_more</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground/60 ml-1">Define qual cidade virá pré-selecionada ao comprar um novo proxy.</p>
                 </div>
 
                 {/* Lauth Integration */}
