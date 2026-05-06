@@ -19,6 +19,7 @@ interface ProfileFormData {
   email: string;
   lauth_email: string;
   lauth_enabled: boolean;
+  preferred_proxy_city: string;
 }
 
 export default function Profile() {
@@ -37,7 +38,22 @@ export default function Profile() {
     email: "",
     lauth_email: "",
     lauth_enabled: false,
+    preferred_proxy_city: "all",
   });
+  const PROXY_CITIES = [
+    { value: "all", label: "Aleatório (Brasil)" },
+    { value: "São Paulo", label: "São Paulo" },
+    { value: "Rio de Janeiro", label: "Rio de Janeiro" },
+    { value: "Belo Horizonte", label: "Belo Horizonte" },
+    { value: "Curitiba", label: "Curitiba" },
+    { value: "Porto Alegre", label: "Porto Alegre" },
+    { value: "Brasília", label: "Brasília" },
+    { value: "Fortaleza", label: "Fortaleza" },
+    { value: "Salvador", label: "Salvador" },
+    { value: "Recife", label: "Recife" },
+    { value: "Goiânia", label: "Goiânia" }
+  ];
+
   const [verified, setVerified] = useState(false);
   const [documentUrl, setDocumentUrl] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"profile" | "partner" | "api">("profile");
@@ -81,6 +97,7 @@ export default function Profile() {
           email: session.user.email || "",
           lauth_email: (profile as any).lauth_email || "",
           lauth_enabled: (profile as any).lauth_enabled || false,
+          preferred_proxy_city: (profile as any).preferred_proxy_city || "all",
         });
         setVerified((profile as any).verified || false);
         setDocumentUrl((profile as any).document_url || null);
@@ -141,6 +158,7 @@ export default function Profile() {
         verified: shouldVerify ? true : verified,
         lauth_email: formData.lauth_email,
         lauth_enabled: formData.lauth_enabled,
+        preferred_proxy_city: formData.preferred_proxy_city,
       } as any)
       .eq("user_id", userId);
 
