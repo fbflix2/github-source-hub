@@ -227,19 +227,31 @@ export default function Checkout() {
   const [cardCpf, setCardCpf] = useState("");
   const [cardEmail, setCardEmail] = useState("");
   const [targetCity, setTargetCity] = useState("all");
+  const [showCityOnCheckout, setShowCityOnCheckout] = useState(false);
 
   const CITIES = [
-    { value: "all", label: "Aleatório (Brasil)" },
-    { value: "São Paulo", label: "São Paulo" },
-    { value: "Rio de Janeiro", label: "Rio de Janeiro" },
-    { value: "Belo Horizonte", label: "Belo Horizonte" },
-    { value: "Curitiba", label: "Curitiba" },
-    { value: "Porto Alegre", label: "Porto Alegre" },
-    { value: "Brasília", label: "Brasília" },
-    { value: "Fortaleza", label: "Fortaleza" },
-    { value: "Salvador", label: "Salvador" },
-    { value: "Recife", label: "Recife" },
-    { value: "Goiânia", label: "Goiânia" }
+    { value: "all", label: "🇧🇷 Aleatório (Brasil)" },
+    { value: "São Paulo", label: "🇧🇷 São Paulo" },
+    { value: "Rio de Janeiro", label: "🇧🇷 Rio de Janeiro" },
+    { value: "Belo Horizonte", label: "🇧🇷 Belo Horizonte" },
+    { value: "Curitiba", label: "🇧🇷 Curitiba" },
+    { value: "Porto Alegre", label: "🇧🇷 Porto Alegre" },
+    { value: "Brasília", label: "🇧🇷 Brasília" },
+    { value: "Fortaleza", label: "🇧🇷 Fortaleza" },
+    { value: "Salvador", label: "🇧🇷 Salvador" },
+    { value: "Recife", label: "🇧🇷 Recife" },
+    { value: "Goiânia", label: "🇧🇷 Goiânia" },
+    { value: "all_us", label: "🇺🇸 Aleatório (EUA)" },
+    { value: "New York", label: "🇺🇸 New York" },
+    { value: "Los Angeles", label: "🇺🇸 Los Angeles" },
+    { value: "Chicago", label: "🇺🇸 Chicago" },
+    { value: "Miami", label: "🇺🇸 Miami" },
+    { value: "Dallas", label: "🇺🇸 Dallas" },
+    { value: "Atlanta", label: "🇺🇸 Atlanta" },
+    { value: "Seattle", label: "🇺🇸 Seattle" },
+    { value: "San Francisco", label: "🇺🇸 San Francisco" },
+    { value: "Houston", label: "🇺🇸 Houston" },
+    { value: "Phoenix", label: "🇺🇸 Phoenix" }
   ];
   const mpInstanceRef = useRef<any>(null);
   const cardFieldsRef = useRef<{ cardNumber: any; expirationDate: any; securityCode: any } | null>(null);
@@ -268,7 +280,7 @@ export default function Checkout() {
       setIsFirstPurchase((count ?? 0) === 0);
       const { data: profile } = await supabase
         .from("profiles")
-        .select("card_payment_enabled, cpf, full_name, lauth_email, lauth_enabled, preferred_proxy_city")
+        .select("card_payment_enabled, cpf, full_name, lauth_email, lauth_enabled, preferred_proxy_city, show_proxy_city_on_checkout")
         .eq("user_id", user.id)
         .single();
       setCardEnabled(profile?.card_payment_enabled ?? false);
@@ -279,6 +291,7 @@ export default function Checkout() {
       if ((profile as any)?.preferred_proxy_city) {
         setTargetCity((profile as any).preferred_proxy_city);
       }
+      setShowCityOnCheckout((profile as any)?.show_proxy_city_on_checkout ?? false);
     };
     checkFirstPurchase();
   }, []);
