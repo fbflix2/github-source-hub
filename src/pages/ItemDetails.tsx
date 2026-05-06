@@ -34,10 +34,9 @@ interface StockData {
   statusAtual?: string;
   foto_url?: string;
   linkPerfil?: string;
-  idPerfil?: string;
+   idPerfil?: string;
    perfilBackup?: string;
    perfilMatriz?: string;
-   idPerfil?: string;
 }
 
 export default function ItemDetails() {
