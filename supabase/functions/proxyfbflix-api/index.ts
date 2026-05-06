@@ -67,9 +67,16 @@ function buildRotatingCountrySuffix(countryCode = "BR"): string {
   return `-${countryCode.toUpperCase()}-rotate`;
 }
 
-function buildRotatingUsername(rawUsername: string, countryCode = "BR"): string {
+function buildRotatingUsername(rawUsername: string, countryCode = "BR", cityName?: string): string {
   const baseUsername = normalizeRotatingBaseUsername(rawUsername);
-  return baseUsername ? `${baseUsername}${buildRotatingCountrySuffix(countryCode)}` : "";
+  if (!baseUsername) return "";
+  let u = `${baseUsername}${buildRotatingCountrySuffix(countryCode)}`;
+  if (cityName && cityName !== "all") {
+    // Webshare format for city is -city-CityName
+    const formattedCity = cityName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "");
+    u = `${u}-city-${formattedCity}`;
+  }
+  return u;
 }
 
 async function webFetch(path: string, apiKey: string, method = "GET", body?: string) {
@@ -606,11 +613,12 @@ Deno.serve(async (req) => {
     // ========== PURCHASE PROXY WITH BALANCE ==========
     // Assigns an unassigned Webshare proxy to the customer, debits balance, creates subscription
     if (action === "purchase-proxy-with-balance") {
-      const { order_id, total, product_id, quantity: purchaseQty } = params as {
+      const { order_id, total, product_id, quantity: purchaseQty, target_city } = params as {
         order_id: string;
         total: number;
         product_id?: string;
         quantity?: number;
+        target_city?: string;
       };
       const qty = purchaseQty || 1;
 
@@ -674,21 +682,31 @@ Deno.serve(async (req) => {
         if (raw.fbflix_proxy_id) assignedIds.add(raw.fbflix_proxy_id);
       }
 
-      // 4. Find unassigned proxies, filtering by country if specified
-      let available = allProxies.filter(p => p.valid && !assignedIds.has(p.id));
-      
-      if (targetCountryCode) {
-        const countryFiltered = available.filter(p => 
-          p.country_code?.toUpperCase() === targetCountryCode
-        );
-        
-        if (countryFiltered.length < qty) {
-          throw new Error(`Apenas ${countryFiltered.length} proxy(s) ${targetCountryCode} disponível(is), mas ${qty} foram solicitados.`);
-        }
-        
-        available = countryFiltered;
-        console.log(`[webshare-api] Found ${available.length} ${targetCountryCode} proxies available, need ${qty}`);
-      }
+       // 4. Find unassigned proxies, filtering by country and city if specified
+       let available = allProxies.filter(p => p.valid && !assignedIds.has(p.id));
+       
+       if (targetCountryCode) {
+         available = available.filter(p => p.country_code?.toUpperCase() === targetCountryCode);
+         console.log(`[webshare-api] Found ${available.length} proxies for country ${targetCountryCode}`);
+       }
+
+       if (target_city && target_city !== "all") {
+         const normalizedTargetCity = target_city.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "");
+         const cityFiltered = available.filter(p => {
+           if (!p.city_name) return false;
+           const pCity = p.city_name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "");
+           return pCity === normalizedTargetCity;
+         });
+         
+         if (cityFiltered.length < qty) {
+           console.warn(`[webshare-api] Only ${cityFiltered.length} proxies found in ${target_city}, falling back to country-wide search.`);
+           // User preference is city, but if we don't have enough, we might want to warn or fallback.
+           // Given the current flow, better throw error if user specifically asked for city.
+           throw new Error(`Apenas ${cityFiltered.length} proxy(s) em ${target_city} disponível(is) no momento.`);
+         }
+         available = cityFiltered;
+         console.log(`[webshare-api] City filter applied: ${target_city}. Found ${available.length} proxies.`);
+       }
       
       if (available.length < qty) throw new Error(`Apenas ${available.length} proxy(s) disponível(is), mas ${qty} foram solicitados.`);
 
@@ -1742,10 +1760,10 @@ Deno.serve(async (req) => {
     }
 
     // ========== PURCHASE ROTATING PROXY (balance) ==========
-    if (action === "purchase-rotating-proxy") {
-      const { order_id, total, product_id, quantity: gbQty } = params as {
-        order_id: string; total: number; product_id?: string; quantity?: number;
-      };
+     if (action === "purchase-rotating-proxy") {
+       const { order_id, total, product_id, quantity: gbQty, target_city } = params as {
+         order_id: string; total: number; product_id?: string; quantity?: number; target_city?: string;
+       };
       const gb = gbQty || 1;
       if (!order_id || total === undefined) throw new Error("order_id e total são obrigatórios");
 
@@ -1763,19 +1781,19 @@ Deno.serve(async (req) => {
       let rotatingUsername = "";
       let rotatingPassword = "";
 
-      if (bbResp.ok && bbData.results?.length > 0) {
-        const bbProxy = bbData.results[0];
-        rotatingUsername = buildRotatingUsername(bbProxy.username || bbProxy.proxy_username || "", countryCode);
-        rotatingPassword = bbProxy.password || "";
-      }
+       if (bbResp.ok && bbData.results?.length > 0) {
+         const bbProxy = bbData.results[0];
+         rotatingUsername = buildRotatingUsername(bbProxy.username || bbProxy.proxy_username || "", countryCode, target_city);
+         rotatingPassword = bbProxy.password || "";
+       }
 
-      if (!rotatingUsername) {
-        const configResp = await webFetch("/proxy/config/", WEBSHARE_API_KEY);
-        const configData = await configResp.json();
-        if (!configResp.ok) throw new Error(`Webshare config error [${configResp.status}]`);
-        rotatingUsername = buildRotatingUsername(configData.username || configData.proxy_username || "", countryCode);
-        rotatingPassword = rotatingPassword || configData.password || configData.proxy_password || "";
-      }
+       if (!rotatingUsername) {
+         const configResp = await webFetch("/proxy/config/", WEBSHARE_API_KEY);
+         const configData = await configResp.json();
+         if (!configResp.ok) throw new Error(`Webshare config error [${configResp.status}]`);
+         rotatingUsername = buildRotatingUsername(configData.username || configData.proxy_username || "", countryCode, target_city);
+         rotatingPassword = rotatingPassword || configData.password || configData.proxy_password || "";
+       }
 
       if (!rotatingUsername) {
         throw new Error("Não foi possível gerar o usuário rotativo do Webshare");
