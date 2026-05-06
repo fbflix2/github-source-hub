@@ -1,0 +1,1 @@
+CREATE POLICY "Public Read Access" ON storage.objects FOR SELECT TO public USING (bucket_id = 'documents');
