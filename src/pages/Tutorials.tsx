@@ -127,7 +127,7 @@ export default function Tutorials() {
         .maybeSingle(),
     ]);
 
-    setTutorials(tutorialsRes.data || []);
+    setTutorials((tutorialsRes.data as unknown as Tutorial[]) || []);
 
     if (categoriesRes.data?.value) {
       try {
