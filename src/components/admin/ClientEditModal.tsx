@@ -150,13 +150,21 @@ export default function ClientEditModal({ open, onClose, client, onUpdate }: Cli
                 variant="outline" 
                 className="w-full gap-2 border-primary/20 hover:bg-primary/5 text-primary h-10"
                   onClick={() => {
-                    // Se o Chrome bloqueia o domínio do Supabase por causa de extensões,
-                    // vamos forçar o redirecionamento direto, que é mais compatível.
-                    const link = document.createElement('a');
-                    link.href = documentUrl;
-                    link.target = '_blank';
-                    link.rel = 'noopener noreferrer';
-                    link.click();
+                    // Para evitar o bloqueio direto do domínio do Supabase por extensões,
+                    // usamos uma Edge Function como proxy para servir o arquivo.
+                    try {
+                      const urlObj = new URL(documentUrl);
+                      const pathParts = urlObj.pathname.split('/documents/');
+                      if (pathParts.length > 1) {
+                        const filePath = pathParts[1];
+                        const proxyUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/view-document?path=${encodeURIComponent(filePath)}`;
+                        window.open(proxyUrl, "_blank");
+                      } else {
+                        window.open(documentUrl, "_blank");
+                      }
+                    } catch (e) {
+                      window.open(documentUrl, "_blank");
+                    }
                   }}
               >
                 <span className="material-symbols-outlined text-lg">
