@@ -150,26 +150,32 @@ export default function ClientEditModal({ open, onClose, client, onUpdate }: Cli
                 variant="outline" 
                 className="w-full gap-2 border-primary/20 hover:bg-primary/5 text-primary h-10"
                   onClick={async () => {
-                    // Nova abordagem: Baixar o arquivo como Blob e criar uma URL local temporária.
-                    // Isso evita que o navegador tente carregar diretamente do domínio bloqueado.
                     try {
                       const response = await fetch(documentUrl);
-                      if (!response.ok) throw new Error("Erro ao baixar documento");
-                      
                       const blob = await response.blob();
-                      const blobUrl = URL.createObjectURL(blob);
-                      
-                      // Abrir o blob local em uma nova aba
-                      const newWindow = window.open(blobUrl, "_blank");
-                      
-                      // Limpar a URL da memória após um tempo para não vazar memória
-                      if (newWindow) {
-                        newWindow.onload = () => {
-                          setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-                        };
-                      }
+                      const reader = new FileReader();
+                      reader.onloadend = function() {
+                        const base64data = reader.result;
+                        const popup = window.open("", "Visualizar Documento", "width=800,height=600");
+                        if (popup) {
+                          popup.document.write(`
+                            <html>
+                              <head>
+                                <title>Documento</title>
+                                <style>body { margin: 0; background: #1a1a1a; display: flex; align-items: center; justify-content: center; height: 100vh; }</style>
+                              </head>
+                              <body>
+                                ${documentUrl.toLowerCase().endsWith('.pdf') 
+                                  ? `<embed src="${base64data}" type="application/pdf" width="100%" height="100%">`
+                                  : `<img src="${base64data}" style="max-width: 100%; max-height: 100%; object-contain: contain;">`
+                                }
+                              </body>
+                            </html>
+                          `);
+                        }
+                      };
+                      reader.readAsDataURL(blob);
                     } catch (e) {
-                      // Se falhar, tenta o método tradicional
                       window.open(documentUrl, "_blank");
                     }
                   }}
