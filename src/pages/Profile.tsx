@@ -397,28 +397,28 @@ export default function Profile() {
                 </div>
 
                 {/* Rua */}
-                <div className="md:col-span-3 space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground ml-1">Rua</label>
+                <div className="md:col-span-3 space-y-0.5">
+                  <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Rua</label>
                   <div className="relative">
-                    <span className="material-symbols-outlined absolute left-3 top-2 text-muted-foreground text-base">location_on</span>
-                    <input type="text" value={formData.rua} onChange={(e) => setFormData({ ...formData, rua: e.target.value })} placeholder="Rua" className="input-field pl-10 h-9 text-sm" />
+                    <span className="material-symbols-outlined absolute left-3 top-2.5 text-muted-foreground text-base">location_on</span>
+                    <input type="text" value={formData.rua} onChange={(e) => setFormData({ ...formData, rua: e.target.value })} placeholder="Rua" className="input-field pl-10 h-10 text-sm" />
                   </div>
                 </div>
 
                 {/* Número + Bairro */}
-                <div className="md:col-span-1 space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground ml-1">Número</label>
+                <div className="md:col-span-1 space-y-0.5">
+                  <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Número</label>
                   <div className="relative">
-                    <span className="material-symbols-outlined absolute left-3 top-2 text-muted-foreground text-base">pin</span>
-                    <input type="text" value={formData.numero} onChange={(e) => setFormData({ ...formData, numero: e.target.value })} placeholder="Nº" className="input-field pl-10 h-9 text-sm" />
+                    <span className="material-symbols-outlined absolute left-3 top-2.5 text-muted-foreground text-base">pin</span>
+                    <input type="text" value={formData.numero} onChange={(e) => setFormData({ ...formData, numero: e.target.value })} placeholder="Nº" className="input-field pl-10 h-10 text-sm" />
                   </div>
                 </div>
 
-                <div className="md:col-span-1 space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground ml-1">Bairro</label>
+                <div className="md:col-span-1 space-y-0.5">
+                  <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Bairro</label>
                   <div className="relative">
-                    <span className="material-symbols-outlined absolute left-3 top-2 text-muted-foreground text-base">holiday_village</span>
-                    <input type="text" value={formData.bairro} onChange={(e) => setFormData({ ...formData, bairro: e.target.value })} placeholder="Bairro" className="input-field pl-10 h-9 text-sm" />
+                    <span className="material-symbols-outlined absolute left-3 top-2.5 text-muted-foreground text-base">holiday_village</span>
+                    <input type="text" value={formData.bairro} onChange={(e) => setFormData({ ...formData, bairro: e.target.value })} placeholder="Bairro" className="input-field pl-10 h-10 text-sm" />
                   </div>
                 </div>
 
