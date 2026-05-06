@@ -262,6 +262,33 @@ export default function Profile() {
       .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
   };
 
+  const fetchAddressByCep = async (cep: string) => {
+    const cleanedCep = cep.replace(/\D/g, "");
+    if (cleanedCep.length !== 8) return;
+
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${cleanedCep}/json/`);
+      const data = await response.json();
+
+      if (!data.erro) {
+        setFormData(prev => ({
+          ...prev,
+          rua: data.logradouro || prev.rua,
+          bairro: data.bairro || prev.bairro,
+          cidade: data.localidade || prev.cidade,
+          estado: data.uf || prev.estado,
+          cep: data.cep || prev.cep
+        }));
+        toast({
+          title: "Endereço preenchido!",
+          description: "As informações foram recuperadas com base no CEP informado.",
+        });
+      }
+    } catch (error) {
+      console.error("Erro ao buscar CEP:", error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -417,7 +444,19 @@ export default function Profile() {
                   <label className="text-sm font-medium text-muted-foreground ml-1">CEP</label>
                   <div className="relative">
                     <span className="material-symbols-outlined absolute left-4 top-3.5 text-muted-foreground text-lg">markunread_mailbox</span>
-                    <input type="text" value={formData.cep} onChange={(e) => setFormData({ ...formData, cep: e.target.value })} placeholder="00000-000" className="input-field pl-12" />
+                    <input 
+                      type="text" 
+                      value={formData.cep} 
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setFormData({ ...formData, cep: val });
+                        if (val.replace(/\D/g, "").length === 8) {
+                          fetchAddressByCep(val);
+                        }
+                      }} 
+                      placeholder="00000-000" 
+                      className="input-field pl-12" 
+                    />
                   </div>
                 </div>
 
