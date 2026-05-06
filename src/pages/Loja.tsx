@@ -140,7 +140,7 @@ export default function Dashboard() {
   };
 
   const isProxyFilter = activeFilter === "Proxy";
-  const showProxiesInAll = activeFilter === "Todos" && !proxyLoading && !proxyError && proxyProducts.length > 0;
+  const showProxiesInAll = activeFilter === "Todos" && !proxyLoading && !proxyError && rawProxyProductsData.length > 0;
 
   const proxyCategoryId = categories.find((c) => c.slug === "proxy")?.id;
   const localProxyProducts = proxyCategoryId ? products.filter((p) => p.category_id === proxyCategoryId) : [];
