@@ -214,7 +214,19 @@ export default function Dashboard() {
   const matchedLocalIds = new Set(apiProxyAsProducts.map(p => p.id));
   const standaloneLocalProxies = proxyfbflixLocalProducts.filter(p => !matchedLocalIds.has(p.id));
   
-  const proxyAsProducts = [...apiProxyAsProducts, ...standaloneLocalProxies].sort((a, b) => (a.price || 0) - (b.price || 0));
+  const proxyPurposes = ["Todos", "Facebook", "Youtube", "Tiktok", "Apostas", "Google Ads", "Contingência", "Web Scraping"];
+
+  const proxyAsProducts = [...apiProxyAsProducts, ...standaloneLocalProxies]
+    .filter(p => {
+      if (activePurpose === "Todos") return true;
+      const tags = p.tags || [];
+      const searchTerms = activePurpose === "Apostas" ? ["apostas", "casa de apostas"] : [activePurpose.toLowerCase()];
+      return tags.some(t => {
+        const nt = t.toLowerCase();
+        return searchTerms.some(term => nt.includes(term));
+      });
+    })
+    .sort((a, b) => (a.price || 0) - (b.price || 0));
 
   console.log("[Loja] proxyCategoryId:", proxyCategoryId, "proxyfbflixLocalProducts:", proxyfbflixLocalProducts.map(p => p.name), "total products:", products.length);
 
@@ -393,6 +405,25 @@ export default function Dashboard() {
             </button>
           </div>
         </div>
+
+        {activeFilter === "Proxy" && (
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide animate-in fade-in slide-in-from-top-2 duration-300">
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider mr-2 shrink-0">Finalidade:</span>
+            {proxyPurposes.map((purpose) => (
+              <button
+                key={purpose}
+                onClick={() => setActivePurpose(purpose)}
+                className={`shrink-0 px-4 py-1.5 rounded-full text-xs transition-all border ${
+                  activePurpose === purpose
+                    ? "bg-primary/10 text-primary border-primary font-bold"
+                    : "bg-secondary text-muted-foreground border-border hover:border-primary/50 hover:text-primary"
+                }`}
+              >
+                {purpose}
+              </button>
+            ))}
+          </div>
+        )}
 
         {isProxyFilter ? (
           /* Proxy products from ProxyBR API */
