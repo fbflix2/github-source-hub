@@ -776,7 +776,6 @@ export default function AdminTutoriais() {
               ) : (
                 filteredTutorials.map((tutorial) => {
                   const catStyle = getCategoryStyle(tutorial.category);
-                  const thumb = tutorial.thumbnail_url || getYouTubeThumbnail(tutorial.video_url);
                   const tags = tutorial.content
                     ? tutorial.content.split(",").map((t) => t.trim()).filter(Boolean)
                     : [];
@@ -785,13 +784,7 @@ export default function AdminTutoriais() {
                     <TableRow key={tutorial.id} className="hover:bg-white/5 transition-colors group border-b border-white/5">
                       <TableCell className="p-4 align-middle w-[160px]">
                         <div className="relative w-32 h-20 rounded-lg overflow-hidden bg-gray-800 shadow-lg group-hover:shadow-primary/20 transition-all border border-white/10">
-                          {thumb ? (
-                            <img src={thumb} alt={tutorial.title} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-gray-600">
-                              <Video className="w-8 h-8" />
-                            </div>
-                          )}
+                          <AdminTutorialThumbnail tutorial={tutorial} />
                           <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
                             <Play className="w-8 h-8 text-white drop-shadow-md" />
                           </div>
