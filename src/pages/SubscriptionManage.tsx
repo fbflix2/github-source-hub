@@ -574,11 +574,19 @@ export default function SubscriptionManage() {
               const activeMutation = isProxyFbflix ? wsExchangeMutation : exchangeMutation;
               return (
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-text-secondary">Trocas grátis</span>
-                    <span className={`font-bold ${freeExchanges > 0 ? 'text-green-500' : 'text-text-secondary'}`}>{freeExchanges}</span>
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-text-secondary">Trocas grátis</span>
+                      <span className={`font-bold ${freeExchanges > 0 ? 'text-green-500' : 'text-text-secondary'}`}>{freeExchanges}</span>
+                    </div>
+                    {paidExchanges > 0 && (
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-text-secondary">Trocas adicionais</span>
+                        <span className="font-bold text-primary">{paidExchanges}</span>
+                      </div>
+                    )}
                   </div>
-                  {freeExchanges > 0 && (
+                  {(freeExchanges > 0 || paidExchanges > 0) && (
                     <Button
                       size="sm"
                       onClick={() => {
@@ -598,13 +606,13 @@ export default function SubscriptionManage() {
                       className="w-full bg-primary hover:bg-primary/80 text-primary-foreground font-bold text-xs h-8"
                     >
                       <span className="material-symbols-outlined text-sm mr-1">swap_horiz</span>
-                      {activeMutation.isPending ? "Trocando..." : "Trocar Proxy (Grátis)"}
+                      {activeMutation.isPending ? "Trocando..." : `Trocar Proxy (${freeExchanges > 0 ? 'Grátis' : 'Adicional'})`}
                     </Button>
                   )}
-                  {freeExchanges === 0 && (
-                    <p className="text-text-secondary text-[10px]">Nenhuma troca grátis disponível.</p>
+                  {freeExchanges === 0 && paidExchanges === 0 && (
+                    <p className="text-text-secondary text-[10px]">Nenhuma cota de troca disponível.</p>
                   )}
-                  {freeExchanges === 0 && customerPrice != null && customerPrice > 0 && (
+                  {freeExchanges === 0 && paidExchanges === 0 && customerPrice != null && customerPrice > 0 && (
                     <div className="mt-3 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 p-3 space-y-3">
                       <div className="flex items-center gap-2">
                         <span className="material-symbols-outlined text-primary text-lg">local_offer</span>
