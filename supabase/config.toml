@@ -96,3 +96,6 @@ verify_jwt = false
 
 [functions.vimeo-thumbnail]
 verify_jwt = false
+
+[functions.supplier-portal]
+verify_jwt = false
