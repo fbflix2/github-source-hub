@@ -2403,7 +2403,41 @@ Deno.serve(async (req) => {
         global: true,
       });
 
-      console.log(`[migrate-proxybr] Success: ${subscription_name} → Webshare proxy ${assignedProxy.id}`);
+       // 10. WhatsApp confirmation to client
+       if (profile?.phone) {
+         try {
+           const { data: tpl } = await supabaseAdmin
+             .from("whatsapp_templates")
+             .select("id")
+             .eq("event_key", "proxy_renewed")
+             .eq("active", true)
+             .maybeSingle();
+ 
+           if (tpl) {
+             const productName = productInfo?.name || raw.product?.name || raw.product_name || existingSub.name || "Proxy";
+             const formattedExpDate = endDate.toLocaleDateString("pt-BR");
+             
+             await supabaseAdmin.functions.invoke("wapi-send", {
+               body: {
+                 action: "send-template",
+                 template_id: tpl.id,
+                 phone: profile.phone,
+                 user_id: targetUserId,
+                 variables: {
+                   nome: profile.full_name || "Cliente",
+                   produto: productName,
+                   vencimento: formattedExpDate
+                 }
+               }
+             });
+             console.log(`[migrate-proxybr] WhatsApp notification sent to ${profile.phone}`);
+           }
+         } catch (waErr: any) {
+           console.error(`[migrate-proxybr] WhatsApp notification error: ${waErr.message}`);
+         }
+       }
+ 
+       console.log(`[migrate-proxybr] Success: ${subscription_name} → Webshare proxy ${assignedProxy.id}`);
 
       return new Response(JSON.stringify({
         success: true,
