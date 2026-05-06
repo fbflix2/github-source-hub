@@ -1084,6 +1084,41 @@ Deno.serve(async (req) => {
         url = `${PROXYBR_BASE}/subscriptions`;
         break;
 
+      case "admin-update-subscription": {
+        const { subscription_id: updSubId, raw_data: newRawData, status: newStatus } = params as {
+          subscription_id: string;
+          raw_data?: Record<string, any>;
+          status?: string;
+        };
+        if (!updSubId) throw new Error("subscription_id é obrigatório");
+
+        const supabaseAdmin = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+        );
+
+        const { data: isAdmin } = await supabaseAdmin.rpc("has_role", { _user_id: user.id, _role: "admin" });
+        if (!isAdmin) throw new Error("Acesso negado: apenas administradores");
+
+        const updatePayload: Record<string, any> = { updated_at: new Date().toISOString() };
+        if (newRawData) updatePayload.raw_data = newRawData;
+        if (newStatus) {
+          updatePayload.status = newStatus;
+          if (newStatus === "cancelled") updatePayload.cancelled_at = new Date().toISOString();
+        }
+
+        const { error: updErr } = await supabaseAdmin
+          .from("subscriptions")
+          .update(updatePayload)
+          .eq("id", updSubId);
+
+        if (updErr) throw new Error(`Erro ao atualizar: ${updErr.message}`);
+
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       case "get-subscription":
         if (!params.subscriptionCode) throw new Error("subscriptionCode é obrigatório");
         url = `${PROXYBR_BASE}/subscriptions/${encodeURIComponent(params.subscriptionCode)}`;
@@ -1635,7 +1670,18 @@ Deno.serve(async (req) => {
               })
             : [{ id: newProxyData.webshare_proxy_id, code: newProxyCode, parsed: newProxyParsed, status: "USED", notes: null }];
 
-          const nextFreeQuota = Math.max(0, Number(localRaw.exchange_quota_free ?? localRaw.subscription?.exchange_quota_free ?? 0) - 1);
+          const currentFree = Number(localRaw.exchange_quota_free ?? localRaw.subscription?.exchange_quota_free ?? 0);
+          const currentPay = Number(localRaw.exchange_quota_pay ?? localRaw.subscription?.exchange_quota_pay ?? 0);
+          
+          let nextFree = currentFree;
+          let nextPay = currentPay;
+          
+          if (currentFree > 0) {
+            nextFree = currentFree - 1;
+          } else if (currentPay > 0) {
+            nextPay = currentPay - 1;
+          }
+
           const updatedRaw = {
             ...localRaw,
             provider: "webshare",
@@ -1646,7 +1692,8 @@ Deno.serve(async (req) => {
             password: newProxyData.password,
             country_code: newProxyData.country_code || localRaw.country_code || "BR",
             city_name: newProxyData.city_name || localRaw.city_name || "São Paulo",
-            exchange_quota_free: nextFreeQuota,
+            exchange_quota_free: nextFree,
+            exchange_quota_pay: nextPay,
             exchange_count: Number(localRaw.exchange_count || 0) + 1,
             last_exchange: new Date().toISOString(),
             last_exchange_method: methodName,
@@ -1824,7 +1871,12 @@ Deno.serve(async (req) => {
           if (freshResp.ok) {
             const freshData = JSON.parse(freshText);
             const existingRaw = (localSub?.raw_data || {}) as Record<string, any>;
-            const mergedData = { ...freshData, ...Object.fromEntries(Object.entries(existingRaw).filter(([key]) => key.startsWith("profile_tag"))) };
+            const mergedData = { 
+              ...freshData, 
+              ...Object.fromEntries(Object.entries(existingRaw).filter(([key]) => 
+                key.startsWith("profile_tag") || key === "exchange_quota_pay"
+              )) 
+            };
             await supabaseAdmin
               .from("subscriptions")
               .update({ raw_data: mergedData, updated_at: new Date().toISOString() })

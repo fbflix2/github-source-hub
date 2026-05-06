@@ -171,12 +171,6 @@ export function useProxyBRSubscriptions() {
           // Single proxy — same as before
           results.push({ ...baseEntry, proxy: buildProxyInfo(proxies[0]) });
         } else {
-          // Multiple proxies — divide exchange quota equally per proxy
-          const rawFreeQuota = raw.exchange_quota_free ?? raw.subscription?.exchange_quota_free ?? 0;
-          const rawPaidQuota = raw.exchange_quota_pay ?? raw.subscription?.exchange_quota_pay ?? 0;
-          const perProxyFree = Math.floor(rawFreeQuota / proxies.length);
-          const perProxyPaid = Math.floor(rawPaidQuota / proxies.length);
-
           proxies.forEach((proxy: any, index: number) => {
             // Skip proxies already migrated to ProxyFbflix
             if (migratedProxies.includes(index + 1)) return;
@@ -192,11 +186,7 @@ export function useProxyBRSubscriptions() {
               totalProxies: proxies.length,
               proxyLabel: `Proxy ${index + 1}/${proxies.length}`,
               profile_tag: raw[proxyTagKey] || null,
-              raw_data: {
-                ...raw,
-                exchange_quota_free: perProxyFree,
-                exchange_quota_pay: perProxyPaid,
-              },
+              raw_data: raw,
             });
           });
         }

@@ -1132,8 +1132,9 @@ Deno.serve(async (req) => {
       }
 
       const raw = (subRow.raw_data || {}) as Record<string, any>;
-      const freeLeft = raw.exchange_quota_free ?? 0;
-      if (freeLeft <= 0) throw new Error("Sem cotas de troca disponíveis");
+      const freeLeft = Number(raw.exchange_quota_free ?? 0);
+      const payLeft = Number(raw.exchange_quota_pay ?? 0);
+      if (freeLeft + payLeft <= 0) throw new Error("Sem cotas de troca disponíveis");
 
       // Determine country: override param first, then raw_data, then product tags/name
       let targetCountry = overrideCountry ? overrideCountry.toUpperCase() : (raw.country_code ? String(raw.country_code).toUpperCase() : null);
@@ -1369,11 +1370,20 @@ Deno.serve(async (req) => {
 
       // 3. Update subscription raw_data
       const prevExchangeCount = raw.exchange_count ? Number(raw.exchange_count) : 0;
+      let nextFree = freeLeft;
+      let nextPay = payLeft;
+      if (freeLeft > 0) {
+        nextFree = freeLeft - 1;
+      } else {
+        nextPay = payLeft - 1;
+      }
+
       const updatedRaw = {
         ...raw,
         ...newProxyData,
         provider: "proxyfbflix",
-        exchange_quota_free: freeLeft - 1,
+        exchange_quota_free: nextFree,
+        exchange_quota_pay: nextPay,
         exchange_count: prevExchangeCount + 1,
         initial_exchange_quota_free: raw.initial_exchange_quota_free ?? (freeLeft),
         last_exchange: new Date().toISOString(),
@@ -1394,7 +1404,8 @@ Deno.serve(async (req) => {
         method,
         old_proxy: oldProxyStr,
         new_proxy: `${newProxyData.proxy_address}:${newProxyData.port}`,
-        exchange_quota_free: freeLeft - 1,
+        exchange_quota_free: nextFree,
+        exchange_quota_pay: nextPay,
         proxy: {
           ip: newProxyData.proxy_address,
           port: newProxyData.port,

@@ -166,19 +166,25 @@ export default function ProxyMaintenanceTab() {
     },
   });
 
+  const [quotaType, setQuotaType] = useState<"free" | "pay">("free");
+
   // Quota adjustment mutation
   const quotaMutation = useMutation({
-    mutationFn: async ({ subId, delta }: { subId: string; delta: number }) => {
+    mutationFn: async ({ subId, delta, type }: { subId: string; delta: number; type: "free" | "pay" }) => {
       const sub = allSubs?.find((s: any) => s.id === subId);
       if (!sub) throw new Error("Assinatura não encontrada");
       const raw = (sub.raw_data || {}) as Record<string, any>;
-      const currentFree = raw.exchange_quota_free ?? 0;
-      const newFree = Math.max(0, currentFree + delta);
-      const updatedRaw = { ...raw, exchange_quota_free: newFree };
-      return callProxyFbflix("admin-update-subscription", {
-        subscription_id: subId,
-        raw_data: updatedRaw,
+      const key = type === "pay" ? "exchange_quota_pay" : "exchange_quota_free";
+      const currentVal = raw[key] ?? 0;
+      const newVal = Math.max(0, currentVal + delta);
+      const updatedRaw = { ...raw, [key]: newVal };
+
+      const functionName = (sub.type === "proxybr") ? "proxybr-api" : "proxyfbflix-api";
+      const { data, error } = await supabase.functions.invoke(functionName, {
+        body: { action: "admin-update-subscription", subscription_id: subId, raw_data: updatedRaw }
       });
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       toast.success("Cota atualizada com sucesso!");
@@ -262,7 +268,7 @@ export default function ProxyMaintenanceTab() {
                   <TableHead>Localização</TableHead>
                   <TableHead>Produto</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="text-center">Cotas Grátis</TableHead>
+                  <TableHead className="text-center">Cotas (Grátis/Paga)</TableHead>
                   <TableHead>Vencimento</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
@@ -293,6 +299,7 @@ export default function ProxyMaintenanceTab() {
                   const product = sub.product_id ? productMap.get(sub.product_id) : null;
                   const statusInfo = getStatusInfo(sub);
                   const freeQuota = raw.exchange_quota_free ?? 0;
+                  const payQuota = raw.exchange_quota_pay ?? 0;
                   const maintCount = raw.maintenance_exchange_count || 0;
                   const providerLabel = isProxyBR ? "ProxyBR" : "ProxyFbflix";
 
@@ -344,9 +351,16 @@ export default function ProxyMaintenanceTab() {
                         )}
                       </TableCell>
                       <TableCell className="text-center">
-                        <span className={`font-mono text-sm font-bold ${freeQuota > 0 ? "text-green-400" : "text-destructive"}`}>
-                          {freeQuota}
-                        </span>
+                        <div className="flex flex-col items-center">
+                          <span className={`font-mono text-sm font-bold ${freeQuota > 0 ? "text-green-400" : "text-muted-foreground"}`}>
+                            {freeQuota}
+                          </span>
+                          {payQuota > 0 && (
+                            <span className="font-mono text-[10px] font-bold text-primary">
+                              +{payQuota} pagas
+                            </span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
                         {sub.end_date ? new Date(sub.end_date).toLocaleDateString("pt-BR") : "—"}
@@ -499,6 +513,8 @@ export default function ProxyMaintenanceTab() {
           {quotaModal && (() => {
             const raw = (quotaModal.sub.raw_data || {}) as Record<string, any>;
             const currentFree = raw.exchange_quota_free ?? 0;
+            const currentPay = raw.exchange_quota_pay ?? 0;
+            const currentTotal = quotaType === "pay" ? currentPay : currentFree;
             const clientName = profileMap.get(quotaModal.sub.user_id) || "—";
             return (
               <div className="space-y-4">
@@ -509,13 +525,28 @@ export default function ProxyMaintenanceTab() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Cotas Atuais</span>
-                    <span className="text-foreground font-bold">{currentFree}</span>
+                  <span className="text-foreground font-bold">
+                    {quotaType === "free" ? `${currentFree} grátis` : `${currentPay} pagas`}
+                  </span>
                   </div>
                 </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm text-muted-foreground block">Tipo de Cota</label>
+                  <Select value={quotaType} onValueChange={(v: any) => setQuotaType(v)}>
+                    <SelectTrigger className="w-full bg-background/50 border-border/40 h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="free">Grátis (Normal)</SelectItem>
+                      <SelectItem value="pay">Paga (Adicional)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div>
                   <label className="text-sm text-muted-foreground mb-1.5 block">Quantidade</label>
                   <Input
-                    type="number" min={1} max={quotaModal.type === "remove" ? currentFree : 50}
+                    type="number" min={1} max={quotaModal.type === "remove" ? currentTotal : 50}
                     value={quotaAmount}
                     onChange={(e) => setQuotaAmount(Math.max(1, parseInt(e.target.value) || 1))}
                     className="bg-background/50 border-border/40"
@@ -524,7 +555,7 @@ export default function ProxyMaintenanceTab() {
                 <div className="p-2 rounded bg-muted/20 text-sm text-center">
                   <span className="text-muted-foreground">Resultado: </span>
                   <span className="font-bold text-foreground">
-                    {quotaModal.type === "add" ? currentFree + quotaAmount : Math.max(0, currentFree - quotaAmount)} cotas
+                    {quotaModal.type === "add" ? currentTotal + quotaAmount : Math.max(0, currentTotal - quotaAmount)} cotas
                   </span>
                 </div>
               </div>
@@ -536,7 +567,7 @@ export default function ProxyMaintenanceTab() {
               onClick={() => {
                 if (!quotaModal) return;
                 const delta = quotaModal.type === "add" ? quotaAmount : -quotaAmount;
-                quotaMutation.mutate({ subId: quotaModal.sub.id, delta });
+                quotaMutation.mutate({ subId: quotaModal.sub.id, delta, type: quotaType });
               }}
               disabled={quotaMutation.isPending}
               className={quotaModal?.type === "add" ? "bg-green-600 hover:bg-green-700" : "bg-destructive hover:bg-destructive/90"}
