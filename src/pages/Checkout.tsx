@@ -1401,8 +1401,8 @@ export default function Checkout() {
               </div>
             )}
 
-             {/* City selector for any FBFlix Proxy */}
-             {product.icon_type === 'proxy' && !product.external_id && (
+             {/* City selector for any FBFlix Proxy (only if user opted in) */}
+             {product.icon_type === 'proxy' && !product.external_id && showCityOnCheckout && (
                <div className="flex flex-col gap-3 pt-3 border-t border-border mt-1">
                  <div className="flex flex-col gap-1">
                    <span className="text-sm font-semibold text-foreground flex items-center gap-1.5">
