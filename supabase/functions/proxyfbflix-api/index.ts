@@ -690,7 +690,7 @@ Deno.serve(async (req) => {
          console.log(`[webshare-api] Found ${available.length} proxies for country ${targetCountryCode}`);
        }
 
-       if (target_city && target_city !== "all") {
+       if (target_city && target_city !== "all" && target_city !== "all_us") {
          const normalizedTargetCity = target_city.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "");
          const cityFiltered = available.filter(p => {
            if (!p.city_name) return false;
