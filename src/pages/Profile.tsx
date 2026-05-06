@@ -351,7 +351,7 @@ export default function Profile() {
         {/* Right Column - Form */}
         <div className="lg:col-span-2">
           <div className="glass-panel rounded-2xl p-8">
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
                 <span className="material-symbols-outlined text-primary">person</span>
                 Informações Pessoais
@@ -367,83 +367,83 @@ export default function Profile() {
               </div>
             </div>
 
-            <form onSubmit={handleSave} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <form onSubmit={handleSave} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Full Name */}
-                <div className="md:col-span-2 space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground ml-1">Nome Completo</label>
+                <div className="md:col-span-2 space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground ml-1">Nome Completo</label>
                   <div className="relative">
-                    <span className="material-symbols-outlined absolute left-4 top-3.5 text-muted-foreground text-lg">badge</span>
-                    <input type="text" value={formData.full_name} onChange={(e) => setFormData({ ...formData, full_name: e.target.value })} placeholder="Seu nome completo" className="input-field pl-12" />
+                    <span className="material-symbols-outlined absolute left-4 top-2.5 text-muted-foreground text-lg">badge</span>
+                    <input type="text" value={formData.full_name} onChange={(e) => setFormData({ ...formData, full_name: e.target.value })} placeholder="Seu nome completo" className="input-field pl-12 h-10" />
                   </div>
                 </div>
 
                 {/* CPF */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground ml-1">CPF</label>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground ml-1">CPF</label>
                   <div className="relative">
-                    <span className="material-symbols-outlined absolute left-4 top-3.5 text-muted-foreground text-lg">fingerprint</span>
-                    <input type="text" value={formData.cpf} onChange={(e) => setFormData({ ...formData, cpf: formatCpf(e.target.value) })} placeholder="000.000.000-00" className="input-field pl-12" maxLength={14} />
+                    <span className="material-symbols-outlined absolute left-4 top-2.5 text-muted-foreground text-lg">fingerprint</span>
+                    <input type="text" value={formData.cpf} onChange={(e) => setFormData({ ...formData, cpf: formatCpf(e.target.value) })} placeholder="000.000.000-00" className="input-field pl-12 h-10" maxLength={14} />
                   </div>
                 </div>
 
                 {/* Birth Date */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground ml-1">Data de Nascimento</label>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground ml-1">Data de Nascimento</label>
                   <div className="relative">
-                    <span className="material-symbols-outlined absolute left-4 top-3.5 text-muted-foreground text-lg">cake</span>
-                    <input type="date" value={formData.birth_date} onChange={(e) => setFormData({ ...formData, birth_date: e.target.value })} className="input-field pl-12" />
+                    <span className="material-symbols-outlined absolute left-4 top-2.5 text-muted-foreground text-lg">cake</span>
+                    <input type="date" value={formData.birth_date} onChange={(e) => setFormData({ ...formData, birth_date: e.target.value })} className="input-field pl-12 h-10" />
                   </div>
                 </div>
 
                 {/* Rua */}
-                <div className="md:col-span-2 space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground ml-1">Rua</label>
+                <div className="md:col-span-2 space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground ml-1">Rua</label>
                   <div className="relative">
-                    <span className="material-symbols-outlined absolute left-4 top-3.5 text-muted-foreground text-lg">location_on</span>
-                    <input type="text" value={formData.rua} onChange={(e) => setFormData({ ...formData, rua: e.target.value })} placeholder="Nome da rua" className="input-field pl-12" />
+                    <span className="material-symbols-outlined absolute left-4 top-2.5 text-muted-foreground text-lg">location_on</span>
+                    <input type="text" value={formData.rua} onChange={(e) => setFormData({ ...formData, rua: e.target.value })} placeholder="Nome da rua" className="input-field pl-12 h-10" />
                   </div>
                 </div>
 
                 {/* Número + Bairro */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground ml-1">Número</label>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground ml-1">Número</label>
                   <div className="relative">
-                    <span className="material-symbols-outlined absolute left-4 top-3.5 text-muted-foreground text-lg">pin</span>
-                    <input type="text" value={formData.numero} onChange={(e) => setFormData({ ...formData, numero: e.target.value })} placeholder="Nº" className="input-field pl-12" />
+                    <span className="material-symbols-outlined absolute left-4 top-2.5 text-muted-foreground text-lg">pin</span>
+                    <input type="text" value={formData.numero} onChange={(e) => setFormData({ ...formData, numero: e.target.value })} placeholder="Nº" className="input-field pl-12 h-10" />
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground ml-1">Bairro</label>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground ml-1">Bairro</label>
                   <div className="relative">
-                    <span className="material-symbols-outlined absolute left-4 top-3.5 text-muted-foreground text-lg">holiday_village</span>
-                    <input type="text" value={formData.bairro} onChange={(e) => setFormData({ ...formData, bairro: e.target.value })} placeholder="Bairro" className="input-field pl-12" />
+                    <span className="material-symbols-outlined absolute left-4 top-2.5 text-muted-foreground text-lg">holiday_village</span>
+                    <input type="text" value={formData.bairro} onChange={(e) => setFormData({ ...formData, bairro: e.target.value })} placeholder="Bairro" className="input-field pl-12 h-10" />
                   </div>
                 </div>
 
                 {/* Cidade + Estado */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground ml-1">Cidade</label>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground ml-1">Cidade</label>
                   <div className="relative">
-                    <span className="material-symbols-outlined absolute left-4 top-3.5 text-muted-foreground text-lg">location_city</span>
-                    <input type="text" value={formData.cidade} onChange={(e) => setFormData({ ...formData, cidade: e.target.value })} placeholder="Cidade" className="input-field pl-12" />
+                    <span className="material-symbols-outlined absolute left-4 top-2.5 text-muted-foreground text-lg">location_city</span>
+                    <input type="text" value={formData.cidade} onChange={(e) => setFormData({ ...formData, cidade: e.target.value })} placeholder="Cidade" className="input-field pl-12 h-10" />
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground ml-1">Estado</label>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground ml-1">Estado</label>
                   <div className="relative">
-                    <span className="material-symbols-outlined absolute left-4 top-3.5 text-muted-foreground text-lg">map</span>
-                    <input type="text" value={formData.estado} onChange={(e) => setFormData({ ...formData, estado: e.target.value })} placeholder="UF" className="input-field pl-12" maxLength={2} />
+                    <span className="material-symbols-outlined absolute left-4 top-2.5 text-muted-foreground text-lg">map</span>
+                    <input type="text" value={formData.estado} onChange={(e) => setFormData({ ...formData, estado: e.target.value })} placeholder="UF" className="input-field pl-12 h-10" maxLength={2} />
                   </div>
                 </div>
 
                 {/* CEP */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground ml-1">CEP</label>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground ml-1">CEP</label>
                   <div className="relative">
-                    <span className="material-symbols-outlined absolute left-4 top-3.5 text-muted-foreground text-lg">markunread_mailbox</span>
+                    <span className="material-symbols-outlined absolute left-4 top-2.5 text-muted-foreground text-lg">markunread_mailbox</span>
                     <input 
                       type="text" 
                       value={formData.cep} 
@@ -455,17 +455,17 @@ export default function Profile() {
                         }
                       }} 
                       placeholder="00000-000" 
-                      className="input-field pl-12" 
+                      className="input-field pl-12 h-10" 
                     />
                   </div>
                 </div>
 
                 {/* WhatsApp */}
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground ml-1">WhatsApp</label>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground ml-1">WhatsApp</label>
                   <div className="relative">
-                    <span className="material-symbols-outlined absolute left-4 top-3.5 text-muted-foreground text-lg">chat</span>
-                    <input type="tel" value={formData.whatsapp} onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })} placeholder="(00) 00000-0000" className="input-field pl-12" />
+                    <span className="material-symbols-outlined absolute left-4 top-2.5 text-muted-foreground text-lg">chat</span>
+                    <input type="tel" value={formData.whatsapp} onChange={(e) => setFormData({ ...formData, whatsapp: e.target.value })} placeholder="(00) 00000-0000" className="input-field pl-12 h-10" />
                   </div>
                 </div>
 
