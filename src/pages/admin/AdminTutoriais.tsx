@@ -473,6 +473,118 @@ export default function AdminTutoriais() {
             />
           </div>
 
+          {/* Materiais para download */}
+          <div className="col-span-1 md:col-span-12">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                <Download className="w-4 h-4" /> Materiais para download
+              </label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setAttachments([...attachments, { label: "", url: "" }])}
+                className="border-white/10 text-gray-300 hover:text-white hover:bg-white/10"
+              >
+                <Plus className="w-4 h-4 mr-1" /> Adicionar
+              </Button>
+            </div>
+            <div className="space-y-2">
+              {attachments.length === 0 && (
+                <p className="text-xs text-gray-500 italic">Nenhum material. Adicione PDFs, planilhas ou outros arquivos.</p>
+              )}
+              {attachments.map((a, idx) => (
+                <div key={idx} className="flex gap-2 items-center">
+                  <Input
+                    value={a.label}
+                    onChange={(e) => {
+                      const next = [...attachments];
+                      next[idx] = { ...next[idx], label: e.target.value };
+                      setAttachments(next);
+                    }}
+                    placeholder="Nome (ex: Manual em PDF)"
+                    className="flex-1 bg-black/40 border-white/10 text-white"
+                  />
+                  <Input
+                    value={a.url}
+                    onChange={(e) => {
+                      const next = [...attachments];
+                      next[idx] = { ...next[idx], url: e.target.value };
+                      setAttachments(next);
+                    }}
+                    placeholder="https://..."
+                    className="flex-[2] bg-black/40 border-white/10 text-white"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setAttachments(attachments.filter((_, i) => i !== idx))}
+                    className="text-gray-400 hover:text-red-400"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Links / dados copiáveis */}
+          <div className="col-span-1 md:col-span-12">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
+                <CopyIcon className="w-4 h-4" /> Links / dados para copiar
+              </label>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setCopyItems([...copyItems, { label: "", value: "" }])}
+                className="border-white/10 text-gray-300 hover:text-white hover:bg-white/10"
+              >
+                <Plus className="w-4 h-4 mr-1" /> Adicionar
+              </Button>
+            </div>
+            <div className="space-y-2">
+              {copyItems.length === 0 && (
+                <p className="text-xs text-gray-500 italic">Adicione URLs, comandos ou textos que o usuário possa copiar com um clique.</p>
+              )}
+              {copyItems.map((c, idx) => (
+                <div key={idx} className="flex gap-2 items-center">
+                  <Input
+                    value={c.label}
+                    onChange={(e) => {
+                      const next = [...copyItems];
+                      next[idx] = { ...next[idx], label: e.target.value };
+                      setCopyItems(next);
+                    }}
+                    placeholder="Rótulo (ex: Link do checkout)"
+                    className="flex-1 bg-black/40 border-white/10 text-white"
+                  />
+                  <Input
+                    value={c.value}
+                    onChange={(e) => {
+                      const next = [...copyItems];
+                      next[idx] = { ...next[idx], value: e.target.value };
+                      setCopyItems(next);
+                    }}
+                    placeholder="Valor a ser copiado"
+                    className="flex-[2] bg-black/40 border-white/10 text-white"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setCopyItems(copyItems.filter((_, i) => i !== idx))}
+                    className="text-gray-400 hover:text-red-400"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* Botão */}
           <div className="col-span-1 md:col-span-12 flex justify-end mt-2">
             <Button
