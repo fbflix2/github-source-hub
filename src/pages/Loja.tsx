@@ -118,11 +118,27 @@ export default function Dashboard() {
     return () => document.removeEventListener("visibilitychange", handleVisibility);
   }, [fetchData]);
 
-  const proxyProducts: any[] = (Array.isArray(proxyProductsData?.data)
+  const rawProxyProducts: any[] = (Array.isArray(proxyProductsData?.data)
     ? proxyProductsData.data
     : Array.isArray(proxyProductsData)
     ? proxyProductsData
     : []).filter((p: any) => !inactiveProxyExternalIds.has(String(p.id)));
+
+  const proxyProducts = [...rawProxyProducts].sort((a, b) => {
+    const localA = getLocalProxyData(a);
+    const localB = getLocalProxyData(b);
+    
+    const getCheapestPrice = (p: any, local: any) => {
+      if (local?.price != null && local.price > 0) return local.price;
+      const variants = p.variant || p.variants?.data || p.variants || [];
+      if (variants.length > 0) {
+        return Math.min(...variants.map((v: any) => v.price || 0));
+      }
+      return p.price || 0;
+    };
+    
+    return getCheapestPrice(a, localA) - getCheapestPrice(b, localB);
+  });
 
   const getProxyQty = (id: string) => proxyQuantities[id] || 1;
   const updateProxyQty = (id: string, delta: number) => {
