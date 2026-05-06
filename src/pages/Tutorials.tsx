@@ -48,7 +48,58 @@ function getYouTubeThumbnail(url: string | null): string | null {
   return id ? `https://img.youtube.com/vi/${id}/mqdefault.jpg` : null;
 }
 
+function getVimeoId(url: string | null): string | null {
+  if (!url) return null;
+  const match = url.match(/vimeo\.com\/(?:manage\/videos\/|video\/|channels\/[^/]+\/|groups\/[^/]+\/videos\/)?(\d+)/);
+  return match ? match[1] : null;
+}
+
 const getEmbedUrl = getTutorialEmbedUrl;
+
+const TutorialThumbnail = ({ tutorial }: { tutorial: Tutorial }) => {
+  const [thumbnail, setThumbnail] = useState<string | null>(tutorial.thumbnail_url);
+
+  useEffect(() => {
+    if (tutorial.thumbnail_url) {
+      setThumbnail(tutorial.thumbnail_url);
+      return;
+    }
+
+    const ytThumb = getYouTubeThumbnail(tutorial.video_url);
+    if (ytThumb) {
+      setThumbnail(ytThumb);
+      return;
+    }
+
+    const vimeoId = getVimeoId(tutorial.video_url);
+    if (vimeoId) {
+      fetch(`https://vimeo.com/api/v2/video/${vimeoId}.json`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data?.[0]?.thumbnail_large) {
+            setThumbnail(data[0].thumbnail_large);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [tutorial]);
+
+  if (thumbnail) {
+    return (
+      <img
+        alt={tutorial.title}
+        className="w-full h-full object-cover"
+        src={thumbnail}
+      />
+    );
+  }
+
+  return (
+    <div className="w-full h-full flex items-center justify-center bg-muted">
+      <Play className="size-10 text-muted-foreground" />
+    </div>
+  );
+};
 
 interface TutorialCardProps {
   tutorial: Tutorial;
@@ -57,25 +108,13 @@ interface TutorialCardProps {
 }
 
 const TutorialCard = ({ tutorial, hoverColorClass = "group-hover:text-primary", onPlay }: TutorialCardProps) => {
-  const thumbnail = tutorial.thumbnail_url || getYouTubeThumbnail(tutorial.video_url);
-
   return (
     <div
       className="min-w-[280px] md:min-w-[320px] relative group cursor-pointer transition-transform duration-300 hover:scale-105 hover:z-10"
       onClick={() => onPlay(tutorial)}
     >
       <div className="aspect-video rounded-lg overflow-hidden bg-muted relative shadow-lg">
-        {thumbnail ? (
-          <img
-            alt={tutorial.title}
-            className="w-full h-full object-cover"
-            src={thumbnail}
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-muted">
-            <Play className="size-10 text-muted-foreground" />
-          </div>
-        )}
+        <TutorialThumbnail tutorial={tutorial} />
         {/* Overlay */}
         <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors flex items-center justify-center">
           <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all transform scale-50 group-hover:scale-100">
@@ -208,9 +247,6 @@ export default function Tutorials() {
   }, [tutorials.length]);
 
   const featuredTutorial = tutorials.length > 0 ? tutorials[featuredIndex] : null;
-  const featuredThumbnail = featuredTutorial
-    ? featuredTutorial.thumbnail_url || getYouTubeThumbnail(featuredTutorial.video_url)
-    : null;
 
   return (
     <div className="animate-fade-in">
@@ -221,17 +257,7 @@ export default function Tutorials() {
           onClick={() => handlePlay(featuredTutorial)}
         >
           <div className="aspect-[21/9] md:aspect-[3/1] w-full relative animate-fade-in" key={featuredTutorial.id}>
-            {featuredThumbnail ? (
-              <img
-                src={featuredThumbnail}
-                alt={featuredTutorial.title}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full bg-muted flex items-center justify-center">
-                <Play className="size-16 text-muted-foreground" />
-              </div>
-            )}
+            <TutorialThumbnail tutorial={featuredTutorial} />
             {/* Gradient overlay */}
             <div className="absolute inset-0 bg-gradient-to-t from-background via-background/60 to-transparent" />
             <div className="absolute inset-0 bg-gradient-to-r from-background/80 to-transparent" />
