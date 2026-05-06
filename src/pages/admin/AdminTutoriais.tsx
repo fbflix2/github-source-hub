@@ -91,6 +91,51 @@ const colorMap: Record<string, { text: string; bg: string; border: string }> = {
   rose: { text: "text-rose-400", bg: "bg-rose-500/10", border: "border-rose-500/20" },
 };
 
+const getYouTubeThumbnailUrl = (url: string | null) => {
+  if (!url) return null;
+  const match = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  return match ? `https://img.youtube.com/vi/${match[1]}/mqdefault.jpg` : null;
+};
+
+const getVimeoIdFromUrl = (url: string | null) => {
+  if (!url) return null;
+  const match = url.match(/vimeo\.com\/(?:manage\/videos\/|video\/|channels\/[^/]+\/|groups\/[^/]+\/videos\/)?(\d+)/);
+  return match ? match[1] : null;
+};
+
+const AdminTutorialThumbnail = ({ tutorial }: { tutorial: Tutorial }) => {
+  const [thumbnail, setThumbnail] = useState<string | null>(
+    tutorial.thumbnail_url || getYouTubeThumbnailUrl(tutorial.video_url)
+  );
+
+  useEffect(() => {
+    const immediate = tutorial.thumbnail_url || getYouTubeThumbnailUrl(tutorial.video_url);
+    if (immediate) {
+      setThumbnail(immediate);
+      return;
+    }
+
+    if (getVimeoIdFromUrl(tutorial.video_url)) {
+      supabase.functions
+        .invoke("vimeo-thumbnail", { body: { url: tutorial.video_url } })
+        .then(({ data }) => {
+          if (data?.thumbnailUrl) setThumbnail(data.thumbnailUrl);
+        })
+        .catch(() => {});
+    }
+  }, [tutorial]);
+
+  if (thumbnail) {
+    return <img src={thumbnail} alt={tutorial.title} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />;
+  }
+
+  return (
+    <div className="w-full h-full flex items-center justify-center text-gray-600">
+      <Video className="w-8 h-8" />
+    </div>
+  );
+};
+
 export default function AdminTutoriais() {
   const [tutorials, setTutorials] = useState<Tutorial[]>([]);
   const [categories, setCategories] = useState<TutorialCategory[]>([]);
@@ -104,6 +149,7 @@ export default function AdminTutoriais() {
   const [videoCategory, setVideoCategory] = useState("");
   const [videoTags, setVideoTags] = useState("");
   const [videoDescription, setVideoDescription] = useState("");
+  const [videoThumbnailUrl, setVideoThumbnailUrl] = useState("");
   const [attachments, setAttachments] = useState<{ label: string; url: string }[]>([]);
   const [copyItems, setCopyItems] = useState<{ label: string; value: string }[]>([]);
   const [editingTutorial, setEditingTutorial] = useState<Tutorial | null>(null);
@@ -241,9 +287,43 @@ export default function AdminTutoriais() {
     setVideoCategory("");
     setVideoTags("");
     setVideoDescription("");
+    setVideoThumbnailUrl("");
     setAttachments([]);
     setCopyItems([]);
     setEditingTutorial(null);
+  };
+
+  const getVimeoId = (url: string | null) => {
+    if (!url) return null;
+    const match = url.match(/vimeo\.com\/(?:manage\/videos\/|video\/|channels\/[^/]+\/|groups\/[^/]+\/videos\/)?(\d+)/);
+    return match ? match[1] : null;
+  };
+
+  const fetchVimeoThumbnail = async (url: string) => {
+    const { data } = await supabase.functions.invoke("vimeo-thumbnail", { body: { url } });
+    return data?.thumbnailUrl || null;
+  };
+
+  const handleFetchThumbnail = async () => {
+    if (!videoUrl.trim()) {
+      toast.error("Informe a URL do vídeo primeiro");
+      return;
+    }
+    const youtubeThumb = getYouTubeThumbnailUrl(videoUrl);
+    if (youtubeThumb) {
+      setVideoThumbnailUrl(youtubeThumb);
+      toast.success("Miniatura encontrada");
+      return;
+    }
+    if (getVimeoId(videoUrl)) {
+      const thumb = await fetchVimeoThumbnail(videoUrl);
+      if (thumb) {
+        setVideoThumbnailUrl(thumb);
+        toast.success("Miniatura do Vimeo encontrada");
+      } else {
+        toast.error("O Vimeo não liberou a miniatura. Cole uma URL de imagem manualmente.");
+      }
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -259,8 +339,9 @@ export default function AdminTutoriais() {
       video_url: videoUrl.trim() || null,
       category: videoCategory || null,
       description: videoDescription.trim() || null,
+      thumbnail_url: videoThumbnailUrl.trim() || null,
       content: videoTags.trim() || null, // using content field to store tags string
-      published: false,
+      published: editingTutorial ? editingTutorial.published : false,
       attachments: attachments.filter((a) => a.url.trim()),
       copy_items: copyItems.filter((c) => c.value.trim()),
     };
@@ -299,6 +380,7 @@ export default function AdminTutoriais() {
     setVideoCategory(tutorial.category || "");
     setVideoDescription(tutorial.description || "");
     setVideoTags(tutorial.content || "");
+    setVideoThumbnailUrl(tutorial.thumbnail_url || "");
     setAttachments(Array.isArray(tutorial.attachments) ? tutorial.attachments : []);
     setCopyItems(Array.isArray(tutorial.copy_items) ? tutorial.copy_items : []);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -338,14 +420,6 @@ export default function AdminTutoriais() {
     if (statusFilter === "published") return matchesSearch && tutorial.published;
     return matchesSearch && !tutorial.published;
   });
-
-  const getYouTubeThumbnail = (url: string | null) => {
-    if (!url) return null;
-    const match = url.match(
-      /(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/
-    );
-    return match ? `https://img.youtube.com/vi/${match[1]}/mqdefault.jpg` : null;
-  };
 
   return (
     <div className="flex flex-col gap-8 py-6">
@@ -413,6 +487,35 @@ export default function AdminTutoriais() {
                 className="w-full rounded-xl py-3 h-auto pl-11 pr-4 bg-black/40 border border-white/10 text-white placeholder:text-gray-500 focus:border-primary focus-visible:ring-1 focus-visible:ring-primary transition-all"
               />
             </div>
+          </div>
+
+          {/* Miniatura */}
+          <div className="col-span-1 md:col-span-12">
+            <label className="block text-sm font-medium text-gray-300 mb-2">URL da Miniatura</label>
+            <div className="flex flex-col md:flex-row gap-2">
+              <Input
+                type="url"
+                value={videoThumbnailUrl}
+                onChange={(e) => setVideoThumbnailUrl(e.target.value)}
+                placeholder="Cole uma imagem de capa ou clique em buscar miniatura"
+                className="flex-1 rounded-xl py-3 h-auto px-4 bg-black/40 border border-white/10 text-white placeholder:text-gray-500 focus:border-primary focus-visible:ring-1 focus-visible:ring-primary transition-all"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleFetchThumbnail}
+                className="border-white/10 text-gray-300 hover:text-white hover:bg-white/10 rounded-xl"
+              >
+                Buscar miniatura
+              </Button>
+            </div>
+            {videoThumbnailUrl && (
+              <img
+                src={videoThumbnailUrl}
+                alt="Prévia da miniatura"
+                className="mt-3 w-48 aspect-video rounded-lg object-cover border border-white/10 bg-black/40"
+              />
+            )}
           </div>
 
           {/* Categoria */}
@@ -665,7 +768,6 @@ export default function AdminTutoriais() {
               ) : (
                 filteredTutorials.map((tutorial) => {
                   const catStyle = getCategoryStyle(tutorial.category);
-                  const thumb = tutorial.thumbnail_url || getYouTubeThumbnail(tutorial.video_url);
                   const tags = tutorial.content
                     ? tutorial.content.split(",").map((t) => t.trim()).filter(Boolean)
                     : [];
@@ -674,13 +776,7 @@ export default function AdminTutoriais() {
                     <TableRow key={tutorial.id} className="hover:bg-white/5 transition-colors group border-b border-white/5">
                       <TableCell className="p-4 align-middle w-[160px]">
                         <div className="relative w-32 h-20 rounded-lg overflow-hidden bg-gray-800 shadow-lg group-hover:shadow-primary/20 transition-all border border-white/10">
-                          {thumb ? (
-                            <img src={thumb} alt={tutorial.title} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-gray-600">
-                              <Video className="w-8 h-8" />
-                            </div>
-                          )}
+                          <AdminTutorialThumbnail tutorial={tutorial} />
                           <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
                             <Play className="w-8 h-8 text-white drop-shadow-md" />
                           </div>

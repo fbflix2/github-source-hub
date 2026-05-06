@@ -73,11 +73,11 @@ const TutorialThumbnail = ({ tutorial }: { tutorial: Tutorial }) => {
 
     const vimeoId = getVimeoId(tutorial.video_url);
     if (vimeoId) {
-      fetch(`https://vimeo.com/api/v2/video/${vimeoId}.json`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (data?.[0]?.thumbnail_large) {
-            setThumbnail(data[0].thumbnail_large);
+      supabase.functions
+        .invoke("vimeo-thumbnail", { body: { url: tutorial.video_url } })
+        .then(({ data }) => {
+          if (data?.thumbnailUrl) {
+            setThumbnail(data.thumbnailUrl);
           }
         })
         .catch(() => {});

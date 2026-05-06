@@ -24,8 +24,11 @@ function getYouTubeEmbed(url: string): string | null {
 }
 
 function getVimeoEmbed(url: string): string | null {
-  const m = url.match(/vimeo\.com\/(?:manage\/videos\/|video\/|channels\/[^/]+\/|groups\/[^/]+\/videos\/)?(\d+)/);
-  return m ? `https://player.vimeo.com/video/${m[1]}?autoplay=1` : null;
+  const m = url.match(/vimeo\.com\/(?:manage\/videos\/|video\/|channels\/[^/]+\/|groups\/[^/]+\/videos\/)?(\d+)(?:\/([a-zA-Z0-9]+))?/);
+  if (!m?.[1]) return null;
+  const parsed = new URL(url.startsWith("http") ? url : `https://${url}`);
+  const hash = m[2] || parsed.searchParams.get("h");
+  return `https://player.vimeo.com/video/${m[1]}${hash ? `?h=${hash}&autoplay=1` : "?autoplay=1"}`;
 }
 
 export function getTutorialEmbedUrl(url: string | null): string | null {
