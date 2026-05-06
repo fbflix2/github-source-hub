@@ -1,38 +1,3 @@
-      case "admin-update-subscription": {
-        const { subscription_id: updSubId, raw_data: newRawData, status: newStatus } = params as {
-          subscription_id: string;
-          raw_data?: Record<string, any>;
-          status?: string;
-        };
-        if (!updSubId) throw new Error("subscription_id é obrigatório");
-
-        const supabaseAdmin = createClient(
-          Deno.env.get("SUPABASE_URL")!,
-          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-        );
-
-        const { data: isAdmin } = await supabaseAdmin.rpc("has_role", { _user_id: user.id, _role: "admin" });
-        if (!isAdmin) throw new Error("Acesso negado: apenas administradores");
-
-        const updatePayload: Record<string, any> = { updated_at: new Date().toISOString() };
-        if (newRawData) updatePayload.raw_data = newRawData;
-        if (newStatus) {
-          updatePayload.status = newStatus;
-          if (newStatus === "cancelled") updatePayload.cancelled_at = new Date().toISOString();
-        }
-
-        const { error: updErr } = await supabaseAdmin
-          .from("subscriptions")
-          .update(updatePayload)
-          .eq("id", updSubId);
-
-        if (updErr) throw new Error(`Erro ao atualizar: ${updErr.message}`);
-
-        return new Response(JSON.stringify({ success: true }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
