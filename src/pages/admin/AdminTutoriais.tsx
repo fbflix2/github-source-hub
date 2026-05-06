@@ -294,6 +294,7 @@ export default function AdminTutoriais() {
       video_url: videoUrl.trim() || null,
       category: videoCategory || null,
       description: videoDescription.trim() || null,
+      thumbnail_url: videoThumbnailUrl.trim() || null,
       content: videoTags.trim() || null, // using content field to store tags string
       published: false,
       attachments: attachments.filter((a) => a.url.trim()),
@@ -334,6 +335,7 @@ export default function AdminTutoriais() {
     setVideoCategory(tutorial.category || "");
     setVideoDescription(tutorial.description || "");
     setVideoTags(tutorial.content || "");
+    setVideoThumbnailUrl(tutorial.thumbnail_url || "");
     setAttachments(Array.isArray(tutorial.attachments) ? tutorial.attachments : []);
     setCopyItems(Array.isArray(tutorial.copy_items) ? tutorial.copy_items : []);
     window.scrollTo({ top: 0, behavior: "smooth" });
