@@ -149,7 +149,30 @@ export default function ClientEditModal({ open, onClose, client, onUpdate }: Cli
               <Button 
                 variant="outline" 
                 className="w-full gap-2 border-primary/20 hover:bg-primary/5 text-primary h-10"
-                onClick={() => window.open(documentUrl, "_blank")}
+                  onClick={() => {
+                    const newWindow = window.open("", "_blank");
+                    if (newWindow) {
+                      newWindow.document.write(`
+                        <html>
+                          <head>
+                            <title>Visualizar Documento</title>
+                            <style>
+                              body { margin: 0; padding: 0; background: #000; display: flex; align-items: center; justify-content: center; height: 100vh; font-family: sans-serif; }
+                              iframe, img { max-width: 100%; max-height: 100%; border: none; }
+                              .fallback { color: #fff; text-align: center; }
+                              a { color: #ff4444; text-decoration: none; font-weight: bold; }
+                            </style>
+                          </head>
+                          <body>
+                            ${documentUrl.toLowerCase().endsWith('.pdf') 
+                              ? `<iframe src="${documentUrl}" width="100%" height="100%"></iframe>`
+                              : `<img src="${documentUrl}" />`
+                            }
+                          </body>
+                        </html>
+                      `);
+                    }
+                  }}
               >
                 <span className="material-symbols-outlined text-lg">
                   {/\.pdf$/i.test(documentUrl) ? "picture_as_pdf" : "description"}
