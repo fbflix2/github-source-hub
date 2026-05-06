@@ -62,6 +62,11 @@ export default function Dashboard() {
   const [inactiveProxyExternalIds, setInactiveProxyExternalIds] = useState<Set<string>>(new Set());
   const [categories, setCategories] = useState<Category[]>([]);
   const [activePurpose, setActivePurpose] = useState("Todos");
+
+  useEffect(() => {
+    setActivePurpose("Todos");
+  }, [activeFilter]);
+
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [detailProduct, setDetailProduct] = useState<Product | null>(null);
