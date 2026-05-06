@@ -170,11 +170,11 @@ export default function ProxyMaintenanceTab() {
 
   // Quota adjustment mutation
   const quotaMutation = useMutation({
-    mutationFn: async ({ subId, delta }: { subId: string; delta: number }) => {
+    mutationFn: async ({ subId, delta, type }: { subId: string; delta: number; type: "free" | "pay" }) => {
       const sub = allSubs?.find((s: any) => s.id === subId);
       if (!sub) throw new Error("Assinatura não encontrada");
       const raw = (sub.raw_data || {}) as Record<string, any>;
-      const key = quotaType === "pay" ? "exchange_quota_pay" : "exchange_quota_free";
+      const key = type === "pay" ? "exchange_quota_pay" : "exchange_quota_free";
       const currentVal = raw[key] ?? 0;
       const newVal = Math.max(0, currentVal + delta);
       const updatedRaw = { ...raw, [key]: newVal };
