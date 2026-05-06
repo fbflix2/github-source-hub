@@ -470,36 +470,33 @@ export default function Profile() {
                 </div>
 
                 {/* Email */}
-                <div className="md:col-span-1 space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground ml-1">Email Principal</label>
+                <div className="md:col-span-1 space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground ml-1">Email Principal</label>
                   <div className="relative">
-                    <span className="material-symbols-outlined absolute left-4 top-3.5 text-muted-foreground text-lg">email</span>
-                    <input type="email" value={formData.email} disabled className="input-field pl-12 opacity-60 cursor-not-allowed" />
+                    <span className="material-symbols-outlined absolute left-4 top-2.5 text-muted-foreground text-lg">email</span>
+                    <input type="email" value={formData.email} disabled className="input-field pl-12 h-10 opacity-60 cursor-not-allowed" />
                   </div>
-                  <p className="text-xs text-muted-foreground/60 ml-1">Este email é vinculado à sua conta e não pode ser alterado aqui.</p>
                 </div>
 
                 {/* Preferência de Localização do Proxy */}
-                <div className="md:col-span-1 space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground ml-1">Localização Padrão para Proxies</label>
+                <div className="md:col-span-1 space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground ml-1">Localização Padrão para Proxies</label>
                   <div className="relative">
-                    <span className="material-symbols-outlined absolute left-4 top-3.5 text-muted-foreground text-lg">location_on</span>
+                    <span className="material-symbols-outlined absolute left-4 top-2.5 text-muted-foreground text-lg">location_on</span>
                     <select
                       value={formData.preferred_proxy_city}
                       onChange={(e) => setFormData({ ...formData, preferred_proxy_city: e.target.value })}
-                      className="input-field pl-12 appearance-none"
+                      className="input-field pl-12 h-10 appearance-none"
                     >
                       {PROXY_CITIES.map(city => (
                         <option key={city.value} value={city.value}>{city.label}</option>
                       ))}
                     </select>
-                    <span className="material-symbols-outlined absolute right-4 top-3.5 text-muted-foreground pointer-events-none">expand_more</span>
+                    <span className="material-symbols-outlined absolute right-4 top-2.5 text-muted-foreground pointer-events-none">expand_more</span>
                   </div>
-                  <p className="text-xs text-muted-foreground/60 ml-1">Define qual cidade virá pré-selecionada ao comprar um novo proxy.</p>
-                  <div className="flex items-center justify-between bg-secondary/30 p-3 rounded-xl border border-border/50 mt-2">
+                  <div className="flex items-center justify-between bg-secondary/30 p-2 rounded-xl border border-border/50 mt-1">
                     <div className="space-y-0.5 pr-3">
-                      <label className="text-sm font-medium text-foreground">Mostrar opções de cidade no checkout</label>
-                      <p className="text-xs text-muted-foreground">Se ativado, você poderá escolher a cidade do proxy a cada compra. Caso contrário, será usada a cidade padrão acima.</p>
+                      <label className="text-xs font-medium text-foreground">Opções de cidade no checkout</label>
                     </div>
                     <button
                       type="button"
