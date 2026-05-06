@@ -206,11 +206,14 @@ Deno.serve(async (req) => {
       // Get assigned proxy IDs
       const { data: existSubs } = await supabaseInternal
         .from("subscriptions").select("raw_data")
-        .eq("type", "proxyfbflix").in("status", ["active", "expiring"]);
+        .in("type", ["proxyfbflix", "webshare", "proxyfbflix_rotating", "webshare_rotating"])
+        .in("status", ["active", "expiring"]);
+
       const assignedIds = new Set<string>();
       for (const s of (existSubs || [])) {
         const raw = (s.raw_data || {}) as Record<string, any>;
-        if (raw.fbflix_proxy_id) assignedIds.add(raw.fbflix_proxy_id);
+        const pid = raw.fbflix_proxy_id || raw.webshare_proxy_id;
+        if (pid) assignedIds.add(String(pid));
       }
 
       let available = allProxies.filter(p => p.valid && !assignedIds.has(p.id));
