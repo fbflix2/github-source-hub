@@ -1,60 +1,46 @@
+## Objetivo
+Suportar vídeos do Vimeo e enriquecer a página de tutoriais com descrição, materiais de apoio, comentários, feedback de utilidade e botões de copiar.
 
-Objetivo: corrigir a aba "Disponíveis" para realmente listar os proxies Webshare livres para venda.
+## 1. Player Vimeo (correção do bug atual)
+- Em `src/pages/Tutorials.tsx`, criar helper `getEmbedUrl` que detecta YouTube **e** Vimeo:
+  - Vimeo: `https://vimeo.com/123` ou `https://vimeo.com/manage/videos/123` → `https://player.vimeo.com/video/123?autoplay=1`
+- Thumbnail Vimeo: usar campo `thumbnail_url` se preenchido; se não, fallback para placeholder com ícone Play (a API oEmbed do Vimeo exige requisição extra — manteremos simples).
+- Manter o mesmo modal/iframe usado no YouTube, com `allow="autoplay; fullscreen; picture-in-picture"`.
 
-Diagnóstico
-- O componente `ProxyAvailableTab.tsx` hoje considera como “vendido/ocupado” todo registro da tabela `subscriptions` com `type = "webshare"`.
-- Isso inclui assinaturas antigas, canceladas, expiradas e possivelmente já encerradas.
-- Resultado: o filtro remove proxies demais e a tela pode ficar zerada mesmo existindo estoque livre.
-- Há uma inconsistência importante: na edge function `webshare-api`, a alocação interna já trata como ocupados apenas proxies de assinaturas `active` e `expiring`. A aba “Disponíveis” deveria seguir a mesma regra.
+## 2. Novo modal de tutorial (substitui o overlay simples)
+Layout em duas colunas (empilha no mobile):
+- **Esquerda:** player do vídeo (YouTube ou Vimeo).
+- **Direita / abaixo:** título, categoria, descrição, materiais para baixar, links para copiar, feedback (👍 útil / 👎 não útil) e seção de comentários.
 
-O que vou implementar
-1. Ajustar a lógica de bloqueio de estoque em `src/components/admin/proxy/ProxyAvailableTab.tsx`
-- Filtrar `subscriptions` para considerar somente proxies atualmente ocupados:
-  - status `active` e `expiring`
-  - e, se existir `end_date`, respeitar vencimento real
-- Ignorar assinaturas canceladas/expiradas/antigas para não “segurar” proxy no inventário.
+## 3. Materiais de apoio + Links com copiar (configurado no admin)
+Adicionar campos JSON ao registro de tutorial:
+- `attachments`: lista de `{ label, url }` — exibidos como botões "Baixar".
+- `copy_items`: lista de `{ label, value }` — exibidos com ícone de cópia (clipboard).
 
-2. Alinhar a aba com a regra do backend
-- Reproduzir a mesma ideia usada na `webshare-api`:
-  - apenas proxies ainda em uso devem sair da lista de disponíveis
-- Isso evita divergência entre o estoque visual e o estoque usado na alocação.
+No `AdminTutoriais.tsx`, no formulário de criar/editar:
+- Seção "Materiais para download" (adicionar/remover linhas com nome + URL).
+- Seção "Links / dados para copiar" (adicionar/remover linhas com rótulo + valor).
 
-3. Melhorar o tratamento dos dados vindos da Webshare
-- Garantir parsing estável da resposta `{ data: [...], total }`
-- Opcionalmente filtrar apenas proxies válidos (`p.valid`) para não exibir item inválido como disponível, seguindo o padrão já usado no backend.
+## 4. Feedback e comentários
+Nova tabela `tutorial_feedback`:
+- `tutorial_id`, `user_id`, `helpful` (bool), `comment` (text, nullable).
+- Único por (tutorial_id, user_id) — voto/comentário substitui o anterior.
+- RLS: usuário autenticado lê todos os comentários do tutorial; insere/atualiza só o próprio; admin pode tudo.
 
-4. Melhorar estados da interface
-- Exibir mensagem mais clara quando:
-  - a API retornar zero proxies
-  - não houver sessão/autorização
-  - houver erro no carregamento
-- Assim fica fácil distinguir “sem estoque” de “falha no carregamento”.
+Na página do tutorial:
+- Botões "👍 Foi útil" / "👎 Não foi útil" (mostra contador agregado).
+- Campo de comentário opcional, lista comentários recentes (com nome/avatar do autor via profiles).
 
-5. Revisar os cards de resumo
-- Fazer os totais de BR/US refletirem exatamente o mesmo conjunto filtrado da tabela
-- Garantir coerência entre contagem e listagem.
+## 5. Detalhes técnicos
+- Nova migration adiciona colunas `attachments jsonb default '[]'` e `copy_items jsonb default '[]'` em `tutorials`, e cria `tutorial_feedback`.
+- Atualizar tipos consumidos em `Tutorials.tsx` e `AdminTutoriais.tsx`.
+- Botão de copiar usa `navigator.clipboard.writeText` + toast.
+- Componente novo: `src/components/tutorials/TutorialPlayerModal.tsx` para concentrar a UI rica.
 
-Arquivos que devem ser alterados
-- `src/components/admin/proxy/ProxyAvailableTab.tsx`
+## Arquivos afetados
+- `src/pages/Tutorials.tsx` (refatora modal, adiciona Vimeo)
+- `src/pages/admin/AdminTutoriais.tsx` (campos novos no form)
+- `src/components/tutorials/TutorialPlayerModal.tsx` (novo)
+- nova migration SQL
 
-Arquivos de referência que vou seguir
-- `src/components/admin/proxy/WebshareProxyTab.tsx`
-- `src/hooks/useWebshare.ts`
-- `supabase/functions/webshare-api/index.ts`
-
-Resultado esperado
-- A aba “Disponíveis” passará a mostrar os proxies realmente livres para venda.
-- Proxies de clientes com assinatura já encerrada deixarão de bloquear o estoque.
-- Os números do topo e as listas BR/US ficarão consistentes com a regra real de alocação.
-
-Validação após implementar
-- Abrir a aba “Disponíveis” e confirmar que os totais deixam de ficar zerados indevidamente.
-- Conferir se um proxy vinculado a assinatura ativa não aparece na lista.
-- Conferir se um proxy de assinatura cancelada/expirada volta a aparecer como disponível.
-- Testar o botão “Atualizar” e a busca por IP/porta.
-- Validar BR e US separadamente para garantir que a segmentação continua correta.
-
-Detalhe técnico importante
-- O principal ajuste não é visual; é de regra de negócio.
-- Hoje a tela está usando “já foi vendido alguma vez” como sinônimo de “indisponível”.
-- O correto para estoque é “está atualmente alocado a uma assinatura ainda válida”.
+Confirma para eu implementar?
