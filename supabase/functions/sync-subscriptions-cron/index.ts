@@ -436,7 +436,7 @@ Deno.serve(async (req) => {
                 const totalPrice = unitPrice * proxyCount;
 
                 // Check balance
-                const { data: profile } = await sb.from("profiles").select("balance").eq("user_id", sub.user_id).single();
+                 const { data: profile } = await sb.from("profiles").select("balance, full_name, phone").eq("user_id", sub.user_id).single();
                 const balance = Number(profile?.balance || 0);
                 if (balance < totalPrice) {
                   console.log(`Auto-renewal SKIP ${sub.name}: insufficient balance (need R$${totalPrice}, have R$${balance})`);
