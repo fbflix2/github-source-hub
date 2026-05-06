@@ -219,12 +219,14 @@ function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () =>
                       const idMatch = url.match(/[?&]id=(\d+)/i);
                       if (idMatch?.[1]) {
                         next.idPerfil = idMatch[1];
+                        next.lauthProfileId = idMatch[1];
                       } else {
                         const handleMatch = url.match(/facebook\.com\/([^/?#]+)/i);
                         const handle = handleMatch?.[1];
                         const blocked = ["profile.php","people","pages","watch","reel","marketplace","groups","login","settings","help","photo","photo.php","photos"];
                         if (handle && !blocked.includes(handle.toLowerCase())) {
                           next.idPerfil = handle;
+                          next.lauthProfileId = handle;
                         }
                       }
                       return next;
