@@ -2229,11 +2229,11 @@ Deno.serve(async (req) => {
       console.log(`[migrate-proxybr] Renewal price: R$${renewalPrice} product=${matchedProduct?.name || "fallback"}`);
 
       // 4. Check wallet balance
-      const { data: profile } = await supabaseAdmin
-        .from("profiles")
-        .select("balance, full_name")
-        .eq("user_id", targetUserId)
-        .single();
+       const { data: profile } = await supabaseAdmin
+         .from("profiles")
+         .select("balance, full_name, phone")
+         .eq("user_id", targetUserId)
+         .single();
 
       if (!profile) throw new Error("Perfil não encontrado");
       if (profile.balance < renewalPrice) throw new Error(`Saldo insuficiente. Necessário: R$ ${renewalPrice.toFixed(2)}, disponível: R$ ${profile.balance.toFixed(2)}`);
@@ -2403,7 +2403,41 @@ Deno.serve(async (req) => {
         global: true,
       });
 
-      console.log(`[migrate-proxybr] Success: ${subscription_name} → Webshare proxy ${assignedProxy.id}`);
+       // 10. WhatsApp confirmation to client
+       if (profile?.phone) {
+         try {
+           const { data: tpl } = await supabaseAdmin
+             .from("whatsapp_templates")
+             .select("id")
+             .eq("event_key", "proxy_renewed")
+             .eq("active", true)
+             .maybeSingle();
+ 
+           if (tpl) {
+             const productName = productInfo?.name || raw.product?.name || raw.product_name || existingSub.name || "Proxy";
+             const formattedExpDate = endDate.toLocaleDateString("pt-BR");
+             
+             await supabaseAdmin.functions.invoke("wapi-send", {
+               body: {
+                 action: "send-template",
+                 template_id: tpl.id,
+                 phone: profile.phone,
+                 user_id: targetUserId,
+                 variables: {
+                   nome: profile.full_name || "Cliente",
+                   produto: productName,
+                   vencimento: formattedExpDate
+                 }
+               }
+             });
+             console.log(`[migrate-proxybr] WhatsApp notification sent to ${profile.phone}`);
+           }
+         } catch (waErr: any) {
+           console.error(`[migrate-proxybr] WhatsApp notification error: ${waErr.message}`);
+         }
+       }
+ 
+       console.log(`[migrate-proxybr] Success: ${subscription_name} → Webshare proxy ${assignedProxy.id}`);
 
       return new Response(JSON.stringify({
         success: true,
