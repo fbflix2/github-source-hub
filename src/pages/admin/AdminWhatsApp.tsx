@@ -19,9 +19,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 const EVENT_KEYS = [
-  { value: "proxy_expiring", label: "Vencimento de Proxy" },
-  { value: "proxy_cancelled", label: "Cancelamento de Proxy" },
-  { value: "password_reset", label: "Reset de Senha" },
+   { value: "proxy_expiring", label: "Vencimento de Proxy" },
+   { value: "proxy_renewed", label: "Renovação de Proxy" },
+   { value: "proxy_cancelled", label: "Cancelamento de Proxy" },
+   { value: "password_reset", label: "Reset de Senha" },
   { value: "promo", label: "Oferta / Promoção" },
   { value: "general", label: "Aviso Geral" },
   { value: "custom", label: "Personalizado" },
