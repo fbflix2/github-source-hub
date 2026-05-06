@@ -452,6 +452,35 @@ export default function AdminTutoriais() {
             </div>
           </div>
 
+          {/* Miniatura */}
+          <div className="col-span-1 md:col-span-12">
+            <label className="block text-sm font-medium text-gray-300 mb-2">URL da Miniatura</label>
+            <div className="flex flex-col md:flex-row gap-2">
+              <Input
+                type="url"
+                value={videoThumbnailUrl}
+                onChange={(e) => setVideoThumbnailUrl(e.target.value)}
+                placeholder="Cole uma imagem de capa ou clique em buscar miniatura"
+                className="flex-1 rounded-xl py-3 h-auto px-4 bg-black/40 border border-white/10 text-white placeholder:text-gray-500 focus:border-primary focus-visible:ring-1 focus-visible:ring-primary transition-all"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleFetchThumbnail}
+                className="border-white/10 text-gray-300 hover:text-white hover:bg-white/10 rounded-xl"
+              >
+                Buscar miniatura
+              </Button>
+            </div>
+            {videoThumbnailUrl && (
+              <img
+                src={videoThumbnailUrl}
+                alt="Prévia da miniatura"
+                className="mt-3 w-48 aspect-video rounded-lg object-cover border border-white/10 bg-black/40"
+              />
+            )}
+          </div>
+
           {/* Categoria */}
           <div className="col-span-1 md:col-span-4">
             <label className="block text-sm font-medium text-gray-300 mb-2">Categoria</label>
