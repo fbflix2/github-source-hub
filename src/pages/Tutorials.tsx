@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Search, Play, Code2, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
+import { TutorialPlayerModal, getTutorialEmbedUrl } from "@/components/tutorials/TutorialPlayerModal";
 
 interface Tutorial {
   id: string;
@@ -14,6 +15,8 @@ interface Tutorial {
   thumbnail_url: string | null;
   position: number;
   published: boolean;
+  attachments?: { label: string; url: string }[] | null;
+  copy_items?: { label: string; value: string }[] | null;
 }
 
 interface TutorialCategory {
@@ -45,10 +48,7 @@ function getYouTubeThumbnail(url: string | null): string | null {
   return id ? `https://img.youtube.com/vi/${id}/mqdefault.jpg` : null;
 }
 
-function getEmbedUrl(url: string | null): string | null {
-  const id = getYouTubeId(url);
-  return id ? `https://www.youtube.com/embed/${id}?autoplay=1` : null;
-}
+const getEmbedUrl = getTutorialEmbedUrl;
 
 interface TutorialCardProps {
   tutorial: Tutorial;
@@ -141,13 +141,11 @@ export default function Tutorials() {
   };
 
   const handlePlay = (tutorial: Tutorial) => {
-    if (tutorial.video_url) {
-      const embedUrl = getEmbedUrl(tutorial.video_url);
-      if (embedUrl) {
-        setPlayingTutorial(tutorial);
-      } else {
-        window.open(tutorial.video_url, "_blank");
-      }
+    if (!tutorial.video_url) return;
+    if (getEmbedUrl(tutorial.video_url)) {
+      setPlayingTutorial(tutorial);
+    } else {
+      window.open(tutorial.video_url, "_blank");
     }
   };
 
@@ -318,22 +316,18 @@ export default function Tutorials() {
 
       {/* Video Player Modal */}
       {playingTutorial && (
-        <div
-          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
-          onClick={() => setPlayingTutorial(null)}
-        >
-          <div
-            className="w-full max-w-4xl aspect-video rounded-xl overflow-hidden shadow-2xl bg-black"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <iframe
-              src={getEmbedUrl(playingTutorial.video_url)!}
-              className="w-full h-full"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
-          </div>
-        </div>
+        <TutorialPlayerModal
+          tutorial={{
+            id: playingTutorial.id,
+            title: playingTutorial.title,
+            description: playingTutorial.description,
+            category: playingTutorial.category,
+            video_url: playingTutorial.video_url,
+            attachments: playingTutorial.attachments || [],
+            copy_items: playingTutorial.copy_items || [],
+          }}
+          onClose={() => setPlayingTutorial(null)}
+        />
       )}
     </div>
   );
