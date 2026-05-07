@@ -321,11 +321,7 @@ export default function AdminCobrancaAvulsa() {
     }
   };
 
-  const getPublicLink = (code: string) => {
-    // Use edge function URL for OG preview on WhatsApp/social
-    const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID || "mxnlerkeygfvdnznoxld";
-    return `https://${projectId}.supabase.co/functions/v1/invoice-og?code=${code}`;
-  };
+  const getPublicLink = (code: string) => `${window.location.origin}/pagar/${code}`;
 
   const getDirectLink = (code: string) => {
     return `${window.location.origin}/pagar/${code}`;
@@ -567,15 +563,17 @@ export default function AdminCobrancaAvulsa() {
                           <Button variant="ghost" size="sm" onClick={() => { setSelectedInvoice(inv); setShowDetailModal(true); }} title="Ver detalhes">
                             <Eye className="size-3.5" />
                           </Button>
-                          <Button variant="ghost" size="sm" onClick={() => copyLink(inv.code)} title="Copiar link">
-                            <Copy className="size-3.5" />
-                          </Button>
-                          <Button variant="ghost" size="sm" onClick={() => {
-                            const msg = `Olá ${inv.client_name || ""}! 👋\n\nVocê tem uma cobrança pendente na *FBFLIX*:\n\n📦 *${inv.product_name}*\n💰 *R$ ${Number(inv.amount).toFixed(2)}*\n\n🔗 ${getPublicLink(inv.code)}\n\nQualquer dúvida, estamos à disposição! ✅`;
-                            window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
-                          }} title="Enviar WhatsApp">
-                            <MessageCircle className="size-3.5" />
-                          </Button>
+                          <div className="flex gap-1">
+                            <Button variant="ghost" size="sm" onClick={() => copyLink(inv.code)} title="Copiar link">
+                              <Copy className="size-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => {
+                              const msg = `Olá ${inv.client_name || ""}! 👋\n\nVocê tem uma cobrança pendente na *FBFLIX*:\n\n📦 *${inv.product_name}*\n💰 *R$ ${Number(inv.amount).toFixed(2)}*\n\n🔗 ${getPublicLink(inv.code)}\n\nQualquer dúvida, estamos à disposição! ✅`;
+                              window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
+                            }} title="Enviar WhatsApp">
+                              <MessageCircle className="size-3.5" />
+                            </Button>
+                          </div>
                         </div>
                       </td>
                     </tr>
