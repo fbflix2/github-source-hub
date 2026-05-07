@@ -203,8 +203,15 @@ function PersonalizadoForm({ folder, onBack, onSaved }: { folder: Folder; onBack
 
         {bulkMode ? (
           <div className="space-y-4">
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-zinc-400">Dados (Um por linha: login|senha|token...)</label>
+            <div className="flex flex-col gap-1 group">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium text-zinc-400 group-focus-within:text-white transition-colors">
+                  Dados (Um por linha: login|senha|token...)
+                </label>
+                <Badge variant="outline" className="text-[10px] py-0 h-5 bg-primary/5 border-primary/20 text-primary">
+                  {bulkInput.split("\n").filter(l => l.trim()).length} itens detectados
+                </Badge>
+              </div>
               <Textarea 
                 placeholder="usuario1@email.com|senha123|token456&#10;usuario2@email.com|senha789|token012" 
                 value={bulkInput} 
