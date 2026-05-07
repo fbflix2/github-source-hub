@@ -248,7 +248,6 @@ export default function AdminGestaoBMs() {
         const q = search.toLowerCase();
         return (
           (item.client_name || "").toLowerCase().includes(q) ||
-          (item.client_email || "").toLowerCase().includes(q) ||
           item.bm_link.toLowerCase().includes(q) ||
           item.product_name.toLowerCase().includes(q) ||
           getBmDisplayName(item).toLowerCase().includes(q)
@@ -552,9 +551,6 @@ export default function AdminGestaoBMs() {
                     {/* Client */}
                     <div className="min-w-0">
                       <p className="font-medium text-foreground text-sm truncate">{item.client_name || "—"}</p>
-                      {item.client_email && (
-                        <p className="text-xs text-muted-foreground truncate">{item.client_email}</p>
-                      )}
                       <p className="text-[10px] text-muted-foreground/60 mt-0.5">{dateStr}</p>
                     </div>
 
@@ -648,9 +644,6 @@ export default function AdminGestaoBMs() {
                           <p className="font-medium text-foreground text-sm truncate">{item.client_name || "Sem cliente"}</p>
                           <StatusBadge status={item.status} />
                         </div>
-                        {item.client_email && (
-                          <p className="text-xs text-muted-foreground truncate">{item.client_email}</p>
-                        )}
                       </div>
                       <a
                         href={bmUrl}
@@ -715,10 +708,6 @@ export default function AdminGestaoBMs() {
               <div className="space-y-2">
                 <Label>Nome do Cliente</Label>
                 <Input value={addForm.client_name} onChange={e => setAddForm(f => ({ ...f, client_name: e.target.value }))} />
-              </div>
-              <div className="space-y-2">
-                <Label>Email do Cliente</Label>
-                <Input value={addForm.client_email} onChange={e => setAddForm(f => ({ ...f, client_email: e.target.value }))} />
               </div>
             </div>
             <div className="space-y-2">
