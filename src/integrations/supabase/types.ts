@@ -4113,6 +4113,7 @@ export type Database = {
           read_at: string | null
           replied_at: string | null
           reply_message: string | null
+          scheduled_at: string | null
           status: string
           template_id: string | null
           updated_at: string
@@ -4133,6 +4134,7 @@ export type Database = {
           read_at?: string | null
           replied_at?: string | null
           reply_message?: string | null
+          scheduled_at?: string | null
           status?: string
           template_id?: string | null
           updated_at?: string
@@ -4153,6 +4155,7 @@ export type Database = {
           read_at?: string | null
           replied_at?: string | null
           reply_message?: string | null
+          scheduled_at?: string | null
           status?: string
           template_id?: string | null
           updated_at?: string
@@ -4344,6 +4347,7 @@ export type Database = {
         Returns: boolean
       }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      process_whatsapp_queue: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"

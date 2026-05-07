@@ -121,49 +121,36 @@ Deno.serve(async (req) => {
     return waId;
   }
 
-  // Background sender with humanized delays
-  async function sendMessagesInBackground(messages: Array<{ phone: string; message: string; logData: any; imageUrl?: string; buttons?: any[] }>) {
-    for (let i = 0; i < messages.length; i++) {
-      const m = messages[i];
-      try {
-        let result;
-        if (m.imageUrl) {
-          result = await wapiSendImage(m.phone, m.imageUrl, m.message);
-        } else if (m.buttons?.length) {
-          result = await wapiSendButton(m.phone, m.message, m.buttons);
-        } else {
-          result = await wapiSendText(m.phone, m.message);
-        }
+  async function processSingleMessage(log: any) {
+    try {
+      let result;
+      const meta = log.metadata || {};
+      if (log.message_type === "image" && log.image_url) {
+        result = await wapiSendImage(log.phone, log.image_url, log.message_sent);
+      } else if (log.message_type === "button" && meta.buttons?.length) {
+        result = await wapiSendButton(log.phone, log.message_sent, meta.buttons, meta.title, meta.footer);
+      } else {
+        result = await wapiSendText(log.phone, log.message_sent);
+      }
 
-        await admin.from("whatsapp_logs").insert({
-          ...m.logData,
-          phone: m.phone,
-          message_sent: m.message,
-          status: result.ok ? "sent" : "failed",
-          wapi_message_id: getMessageId(result),
-          error_message: result.ok ? null : JSON.stringify(result.data || result.raw),
-          message_type: m.imageUrl ? "image" : m.buttons?.length ? "button" : "text",
-          image_url: m.imageUrl || null,
-        });
-      } catch (e) {
-        console.error(`BG send failed ${m.phone}: ${e}`);
-        await admin.from("whatsapp_logs").insert({
-          ...m.logData,
-          phone: m.phone,
-          message_sent: m.message,
-          status: "failed",
-          error_message: String(e),
-        });
-      }
-      if (i < messages.length - 1) {
-        const delay = Math.floor(Math.random() * (280000 - 3000 + 1)) + 3000;
-        console.log(`BG delay: ${(delay / 1000).toFixed(1)}s (${i + 1}/${messages.length})`);
-        await new Promise((resolve) => setTimeout(resolve, delay));
-      }
+      await admin.from("whatsapp_logs").update({
+        status: result.ok ? "sent" : "failed",
+        wapi_message_id: getMessageId(result),
+        error_message: result.ok ? null : JSON.stringify(result.data || result.raw),
+        updated_at: new Date().toISOString()
+      }).eq("id", log.id);
+      
+      return result.ok;
+    } catch (e) {
+      console.error(`Send failed for log ${log.id}: ${e}`);
+      await admin.from("whatsapp_logs").update({
+        status: "failed",
+        error_message: String(e),
+        updated_at: new Date().toISOString()
+      }).eq("id", log.id);
+      return false;
     }
-    console.log(`BG sender done: ${messages.length} messages processed`);
   }
-
    try {
      const body = await req.json();
      const { action } = body;
