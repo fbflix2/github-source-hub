@@ -121,49 +121,36 @@ Deno.serve(async (req) => {
     return waId;
   }
 
-  // Background sender with humanized delays
-  async function sendMessagesInBackground(messages: Array<{ phone: string; message: string; logData: any; imageUrl?: string; buttons?: any[] }>) {
-    for (let i = 0; i < messages.length; i++) {
-      const m = messages[i];
-      try {
-        let result;
-        if (m.imageUrl) {
-          result = await wapiSendImage(m.phone, m.imageUrl, m.message);
-        } else if (m.buttons?.length) {
-          result = await wapiSendButton(m.phone, m.message, m.buttons);
-        } else {
-          result = await wapiSendText(m.phone, m.message);
-        }
+  async function processSingleMessage(log: any) {
+    try {
+      let result;
+      const meta = log.metadata || {};
+      if (log.message_type === "image" && log.image_url) {
+        result = await wapiSendImage(log.phone, log.image_url, log.message_sent);
+      } else if (log.message_type === "button" && meta.buttons?.length) {
+        result = await wapiSendButton(log.phone, log.message_sent, meta.buttons, meta.title, meta.footer);
+      } else {
+        result = await wapiSendText(log.phone, log.message_sent);
+      }
 
-        await admin.from("whatsapp_logs").insert({
-          ...m.logData,
-          phone: m.phone,
-          message_sent: m.message,
-          status: result.ok ? "sent" : "failed",
-          wapi_message_id: getMessageId(result),
-          error_message: result.ok ? null : JSON.stringify(result.data || result.raw),
-          message_type: m.imageUrl ? "image" : m.buttons?.length ? "button" : "text",
-          image_url: m.imageUrl || null,
-        });
-      } catch (e) {
-        console.error(`BG send failed ${m.phone}: ${e}`);
-        await admin.from("whatsapp_logs").insert({
-          ...m.logData,
-          phone: m.phone,
-          message_sent: m.message,
-          status: "failed",
-          error_message: String(e),
-        });
-      }
-      if (i < messages.length - 1) {
-        const delay = Math.floor(Math.random() * (280000 - 3000 + 1)) + 3000;
-        console.log(`BG delay: ${(delay / 1000).toFixed(1)}s (${i + 1}/${messages.length})`);
-        await new Promise((resolve) => setTimeout(resolve, delay));
-      }
+      await admin.from("whatsapp_logs").update({
+        status: result.ok ? "sent" : "failed",
+        wapi_message_id: getMessageId(result),
+        error_message: result.ok ? null : JSON.stringify(result.data || result.raw),
+        updated_at: new Date().toISOString()
+      }).eq("id", log.id);
+      
+      return result.ok;
+    } catch (e) {
+      console.error(`Send failed for log ${log.id}: ${e}`);
+      await admin.from("whatsapp_logs").update({
+        status: "failed",
+        error_message: String(e),
+        updated_at: new Date().toISOString()
+      }).eq("id", log.id);
+      return false;
     }
-    console.log(`BG sender done: ${messages.length} messages processed`);
   }
-
    try {
      const body = await req.json();
      const { action } = body;
@@ -402,6 +389,34 @@ Deno.serve(async (req) => {
       return ok({ success: true, messageId: getMessageId(result) });
     }
 
+    // ========= ACTION: process-queue =========
+    if (action === "process-queue") {
+      // Get up to 5 messages that are due
+      const { data: queued, error: qErr } = await admin
+        .from("whatsapp_logs")
+        .select("*")
+        .eq("status", "queued")
+        .lte("scheduled_at", new Date().toISOString())
+        .order("scheduled_at", { ascending: true })
+        .limit(5);
+
+      if (qErr) return err(`Queue fetch error: ${qErr.message}`, 500);
+      if (!queued?.length) return ok({ message: "Queue is empty" });
+
+      console.log(`Processing ${queued.length} messages from queue`);
+      let processed = 0;
+      for (const log of queued) {
+        const success = await processSingleMessage(log);
+        if (success) processed++;
+        // Small jitter between messages in the same batch (5-15s)
+        if (queued.indexOf(log) < queued.length - 1) {
+           await new Promise(r => setTimeout(r, 5000 + Math.random() * 10000));
+        }
+      }
+
+      return ok({ processed, total: queued.length });
+    }
+
     // ========= ACTION: send-bulk =========
     if (action === "send-bulk") {
       const { template_id, recipients } = body;
@@ -410,34 +425,57 @@ Deno.serve(async (req) => {
       const { data: tpl } = await admin.from("whatsapp_templates").select("*").eq("id", template_id).single();
       if (!tpl) return err("Template not found");
 
-      const queue: Array<{ phone: string; message: string; logData: any }> = [];
+      const toInsert: any[] = [];
       const skipped: any[] = [];
+      
+      // Base delay between 3 and 5 minutes (180s to 300s)
+      const baseDelaySeconds = 240; 
 
-      for (const r of recipients) {
+      for (let i = 0; i < recipients.length; i++) {
+        const r = recipients[i];
         let msg = tpl.message_body;
         const vars = r.variables || {};
         for (const [key, value] of Object.entries(vars)) {
           msg = msg.replaceAll(`{{${key}}}`, String(value));
         }
         let normalizedPhone = normalizePhone(r.phone || "");
-        if (normalizedPhone.length < 12) {
+        if (normalizedPhone.length < 10) {
           skipped.push({ phone: r.phone, error: "Invalid phone" });
           continue;
         }
-        queue.push({
-          phone: normalizedPhone, message: msg,
-          logData: { template_id, user_id: r.user_id || null, event_key: tpl.event_key, metadata: { variables: vars, bulk: true } },
+        
+        // Spread them over time
+        const scheduledAt = new Date();
+        // Add i * random(180-300) seconds
+        const extraSeconds = i * (180 + Math.random() * 120);
+        scheduledAt.setSeconds(scheduledAt.getSeconds() + extraSeconds);
+
+        toInsert.push({
+          template_id,
+          user_id: r.user_id || null,
+          phone: normalizedPhone,
+          message_sent: msg,
+          status: "queued",
+          event_key: tpl.event_key,
+          metadata: { variables: vars, bulk: true },
+          message_type: "text",
+          scheduled_at: scheduledAt.toISOString()
         });
       }
 
-      EdgeRuntime.waitUntil(sendMessagesInBackground(queue));
+      if (toInsert.length > 0) {
+        const { error: insErr } = await admin.from("whatsapp_logs").insert(toInsert);
+        if (insErr) return err(`Bulk insert failed: ${insErr.message}`, 500);
+      }
 
       return ok({
-        success: true, queued: queue.length, skipped: skipped.length, total: recipients.length,
-        message: `${queue.length} mensagens enfileiradas para envio em background`,
+        success: true,
+        queued: toInsert.length,
+        skipped: skipped.length,
+        total: recipients.length,
+        message: `${toInsert.length} mensagens agendadas para envio gradual.`,
       });
     }
-
     // ========= ACTION: send-expiring-alerts =========
     if (action === "send-expiring-alerts") {
       const { days_ahead = 0, dry_run = false } = body;
