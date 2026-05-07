@@ -240,22 +240,23 @@ function PersonalizadoForm({ folder, onBack, onSaved }: { folder: Folder; onBack
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-white/5">
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col gap-1">
               <label className="text-xs font-medium text-zinc-400">Preço (R$)</label>
-                <Input type="number" step="0.01" value={formData.preco} onChange={e => setFormData({ ...formData, preco: e.target.value })} className="bg-black/30 border-white/5 text-white" />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-zinc-400">Categoria</label>
-                <Select value={formData.categoryId} onValueChange={v => setFormData({ ...formData, categoryId: v })}>
-                  <SelectTrigger className="bg-black/30 border-white/5 text-white"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                  <SelectContent>
-                    {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
+              <Input type="number" step="0.01" value={formData.preco} onChange={e => setFormData({ ...formData, preco: e.target.value })} className="bg-black/30 border-white/5 text-white" />
             </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-zinc-400">Categoria</label>
+              <Select value={formData.categoryId} onValueChange={v => setFormData({ ...formData, categoryId: v })}>
+                <SelectTrigger className="bg-black/30 border-white/5 text-white"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                <SelectContent>
+                  {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
 
         <div className="flex flex-col gap-1">
           <label className="text-xs font-medium text-zinc-400">Descrição do Produto</label>
