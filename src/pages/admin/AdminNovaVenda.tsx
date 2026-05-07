@@ -740,33 +740,61 @@ export default function AdminNovaVenda() {
                     {/* Product / Name */}
                     <div className="col-span-12 md:col-span-5 space-y-1.5">
                       <label className="text-xs text-gray-500 font-medium">Produto / Nome</label>
-                      <select
-                        value={item.productId || ""}
-                        onChange={(e) => {
-                          if (e.target.value === "custom") {
-                            updateItem(item.id, "productId", null);
-                            updateItem(item.id, "name", "");
-                          } else {
-                            selectProduct(item.id, e.target.value);
-                          }
-                        }}
-                        className="w-full rounded-lg py-2.5 px-3 text-sm bg-black/20 border border-white/10 text-white focus:border-primary focus:outline-none transition-all appearance-none"
-                      >
-                        <option value="" className="bg-gray-900">Selecione um produto...</option>
-                        <option value="custom" className="bg-gray-900">✏️ Digitar manualmente</option>
-                        {products.map((p) => (
-                          <option key={p.id} value={p.id} className="bg-gray-900">{p.name} — R$ {Number(p.price).toFixed(2)}</option>
-                        ))}
-                      </select>
-                      {item.productId === null && (
-                        <input
-                          type="text"
-                          value={item.name}
-                          onChange={(e) => updateItem(item.id, "name", e.target.value)}
-                          placeholder="Nome do item..."
-                          className="w-full rounded-lg py-2.5 px-3 text-sm bg-black/20 border border-white/10 text-white focus:border-primary focus:outline-none transition-all mt-1.5"
-                        />
-                      )}
+                      <div className="flex flex-col gap-1.5">
+                        <select
+                          value={item.productId || ""}
+                          onChange={(e) => {
+                            if (e.target.value === "custom") {
+                              updateItem(item.id, "productId", null);
+                              updateItem(item.id, "name", "");
+                            } else {
+                              selectProduct(item.id, e.target.value);
+                            }
+                          }}
+                          className="w-full rounded-lg py-2.5 px-3 text-sm bg-black/20 border border-white/10 text-white focus:border-primary focus:outline-none transition-all appearance-none"
+                        >
+                          <option value="" className="bg-gray-900">Selecione um produto...</option>
+                          <option value="custom" className="bg-gray-900">✏️ Digitar manualmente</option>
+                          {products.map((p) => (
+                            <option key={p.id} value={p.id} className="bg-gray-900">{p.name} — R$ {Number(p.price).toFixed(2)}</option>
+                          ))}
+                        </select>
+                        
+                        {item.productId && (
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setStockItemModal({ itemId: item.id, productId: item.productId! })}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-white/5 border border-white/10 text-[11px] font-medium text-primary hover:bg-white/10 transition-all"
+                            >
+                              <Search className="size-3" />
+                              {item.manualStockItemName ? `Perfil: ${item.manualStockItemName}` : "Escolher Perfil Específico"}
+                            </button>
+                            {item.manualStockItemId && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  updateItem(item.id, "manualStockItemId", null);
+                                  updateItem(item.id, "manualStockItemName", null);
+                                }}
+                                className="p-1.5 rounded hover:bg-red-500/10 text-gray-500 hover:text-red-400 transition-colors"
+                              >
+                                <X className="size-3" />
+                              </button>
+                            )}
+                          </div>
+                        )}
+
+                        {item.productId === null && (
+                          <input
+                            type="text"
+                            value={item.name}
+                            onChange={(e) => updateItem(item.id, "name", e.target.value)}
+                            placeholder="Nome do item..."
+                            className="w-full rounded-lg py-2.5 px-3 text-sm bg-black/20 border border-white/10 text-white focus:border-primary focus:outline-none transition-all mt-1.5"
+                          />
+                        )}
+                      </div>
                     </div>
 
                     {/* Quantity */}
