@@ -592,9 +592,21 @@ function ContactsTab({ logs }: { logs?: any[] }) {
      setEditingLabelId(null);
    };
  
-   const filteredCount = selectedLabelFilter === "all" 
-     ? addedContacts.length 
-     : addedContacts.filter(c => c.label === selectedLabelFilter).length;
+    const filteredContactsForCampaign = useMemo(() => {
+      return selectedLabelFilter === "all" 
+        ? addedContacts 
+        : addedContacts.filter(c => c.label === selectedLabelFilter);
+    }, [addedContacts, selectedLabelFilter]);
+
+    const filteredCount = filteredContactsForCampaign.length;
+
+    const alreadySentInThisTemplateCount = useMemo(() => {
+      if (!selectedTemplateId || !logs) return 0;
+      return filteredContactsForCampaign.filter(c => {
+        const phone = c.id.split("@")[0];
+        return logs.some(l => l.template_id === selectedTemplateId && l.phone === phone && l.status !== "failed");
+      }).length;
+    }, [selectedTemplateId, logs, filteredContactsForCampaign]);
 
   const handleSearch = async () => {
     if (!search.trim()) return;
@@ -659,8 +671,12 @@ function ContactsTab({ logs }: { logs?: any[] }) {
        }));
        return callWapi("send-bulk", { template_id: selectedTemplateId, recipients });
      },
-    onSuccess: () => {
-      toast.success("Campanha iniciada com sucesso!");
+    onSuccess: (data) => {
+      if (data.already_sent > 0) {
+        toast.success(`Campanha iniciada! ${data.queued} mensagens agendadas. ${data.already_sent} contatos foram ignorados pois já receberam este template.`);
+      } else {
+        toast.success("Campanha iniciada com sucesso!");
+      }
        setShowCampaignModal(false);
        setSelectedLabelFilter("all");
       qc.invalidateQueries({ queryKey: ["whatsapp-logs"] });
@@ -1025,7 +1041,11 @@ function ContactsTab({ logs }: { logs?: any[] }) {
               disabled={!selectedTemplateId || sendCampaign.isPending}
               onClick={() => sendCampaign.mutate()}
             >
-               {sendCampaign.isPending ? "Iniciando..." : `Confirmar e Enviar para ${filteredCount} contatos`}
+                {sendCampaign.isPending ? "Iniciando..." : (
+                  alreadySentInThisTemplateCount > 0 
+                    ? `Enviar para ${filteredCount - alreadySentInThisTemplateCount} novos contatos (${alreadySentInThisTemplateCount} já enviados)`
+                    : `Confirmar e Enviar para ${filteredCount} contatos`
+                )}
             </Button>
           </div>
         </DialogContent>

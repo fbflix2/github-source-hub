@@ -419,14 +419,26 @@ Deno.serve(async (req) => {
 
     // ========= ACTION: send-bulk =========
     if (action === "send-bulk") {
-      const { template_id, recipients } = body;
+      const { template_id, recipients, ignore_already_sent = true } = body;
       if (!template_id || !recipients?.length) return err("template_id and recipients are required");
 
       const { data: tpl } = await admin.from("whatsapp_templates").select("*").eq("id", template_id).single();
       if (!tpl) return err("Template not found");
 
+      // Fetch existing successful logs for this template to avoid duplicates
+      let sentPhones = new Set<string>();
+      if (ignore_already_sent) {
+        const { data: existingLogs } = await admin
+          .from("whatsapp_logs")
+          .select("phone")
+          .eq("template_id", template_id)
+          .neq("status", "failed");
+        sentPhones = new Set(existingLogs?.map(l => l.phone) || []);
+      }
+
       const toInsert: any[] = [];
       const skipped: any[] = [];
+      let alreadySentCount = 0;
       
       // Base delay between 3 and 5 minutes (180s to 300s)
       const baseDelaySeconds = 240; 
@@ -443,7 +455,12 @@ Deno.serve(async (req) => {
           skipped.push({ phone: r.phone, error: "Invalid phone" });
           continue;
         }
-        
+
+        if (ignore_already_sent && sentPhones.has(normalizedPhone)) {
+          alreadySentCount++;
+          continue;
+        }
+
         // Spread them over time
         const scheduledAt = new Date();
         // Add i * random(180-300) seconds
@@ -472,8 +489,9 @@ Deno.serve(async (req) => {
         success: true,
         queued: toInsert.length,
         skipped: skipped.length,
+        already_sent: alreadySentCount,
         total: recipients.length,
-        message: `${toInsert.length} mensagens agendadas para envio gradual.`,
+        message: `${toInsert.length} mensagens agendadas. ${alreadySentCount} contatos ignorados por já terem recebido.`,
       });
     }
     // ========= ACTION: send-expiring-alerts =========
