@@ -310,6 +310,13 @@ export default function Dashboard() {
     return { status: "Disponível", statusColor: "text-emerald-500", percentage: Math.min(90, product.stock), sold: `${product.stock} em estoque` };
   };
 
+  const processedBanners = useMemo(() => {
+    return heroBanners.map(banner => ({
+      ...banner,
+      subtitle: banner.subtitle?.replace(/3\.581/g, totalClients.toLocaleString("pt-BR")) || null
+    }));
+  }, [heroBanners, totalClients]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -317,13 +324,6 @@ export default function Dashboard() {
       </div>
     );
   }
-
-  const processedBanners = useMemo(() => {
-    return heroBanners.map(banner => ({
-      ...banner,
-      subtitle: banner.subtitle?.replace(/3\.581/g, totalClients.toLocaleString("pt-BR")) || null
-    }));
-  }, [heroBanners, totalClients]);
 
   return (
     <>
