@@ -489,8 +489,9 @@ Deno.serve(async (req) => {
         success: true,
         queued: toInsert.length,
         skipped: skipped.length,
+        already_sent: alreadySentCount,
         total: recipients.length,
-        message: `${toInsert.length} mensagens agendadas para envio gradual.`,
+        message: `${toInsert.length} mensagens agendadas. ${alreadySentCount} contatos ignorados por já terem recebido.`,
       });
     }
     // ========= ACTION: send-expiring-alerts =========
