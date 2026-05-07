@@ -342,12 +342,27 @@ export default function AdminGestaoBMs() {
         if (error) {
           results.push({ id: originalId, found: false });
         } else if (data && data.length > 0) {
-          const match = data.find((item: any) => 
-            (item.identification && item.identification.includes(originalId)) ||
-            (item.data?.bmIds && Array.isArray(item.data.bmIds) && item.data.bmIds.some((id: string) => id.includes(originalId))) ||
-            (JSON.stringify(item.data).includes(originalId))
-          ) || data[0];
-          results.push({ id: originalId, found: true, item: match });
+           // Filter the results to only include BM types and items that match the ID or last 4 digits
+           const bmMatches = data.filter((item: any) => {
+             const isBm = item.type?.toString().toLowerCase() === "bm";
+             if (!isBm) return false;
+
+             // Check if identification, identification_link or JSON data contains the ID
+             const identification = (item.identification || "").toString();
+             const idLink = (item.identification_link || "").toString();
+             const jsonData = JSON.stringify(item.data || {}).toLowerCase();
+             
+             return identification.includes(originalId) || 
+                    idLink.includes(originalId) || 
+                    jsonData.includes(originalId.toLowerCase()) ||
+                    identification.endsWith(last4);
+           });
+
+           if (bmMatches.length > 0) {
+             results.push({ id: originalId, found: true, item: bmMatches[0] });
+           } else {
+             results.push({ id: originalId, found: false });
+           }
         } else {
           results.push({ id: originalId, found: false });
         }
