@@ -112,6 +112,16 @@ const getBmDisplayName = (item: BmTracking | null) => {
 };
 
 const isBmTrackingRow = (item: any) => {
+  const normalizedNames = [
+    item.product_name,
+    item.stock_items?.name,
+    item.stock_items?.data?.nomeProduto,
+  ].filter(Boolean).map((name) => name.toString().toLowerCase().trim());
+
+  if (normalizedNames.some((name) => name === "email" || name === "e-mail" || name.includes("e-mail"))) {
+    return false;
+  }
+
   const stockType = item.stock_items?.type?.toString().toLowerCase().trim();
   if (stockType) return stockType === "bm";
 
