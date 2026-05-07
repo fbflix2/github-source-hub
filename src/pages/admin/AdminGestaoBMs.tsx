@@ -111,6 +111,22 @@ const getBmDisplayName = (item: BmTracking | null) => {
   return name;
 };
 
+const isBmTrackingRow = (item: any) => {
+  const stockType = item.stock_items?.type?.toString().toLowerCase().trim();
+  if (stockType) return stockType === "bm";
+
+  const rawInput = item.stock_items?.data?.rawBmInput || "";
+  const combined = [
+    item.product_name,
+    item.bm_link,
+    item.stock_items?.name,
+    item.stock_items?.identification_link,
+    rawInput,
+  ].filter(Boolean).join(" ").toLowerCase();
+
+  return combined.includes("business.facebook.com") || /\bbm\b/.test(combined) || combined.includes("business manager");
+};
+
 export default function AdminGestaoBMs() {
   const { isAdmin, loading: authLoading } = useAdminAuth();
   const [items, setItems] = useState<BmTracking[]>([]);
@@ -134,12 +150,12 @@ export default function AdminGestaoBMs() {
     setLoading(true);
     const { data, error } = await supabase
       .from("bm_tracking")
-      .select("*, stock_items:stock_item_id(name, identification_link, data)")
+      .select("*, stock_items:stock_item_id(name, type, identification_link, data)")
       .order("created_at", { ascending: false });
     if (error) {
       toast.error("Erro ao carregar BMs: " + error.message);
     } else {
-      const rows = data || [];
+      const rows = (data || []).filter(isBmTrackingRow);
       // Collect user IDs that have no client_name so we can resolve from profiles
       const nullUuid = "00000000-0000-0000-0000-000000000000";
       const missingNameIds = [
