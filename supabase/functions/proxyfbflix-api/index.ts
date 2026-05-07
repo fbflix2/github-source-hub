@@ -685,9 +685,9 @@ Deno.serve(async (req) => {
           : null;
 
         while (true) {
-          // Webshare API supports country_code_in (comma separated)
+          // Webshare API supports filtering by country_code
           let url = `/proxy/list/?mode=direct&page=${page}&page_size=250`;
-          if (country) url += `&country_code__in=${country}`;
+          if (country) url += `&country_code=${country}`;
 
           const resp = await webFetch(url, WEBSHARE_API_KEY);
           const data = await resp.json();
