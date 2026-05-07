@@ -337,7 +337,16 @@ export default function AdminGestaoBMs() {
         .or(`data->>rawBmInput.ilike.%${q}%,data->>nomeProduto.ilike.%${q}%`)
         .limit(10);
 
-      const combined = [...(d1 || []), ...(d2 || []), ...(d3 || [])];
+      // 4. Fuzzy search inside the entire JSON as text — catches BM codes
+      // embedded anywhere (bmNames array, bmLinks, nested fields, etc.)
+      // Ex: digitar "6903" encontra "BM 6903 fbflix" ou "27648576038076903"
+      const { data: d4 } = await supabase
+        .from("stock_items")
+        .select("id, name, type, identification, status, data, created_at")
+        .filter("data::text", "ilike", `%${q}%`)
+        .limit(30);
+
+      const combined = [...(d1 || []), ...(d2 || []), ...(d3 || []), ...(d4 || [])];
       const unique = Array.from(new Map(combined.map(item => [item.id, item])).values());
       
       setGlobalSearchResults(unique);
