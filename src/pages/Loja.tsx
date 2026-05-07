@@ -260,22 +260,24 @@ export default function Dashboard() {
       });
 
   // Priority order for "Todos": Perfis → BM → Proxy → rest
-  const getCategoryPriority = (product: Product) => {
+   const getCategoryPriority = useCallback((product: Product) => {
     const cat = categories.find((c) => c.id === product.category_id);
     const slug = cat?.slug?.toLowerCase() || "";
     const name = cat?.name?.toLowerCase() || "";
     if (slug === "perfis" || name === "perfis") return 0;
     if (slug === "bm" || name === "bm") return 1;
     if (slug === "proxy" || name === "proxy") return 2;
-    return 3;
-  };
+     return 3;
+   }, [categories]);
 
-  const allProducts = (activeFilter === "Todos"
-    ? (showProxiesInAll ? [...filteredProducts, ...proxyAsProducts] : filteredProducts)
-    : activeFilter === "Proxy"
-    ? proxyAsProducts
-    : filteredProducts
-  ).sort((a, b) => {
+   const allProducts = useMemo(() => {
+     const base = (activeFilter === "Todos"
+       ? (showProxiesInAll ? [...filteredProducts, ...proxyAsProducts] : filteredProducts)
+       : activeFilter === "Proxy"
+       ? proxyAsProducts
+       : filteredProducts
+     );
+     return [...base].sort((a, b) => {
     // First by priority if in "Todos"
     if (activeFilter === "Todos") {
       const priorityA = getCategoryPriority(a);
@@ -286,8 +288,9 @@ export default function Dashboard() {
     }
     
     // Then by price ascending (cheapest first)
-    return (a.price || 0) - (b.price || 0);
-  });
+       return (a.price || 0) - (b.price || 0);
+     });
+   }, [activeFilter, showProxiesInAll, filteredProducts, proxyAsProducts, getCategoryPriority]);
 
   const getQuantity = (id: string) => quantities[id] || 1;
 
