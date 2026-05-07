@@ -1963,7 +1963,7 @@ export default function AdminBlocagem() {
  
            <div className="flex gap-2 mb-4 mt-2">
              <Input
-               placeholder="Digite os últimos 4 dígitos ou ID completo..."
+               placeholder="Busque por ID, BM, Email, Senha, Dados adicionais..."
                value={globalSearchTerm}
                onChange={(e) => setGlobalSearchTerm(e.target.value)}
                onKeyDown={(e) => e.key === "Enter" && handleGlobalSearch()}
