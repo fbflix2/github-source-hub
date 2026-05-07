@@ -4,7 +4,7 @@ import {
   Building2, CircleUser, PackageOpen, FolderOpen, FolderPlus, Pencil,
   ChevronRight, ChevronDown, Shield, ArrowLeft, Link, FileText, Info,
   AlertTriangle, Save, Copy, Hash, Mail, AtSign, KeyRound, Clock,
-   BadgeCheck, Cookie, Eye, EyeOff, Plus, X, Loader2, Trash2, DollarSign, Tag, Flag, Download, Search
+   BadgeCheck, Cookie, Eye, EyeOff, Plus, X, Loader2, Trash2, DollarSign, Tag, Flag, Download, Search, ListFilter
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -1215,7 +1215,50 @@ function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => voi
 function FolderItemsView({ folder, onBack }: { folder: Folder; onBack: () => void }) {
   const [items, setItems] = useState<StockItem[]>([]);
   const [editingItem, setEditingItem] = useState<StockItem | null>(null);
-  const [loading, setLoading] = useState(true);
+   const [loading, setLoading] = useState(true);
+   const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
+   const [globalSearchTerm, setGlobalSearchTerm] = useState("");
+   const [globalSearchResults, setGlobalSearchResults] = useState<any[]>([]);
+   const [searchingGlobal, setSearchingGlobal] = useState(false);
+ 
+   const handleGlobalSearch = async () => {
+     if (!globalSearchTerm.trim()) return;
+     setSearchingGlobal(true);
+     try {
+       const code = globalSearchTerm.trim();
+       const last4 = code.length >= 4 ? code.slice(-4) : code;
+ 
+       const { data, error } = await supabase
+         .from("stock_items")
+         .select("id, name, type, identification, identification_link, status, data, created_at")
+         .is("deleted_at", null)
+         .in("type", ["perfil", "bm"]);
+ 
+       if (error) throw error;
+ 
+       const results = (data || []).filter(item => {
+         const type = item.type?.toLowerCase();
+         if (type === "perfil") {
+           const bmNames = item.data?.bmNames;
+           const names = Array.isArray(bmNames) ? bmNames : (typeof bmNames === "string" ? bmNames.split(/[\n,;|]+/) : []);
+           return names.some((n: string) => String(n).includes(last4));
+         }
+         return [
+           item.identification,
+           item.identification_link,
+           item.name,
+           item.data?.rawBmInput,
+           item.data?.nomeProduto
+         ].some(f => String(f ?? "").includes(last4));
+       });
+ 
+       setGlobalSearchResults(results);
+     } catch (err: any) {
+       toast.error("Erro na busca: " + err.message);
+     } finally {
+       setSearchingGlobal(false);
+     }
+   };
   const [expandedBatches, setExpandedBatches] = useState<Set<string>>(new Set());
   const [filterType, setFilterType] = useState<string>("all");
 
@@ -1740,11 +1783,29 @@ export default function AdminBlocagem() {
             <Shield className="h-5 w-5 text-primary" />
           </div>
         </div>
-        <h1 className="text-xl font-bold text-white">Nova Blocagem de Itens</h1>
-        <p className="text-sm text-zinc-400 max-w-lg mx-auto">
-          Selecione uma pasta e o tipo de item para iniciar uma nova blocagem.
-        </p>
-      </div>
+         <h1 className="text-xl font-bold text-white">Nova Blocagem de Itens</h1>
+         <div className="flex flex-col items-center gap-4 mt-2">
+           <p className="text-sm text-zinc-400 max-w-lg mx-auto">
+             Selecione uma pasta e o tipo de item para iniciar uma nova blocagem.
+           </p>
+           
+           <div className="flex bg-muted/20 rounded-md p-1 border border-white/5 w-full max-w-md">
+             <Button 
+               variant="ghost" 
+               size="sm" 
+               onClick={() => {
+                 setGlobalSearchTerm("");
+                 setGlobalSearchResults([]);
+                 setGlobalSearchOpen(true);
+               }}
+               className="w-full h-10 px-4 text-sm text-zinc-300 hover:text-white hover:bg-white/5 gap-2"
+             >
+               <Search className="size-4 text-primary" />
+               <span>Rastreamento Global (Buscar BM/Perfil em Todo Sistema)</span>
+             </Button>
+           </div>
+         </div>
+       </div>
 
       {/* Item Type Selection */}
       <div className="flex justify-center gap-6 py-4 flex-shrink-0">
@@ -1889,7 +1950,75 @@ export default function AdminBlocagem() {
         </DialogContent>
       </Dialog>
 
-      {/* Rename Folder Dialog */}
+       {/* Global Search Dialog */}
+       <Dialog open={globalSearchOpen} onOpenChange={setGlobalSearchOpen}>
+         <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto bg-zinc-900 border-white/10 text-white">
+           <DialogHeader>
+             <DialogTitle className="flex items-center gap-2 text-white">
+               <Search className="size-5 text-primary" />
+               Rastreamento Global de BMs
+             </DialogTitle>
+           </DialogHeader>
+ 
+           <div className="flex gap-2 mb-4 mt-2">
+             <Input
+               placeholder="Digite os últimos 4 dígitos ou ID completo..."
+               value={globalSearchTerm}
+               onChange={(e) => setGlobalSearchTerm(e.target.value)}
+               onKeyDown={(e) => e.key === "Enter" && handleGlobalSearch()}
+               className="flex-1 bg-black/40 border-white/10 text-white"
+             />
+             <Button onClick={handleGlobalSearch} disabled={searchingGlobal} className="bg-primary hover:bg-primary/90 text-white">
+               {searchingGlobal ? <Loader2 className="size-4 animate-spin" /> : "Buscar"}
+             </Button>
+           </div>
+ 
+           <div className="space-y-3">
+             {globalSearchResults.length === 0 && !searchingGlobal && globalSearchTerm && (
+               <div className="text-center py-8 text-zinc-500 italic">
+                 Nenhum item encontrado.
+               </div>
+             )}
+ 
+             {globalSearchResults.map((item) => (
+               <div key={item.id} className="p-4 rounded-lg border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] transition-colors">
+                 <div className="flex items-start justify-between">
+                   <div className="space-y-1">
+                     <div className="flex items-center gap-2">
+                       <Badge variant="outline" className="capitalize border-primary/30 text-primary text-[10px]">
+                         {item.type === "perfil" ? "Perfil" : item.type}
+                       </Badge>
+                       <span className="font-semibold text-zinc-100">{item.name || "Sem nome"}</span>
+                     </div>
+                     <div className="text-xs text-zinc-400 flex flex-col gap-1">
+                       <span><strong>ID/Identificação:</strong> {item.identification || "—"}</span>
+                       {item.data?.bmNames && (
+                         <span><strong>BMs no item:</strong> {Array.isArray(item.data.bmNames) ? item.data.bmNames.join(", ") : item.data.bmNames}</span>
+                       )}
+                       <span><strong>Status:</strong> {item.status}</span>
+                     </div>
+                   </div>
+                   <div className="text-right flex flex-col items-end gap-2">
+                     <div className="text-[10px] text-zinc-500">
+                       Criado: {new Date(item.created_at).toLocaleDateString("pt-BR")}
+                     </div>
+                     <Button 
+                       variant="outline" 
+                       size="sm" 
+                       onClick={() => window.open(`/admin/estoque?search=${item.id}`, "_blank")}
+                       className="text-[10px] h-7 border-white/10 text-zinc-400 hover:text-white"
+                     >
+                       Ver no Estoque
+                     </Button>
+                   </div>
+                 </div>
+               </div>
+             ))}
+           </div>
+         </DialogContent>
+       </Dialog>
+ 
+       {/* Rename Folder Dialog */}
       <Dialog open={!!editingFolder} onOpenChange={open => { if (!open) setEditingFolder(null); }}>
         <DialogContent className="bg-zinc-900 border-white/10 max-w-md">
           <DialogHeader>
