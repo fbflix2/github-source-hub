@@ -662,24 +662,7 @@ Deno.serve(async (req) => {
         console.log(`[webshare-api] Country overridden to US based on user city selection`);
       }
 
-      // 2. Fetch all Webshare proxies
-      const allProxies: any[] = [];
-      let page = 1;
-      while (true) {
-        const resp = await webFetch(
-          `/proxy/list/?mode=direct&page=${page}&page_size=250`,
-          WEBSHARE_API_KEY
-        );
-        const data = await resp.json();
-        if (!resp.ok) throw new Error(`Erro ao buscar proxies Webshare`);
-        if (data.results?.length) allProxies.push(...data.results);
-        if (!data.next) break;
-        page++;
-      }
-
-      if (allProxies.length === 0) throw new Error("Nenhum proxy disponível no Proxy Fbflix");
-
-      // 3. Get already-assigned proxy IDs from local subscriptions
+      // 2. Get already-assigned proxy IDs from local subscriptions (optimized fetch)
       const { data: existingSubs } = await supabaseAdmin
         .from("subscriptions")
         .select("raw_data")
@@ -689,34 +672,64 @@ Deno.serve(async (req) => {
       const assignedIds = new Set<string>();
       for (const sub of (existingSubs || [])) {
         const raw = (sub.raw_data || {}) as Record<string, any>;
-        if (raw.fbflix_proxy_id) assignedIds.add(raw.fbflix_proxy_id);
+        const pid = raw.fbflix_proxy_id || raw.webshare_proxy_id;
+        if (pid) assignedIds.add(String(pid));
       }
 
-       // 4. Find unassigned proxies, filtering by country and city if specified
-       let available = allProxies.filter(p => p.valid && !assignedIds.has(p.id));
-       
-       if (targetCountryCode) {
-         available = available.filter(p => p.country_code?.toUpperCase() === targetCountryCode);
-         console.log(`[webshare-api] Found ${available.length} proxies for country ${targetCountryCode}`);
-       }
+      // 3. Fetch Webshare proxies with filtering and early exit
+      async function findAvailableProxies(country?: string | null, city?: string | null) {
+        const found: any[] = [];
+        let page = 1;
+        const normalizedTargetCity = city && city !== "all" && city !== "all_us"
+          ? city.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "")
+          : null;
 
-       if (target_city && target_city !== "all" && target_city !== "all_us") {
-         const normalizedTargetCity = target_city.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "");
-         const cityFiltered = available.filter(p => {
-           if (!p.city_name) return false;
-           const pCity = p.city_name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "");
-           return pCity === normalizedTargetCity;
-         });
-         
-         if (cityFiltered.length < qty) {
-           console.warn(`[webshare-api] Only ${cityFiltered.length} proxies found in ${target_city}, falling back to country-wide search.`);
-           // User preference is city, but if we don't have enough, we might want to warn or fallback.
-           // Given the current flow, better throw error if user specifically asked for city.
-           throw new Error(`Apenas ${cityFiltered.length} proxy(s) em ${target_city} disponível(is) no momento.`);
-         }
-         available = cityFiltered;
-         console.log(`[webshare-api] City filter applied: ${target_city}. Found ${available.length} proxies.`);
-       }
+        while (true) {
+          // Webshare API supports filtering by country_code
+          let url = `/proxy/list/?mode=direct&page=${page}&page_size=250`;
+          if (country) url += `&country_code=${country}`;
+
+          const resp = await webFetch(url, WEBSHARE_API_KEY);
+          const data = await resp.json();
+          if (!resp.ok) throw new Error(`Erro ao buscar proxies Webshare`);
+          
+          const results = data.results || [];
+          if (results.length === 0) break;
+
+          for (const p of results) {
+            if (!p.valid || assignedIds.has(String(p.id))) continue;
+            
+            if (normalizedTargetCity) {
+              const pCity = (p.city_name || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "");
+              if (pCity !== normalizedTargetCity) continue;
+            }
+            
+            found.push(p);
+            if (found.length >= qty) return found;
+          }
+
+          if (!data.next) break;
+          page++;
+        }
+        return found;
+      }
+
+      console.log(`[webshare-api] Searching for proxies: country=${targetCountryCode || 'any'}, city=${target_city || 'any'}`);
+      
+      // Try with city filter first
+      let available = await findAvailableProxies(targetCountryCode, target_city);
+
+      // Fallback 1: If city filter was used but returned nothing, try without city
+      if (available.length < qty && target_city && target_city !== "all" && target_city !== "all_us") {
+        console.warn(`[webshare-api] Only ${available.length} proxies found in ${target_city}, falling back to country-wide search (${targetCountryCode || 'any'}).`);
+        available = await findAvailableProxies(targetCountryCode, null);
+      }
+
+      // Fallback 2: If still nothing, try without country (last resort)
+      if (available.length < qty && targetCountryCode) {
+        console.warn(`[webshare-api] Only ${available.length} proxies found for ${targetCountryCode}, falling back to any country.`);
+        available = await findAvailableProxies(null, null);
+      }
       
       if (available.length < qty) throw new Error(`Apenas ${available.length} proxy(s) disponível(is), mas ${qty} foram solicitados.`);
 
