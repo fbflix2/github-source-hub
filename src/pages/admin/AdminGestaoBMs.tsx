@@ -709,7 +709,7 @@ export default function AdminGestaoBMs() {
               Rastreamento Global de BMs
             </DialogTitle>
             <DialogDescription>
-              Pesquise por ID da BM ou termos em qualquer item do sistema (perfis, BMs avulsas, etc).
+              Pesquise pelo código da BM; a busca considera os 4 últimos dígitos e só cruza com BMs cadastradas no item.
             </DialogDescription>
           </DialogHeader>
 
