@@ -1,13 +1,26 @@
+import { useState, useEffect, useMemo } from "react";
 import { NavLink } from "react-router-dom";
 import logoFbflix from "@/assets/logo-fbflix.webp";
 import { Shield, Zap, Users, Headphones, Star, ChevronRight, Globe, Lock, Clock, CheckCircle2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
-const stats = [
-  { value: "+3.500", label: "Clientes Ativos", icon: Users },
-  { value: "99.9%", label: "Uptime Garantido", icon: Zap },
-  { value: "24/7", label: "Suporte Dedicado", icon: Headphones },
-  { value: "+10k", label: "Pedidos Entregues", icon: CheckCircle2 },
-];
+export default function Sobre() {
+  const [totalClients, setTotalClients] = useState(3746);
+
+  useEffect(() => {
+    supabase.from("profiles").select("id", { count: "exact", head: true }).then(({ count }) => {
+      if (count) setTotalClients(count);
+    });
+  }, []);
+
+  const formattedCount = useMemo(() => totalClients.toLocaleString("pt-BR"), [totalClients]);
+
+  const stats = [
+    { value: `+${formattedCount}`, label: "Clientes Ativos", icon: Users },
+    { value: "99.9%", label: "Uptime Garantido", icon: Zap },
+    { value: "24/7", label: "Suporte Dedicado", icon: Headphones },
+    { value: "+10k", label: "Pedidos Entregues", icon: CheckCircle2 },
+  ];
 
 const services = [
   {
@@ -38,7 +51,6 @@ const testimonials = [
   { name: "Carlos R.", text: "A garantia de 7 dias me deu confiança para comprar. Recomendo para todos!", rating: 5 },
 ];
 
-export default function Sobre() {
   return (
     <div className="bg-background min-h-screen text-foreground">
       {/* JSON-LD Structured Data */}
@@ -50,7 +62,7 @@ export default function Sobre() {
             "@type": "Organization",
             name: "FBFLIX",
             url: "https://fbflix.com.br",
-            description: "Plataforma líder em assinaturas digitais com mais de 3.500 clientes ativos no Brasil.",
+            description: `Plataforma líder em assinaturas digitais com mais de ${formattedCount} clientes ativos no Brasil.`,
             contactPoint: {
               "@type": "ContactPoint",
               email: "equipefbflix@gmail.com",
@@ -100,7 +112,7 @@ export default function Sobre() {
             <span className="text-primary">com segurança</span> e entrega instantânea
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed">
-            Mais de <strong className="text-foreground">3.500 clientes</strong> confiam na FBFLIX para acessar
+            Mais de <strong className="text-foreground">{formattedCount} clientes</strong> confiam na FBFLIX para acessar
             os melhores serviços digitais do mercado. Pagamento seguro, entrega automática e garantia de 7 dias.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -176,7 +188,7 @@ export default function Sobre() {
               <strong className="text-foreground"> transparência, segurança e atendimento de excelência</strong>.
             </p>
             <p>
-              Com mais de <strong className="text-foreground">3.500 clientes ativos</strong> e milhares de pedidos entregues
+              Com mais de <strong className="text-foreground">{formattedCount} clientes ativos</strong> e milhares de pedidos entregues
               com sucesso, nos consolidamos como referência no segmento. Nosso sistema de entrega automatizada garante que
               você receba seu produto em segundos, e nossa garantia de 7 dias oferece total tranquilidade em cada compra.
             </p>
@@ -226,7 +238,7 @@ export default function Sobre() {
             Pronto para começar?
           </h2>
           <p className="text-muted-foreground text-sm md:text-base mb-8 max-w-xl mx-auto">
-            Junte-se a mais de 3.500 clientes satisfeitos e tenha acesso aos melhores serviços digitais do mercado.
+            Junte-se a mais de {formattedCount} clientes satisfeitos e tenha acesso aos melhores serviços digitais do mercado.
           </p>
           <NavLink
             to="/auth"
