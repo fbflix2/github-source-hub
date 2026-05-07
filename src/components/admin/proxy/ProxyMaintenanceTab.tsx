@@ -464,15 +464,21 @@ export default function ProxyMaintenanceTab() {
                       <SelectValue placeholder="Manter mesma ou aleatória" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">Manter mesma / Aleatória</SelectItem>
-                      <SelectItem value="São Paulo">São Paulo, BR</SelectItem>
-                      <SelectItem value="Rio de Janeiro">Rio de Janeiro, BR</SelectItem>
-                      <SelectItem value="Fortaleza">Fortaleza, BR (Ceará)</SelectItem>
-                      <SelectItem value="Curitiba">Curitiba, BR</SelectItem>
-                      <SelectItem value="Belo Horizonte">Belo Horizonte, BR</SelectItem>
-                      <SelectItem value="Porto Alegre">Porto Alegre, BR</SelectItem>
-                      <SelectItem value="Salvador">Salvador, BR</SelectItem>
-                      <SelectItem value="Brasília">Brasília, BR</SelectItem>
+                      <SelectItem value="none">Aleatório (Brasil)</SelectItem>
+                      <SelectItem value="São Paulo">São Paulo</SelectItem>
+                      <SelectItem value="Rio de Janeiro">Rio de Janeiro</SelectItem>
+                      <SelectItem value="Belo Horizonte">Belo Horizonte</SelectItem>
+                      <SelectItem value="Curitiba">Curitiba</SelectItem>
+                      <SelectItem value="Porto Alegre">Porto Alegre</SelectItem>
+                      <SelectItem value="Brasília">Brasília</SelectItem>
+                      <SelectItem value="Fortaleza">Fortaleza</SelectItem>
+                      <SelectItem value="Salvador">Salvador</SelectItem>
+                      <SelectItem value="Recife">Recife</SelectItem>
+                      <SelectItem value="Goiânia">Goiânia</SelectItem>
+                      <SelectItem value="New York">🇺🇸 New York</SelectItem>
+                      <SelectItem value="Los Angeles">🇺🇸 Los Angeles</SelectItem>
+                      <SelectItem value="Chicago">🇺🇸 Chicago</SelectItem>
+                      <SelectItem value="Miami">🇺🇸 Miami</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-[10px] text-muted-foreground">
