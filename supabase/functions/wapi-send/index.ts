@@ -389,6 +389,34 @@ Deno.serve(async (req) => {
       return ok({ success: true, messageId: getMessageId(result) });
     }
 
+    // ========= ACTION: process-queue =========
+    if (action === "process-queue") {
+      // Get up to 5 messages that are due
+      const { data: queued, error: qErr } = await admin
+        .from("whatsapp_logs")
+        .select("*")
+        .eq("status", "queued")
+        .lte("scheduled_at", new Date().toISOString())
+        .order("scheduled_at", { ascending: true })
+        .limit(5);
+
+      if (qErr) return err(`Queue fetch error: ${qErr.message}`, 500);
+      if (!queued?.length) return ok({ message: "Queue is empty" });
+
+      console.log(`Processing ${queued.length} messages from queue`);
+      let processed = 0;
+      for (const log of queued) {
+        const success = await processSingleMessage(log);
+        if (success) processed++;
+        // Small jitter between messages in the same batch (5-15s)
+        if (queued.indexOf(log) < queued.length - 1) {
+           await new Promise(r => setTimeout(r, 5000 + Math.random() * 10000));
+        }
+      }
+
+      return ok({ processed, total: queued.length });
+    }
+
     // ========= ACTION: send-bulk =========
     if (action === "send-bulk") {
       const { template_id, recipients } = body;
@@ -397,34 +425,57 @@ Deno.serve(async (req) => {
       const { data: tpl } = await admin.from("whatsapp_templates").select("*").eq("id", template_id).single();
       if (!tpl) return err("Template not found");
 
-      const queue: Array<{ phone: string; message: string; logData: any }> = [];
+      const toInsert: any[] = [];
       const skipped: any[] = [];
+      
+      // Base delay between 3 and 5 minutes (180s to 300s)
+      const baseDelaySeconds = 240; 
 
-      for (const r of recipients) {
+      for (let i = 0; i < recipients.length; i++) {
+        const r = recipients[i];
         let msg = tpl.message_body;
         const vars = r.variables || {};
         for (const [key, value] of Object.entries(vars)) {
           msg = msg.replaceAll(`{{${key}}}`, String(value));
         }
         let normalizedPhone = normalizePhone(r.phone || "");
-        if (normalizedPhone.length < 12) {
+        if (normalizedPhone.length < 10) {
           skipped.push({ phone: r.phone, error: "Invalid phone" });
           continue;
         }
-        queue.push({
-          phone: normalizedPhone, message: msg,
-          logData: { template_id, user_id: r.user_id || null, event_key: tpl.event_key, metadata: { variables: vars, bulk: true } },
+        
+        // Spread them over time
+        const scheduledAt = new Date();
+        // Add i * random(180-300) seconds
+        const extraSeconds = i * (180 + Math.random() * 120);
+        scheduledAt.setSeconds(scheduledAt.getSeconds() + extraSeconds);
+
+        toInsert.push({
+          template_id,
+          user_id: r.user_id || null,
+          phone: normalizedPhone,
+          message_sent: msg,
+          status: "queued",
+          event_key: tpl.event_key,
+          metadata: { variables: vars, bulk: true },
+          message_type: "text",
+          scheduled_at: scheduledAt.toISOString()
         });
       }
 
-      EdgeRuntime.waitUntil(sendMessagesInBackground(queue));
+      if (toInsert.length > 0) {
+        const { error: insErr } = await admin.from("whatsapp_logs").insert(toInsert);
+        if (insErr) return err(`Bulk insert failed: ${insErr.message}`, 500);
+      }
 
       return ok({
-        success: true, queued: queue.length, skipped: skipped.length, total: recipients.length,
-        message: `${queue.length} mensagens enfileiradas para envio em background`,
+        success: true,
+        queued: toInsert.length,
+        skipped: skipped.length,
+        total: recipients.length,
+        message: `${toInsert.length} mensagens agendadas para envio gradual.`,
       });
     }
-
     // ========= ACTION: send-expiring-alerts =========
     if (action === "send-expiring-alerts") {
       const { days_ahead = 0, dry_run = false } = body;
