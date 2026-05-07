@@ -601,9 +601,21 @@ export default function AdminGestaoBMs() {
                     <div className="min-w-0">
                       <p className="font-mono text-xs truncate" title={res.id}>{res.id}</p>
                       {res.found && (
-                        <p className="text-[10px] text-green-400 font-medium truncate">
-                          {res.item?.name || "Item sem nome"} ({res.item?.type})
-                        </p>
+                        <div className="flex flex-col">
+                          <p className="text-[10px] text-green-400 font-medium truncate">
+                            BM {res.id.slice(-4)} no sistema
+                          </p>
+                          {res.item?.type?.toLowerCase() === "perfil" && (
+                            <p className="text-[9px] text-purple-400 truncate italic">
+                              Encontrada dentro do perfil: {res.item?.name || "Sem nome"}
+                            </p>
+                          )}
+                          {res.item?.type?.toLowerCase() === "bm" && (
+                            <p className="text-[9px] text-blue-400 truncate italic">
+                              Item tipo BM: {res.item?.name || "Sem nome"}
+                            </p>
+                          )}
+                        </div>
                       )}
                     </div>
                     <div className="shrink-0">
