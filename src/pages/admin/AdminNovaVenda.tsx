@@ -123,6 +123,42 @@ export default function AdminNovaVenda() {
     return () => clearTimeout(timeout);
   }, [clientSearch]);
 
+  // Search stock items when modal is open
+  useEffect(() => {
+    if (!stockItemModal) {
+      setStockItems([]);
+      return;
+    }
+
+    const fetchStock = async () => {
+      setLoadingStock(true);
+      try {
+        let query = supabase
+          .from("stock_items")
+          .select("id, name, identification, status, created_at, data")
+          .eq("product_id", stockItemModal.productId)
+          .eq("status", "revisado")
+          .is("deleted_at", null)
+          .order("created_at", { ascending: false });
+
+        if (stockSearch.trim()) {
+          query = query.or(`name.ilike.%${stockSearch}%,identification.ilike.%${stockSearch}%`);
+        }
+
+        const { data, error } = await query.limit(20);
+        if (error) throw error;
+        setStockItems(data || []);
+      } catch (err) {
+        console.error("Error fetching stock:", err);
+      } finally {
+        setLoadingStock(false);
+      }
+    };
+
+    const timeout = setTimeout(fetchStock, 300);
+    return () => clearTimeout(timeout);
+  }, [stockItemModal, stockSearch]);
+
   // Poll for PIX payment status
   useEffect(() => {
     if (!pixPaymentId || pixStatus === "completed") return;
