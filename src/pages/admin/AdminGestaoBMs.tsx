@@ -102,8 +102,13 @@ const formatPrice = (v: number) => {
   return `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
 };
 
-const getBmDisplayName = (item: BmTracking) => {
-  return item.bm_display_name || extractBmNameFromInput(item.bm_link) || item.product_name || "—";
+const isEmail = (str: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(str);
+
+const getBmDisplayName = (item: BmTracking | null) => {
+  if (!item) return "—";
+  const name = item.bm_display_name || extractBmNameFromInput(item.bm_link) || item.product_name || "—";
+  if (isEmail(name)) return item.product_name || "BM";
+  return name;
 };
 
 export default function AdminGestaoBMs() {
@@ -248,7 +253,6 @@ export default function AdminGestaoBMs() {
         const q = search.toLowerCase();
         return (
           (item.client_name || "").toLowerCase().includes(q) ||
-          (item.client_email || "").toLowerCase().includes(q) ||
           item.bm_link.toLowerCase().includes(q) ||
           item.product_name.toLowerCase().includes(q) ||
           getBmDisplayName(item).toLowerCase().includes(q)
@@ -458,7 +462,7 @@ export default function AdminGestaoBMs() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por cliente, BM, produto..."
+                placeholder="Buscar por BM, produto..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 className="pl-9"
@@ -478,17 +482,6 @@ export default function AdminGestaoBMs() {
                 <SelectItem value="pending_setup">Aguardando Config</SelectItem>
                 <SelectItem value="expired">Expirados</SelectItem>
                 <SelectItem value="removed">Removidos</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={clientFilter || "all"} onValueChange={v => setClientFilter(v === "all" ? "" : v)}>
-              <SelectTrigger className="w-full sm:w-[200px]">
-                <SelectValue placeholder="Filtrar por Cliente" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os Clientes</SelectItem>
-                {uniqueClients.map(name => (
-                  <SelectItem key={name} value={name}>{name}</SelectItem>
-                ))}
               </SelectContent>
             </Select>
             {hasActiveFilters && (
@@ -520,7 +513,7 @@ export default function AdminGestaoBMs() {
         <div className="space-y-2">
           {/* Table header - desktop only */}
           <div className="hidden lg:grid lg:grid-cols-[1fr_120px_1fr_100px_80px_100px_120px] gap-4 px-4 py-2 text-xs text-muted-foreground uppercase tracking-wider font-medium">
-            <span>Cliente / BM</span>
+            <span>BM</span>
             <span>Produto</span>
             <span>Nome BM</span>
             <span>Preço</span>
@@ -549,13 +542,9 @@ export default function AdminGestaoBMs() {
                 <CardContent className="p-4">
                   {/* Desktop layout */}
                   <div className="hidden lg:grid lg:grid-cols-[1fr_120px_1fr_100px_80px_100px_120px] gap-4 items-center">
-                    {/* Client */}
+                    {/* Date */}
                     <div className="min-w-0">
-                      <p className="font-medium text-foreground text-sm truncate">{item.client_name || "—"}</p>
-                      {item.client_email && (
-                        <p className="text-xs text-muted-foreground truncate">{item.client_email}</p>
-                      )}
-                      <p className="text-[10px] text-muted-foreground/60 mt-0.5">{dateStr}</p>
+                      <p className="text-xs text-muted-foreground">{dateStr}</p>
                     </div>
 
                     {/* Product */}
@@ -645,12 +634,9 @@ export default function AdminGestaoBMs() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <p className="font-medium text-foreground text-sm truncate">{item.client_name || "Sem cliente"}</p>
+                          <p className="font-medium text-foreground text-sm truncate">{bmName}</p>
                           <StatusBadge status={item.status} />
                         </div>
-                        {item.client_email && (
-                          <p className="text-xs text-muted-foreground truncate">{item.client_email}</p>
-                        )}
                       </div>
                       <a
                         href={bmUrl}
@@ -711,16 +697,6 @@ export default function AdminGestaoBMs() {
             <DialogDescription>Registre uma BM vendida para acompanhar o período de 7 dias</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Nome do Cliente</Label>
-                <Input value={addForm.client_name} onChange={e => setAddForm(f => ({ ...f, client_name: e.target.value }))} />
-              </div>
-              <div className="space-y-2">
-                <Label>Email do Cliente</Label>
-                <Input value={addForm.client_email} onChange={e => setAddForm(f => ({ ...f, client_email: e.target.value }))} />
-              </div>
-            </div>
             <div className="space-y-2">
               <Label>Nome do Produto *</Label>
               <Input value={addForm.product_name} onChange={e => setAddForm(f => ({ ...f, product_name: e.target.value }))} />
@@ -757,7 +733,7 @@ export default function AdminGestaoBMs() {
               Proteger BM via Safe BM
             </DialogTitle>
             <DialogDescription>
-              Configure o cofre Safe BM para a BM vendida ao cliente <strong>{protectItem?.client_name}</strong>.
+              Configure o cofre Safe BM para a BM <strong>{getBmDisplayName(protectItem)}</strong>.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
