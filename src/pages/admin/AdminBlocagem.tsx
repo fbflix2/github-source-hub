@@ -1217,6 +1217,7 @@ function FolderItemsView({ folder, onBack }: { folder: Folder; onBack: () => voi
   const [editingItem, setEditingItem] = useState<StockItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedBatches, setExpandedBatches] = useState<Set<string>>(new Set());
+  const [filterType, setFilterType] = useState<string>("all");
 
   const fetchItems = async () => {
     setLoading(true);
@@ -1250,8 +1251,13 @@ function FolderItemsView({ folder, onBack }: { folder: Folder; onBack: () => voi
     erro: "bg-red-500/20 text-red-400",
   };
 
+  const filteredItems = useMemo(() => {
+    if (filterType === "all") return items;
+    return items.filter(item => item.type === filterType);
+  }, [items, filterType]);
+
   // Check if this folder has AccFace items
-  const hasAccfaceItems = items.some(i => i.data?.source === "accface");
+  const hasAccfaceItems = filteredItems.some(i => i.data?.source === "accface");
 
   // Group AccFace items by purchase batch (accfaceProductId + purchasedAt rounded to minute)
   const accfaceBatches = useMemo(() => {
@@ -1259,7 +1265,7 @@ function FolderItemsView({ folder, onBack }: { folder: Folder; onBack: () => voi
     const batchMap = new Map<string, { key: string; productId: string; productName: string; priceBrl: number; purchasedAt: string; type: string; items: StockItem[] }>();
     const nonAccface: StockItem[] = [];
 
-    items.forEach(item => {
+    filteredItems.forEach(item => {
       if (item.data?.source !== "accface") {
         nonAccface.push(item);
         return;
@@ -1284,7 +1290,7 @@ function FolderItemsView({ folder, onBack }: { folder: Folder; onBack: () => voi
     });
 
     return { batches: Array.from(batchMap.values()).sort((a, b) => new Date(b.purchasedAt).getTime() - new Date(a.purchasedAt).getTime()), nonAccface };
-  }, [items, hasAccfaceItems]);
+  }, [filteredItems, hasAccfaceItems]);
 
   const toggleBatch = (key: string) => {
     setExpandedBatches(prev => {
@@ -1351,25 +1357,24 @@ function FolderItemsView({ folder, onBack }: { folder: Folder; onBack: () => voi
     toast.success(`${batchItems.length} perfis exportados em .txt`);
   };
 
-  const typeIcon = (type: string) => {
-    if (type === "bm") return <Building2 className="h-4 w-4" />;
-    if (type === "perfil") return <CircleUser className="h-4 w-4" />;
+  const typeIcon = (typeId: string) => {
+    const type = itemTypes.find(t => t.id === typeId);
+    if (type) return <type.icon className="h-4 w-4" />;
     return <PackageOpen className="h-4 w-4" />;
   };
 
   const typeColor = (type: string) => {
     if (type === "bm") return "bg-primary/20 text-primary";
     if (type === "perfil") return "bg-cyan-500/20 text-cyan-400";
+    if (type === "pagina") return "bg-purple-500/20 text-purple-400";
+    if (type === "combo") return "bg-blue-500/20 text-blue-400";
     if (type === "personalizado") return "bg-amber-500/20 text-amber-400";
-    return "bg-purple-500/20 text-purple-400";
+    return "bg-zinc-500/20 text-zinc-400";
   };
 
-  const typeLabel = (type: string) => {
-    if (type === "bm") return "Business Manager";
-    if (type === "perfil") return "Perfil";
-    if (type === "pagina") return "Página";
-    if (type === "personalizado") return "Personalizado";
-    return type;
+  const typeLabel = (typeId: string) => {
+    const type = itemTypes.find(t => t.id === typeId);
+    return type ? type.title : typeId;
   };
 
   const renderItem = (item: StockItem) => (
@@ -1398,22 +1403,41 @@ function FolderItemsView({ folder, onBack }: { folder: Folder; onBack: () => voi
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <button onClick={onBack} className="w-10 h-10 rounded-full bg-secondary/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
-          <ArrowLeft className="h-5 w-5" />
-        </button>
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">{folder.name}</h1>
-          <p className="text-sm text-muted-foreground">{items.length} itens nesta pasta</p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <button onClick={onBack} className="w-10 h-10 rounded-full bg-secondary/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">{folder.name}</h1>
+            <p className="text-sm text-muted-foreground">{items.length} itens nesta pasta</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-zinc-500 font-medium uppercase tracking-wider">Filtrar:</span>
+          <Select value={filterType} onValueChange={setFilterType}>
+            <SelectTrigger className="w-[180px] bg-black/30 border-white/5 text-white h-9">
+              <SelectValue placeholder="Tipo de item" />
+            </SelectTrigger>
+            <SelectContent className="bg-zinc-900 border-white/10">
+              <SelectItem value="all">Todos os tipos</SelectItem>
+              {itemTypes.map(type => (
+                <SelectItem key={type.id} value={type.id}>{type.title}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
       {loading ? (
         <div className="flex justify-center py-12"><Loader2 className="size-8 text-primary animate-spin" /></div>
-      ) : items.length === 0 ? (
+      ) : filteredItems.length === 0 ? (
         <div className="glass-panel rounded-xl p-12 text-center">
           <FolderOpen className="h-12 w-12 text-muted-foreground/40 mx-auto mb-3" />
-          <p className="text-muted-foreground">Pasta vazia. Adicione itens usando os botões de tipo acima.</p>
+          <p className="text-muted-foreground">
+            {items.length === 0 ? "Pasta vazia. Adicione itens usando os botões de tipo acima." : "Nenhum item encontrado com este filtro."}
+          </p>
         </div>
       ) : hasAccfaceItems && accfaceBatches ? (
         <div className="space-y-4">
@@ -1512,7 +1536,7 @@ function FolderItemsView({ folder, onBack }: { folder: Folder; onBack: () => voi
         </div>
       ) : (
         <div className="glass-panel rounded-xl divide-y divide-border/50">
-          {items.map(renderItem)}
+          {filteredItems.map(renderItem)}
         </div>
       )}
 
