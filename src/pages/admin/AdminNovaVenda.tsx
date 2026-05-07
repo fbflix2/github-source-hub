@@ -540,9 +540,8 @@ export default function AdminNovaVenda() {
   };
 
   return (
-    <>
-      <div className="flex flex-col min-h-[calc(100vh-80px)] -mx-6 -mt-6 p-6 lg:p-12 gap-8 relative">
-        {/* Background Effects */}
+    <div className="flex flex-col min-h-[calc(100vh-80px)] -mx-6 -mt-6 p-6 lg:p-12 gap-8 relative">
+      {/* Background Effects */}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
         <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] bg-primary/20 rounded-full blur-[120px] mix-blend-screen opacity-40" />
         <div className="absolute bottom-[-10%] right-[-5%] w-[500px] h-[500px] bg-primary/10 rounded-full blur-[100px] mix-blend-screen opacity-30" />
@@ -981,7 +980,7 @@ export default function AdminNovaVenda() {
       </div>
 
       <Dialog open={!!stockItemModal} onOpenChange={(v) => !v && setStockItemModal(null)}>
-      <DialogContent className="max-w-2xl bg-gray-900 border-white/10 text-white">
+        <DialogContent className="max-w-2xl bg-gray-900 border-white/10 text-white">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Package className="size-5 text-primary" />
@@ -1063,8 +1062,8 @@ export default function AdminNovaVenda() {
             Fechar
           </Button>
         </DialogFooter>
-      </DialogContent>
+        </DialogContent>
       </Dialog>
-    </>
+    </div>
   );
 }
