@@ -1215,50 +1215,7 @@ function BMForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => voi
 function FolderItemsView({ folder, onBack }: { folder: Folder; onBack: () => void }) {
   const [items, setItems] = useState<StockItem[]>([]);
   const [editingItem, setEditingItem] = useState<StockItem | null>(null);
-   const [loading, setLoading] = useState(true);
-   const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
-   const [globalSearchTerm, setGlobalSearchTerm] = useState("");
-   const [globalSearchResults, setGlobalSearchResults] = useState<any[]>([]);
-   const [searchingGlobal, setSearchingGlobal] = useState(false);
- 
-   const handleGlobalSearch = async () => {
-     if (!globalSearchTerm.trim()) return;
-     setSearchingGlobal(true);
-     try {
-       const code = globalSearchTerm.trim();
-       const last4 = code.length >= 4 ? code.slice(-4) : code;
- 
-       const { data, error } = await supabase
-         .from("stock_items")
-         .select("id, name, type, identification, identification_link, status, data, created_at")
-         .is("deleted_at", null)
-         .in("type", ["perfil", "bm"]);
- 
-       if (error) throw error;
- 
-       const results = (data || []).filter(item => {
-         const type = item.type?.toLowerCase();
-         if (type === "perfil") {
-           const bmNames = item.data?.bmNames;
-           const names = Array.isArray(bmNames) ? bmNames : (typeof bmNames === "string" ? bmNames.split(/[\n,;|]+/) : []);
-           return names.some((n: string) => String(n).includes(last4));
-         }
-         return [
-           item.identification,
-           item.identification_link,
-           item.name,
-           item.data?.rawBmInput,
-           item.data?.nomeProduto
-         ].some(f => String(f ?? "").includes(last4));
-       });
- 
-       setGlobalSearchResults(results);
-     } catch (err: any) {
-       toast.error("Erro na busca: " + err.message);
-     } finally {
-       setSearchingGlobal(false);
-     }
-   };
+    const [loading, setLoading] = useState(true);
   const [expandedBatches, setExpandedBatches] = useState<Set<string>>(new Set());
   const [filterType, setFilterType] = useState<string>("all");
 
