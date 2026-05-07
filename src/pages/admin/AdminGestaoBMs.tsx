@@ -102,8 +102,13 @@ const formatPrice = (v: number) => {
   return `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
 };
 
-const getBmDisplayName = (item: BmTracking) => {
-  return item.bm_display_name || extractBmNameFromInput(item.bm_link) || item.product_name || "—";
+const isEmail = (str: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(str);
+
+const getBmDisplayName = (item: BmTracking | null) => {
+  if (!item) return "—";
+  const name = item.bm_display_name || extractBmNameFromInput(item.bm_link) || item.product_name || "—";
+  if (isEmail(name)) return item.product_name || "BM";
+  return name;
 };
 
 export default function AdminGestaoBMs() {
@@ -704,10 +709,6 @@ export default function AdminGestaoBMs() {
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Nome do Cliente</Label>
-              <Input value={addForm.client_name} onChange={e => setAddForm(f => ({ ...f, client_name: e.target.value }))} />
-            </div>
-            <div className="space-y-2">
               <Label>Nome do Produto *</Label>
               <Input value={addForm.product_name} onChange={e => setAddForm(f => ({ ...f, product_name: e.target.value }))} />
             </div>
@@ -743,7 +744,7 @@ export default function AdminGestaoBMs() {
               Proteger BM via Safe BM
             </DialogTitle>
             <DialogDescription>
-              Configure o cofre Safe BM para a BM vendida ao cliente <strong>{protectItem?.client_name}</strong>.
+              Configure o cofre Safe BM para a BM <strong>{getBmDisplayName(protectItem)}</strong>.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
