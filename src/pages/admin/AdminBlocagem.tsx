@@ -1251,8 +1251,13 @@ function FolderItemsView({ folder, onBack }: { folder: Folder; onBack: () => voi
     erro: "bg-red-500/20 text-red-400",
   };
 
+  const filteredItems = useMemo(() => {
+    if (filterType === "all") return items;
+    return items.filter(item => item.type === filterType);
+  }, [items, filterType]);
+
   // Check if this folder has AccFace items
-  const hasAccfaceItems = items.some(i => i.data?.source === "accface");
+  const hasAccfaceItems = filteredItems.some(i => i.data?.source === "accface");
 
   // Group AccFace items by purchase batch (accfaceProductId + purchasedAt rounded to minute)
   const accfaceBatches = useMemo(() => {
@@ -1260,7 +1265,7 @@ function FolderItemsView({ folder, onBack }: { folder: Folder; onBack: () => voi
     const batchMap = new Map<string, { key: string; productId: string; productName: string; priceBrl: number; purchasedAt: string; type: string; items: StockItem[] }>();
     const nonAccface: StockItem[] = [];
 
-    items.forEach(item => {
+    filteredItems.forEach(item => {
       if (item.data?.source !== "accface") {
         nonAccface.push(item);
         return;
@@ -1285,7 +1290,7 @@ function FolderItemsView({ folder, onBack }: { folder: Folder; onBack: () => voi
     });
 
     return { batches: Array.from(batchMap.values()).sort((a, b) => new Date(b.purchasedAt).getTime() - new Date(a.purchasedAt).getTime()), nonAccface };
-  }, [items, hasAccfaceItems]);
+  }, [filteredItems, hasAccfaceItems]);
 
   const toggleBatch = (key: string) => {
     setExpandedBatches(prev => {
