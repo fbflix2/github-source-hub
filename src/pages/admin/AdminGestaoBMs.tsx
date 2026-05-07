@@ -312,44 +312,12 @@ export default function AdminGestaoBMs() {
     setSearchingGlobal(true);
     setGlobalSearchResults([]);
     try {
-      // We'll perform multiple targeted searches to be safe and avoid PostgREST syntax errors
       const q = globalSearchTerm.trim();
-      
-      // 1. Search by name or identification
-      const { data: d1 } = await supabase
-        .from("stock_items")
-        .select("id, name, type, identification, status, data, created_at")
-        .or(`name.ilike.%${q}%,identification.ilike.%${q}%`)
-        .limit(15);
-
-      // 2. Search inside JSON bmNames array (exact match in array)
-      const { data: d2 } = await supabase
-        .from("stock_items")
-        .select("id, name, type, identification, status, data, created_at")
-        .contains("data", { bmNames: [q] })
-        .limit(10);
-
-      // 3. Search for the term anywhere in the data as text if possible, 
-      // or just try common string fields in JSON
-      const { data: d3 } = await supabase
-        .from("stock_items")
-        .select("id, name, type, identification, status, data, created_at")
-        .or(`data->>rawBmInput.ilike.%${q}%,data->>nomeProduto.ilike.%${q}%`)
-        .limit(10);
-
-      // 4. Fuzzy search inside the entire JSON as text — catches BM codes
-      // embedded anywhere (bmNames array, bmLinks, nested fields, etc.)
-      // Ex: digitar "6903" encontra "BM 6903 fbflix" ou "27648576038076903"
-      const { data: d4 } = await supabase
-        .from("stock_items")
-        .select("id, name, type, identification, status, data, created_at")
-        .filter("data::text", "ilike", `%${q}%`)
-        .limit(30);
-
-      const combined = [...(d1 || []), ...(d2 || []), ...(d3 || []), ...(d4 || [])];
-      const unique = Array.from(new Map(combined.map(item => [item.id, item])).values());
-      
-      setGlobalSearchResults(unique);
+      // RPC server-side: busca em name, identification, identification_link
+      // e em qualquer lugar do JSON `data` (bmNames, bmLinks, raw, etc.)
+      const { data, error } = await supabase.rpc("search_stock_items_global", { q });
+      if (error) throw error;
+      setGlobalSearchResults(data || []);
     } catch (err: any) {
       toast.error("Erro na busca global: " + err.message);
       console.error("Global search error:", err);
