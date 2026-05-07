@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -25,6 +25,17 @@ import {
   Clock
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 const paymentMethods = [
   { value: "", label: "Selecione..." },
@@ -48,6 +59,8 @@ interface SaleItem {
   quantity: number;
   price: number;
   productId: string | null;
+  manualStockItemId?: string | null;
+  manualStockItemName?: string | null;
 }
 
 export default function AdminNovaVenda() {
@@ -61,10 +74,16 @@ export default function AdminNovaVenda() {
   const [deliveryMethod, setDeliveryMethod] = useState("manual");
   const [notes, setNotes] = useState("");
   const [items, setItems] = useState<SaleItem[]>([
-    { id: crypto.randomUUID(), name: "", quantity: 1, price: 0, productId: null },
+    { id: crypto.randomUUID(), name: "", quantity: 1, price: 0, productId: null, manualStockItemId: null, manualStockItemName: null },
   ]);
   const [products, setProducts] = useState<any[]>([]);
   const [submitting, setSubmitting] = useState(false);
+
+  // Stock item selection state
+  const [stockItemModal, setStockItemModal] = useState<{ itemId: string; productId: string } | null>(null);
+  const [stockSearch, setStockItemSearch] = useState("");
+  const [stockItems, setStockItems] = useState<any[]>([]);
+  const [loadingStock, setLoadingStock] = useState(false);
   
   // PIX generation state
   const [pixQrCode, setPixQrCode] = useState<string | null>(null);
@@ -104,6 +123,42 @@ export default function AdminNovaVenda() {
     return () => clearTimeout(timeout);
   }, [clientSearch]);
 
+  // Search stock items when modal is open
+  useEffect(() => {
+    if (!stockItemModal) {
+      setStockItems([]);
+      return;
+    }
+
+    const fetchStock = async () => {
+      setLoadingStock(true);
+      try {
+        let query = supabase
+          .from("stock_items")
+          .select("id, name, identification, status, created_at, data")
+          .eq("product_id", stockItemModal.productId)
+          .eq("status", "revisado")
+          .is("deleted_at", null)
+          .order("created_at", { ascending: false });
+
+        if (stockSearch.trim()) {
+          query = query.or(`name.ilike.%${stockSearch}%,identification.ilike.%${stockSearch}%`);
+        }
+
+        const { data, error } = await query.limit(20);
+        if (error) throw error;
+        setStockItems(data || []);
+      } catch (err) {
+        console.error("Error fetching stock:", err);
+      } finally {
+        setLoadingStock(false);
+      }
+    };
+
+    const timeout = setTimeout(fetchStock, 300);
+    return () => clearTimeout(timeout);
+  }, [stockItemModal, stockSearch]);
+
   // Poll for PIX payment status
   useEffect(() => {
     if (!pixPaymentId || pixStatus === "completed") return;
@@ -134,7 +189,7 @@ export default function AdminNovaVenda() {
   const addItem = () => {
     setItems((prev) => [
       ...prev,
-      { id: crypto.randomUUID(), name: "", quantity: 1, price: 0, productId: null },
+      { id: crypto.randomUUID(), name: "", quantity: 1, price: 0, productId: null, manualStockItemId: null, manualStockItemName: null },
     ]);
   };
 
@@ -155,7 +210,7 @@ export default function AdminNovaVenda() {
       setItems((prev) =>
         prev.map((i) =>
           i.id === itemId
-            ? { ...i, productId: product.id, name: product.name, price: product.price }
+            ? { ...i, productId: product.id, name: product.name, price: product.price, manualStockItemId: null, manualStockItemName: null }
             : i
         )
       );
@@ -311,7 +366,49 @@ export default function AdminNovaVenda() {
       if (deliveryMethod === "automatica" && insertedItems) {
         let fulfillFailed = false;
         for (const oi of insertedItems) {
-          if (oi.product_id) {
+          if (!oi.product_id) continue;
+
+          // Find if there's a manual stock item selected for this product
+          const itemData = items.find(i => i.productId === oi.product_id);
+          const manualStockId = itemData?.manualStockItemId;
+
+          if (manualStockId) {
+            // Manual assignment of stock item
+            console.log(`[admin-sale] Assigning manual stock item ${manualStockId} to order item ${oi.id}`);
+            const { data: result, error: assignErr } = await supabase
+              .from("stock_items")
+              .update({ 
+                order_item_id: oi.id, 
+                status: "vendido", 
+                updated_at: new Date().toISOString() 
+              })
+              .eq("id", manualStockId)
+              .select()
+              .single();
+
+            if (assignErr) {
+              console.error("Manual assign error:", assignErr);
+              fulfillFailed = true;
+            } else {
+              // Success manual assign
+              const { data: userProfile } = await supabase
+                 .from("profiles")
+                 .select("lauth_email, lauth_enabled")
+                 .eq("user_id", selectedClient.user_id)
+                 .maybeSingle();
+               
+               if (userProfile?.lauth_enabled && userProfile?.lauth_email) {
+                 const profileId = (result.data as any)?.idPerfil;
+                 if (profileId) {
+                   console.log(`[admin-sale] Triggering Lauth transfer for profile ${profileId}`);
+                   supabase.functions.invoke('lauth-transfer', {
+                     body: { profileId, email: userProfile.lauth_email, itemId: oi.id }
+                   });
+                 }
+               }
+            }
+          } else {
+            // Standard automatic fulfillment
             const { data: result, error: fulfillErr } = await supabase.rpc("fulfill_order_item", {
               p_order_item_id: oi.id,
               p_product_id: oi.product_id,
@@ -432,7 +529,7 @@ export default function AdminNovaVenda() {
     setPaymentMethod("");
     setDeliveryMethod("manual");
     setNotes("");
-    setItems([{ id: crypto.randomUUID(), name: "", quantity: 1, price: 0, productId: null }]);
+    setItems([{ id: crypto.randomUUID(), name: "", quantity: 1, price: 0, productId: null, manualStockItemId: null, manualStockItemName: null }]);
     setPixQrCode(null);
     setPixCopyPaste(null);
     setPixGenerated(false);
@@ -643,33 +740,61 @@ export default function AdminNovaVenda() {
                     {/* Product / Name */}
                     <div className="col-span-12 md:col-span-5 space-y-1.5">
                       <label className="text-xs text-gray-500 font-medium">Produto / Nome</label>
-                      <select
-                        value={item.productId || ""}
-                        onChange={(e) => {
-                          if (e.target.value === "custom") {
-                            updateItem(item.id, "productId", null);
-                            updateItem(item.id, "name", "");
-                          } else {
-                            selectProduct(item.id, e.target.value);
-                          }
-                        }}
-                        className="w-full rounded-lg py-2.5 px-3 text-sm bg-black/20 border border-white/10 text-white focus:border-primary focus:outline-none transition-all appearance-none"
-                      >
-                        <option value="" className="bg-gray-900">Selecione um produto...</option>
-                        <option value="custom" className="bg-gray-900">✏️ Digitar manualmente</option>
-                        {products.map((p) => (
-                          <option key={p.id} value={p.id} className="bg-gray-900">{p.name} — R$ {Number(p.price).toFixed(2)}</option>
-                        ))}
-                      </select>
-                      {item.productId === null && (
-                        <input
-                          type="text"
-                          value={item.name}
-                          onChange={(e) => updateItem(item.id, "name", e.target.value)}
-                          placeholder="Nome do item..."
-                          className="w-full rounded-lg py-2.5 px-3 text-sm bg-black/20 border border-white/10 text-white focus:border-primary focus:outline-none transition-all mt-1.5"
-                        />
-                      )}
+                      <div className="flex flex-col gap-1.5">
+                        <select
+                          value={item.productId || ""}
+                          onChange={(e) => {
+                            if (e.target.value === "custom") {
+                              updateItem(item.id, "productId", null);
+                              updateItem(item.id, "name", "");
+                            } else {
+                              selectProduct(item.id, e.target.value);
+                            }
+                          }}
+                          className="w-full rounded-lg py-2.5 px-3 text-sm bg-black/20 border border-white/10 text-white focus:border-primary focus:outline-none transition-all appearance-none"
+                        >
+                          <option value="" className="bg-gray-900">Selecione um produto...</option>
+                          <option value="custom" className="bg-gray-900">✏️ Digitar manualmente</option>
+                          {products.map((p) => (
+                            <option key={p.id} value={p.id} className="bg-gray-900">{p.name} — R$ {Number(p.price).toFixed(2)}</option>
+                          ))}
+                        </select>
+                        
+                        {item.productId && (
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setStockItemModal({ itemId: item.id, productId: item.productId! })}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-white/5 border border-white/10 text-[11px] font-medium text-primary hover:bg-white/10 transition-all"
+                            >
+                              <Search className="size-3" />
+                              {item.manualStockItemName ? `Perfil: ${item.manualStockItemName}` : "Escolher Perfil Específico"}
+                            </button>
+                            {item.manualStockItemId && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  updateItem(item.id, "manualStockItemId", null);
+                                  updateItem(item.id, "manualStockItemName", null);
+                                }}
+                                className="p-1.5 rounded hover:bg-red-500/10 text-gray-500 hover:text-red-400 transition-colors"
+                              >
+                                <X className="size-3" />
+                              </button>
+                            )}
+                          </div>
+                        )}
+
+                        {item.productId === null && (
+                          <input
+                            type="text"
+                            value={item.name}
+                            onChange={(e) => updateItem(item.id, "name", e.target.value)}
+                            placeholder="Nome do item..."
+                            className="w-full rounded-lg py-2.5 px-3 text-sm bg-black/20 border border-white/10 text-white focus:border-primary focus:outline-none transition-all mt-1.5"
+                          />
+                        )}
+                      </div>
                     </div>
 
                     {/* Quantity */}
@@ -853,6 +978,92 @@ export default function AdminNovaVenda() {
           </form>
         </div>
       </div>
+
+      <Dialog open={!!stockItemModal} onOpenChange={(v) => !v && setStockItemModal(null)}>
+        <DialogContent className="max-w-2xl bg-gray-900 border-white/10 text-white">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Package className="size-5 text-primary" />
+            Escolher Perfil Específico
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4 py-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-500" />
+            <Input
+              placeholder="Buscar por nome ou ID do perfil..."
+              value={stockSearch}
+              onChange={(e) => setStockItemSearch(e.target.value)}
+              className="pl-10 bg-black/40 border-white/10 text-white"
+            />
+          </div>
+
+          <div className="rounded-md border border-white/10 overflow-hidden">
+            <Table>
+              <TableHeader className="bg-white/5">
+                <TableRow className="hover:bg-transparent border-white/10">
+                  <TableHead className="text-gray-400 text-xs">Perfil</TableHead>
+                  <TableHead className="text-gray-400 text-xs">Identificação</TableHead>
+                  <TableHead className="text-gray-400 text-xs">Status</TableHead>
+                  <TableHead className="text-right text-gray-400 text-xs">Ação</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loadingStock ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center py-8">
+                      <Loader2 className="size-6 animate-spin text-primary mx-auto" />
+                    </TableCell>
+                  </TableRow>
+                ) : stockItems.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center py-8 text-gray-500 text-sm">
+                      Nenhum perfil disponível encontrado.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  stockItems.map((si) => (
+                    <TableRow key={si.id} className="hover:bg-white/5 border-white/5">
+                      <TableCell className="text-sm font-medium py-3">{si.name}</TableCell>
+                      <TableCell className="text-xs text-gray-400 font-mono py-3">{si.identification || "—"}</TableCell>
+                      <TableCell className="py-3">
+                        <Badge variant="outline" className="text-[10px] uppercase border-purple-500/30 text-purple-400 bg-purple-500/5">
+                          Disponível
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right py-3">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            if (stockItemModal) {
+                              updateItem(stockItemModal.itemId, "manualStockItemId", si.id);
+                              updateItem(stockItemModal.itemId, "manualStockItemName", si.name);
+                              setStockItemModal(null);
+                              setStockItemSearch("");
+                            }
+                          }}
+                          className="text-primary hover:text-primary hover:bg-primary/10 h-7 px-3 text-xs"
+                        >
+                          Selecionar
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setStockItemModal(null)} className="border-white/10 text-gray-400 hover:text-white">
+            Fechar
+          </Button>
+        </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
