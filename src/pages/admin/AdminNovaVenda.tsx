@@ -48,6 +48,8 @@ interface SaleItem {
   quantity: number;
   price: number;
   productId: string | null;
+  manualStockItemId?: string | null;
+  manualStockItemName?: string | null;
 }
 
 export default function AdminNovaVenda() {
@@ -61,7 +63,7 @@ export default function AdminNovaVenda() {
   const [deliveryMethod, setDeliveryMethod] = useState("manual");
   const [notes, setNotes] = useState("");
   const [items, setItems] = useState<SaleItem[]>([
-    { id: crypto.randomUUID(), name: "", quantity: 1, price: 0, productId: null },
+    { id: crypto.randomUUID(), name: "", quantity: 1, price: 0, productId: null, manualStockItemId: null, manualStockItemName: null },
   ]);
   const [products, setProducts] = useState<any[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -134,7 +136,7 @@ export default function AdminNovaVenda() {
   const addItem = () => {
     setItems((prev) => [
       ...prev,
-      { id: crypto.randomUUID(), name: "", quantity: 1, price: 0, productId: null },
+      { id: crypto.randomUUID(), name: "", quantity: 1, price: 0, productId: null, manualStockItemId: null, manualStockItemName: null },
     ]);
   };
 
@@ -155,7 +157,7 @@ export default function AdminNovaVenda() {
       setItems((prev) =>
         prev.map((i) =>
           i.id === itemId
-            ? { ...i, productId: product.id, name: product.name, price: product.price }
+            ? { ...i, productId: product.id, name: product.name, price: product.price, manualStockItemId: null, manualStockItemName: null }
             : i
         )
       );
@@ -432,7 +434,7 @@ export default function AdminNovaVenda() {
     setPaymentMethod("");
     setDeliveryMethod("manual");
     setNotes("");
-    setItems([{ id: crypto.randomUUID(), name: "", quantity: 1, price: 0, productId: null }]);
+    setItems([{ id: crypto.randomUUID(), name: "", quantity: 1, price: 0, productId: null, manualStockItemId: null, manualStockItemName: null }]);
     setPixQrCode(null);
     setPixCopyPaste(null);
     setPixGenerated(false);
