@@ -252,12 +252,12 @@ export default function Dashboard() {
 
   console.log("[Loja] proxyCategoryId:", proxyCategoryId, "proxyfbflixLocalProducts:", proxyfbflixLocalProducts.map(p => p.name), "total products:", products.length);
 
-  const filteredProducts = activeFilter === "Todos"
-    ? products.filter((p) => p.category_id !== proxyCategoryId || isLocalProxy(p))
-    : products.filter((p) => {
-        const cat = categories.find((c) => c.name === activeFilter);
-        return cat && p.category_id === cat.id;
-      });
+   const filteredProducts = useMemo(() => (activeFilter === "Todos"
+     ? products.filter((p) => p.category_id !== proxyCategoryId || isLocalProxy(p))
+     : products.filter((p) => {
+         const cat = categories.find((c) => c.name === activeFilter);
+         return cat && p.category_id === cat.id;
+       })), [activeFilter, products, proxyCategoryId, categories, isLocalProxy]);
 
   // Priority order for "Todos": Perfis → BM → Proxy → rest
    const getCategoryPriority = useCallback((product: Product) => {
