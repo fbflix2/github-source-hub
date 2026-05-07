@@ -719,17 +719,6 @@ Deno.serve(async (req) => {
       // Try with city filter first
       let available = await findAvailableProxies(targetCountryCode, target_city);
 
-      // Fallback 1: If city filter was used but returned nothing, try without city
-      if (available.length < qty && target_city && target_city !== "all" && target_city !== "all_us") {
-        console.warn(`[webshare-api] Only ${available.length} proxies found in ${target_city}, falling back to country-wide search (${targetCountryCode || 'any'}).`);
-        available = await findAvailableProxies(targetCountryCode, null);
-      }
-
-      // Fallback 2: If still nothing, try without country (last resort)
-      if (available.length < qty && targetCountryCode) {
-        console.warn(`[webshare-api] Only ${available.length} proxies found for ${targetCountryCode}, falling back to any country.`);
-        available = await findAvailableProxies(null, null);
-      }
       
       if (available.length < qty) throw new Error(`Apenas ${available.length} proxy(s) disponível(is), mas ${qty} foram solicitados.`);
 
