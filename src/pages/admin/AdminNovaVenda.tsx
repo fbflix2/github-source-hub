@@ -366,7 +366,49 @@ export default function AdminNovaVenda() {
       if (deliveryMethod === "automatica" && insertedItems) {
         let fulfillFailed = false;
         for (const oi of insertedItems) {
-          if (oi.product_id) {
+          if (!oi.product_id) continue;
+
+          // Find if there's a manual stock item selected for this product
+          const itemData = items.find(i => i.productId === oi.product_id);
+          const manualStockId = itemData?.manualStockItemId;
+
+          if (manualStockId) {
+            // Manual assignment of stock item
+            console.log(`[admin-sale] Assigning manual stock item ${manualStockId} to order item ${oi.id}`);
+            const { data: result, error: assignErr } = await supabase
+              .from("stock_items")
+              .update({ 
+                order_item_id: oi.id, 
+                status: "vendido", 
+                updated_at: new Date().toISOString() 
+              })
+              .eq("id", manualStockId)
+              .select()
+              .single();
+
+            if (assignErr) {
+              console.error("Manual assign error:", assignErr);
+              fulfillFailed = true;
+            } else {
+              // Success manual assign
+              const { data: userProfile } = await supabase
+                 .from("profiles")
+                 .select("lauth_email, lauth_enabled")
+                 .eq("user_id", selectedClient.user_id)
+                 .maybeSingle();
+               
+               if (userProfile?.lauth_enabled && userProfile?.lauth_email) {
+                 const profileId = (result.data as any)?.idPerfil;
+                 if (profileId) {
+                   console.log(`[admin-sale] Triggering Lauth transfer for profile ${profileId}`);
+                   supabase.functions.invoke('lauth-transfer', {
+                     body: { profileId, email: userProfile.lauth_email, itemId: oi.id }
+                   });
+                 }
+               }
+            }
+          } else {
+            // Standard automatic fulfillment
             const { data: result, error: fulfillErr } = await supabase.rpc("fulfill_order_item", {
               p_order_item_id: oi.id,
               p_product_id: oi.product_id,
