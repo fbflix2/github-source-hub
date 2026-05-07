@@ -1567,45 +1567,51 @@ export default function AdminBlocagem() {
    const [globalSearchResults, setGlobalSearchResults] = useState<any[]>([]);
    const [searchingGlobal, setSearchingGlobal] = useState(false);
  
-   const handleGlobalSearch = async () => {
-     if (!globalSearchTerm.trim()) return;
-     setSearchingGlobal(true);
-     try {
-       const code = globalSearchTerm.trim();
-       const last4 = code.length >= 4 ? code.slice(-4) : code;
- 
-       const { data, error } = await supabase
-         .from("stock_items")
-         .select("id, name, type, identification, identification_link, status, data, created_at")
-         .is("deleted_at", null)
-         .in("type", ["perfil", "bm"]);
- 
-       if (error) throw error;
- 
-       const results = (data || []).filter(item => {
-         const type = item.type?.toLowerCase();
-         const itemData = (item.data as any) || {};
-         if (type === "perfil") {
-           const bmNames = itemData.bmNames;
-           const names = Array.isArray(bmNames) ? bmNames : (typeof bmNames === "string" ? bmNames.split(/[\n,;|]+/) : []);
-           return names.some((n: string) => String(n).includes(last4));
-         }
-         return [
-           item.identification,
-           item.identification_link,
-           item.name,
-           itemData.rawBmInput,
-           itemData.nomeProduto
-         ].some(f => String(f ?? "").includes(last4));
-       });
- 
-       setGlobalSearchResults(results);
-     } catch (err: any) {
-       toast.error("Erro na busca: " + err.message);
-     } finally {
-       setSearchingGlobal(false);
-     }
-   };
+    const handleGlobalSearch = async () => {
+      if (!globalSearchTerm.trim()) return;
+      setSearchingGlobal(true);
+      try {
+        const term = globalSearchTerm.trim().toLowerCase();
+  
+        const { data, error } = await supabase
+          .from("stock_items")
+          .select("id, name, type, identification, identification_link, status, data, created_at")
+          .is("deleted_at", null);
+  
+        if (error) throw error;
+  
+        const results = (data || []).filter(item => {
+          const itemData = (item.data as any) || {};
+          
+          const deepSearch = (val: any): boolean => {
+            if (!val) return false;
+            if (typeof val === 'string') return val.toLowerCase().includes(term);
+            if (typeof val === 'number') return String(val).includes(term);
+            if (Array.isArray(val)) return val.some(deepSearch);
+            if (typeof val === 'object') {
+              return Object.values(val).some(deepSearch);
+            }
+            return false;
+          };
+
+          const matchesBasic = [
+            item.name,
+            item.identification,
+            item.identification_link,
+            item.type,
+            item.status
+          ].some(f => String(f ?? "").toLowerCase().includes(term));
+
+          return matchesBasic || deepSearch(itemData);
+        });
+  
+        setGlobalSearchResults(results);
+      } catch (err: any) {
+        toast.error("Erro na busca: " + err.message);
+      } finally {
+        setSearchingGlobal(false);
+      }
+    };
   const [showTrash, setShowTrash] = useState(false);
   const [trashedFolders, setTrashedFolders] = useState<(Folder & { deleted_at: string })[]>([]);
   const [loadingTrash, setLoadingTrash] = useState(false);
@@ -1963,7 +1969,7 @@ export default function AdminBlocagem() {
  
            <div className="flex gap-2 mb-4 mt-2">
              <Input
-               placeholder="Digite os últimos 4 dígitos ou ID completo..."
+               placeholder="Busque por ID, BM, Email, Senha, Dados adicionais..."
                value={globalSearchTerm}
                onChange={(e) => setGlobalSearchTerm(e.target.value)}
                onKeyDown={(e) => e.key === "Enter" && handleGlobalSearch()}
