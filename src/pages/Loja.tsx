@@ -238,7 +238,7 @@ export default function Dashboard() {
   
   const proxyPurposes = ["Todos", "Facebook", "Youtube", "Tiktok", "Apostas", "Google Ads", "Contingência", "Web Scraping"];
 
-  const proxyAsProducts = [...apiProxyAsProducts, ...standaloneLocalProxies]
+   const proxyAsProducts = useMemo(() => [...apiProxyAsProducts, ...standaloneLocalProxies]
     .filter(p => {
       if (activePurpose === "Todos") return true;
       const tags = p.tags || [];
@@ -248,7 +248,7 @@ export default function Dashboard() {
         return searchTerms.some(term => nt.includes(term));
       });
     })
-    .sort((a, b) => (a.price || 0) - (b.price || 0));
+     .sort((a, b) => (a.price || 0) - (b.price || 0)), [apiProxyAsProducts, standaloneLocalProxies, activePurpose]);
 
   console.log("[Loja] proxyCategoryId:", proxyCategoryId, "proxyfbflixLocalProducts:", proxyfbflixLocalProducts.map(p => p.name), "total products:", products.length);
 
