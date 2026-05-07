@@ -1560,8 +1560,52 @@ export default function AdminBlocagem() {
   const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
   const [editingFolder, setEditingFolder] = useState<Folder | null>(null);
   const [newFolderName, setNewFolderName] = useState("");
-  const [folders, setFolders] = useState<Folder[]>([]);
-  const [loading, setLoading] = useState(true);
+   const [folders, setFolders] = useState<Folder[]>([]);
+   const [loading, setLoading] = useState(true);
+   const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
+   const [globalSearchTerm, setGlobalSearchTerm] = useState("");
+   const [globalSearchResults, setGlobalSearchResults] = useState<any[]>([]);
+   const [searchingGlobal, setSearchingGlobal] = useState(false);
+ 
+   const handleGlobalSearch = async () => {
+     if (!globalSearchTerm.trim()) return;
+     setSearchingGlobal(true);
+     try {
+       const code = globalSearchTerm.trim();
+       const last4 = code.length >= 4 ? code.slice(-4) : code;
+ 
+       const { data, error } = await supabase
+         .from("stock_items")
+         .select("id, name, type, identification, identification_link, status, data, created_at")
+         .is("deleted_at", null)
+         .in("type", ["perfil", "bm"]);
+ 
+       if (error) throw error;
+ 
+       const results = (data || []).filter(item => {
+         const type = item.type?.toLowerCase();
+         const itemData = (item.data as any) || {};
+         if (type === "perfil") {
+           const bmNames = itemData.bmNames;
+           const names = Array.isArray(bmNames) ? bmNames : (typeof bmNames === "string" ? bmNames.split(/[\n,;|]+/) : []);
+           return names.some((n: string) => String(n).includes(last4));
+         }
+         return [
+           item.identification,
+           item.identification_link,
+           item.name,
+           itemData.rawBmInput,
+           itemData.nomeProduto
+         ].some(f => String(f ?? "").includes(last4));
+       });
+ 
+       setGlobalSearchResults(results);
+     } catch (err: any) {
+       toast.error("Erro na busca: " + err.message);
+     } finally {
+       setSearchingGlobal(false);
+     }
+   };
   const [showTrash, setShowTrash] = useState(false);
   const [trashedFolders, setTrashedFolders] = useState<(Folder & { deleted_at: string })[]>([]);
   const [loadingTrash, setLoadingTrash] = useState(false);
