@@ -310,31 +310,40 @@ export default function AdminGestaoBMs() {
   const handleGlobalSearch = async () => {
     if (!globalSearchTerm.trim()) return;
     setSearchingGlobal(true);
+    setGlobalSearchResults([]);
     try {
-      // PostgREST doesn't support casting inside .or() like data::text.
-      // We'll search in the most likely fields and JSON paths.
-      const { data, error } = await supabase
+      // We'll perform multiple targeted searches to be safe and avoid PostgREST syntax errors
+      const q = globalSearchTerm.trim();
+      
+      // 1. Search by name or identification
+      const { data: d1 } = await supabase
         .from("stock_items")
         .select("id, name, type, identification, status, data, created_at")
-        .or(`name.ilike.%${globalSearchTerm}%,identification.ilike.%${globalSearchTerm}%,data->>bmNames.ilike.%${globalSearchTerm}%,data->>rawBmInput.ilike.%${globalSearchTerm}%,data->>nomeProduto.ilike.%${globalSearchTerm}%`)
-        .limit(20);
+        .or(`name.ilike.%${q}%,identification.ilike.%${q}%`)
+        .limit(15);
 
-      if (error) {
-        console.error("Erro na busca global (or):", error);
-        // Fallback to a simpler search if the complex OR fails
-        const { data: fallbackData, error: fallbackError } = await supabase
-          .from("stock_items")
-          .select("id, name, type, identification, status, data, created_at")
-          .or(`name.ilike.%${globalSearchTerm}%,identification.ilike.%${globalSearchTerm}%`)
-          .limit(20);
-        
-        if (fallbackError) throw fallbackError;
-        setGlobalSearchResults(fallbackData || []);
-      } else {
-        setGlobalSearchResults(data || []);
-      }
+      // 2. Search inside JSON bmNames array (exact match in array)
+      const { data: d2 } = await supabase
+        .from("stock_items")
+        .select("id, name, type, identification, status, data, created_at")
+        .contains("data", { bmNames: [q] })
+        .limit(10);
+
+      // 3. Search for the term anywhere in the data as text if possible, 
+      // or just try common string fields in JSON
+      const { data: d3 } = await supabase
+        .from("stock_items")
+        .select("id, name, type, identification, status, data, created_at")
+        .or(`data->>rawBmInput.ilike.%${q}%,data->>nomeProduto.ilike.%${q}%`)
+        .limit(10);
+
+      const combined = [...(d1 || []), ...(d2 || []), ...(d3 || [])];
+      const unique = Array.from(new Map(combined.map(item => [item.id, item])).values());
+      
+      setGlobalSearchResults(unique);
     } catch (err: any) {
       toast.error("Erro na busca global: " + err.message);
+      console.error("Global search error:", err);
     } finally {
       setSearchingGlobal(false);
     }
