@@ -352,10 +352,11 @@ export default function AdminGestaoBMs() {
              const idLink = (item.identification_link || "").toString();
              const jsonData = JSON.stringify(item.data || {}).toLowerCase();
              
-             return identification.includes(originalId) || 
-                    idLink.includes(originalId) || 
-                    jsonData.includes(originalId.toLowerCase()) ||
-                    identification.endsWith(last4);
+             // Check if identification, identification_link or JSON data contains the last 4 digits
+             // As requested, the focus is strictly on the last 4 digits as the BM code
+             return identification.includes(last4) || 
+                    idLink.includes(last4) || 
+                    jsonData.includes(last4.toLowerCase());
            });
 
            if (bmMatches.length > 0) {
