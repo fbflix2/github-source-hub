@@ -704,11 +704,9 @@ export default function AdminGestaoBMs() {
             <DialogDescription>Registre uma BM vendida para acompanhar o período de 7 dias</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Nome do Cliente</Label>
-                <Input value={addForm.client_name} onChange={e => setAddForm(f => ({ ...f, client_name: e.target.value }))} />
-              </div>
+            <div className="space-y-2">
+              <Label>Nome do Cliente</Label>
+              <Input value={addForm.client_name} onChange={e => setAddForm(f => ({ ...f, client_name: e.target.value }))} />
             </div>
             <div className="space-y-2">
               <Label>Nome do Produto *</Label>
