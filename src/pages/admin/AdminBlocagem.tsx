@@ -51,11 +51,14 @@ function PersonalizadoForm({ folder, onBack, onSaved }: { folder: Folder; onBack
   const DRAFT_KEY = "personalizado_form_draft";
   const [saving, setSaving] = useState(false);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
-  const [productDefaults, setProductDefaults] = useState<{ id: string; name: string; tags: string[] }[]>([]);
+  const [productDefaults, setProductDefaults] = useState<{ id: string; name: string; tags: string[]; price?: number; description?: string; default_image?: string }[]>([]);
   const [productImages, setProductImages] = useState<{ id: string; name: string; url: string }[]>([]);
   const [showImagePicker, setShowImagePicker] = useState(false);
+  const [bulkMode, setBulkMode] = useState(false);
+  const [bulkInput, setBulkInput] = useState("");
 
   const emptyForm = {
+    productId: "",
     nomeItem: "",
     identificacao: "",
     linkAcesso: "",
@@ -71,7 +74,10 @@ function PersonalizadoForm({ folder, onBack, onSaved }: { folder: Folder; onBack
   const [formData, setFormData] = useState(() => {
     try {
       const saved = localStorage.getItem(DRAFT_KEY);
-      if (saved) return { ...emptyForm, ...JSON.parse(saved) };
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return { ...emptyForm, ...parsed };
+      }
     } catch {}
     return emptyForm;
   });
@@ -79,38 +85,93 @@ function PersonalizadoForm({ folder, onBack, onSaved }: { folder: Folder; onBack
   useEffect(() => {
     supabase.from("product_categories").select("id, name").then(({ data }) => setCategories(data ?? []));
     supabase.from("product_images").select("id, name, url").eq("category", "personalizado").order("created_at", { ascending: false }).then(({ data }) => setProductImages(data ?? []));
-    supabase.from("product_defaults").select("id, name, tags, price, description, default_image").order("name").then(({ data }) => setProductDefaults((data as any) ?? []));
+    supabase.from("product_defaults").select("id, name, tags, price, description, default_image").order("name").then(({ data }) => {
+      const defaults = (data as any) ?? [];
+      setProductDefaults(defaults);
+    });
   }, []);
 
-  const handleSave = async () => {
-    if (!formData.nomeItem) {
-      toast.error("Preencha o nome do item");
-      return;
+  useEffect(() => {
+    if (formData.productId) {
+      const prod = productDefaults.find(p => p.id === formData.productId);
+      if (prod) {
+        setFormData(prev => ({
+          ...prev,
+          nomeProduto: prod.name,
+          preco: prod.price?.toString() || prev.preco,
+          descricao: prod.description || prev.descricao,
+          tags: prod.tags || prev.tags,
+          fotoUrl: prod.default_image || prev.fotoUrl,
+          nomeItem: prev.nomeItem || prod.name
+        }));
+        
+        // Auto-detect bulk mode based on tags
+        const isEmail = prod.tags?.some(t => t.toLowerCase().includes("email") || t.toLowerCase().includes("e-mail"));
+        setBulkMode(!!isEmail);
+      }
     }
-    setSaving(true);
-    const insertData: any = {
-      name: formData.nomeItem,
-      type: "personalizado",
-      identification: formData.identificacao || null,
-      identification_link: formData.linkAcesso || null,
-      status: "aguardando",
-      folder: folder.id,
-      data: {
-        dadosAdicionais: formData.dadosAdicionais,
-        descricao: formData.descricao,
-        foto_url: formData.fotoUrl || undefined,
-        preco: formData.preco ? parseFloat(formData.preco) : undefined,
-        categoryId: formData.categoryId || undefined,
-        tags: formData.tags.length > 0 ? formData.tags : undefined,
-        nomeProduto: formData.nomeProduto || undefined,
-      },
-    };
-    const { error } = await supabase.from("stock_items").insert(insertData);
-    setSaving(false);
-    if (error) { toast.error("Erro ao salvar: " + error.message); return; }
-    localStorage.removeItem(DRAFT_KEY);
-    toast.success("Item personalizado adicionado!");
-    onSaved();
+  }, [formData.productId, productDefaults]);
+
+  const handleSave = async () => {
+    if (bulkMode) {
+      const lines = bulkInput.split("\n").filter(l => l.trim());
+      if (lines.length === 0) {
+        toast.error("Adicione ao menos uma linha de dados");
+        return;
+      }
+      setSaving(true);
+      const items = lines.map(line => ({
+        name: formData.nomeItem || formData.nomeProduto || "Item Personalizado",
+        type: "personalizado",
+        identification: line.split("|")[0]?.trim() || null,
+        status: "aguardando",
+        folder: folder.id,
+        data: {
+          dadosAdicionais: line.trim(),
+          descricao: formData.descricao,
+          foto_url: formData.fotoUrl || undefined,
+          preco: formData.preco ? parseFloat(formData.preco) : undefined,
+          categoryId: formData.categoryId || undefined,
+          tags: formData.tags.length > 0 ? formData.tags : undefined,
+          nomeProduto: formData.nomeProduto || undefined,
+        },
+      }));
+      const { error } = await supabase.from("stock_items").insert(items);
+      setSaving(false);
+      if (error) { toast.error("Erro: " + error.message); return; }
+      toast.success(`${lines.length} itens adicionados!`);
+      localStorage.removeItem(DRAFT_KEY);
+      onSaved();
+    } else {
+      if (!formData.nomeItem) {
+        toast.error("Preencha o nome do item");
+        return;
+      }
+      setSaving(true);
+      const insertData: any = {
+        name: formData.nomeItem,
+        type: "personalizado",
+        identification: formData.identificacao || null,
+        identification_link: formData.linkAcesso || null,
+        status: "aguardando",
+        folder: folder.id,
+        data: {
+          dadosAdicionais: formData.dadosAdicionais,
+          descricao: formData.descricao,
+          foto_url: formData.fotoUrl || undefined,
+          preco: formData.preco ? parseFloat(formData.preco) : undefined,
+          categoryId: formData.categoryId || undefined,
+          tags: formData.tags.length > 0 ? formData.tags : undefined,
+          nomeProduto: formData.nomeProduto || undefined,
+        },
+      };
+      const { error } = await supabase.from("stock_items").insert(insertData);
+      setSaving(false);
+      if (error) { toast.error("Erro ao salvar: " + error.message); return; }
+      localStorage.removeItem(DRAFT_KEY);
+      toast.success("Item personalizado adicionado!");
+      onSaved();
+    }
   };
 
   return (
@@ -126,41 +187,73 @@ function PersonalizadoForm({ folder, onBack, onSaved }: { folder: Folder; onBack
       </div>
 
       <div className="glass-panel rounded-xl p-5 space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-medium text-zinc-400">Tipo de Item (Produto Padrão)</label>
+          <Select value={formData.productId} onValueChange={v => setFormData({ ...formData, productId: v })}>
+            <SelectTrigger className="bg-black/30 border-white/5 text-white">
+              <SelectValue placeholder="Selecione o tipo de item..." />
+            </SelectTrigger>
+            <SelectContent>
+              {productDefaults.map(p => (
+                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {bulkMode ? (
           <div className="space-y-4">
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-zinc-400">Nome do Item</label>
-              <Input placeholder="Ex: Conta TikTok @user, Email Secundário..." value={formData.nomeItem} onChange={e => setFormData({ ...formData, nomeItem: e.target.value })} className="bg-black/30 border-white/5 text-white" />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-zinc-400">Identificação (Login/ID)</label>
-              <Input placeholder="Ex: login@email.com" value={formData.identificacao} onChange={e => setFormData({ ...formData, identificacao: e.target.value })} className="bg-black/30 border-white/5 text-white" />
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-zinc-400">Link de Acesso (URL)</label>
-              <Input placeholder="https://..." value={formData.linkAcesso} onChange={e => setFormData({ ...formData, linkAcesso: e.target.value })} className="bg-black/30 border-white/5 text-white" />
+              <label className="text-xs font-medium text-zinc-400">Dados (Um por linha: login|senha|token...)</label>
+              <Textarea 
+                placeholder="usuario1@email.com|senha123|token456&#10;usuario2@email.com|senha789|token012" 
+                value={bulkInput} 
+                onChange={e => setBulkInput(e.target.value)} 
+                className="bg-black/30 border-white/5 text-white min-h-[150px] font-mono text-sm"
+              />
+              <p className="text-[10px] text-zinc-500">Cada linha será salva como um item individual.</p>
             </div>
           </div>
-
-          <div className="space-y-4">
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-zinc-400">Dados Adicionais (Senha, Token, etc)</label>
-              <Textarea placeholder="Cole aqui os dados sensíveis..." value={formData.dadosAdicionais} onChange={e => setFormData({ ...formData, dadosAdicionais: e.target.value })} className="bg-black/30 border-white/5 text-white min-h-[100px]" />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-4">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium text-zinc-400">Nome do Item</label>
+                <Input placeholder="Ex: Conta TikTok @user, Email Secundário..." value={formData.nomeItem} onChange={e => setFormData({ ...formData, nomeItem: e.target.value })} className="bg-black/30 border-white/5 text-white" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium text-zinc-400">Identificação (Login/ID)</label>
+                <Input placeholder="Ex: login@email.com" value={formData.identificacao} onChange={e => setFormData({ ...formData, identificacao: e.target.value })} className="bg-black/30 border-white/5 text-white" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium text-zinc-400">Link de Acesso (URL)</label>
+                <Input placeholder="https://..." value={formData.linkAcesso} onChange={e => setFormData({ ...formData, linkAcesso: e.target.value })} className="bg-black/30 border-white/5 text-white" />
+              </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+
+            <div className="space-y-4">
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-zinc-400">Preço (R$)</label>
-                <Input type="number" step="0.01" value={formData.preco} onChange={e => setFormData({ ...formData, preco: e.target.value })} className="bg-black/30 border-white/5 text-white" />
+                <label className="text-xs font-medium text-zinc-400">Dados Adicionais (Senha, Token, etc)</label>
+                <Textarea placeholder="Cole aqui os dados sensíveis..." value={formData.dadosAdicionais} onChange={e => setFormData({ ...formData, dadosAdicionais: e.target.value })} className="bg-black/30 border-white/5 text-white min-h-[100px]" />
               </div>
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-zinc-400">Categoria</label>
-                <Select value={formData.categoryId} onValueChange={v => setFormData({ ...formData, categoryId: v })}>
-                  <SelectTrigger className="bg-black/30 border-white/5 text-white"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                  <SelectContent>
-                    {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-white/5">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-zinc-400">Preço (R$)</label>
+              <Input type="number" step="0.01" value={formData.preco} onChange={e => setFormData({ ...formData, preco: e.target.value })} className="bg-black/30 border-white/5 text-white" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-zinc-400">Categoria</label>
+              <Select value={formData.categoryId} onValueChange={v => setFormData({ ...formData, categoryId: v })}>
+                <SelectTrigger className="bg-black/30 border-white/5 text-white"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                <SelectContent>
+                  {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </div>
