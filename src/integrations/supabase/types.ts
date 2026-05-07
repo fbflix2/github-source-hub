@@ -4348,6 +4348,18 @@ export type Database = {
       }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
       process_whatsapp_queue: { Args: never; Returns: undefined }
+      search_stock_items_global: {
+        Args: { q: string }
+        Returns: {
+          created_at: string
+          data: Json
+          id: string
+          identification: string
+          name: string
+          status: string
+          type: string
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
