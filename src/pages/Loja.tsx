@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useCart } from "@/contexts/CartContext";
 import { toast } from "sonner";
@@ -76,6 +76,7 @@ export default function Dashboard() {
   const [heroBanners, setHeroBanners] = useState<HeroBanner[]>([]);
   const [currentBanner, setCurrentBanner] = useState(0);
   const [bannerCategoryLabels, setBannerCategoryLabels] = useState<Record<string, string>>({});
+  const [totalClients, setTotalClients] = useState(3746);
 
   // Auto-slide banners every 6 seconds
   useEffect(() => {
@@ -111,6 +112,12 @@ export default function Dashboard() {
       setInactiveProxyExternalIds(new Set(inactiveProxiesRes.data.map((p: any) => p.external_id).filter(Boolean)));
     }
     setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    supabase.from("profiles").select("id", { count: "exact", head: true }).then(({ count }) => {
+      if (count) setTotalClients(count);
+    });
   }, []);
 
   // Refetch every time the page is visited or becomes visible
@@ -302,26 +309,33 @@ export default function Dashboard() {
     );
   }
 
+  const processedBanners = useMemo(() => {
+    return heroBanners.map(banner => ({
+      ...banner,
+      subtitle: banner.subtitle?.replace(/3\.581/g, totalClients.toLocaleString("pt-BR")) || null
+    }));
+  }, [heroBanners, totalClients]);
+
   return (
     <>
     <div className="space-y-10 animate-fade-in">
       {/* Dynamic Hero Banners */}
-      {heroBanners.length > 0 && (
+      {processedBanners.length > 0 && (
         <section
           className="relative w-full rounded-2xl overflow-hidden glass-card shadow-glass group transition-colors duration-500 h-[280px] md:h-[320px]"
-          style={heroBanners[currentBanner]?.background_color ? { backgroundColor: heroBanners[currentBanner].background_color! } : undefined}
+          style={processedBanners[currentBanner]?.background_color ? { backgroundColor: processedBanners[currentBanner].background_color! } : undefined}
         >
           {/* Cover style: full background image */}
-          {heroBanners[currentBanner]?.image_style === "cover" && heroBanners[currentBanner]?.image_url && (
+          {processedBanners[currentBanner]?.image_style === "cover" && processedBanners[currentBanner]?.image_url && (
             <div
               className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-              style={{ backgroundImage: `url('${heroBanners[currentBanner].image_url}')` }}
+              style={{ backgroundImage: `url('${processedBanners[currentBanner].image_url}')` }}
             />
           )}
-          {heroBanners[currentBanner]?.image_style === "cover" && (
+          {processedBanners[currentBanner]?.image_style === "cover" && (
             <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent" />
           )}
-          {heroBanners[currentBanner]?.image_style !== "cover" && !heroBanners[currentBanner]?.background_color && (
+          {processedBanners[currentBanner]?.image_style !== "cover" && !processedBanners[currentBanner]?.background_color && (
             <>
               <div className="absolute -right-20 -top-20 w-96 h-96 bg-primary/20 rounded-full blur-[100px] pointer-events-none" />
               <div className="absolute -left-20 -bottom-20 w-80 h-80 bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
@@ -332,40 +346,40 @@ export default function Dashboard() {
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-primary/20 to-transparent border border-primary/20">
                 <span className="animate-pulse w-2 h-2 rounded-full bg-primary" />
                 <span className="text-xs font-bold text-primary uppercase tracking-wider">
-                  {bannerCategoryLabels[heroBanners[currentBanner]?.category || ""] || heroBanners[currentBanner]?.category || "Destaque"}
+                  {bannerCategoryLabels[processedBanners[currentBanner]?.category || ""] || processedBanners[currentBanner]?.category || "Destaque"}
                 </span>
               </div>
-              <h2 className={`text-3xl md:text-5xl font-bold leading-tight ${heroBanners[currentBanner]?.image_style === "cover" ? "text-white" : "text-foreground"}`}>
-                {heroBanners[currentBanner]?.title}
+              <h2 className={`text-3xl md:text-5xl font-bold leading-tight ${processedBanners[currentBanner]?.image_style === "cover" ? "text-white" : "text-foreground"}`}>
+                {processedBanners[currentBanner]?.title}
               </h2>
-              {heroBanners[currentBanner]?.subtitle && (
-                <p className={`text-lg max-w-xl line-clamp-3 ${heroBanners[currentBanner]?.image_style === "cover" ? "text-gray-300" : "text-muted-foreground"}`}>{heroBanners[currentBanner].subtitle}</p>
+              {processedBanners[currentBanner]?.subtitle && (
+                <p className={`text-lg max-w-xl line-clamp-3 ${processedBanners[currentBanner]?.image_style === "cover" ? "text-gray-300" : "text-muted-foreground"}`}>{processedBanners[currentBanner].subtitle}</p>
               )}
               <div className="flex items-center gap-4 pt-2">
-                {heroBanners[currentBanner]?.cta_text && (
+                {processedBanners[currentBanner]?.cta_text && (
                   <button
-                    onClick={() => heroBanners[currentBanner]?.link_url && navigate(heroBanners[currentBanner].link_url!)}
+                    onClick={() => processedBanners[currentBanner]?.link_url && navigate(processedBanners[currentBanner].link_url!)}
                     className="btn-primary-glow bg-primary text-primary-foreground font-bold text-sm px-8 py-3.5 rounded-xl transition-all hover:-translate-y-1 flex items-center gap-2"
                   >
-                    {heroBanners[currentBanner].cta_text}
+                    {processedBanners[currentBanner].cta_text}
                     <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
                   </button>
                 )}
-                {heroBanners.length > 1 && (
+                {processedBanners.length > 1 && (
                   <div className="flex items-center gap-2">
-                    <button onClick={() => setCurrentBanner((p) => (p - 1 + heroBanners.length) % heroBanners.length)} className="p-2 rounded-lg bg-secondary border border-border hover:bg-muted transition-colors"><ChevronLeft className="w-4 h-4" /></button>
-                    <span className="text-xs text-muted-foreground font-medium">{currentBanner + 1}/{heroBanners.length}</span>
-                    <button onClick={() => setCurrentBanner((p) => (p + 1) % heroBanners.length)} className="p-2 rounded-lg bg-secondary border border-border hover:bg-muted transition-colors"><ChevronRight className="w-4 h-4" /></button>
+                    <button onClick={() => setCurrentBanner((p) => (p - 1 + processedBanners.length) % processedBanners.length)} className="p-2 rounded-lg bg-secondary border border-border hover:bg-muted transition-colors"><ChevronLeft className="w-4 h-4" /></button>
+                    <span className="text-xs text-muted-foreground font-medium">{currentBanner + 1}/{processedBanners.length}</span>
+                    <button onClick={() => setCurrentBanner((p) => (p + 1) % processedBanners.length)} className="p-2 rounded-lg bg-secondary border border-border hover:bg-muted transition-colors"><ChevronRight className="w-4 h-4" /></button>
                   </div>
                 )}
               </div>
             </div>
-            {heroBanners[currentBanner]?.image_style !== "cover" && heroBanners[currentBanner]?.image_url && (
+            {processedBanners[currentBanner]?.image_style !== "cover" && processedBanners[currentBanner]?.image_url && (
               <div className="flex-1 w-full max-w-md relative">
                 <div className="absolute inset-0 bg-gradient-to-t from-background/50 to-transparent z-10 rounded-xl" />
                 <div
                   className="rounded-xl overflow-hidden shadow-2xl border border-border aspect-video bg-cover bg-center"
-                  style={{ backgroundImage: `url('${heroBanners[currentBanner].image_url}')` }}
+                  style={{ backgroundImage: `url('${processedBanners[currentBanner].image_url}')` }}
                 />
               </div>
             )}
