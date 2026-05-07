@@ -70,7 +70,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [detailProduct, setDetailProduct] = useState<Product | null>(null);
-  const { data: proxyProductsData, isLoading: proxyLoading, error: proxyError } = useProxyBRProducts();
+   const { data: proxyProductsData, isLoading: proxyLoading, error: proxyError } = useProxyBRProducts();
+   
   const [proxyQuantities, setProxyQuantities] = useState<Record<string, number>>({});
   const [proxyImages, setProxyImages] = useState<ProxyImage[]>([]);
   const [heroBanners, setHeroBanners] = useState<HeroBanner[]>([]);
@@ -131,11 +132,14 @@ export default function Dashboard() {
     return () => document.removeEventListener("visibilitychange", handleVisibility);
   }, [fetchData]);
 
-  const rawProxyProductsData: any[] = (Array.isArray(proxyProductsData?.data)
-    ? proxyProductsData.data
-    : Array.isArray(proxyProductsData)
-    ? proxyProductsData
-    : []).filter((p: any) => !inactiveProxyExternalIds.has(String(p.id)));
+   const rawProxyProductsData = useMemo(() => {
+     const data = (Array.isArray(proxyProductsData?.data)
+       ? proxyProductsData.data
+       : Array.isArray(proxyProductsData)
+       ? proxyProductsData
+       : []);
+     return data.filter((p: any) => !inactiveProxyExternalIds.has(String(p.id)));
+   }, [proxyProductsData, inactiveProxyExternalIds]);
 
   const getProxyQty = (id: string) => proxyQuantities[id] || 1;
   const updateProxyQty = (id: string, delta: number) => {
@@ -153,12 +157,12 @@ export default function Dashboard() {
   };
 
   const isProxyFilter = activeFilter === "Proxy";
-  const showProxiesInAll = activeFilter === "Todos" && !proxyLoading && !proxyError && rawProxyProductsData.length > 0;
+   const showProxiesInAll = activeFilter === "Todos" && !proxyLoading && rawProxyProductsData.length > 0;
 
   const proxyCategoryId = categories.find((c) => c.slug === "proxy")?.id;
   const localProxyProducts = proxyCategoryId ? products.filter((p) => p.category_id === proxyCategoryId) : [];
   const normalizeStr = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
-  const getLocalProxyData = (apiProduct: any) => {
+   const getLocalProxyData = useCallback((apiProduct: any) => {
     const apiId = String(apiProduct.id);
     const apiName = apiProduct.name || "";
     // Match by external_id first, then fallback to normalized name
@@ -172,12 +176,12 @@ export default function Dashboard() {
     } else {
       console.log(`[ProxyMatch] API id=${apiId} name="${apiName}" → NO MATCH. localProxyProducts:`, localProxyProducts.map(p => ({ id: p.id, ext: p.external_id, name: p.name })));
     }
-    return match || null;
-  };
+     return match || null;
+   }, [localProxyProducts]);
 
   const filters = ["Todos", ...categories.filter((c) => c.slug !== "proxy").map((c) => c.name), "Proxy"];
 
-  const proxyProducts = [...rawProxyProductsData].sort((a, b) => {
+   const proxyProducts = useMemo(() => [...rawProxyProductsData].sort((a, b) => {
     const localA = getLocalProxyData(a);
     const localB = getLocalProxyData(b);
     
@@ -190,14 +194,14 @@ export default function Dashboard() {
       return p.price || 0;
     };
     
-    return getCheapestPrice(a, localA) - getCheapestPrice(b, localB);
-  });
+     return getCheapestPrice(a, localA) - getCheapestPrice(b, localB);
+   }), [rawProxyProductsData, getLocalProxyData]);
 
   // Local proxy products should show alongside regular products and in Proxy filter
-  const isLocalProxy = (p: Product) => p.category_id === proxyCategoryId;
-  const proxyfbflixLocalProducts = products.filter(isLocalProxy);
+   const isLocalProxy = useCallback((p: Product) => p.category_id === proxyCategoryId, [proxyCategoryId]);
+   const proxyfbflixLocalProducts = useMemo(() => products.filter(isLocalProxy), [products, isLocalProxy]);
 
-  const apiProxyAsProducts: Product[] = proxyProducts.map((p: any) => {
+   const apiProxyAsProducts: Product[] = useMemo(() => proxyProducts.map((p: any) => {
     const local = getLocalProxyData(p);
     const variants = p.variant || p.variants?.data || p.variants || [];
     const cheapestVariant = variants.length
@@ -221,14 +225,16 @@ export default function Dashboard() {
       tags: local?.tags || null,
       slug: local?.slug || null,
     };
-  }).filter(p => p.available);
+     }).filter(p => p.available), [proxyProducts, getLocalProxyData, proxyCategoryId, proxyImages]);
 
-  const matchedLocalIds = new Set(apiProxyAsProducts.map(p => p.id));
-  const standaloneLocalProxies = proxyfbflixLocalProducts.filter(p => !matchedLocalIds.has(p.id));
+   const standaloneLocalProxies = useMemo(() => {
+     const matchedLocalIds = new Set(apiProxyAsProducts.map(p => p.id));
+     return proxyfbflixLocalProducts.filter(p => !matchedLocalIds.has(p.id));
+   }, [apiProxyAsProducts, proxyfbflixLocalProducts]);
   
   const proxyPurposes = ["Todos", "Facebook", "Youtube", "Tiktok", "Apostas", "Google Ads", "Contingência", "Web Scraping"];
 
-  const proxyAsProducts = [...apiProxyAsProducts, ...standaloneLocalProxies]
+   const proxyAsProducts = useMemo(() => [...apiProxyAsProducts, ...standaloneLocalProxies]
     .filter(p => {
       if (activePurpose === "Todos") return true;
       const tags = p.tags || [];
@@ -238,34 +244,36 @@ export default function Dashboard() {
         return searchTerms.some(term => nt.includes(term));
       });
     })
-    .sort((a, b) => (a.price || 0) - (b.price || 0));
+     .sort((a, b) => (a.price || 0) - (b.price || 0)), [apiProxyAsProducts, standaloneLocalProxies, activePurpose]);
 
   console.log("[Loja] proxyCategoryId:", proxyCategoryId, "proxyfbflixLocalProducts:", proxyfbflixLocalProducts.map(p => p.name), "total products:", products.length);
 
-  const filteredProducts = activeFilter === "Todos"
-    ? products.filter((p) => p.category_id !== proxyCategoryId || isLocalProxy(p))
-    : products.filter((p) => {
-        const cat = categories.find((c) => c.name === activeFilter);
-        return cat && p.category_id === cat.id;
-      });
+   const filteredProducts = useMemo(() => (activeFilter === "Todos"
+     ? products.filter((p) => p.category_id !== proxyCategoryId || isLocalProxy(p))
+     : products.filter((p) => {
+         const cat = categories.find((c) => c.name === activeFilter);
+         return cat && p.category_id === cat.id;
+       })), [activeFilter, products, proxyCategoryId, categories, isLocalProxy]);
 
   // Priority order for "Todos": Perfis → BM → Proxy → rest
-  const getCategoryPriority = (product: Product) => {
+   const getCategoryPriority = useCallback((product: Product) => {
     const cat = categories.find((c) => c.id === product.category_id);
     const slug = cat?.slug?.toLowerCase() || "";
     const name = cat?.name?.toLowerCase() || "";
     if (slug === "perfis" || name === "perfis") return 0;
     if (slug === "bm" || name === "bm") return 1;
     if (slug === "proxy" || name === "proxy") return 2;
-    return 3;
-  };
+     return 3;
+   }, [categories]);
 
-  const allProducts = (activeFilter === "Todos"
-    ? (showProxiesInAll ? [...filteredProducts, ...proxyAsProducts] : filteredProducts)
-    : activeFilter === "Proxy"
-    ? proxyAsProducts
-    : filteredProducts
-  ).sort((a, b) => {
+   const allProducts = useMemo(() => {
+     const base = (activeFilter === "Todos"
+       ? (showProxiesInAll ? [...filteredProducts, ...proxyAsProducts] : filteredProducts)
+       : activeFilter === "Proxy"
+       ? proxyAsProducts
+       : filteredProducts
+     );
+     return [...base].sort((a, b) => {
     // First by priority if in "Todos"
     if (activeFilter === "Todos") {
       const priorityA = getCategoryPriority(a);
@@ -276,8 +284,9 @@ export default function Dashboard() {
     }
     
     // Then by price ascending (cheapest first)
-    return (a.price || 0) - (b.price || 0);
-  });
+       return (a.price || 0) - (b.price || 0);
+     });
+   }, [activeFilter, showProxiesInAll, filteredProducts, proxyAsProducts, getCategoryPriority]);
 
   const getQuantity = (id: string) => quantities[id] || 1;
 
