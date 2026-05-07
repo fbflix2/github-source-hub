@@ -321,11 +321,14 @@ export default function AdminCobrancaAvulsa() {
     }
   };
 
-  const getPublicLink = (code: string) => `${window.location.origin}/pagar/${code}`;
-
-  const getDirectLink = (code: string) => {
-    return `${window.location.origin}/pagar/${code}`;
+  const getPublicLink = (code: string) => {
+    const origin = window.location.origin.includes('supabase.co') || window.location.origin.includes('lovable')
+      ? 'https://fbflix.com.br'
+      : window.location.origin;
+    return `${origin}/pagar/${code}`;
   };
+
+  const getDirectLink = getPublicLink;
 
   const copyLink = (code: string) => {
     navigator.clipboard.writeText(getPublicLink(code));
