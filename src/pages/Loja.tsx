@@ -168,7 +168,7 @@ export default function Dashboard() {
   const proxyCategoryId = categories.find((c) => c.slug === "proxy")?.id;
   const localProxyProducts = proxyCategoryId ? products.filter((p) => p.category_id === proxyCategoryId) : [];
   const normalizeStr = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
-  const getLocalProxyData = (apiProduct: any) => {
+   const getLocalProxyData = useCallback((apiProduct: any) => {
     const apiId = String(apiProduct.id);
     const apiName = apiProduct.name || "";
     // Match by external_id first, then fallback to normalized name
@@ -182,12 +182,12 @@ export default function Dashboard() {
     } else {
       console.log(`[ProxyMatch] API id=${apiId} name="${apiName}" → NO MATCH. localProxyProducts:`, localProxyProducts.map(p => ({ id: p.id, ext: p.external_id, name: p.name })));
     }
-    return match || null;
-  };
+     return match || null;
+   }, [localProxyProducts]);
 
   const filters = ["Todos", ...categories.filter((c) => c.slug !== "proxy").map((c) => c.name), "Proxy"];
 
-  const proxyProducts = [...rawProxyProductsData].sort((a, b) => {
+   const proxyProducts = useMemo(() => [...rawProxyProductsData].sort((a, b) => {
     const localA = getLocalProxyData(a);
     const localB = getLocalProxyData(b);
     
@@ -200,14 +200,14 @@ export default function Dashboard() {
       return p.price || 0;
     };
     
-    return getCheapestPrice(a, localA) - getCheapestPrice(b, localB);
-  });
+     return getCheapestPrice(a, localA) - getCheapestPrice(b, localB);
+   }), [rawProxyProductsData, getLocalProxyData]);
 
   // Local proxy products should show alongside regular products and in Proxy filter
   const isLocalProxy = (p: Product) => p.category_id === proxyCategoryId;
   const proxyfbflixLocalProducts = products.filter(isLocalProxy);
 
-  const apiProxyAsProducts: Product[] = proxyProducts.map((p: any) => {
+   const apiProxyAsProducts: Product[] = useMemo(() => proxyProducts.map((p: any) => {
     const local = getLocalProxyData(p);
     const variants = p.variant || p.variants?.data || p.variants || [];
     const cheapestVariant = variants.length
@@ -231,7 +231,7 @@ export default function Dashboard() {
       tags: local?.tags || null,
       slug: local?.slug || null,
     };
-  }).filter(p => p.available);
+     }).filter(p => p.available), [proxyProducts, getLocalProxyData, proxyCategoryId, proxyImages]);
 
   const matchedLocalIds = new Set(apiProxyAsProducts.map(p => p.id));
   const standaloneLocalProxies = proxyfbflixLocalProducts.filter(p => !matchedLocalIds.has(p.id));
