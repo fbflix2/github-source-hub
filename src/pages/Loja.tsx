@@ -204,8 +204,8 @@ export default function Dashboard() {
    }), [rawProxyProductsData, getLocalProxyData]);
 
   // Local proxy products should show alongside regular products and in Proxy filter
-  const isLocalProxy = (p: Product) => p.category_id === proxyCategoryId;
-  const proxyfbflixLocalProducts = products.filter(isLocalProxy);
+   const isLocalProxy = useCallback((p: Product) => p.category_id === proxyCategoryId, [proxyCategoryId]);
+   const proxyfbflixLocalProducts = useMemo(() => products.filter(isLocalProxy), [products, isLocalProxy]);
 
    const apiProxyAsProducts: Product[] = useMemo(() => proxyProducts.map((p: any) => {
     const local = getLocalProxyData(p);
@@ -233,8 +233,10 @@ export default function Dashboard() {
     };
      }).filter(p => p.available), [proxyProducts, getLocalProxyData, proxyCategoryId, proxyImages]);
 
-  const matchedLocalIds = new Set(apiProxyAsProducts.map(p => p.id));
-  const standaloneLocalProxies = proxyfbflixLocalProducts.filter(p => !matchedLocalIds.has(p.id));
+   const standaloneLocalProxies = useMemo(() => {
+     const matchedLocalIds = new Set(apiProxyAsProducts.map(p => p.id));
+     return proxyfbflixLocalProducts.filter(p => !matchedLocalIds.has(p.id));
+   }, [apiProxyAsProducts, proxyfbflixLocalProducts]);
   
   const proxyPurposes = ["Todos", "Facebook", "Youtube", "Tiktok", "Apostas", "Google Ads", "Contingência", "Web Scraping"];
 
