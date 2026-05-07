@@ -659,8 +659,12 @@ function ContactsTab({ logs }: { logs?: any[] }) {
        }));
        return callWapi("send-bulk", { template_id: selectedTemplateId, recipients });
      },
-    onSuccess: () => {
-      toast.success("Campanha iniciada com sucesso!");
+    onSuccess: (data) => {
+      if (data.already_sent > 0) {
+        toast.success(`Campanha iniciada! ${data.queued} mensagens agendadas. ${data.already_sent} contatos foram ignorados pois já receberam este template.`);
+      } else {
+        toast.success("Campanha iniciada com sucesso!");
+      }
        setShowCampaignModal(false);
        setSelectedLabelFilter("all");
       qc.invalidateQueries({ queryKey: ["whatsapp-logs"] });
