@@ -40,7 +40,11 @@ export default function InvoiceDetailModal({ invoice, open, onOpenChange }: Prop
   const isPaid = invoice.status === "paid";
   const isPending = !isPaid && !isExpired;
 
-  const shareLink = `${window.location.origin}/pagar/${invoice.code}`;
+  const origin = window.location.origin.includes('supabase.co') || window.location.origin.includes('lovable')
+    ? 'https://fbflix.com.br'
+    : window.location.origin;
+
+  const shareLink = `${origin}/pagar/${invoice.code}`;
   const directLink = shareLink;
 
   const whatsappMessage = `Olá ${invoice.client_name || ""}! 👋\n\nVocê tem uma cobrança pendente na *FBFLIX*:\n\n📦 *${invoice.product_name}*\n💰 *R$ ${Number(invoice.amount).toFixed(2)}*\n${invoice.description ? `📝 ${invoice.description}\n` : ""}\nAcesse o link abaixo para efetuar o pagamento via PIX:\n🔗 ${shareLink}\n\nQualquer dúvida, estamos à disposição! ✅`;
