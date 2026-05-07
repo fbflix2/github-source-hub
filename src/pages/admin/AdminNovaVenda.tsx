@@ -979,5 +979,91 @@ export default function AdminNovaVenda() {
         </div>
       </div>
     </div>
+
+    <Dialog open={!!stockItemModal} onOpenChange={(v) => !v && setStockItemModal(null)}>
+      <DialogContent className="max-w-2xl bg-gray-900 border-white/10 text-white">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Package className="size-5 text-primary" />
+            Escolher Perfil Específico
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4 py-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-gray-500" />
+            <Input
+              placeholder="Buscar por nome ou ID do perfil..."
+              value={stockSearch}
+              onChange={(e) => setStockItemSearch(e.target.value)}
+              className="pl-10 bg-black/40 border-white/10 text-white"
+            />
+          </div>
+
+          <div className="rounded-md border border-white/10 overflow-hidden">
+            <Table>
+              <TableHeader className="bg-white/5">
+                <TableRow className="hover:bg-transparent border-white/10">
+                  <TableHead className="text-gray-400 text-xs">Perfil</TableHead>
+                  <TableHead className="text-gray-400 text-xs">Identificação</TableHead>
+                  <TableHead className="text-gray-400 text-xs">Status</TableHead>
+                  <TableHead className="text-right text-gray-400 text-xs">Ação</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loadingStock ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center py-8">
+                      <Loader2 className="size-6 animate-spin text-primary mx-auto" />
+                    </TableCell>
+                  </TableRow>
+                ) : stockItems.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center py-8 text-gray-500 text-sm">
+                      Nenhum perfil disponível encontrado.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  stockItems.map((si) => (
+                    <TableRow key={si.id} className="hover:bg-white/5 border-white/5">
+                      <TableCell className="text-sm font-medium py-3">{si.name}</TableCell>
+                      <TableCell className="text-xs text-gray-400 font-mono py-3">{si.identification || "—"}</TableCell>
+                      <TableCell className="py-3">
+                        <Badge variant="outline" className="text-[10px] uppercase border-purple-500/30 text-purple-400 bg-purple-500/5">
+                          Disponível
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right py-3">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            if (stockItemModal) {
+                              updateItem(stockItemModal.itemId, "manualStockItemId", si.id);
+                              updateItem(stockItemModal.itemId, "manualStockItemName", si.name);
+                              setStockItemModal(null);
+                              setStockItemSearch("");
+                            }
+                          }}
+                          className="text-primary hover:text-primary hover:bg-primary/10 h-7 px-3 text-xs"
+                        >
+                          Selecionar
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setStockItemModal(null)} className="border-white/10 text-gray-400 hover:text-white">
+            Fechar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
