@@ -381,10 +381,22 @@ export default function AdminGestaoBMs() {
     setSearchingGlobal(true);
     setGlobalSearchResults([]);
     try {
-      const q = globalSearchTerm.trim();
-      const { data, error } = await supabase.rpc("search_stock_items_global", { q });
-      if (error) throw error;
-      setGlobalSearchResults(data || []);
+      const code = getLast4Digits(globalSearchTerm.trim());
+      if (code.length !== 4) {
+        setGlobalSearchResults([]);
+        return;
+      }
+
+      const candidates = await fetchBmSearchCandidates();
+      const matches = candidates
+        .filter((item) => itemMatchesBmCode(item, code))
+        .sort((a, b) => {
+          if (a.type === "bm" && b.type !== "bm") return -1;
+          if (a.type !== "bm" && b.type === "bm") return 1;
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        });
+
+      setGlobalSearchResults(matches);
     } catch (err: any) {
       toast.error("Erro na busca global: " + err.message);
       console.error("Global search error:", err);
@@ -399,40 +411,20 @@ export default function AdminGestaoBMs() {
 
     setSearchingBulk(true);
     try {
+      const candidates = await fetchBmSearchCandidates();
       const results = [];
       for (const originalId of lines) {
-        const last4 = originalId.length >= 4 ? originalId.slice(-4) : originalId;
-        const { data, error } = await supabase.rpc("search_stock_items_global", { q: last4 });
-        
-        if (error) {
+        const last4 = getLast4Digits(originalId);
+        if (last4.length !== 4) {
           results.push({ id: originalId, found: false });
-        } else if (data && data.length > 0) {
-           // Filter the results to prioritize BMs, but also include profiles that contain the BM ID in their data
-           const matches = data.filter((item: any) => {
-             const type = item.type?.toString().toLowerCase();
-             const jsonData = JSON.stringify(item.data || {}).toLowerCase();
-             const identification = (item.identification || "").toString();
-             const idLink = (item.identification_link || "").toString();
-             
-             // Check if the item itself is a BM that matches the last 4 digits
-             if (type === "bm") {
-               return identification.includes(last4) || 
-                      idLink.includes(last4) || 
-                      jsonData.includes(last4.toLowerCase());
-             }
-             
-             // Check if it's a profile (or other item) that has this BM code in its metadata/data
-             // The user mentioned "bmNames" in the data structure
-             return jsonData.includes(last4.toLowerCase());
-           });
+          continue;
+        }
 
-           if (matches.length > 0) {
-             // Prioritize exact BM matches if they exist, otherwise show the profile that contains it
-             const bestMatch = matches.find((m: any) => m.type?.toLowerCase() === "bm") || matches[0];
-             results.push({ id: originalId, found: true, item: bestMatch });
-           } else {
-             results.push({ id: originalId, found: false });
-           }
+        const matches = candidates.filter((item) => itemMatchesBmCode(item, last4));
+
+        if (matches.length > 0) {
+          const bestMatch = matches.find((m: any) => m.type?.toLowerCase() === "bm") || matches[0];
+          results.push({ id: originalId, found: true, item: bestMatch });
         } else {
           results.push({ id: originalId, found: false });
         }
