@@ -1612,7 +1612,50 @@ Deno.serve(async (req) => {
         }
       }
 
-      if (!maintNewProxy) throw new Error("Não foi possível trocar o proxy. Sem disponibilidade.");
+      if (!maintNewProxy) {
+        // If specific city requested but not found, collect available cities
+        try {
+          const allCurrentProxies: any[] = [];
+          let page = 1;
+          while (true) {
+            const listResp = await webFetch(`/proxy/list/?mode=direct&page=${page}&page_size=250`, WEBSHARE_API_KEY);
+            const listData = await listResp.json().catch(() => ({}));
+            if (!listResp.ok) break;
+            if (listData.results?.length) allCurrentProxies.push(...listData.results);
+            if (!listData.next) break;
+            page++;
+          }
+
+          const { data: allActiveSubs } = await supabaseAdmin
+            .from("subscriptions")
+            .select("raw_data")
+            .eq("type", "proxyfbflix")
+            .in("status", ["active", "expiring"]);
+
+          const assignedIds = new Set<string>();
+          for (const s of (allActiveSubs || [])) {
+            const r = (s.raw_data || {}) as Record<string, any>;
+            if (r.fbflix_proxy_id) assignedIds.add(r.fbflix_proxy_id);
+          }
+
+          const availableCities = new Set<string>();
+          allCurrentProxies.forEach(p => {
+            if (p.valid && !assignedIds.has(p.id) && p.city_name) {
+              availableCities.add(p.city_name);
+            }
+          });
+
+          const cityList = Array.from(availableCities).sort().join(", ");
+          if (maintTargetCity) {
+            throw new Error(`Sem disponibilidade em ${maintTargetCity}. Cidades disponíveis: ${cityList || "Nenhuma"}`);
+          } else {
+            throw new Error(`Não foi possível trocar o proxy. Sem disponibilidade geral. Cidades com estoque: ${cityList || "Nenhuma"}`);
+          }
+        } catch (e: any) {
+          if (e.message.includes("disponibilidade")) throw e;
+          throw new Error("Não foi possível trocar o proxy. Sem disponibilidade.");
+        }
+      }
 
       // Update subscription WITHOUT deducting quota
       // Also update the proxies.data array (used by ProxyBR-type subscriptions on client side)
