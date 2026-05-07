@@ -311,16 +311,28 @@ export default function AdminGestaoBMs() {
     if (!globalSearchTerm.trim()) return;
     setSearchingGlobal(true);
     try {
-      // More robust search using text search on the whole data column and other fields
+      // PostgREST doesn't support casting inside .or() like data::text.
+      // We'll search in the most likely fields and JSON paths.
       const { data, error } = await supabase
         .from("stock_items")
         .select("id, name, type, identification, status, data, created_at")
-        .or(`name.ilike.%${globalSearchTerm}%,identification.ilike.%${globalSearchTerm}%,data::text.ilike.%${globalSearchTerm}%`)
+        .or(`name.ilike.%${globalSearchTerm}%,identification.ilike.%${globalSearchTerm}%,data->>bmNames.ilike.%${globalSearchTerm}%,data->>rawBmInput.ilike.%${globalSearchTerm}%,data->>nomeProduto.ilike.%${globalSearchTerm}%`)
         .limit(20);
 
-      if (error) throw error;
-      
-      setGlobalSearchResults(data || []);
+      if (error) {
+        console.error("Erro na busca global (or):", error);
+        // Fallback to a simpler search if the complex OR fails
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from("stock_items")
+          .select("id, name, type, identification, status, data, created_at")
+          .or(`name.ilike.%${globalSearchTerm}%,identification.ilike.%${globalSearchTerm}%`)
+          .limit(20);
+        
+        if (fallbackError) throw fallbackError;
+        setGlobalSearchResults(fallbackData || []);
+      } else {
+        setGlobalSearchResults(data || []);
+      }
     } catch (err: any) {
       toast.error("Erro na busca global: " + err.message);
     } finally {
