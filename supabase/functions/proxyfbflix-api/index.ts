@@ -1116,10 +1116,8 @@ Deno.serve(async (req) => {
       if (!subscription_id) throw new Error("subscription_id é obrigatório");
 
       // 1. Get subscription. The UI can pass either the UUID id or the public code (WS-...).
-      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(subscription_id);
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(subscription_id);
       let subQuery = supabaseAdmin
-        .from("subscriptions")
-        .select("*")
         .from("subscriptions")
         .select("*")
         .in("type", ["proxyfbflix", "proxyfbflix_rotating", "webshare", "webshare_rotating"])
@@ -1435,12 +1433,21 @@ Deno.serve(async (req) => {
         if (!isAdminMaint) throw new Error("Acesso negado: apenas administradores");
       }
 
-      const { data: maintSub, error: maintSubErr } = await supabaseAdmin
+      // Admin maintenance exchange: UUID check
+      const isMaintUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(maintSubId);
+      let maintQuery = supabaseAdmin
         .from("subscriptions")
         .select("*")
-        .eq("id", maintSubId)
-        .in("type", ["webshare", "webshare_rotating", "proxybr"])
-        .single();
+        .in("type", ["proxyfbflix", "proxyfbflix_rotating", "webshare", "webshare_rotating", "proxybr"]);
+      
+      if (isMaintUuid) {
+        maintQuery = maintQuery.eq("id", maintSubId);
+      } else {
+        maintQuery = maintQuery.eq("name", maintSubId);
+      }
+      
+      const { data: maintSubRows, error: maintSubErr } = await maintQuery.limit(1);
+      const maintSub = maintSubRows?.[0];
 
       if (maintSubErr || !maintSub) throw new Error("Assinatura não encontrada");
 
