@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -25,6 +25,17 @@ import {
   Clock
 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 const paymentMethods = [
   { value: "", label: "Selecione..." },
@@ -67,6 +78,12 @@ export default function AdminNovaVenda() {
   ]);
   const [products, setProducts] = useState<any[]>([]);
   const [submitting, setSubmitting] = useState(false);
+
+  // Stock item selection state
+  const [stockItemModal, setStockItemModal] = useState<{ itemId: string; productId: string } | null>(null);
+  const [stockSearch, setStockItemSearch] = useState("");
+  const [stockItems, setStockItems] = useState<any[]>([]);
+  const [loadingStock, setLoadingStock] = useState(false);
   
   // PIX generation state
   const [pixQrCode, setPixQrCode] = useState<string | null>(null);
