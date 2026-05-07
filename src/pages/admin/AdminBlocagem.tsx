@@ -1217,6 +1217,7 @@ function FolderItemsView({ folder, onBack }: { folder: Folder; onBack: () => voi
   const [editingItem, setEditingItem] = useState<StockItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [expandedBatches, setExpandedBatches] = useState<Set<string>>(new Set());
+  const [filterType, setFilterType] = useState<string>("all");
 
   const fetchItems = async () => {
     setLoading(true);
