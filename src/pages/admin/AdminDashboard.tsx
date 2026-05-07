@@ -250,20 +250,11 @@ export default function AdminDashboard() {
           created_at: wt.created_at as string,
         }));
 
-      // Balance deposits (completed payments with no order_id)
-      const balanceDeposits = fetchedCompletedPayments
-        .filter((p: any) => !p.order_id)
-        .map((p: any) => ({
-          total: Number(p.amount) || 0,
-          created_at: p.created_at as string,
-        }));
-
-      const allRevenue = [
-        ...completedOrds.map(o => ({ total: o.total || 0, created_at: o.created_at, product_name: null })),
-        ...paidInvoices,
-        ...walletPurchases.map(w => ({ ...w, product_name: null })),
-        ...balanceDeposits.map(b => ({ ...b, product_name: null })),
-      ];
+       const allRevenue = [
+         ...completedOrds.map(o => ({ total: o.total || 0, created_at: o.created_at, product_name: null })),
+         ...paidInvoices,
+         ...walletPurchases.map(w => ({ ...w, product_name: null })),
+       ];
 
       // Calculate today's revenue
       const todayStart = new Date();
