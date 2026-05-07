@@ -72,12 +72,6 @@ export default function Dashboard() {
   const [detailProduct, setDetailProduct] = useState<Product | null>(null);
    const { data: proxyProductsData, isLoading: proxyLoading, error: proxyError } = useProxyBRProducts();
    
-   // Debug log to catch errors in Loja
-   useEffect(() => {
-     if (proxyError) {
-       console.error("[Loja] proxyError detected:", proxyError);
-     }
-   }, [proxyError]);
   const [proxyQuantities, setProxyQuantities] = useState<Record<string, number>>({});
   const [proxyImages, setProxyImages] = useState<ProxyImage[]>([]);
   const [heroBanners, setHeroBanners] = useState<HeroBanner[]>([]);
