@@ -592,9 +592,21 @@ function ContactsTab({ logs }: { logs?: any[] }) {
      setEditingLabelId(null);
    };
  
-   const filteredCount = selectedLabelFilter === "all" 
-     ? addedContacts.length 
-     : addedContacts.filter(c => c.label === selectedLabelFilter).length;
+    const filteredContactsForCampaign = useMemo(() => {
+      return selectedLabelFilter === "all" 
+        ? addedContacts 
+        : addedContacts.filter(c => c.label === selectedLabelFilter);
+    }, [addedContacts, selectedLabelFilter]);
+
+    const filteredCount = filteredContactsForCampaign.length;
+
+    const alreadySentInThisTemplateCount = useMemo(() => {
+      if (!selectedTemplateId || !logs) return 0;
+      return filteredContactsForCampaign.filter(c => {
+        const phone = c.id.split("@")[0];
+        return logs.some(l => l.template_id === selectedTemplateId && l.phone === phone && l.status !== "failed");
+      }).length;
+    }, [selectedTemplateId, logs, filteredContactsForCampaign]);
 
   const handleSearch = async () => {
     if (!search.trim()) return;
