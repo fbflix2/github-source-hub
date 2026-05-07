@@ -137,6 +137,71 @@ const isBmTrackingRow = (item: any) => {
   return combined.includes("business.facebook.com") || /\bbm\b/.test(combined) || combined.includes("business manager");
 };
 
+const getLast4Digits = (value: string) => {
+  const digits = value.replace(/\D/g, "");
+  return digits.length >= 4 ? digits.slice(-4) : digits;
+};
+
+const hasBmCode = (value: unknown, code: string) => {
+  const digitGroups = String(value ?? "").match(/\d{4,}/g) || [];
+  return digitGroups.some((group) => group.slice(-4) === code);
+};
+
+const getItemBmNames = (item: any): string[] => {
+  const bmNames = item?.data?.bmNames;
+  if (Array.isArray(bmNames)) return bmNames.map((bm) => String(bm).trim()).filter(Boolean);
+  if (typeof bmNames === "string") return bmNames.split(/[\n,;|]+/).map((bm) => bm.trim()).filter(Boolean);
+  return [];
+};
+
+const isEmailLikeStockItem = (item: any) => {
+  const names = [item?.name, item?.data?.nomeProduto].filter(Boolean).map((name) => String(name).toLowerCase().trim());
+  return names.some((name) => name === "email" || name === "e-mail" || name.includes("e-mail"));
+};
+
+const itemMatchesBmCode = (item: any, code: string) => {
+  const type = item?.type?.toString().toLowerCase().trim();
+  if (!code || code.length !== 4) return false;
+
+  if (type === "perfil") {
+    return getItemBmNames(item).some((bmName) => hasBmCode(bmName, code));
+  }
+
+  if (type === "bm" && !isEmailLikeStockItem(item)) {
+    return [
+      item?.identification,
+      item?.identification_link,
+      item?.name,
+      item?.data?.rawBmInput,
+      item?.data?.nomeProduto,
+    ].some((field) => hasBmCode(field, code));
+  }
+
+  return false;
+};
+
+const fetchBmSearchCandidates = async () => {
+  const all: any[] = [];
+  const pageSize = 1000;
+  let from = 0;
+
+  while (true) {
+    const { data, error } = await supabase
+      .from("stock_items")
+      .select("id, name, type, identification, identification_link, status, data, created_at")
+      .is("deleted_at", null)
+      .in("type", ["perfil", "bm"])
+      .range(from, from + pageSize - 1);
+
+    if (error) throw error;
+    all.push(...(data || []));
+    if (!data || data.length < pageSize) break;
+    from += pageSize;
+  }
+
+  return all;
+};
+
 export default function AdminGestaoBMs() {
   const { isAdmin, loading: authLoading } = useAdminAuth();
   const [items, setItems] = useState<BmTracking[]>([]);
