@@ -1403,13 +1403,30 @@ function FolderItemsView({ folder, onBack }: { folder: Folder; onBack: () => voi
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <button onClick={onBack} className="w-10 h-10 rounded-full bg-secondary/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
-          <ArrowLeft className="h-5 w-5" />
-        </button>
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">{folder.name}</h1>
-          <p className="text-sm text-muted-foreground">{items.length} itens nesta pasta</p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <button onClick={onBack} className="w-10 h-10 rounded-full bg-secondary/50 flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">{folder.name}</h1>
+            <p className="text-sm text-muted-foreground">{items.length} itens nesta pasta</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-zinc-500 font-medium uppercase tracking-wider">Filtrar:</span>
+          <Select value={filterType} onValueChange={setFilterType}>
+            <SelectTrigger className="w-[180px] bg-black/30 border-white/5 text-white h-9">
+              <SelectValue placeholder="Tipo de item" />
+            </SelectTrigger>
+            <SelectContent className="bg-zinc-900 border-white/10">
+              <SelectItem value="all">Todos os tipos</SelectItem>
+              {itemTypes.map(type => (
+                <SelectItem key={type.id} value={type.id}>{type.title}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
