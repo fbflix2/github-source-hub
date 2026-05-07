@@ -1352,25 +1352,24 @@ function FolderItemsView({ folder, onBack }: { folder: Folder; onBack: () => voi
     toast.success(`${batchItems.length} perfis exportados em .txt`);
   };
 
-  const typeIcon = (type: string) => {
-    if (type === "bm") return <Building2 className="h-4 w-4" />;
-    if (type === "perfil") return <CircleUser className="h-4 w-4" />;
+  const typeIcon = (typeId: string) => {
+    const type = itemTypes.find(t => t.id === typeId);
+    if (type) return <type.icon className="h-4 w-4" />;
     return <PackageOpen className="h-4 w-4" />;
   };
 
   const typeColor = (type: string) => {
     if (type === "bm") return "bg-primary/20 text-primary";
     if (type === "perfil") return "bg-cyan-500/20 text-cyan-400";
+    if (type === "pagina") return "bg-purple-500/20 text-purple-400";
+    if (type === "combo") return "bg-blue-500/20 text-blue-400";
     if (type === "personalizado") return "bg-amber-500/20 text-amber-400";
-    return "bg-purple-500/20 text-purple-400";
+    return "bg-zinc-500/20 text-zinc-400";
   };
 
-  const typeLabel = (type: string) => {
-    if (type === "bm") return "Business Manager";
-    if (type === "perfil") return "Perfil";
-    if (type === "pagina") return "Página";
-    if (type === "personalizado") return "Personalizado";
-    return type;
+  const typeLabel = (typeId: string) => {
+    const type = itemTypes.find(t => t.id === typeId);
+    return type ? type.title : typeId;
   };
 
   const renderItem = (item: StockItem) => (
