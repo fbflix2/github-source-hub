@@ -7,9 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { 
-  Search, ExternalLink, Bell, CheckCircle, Clock, AlertTriangle, 
-   ShieldAlert, Plus, Loader2, RefreshCw, Shield, Filter, X, Type, Search
+import {
+  Search, ExternalLink, Bell, CheckCircle, Clock, AlertTriangle,
+  ShieldAlert, Plus, Loader2, RefreshCw, Shield, Filter, X, Type
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription
