@@ -342,25 +342,29 @@ export default function AdminGestaoBMs() {
         if (error) {
           results.push({ id: originalId, found: false });
         } else if (data && data.length > 0) {
-           // Filter the results to only include BM types and items that match the ID or last 4 digits
-           const bmMatches = data.filter((item: any) => {
-             const isBm = item.type?.toString().toLowerCase() === "bm";
-             if (!isBm) return false;
-
-             // Check if identification, identification_link or JSON data contains the ID
+           // Filter the results to prioritize BMs, but also include profiles that contain the BM ID in their data
+           const matches = data.filter((item: any) => {
+             const type = item.type?.toString().toLowerCase();
+             const jsonData = JSON.stringify(item.data || {}).toLowerCase();
              const identification = (item.identification || "").toString();
              const idLink = (item.identification_link || "").toString();
-             const jsonData = JSON.stringify(item.data || {}).toLowerCase();
              
-             // Check if identification, identification_link or JSON data contains the last 4 digits
-             // As requested, the focus is strictly on the last 4 digits as the BM code
-             return identification.includes(last4) || 
-                    idLink.includes(last4) || 
-                    jsonData.includes(last4.toLowerCase());
+             // Check if the item itself is a BM that matches the last 4 digits
+             if (type === "bm") {
+               return identification.includes(last4) || 
+                      idLink.includes(last4) || 
+                      jsonData.includes(last4.toLowerCase());
+             }
+             
+             // Check if it's a profile (or other item) that has this BM code in its metadata/data
+             // The user mentioned "bmNames" in the data structure
+             return jsonData.includes(last4.toLowerCase());
            });
 
-           if (bmMatches.length > 0) {
-             results.push({ id: originalId, found: true, item: bmMatches[0] });
+           if (matches.length > 0) {
+             // Prioritize exact BM matches if they exist, otherwise show the profile that contains it
+             const bestMatch = matches.find((m: any) => m.type?.toLowerCase() === "bm") || matches[0];
+             results.push({ id: originalId, found: true, item: bestMatch });
            } else {
              results.push({ id: originalId, found: false });
            }
