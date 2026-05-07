@@ -600,9 +600,23 @@ export default function AdminGestaoBMs() {
                 onClick={() => setBulkSearchOpen(true)}
                 className="h-8 px-3 text-xs"
               >
-                <ListFilter className="size-3.5 mr-1.5" /> Busca em Massa
-              </Button>
-            </div>
+               <ListFilter className="size-3.5 mr-1.5" /> Busca em Massa
+             </Button>
+           </div>
+           <div className="flex bg-muted/50 rounded-md p-0.5 border border-border">
+             <Button 
+               variant="ghost" 
+               size="sm" 
+               onClick={() => {
+                 setGlobalSearchTerm("");
+                 setGlobalSearchResults([]);
+                 setGlobalSearchOpen(true);
+               }}
+               className="h-8 px-3 text-xs"
+             >
+               <Search className="size-3.5 mr-1.5" /> Global (Tudo)
+             </Button>
+           </div>
             <Button size="sm" onClick={() => setAddOpen(true)}>
               <Plus className="size-4 mr-1" /> Adicionar BM
             </Button>
