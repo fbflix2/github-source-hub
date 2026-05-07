@@ -462,7 +462,7 @@ export default function AdminGestaoBMs() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por cliente, BM, produto..."
+                placeholder="Buscar por BM, produto..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 className="pl-9"
@@ -482,17 +482,6 @@ export default function AdminGestaoBMs() {
                 <SelectItem value="pending_setup">Aguardando Config</SelectItem>
                 <SelectItem value="expired">Expirados</SelectItem>
                 <SelectItem value="removed">Removidos</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={clientFilter || "all"} onValueChange={v => setClientFilter(v === "all" ? "" : v)}>
-              <SelectTrigger className="w-full sm:w-[200px]">
-                <SelectValue placeholder="Filtrar por Cliente" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os Clientes</SelectItem>
-                {uniqueClients.map(name => (
-                  <SelectItem key={name} value={name}>{name}</SelectItem>
-                ))}
               </SelectContent>
             </Select>
             {hasActiveFilters && (
