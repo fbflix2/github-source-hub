@@ -8,8 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import {
-  Search, ExternalLink, Bell, CheckCircle, Clock, AlertTriangle,
-  ShieldAlert, Plus, Loader2, RefreshCw, Shield, Filter, X, Type
+  Search, ExternalLink, Bell, CheckCircle, Clock, AlertTriangle, ListFilter,
+  ShieldAlert, Plus, Loader2, RefreshCw, Shield, Filter, X, Type, Upload
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription
@@ -153,6 +153,10 @@ export default function AdminGestaoBMs() {
   const [globalSearchTerm, setGlobalSearchTerm] = useState("");
   const [globalSearchResults, setGlobalSearchResults] = useState<any[]>([]);
   const [searchingGlobal, setSearchingGlobal] = useState(false);
+  const [bulkSearchOpen, setBulkSearchOpen] = useState(false);
+  const [bulkSearchList, setBulkSearchList] = useState("");
+  const [bulkSearchResults, setBulkSearchResults] = useState<{ id: string; found: boolean; item?: any }[]>([]);
+  const [searchingBulk, setSearchingBulk] = useState(false);
   const [protectOpen, setProtectOpen] = useState(false);
   const [protectItem, setProtectItem] = useState<BmTracking | null>(null);
   const [protectForm, setProtectForm] = useState({ bmName: "", bmLink: "" });
@@ -313,8 +317,6 @@ export default function AdminGestaoBMs() {
     setGlobalSearchResults([]);
     try {
       const q = globalSearchTerm.trim();
-      // RPC server-side: busca em name, identification, identification_link
-      // e em qualquer lugar do JSON `data` (bmNames, bmLinks, raw, etc.)
       const { data, error } = await supabase.rpc("search_stock_items_global", { q });
       if (error) throw error;
       setGlobalSearchResults(data || []);
@@ -323,6 +325,38 @@ export default function AdminGestaoBMs() {
       console.error("Global search error:", err);
     } finally {
       setSearchingGlobal(false);
+    }
+  };
+
+  const handleBulkSearch = async () => {
+    const lines = bulkSearchList.split(/[\n,;]+/).map(l => l.trim()).filter(Boolean);
+    if (lines.length === 0) return;
+
+    setSearchingBulk(true);
+    try {
+      const results = [];
+      for (const originalId of lines) {
+        const last4 = originalId.length >= 4 ? originalId.slice(-4) : originalId;
+        const { data, error } = await supabase.rpc("search_stock_items_global", { q: last4 });
+        
+        if (error) {
+          results.push({ id: originalId, found: false });
+        } else if (data && data.length > 0) {
+          const match = data.find((item: any) => 
+            (item.identification && item.identification.includes(originalId)) ||
+            (item.data?.bmIds && Array.isArray(item.data.bmIds) && item.data.bmIds.some((id: string) => id.includes(originalId))) ||
+            (JSON.stringify(item.data).includes(originalId))
+          ) || data[0];
+          results.push({ id: originalId, found: true, item: match });
+        } else {
+          results.push({ id: originalId, found: false });
+        }
+      }
+      setBulkSearchResults(results);
+    } catch (err: any) {
+      toast.error("Erro na busca em massa: " + err.message);
+    } finally {
+      setSearchingBulk(false);
     }
   };
 
@@ -473,13 +507,110 @@ export default function AdminGestaoBMs() {
             <RefreshCw className="size-4 mr-1" /> Atualizar
           </Button>
           <div className="flex gap-2">
-            <Button variant="secondary" size="sm" onClick={() => setGlobalSearchOpen(true)}>
-              <Search className="size-4 mr-1" /> Busca Global
-            </Button>
+            <div className="flex bg-muted/50 rounded-md p-0.5 border border-border">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setGlobalSearchOpen(true)}
+                className="h-8 px-3 text-xs"
+              >
+                <Search className="size-3.5 mr-1.5" /> Busca Global
+              </Button>
+              <div className="w-px h-4 bg-border self-center" />
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setBulkSearchOpen(true)}
+                className="h-8 px-3 text-xs"
+              >
+                <ListFilter className="size-3.5 mr-1.5" /> Busca em Massa
+              </Button>
+            </div>
             <Button size="sm" onClick={() => setAddOpen(true)}>
               <Plus className="size-4 mr-1" /> Adicionar BM
             </Button>
           </div>
+      {/* Bulk Search Dialog */}
+      <Dialog open={bulkSearchOpen} onOpenChange={setBulkSearchOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ListFilter className="size-5 text-primary" />
+              Busca em Massa por ID de BM
+            </DialogTitle>
+            <DialogDescription>
+              Cole uma lista de IDs de BM (um por linha ou separados por vírgula). Buscaremos pelos últimos 4 dígitos.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 overflow-hidden">
+            <div className="flex flex-col gap-3">
+              <Label className="text-xs text-muted-foreground uppercase font-bold">Lista de IDs</Label>
+              <Textarea
+                placeholder="Ex:&#10;27648576038076903&#10;27648576038076951&#10;..."
+                value={bulkSearchList}
+                onChange={(e) => setBulkSearchList(e.target.value)}
+                className="flex-1 min-h-[200px] font-mono text-sm"
+              />
+              <Button onClick={handleBulkSearch} disabled={searchingBulk || !bulkSearchList.trim()} className="w-full">
+                {searchingBulk ? <Loader2 className="size-4 animate-spin mr-2" /> : <Upload className="size-4 mr-2" />}
+                Verificar IDs no Sistema
+              </Button>
+            </div>
+
+            <div className="flex flex-col gap-3 overflow-hidden">
+              <Label className="text-xs text-muted-foreground uppercase font-bold flex justify-between">
+                Resultado da Verificação
+                {bulkSearchResults.length > 0 && (
+                  <span className="text-primary normal-case font-normal">
+                    {bulkSearchResults.filter(r => r.found).length} de {bulkSearchResults.length} encontrados
+                  </span>
+                )}
+              </Label>
+              <div className="flex-1 overflow-y-auto border rounded-md bg-muted/20 p-2 space-y-2">
+                {bulkSearchResults.length === 0 && !searchingBulk && (
+                  <div className="h-full flex items-center justify-center text-muted-foreground italic text-sm text-center px-4">
+                    Aguardando lista para verificação...
+                  </div>
+                )}
+                
+                {bulkSearchResults.map((res, i) => (
+                  <div key={i} className={`p-2 rounded border flex items-center justify-between gap-3 text-sm ${
+                    res.found ? "bg-green-500/5 border-green-500/20" : "bg-red-500/5 border-red-500/20"
+                  }`}>
+                    <div className="min-w-0">
+                      <p className="font-mono text-xs truncate" title={res.id}>{res.id}</p>
+                      {res.found && (
+                        <p className="text-[10px] text-green-400 font-medium truncate">
+                          {res.item?.name || "Item sem nome"} ({res.item?.type})
+                        </p>
+                      )}
+                    </div>
+                    <div className="shrink-0">
+                      {res.found ? (
+                        <div className="flex items-center gap-1.5">
+                          <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-[10px] py-0 h-5">NO SISTEMA</Badge>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-6 w-6" 
+                            onClick={() => window.open(`/admin/estoque?search=${res.item.id}`, "_blank")}
+                          >
+                            <ExternalLink className="size-3" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <Badge variant="outline" className="text-red-400 border-red-500/30 text-[10px] py-0 h-5">NÃO ENCONTRADO</Badge>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Global Search Dialog */}
       <Dialog open={globalSearchOpen} onOpenChange={setGlobalSearchOpen}>
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto bg-card border-border">
