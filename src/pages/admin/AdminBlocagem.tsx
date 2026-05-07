@@ -1432,10 +1432,12 @@ function FolderItemsView({ folder, onBack }: { folder: Folder; onBack: () => voi
 
       {loading ? (
         <div className="flex justify-center py-12"><Loader2 className="size-8 text-primary animate-spin" /></div>
-      ) : items.length === 0 ? (
+      ) : filteredItems.length === 0 ? (
         <div className="glass-panel rounded-xl p-12 text-center">
           <FolderOpen className="h-12 w-12 text-muted-foreground/40 mx-auto mb-3" />
-          <p className="text-muted-foreground">Pasta vazia. Adicione itens usando os botões de tipo acima.</p>
+          <p className="text-muted-foreground">
+            {items.length === 0 ? "Pasta vazia. Adicione itens usando os botões de tipo acima." : "Nenhum item encontrado com este filtro."}
+          </p>
         </div>
       ) : hasAccfaceItems && accfaceBatches ? (
         <div className="space-y-4">
@@ -1534,7 +1536,7 @@ function FolderItemsView({ folder, onBack }: { folder: Folder; onBack: () => voi
         </div>
       ) : (
         <div className="glass-panel rounded-xl divide-y divide-border/50">
-          {items.map(renderItem)}
+          {filteredItems.map(renderItem)}
         </div>
       )}
 
