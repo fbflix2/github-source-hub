@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { 
   Search, ExternalLink, Bell, CheckCircle, Clock, AlertTriangle, 
-  ShieldAlert, Plus, Loader2, RefreshCw, Shield, Filter, X, Type
+   ShieldAlert, Plus, Loader2, RefreshCw, Shield, Filter, X, Type, Search
 } from "lucide-react";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription
@@ -149,6 +149,10 @@ export default function AdminGestaoBMs() {
     client_name: "", client_email: "", product_name: "", bm_link: "", sale_price: "", notes: ""
   });
   const [adding, setAdding] = useState(false);
+  const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
+  const [globalSearchTerm, setGlobalSearchTerm] = useState("");
+  const [globalSearchResults, setGlobalSearchResults] = useState<any[]>([]);
+  const [searchingGlobal, setSearchingGlobal] = useState(false);
   const [protectOpen, setProtectOpen] = useState(false);
   const [protectItem, setProtectItem] = useState<BmTracking | null>(null);
   const [protectForm, setProtectForm] = useState({ bmName: "", bmLink: "" });
@@ -303,6 +307,27 @@ export default function AdminGestaoBMs() {
     };
   }, [items]);
 
+  const handleGlobalSearch = async () => {
+    if (!globalSearchTerm.trim()) return;
+    setSearchingGlobal(true);
+    try {
+      // More robust search using text search on the whole data column and other fields
+      const { data, error } = await supabase
+        .from("stock_items")
+        .select("id, name, type, identification, status, data, created_at")
+        .or(`name.ilike.%${globalSearchTerm}%,identification.ilike.%${globalSearchTerm}%,data::text.ilike.%${globalSearchTerm}%`)
+        .limit(20);
+
+      if (error) throw error;
+      
+      setGlobalSearchResults(data || []);
+    } catch (err: any) {
+      toast.error("Erro na busca global: " + err.message);
+    } finally {
+      setSearchingGlobal(false);
+    }
+  };
+
   const handleOpenProtect = (item: BmTracking) => {
     const bmNameFromLink = getBmDisplayName(item);
     setProtectItem(item);
@@ -449,9 +474,85 @@ export default function AdminGestaoBMs() {
           <Button variant="outline" size="sm" onClick={fetchItems}>
             <RefreshCw className="size-4 mr-1" /> Atualizar
           </Button>
-          <Button size="sm" onClick={() => setAddOpen(true)}>
-            <Plus className="size-4 mr-1" /> Adicionar BM
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="secondary" size="sm" onClick={() => setGlobalSearchOpen(true)}>
+              <Search className="size-4 mr-1" /> Busca Global
+            </Button>
+            <Button size="sm" onClick={() => setAddOpen(true)}>
+              <Plus className="size-4 mr-1" /> Adicionar BM
+            </Button>
+          </div>
+      {/* Global Search Dialog */}
+      <Dialog open={globalSearchOpen} onOpenChange={setGlobalSearchOpen}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Search className="size-5 text-primary" />
+              Rastreamento Global de BMs
+            </DialogTitle>
+            <DialogDescription>
+              Pesquise por ID da BM ou termos em qualquer item do sistema (perfis, BMs avulsas, etc).
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex gap-2 mb-4">
+            <Input
+              placeholder="Digite o ID da BM ou nome..."
+              value={globalSearchTerm}
+              onChange={(e) => setGlobalSearchTerm(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleGlobalSearch()}
+              className="flex-1"
+            />
+            <Button onClick={handleGlobalSearch} disabled={searchingGlobal}>
+              {searchingGlobal ? <Loader2 className="size-4 animate-spin" /> : "Buscar"}
+            </Button>
+          </div>
+
+          <div className="space-y-3">
+            {globalSearchResults.length === 0 && !searchingGlobal && globalSearchTerm && (
+              <div className="text-center py-8 text-muted-foreground italic">
+                Nenhum item encontrado com este termo.
+              </div>
+            )}
+
+            {globalSearchResults.map((item) => (
+              <div key={item.id} className="p-4 rounded-lg border border-border bg-muted/30 hover:bg-muted/50 transition-colors">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="capitalize">
+                        {item.type === "perfil" ? "Perfil" : item.type}
+                      </Badge>
+                      <span className="font-semibold text-foreground">{item.name || "Sem nome"}</span>
+                    </div>
+                    <div className="text-sm text-muted-foreground flex flex-col gap-1">
+                      <span><strong>ID/Identificação:</strong> {item.identification || "—"}</span>
+                      {item.data?.bmNames && (
+                        <span><strong>BMs no item:</strong> {Array.isArray(item.data.bmNames) ? item.data.bmNames.join(", ") : item.data.bmNames}</span>
+                      )}
+                      <span><strong>Status:</strong> {item.status}</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[10px] text-muted-foreground mb-2">
+                      Criado em: {new Date(item.created_at).toLocaleDateString("pt-BR")}
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => window.open(`/admin/estoque?search=${item.id}`, "_blank")}
+                      className="text-[11px] h-7"
+                    >
+                      Ver no Estoque
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
         </div>
       </div>
 
