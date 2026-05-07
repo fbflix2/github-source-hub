@@ -43,7 +43,144 @@ const itemTypes = [
   { id: "perfil", icon: CircleUser, title: "Perfil", subtitle: "CONTAS DE USUÁRIO" },
   { id: "pagina", icon: Flag, title: "Página", subtitle: "PÁGINAS DO FACEBOOK" },
   { id: "combo", icon: PackageOpen, title: "Combo ou Kit", subtitle: "PACOTE DE PRODUTOS" },
+  { id: "personalizado", icon: FolderPlus, title: "Personalizado", subtitle: "E-MAIL, TIKTOK, INSTA..." },
 ];
+
+// ─── Personalizado Form ───
+function PersonalizadoForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => void; onSaved: () => void }) {
+  const DRAFT_KEY = "personalizado_form_draft";
+  const [saving, setSaving] = useState(false);
+  const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
+  const [productDefaults, setProductDefaults] = useState<{ id: string; name: string; tags: string[] }[]>([]);
+  const [productImages, setProductImages] = useState<{ id: string; name: string; url: string }[]>([]);
+  const [showImagePicker, setShowImagePicker] = useState(false);
+
+  const emptyForm = {
+    nomeItem: "",
+    identificacao: "",
+    linkAcesso: "",
+    dadosAdicionais: "",
+    descricao: "",
+    preco: "",
+    categoryId: "",
+    tags: [] as string[],
+    nomeProduto: "",
+    fotoUrl: ""
+  };
+
+  const [formData, setFormData] = useState(() => {
+    try {
+      const saved = localStorage.getItem(DRAFT_KEY);
+      if (saved) return { ...emptyForm, ...JSON.parse(saved) };
+    } catch {}
+    return emptyForm;
+  });
+
+  useEffect(() => {
+    supabase.from("product_categories").select("id, name").then(({ data }) => setCategories(data ?? []));
+    supabase.from("product_images").select("id, name, url").eq("category", "personalizado").order("created_at", { ascending: false }).then(({ data }) => setProductImages(data ?? []));
+    supabase.from("product_defaults").select("id, name, tags, price, description, default_image").order("name").then(({ data }) => setProductDefaults((data as any) ?? []));
+  }, []);
+
+  const handleSave = async () => {
+    if (!formData.nomeItem) {
+      toast.error("Preencha o nome do item");
+      return;
+    }
+    setSaving(true);
+    const insertData: any = {
+      name: formData.nomeItem,
+      type: "personalizado",
+      identification: formData.identificacao || null,
+      identification_link: formData.linkAcesso || null,
+      status: "aguardando",
+      folder: folder.id,
+      data: {
+        dadosAdicionais: formData.dadosAdicionais,
+        descricao: formData.descricao,
+        foto_url: formData.fotoUrl || undefined,
+        preco: formData.preco ? parseFloat(formData.preco) : undefined,
+        categoryId: formData.categoryId || undefined,
+        tags: formData.tags.length > 0 ? formData.tags : undefined,
+        nomeProduto: formData.nomeProduto || undefined,
+      },
+    };
+    const { error } = await supabase.from("stock_items").insert(insertData);
+    setSaving(false);
+    if (error) { toast.error("Erro ao salvar: " + error.message); return; }
+    localStorage.removeItem(DRAFT_KEY);
+    toast.success("Item personalizado adicionado!");
+    onSaved();
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <button onClick={onBack} className="w-8 h-8 rounded-full bg-zinc-800/50 flex items-center justify-center text-zinc-400 hover:text-white transition-colors">
+          <ArrowLeft className="h-4 w-4" />
+        </button>
+        <div>
+          <h1 className="text-xl font-bold text-white">Novo Item Personalizado</h1>
+          <p className="text-xs text-zinc-400">Pasta: {folder.name}</p>
+        </div>
+      </div>
+
+      <div className="glass-panel rounded-xl p-5 space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-4">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-zinc-400">Nome do Item</label>
+              <Input placeholder="Ex: Conta TikTok @user, Email Secundário..." value={formData.nomeItem} onChange={e => setFormData({ ...formData, nomeItem: e.target.value })} className="bg-black/30 border-white/5 text-white" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-zinc-400">Identificação (Login/ID)</label>
+              <Input placeholder="Ex: login@email.com" value={formData.identificacao} onChange={e => setFormData({ ...formData, identificacao: e.target.value })} className="bg-black/30 border-white/5 text-white" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-zinc-400">Link de Acesso (URL)</label>
+              <Input placeholder="https://..." value={formData.linkAcesso} onChange={e => setFormData({ ...formData, linkAcesso: e.target.value })} className="bg-black/30 border-white/5 text-white" />
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-zinc-400">Dados Adicionais (Senha, Token, etc)</label>
+              <Textarea placeholder="Cole aqui os dados sensíveis..." value={formData.dadosAdicionais} onChange={e => setFormData({ ...formData, dadosAdicionais: e.target.value })} className="bg-black/30 border-white/5 text-white min-h-[100px]" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium text-zinc-400">Preço (R$)</label>
+                <Input type="number" step="0.01" value={formData.preco} onChange={e => setFormData({ ...formData, preco: e.target.value })} className="bg-black/30 border-white/5 text-white" />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium text-zinc-400">Categoria</label>
+                <Select value={formData.categoryId} onValueChange={v => setFormData({ ...formData, categoryId: v })}>
+                  <SelectTrigger className="bg-black/30 border-white/5 text-white"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                  <SelectContent>
+                    {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-medium text-zinc-400">Descrição do Produto</label>
+          <Textarea placeholder="Descrição que aparecerá no site..." value={formData.descricao} onChange={e => setFormData({ ...formData, descricao: e.target.value })} className="bg-black/30 border-white/5 text-white" />
+        </div>
+
+        <div className="flex justify-end gap-3 mt-4">
+          <Button variant="ghost" onClick={onBack} className="text-zinc-400 hover:text-white">Cancelar</Button>
+          <Button onClick={handleSave} disabled={saving} className="bg-primary hover:bg-primary/90 text-white min-w-[120px]">
+            {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Save className="h-4 w-4 mr-2" />}
+            Salvar Item
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ─── Perfil Form ───
 function PerfilForm({ folder, onBack, onSaved }: { folder: Folder; onBack: () => void; onSaved: () => void }) {
@@ -1123,6 +1260,7 @@ function FolderItemsView({ folder, onBack }: { folder: Folder; onBack: () => voi
   const typeColor = (type: string) => {
     if (type === "bm") return "bg-primary/20 text-primary";
     if (type === "perfil") return "bg-cyan-500/20 text-cyan-400";
+    if (type === "personalizado") return "bg-amber-500/20 text-amber-400";
     return "bg-purple-500/20 text-purple-400";
   };
 
@@ -1130,6 +1268,7 @@ function FolderItemsView({ folder, onBack }: { folder: Folder; onBack: () => voi
     if (type === "bm") return "Business Manager";
     if (type === "perfil") return "Perfil";
     if (type === "pagina") return "Página";
+    if (type === "personalizado") return "Personalizado";
     return type;
   };
 
@@ -1441,6 +1580,15 @@ export default function AdminBlocagem() {
     return (
       <div className="py-6">
         <ComboForm folder={selectedFolder} onBack={() => setSelectedType(null)} onSaved={() => { setSelectedType(null); fetchFolders(); }} />
+      </div>
+    );
+  }
+
+  // Show Personalizado form
+  if (selectedType === "personalizado" && selectedFolder) {
+    return (
+      <div className="py-6">
+        <PersonalizadoForm folder={selectedFolder} onBack={() => setSelectedType(null)} onSaved={() => { setSelectedType(null); fetchFolders(); }} />
       </div>
     );
   }
