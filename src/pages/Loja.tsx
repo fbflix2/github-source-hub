@@ -201,6 +201,8 @@ export default function Dashboard() {
    const isLocalProxy = useCallback((p: Product) => p.category_id === proxyCategoryId, [proxyCategoryId]);
    const proxyfbflixLocalProducts = useMemo(() => products.filter(isLocalProxy), [products, isLocalProxy]);
 
+    const fbPurposes = ["Todos", "Black", "White", "Marketplace"];
+
     const apiProxyAsProducts: Product[] = useMemo(() => {
       const base = proxyProducts.map((p: any) => {
         const local = getLocalProxyData(p);
@@ -241,10 +243,6 @@ export default function Dashboard() {
      return proxyfbflixLocalProducts.filter(p => !matchedLocalIds.has(p.id));
    }, [apiProxyAsProducts, proxyfbflixLocalProducts]);
   
-  const proxyPurposes = ["Todos", "Youtube", "Tiktok", "Apostas", "Google Ads", "Contingência", "Web Scraping"];
-  const fbPurposes = ["Todos", "Black", "White", "Marketplace"];
-
-  const allPurposes = useMemo(() => {
     if (activeFilter === "Proxy") return proxyPurposes;
     if (activeFilter === "Perfis" || activeFilter === "Bm") return fbPurposes;
     return ["Todos"];
