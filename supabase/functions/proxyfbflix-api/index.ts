@@ -703,6 +703,7 @@ Deno.serve(async (req) => {
           // Webshare API supports filtering by country_code
           let url = `/proxy/list/?mode=direct&page=${page}&page_size=250`;
           if (country) url += `&country_code=${country}`;
+          console.log(`[webshare-api] Fetching proxies from: ${url}`);
 
           const resp = await webFetch(url, WEBSHARE_API_KEY);
           const data = await resp.json();
@@ -713,6 +714,7 @@ Deno.serve(async (req) => {
 
           for (const p of results) {
             if (!p.valid || assignedIds.has(String(p.id))) continue;
+            if (country && p.country_code !== country) continue;
             
             if (normalizedTargetCity) {
               const pCity = (p.city_name || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "");
@@ -738,7 +740,7 @@ Deno.serve(async (req) => {
       if (available.length < qty) {
         if (target_city && target_city !== "all" && target_city !== "all_us") {
           console.log(`[webshare-api] No availability for city "${target_city}", falling back to country "${targetCountryCode || 'BR'}"`);
-          available = await findAvailableProxies(targetCountryCode, "all");
+          available = await findAvailableProxies(targetCountryCode || "BR", "all");
         }
         
         if (available.length < qty) {
