@@ -167,6 +167,22 @@ function buildStaticWebshareRawData(proxy: any, currentRaw: Record<string, any> 
   };
 }
 
+async function getAssignedProxyIds(supabase: any) {
+  const { data: existSubs } = await supabase
+    .from("subscriptions")
+    .select("raw_data")
+    .in("type", ["proxyfbflix", "webshare", "proxyfbflix_rotating", "webshare_rotating"])
+    .in("status", ["active", "expiring"]);
+
+  const assignedIds = new Set<string>();
+  for (const s of (existSubs || [])) {
+    const raw = (s.raw_data || {}) as Record<string, any>;
+    const pid = raw.fbflix_proxy_id || raw.webshare_proxy_id;
+    if (pid) assignedIds.add(String(pid));
+  }
+  return assignedIds;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
