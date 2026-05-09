@@ -720,7 +720,16 @@ Deno.serve(async (req) => {
       let available = await findAvailableProxies(targetCountryCode, target_city);
 
       
-      if (available.length < qty) throw new Error(`Apenas ${available.length} proxy(s) disponível(is), mas ${qty} foram solicitados.`);
+      if (available.length < qty) {
+        if (target_city && target_city !== "all" && target_city !== "all_us") {
+          console.log(`[webshare-api] No availability for city "${target_city}", falling back to country "${targetCountryCode || 'BR'}"`);
+          available = await findAvailableProxies(targetCountryCode, "all");
+        }
+        
+        if (available.length < qty) {
+          throw new Error(`Apenas ${available.length} proxy(s) disponível(is), mas ${qty} foram solicitados.`);
+        }
+      }
 
       // 5. Allocate qty proxies
       const allocatedProxies = available.slice(0, qty);
@@ -978,6 +987,48 @@ Deno.serve(async (req) => {
         total: allProxies.length,
         assigned: assignedIds.size,
         available: available.length,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ========== GET AVAILABLE LOCATIONS ==========
+    // Returns a list of cities/countries that have available (unassigned) proxies
+    if (action === "get-available-locations") {
+      const allProxies = await fetchAllWebshareProxies(WEBSHARE_API_KEY, "direct");
+
+      // Get assigned IDs
+      const { data: existingSubs } = await supabaseAdmin
+        .from("subscriptions")
+        .select("raw_data")
+        .eq("type", "proxyfbflix")
+        .in("status", ["active", "expiring"]);
+
+      const assignedIds = new Set<string>();
+      for (const sub of (existingSubs || [])) {
+        const raw = (sub.raw_data || {}) as Record<string, any>;
+        if (raw.fbflix_proxy_id) assignedIds.add(String(raw.fbflix_proxy_id));
+      }
+
+      const available = allProxies.filter(p => p.valid && !assignedIds.has(String(p.id)));
+      
+      const locations: Record<string, Set<string>> = {};
+      available.forEach(p => {
+        const country = p.country_code?.toUpperCase() || "UNKNOWN";
+        if (!locations[country]) locations[country] = new Set();
+        if (p.city_name) locations[country].add(p.city_name);
+      });
+
+      // Convert Sets to Arrays for JSON response
+      const result: Record<string, string[]> = {};
+      for (const country in locations) {
+        result[country] = Array.from(locations[country]).sort();
+      }
+
+      return new Response(JSON.stringify({
+        success: true,
+        locations: result,
+        total_available: available.length
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

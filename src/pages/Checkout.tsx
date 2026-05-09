@@ -229,6 +229,41 @@ export default function Checkout() {
   const [targetCity, setTargetCity] = useState("all");
   const [showCityOnCheckout, setShowCityOnCheckout] = useState(false);
 
+  const [availableCities, setAvailableCities] = useState<string[]>([]);
+  const [availableUSCities, setAvailableUSCities] = useState<string[]>([]);
+
+  useEffect(() => {
+    const fetchAvailableLocations = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke("proxyfbflix-api", {
+          body: { action: "get-available-locations" }
+        });
+        if (error) throw error;
+        if (data?.success && data?.locations) {
+          setAvailableCities(data.locations["BR"] || []);
+          setAvailableUSCities(data.locations["US"] || []);
+        }
+      } catch (err) {
+        console.error("Error fetching available locations:", err);
+      }
+    };
+    if (showCityOnCheckout) {
+      fetchAvailableLocations();
+    }
+  }, [showCityOnCheckout]);
+
+  const dynamicCities = useMemo(() => {
+    const brCities = availableCities.map(city => ({ value: city, label: `🇧🇷 ${city}` }));
+    const usCities = availableUSCities.map(city => ({ value: city, label: `🇺🇸 ${city}` }));
+    
+    return [
+      { value: "all", label: "🇧🇷 Aleatório (Brasil)" },
+      ...brCities,
+      { value: "all_us", label: "🇺🇸 Aleatório (EUA)" },
+      ...usCities
+    ];
+  }, [availableCities, availableUSCities]);
+
   const CITIES = [
     { value: "all", label: "🇧🇷 Aleatório (Brasil)" },
     { value: "São Paulo", label: "🇧🇷 São Paulo" },
@@ -1411,22 +1446,39 @@ export default function Checkout() {
                    </span>
                    <p className="text-[10px] text-muted-foreground">Escolha a cidade desejada ou deixe aleatório para o sistema definir</p>
                  </div>
-                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                   {CITIES.map((city) => (
-                     <button
-                       key={city.value}
-                       onClick={() => setTargetCity(city.value)}
-                       type="button"
-                       className={`px-3 py-2 rounded-lg border text-[11px] font-medium transition-all ${
-                         targetCity === city.value
-                           ? "bg-primary/10 border-primary text-primary"
-                           : "bg-surface/50 border-border text-muted-foreground hover:border-primary/30"
-                       }`}
-                     >
-                       {city.label}
-                     </button>
-                   ))}
-                 </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[200px] overflow-y-auto pr-1 custom-scrollbar">
+                    {dynamicCities.length > 2 ? (
+                      dynamicCities.map((city) => (
+                        <button
+                          key={city.value}
+                          onClick={() => setTargetCity(city.value)}
+                          type="button"
+                          className={`px-3 py-2 rounded-lg border text-[11px] font-medium transition-all ${
+                            targetCity === city.value
+                              ? "bg-primary/10 border-primary text-primary"
+                              : "bg-surface/50 border-border text-muted-foreground hover:border-primary/30"
+                          }`}
+                        >
+                          {city.label}
+                        </button>
+                      ))
+                    ) : (
+                      CITIES.map((city) => (
+                        <button
+                          key={city.value}
+                          onClick={() => setTargetCity(city.value)}
+                          type="button"
+                          className={`px-3 py-2 rounded-lg border text-[11px] font-medium transition-all ${
+                            targetCity === city.value
+                              ? "bg-primary/10 border-primary text-primary"
+                              : "bg-surface/50 border-border text-muted-foreground hover:border-primary/30"
+                          }`}
+                        >
+                          {city.label}
+                        </button>
+                      ))
+                    )}
+                  </div>
                </div>
              )}
 
