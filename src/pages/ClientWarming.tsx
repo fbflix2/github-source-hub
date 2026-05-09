@@ -97,6 +97,8 @@ export default function ClientWarming() {
   const [showAddProfile, setShowAddProfile] = useState(false);
   const [newProfileCode, setNewProfileCode] = useState("");
   const [newProfileName, setNewProfileName] = useState("");
+  const [availablePipelines, setAvailablePipelines] = useState<any[]>([]);
+  const [selectedPipelineIdForAdd, setSelectedPipelineIdForAdd] = useState<string>("");
   const [creating, setCreating] = useState(false);
   const [trackConfig, setTrackConfig] = useState<Record<string, { title: string; description: string }[]> | null>(null);
   const [showHistory, setShowHistory] = useState(false);
@@ -135,21 +137,25 @@ export default function ClientWarming() {
     setLoading(false);
   }, [selectedProfileId]);
 
-  const loadTrackConfig = useCallback(async () => {
+  const loadAvailablePipelines = useCallback(async () => {
     const { data } = await supabase
-      .from("site_settings")
-      .select("value")
-      .eq("key", "client_warming_track_config")
-      .maybeSingle();
-    if (data?.value) {
-      try { setTrackConfig(JSON.parse(data.value)); } catch { }
+      .from("pipeline_templates")
+      .select("*")
+      .eq("is_active", true)
+      .order("position", { ascending: true });
+    
+    if (data) {
+      setAvailablePipelines(data);
+      if (data.length > 0) {
+        setSelectedPipelineIdForAdd(data[0].id);
+      }
     }
   }, []);
 
   useEffect(() => {
     fetchData();
-    loadTrackConfig();
-  }, [fetchData, loadTrackConfig]);
+    loadAvailablePipelines();
+  }, [fetchData, loadAvailablePipelines]);
 
   const DEFAULT_TASKS: { title: string; description: string }[] = [
     { title: "Completar perfil", description: "Preencha foto, capa e bio do perfil." },
@@ -162,20 +168,34 @@ export default function ClientWarming() {
   ];
 
   const handleCreateProfile = async () => {
-    if (!newProfileCode.trim()) { toast.error("Informe o código do perfil"); return; }
+    if (!newProfileCode.trim()) { toast.error("Informe o código"); return; }
+    if (!selectedPipelineIdForAdd) { toast.error("Selecione uma esteira"); return; }
+    
     setCreating(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
-      const tasksToUse = trackConfig?.["7_days"] || DEFAULT_TASKS;
+
+      const pipeline = availablePipelines.find(p => p.id === selectedPipelineIdForAdd);
+      if (!pipeline) throw new Error("Esteira não encontrada");
+
+      const tasksToUse = Array.isArray(pipeline.tasks) ? pipeline.tasks : DEFAULT_TASKS;
+
       const { data: profile, error } = await supabase
         .from("client_warming_profiles")
-        .insert({ user_id: user.id, profile_code: newProfileCode.trim(), profile_name: newProfileName.trim() || null, track_type: "7_days", track_days: 7 })
+        .insert({ 
+          user_id: user.id, 
+          profile_code: newProfileCode.trim(), 
+          profile_name: newProfileName.trim() || null, 
+          track_type: pipeline.name, 
+          track_days: pipeline.track_days 
+        })
         .select().single();
+
       if (error) throw error;
       const taskInserts = tasksToUse.map((t, idx) => ({ profile_id: profile.id, day_number: idx + 1, title: t.title, description: t.description }));
       await supabase.from("client_warming_tasks").insert(taskInserts);
-      toast.success("Perfil adicionado à esteira!");
+      toast.success("Item adicionado à esteira!");
       setNewProfileCode(""); setNewProfileName(""); setShowAddProfile(false); setSelectedProfileId(profile.id);
       fetchData();
     } catch (err: any) { toast.error(err.message || "Erro ao criar perfil"); }
@@ -277,8 +297,22 @@ export default function ClientWarming() {
             <div className="space-y-3 pb-1">
             {showAddProfile && (
               <div className="p-4 rounded-xl bg-card border border-border space-y-3">
-                <Input placeholder="Código do perfil (ex: 1234)" value={newProfileCode} onChange={e => setNewProfileCode(e.target.value)} />
+                <Input placeholder="Código (ex: 1234)" value={newProfileCode} onChange={e => setNewProfileCode(e.target.value)} />
                 <Input placeholder="Nome (opcional)" value={newProfileName} onChange={e => setNewProfileName(e.target.value)} />
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase px-1">Escolha a Esteira</label>
+                  <select
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    value={selectedPipelineIdForAdd}
+                    onChange={e => setSelectedPipelineIdForAdd(e.target.value)}
+                  >
+                    {availablePipelines.map(p => (
+                      <option key={p.id} value={p.id}>
+                        {p.category === "bm" ? "BM" : "Perfil"} - {p.name} ({p.track_days} dias)
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 <div className="flex gap-2">
                   <Button size="sm" onClick={handleCreateProfile} disabled={creating} className="flex-1">{creating ? "Criando..." : "Adicionar"}</Button>
                   <Button size="sm" variant="ghost" onClick={() => setShowAddProfile(false)}>Cancelar</Button>
