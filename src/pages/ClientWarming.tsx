@@ -377,7 +377,7 @@ export default function ClientWarming() {
                       </h3>
                       <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1"><Calendar className="size-3" /> Início: {new Date(selectedProfile.start_date).toLocaleDateString("pt-BR")}</span>
-                        <span>Trilha: 7 dias</span>
+                        <span>Trilha: {selectedProfile.track_type}</span>
                         <span>Dia atual: {Math.min(currentDay, selectedProfile.track_days)}/{selectedProfile.track_days}</span>
                       </div>
                     </div>
