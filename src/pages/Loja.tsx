@@ -232,7 +232,14 @@ export default function Dashboard() {
      return proxyfbflixLocalProducts.filter(p => !matchedLocalIds.has(p.id));
    }, [apiProxyAsProducts, proxyfbflixLocalProducts]);
   
-  const allPurposes = ["Todos", "Facebook", "Youtube", "Tiktok", "Apostas", "Google Ads", "Contingência", "Web Scraping", "Black", "White", "Marketplace"];
+  const proxyPurposes = ["Todos", "Youtube", "Tiktok", "Apostas", "Google Ads", "Contingência", "Web Scraping"];
+  const fbPurposes = ["Todos", "Black", "White", "Marketplace"];
+
+  const allPurposes = useMemo(() => {
+    if (activeFilter === "Proxy") return proxyPurposes;
+    if (activeFilter === "Perfis" || activeFilter === "Bm") return fbPurposes;
+    return ["Todos"];
+  }, [activeFilter]);
 
    const proxyAsProducts = useMemo(() => [...apiProxyAsProducts, ...standaloneLocalProxies]
     .filter(p => {
@@ -448,7 +455,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {(activeFilter === "Proxy" || activeFilter === "Perfis" || activeFilter === "Bm") && (
+        {(activeFilter === "Proxy" || activeFilter === "Perfis" || activeFilter === "Bm") && allPurposes.length > 1 && (
           <div className="flex items-center gap-2 overflow-x-auto pb-4 scrollbar-hide animate-in fade-in slide-in-from-top-2 duration-300">
             <div className="flex items-center gap-2 px-1">
               <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mr-2 shrink-0 flex items-center gap-1.5">
