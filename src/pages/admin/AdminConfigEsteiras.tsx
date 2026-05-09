@@ -11,6 +11,7 @@ interface PipelineTask {
 interface Pipeline {
   id: string;
   name: string;
+  category: "perfil" | "bm";
   description: string | null;
   track_days: number;
   tasks: PipelineTask[];
@@ -26,6 +27,7 @@ export default function AdminConfigEsteiras() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showNewForm, setShowNewForm] = useState(false);
   const [newName, setNewName] = useState("");
+  const [newCategory, setNewCategory] = useState<"perfil" | "bm">("perfil");
   const [newDesc, setNewDesc] = useState("");
   const [newDays, setNewDays] = useState(7);
   const [saving, setSaving] = useState(false);
@@ -55,6 +57,7 @@ export default function AdminConfigEsteiras() {
     setSaving(true);
     const { error } = await supabase.from("pipeline_templates").insert({
       name: newName.trim(),
+      category: newCategory,
       description: newDesc.trim() || null,
       track_days: newDays,
       tasks: [],
@@ -63,7 +66,7 @@ export default function AdminConfigEsteiras() {
     if (error) { toast.error("Erro ao criar esteira"); }
     else {
       toast.success("Esteira criada!");
-      setNewName(""); setNewDesc(""); setNewDays(7); setShowNewForm(false);
+      setNewName(""); setNewCategory("perfil"); setNewDesc(""); setNewDays(7); setShowNewForm(false);
       await loadPipelines();
     }
     setSaving(false);
@@ -155,7 +158,7 @@ export default function AdminConfigEsteiras() {
         {showNewForm && (
           <div className="bg-white dark:bg-white/5 rounded-xl border border-orange-200 dark:border-orange-500/20 p-6 space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
             <h3 className="font-bold text-sm dark:text-white">Criar Nova Esteira</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="md:col-span-2">
                 <label className="text-xs font-bold text-slate-500 dark:text-white/50 uppercase tracking-wider">Nome</label>
                 <input
@@ -164,6 +167,17 @@ export default function AdminConfigEsteiras() {
                   value={newName}
                   onChange={e => setNewName(e.target.value)}
                 />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-500 dark:text-white/50 uppercase tracking-wider">Categoria</label>
+                <select
+                  className="w-full mt-1 bg-slate-50 dark:bg-white/10 border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm dark:text-white"
+                  value={newCategory}
+                  onChange={e => setNewCategory(e.target.value as "perfil" | "bm")}
+                >
+                  <option value="perfil">Perfil</option>
+                  <option value="bm">BM</option>
+                </select>
               </div>
               <div>
                 <label className="text-xs font-bold text-slate-500 dark:text-white/50 uppercase tracking-wider">Dias</label>
@@ -243,6 +257,13 @@ export default function AdminConfigEsteiras() {
                     }`}>
                       {pipeline.is_active ? "Ativa" : "Inativa"}
                     </span>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      pipeline.category === "bm"
+                        ? "bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-400"
+                        : "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400"
+                    }`}>
+                      {pipeline.category === "bm" ? "BM" : "Perfil"}
+                    </span>
                     <span className="text-[10px] text-slate-400 dark:text-white/30 font-mono">
                       {pipeline.track_days} dias · {pipeline.tasks.length} tarefas
                     </span>
@@ -278,7 +299,7 @@ export default function AdminConfigEsteiras() {
               {isExpanded && (
                 <div className="border-t border-slate-100 dark:border-white/10">
                   {/* Inline name/desc/days edit */}
-                  <div className="px-6 py-4 grid grid-cols-1 md:grid-cols-4 gap-3 bg-slate-50/50 dark:bg-white/[0.02]">
+                  <div className="px-6 py-4 grid grid-cols-1 md:grid-cols-5 gap-3 bg-slate-50/50 dark:bg-white/[0.02]">
                     <div className="md:col-span-2">
                       <label className="text-[10px] font-bold text-slate-400 dark:text-white/40 uppercase tracking-wider">Nome</label>
                       <input
@@ -290,6 +311,21 @@ export default function AdminConfigEsteiras() {
                           debouncedUpdate(pipeline.id, "name", val);
                         }}
                       />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-slate-400 dark:text-white/40 uppercase tracking-wider">Categoria</label>
+                      <select
+                        className="w-full mt-1 bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 rounded-lg px-3 py-1.5 text-sm dark:text-white"
+                        value={pipeline.category}
+                        onChange={e => {
+                          const val = e.target.value as "perfil" | "bm";
+                          setPipelines(prev => prev.map(p => p.id === pipeline.id ? { ...p, category: val } : p));
+                          debouncedUpdate(pipeline.id, "category", val);
+                        }}
+                      >
+                        <option value="perfil">Perfil</option>
+                        <option value="bm">BM</option>
+                      </select>
                     </div>
                     <div>
                       <label className="text-[10px] font-bold text-slate-400 dark:text-white/40 uppercase tracking-wider">Dias</label>
