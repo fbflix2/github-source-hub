@@ -250,7 +250,8 @@ export default function Dashboard() {
 
     const allPurposes = useMemo(() => {
       if (activeFilter === "Proxy") return proxyPurposes;
-      if (activeFilter === "Perfis" || activeFilter === "Bm") return fbPurposes;
+      if (activeFilter === "Bm") return fbPurposes.filter(p => p !== "Marketplace");
+      if (activeFilter === "Perfis") return fbPurposes;
       return ["Todos"];
     }, [activeFilter, fbPurposes]);
 
