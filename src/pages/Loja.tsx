@@ -259,7 +259,12 @@ export default function Dashboard() {
       return ["Todos"];
     }, [activeFilter, fbPurposes]);
 
-   const proxyAsProducts = useMemo(() => [...apiProxyAsProducts, ...standaloneLocalProxies]
+    const proxyAsProducts = useMemo(() => {
+      if (activeFilter === "Perfis" || activeFilter === "Bm") {
+        return [];
+      }
+      
+      return [...apiProxyAsProducts, ...standaloneLocalProxies]
     .filter(p => {
       if (activePurpose === "Todos") return true;
       const tags = p.tags || [];
@@ -269,7 +274,8 @@ export default function Dashboard() {
         return searchTerms.some(term => nt.includes(term));
       });
     })
-     .sort((a, b) => (a.price || 0) - (b.price || 0)), [apiProxyAsProducts, standaloneLocalProxies, activePurpose]);
+     .sort((a, b) => (a.price || 0) - (b.price || 0));
+    }, [apiProxyAsProducts, standaloneLocalProxies, activePurpose, activeFilter]);
 
   console.log("[Loja] proxyCategoryId:", proxyCategoryId, "proxyfbflixLocalProducts:", proxyfbflixLocalProducts.map(p => p.name), "total products:", products.length);
 
