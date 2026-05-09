@@ -44,6 +44,7 @@ export default function AdminConfigEsteiras() {
     if (data) {
       setPipelines(data.map(p => ({
         ...p,
+        category: (p.category === "bm" || p.category === "perfil") ? p.category : "perfil",
         tasks: Array.isArray(p.tasks) ? (p.tasks as unknown as PipelineTask[]) : [],
       })));
     }
