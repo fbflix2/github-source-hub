@@ -230,9 +230,12 @@ export default function Dashboard() {
         };
       }).filter(p => p.available);
 
-      // Se o filtro de Proxy NÃO estiver ativo e houver uma finalidade de Facebook selecionada,
-      // ocultamos os proxies da listagem "Todos"
-      if (activeFilter !== "Proxy" && activePurpose !== "Todos" && fbPurposes.includes(activePurpose)) {
+      // Ocultar proxies se não estiver no filtro de Proxy e o filtro atual não for "Todos"
+      // OU se houver uma finalidade de Facebook selecionada (Black, White, Marketplace)
+      const isFBFilter = activeFilter === "Perfis" || activeFilter === "Bm";
+      const isFBPurpose = activePurpose !== "Todos" && fbPurposes.includes(activePurpose);
+      
+      if (activeFilter !== "Proxy" && (isFBFilter || isFBPurpose)) {
         return [];
       }
       return base;
