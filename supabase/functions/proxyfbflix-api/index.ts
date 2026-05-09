@@ -720,7 +720,16 @@ Deno.serve(async (req) => {
       let available = await findAvailableProxies(targetCountryCode, target_city);
 
       
-      if (available.length < qty) throw new Error(`Apenas ${available.length} proxy(s) disponível(is), mas ${qty} foram solicitados.`);
+      if (available.length < qty) {
+        if (target_city && target_city !== "all" && target_city !== "all_us") {
+          console.log(`[webshare-api] No availability for city "${target_city}", falling back to country "${targetCountryCode || 'BR'}"`);
+          available = await findAvailableProxies(targetCountryCode, "all");
+        }
+        
+        if (available.length < qty) {
+          throw new Error(`Apenas ${available.length} proxy(s) disponível(is), mas ${qty} foram solicitados.`);
+        }
+      }
 
       // 5. Allocate qty proxies
       const allocatedProxies = available.slice(0, qty);
