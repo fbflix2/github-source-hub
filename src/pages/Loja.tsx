@@ -232,7 +232,7 @@ export default function Dashboard() {
      return proxyfbflixLocalProducts.filter(p => !matchedLocalIds.has(p.id));
    }, [apiProxyAsProducts, proxyfbflixLocalProducts]);
   
-  const proxyPurposes = ["Todos", "Facebook", "Youtube", "Tiktok", "Apostas", "Google Ads", "Contingência", "Web Scraping"];
+  const allPurposes = ["Todos", "Facebook", "Youtube", "Tiktok", "Apostas", "Google Ads", "Contingência", "Web Scraping", "Black", "White", "Marketplace"];
 
    const proxyAsProducts = useMemo(() => [...apiProxyAsProducts, ...standaloneLocalProxies]
     .filter(p => {
@@ -248,12 +248,26 @@ export default function Dashboard() {
 
   console.log("[Loja] proxyCategoryId:", proxyCategoryId, "proxyfbflixLocalProducts:", proxyfbflixLocalProducts.map(p => p.name), "total products:", products.length);
 
-   const filteredProducts = useMemo(() => (activeFilter === "Todos"
-     ? products.filter((p) => p.category_id !== proxyCategoryId || isLocalProxy(p))
-     : products.filter((p) => {
-         const cat = categories.find((c) => c.name === activeFilter);
-         return cat && p.category_id === cat.id;
-       })), [activeFilter, products, proxyCategoryId, categories, isLocalProxy]);
+   const filteredProducts = useMemo(() => {
+     let base = activeFilter === "Todos"
+       ? products.filter((p) => p.category_id !== proxyCategoryId || isLocalProxy(p))
+       : products.filter((p) => {
+           const cat = categories.find((c) => c.name === activeFilter);
+           return cat && p.category_id === cat.id;
+         });
+
+     if (activePurpose !== "Todos") {
+       const searchTerms = activePurpose === "Apostas" ? ["apostas", "casa de apostas"] : [activePurpose.toLowerCase()];
+       base = base.filter(p => {
+         const tags = p.tags || [];
+         return tags.some(t => {
+           const nt = t.toLowerCase();
+           return searchTerms.some(term => nt.includes(term));
+         });
+       });
+     }
+     return base;
+   }, [activeFilter, products, proxyCategoryId, categories, isLocalProxy, activePurpose]);
 
   // Priority order for "Todos": Perfis → BM → Proxy → rest
    const getCategoryPriority = useCallback((product: Product) => {
@@ -434,10 +448,15 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {activeFilter === "Proxy" && (
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide animate-in fade-in slide-in-from-top-2 duration-300">
-            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider mr-2 shrink-0">Finalidade:</span>
-            {proxyPurposes.map((purpose) => (
+        {(activeFilter === "Proxy" || activeFilter === "Perfis" || activeFilter === "Bm") && (
+          <div className="flex items-center gap-2 overflow-x-auto pb-4 scrollbar-hide animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="flex items-center gap-2 px-1">
+              <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mr-2 shrink-0 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary/40"></span>
+                Finalidade
+              </span>
+            </div>
+            {allPurposes.map((purpose) => (
               <button
                 key={purpose}
                 onClick={() => setActivePurpose(purpose)}
