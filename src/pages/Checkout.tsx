@@ -229,6 +229,41 @@ export default function Checkout() {
   const [targetCity, setTargetCity] = useState("all");
   const [showCityOnCheckout, setShowCityOnCheckout] = useState(false);
 
+  const [availableCities, setAvailableCities] = useState<string[]>([]);
+  const [availableUSCities, setAvailableUSCities] = useState<string[]>([]);
+
+  useEffect(() => {
+    const fetchAvailableLocations = async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke("proxyfbflix-api", {
+          body: { action: "get-available-locations" }
+        });
+        if (error) throw error;
+        if (data?.success && data?.locations) {
+          setAvailableCities(data.locations["BR"] || []);
+          setAvailableUSCities(data.locations["US"] || []);
+        }
+      } catch (err) {
+        console.error("Error fetching available locations:", err);
+      }
+    };
+    if (showCityOnCheckout) {
+      fetchAvailableLocations();
+    }
+  }, [showCityOnCheckout]);
+
+  const dynamicCities = useMemo(() => {
+    const brCities = availableCities.map(city => ({ value: city, label: `🇧🇷 ${city}` }));
+    const usCities = availableUSCities.map(city => ({ value: city, label: `🇺🇸 ${city}` }));
+    
+    return [
+      { value: "all", label: "🇧🇷 Aleatório (Brasil)" },
+      ...brCities,
+      { value: "all_us", label: "🇺🇸 Aleatório (EUA)" },
+      ...usCities
+    ];
+  }, [availableCities, availableUSCities]);
+
   const CITIES = [
     { value: "all", label: "🇧🇷 Aleatório (Brasil)" },
     { value: "São Paulo", label: "🇧🇷 São Paulo" },
