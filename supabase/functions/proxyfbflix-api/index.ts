@@ -959,6 +959,53 @@ Deno.serve(async (req) => {
     }
 
 
+    // ========== GET AVAILABLE COUNT ==========
+    // Returns how many unassigned proxies are available for sale
+    if (action === "get-available-count") {
+      const assignedIds = await getAssignedProxyIds(supabaseAdmin);
+
+      // Count all proxies (we still need to iterate or fetch total for this specific count)
+      const allProxies = await fetchAllWebshareProxies(WEBSHARE_API_KEY, "direct");
+      const available = allProxies.filter(p => p.valid && !assignedIds.has(String(p.id)));
+
+      return new Response(JSON.stringify({
+        total: allProxies.length,
+        assigned: assignedIds.size,
+        available: available.length,
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ========== GET AVAILABLE LOCATIONS ==========
+    // Returns a list of cities/countries that have available (unassigned) proxies
+    if (action === "get-available-locations") {
+      const assignedIds = await getAssignedProxyIds(supabaseAdmin);
+      const allProxies = await fetchAllWebshareProxies(WEBSHARE_API_KEY, "direct");
+
+      const available = allProxies.filter(p => p.valid && !assignedIds.has(String(p.id)));
+      
+      const locations: Record<string, Set<string>> = {};
+      available.forEach(p => {
+        const country = p.country_code?.toUpperCase() || "UNKNOWN";
+        if (!locations[country]) locations[country] = new Set();
+        if (p.city_name) locations[country].add(p.city_name);
+      });
+
+      const result: Record<string, string[]> = {};
+      for (const country in locations) {
+        result[country] = Array.from(locations[country]).sort();
+      }
+
+      return new Response(JSON.stringify({
+        success: true,
+        locations: result,
+        total_available: available.length
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // ========== SYNC WEBSHARE STATIC PROXY CREDENTIALS ==========
     if (action === "sync-webshare-proxy-credentials") {
       const { subscription_id } = params as { subscription_id: string };
