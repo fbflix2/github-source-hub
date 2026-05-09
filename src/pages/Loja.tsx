@@ -238,15 +238,18 @@ export default function Dashboard() {
       return base;
     }, [proxyProducts, getLocalProxyData, proxyCategoryId, proxyImages, activeFilter, activePurpose]);
 
-   const standaloneLocalProxies = useMemo(() => {
-     const matchedLocalIds = new Set(apiProxyAsProducts.map(p => p.id));
-     return proxyfbflixLocalProducts.filter(p => !matchedLocalIds.has(p.id));
-   }, [apiProxyAsProducts, proxyfbflixLocalProducts]);
-  
-    if (activeFilter === "Proxy") return proxyPurposes;
-    if (activeFilter === "Perfis" || activeFilter === "Bm") return fbPurposes;
-    return ["Todos"];
-  }, [activeFilter]);
+    const proxyPurposes = ["Todos", "Youtube", "Tiktok", "Apostas", "Google Ads", "Contingência", "Web Scraping"];
+
+    const standaloneLocalProxies = useMemo(() => {
+      const matchedLocalIds = new Set(apiProxyAsProducts.map(p => p.id));
+      return proxyfbflixLocalProducts.filter(p => !matchedLocalIds.has(p.id));
+    }, [apiProxyAsProducts, proxyfbflixLocalProducts]);
+
+    const allPurposes = useMemo(() => {
+      if (activeFilter === "Proxy") return proxyPurposes;
+      if (activeFilter === "Perfis" || activeFilter === "Bm") return fbPurposes;
+      return ["Todos"];
+    }, [activeFilter, fbPurposes]);
 
    const proxyAsProducts = useMemo(() => [...apiProxyAsProducts, ...standaloneLocalProxies]
     .filter(p => {
