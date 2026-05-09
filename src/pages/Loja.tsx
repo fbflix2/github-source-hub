@@ -273,16 +273,22 @@ export default function Dashboard() {
            return cat && p.category_id === cat.id;
          });
 
-     if (activePurpose !== "Todos") {
-       const searchTerms = activePurpose === "Apostas" ? ["apostas", "casa de apostas"] : [activePurpose.toLowerCase()];
-       base = base.filter(p => {
-         const tags = p.tags || [];
-         return tags.some(t => {
-           const nt = t.toLowerCase();
-           return searchTerms.some(term => nt.includes(term));
-         });
-       });
-     }
+      if (activePurpose !== "Todos") {
+        const searchTerms = activePurpose === "Apostas" ? ["apostas", "casa de apostas"] : [activePurpose.toLowerCase()];
+        base = base.filter(p => {
+          // Se for White e o produto for BM, mas não tiver a tag "black", tratamos como White por padrão
+          const isBM = categories.find(c => c.id === p.category_id)?.slug === "bm";
+          const tags = (p.tags || []).map(t => t.toLowerCase());
+          
+          if (activePurpose === "White" && isBM) {
+            return !tags.includes("black");
+          }
+
+          return tags.some(t => {
+            return searchTerms.some(term => t.includes(term));
+          });
+        });
+      }
      return base;
    }, [activeFilter, products, proxyCategoryId, categories, isLocalProxy, activePurpose]);
 
