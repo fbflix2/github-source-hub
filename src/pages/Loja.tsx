@@ -235,7 +235,11 @@ export default function Dashboard() {
       const isFBFilter = activeFilter === "Perfis" || activeFilter === "Bm";
       const isFBPurpose = activePurpose !== "Todos" && fbPurposes.includes(activePurpose);
       
-      if (activeFilter !== "Proxy" && (isFBFilter || isFBPurpose)) {
+      if (activeFilter === "Perfis" || activeFilter === "Bm") {
+        return [];
+      }
+
+      if (activeFilter !== "Proxy" && isFBPurpose) {
         return [];
       }
       return base;
