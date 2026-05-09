@@ -880,39 +880,32 @@ Deno.serve(async (req) => {
       
       console.log(`[webshare-api] Admin allocation - target country: ${targetCountry || "any"}`);
 
-      const allProxies: any[] = [];
+      const aAssignedIds = await getAssignedProxyIds(supabaseAdmin);
+
+      const aAvailable: any[] = [];
       let aPage = 1;
-      while (true) {
-        const resp = await webFetch(`/proxy/list/?mode=direct&page=${aPage}&page_size=250`, WEBSHARE_API_KEY);
+      while (aAvailable.length < qty) {
+        let url = `/proxy/list/?mode=direct&page=${aPage}&page_size=250`;
+        if (targetCountry) url += `&country_code=${targetCountry}`;
+        
+        const resp = await webFetch(url, WEBSHARE_API_KEY);
         const data = await resp.json();
         if (!resp.ok) throw new Error(`Webshare API error [${resp.status}]`);
-        if (data.results?.length) allProxies.push(...data.results);
+        
+        const results = data.results || [];
+        if (results.length === 0) break;
+
+        for (const p of results) {
+          if (p.valid && !aAssignedIds.has(String(p.id))) {
+            aAvailable.push(p);
+            if (aAvailable.length >= qty) break;
+          }
+        }
+        
         if (!data.next) break;
         aPage++;
       }
 
-      const { data: existingAdminSubs } = await supabaseAdmin
-        .from("subscriptions")
-        .select("raw_data")
-        .eq("type", "proxyfbflix")
-        .in("status", ["active", "expiring"]);
-
-      const aAssignedIds = new Set<string>();
-      for (const sub of (existingAdminSubs || [])) {
-        const raw = (sub.raw_data || {}) as Record<string, any>;
-        if (raw.fbflix_proxy_id) aAssignedIds.add(raw.fbflix_proxy_id);
-      }
-
-      let aAvailable = allProxies.filter((p: any) => p.valid && !aAssignedIds.has(p.id));
-      
-      if (targetCountry) {
-        const countryFiltered = aAvailable.filter(p => p.country_code?.toUpperCase() === targetCountry);
-        if (countryFiltered.length < qty) {
-          throw new Error(`Apenas ${countryFiltered.length} proxies ${targetCountry} disponíveis, precisa de ${qty}`);
-        }
-        aAvailable = countryFiltered;
-      }
-      
       if (aAvailable.length < qty) throw new Error(`Apenas ${aAvailable.length} proxies disponíveis, precisa de ${qty}`);
 
       const allocated: any[] = [];
