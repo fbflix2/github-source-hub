@@ -1,0 +1,100 @@
+d-17371142738|50.114.242.190|6427|fhvaccdh|19ao11w7oapk|BR|Rio De Janeiro
+d-17371142740|166.0.102.182|5421|fhvaccdh|19ao11w7oapk|BR|Fortaleza
+d-17371142741|185.72.240.2|7038|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17371142743|108.165.197.223|6462|fhvaccdh|19ao11w7oapk|BR|Fortaleza
+d-17371142744|108.165.197.127|6366|fhvaccdh|19ao11w7oapk|BR|Fortaleza
+d-17371142745|23.129.252.186|6454|fhvaccdh|19ao11w7oapk|BR|Sao Paulo
+d-17371142746|104.253.91.101|6534|fhvaccdh|19ao11w7oapk|BR|Sao Paulo
+d-17371142749|166.0.102.94|5333|fhvaccdh|19ao11w7oapk|BR|Fortaleza
+d-17371142750|104.253.91.81|6514|fhvaccdh|19ao11w7oapk|BR|Sao Paulo
+d-17371142751|108.165.218.106|5845|fhvaccdh|19ao11w7oapk|BR|Fortaleza
+d-17371142752|92.112.175.100|6373|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17371142755|45.38.89.221|6156|fhvaccdh|19ao11w7oapk|BR|Sao Paulo
+d-17371142756|45.38.101.190|6123|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17371142757|45.38.101.100|6033|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17371142758|108.165.218.72|5811|fhvaccdh|19ao11w7oapk|BR|Fortaleza
+d-17371142759|50.114.242.82|6319|fhvaccdh|19ao11w7oapk|BR|Rio De Janeiro
+d-17371142760|92.112.170.149|6118|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17371142761|108.165.63.100|5837|fhvaccdh|19ao11w7oapk|BR|Rio De Janeiro
+d-17371142762|91.123.10.59|6601|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17371142763|185.72.240.136|7172|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17371142764|45.39.25.42|5477|fhvaccdh|19ao11w7oapk|BR|Diadema
+d-17371142766|185.72.242.80|5763|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17371142767|166.0.102.6|5245|fhvaccdh|19ao11w7oapk|BR|Fortaleza
+d-17371142768|104.253.13.158|5590|fhvaccdh|19ao11w7oapk|BR|Sao Paulo
+d-17371142769|185.72.241.77|7369|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17371142770|45.38.101.96|6029|fhvaccdh|19ao11w7oapk|BR|Diadema
+d-17371142771|108.165.197.128|6367|fhvaccdh|19ao11w7oapk|BR|Fortaleza
+d-17371142773|166.0.102.40|5279|fhvaccdh|19ao11w7oapk|BR|Fortaleza
+d-17371142774|45.38.67.67|6999|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17371142775|45.39.35.254|5687|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17371142776|85.198.47.148|6416|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17371142778|23.129.252.106|6374|fhvaccdh|19ao11w7oapk|BR|Sao Paulo
+d-17371142779|23.129.252.136|6404|fhvaccdh|19ao11w7oapk|BR|Sao Paulo
+d-17371142780|92.112.170.228|6197|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17371142781|92.112.170.87|6056|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17371142782|92.112.172.63|6335|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17371142783|85.198.45.220|6144|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17371142784|92.112.171.34|6002|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17371142785|45.38.89.203|6138|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17371142786|185.72.240.38|7074|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17371142787|185.72.241.219|7511|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17371142788|185.72.241.153|7445|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17371142790|104.252.109.142|7075|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17371142791|108.165.63.85|5822|fhvaccdh|19ao11w7oapk|BR|Rio De Janeiro
+d-17371142792|85.198.45.82|6006|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17371142793|45.39.25.211|5646|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17371142794|185.72.241.143|7435|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17371142795|108.165.53.113|6852|fhvaccdh|19ao11w7oapk|BR|Fortaleza
+d-17371142796|45.38.89.87|6022|fhvaccdh|19ao11w7oapk|BR|Sao Paulo
+d-17371142797|45.39.35.77|5510|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17371142798|23.129.253.90|6708|fhvaccdh|19ao11w7oapk|BR|Sao Paulo
+d-17371142799|108.165.63.54|5791|fhvaccdh|19ao11w7oapk|BR|Rio De Janeiro
+d-17371142800|23.129.253.134|6752|fhvaccdh|19ao11w7oapk|BR|Sao Paulo
+d-17371142801|108.165.197.5|6244|fhvaccdh|19ao11w7oapk|BR|Fortaleza
+d-17371142802|92.112.175.200|6473|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17371142804|45.38.67.57|6989|fhvaccdh|19ao11w7oapk|BR|Diadema
+d-17371142806|104.252.20.248|6180|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17371142807|23.129.253.84|6702|fhvaccdh|19ao11w7oapk|BR|Sao Paulo
+d-17371142808|92.112.200.193|6776|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17371142809|108.165.197.140|6379|fhvaccdh|19ao11w7oapk|BR|Fortaleza
+d-17371142810|185.72.240.234|7270|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17371142811|108.165.197.248|6487|fhvaccdh|19ao11w7oapk|BR|Fortaleza
+d-17371142813|92.112.175.211|6484|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17371142814|45.39.35.163|5596|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17371142815|108.165.197.25|6264|fhvaccdh|19ao11w7oapk|BR|Fortaleza
+d-17371142816|104.253.91.244|6677|fhvaccdh|19ao11w7oapk|BR|Diadema
+d-17371142817|45.38.101.227|6160|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17371142818|45.38.67.104|7036|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17371142819|50.114.242.244|6481|fhvaccdh|19ao11w7oapk|BR|Rio De Janeiro
+d-17371142820|92.112.171.118|6086|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17371142821|92.112.172.205|6477|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17371142822|185.72.242.13|5696|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17371142823|92.112.200.49|6632|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17371142824|108.165.197.227|6466|fhvaccdh|19ao11w7oapk|BR|Fortaleza
+d-17371694256|45.38.89.31|5966|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17371911690|185.72.240.224|7260|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17372339514|23.129.253.216|6834|fhvaccdh|19ao11w7oapk|BR|Sao Paulo
+d-17372821788|92.112.200.220|6803|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17374045700|92.112.172.131|6403|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17375701486|50.114.242.194|6431|fhvaccdh|19ao11w7oapk|BR|Rio De Janeiro
+d-17376006466|50.114.84.97|7336|fhvaccdh|19ao11w7oapk|BR|Fortaleza
+d-17376051771|108.165.53.104|6843|fhvaccdh|19ao11w7oapk|BR|Fortaleza
+d-17378594923|104.252.109.252|7185|fhvaccdh|19ao11w7oapk|BR|Sao Paulo
+d-17378594924|108.165.205.151|5388|fhvaccdh|19ao11w7oapk|BR|Rio De Janeiro
+d-17378594925|108.165.63.76|5813|fhvaccdh|19ao11w7oapk|BR|Rio De Janeiro
+d-17378594926|85.198.45.201|6125|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17378594927|91.123.10.76|6618|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17378594928|185.72.240.44|7080|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17378594929|92.112.171.148|6116|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17378594930|185.72.240.83|7119|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17378594931|23.129.252.249|6517|fhvaccdh|19ao11w7oapk|BR|Sao Paulo
+d-17378594933|45.38.89.241|6176|fhvaccdh|19ao11w7oapk|BR|Sao Paulo
+d-17378594934|91.123.10.144|6686|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17378594935|92.112.172.93|6365|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17378594936|108.165.218.65|5804|fhvaccdh|19ao11w7oapk|BR|Fortaleza
+d-17378594937|85.198.47.248|6516|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17378594938|166.0.102.176|5415|fhvaccdh|19ao11w7oapk|BR|Fortaleza
+d-17378594939|92.112.171.212|6180|fhvaccdh|19ao11w7oapk|BR|São Paulo
+d-17378594940|108.165.197.152|6391|fhvaccdh|19ao11w7oapk|BR|Fortaleza
+d-17378594941|104.252.20.136|6068|fhvaccdh|19ao11w7oapk|BR|Sao Paulo
