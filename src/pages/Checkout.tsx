@@ -1446,22 +1446,39 @@ export default function Checkout() {
                    </span>
                    <p className="text-[10px] text-muted-foreground">Escolha a cidade desejada ou deixe aleatório para o sistema definir</p>
                  </div>
-                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                   {CITIES.map((city) => (
-                     <button
-                       key={city.value}
-                       onClick={() => setTargetCity(city.value)}
-                       type="button"
-                       className={`px-3 py-2 rounded-lg border text-[11px] font-medium transition-all ${
-                         targetCity === city.value
-                           ? "bg-primary/10 border-primary text-primary"
-                           : "bg-surface/50 border-border text-muted-foreground hover:border-primary/30"
-                       }`}
-                     >
-                       {city.label}
-                     </button>
-                   ))}
-                 </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-[200px] overflow-y-auto pr-1 custom-scrollbar">
+                    {dynamicCities.length > 2 ? (
+                      dynamicCities.map((city) => (
+                        <button
+                          key={city.value}
+                          onClick={() => setTargetCity(city.value)}
+                          type="button"
+                          className={`px-3 py-2 rounded-lg border text-[11px] font-medium transition-all ${
+                            targetCity === city.value
+                              ? "bg-primary/10 border-primary text-primary"
+                              : "bg-surface/50 border-border text-muted-foreground hover:border-primary/30"
+                          }`}
+                        >
+                          {city.label}
+                        </button>
+                      ))
+                    ) : (
+                      CITIES.map((city) => (
+                        <button
+                          key={city.value}
+                          onClick={() => setTargetCity(city.value)}
+                          type="button"
+                          className={`px-3 py-2 rounded-lg border text-[11px] font-medium transition-all ${
+                            targetCity === city.value
+                              ? "bg-primary/10 border-primary text-primary"
+                              : "bg-surface/50 border-border text-muted-foreground hover:border-primary/30"
+                          }`}
+                        >
+                          {city.label}
+                        </button>
+                      ))
+                    )}
+                  </div>
                </div>
              )}
 
