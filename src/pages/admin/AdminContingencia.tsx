@@ -492,9 +492,20 @@ export default function AdminContingencia() {
                         )}
                       </td>
                       <td className="p-3">
-                        <Badge className={`${statusColors[client.status] || statusColors.ativo} border text-xs`}>
-                          {client.status === "em_reposicao" ? "Em Reposição" : client.status.charAt(0).toUpperCase() + client.status.slice(1)}
-                        </Badge>
+                        <Select 
+                          value={client.status} 
+                          onValueChange={(val) => handleUpdateClientStatus(client.id, val)}
+                        >
+                          <SelectTrigger className={`h-7 w-[130px] border text-xs font-medium ${statusColors[client.status] || statusColors.ativo}`}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-[#0f172a] border-white/10 text-white">
+                            <SelectItem value="ativo">Ativo</SelectItem>
+                            <SelectItem value="em_reposicao">Em Reposição</SelectItem>
+                            <SelectItem value="suspenso">Suspenso</SelectItem>
+                            <SelectItem value="cancelado">Cancelado</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </td>
                       <td className="p-3 text-white/60">{format(new Date(client.start_date), "dd/MM/yyyy")}</td>
                       <td className="p-3 text-white/60">{client.next_billing ? format(new Date(client.next_billing), "dd/MM/yyyy") : "—"}</td>
