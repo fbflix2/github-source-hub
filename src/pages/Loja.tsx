@@ -201,31 +201,40 @@ export default function Dashboard() {
    const isLocalProxy = useCallback((p: Product) => p.category_id === proxyCategoryId, [proxyCategoryId]);
    const proxyfbflixLocalProducts = useMemo(() => products.filter(isLocalProxy), [products, isLocalProxy]);
 
-   const apiProxyAsProducts: Product[] = useMemo(() => proxyProducts.map((p: any) => {
-    const local = getLocalProxyData(p);
-    const variants = p.variant || p.variants?.data || p.variants || [];
-    const cheapestVariant = variants.length
-      ? variants.reduce((min: any, v: any) => ((v.price || 0) < (min.price || 0) ? v : min), variants[0])
-      : null;
-    const price = (local?.price != null && local.price > 0) ? local.price : (cheapestVariant?.price || p.price || 0);
-    const totalApiStock = variants.reduce((sum: number, v: any) => sum + (v.stocks ?? 0), 0);
-    return {
-      id: local?.id || String(p.id),
-      name: local?.name || p.name,
-      description: local?.description || p.description || null,
-      price: Number(price),
-      price_label: "mensal",
-      image_url: local?.image_url || getProxyImage(p.name),
-      badge_text: local?.badge_text || null,
-      badge_color: local?.badge_color || null,
-      badge_icon: local?.badge_icon || null,
-      stock: totalApiStock > 0 ? totalApiStock : (local?.stock ?? 0),
-      available: local ? local.available : true,
-      category_id: proxyCategoryId || null,
-      tags: local?.tags || null,
-      slug: local?.slug || null,
-    };
-     }).filter(p => p.available), [proxyProducts, getLocalProxyData, proxyCategoryId, proxyImages]);
+    const apiProxyAsProducts: Product[] = useMemo(() => {
+      const base = proxyProducts.map((p: any) => {
+        const local = getLocalProxyData(p);
+        const variants = p.variant || p.variants?.data || p.variants || [];
+        const cheapestVariant = variants.length
+          ? variants.reduce((min: any, v: any) => ((v.price || 0) < (min.price || 0) ? v : min), variants[0])
+          : null;
+        const price = (local?.price != null && local.price > 0) ? local.price : (cheapestVariant?.price || p.price || 0);
+        const totalApiStock = variants.reduce((sum: number, v: any) => sum + (v.stocks ?? 0), 0);
+        return {
+          id: local?.id || String(p.id),
+          name: local?.name || p.name,
+          description: local?.description || p.description || null,
+          price: Number(price),
+          price_label: "mensal",
+          image_url: local?.image_url || getProxyImage(p.name),
+          badge_text: local?.badge_text || null,
+          badge_color: local?.badge_color || null,
+          badge_icon: local?.badge_icon || null,
+          stock: totalApiStock > 0 ? totalApiStock : (local?.stock ?? 0),
+          available: local ? local.available : true,
+          category_id: proxyCategoryId || null,
+          tags: local?.tags || null,
+          slug: local?.slug || null,
+        };
+      }).filter(p => p.available);
+
+      // Se o filtro de Proxy NÃO estiver ativo e houver uma finalidade de Facebook selecionada,
+      // ocultamos os proxies da listagem "Todos"
+      if (activeFilter !== "Proxy" && activePurpose !== "Todos" && fbPurposes.includes(activePurpose)) {
+        return [];
+      }
+      return base;
+    }, [proxyProducts, getLocalProxyData, proxyCategoryId, proxyImages, activeFilter, activePurpose]);
 
    const standaloneLocalProxies = useMemo(() => {
      const matchedLocalIds = new Set(apiProxyAsProducts.map(p => p.id));
