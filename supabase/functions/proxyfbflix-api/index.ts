@@ -207,35 +207,34 @@ Deno.serve(async (req) => {
       const qty = iqty || 1;
       const targetCountry = iCountry?.toUpperCase() || "US";
 
-      // Fetch all Webshare proxies
-      const allProxies: any[] = [];
+      // Get assigned proxy IDs
+      const assignedIds = await getAssignedProxyIds(supabaseInternal);
+
+      // Efficient search: stop as soon as we find enough proxies
+      const available: any[] = [];
       let pg = 1;
-      while (true) {
-        const resp = await webFetch(`/proxy/list/?mode=direct&page=${pg}&page_size=250`, WEBSHARE_API_KEY);
+      while (available.length < qty) {
+        let url = `/proxy/list/?mode=direct&page=${pg}&page_size=250`;
+        if (targetCountry) url += `&country_code=${targetCountry}`;
+        
+        const resp = await webFetch(url, WEBSHARE_API_KEY);
         const data = await resp.json();
         if (!resp.ok) throw new Error(`Webshare API error [${resp.status}]`);
-        if (data.results?.length) allProxies.push(...data.results);
+        
+        const results = data.results || [];
+        if (results.length === 0) break;
+
+        for (const p of results) {
+          if (p.valid && !assignedIds.has(String(p.id))) {
+            available.push(p);
+            if (available.length >= qty) break;
+          }
+        }
+        
         if (!data.next) break;
         pg++;
       }
 
-      // Get assigned proxy IDs
-      const { data: existSubs } = await supabaseInternal
-        .from("subscriptions").select("raw_data")
-        .in("type", ["proxyfbflix", "webshare", "proxyfbflix_rotating", "webshare_rotating"])
-        .in("status", ["active", "expiring"]);
-
-      const assignedIds = new Set<string>();
-      for (const s of (existSubs || [])) {
-        const raw = (s.raw_data || {}) as Record<string, any>;
-        const pid = raw.fbflix_proxy_id || raw.webshare_proxy_id;
-        if (pid) assignedIds.add(String(pid));
-      }
-
-      let available = allProxies.filter(p => p.valid && !assignedIds.has(p.id));
-      if (targetCountry) {
-        available = available.filter(p => p.country_code?.toUpperCase() === targetCountry);
-      }
       if (available.length < qty) throw new Error(`Apenas ${available.length} proxies ${targetCountry} disponíveis, precisa de ${qty}`);
 
       const allocated: any[] = [];
