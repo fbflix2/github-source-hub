@@ -167,6 +167,22 @@ function buildStaticWebshareRawData(proxy: any, currentRaw: Record<string, any> 
   };
 }
 
+async function getAssignedProxyIds(supabase: any) {
+  const { data: existSubs } = await supabase
+    .from("subscriptions")
+    .select("raw_data")
+    .in("type", ["proxyfbflix", "webshare", "proxyfbflix_rotating", "webshare_rotating"])
+    .in("status", ["active", "expiring"]);
+
+  const assignedIds = new Set<string>();
+  for (const s of (existSubs || [])) {
+    const raw = (s.raw_data || {}) as Record<string, any>;
+    const pid = raw.fbflix_proxy_id || raw.webshare_proxy_id;
+    if (pid) assignedIds.add(String(pid));
+  }
+  return assignedIds;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -191,35 +207,34 @@ Deno.serve(async (req) => {
       const qty = iqty || 1;
       const targetCountry = iCountry?.toUpperCase() || "US";
 
-      // Fetch all Webshare proxies
-      const allProxies: any[] = [];
+      // Get assigned proxy IDs
+      const assignedIds = await getAssignedProxyIds(supabaseInternal);
+
+      // Efficient search: stop as soon as we find enough proxies
+      const available: any[] = [];
       let pg = 1;
-      while (true) {
-        const resp = await webFetch(`/proxy/list/?mode=direct&page=${pg}&page_size=250`, WEBSHARE_API_KEY);
+      while (available.length < qty) {
+        let url = `/proxy/list/?mode=direct&page=${pg}&page_size=250`;
+        if (targetCountry) url += `&country_code=${targetCountry}`;
+        
+        const resp = await webFetch(url, WEBSHARE_API_KEY);
         const data = await resp.json();
         if (!resp.ok) throw new Error(`Webshare API error [${resp.status}]`);
-        if (data.results?.length) allProxies.push(...data.results);
+        
+        const results = data.results || [];
+        if (results.length === 0) break;
+
+        for (const p of results) {
+          if (p.valid && !assignedIds.has(String(p.id))) {
+            available.push(p);
+            if (available.length >= qty) break;
+          }
+        }
+        
         if (!data.next) break;
         pg++;
       }
 
-      // Get assigned proxy IDs
-      const { data: existSubs } = await supabaseInternal
-        .from("subscriptions").select("raw_data")
-        .in("type", ["proxyfbflix", "webshare", "proxyfbflix_rotating", "webshare_rotating"])
-        .in("status", ["active", "expiring"]);
-
-      const assignedIds = new Set<string>();
-      for (const s of (existSubs || [])) {
-        const raw = (s.raw_data || {}) as Record<string, any>;
-        const pid = raw.fbflix_proxy_id || raw.webshare_proxy_id;
-        if (pid) assignedIds.add(String(pid));
-      }
-
-      let available = allProxies.filter(p => p.valid && !assignedIds.has(p.id));
-      if (targetCountry) {
-        available = available.filter(p => p.country_code?.toUpperCase() === targetCountry);
-      }
       if (available.length < qty) throw new Error(`Apenas ${available.length} proxies ${targetCountry} disponíveis, precisa de ${qty}`);
 
       const allocated: any[] = [];
@@ -865,39 +880,32 @@ Deno.serve(async (req) => {
       
       console.log(`[webshare-api] Admin allocation - target country: ${targetCountry || "any"}`);
 
-      const allProxies: any[] = [];
+      const aAssignedIds = await getAssignedProxyIds(supabaseAdmin);
+
+      const aAvailable: any[] = [];
       let aPage = 1;
-      while (true) {
-        const resp = await webFetch(`/proxy/list/?mode=direct&page=${aPage}&page_size=250`, WEBSHARE_API_KEY);
+      while (aAvailable.length < qty) {
+        let url = `/proxy/list/?mode=direct&page=${aPage}&page_size=250`;
+        if (targetCountry) url += `&country_code=${targetCountry}`;
+        
+        const resp = await webFetch(url, WEBSHARE_API_KEY);
         const data = await resp.json();
         if (!resp.ok) throw new Error(`Webshare API error [${resp.status}]`);
-        if (data.results?.length) allProxies.push(...data.results);
+        
+        const results = data.results || [];
+        if (results.length === 0) break;
+
+        for (const p of results) {
+          if (p.valid && !aAssignedIds.has(String(p.id))) {
+            aAvailable.push(p);
+            if (aAvailable.length >= qty) break;
+          }
+        }
+        
         if (!data.next) break;
         aPage++;
       }
 
-      const { data: existingAdminSubs } = await supabaseAdmin
-        .from("subscriptions")
-        .select("raw_data")
-        .eq("type", "proxyfbflix")
-        .in("status", ["active", "expiring"]);
-
-      const aAssignedIds = new Set<string>();
-      for (const sub of (existingAdminSubs || [])) {
-        const raw = (sub.raw_data || {}) as Record<string, any>;
-        if (raw.fbflix_proxy_id) aAssignedIds.add(raw.fbflix_proxy_id);
-      }
-
-      let aAvailable = allProxies.filter((p: any) => p.valid && !aAssignedIds.has(p.id));
-      
-      if (targetCountry) {
-        const countryFiltered = aAvailable.filter(p => p.country_code?.toUpperCase() === targetCountry);
-        if (countryFiltered.length < qty) {
-          throw new Error(`Apenas ${countryFiltered.length} proxies ${targetCountry} disponíveis, precisa de ${qty}`);
-        }
-        aAvailable = countryFiltered;
-      }
-      
       if (aAvailable.length < qty) throw new Error(`Apenas ${aAvailable.length} proxies disponíveis, precisa de ${qty}`);
 
       const allocated: any[] = [];
@@ -950,38 +958,15 @@ Deno.serve(async (req) => {
       });
     }
 
+
     // ========== GET AVAILABLE COUNT ==========
     // Returns how many unassigned proxies are available for sale
     if (action === "get-available-count") {
-      // Fetch all proxies
-      const allProxies: any[] = [];
-      let page = 1;
-      while (true) {
-        const resp = await webFetch(
-          `/proxy/list/?mode=direct&page=${page}&page_size=250`,
-          WEBSHARE_API_KEY
-        );
-        const data = await resp.json();
-        if (!resp.ok) throw new Error(`Webshare API error`);
-        if (data.results?.length) allProxies.push(...data.results);
-        if (!data.next) break;
-        page++;
-      }
+      const assignedIds = await getAssignedProxyIds(supabaseAdmin);
 
-      // Get assigned IDs
-      const { data: existingSubs } = await supabaseAdmin
-        .from("subscriptions")
-        .select("raw_data")
-        .eq("type", "proxyfbflix")
-        .in("status", ["active", "expiring"]);
-
-      const assignedIds = new Set<string>();
-      for (const sub of (existingSubs || [])) {
-        const raw = (sub.raw_data || {}) as Record<string, any>;
-        if (raw.fbflix_proxy_id) assignedIds.add(raw.fbflix_proxy_id);
-      }
-
-      const available = allProxies.filter(p => p.valid && !assignedIds.has(p.id));
+      // Count all proxies (we still need to iterate or fetch total for this specific count)
+      const allProxies = await fetchAllWebshareProxies(WEBSHARE_API_KEY, "direct");
+      const available = allProxies.filter(p => p.valid && !assignedIds.has(String(p.id)));
 
       return new Response(JSON.stringify({
         total: allProxies.length,
@@ -995,20 +980,8 @@ Deno.serve(async (req) => {
     // ========== GET AVAILABLE LOCATIONS ==========
     // Returns a list of cities/countries that have available (unassigned) proxies
     if (action === "get-available-locations") {
+      const assignedIds = await getAssignedProxyIds(supabaseAdmin);
       const allProxies = await fetchAllWebshareProxies(WEBSHARE_API_KEY, "direct");
-
-      // Get assigned IDs
-      const { data: existingSubs } = await supabaseAdmin
-        .from("subscriptions")
-        .select("raw_data")
-        .eq("type", "proxyfbflix")
-        .in("status", ["active", "expiring"]);
-
-      const assignedIds = new Set<string>();
-      for (const sub of (existingSubs || [])) {
-        const raw = (sub.raw_data || {}) as Record<string, any>;
-        if (raw.fbflix_proxy_id) assignedIds.add(String(raw.fbflix_proxy_id));
-      }
 
       const available = allProxies.filter(p => p.valid && !assignedIds.has(String(p.id)));
       
@@ -1019,7 +992,6 @@ Deno.serve(async (req) => {
         if (p.city_name) locations[country].add(p.city_name);
       });
 
-      // Convert Sets to Arrays for JSON response
       const result: Record<string, string[]> = {};
       for (const country in locations) {
         result[country] = Array.from(locations[country]).sort();
