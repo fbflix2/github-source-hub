@@ -278,6 +278,20 @@ export default function AdminContingencia() {
     loadTickets();
   };
 
+  const handleUpdateClientStatus = async (clientId: string, newStatus: string) => {
+    const { error } = await supabase
+      .from("ct_clients")
+      .update({ status: newStatus } as any)
+      .eq("id", clientId);
+
+    if (error) {
+      toast({ title: "Erro ao atualizar status", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Status atualizado com sucesso!" });
+      loadClients();
+    }
+  };
+
   const handleSavePlan = async (plan: Plan) => {
     const { error } = await supabase.from("ct_plans").update({
       name: plan.name, price: plan.price,
