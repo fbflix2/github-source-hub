@@ -2598,6 +2598,51 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ========== SYNC PROXY CREDENTIALS FROM WEBSHARE ==========
+    if (action === "sync-proxyfbflix-proxy-credentials") {
+      const { subscription_id: sSubId } = params as { subscription_id: string };
+      if (!sSubId) throw new Error("subscription_id é obrigatório");
+
+      const { data: sub } = await supabaseAdmin
+        .from("subscriptions")
+        .select("*")
+        .eq("id", sSubId)
+        .single();
+
+      if (!sub) throw new Error("Assinatura não encontrada");
+      const raw = (sub.raw_data || {}) as Record<string, any>;
+      const fbflixId = raw.fbflix_proxy_id || raw.webshare_proxy_id;
+      if (!fbflixId) throw new Error("Este proxy não possui um ID de fornecedor vinculado");
+
+      // Fetch current data from Webshare
+      const resp = await webFetch(`/proxy/list/${fbflixId}/`, WEBSHARE_API_KEY);
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(`Erro na API Proxy Fbflix [${resp.status}]`);
+
+      const updatedRaw = {
+        ...raw,
+        proxy_address: data.proxy_address,
+        port: data.port,
+        username: data.username,
+        password: data.password,
+        country_code: data.country_code,
+        city_name: data.city_name,
+        last_sync_at: new Date().toISOString(),
+      };
+
+      const { error: updErr } = await supabaseAdmin
+        .from("subscriptions")
+        .update({ raw_data: updatedRaw, updated_at: new Date().toISOString() })
+        .eq("id", sSubId);
+
+      if (updErr) throw new Error(`Erro ao salvar sincronização: ${updErr.message}`);
+
+      console.log(`[sync-credentials] Synced proxy ${fbflixId} for sub ${sSubId}`);
+      return new Response(JSON.stringify({ success: true, synced: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     throw new Error(`Ação desconhecida: ${action}`);
   } catch (err: any) {
     console.error("[webshare-api] Error:", err.message);
