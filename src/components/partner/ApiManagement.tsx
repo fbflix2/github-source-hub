@@ -115,43 +115,6 @@ export function ApiManagement() {
         </div>
       </div>
 
-      <div className="glass-panel p-6 rounded-2xl space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Key className="size-4 text-primary" />
-            <span className="text-sm font-bold">Seu Token JWT (Bearer)</span>
-          </div>
-          <Badge variant="outline" className="text-[10px] font-mono border-primary/20 text-primary">
-            Expira em 1 hora
-          </Badge>
-        </div>
-
-        <div className="relative group">
-          <div className="bg-black/40 border border-white/10 rounded-xl p-4 pr-12 font-mono text-[10px] break-all leading-relaxed min-h-[80px] text-gray-400">
-            {loading ? (
-              <div className="flex items-center gap-2">
-                <Loader2 className="size-3 animate-spin" /> Gerando token seguro...
-              </div>
-            ) : token}
-          </div>
-          <Button
-            size="icon"
-            variant="ghost"
-            className="absolute top-2 right-2 h-8 w-8 text-white hover:bg-white/10"
-            onClick={handleCopy}
-            disabled={loading || !token}
-          >
-            {copied ? <Check className="size-4 text-green-500" /> : <Copy className="size-4" />}
-          </Button>
-        </div>
-
-        <div className="pt-2">
-          <p className="text-[11px] text-muted-foreground italic">
-            * Este token JWT é temporário e expira automaticamente. Utilize-o apenas para testes rápidos.
-          </p>
-        </div>
-      </div>
-
       {/* B2B Permanent Tokens Section */}
       <div className="glass-panel p-6 rounded-2xl space-y-6 border-primary/20 bg-primary/5">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
