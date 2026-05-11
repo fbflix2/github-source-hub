@@ -241,12 +241,15 @@ export default function ProxyFbflixProxyTab() {
     let totalRevenue = 0;
     let totalCost = 0;
 
-    const subsWithPrices = activeSubs.map(sub => {
+    const subsWithPrices = filteredSubs.map(sub => {
       const salePrice = sub.product_id && productPriceMap.has(sub.product_id)
         ? productPriceMap.get(sub.product_id)!
         : 0;
+      
+      // Count all active subs globally for "activeCount" but use filtered for revenue/cost
       totalRevenue += salePrice;
       totalCost += costPerProxyBRL;
+      
       return { ...sub, price: salePrice, unitCost: costPerProxyBRL };
     });
 
@@ -256,9 +259,10 @@ export default function ProxyFbflixProxyTab() {
       totalProfit: totalRevenue - totalCost,
       activeCount: activeSubs.length,
       totalCount: wsSubs.length,
+      filteredCount: filteredSubs.length,
       subsWithPrices,
     };
-  }, [wsSubs, wsProducts, plan, totalProxies, usdToBrl]);
+  }, [wsSubs, wsProducts, plan, totalProxies, usdToBrl, period]);
 
   const copyProxy = (proxy: any) => {
     const str = `${proxy.proxy_address}:${proxy.port}:${proxy.username}:${proxy.password}`;
