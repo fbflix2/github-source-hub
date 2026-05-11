@@ -54,12 +54,12 @@ export default function ApiDocs() {
               1. Autenticação
             </h2>
             <p className="text-sm text-muted-foreground">
-              Todas as requisições para a API devem incluir o cabeçalho <code className="bg-muted px-1.5 py-0.5 rounded text-primary">Authorization</code> com um token JWT válido.
+              Todas as requisições para a API devem incluir o cabeçalho <code className="bg-muted px-1.5 py-0.5 rounded text-primary">Authorization</code> com um Token JWT ou um **Token B2B Permanente**.
             </p>
             <CodeBlock 
               id="auth"
               language="http"
-              code="Authorization: Bearer <SEU_TOKEN_DE_ACESSO>"
+              code="Authorization: Bearer fbx_b2b_..."
             />
           </section>
 
