@@ -1,0 +1,1 @@
+UPDATE public.stock_items SET status = 'bloqueado' WHERE id = 'f143781e-a1d8-4bc9-a618-bd3c62bfe0e3';
