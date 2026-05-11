@@ -367,13 +367,35 @@ Deno.serve(async (req) => {
     let user: any = null;
     if (!isServiceRole) {
       const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
+      
       if (authError || !authUser) {
-        return new Response(JSON.stringify({ error: "Token inválido" }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        // Try B2B Token validation
+        const { data: b2bTokenData, error: b2bError } = await supabaseAdmin
+          .from("b2b_tokens")
+          .select("user_id, status")
+          .eq("token", token)
+          .single();
+
+        if (b2bError || !b2bTokenData || b2bTokenData.status !== 'active') {
+          return new Response(JSON.stringify({ error: "Token inválido ou expirado. Para integrações fixas, utilize um Token B2B permanente." }), {
+            status: 401,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Token is valid, get the user
+        const { data: b2bUser, error: b2bUserError } = await supabaseAdmin.auth.admin.getUserById(b2bTokenData.user_id);
+        if (b2bUserError || !b2bUser.user) {
+          return new Response(JSON.stringify({ error: "Usuário do token não encontrado" }), {
+            status: 401,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        user = b2bUser.user;
+        console.log(`[webshare-api] Authenticated via B2B Token for user ${user.id}`);
+      } else {
+        user = authUser;
       }
-      user = authUser;
     }
 
     const { action, ...params } = bodyClone;
