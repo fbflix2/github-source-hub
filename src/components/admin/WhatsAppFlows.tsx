@@ -372,7 +372,7 @@ function AddStepDialog({ open, onOpenChange, flowId, nextOrder }: { open: boolea
               />
             )}
             <p className="text-[10px] text-muted-foreground">
-              Você pode usar {{nome}} para personalizar com o nome do cliente.
+              Você pode usar {"{{nome}}"} para personalizar com o nome do cliente.
             </p>
           </div>
           
