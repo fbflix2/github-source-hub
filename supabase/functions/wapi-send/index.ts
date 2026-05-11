@@ -97,9 +97,17 @@ Deno.serve(async (req) => {
     return wapiRequest("/message/send-image", { phone, image: imageUrl, caption: caption || "" });
   }
 
-  async function wapiSendAudio(phone: string, audioUrl: string) {
-    // According to W-API documentation (common pattern)
-    return wapiRequest("/message/send-audio", { phone, audio: audioUrl });
+  async function wapiSendAudio(phone: string, audioUrl: string, ptt = true) {
+    // According to W-API documentation, ptt: true makes it appear as a voice message (mensagem de voz)
+    return wapiRequest("/message/send-audio", { phone, audio: audioUrl, ptt });
+  }
+
+  async function wapiSendPresence(phone: string, presence: "composing" | "recording" | "available") {
+    // Common W-API endpoint for presence simulation
+    return wapiRequest("/message/send-presence", { phone, presence }).catch(e => {
+      console.error("Presence update failed:", e);
+      return { ok: false };
+    });
   }
 
   async function wapiSendButton(phone: string, message: string, buttons: Array<{ id: string; text: string }>, title?: string, footer?: string) {
@@ -130,6 +138,19 @@ Deno.serve(async (req) => {
     try {
       let result;
       const meta = log.metadata || {};
+
+      // Simulate human behavior: send presence before message
+      // This makes the "recording..." or "typing..." status appear to the recipient
+      if (log.message_type === "audio") {
+        await wapiSendPresence(log.phone, "recording");
+        // Wait 3-5 seconds to simulate recording time
+        await new Promise(r => setTimeout(r, 3000 + Math.random() * 2000));
+      } else if (log.message_type === "text" || !log.message_type) {
+        await wapiSendPresence(log.phone, "composing");
+        // Wait 1-2 seconds to simulate typing time
+        await new Promise(r => setTimeout(r, 1000 + Math.random() * 1000));
+      }
+
       if (log.message_type === "image" && log.image_url) {
         result = await wapiSendImage(log.phone, log.image_url, log.message_sent);
       } else if (log.message_type === "audio" && log.audio_url) {
