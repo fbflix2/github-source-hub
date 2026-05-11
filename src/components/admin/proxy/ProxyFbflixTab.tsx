@@ -16,16 +16,27 @@ import { toast } from "sonner";
 const formatCurrency = (value: number) =>
   value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-type Period = "7d" | "30d" | "90d" | "all";
-const periodLabels: Record<Period, string> = { "7d": "7 dias", "30d": "30 dias", "90d": "90 dias", "all": "Todo período" };
+ type Period = "today" | "7d" | "30d" | "90d" | "all";
+ const periodLabels: Record<Period, string> = { 
+   "today": "Hoje",
+   "7d": "7 dias", 
+   "30d": "30 dias", 
+   "90d": "90 dias", 
+   "all": "Todo período" 
+ };
 
-function getPeriodDate(period: Period): string | null {
-  if (period === "all") return null;
-  const d = new Date();
-  const days = period === "7d" ? 7 : period === "30d" ? 30 : 90;
-  d.setDate(d.getDate() - days);
-  return d.toISOString();
-}
+ function getPeriodDate(period: Period): string | null {
+   if (period === "all") return null;
+   const d = new Date();
+   if (period === "today") {
+     d.setHours(0, 0, 0, 0);
+   } else {
+     const days = period === "7d" ? 7 : period === "30d" ? 30 : 90;
+     d.setDate(d.getDate() - days);
+     d.setHours(0, 0, 0, 0);
+   }
+   return d.toISOString();
+ }
 
 export default function ProxyFbflixProxyTab() {
   const [availablePage, setAvailablePage] = useState(1);
@@ -191,16 +202,31 @@ export default function ProxyFbflixProxyTab() {
     refetchOnWindowFocus: false,
   });
 
-  // Financial calculations
-  const financials = useMemo(() => {
-    if (!wsSubs || !wsProducts) return { totalRevenue: 0, totalCost: 0, totalProfit: 0, activeCount: 0, totalCount: 0, subsWithPrices: [] as any[] };
-
-    const now = new Date();
-    const activeSubs = wsSubs.filter(s => {
-      if (s.status !== "active") return false;
-      if (!s.end_date) return true;
-      return new Date(s.end_date) >= now;
-    });
+   const financials = useMemo(() => {
+     if (!wsSubs || !wsProducts) return { 
+       totalRevenue: 0, 
+       totalCost: 0, 
+       totalProfit: 0, 
+       activeCount: 0, 
+       totalCount: 0, 
+       filteredCount: 0,
+       subsWithPrices: [] as any[] 
+     };
+ 
+     const now = new Date();
+     const since = getPeriodDate(period);
+ 
+     // Filter subscriptions by period (based on created_at)
+     const filteredSubs = wsSubs.filter(s => {
+       if (!since) return true;
+       return s.created_at >= since;
+     });
+ 
+     const activeSubs = wsSubs.filter(s => {
+       if (s.status !== "active") return false;
+       if (!s.end_date) return true;
+       return new Date(s.end_date) >= now;
+     });
 
     // Product price map
     const productPriceMap = new Map<string, number>();
