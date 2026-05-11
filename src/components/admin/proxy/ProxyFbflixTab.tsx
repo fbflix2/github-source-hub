@@ -422,23 +422,23 @@ export default function ProxyFbflixProxyTab() {
           </CardContent>
         </Card>
 
-        <Card className="border-border/40 bg-card/60 backdrop-blur-sm">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="flex items-center justify-center size-10 rounded-lg bg-blue-500/10">
-              <ShoppingBag className="size-5 text-blue-500" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Proxies Vendidos</p>
-              <p className="text-xl font-bold text-foreground">
-                {financials.activeCount}
-                <span className="text-sm text-muted-foreground font-normal ml-1">/ {plan?.proxy_count || totalProxies}</span>
-              </p>
-              <p className="text-[10px] text-muted-foreground">
-                {plan?.proxy_count ? `${((financials.activeCount / (plan.proxy_count || 1)) * 100).toFixed(0)}% alocados` : ""}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+         <Card className="border-border/40 bg-card/60 backdrop-blur-sm">
+           <CardContent className="p-4 flex items-center gap-3">
+             <div className="flex items-center justify-center size-10 rounded-lg bg-blue-500/10">
+               <ShoppingBag className="size-5 text-blue-500" />
+             </div>
+             <div>
+               <p className="text-xs text-muted-foreground">Novas Vendas</p>
+               <p className="text-xl font-bold text-foreground">
+                 {financials.filteredCount}
+                 <span className="text-[10px] text-muted-foreground font-normal ml-1">vendas</span>
+               </p>
+               <p className="text-[10px] text-muted-foreground">
+                 {financials.activeCount} proxies ativos no total
+               </p>
+             </div>
+           </CardContent>
+         </Card>
 
         <Card className="border-border/40 bg-card/60 backdrop-blur-sm">
           <CardContent className="p-4 flex items-center gap-3">
