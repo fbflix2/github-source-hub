@@ -1489,6 +1489,11 @@ export default function AdminWhatsApp() {
           )}
         </TabsContent>
 
+        {/* FLOWS TAB */}
+        <TabsContent value="flows">
+          <WhatsAppFlows />
+        </TabsContent>
+
          {/* RENEWALS TAB */}
          <TabsContent value="renewals" className="space-y-4">
            <RenewalsTab />
