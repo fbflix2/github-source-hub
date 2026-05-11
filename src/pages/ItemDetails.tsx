@@ -524,7 +524,8 @@ export default function ItemDetails() {
   const token2fa = stockData.token2fa || "—";
   const descricao = stockData.descricao || product?.description || "";
   const tags = product?.tags || [];
-  const isBM = product?.icon_type === "bm";
+   const isBM = product?.icon_type === "bm" || product?.name?.toLowerCase().includes("instagram");
+   const isInstagram = product?.name?.toLowerCase().includes("instagram");
   const isComboProfileView = !!comboProfileId;
   const isPage = product?.icon_type === "page" && !isCombo && !isComboProfileView;
   const itemQuantity = orderItem?.quantity || 1;
@@ -1221,24 +1222,28 @@ export default function ItemDetails() {
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div>
-                          <label className="text-[10px] text-text-secondary mb-0.5 block">Email Alternativo</label>
-                          <div className="flex items-center gap-1">
-                            <code className="flex-1 bg-background/50 px-2 py-1.5 rounded border border-border text-xs font-mono text-foreground truncate">{emailAlternativo}</code>
-                            <button onClick={() => copyToClipboard(emailAlternativo, 'email-alt')} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
-                              <span className="material-symbols-outlined text-[14px]">{copied === 'email-alt' ? 'check' : 'content_copy'}</span>
-                            </button>
-                          </div>
-                        </div>
-                        <div>
-                          <label className="text-[10px] text-text-secondary mb-0.5 block">Senha do Email</label>
-                          <div className="flex items-center gap-1">
-                            <code className="flex-1 bg-background/50 px-2 py-1.5 rounded border border-border text-xs font-mono text-foreground truncate">{senhaEmail}</code>
-                            <button onClick={() => copyToClipboard(senhaEmail, 'senha-email')} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
-                              <span className="material-symbols-outlined text-[14px]">{copied === 'senha-email' ? 'check' : 'content_copy'}</span>
-                            </button>
-                          </div>
-                        </div>
+                         {!isInstagram && (
+                           <>
+                             <div>
+                               <label className="text-[10px] text-text-secondary mb-0.5 block">Email Alternativo</label>
+                               <div className="flex items-center gap-1">
+                                 <code className="flex-1 bg-background/50 px-2 py-1.5 rounded border border-border text-xs font-mono text-foreground truncate">{emailAlternativo}</code>
+                                 <button onClick={() => copyToClipboard(emailAlternativo, 'email-alt')} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
+                                   <span className="material-symbols-outlined text-[14px]">{copied === 'email-alt' ? 'check' : 'content_copy'}</span>
+                                 </button>
+                               </div>
+                             </div>
+                             <div>
+                               <label className="text-[10px] text-text-secondary mb-0.5 block">Senha do Email</label>
+                               <div className="flex items-center gap-1">
+                                 <code className="flex-1 bg-background/50 px-2 py-1.5 rounded border border-border text-xs font-mono text-foreground truncate">{senhaEmail}</code>
+                                 <button onClick={() => copyToClipboard(senhaEmail, 'senha-email')} className="p-1.5 rounded bg-muted/50 hover:bg-muted transition-colors text-text-secondary hover:text-foreground">
+                                   <span className="material-symbols-outlined text-[14px]">{copied === 'senha-email' ? 'check' : 'content_copy'}</span>
+                                 </button>
+                               </div>
+                             </div>
+                           </>
+                         )}
                       </div>
 
                       <div>
