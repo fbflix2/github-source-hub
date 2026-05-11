@@ -89,7 +89,11 @@ Deno.serve(async (req) => {
      return { ...result, url };
    }
  
-  async function wapiSendText(phone: string, message: string) {
+  async function wapiSendText(phone: string, message: string, simulate = true) {
+    if (simulate) {
+      await wapiSendPresence(phone, "composing");
+      await new Promise(r => setTimeout(r, 1000 + Math.random() * 1000));
+    }
     return wapiRequest("/message/send-text", { phone, message });
   }
 
@@ -97,9 +101,20 @@ Deno.serve(async (req) => {
     return wapiRequest("/message/send-image", { phone, image: imageUrl, caption: caption || "" });
   }
 
-  async function wapiSendAudio(phone: string, audioUrl: string) {
-    // According to W-API documentation (common pattern)
-    return wapiRequest("/message/send-audio", { phone, audio: audioUrl });
+  async function wapiSendAudio(phone: string, audioUrl: string, ptt = true, simulate = true) {
+    if (simulate) {
+      await wapiSendPresence(phone, "recording");
+      await new Promise(r => setTimeout(r, 3000 + Math.random() * 2000));
+    }
+    return wapiRequest("/message/send-audio", { phone, audio: audioUrl, ptt });
+  }
+
+  async function wapiSendPresence(phone: string, presence: "composing" | "recording" | "available") {
+    // Common W-API endpoint for presence simulation
+    return wapiRequest("/message/send-presence", { phone, presence }).catch(e => {
+      console.error("Presence update failed:", e);
+      return { ok: false };
+    });
   }
 
   async function wapiSendButton(phone: string, message: string, buttons: Array<{ id: string; text: string }>, title?: string, footer?: string) {
