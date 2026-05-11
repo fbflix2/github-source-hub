@@ -89,7 +89,11 @@ Deno.serve(async (req) => {
      return { ...result, url };
    }
  
-  async function wapiSendText(phone: string, message: string) {
+  async function wapiSendText(phone: string, message: string, simulate = true) {
+    if (simulate) {
+      await wapiSendPresence(phone, "composing");
+      await new Promise(r => setTimeout(r, 1000 + Math.random() * 1000));
+    }
     return wapiRequest("/message/send-text", { phone, message });
   }
 
@@ -97,8 +101,11 @@ Deno.serve(async (req) => {
     return wapiRequest("/message/send-image", { phone, image: imageUrl, caption: caption || "" });
   }
 
-  async function wapiSendAudio(phone: string, audioUrl: string, ptt = true) {
-    // According to W-API documentation, ptt: true makes it appear as a voice message (mensagem de voz)
+  async function wapiSendAudio(phone: string, audioUrl: string, ptt = true, simulate = true) {
+    if (simulate) {
+      await wapiSendPresence(phone, "recording");
+      await new Promise(r => setTimeout(r, 3000 + Math.random() * 2000));
+    }
     return wapiRequest("/message/send-audio", { phone, audio: audioUrl, ptt });
   }
 
@@ -138,19 +145,6 @@ Deno.serve(async (req) => {
     try {
       let result;
       const meta = log.metadata || {};
-
-      // Simulate human behavior: send presence before message
-      // This makes the "recording..." or "typing..." status appear to the recipient
-      if (log.message_type === "audio") {
-        await wapiSendPresence(log.phone, "recording");
-        // Wait 3-5 seconds to simulate recording time
-        await new Promise(r => setTimeout(r, 3000 + Math.random() * 2000));
-      } else if (log.message_type === "text" || !log.message_type) {
-        await wapiSendPresence(log.phone, "composing");
-        // Wait 1-2 seconds to simulate typing time
-        await new Promise(r => setTimeout(r, 1000 + Math.random() * 1000));
-      }
-
       if (log.message_type === "image" && log.image_url) {
         result = await wapiSendImage(log.phone, log.image_url, log.message_sent);
       } else if (log.message_type === "audio" && log.audio_url) {
