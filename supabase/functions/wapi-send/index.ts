@@ -97,6 +97,11 @@ Deno.serve(async (req) => {
     return wapiRequest("/message/send-image", { phone, image: imageUrl, caption: caption || "" });
   }
 
+  async function wapiSendAudio(phone: string, audioUrl: string) {
+    // According to W-API documentation (common pattern)
+    return wapiRequest("/message/send-audio", { phone, audio: audioUrl });
+  }
+
   async function wapiSendButton(phone: string, message: string, buttons: Array<{ id: string; text: string }>, title?: string, footer?: string) {
     // W-API removed native button support. Send as formatted text with button labels instead.
     const buttonLabels = buttons.map((b, i) => `▶ ${b.text}`).join("\n");
@@ -127,6 +132,8 @@ Deno.serve(async (req) => {
       const meta = log.metadata || {};
       if (log.message_type === "image" && log.image_url) {
         result = await wapiSendImage(log.phone, log.image_url, log.message_sent);
+      } else if (log.message_type === "audio" && log.audio_url) {
+        result = await wapiSendAudio(log.phone, log.audio_url);
       } else if (log.message_type === "button" && meta.buttons?.length) {
         result = await wapiSendButton(log.phone, log.message_sent, meta.buttons, meta.title, meta.footer);
       } else {
@@ -330,6 +337,33 @@ Deno.serve(async (req) => {
       return ok({ success: true, messageId: getMessageId(result) });
     }
 
+    // ========= ACTION: send-audio =========
+    if (action === "send-audio") {
+      const { phone, audio_url, user_id, event_key, template_id, metadata } = body;
+      if (!phone || !audio_url) return err("phone and audio_url are required");
+
+      let normalizedPhone = normalizePhone(phone);
+
+      const result = await wapiSendAudio(normalizedPhone, audio_url);
+
+      await admin.from("whatsapp_logs").insert({
+        template_id: template_id || null,
+        user_id: user_id || null,
+        phone: normalizedPhone,
+        message_sent: "[Áudio]",
+        status: result.ok ? "sent" : "failed",
+        wapi_message_id: getMessageId(result),
+        error_message: result.ok ? null : JSON.stringify(result.data || result.raw),
+        event_key: event_key || "custom",
+        metadata: metadata || {},
+        message_type: "audio",
+        audio_url,
+      });
+
+      if (!result.ok) return err(`W-API error [${result.status}]: ${JSON.stringify(result.data || result.raw)}`, 502);
+      return ok({ success: true, messageId: getMessageId(result) });
+    }
+
     // ========= ACTION: send-button =========
     if (action === "send-button") {
       const { phone, message, buttons, title, footer, user_id, event_key, template_id, metadata } = body;
@@ -354,6 +388,58 @@ Deno.serve(async (req) => {
 
       if (!result.ok) return err(`W-API error [${result.status}]: ${JSON.stringify(result.data || result.raw)}`, 502);
       return ok({ success: true, messageId: getMessageId(result) });
+    }
+
+    // ========= ACTION: trigger-flow =========
+    if (action === "trigger-flow") {
+      const { flow_id, phone, user_id, variables } = body;
+      if (!flow_id || !phone) return err("flow_id and phone are required");
+
+      const { data: flow, error: fErr } = await admin
+        .from("whatsapp_flows")
+        .select("*, steps:whatsapp_flow_steps(*)")
+        .eq("id", flow_id)
+        .single();
+      
+      if (fErr || !flow) return err("Fluxo não encontrado");
+      
+      // Filter only steps with delay and sort them
+      const steps = (flow.steps || []).sort((a: any, b: any) => a.step_order - b.step_order);
+      let normalizedPhone = normalizePhone(phone);
+      
+      const logsToInsert = [];
+      let currentScheduledAt = new Date();
+
+      for (const step of steps) {
+        // Add the delay of this step to the previous scheduled time
+        currentScheduledAt = new Date(currentScheduledAt.getTime() + (step.delay_minutes || 0) * 60000);
+        
+        let content = step.content || "";
+        const vars = variables || {};
+        for (const [key, value] of Object.entries(vars)) {
+          content = content.replaceAll(`{{${key}}}`, String(value));
+        }
+
+        logsToInsert.push({
+          user_id: user_id || null,
+          phone: normalizedPhone,
+          message_sent: step.message_type === "text" ? content : (step.message_type === "image" ? "[Imagem]" : "[Áudio]"),
+          status: "queued",
+          event_key: "flow_step",
+          metadata: { flow_id, step_id: step.id, variables: vars },
+          message_type: step.message_type,
+          image_url: step.message_type === "image" ? step.content : null,
+          audio_url: step.message_type === "audio" ? step.content : null,
+          scheduled_at: currentScheduledAt.toISOString(),
+        });
+      }
+
+      if (logsToInsert.length > 0) {
+        const { error: insErr } = await admin.from("whatsapp_logs").insert(logsToInsert);
+        if (insErr) return err(`Falha ao agendar passos do fluxo: ${insErr.message}`, 500);
+      }
+
+      return ok({ success: true, queued: logsToInsert.length });
     }
 
     // ========= ACTION: send-template =========

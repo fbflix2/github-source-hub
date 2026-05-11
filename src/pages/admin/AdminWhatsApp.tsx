@@ -17,6 +17,7 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { WhatsAppFlows } from "@/components/admin/WhatsAppFlows";
 
 const EVENT_KEYS = [
    { value: "proxy_expiring", label: "Vencimento de Proxy" },
@@ -1330,6 +1331,9 @@ export default function AdminWhatsApp() {
            <TabsTrigger value="renewals">
              <RotateCw className="size-4 mr-1.5" />Renovações
            </TabsTrigger>
+           <TabsTrigger value="flows">
+             <Zap className="size-4 mr-1.5" />Fluxos
+           </TabsTrigger>
            <TabsTrigger value="contatos">
              <Users className="size-4 mr-1.5" />Contatos
            </TabsTrigger>
@@ -1343,14 +1347,15 @@ export default function AdminWhatsApp() {
 
         {/* CAMPAIGNS TAB */}
         <TabsContent value="campaigns" className="space-y-4">
-          {!campaigns.length ? (
+          {!campaigns.length && (
             <Card>
               <CardContent className="py-12 text-center">
                 <BarChart3 className="size-10 mx-auto text-muted-foreground mb-3" />
                 <p className="text-muted-foreground">Nenhuma campanha registrada</p>
               </CardContent>
             </Card>
-          ) : (
+          )}
+          {campaigns.length > 0 && (
             <div className="space-y-3">
               {campaigns.map((c) => (
                 <Card key={c.id}>
@@ -1482,6 +1487,11 @@ export default function AdminWhatsApp() {
               ))}
             </div>
           )}
+        </TabsContent>
+
+        {/* FLOWS TAB */}
+        <TabsContent value="flows">
+          <WhatsAppFlows />
         </TabsContent>
 
          {/* RENEWALS TAB */}
