@@ -606,8 +606,8 @@ export default function ItemDetails() {
         `Senha: ${senha}`,
         `Código 2FA: ${token2fa}`,
       ];
-      if (emailAlternativo !== "—") lines.push(`Email Alternativo: ${emailAlternativo}`);
-      if (senhaEmail !== "—") lines.push(`Senha Email: ${senhaEmail}`);
+       if (emailAlternativo !== "—" && !isInstagram) lines.push(`Email Alternativo: ${emailAlternativo}`);
+       if (senhaEmail !== "—" && !isInstagram) lines.push(`Senha Email: ${senhaEmail}`);
       if (stockData.nomePerfil) lines.push(`Nome do Perfil: ${stockData.nomePerfil}`);
       if (stockData.dataNascimento) lines.push(`Data de Nascimento: ${stockData.dataNascimento}`);
       if (stockData.genero) lines.push(`Gênero: ${stockData.genero}`);
