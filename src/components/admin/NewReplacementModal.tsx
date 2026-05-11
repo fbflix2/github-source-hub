@@ -336,13 +336,13 @@ export function NewReplacementModal({ open, onOpenChange, onCreated }: NewReplac
       updated_at: now,
     }).eq("id", selectedNewItem.id);
 
-    // Unlink the original item so the client never sees stale credentials again
-    if (originalStockId) {
-      await supabase.from("stock_items").update({
-        order_item_id: null,
-        updated_at: now,
-      }).eq("id", originalStockId);
-    }
+     // Update the original item status to 'bloqueado' so it goes to recycling
+     if (originalStockId) {
+       await supabase.from("stock_items").update({
+         status: "bloqueado",
+         updated_at: now,
+       }).eq("id", originalStockId);
+     }
 
     // Update delivery_data keeping operational flags already stored on the order item
     if (newStockFull) {
