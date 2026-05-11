@@ -524,8 +524,8 @@ export default function ItemDetails() {
   const token2fa = stockData.token2fa || "—";
   const descricao = stockData.descricao || product?.description || "";
   const tags = product?.tags || [];
-   const isInstagram = product?.name?.toLowerCase().includes("instagram");
-   const isBM = product?.icon_type === "bm" && !isInstagram;
+   const isInstagram = product?.name?.toLowerCase().includes("instagram") || orderItem?.name?.toLowerCase().includes("instagram");
+   const isBM = (product?.icon_type === "bm" || orderItem?.name?.toLowerCase().includes("bm")) && !isInstagram;
   const isComboProfileView = !!comboProfileId;
   const isPage = product?.icon_type === "page" && !isCombo && !isComboProfileView;
   const itemQuantity = orderItem?.quantity || 1;
