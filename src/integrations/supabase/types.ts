@@ -4131,8 +4131,80 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_flow_steps: {
+        Row: {
+          content: string | null
+          created_at: string
+          delay_minutes: number
+          flow_id: string
+          id: string
+          message_type: string
+          metadata: Json | null
+          step_order: number
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          delay_minutes?: number
+          flow_id: string
+          id?: string
+          message_type: string
+          metadata?: Json | null
+          step_order: number
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          delay_minutes?: number
+          flow_id?: string
+          id?: string
+          message_type?: string
+          metadata?: Json | null
+          step_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_flow_steps_flow_id_fkey"
+            columns: ["flow_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_flows"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_flows: {
+        Row: {
+          active: boolean | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       whatsapp_logs: {
         Row: {
+          audio_url: string | null
           created_at: string
           delivered_at: string | null
           error_message: string | null
@@ -4154,6 +4226,7 @@ export type Database = {
           wapi_message_id: string | null
         }
         Insert: {
+          audio_url?: string | null
           created_at?: string
           delivered_at?: string | null
           error_message?: string | null
@@ -4175,6 +4248,7 @@ export type Database = {
           wapi_message_id?: string | null
         }
         Update: {
+          audio_url?: string | null
           created_at?: string
           delivered_at?: string | null
           error_message?: string | null
