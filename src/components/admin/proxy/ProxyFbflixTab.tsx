@@ -16,16 +16,27 @@ import { toast } from "sonner";
 const formatCurrency = (value: number) =>
   value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-type Period = "7d" | "30d" | "90d" | "all";
-const periodLabels: Record<Period, string> = { "7d": "7 dias", "30d": "30 dias", "90d": "90 dias", "all": "Todo período" };
+ type Period = "today" | "7d" | "30d" | "90d" | "all";
+ const periodLabels: Record<Period, string> = { 
+   "today": "Hoje",
+   "7d": "7 dias", 
+   "30d": "30 dias", 
+   "90d": "90 dias", 
+   "all": "Todo período" 
+ };
 
-function getPeriodDate(period: Period): string | null {
-  if (period === "all") return null;
-  const d = new Date();
-  const days = period === "7d" ? 7 : period === "30d" ? 30 : 90;
-  d.setDate(d.getDate() - days);
-  return d.toISOString();
-}
+ function getPeriodDate(period: Period): string | null {
+   if (period === "all") return null;
+   const d = new Date();
+   if (period === "today") {
+     d.setHours(0, 0, 0, 0);
+   } else {
+     const days = period === "7d" ? 7 : period === "30d" ? 30 : 90;
+     d.setDate(d.getDate() - days);
+     d.setHours(0, 0, 0, 0);
+   }
+   return d.toISOString();
+ }
 
 export default function ProxyFbflixProxyTab() {
   const [availablePage, setAvailablePage] = useState(1);
@@ -120,28 +131,34 @@ export default function ProxyFbflixProxyTab() {
     return map;
   }, [wsProfiles]);
 
-  // Country breakdown from products tags/names
-  const countryBreakdown = useMemo(() => {
-    if (!wsSubs || !wsProducts) return { br: { sold: 0, active: 0 }, us: { sold: 0, active: 0 } };
-    const now = new Date();
-    const productCountryMap = new Map<string, "BR" | "US">();
-    wsProducts.forEach(p => {
-      const tags = (p.tags || []).join(" ").toLowerCase();
-      const name = (p.name || "").toLowerCase();
-      const isUS = tags.includes("us") || tags.includes("usa") || tags.includes("americano") || name.includes("americana") || name.includes(" us ");
-      productCountryMap.set(p.id, isUS ? "US" : "BR");
-    });
-    const result = { br: { sold: 0, active: 0 }, us: { sold: 0, active: 0 } };
-    wsSubs.forEach(s => {
-      const country = (s.product_id && productCountryMap.get(s.product_id)) || "BR";
-      const bucket = country === "US" ? result.us : result.br;
-      bucket.sold++;
-      if (s.status === "active" && (!s.end_date || new Date(s.end_date) >= now)) {
-        bucket.active++;
-      }
-    });
-    return result;
-  }, [wsSubs, wsProducts]);
+   // Country breakdown from products tags/names
+   const countryBreakdown = useMemo(() => {
+     if (!wsSubs || !wsProducts) return { br: { sold: 0, active: 0 }, us: { sold: 0, active: 0 } };
+     const now = new Date();
+     const since = getPeriodDate(period);
+     const productCountryMap = new Map<string, "BR" | "US">();
+     wsProducts.forEach(p => {
+       const tags = (p.tags || []).join(" ").toLowerCase();
+       const name = (p.name || "").toLowerCase();
+       const isUS = tags.includes("us") || tags.includes("usa") || tags.includes("americano") || name.includes("americana") || name.includes(" us ");
+       productCountryMap.set(p.id, isUS ? "US" : "BR");
+     });
+     const result = { br: { sold: 0, active: 0 }, us: { sold: 0, active: 0 } };
+     wsSubs.forEach(s => {
+       const country = (s.product_id && productCountryMap.get(s.product_id)) || "BR";
+       const bucket = country === "US" ? result.us : result.br;
+       
+       // Only count for "sold" if within period
+       if (!since || s.created_at >= since) {
+         bucket.sold++;
+       }
+       
+       if (s.status === "active" && (!s.end_date || new Date(s.end_date) >= now)) {
+         bucket.active++;
+       }
+     });
+     return result;
+   }, [wsSubs, wsProducts, period]);
 
   // Compute sold proxy IDs to filter available list
   const soldProxyIds = useMemo(() => {
@@ -191,16 +208,31 @@ export default function ProxyFbflixProxyTab() {
     refetchOnWindowFocus: false,
   });
 
-  // Financial calculations
-  const financials = useMemo(() => {
-    if (!wsSubs || !wsProducts) return { totalRevenue: 0, totalCost: 0, totalProfit: 0, activeCount: 0, totalCount: 0, subsWithPrices: [] as any[] };
-
-    const now = new Date();
-    const activeSubs = wsSubs.filter(s => {
-      if (s.status !== "active") return false;
-      if (!s.end_date) return true;
-      return new Date(s.end_date) >= now;
-    });
+   const financials = useMemo(() => {
+     if (!wsSubs || !wsProducts) return { 
+       totalRevenue: 0, 
+       totalCost: 0, 
+       totalProfit: 0, 
+       activeCount: 0, 
+       totalCount: 0, 
+       filteredCount: 0,
+       subsWithPrices: [] as any[] 
+     };
+ 
+     const now = new Date();
+     const since = getPeriodDate(period);
+ 
+     // Filter subscriptions by period (based on created_at)
+     const filteredSubs = wsSubs.filter(s => {
+       if (!since) return true;
+       return s.created_at >= since;
+     });
+ 
+     const activeSubs = wsSubs.filter(s => {
+       if (s.status !== "active") return false;
+       if (!s.end_date) return true;
+       return new Date(s.end_date) >= now;
+     });
 
     // Product price map
     const productPriceMap = new Map<string, number>();
@@ -215,12 +247,15 @@ export default function ProxyFbflixProxyTab() {
     let totalRevenue = 0;
     let totalCost = 0;
 
-    const subsWithPrices = activeSubs.map(sub => {
+    const subsWithPrices = filteredSubs.map(sub => {
       const salePrice = sub.product_id && productPriceMap.has(sub.product_id)
         ? productPriceMap.get(sub.product_id)!
         : 0;
+      
+      // Count all active subs globally for "activeCount" but use filtered for revenue/cost
       totalRevenue += salePrice;
       totalCost += costPerProxyBRL;
+      
       return { ...sub, price: salePrice, unitCost: costPerProxyBRL };
     });
 
@@ -230,9 +265,10 @@ export default function ProxyFbflixProxyTab() {
       totalProfit: totalRevenue - totalCost,
       activeCount: activeSubs.length,
       totalCount: wsSubs.length,
+      filteredCount: filteredSubs.length,
       subsWithPrices,
     };
-  }, [wsSubs, wsProducts, plan, totalProxies, usdToBrl]);
+  }, [wsSubs, wsProducts, plan, totalProxies, usdToBrl, period]);
 
   const copyProxy = (proxy: any) => {
     const str = `${proxy.proxy_address}:${proxy.port}:${proxy.username}:${proxy.password}`;
@@ -392,23 +428,23 @@ export default function ProxyFbflixProxyTab() {
           </CardContent>
         </Card>
 
-        <Card className="border-border/40 bg-card/60 backdrop-blur-sm">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="flex items-center justify-center size-10 rounded-lg bg-blue-500/10">
-              <ShoppingBag className="size-5 text-blue-500" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Proxies Vendidos</p>
-              <p className="text-xl font-bold text-foreground">
-                {financials.activeCount}
-                <span className="text-sm text-muted-foreground font-normal ml-1">/ {plan?.proxy_count || totalProxies}</span>
-              </p>
-              <p className="text-[10px] text-muted-foreground">
-                {plan?.proxy_count ? `${((financials.activeCount / (plan.proxy_count || 1)) * 100).toFixed(0)}% alocados` : ""}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+         <Card className="border-border/40 bg-card/60 backdrop-blur-sm">
+           <CardContent className="p-4 flex items-center gap-3">
+             <div className="flex items-center justify-center size-10 rounded-lg bg-blue-500/10">
+               <ShoppingBag className="size-5 text-blue-500" />
+             </div>
+             <div>
+               <p className="text-xs text-muted-foreground">Novas Vendas</p>
+               <p className="text-xl font-bold text-foreground">
+                 {financials.filteredCount}
+                 <span className="text-[10px] text-muted-foreground font-normal ml-1">vendas</span>
+               </p>
+               <p className="text-[10px] text-muted-foreground">
+                 {financials.activeCount} proxies ativos no total
+               </p>
+             </div>
+           </CardContent>
+         </Card>
 
         <Card className="border-border/40 bg-card/60 backdrop-blur-sm">
           <CardContent className="p-4 flex items-center gap-3">
