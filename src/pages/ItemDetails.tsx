@@ -39,6 +39,10 @@ interface StockData {
    perfilMatriz?: string;
 }
 
+const extractBmInviteLink = (value: string) => {
+  return value.match(/https?:\/\/\S+/)?.[0] || value.trim();
+};
+
 export default function ItemDetails() {
   const navigate = useNavigate();
   const { orderId, itemId } = useParams();
@@ -284,7 +288,7 @@ export default function ItemDetails() {
                   // New format: bmLinks array
                   if (Array.isArray(dd.bmLinks)) {
                     dd.bmLinks.forEach((link: string) => {
-                      const trimmed = link.trim();
+                      const trimmed = extractBmInviteLink(link);
                       if (trimmed) collectedLinks.push(trimmed);
                     });
                   }
@@ -304,7 +308,7 @@ export default function ItemDetails() {
                   bmStockItems.forEach((s: any) => {
                     if (s.identification_link) {
                       s.identification_link.split("\n").forEach((line: string) => {
-                        const trimmed = line.trim();
+                        const trimmed = extractBmInviteLink(line);
                         if (trimmed) collectedLinks.push(trimmed);
                       });
                     }
@@ -318,7 +322,7 @@ export default function ItemDetails() {
                   const dd = oi.delivery_data;
                   if (dd && typeof dd === "object" && dd.linkPerfil) {
                     dd.linkPerfil.split("\n").forEach((line: string) => {
-                      const trimmed = line.trim();
+                      const trimmed = extractBmInviteLink(line);
                       if (trimmed) collectedLinks.push(trimmed);
                     });
                   }
