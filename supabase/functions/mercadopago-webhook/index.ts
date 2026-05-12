@@ -606,28 +606,40 @@ Deno.serve(async (req) => {
 
           if (rpcError) {
             console.error(`Fulfillment error for item ${oi.id}:`, rpcError);
-           } else if (result && (result as any).success && lauthEnabled && lauthEmail) {
-             console.log(`Fulfillment successful for item ${oi.id}, checking Lauth transfer...`);
-             const profileId = (result as any).data?.idPerfil;
-             if (profileId) {
-               console.log(`Triggering Lauth transfer for profile ${profileId} to ${lauthEmail}`);
-               // Call lauth-transfer function via internal fetch to avoid CORS/auth issues
-               // We use the service role key to authenticate
-               fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/lauth-transfer`, {
-                 method: 'POST',
-                 headers: {
-                   'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-                   'Content-Type': 'application/json'
-                 },
-                 body: JSON.stringify({ profileId, email: lauthEmail, itemId: oi.id })
-               }).then(async (resp) => {
-                 const res = await resp.json();
-                 console.log(`Lauth transfer response for item ${oi.id}:`, res);
-               }).catch(err => {
-                 console.error(`Lauth transfer error for item ${oi.id}:`, err);
-               });
-             }
-           } else {
+            } else if (result && (result as any).success) {
+              const profileId = (result as any).data?.idPerfil;
+              if (profileId && lauthEnabled && lauthEmail) {
+                console.log(`[webhook] Triggering automatic Lauth transfer for item ${oi.id} (profile: ${profileId}) to ${lauthEmail}`);
+                try {
+                  const lauthResp = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/lauth-transfer`, {
+                    method: 'POST',
+                    headers: {
+                      'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+                      'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ profileId, email: lauthEmail, itemId: oi.id })
+                  });
+                  const lauthResult = await lauthResp.json();
+                  console.log(`[webhook] Lauth transfer result for item ${oi.id}:`, lauthResult);
+                  
+                  if (lauthResult.success) {
+                    // Update delivery_data to record the transfer
+                    const currentDD = (result as any).data || {};
+                    await supabase.from("order_items").update({
+                      delivery_data: {
+                        ...currentDD,
+                        lauthDeliveredAt: new Date().toISOString(),
+                        lauthRecipientEmail: lauthEmail
+                      }
+                    }).eq("id", oi.id);
+                  }
+                } catch (lauthErr) {
+                  console.error(`[webhook] Critical error calling lauth-transfer for item ${oi.id}:`, lauthErr);
+                }
+              } else if (profileId) {
+                console.log(`[webhook] Skipping Lauth transfer for item ${oi.id}: user integration disabled or email missing.`);
+              }
+            } else if (result) {
              console.log(`Fulfillment result for item ${oi.id}:`, result);
            }
         }
