@@ -1056,13 +1056,15 @@ export default function Checkout() {
         if (updateError) throw updateError;
 
         // Get all order items for fulfillment
-        const { data: createdOrderItems } = await supabase.from("order_items").select("id, product_id").eq("order_id", orderId);
+        const { data: createdOrderItems } = await supabase.from("order_items").select("id, product_id, delivery_data").eq("order_id", orderId);
 
         // Fulfill atomically using DB function
         let fulfillmentFailed = false;
         if (createdOrderItems) {
           for (const oi of createdOrderItems) {
             if (!oi.product_id) continue;
+            const deliveryData = oi.delivery_data && typeof oi.delivery_data === "object" ? oi.delivery_data as Record<string, unknown> : null;
+            if (deliveryData?.bmLinks || deliveryData?.linkPerfil || deliveryData?.idPerfil || deliveryData?.type) continue;
 
             const { data: result, error: rpcError } = await supabase.rpc("fulfill_order_item", {
               p_order_item_id: oi.id,
@@ -1316,10 +1318,12 @@ export default function Checkout() {
 
           // Normal product fulfillment
           await supabase.from("orders").update({ status: "completed" }).eq("id", orderId);
-          const { data: createdItems } = await supabase.from("order_items").select("id, product_id").eq("order_id", orderId);
+          const { data: createdItems } = await supabase.from("order_items").select("id, product_id, delivery_data").eq("order_id", orderId);
           if (createdItems) {
             for (const oi of createdItems) {
               if (!oi.product_id) continue;
+              const deliveryData = oi.delivery_data && typeof oi.delivery_data === "object" ? oi.delivery_data as Record<string, unknown> : null;
+              if (deliveryData?.bmLinks || deliveryData?.linkPerfil || deliveryData?.idPerfil || deliveryData?.type) continue;
               const { data: result } = await supabase.rpc("fulfill_order_item", { p_order_item_id: oi.id, p_product_id: oi.product_id });
               
               if (result && (result as any).success && lauthEnabled && lauthEmail) {
