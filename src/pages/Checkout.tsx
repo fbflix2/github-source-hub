@@ -1083,12 +1083,27 @@ export default function Checkout() {
               
               if (profileId) {
                 console.log("Iniciando transferência Lauth para:", profileId);
-                supabase.functions.invoke('lauth-transfer', {
-                  body: { profileId, email: lauthEmail, itemId: oi.id }
-                }).then(({ data, error }) => {
-                  if (error) console.error("Erro na transferência Lauth:", error);
-                  else console.log("Transferência Lauth concluída:", data);
-                });
+                try {
+                  const { data: lauthData, error: lauthError } = await supabase.functions.invoke('lauth-transfer', {
+                    body: { profileId, email: lauthEmail, itemId: oi.id }
+                  });
+                  if (lauthError) {
+                    console.error("Erro na transferência Lauth:", lauthError);
+                  } else {
+                    console.log("Transferência Lauth concluída:", lauthData);
+                    if (lauthData?.success) {
+                      // Update delivery_data locally and in DB
+                      const updatedDD = {
+                        ...stockData,
+                        lauthDeliveredAt: new Date().toISOString(),
+                        lauthRecipientEmail: lauthEmail
+                      };
+                      await supabase.from("order_items").update({ delivery_data: updatedDD }).eq("id", oi.id);
+                    }
+                  }
+                } catch (err) {
+                  console.error("Falha ao invocar lauth-transfer:", err);
+                }
               }
             }
           }
