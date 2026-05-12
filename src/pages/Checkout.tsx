@@ -1346,6 +1346,17 @@ export default function Checkout() {
                 if (profileId) {
                   supabase.functions.invoke('lauth-transfer', {
                     body: { profileId, email: lauthEmail, itemId: oi.id }
+                  }).then(({ data: lData, error: lErr }) => {
+                    if (lErr) console.error("Lauth transfer error (fallback):", lErr);
+                    else if (lData?.success) {
+                      supabase.from("order_items").update({
+                        delivery_data: {
+                          ...(result as any).data,
+                          lauthDeliveredAt: new Date().toISOString(),
+                          lauthRecipientEmail: lauthEmail
+                        }
+                      }).eq("id", oi.id);
+                    }
                   });
                 }
               }
