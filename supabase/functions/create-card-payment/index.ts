@@ -6,6 +6,58 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const SAFE_BM_PRODUCT_ID = "e5118c63-ed52-4f4e-8983-f44c1ba0d17b";
+
+async function fulfillMissingStockItems(supabaseAdmin: any, orderId: string) {
+  const { data: orderItems, error: itemsError } = await supabaseAdmin
+    .from("order_items")
+    .select("id, product_id, delivery_data")
+    .eq("order_id", orderId);
+
+  if (itemsError) throw itemsError;
+  let fulfilledCount = 0;
+
+  for (const oi of orderItems || []) {
+    if (!oi.product_id || oi.product_id === SAFE_BM_PRODUCT_ID) continue;
+    const deliveryData = oi.delivery_data && typeof oi.delivery_data === "object" ? oi.delivery_data : null;
+    if (deliveryData?.type || deliveryData?.bmLinks || deliveryData?.linkPerfil || deliveryData?.idPerfil) continue;
+
+    const { data: product } = await supabaseAdmin
+      .from("products")
+      .select("icon_type")
+      .eq("id", oi.product_id)
+      .maybeSingle();
+
+    if (product?.icon_type === "proxy") continue;
+
+    const { count: linkedCount } = await supabaseAdmin
+      .from("stock_items")
+      .select("id", { count: "exact", head: true })
+      .eq("order_item_id", oi.id);
+
+    if ((linkedCount || 0) > 0) continue;
+
+    const { data: result, error: rpcError } = await supabaseAdmin.rpc("fulfill_order_item", {
+      p_order_item_id: oi.id,
+      p_product_id: oi.product_id,
+    });
+
+    if (rpcError) {
+      console.error(`[create-card-payment] Fulfillment error for ${oi.id}:`, rpcError);
+      continue;
+    }
+
+    if (result?.success && Number(result?.linked_count || 0) > 0) fulfilledCount += 1;
+    else if (result && result.success === false) console.warn(`[create-card-payment] Fulfillment warning for ${oi.id}:`, result.error);
+  }
+
+  if (fulfilledCount > 0) {
+    await supabaseAdmin.from("orders").update({ status: "completed" }).eq("id", orderId);
+  }
+
+  return fulfilledCount;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -173,6 +225,11 @@ Deno.serve(async (req) => {
         },
       })
       .eq("id", payment.id);
+
+    if (mpData.status === "approved" && order_id) {
+      const fulfilled = await fulfillMissingStockItems(supabaseAdmin, order_id);
+      console.log(`[create-card-payment] Auto-fulfilled ${fulfilled} stock item(s) for order ${order_id}`);
+    }
 
     if (!mpResponse.ok && mpData.status !== "approved") {
       console.error("Mercado Pago card error:", JSON.stringify(mpData));
