@@ -17,9 +17,9 @@
        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
      )
 
-     const { itemId, profileId, email } = await req.json()
+      const { itemId, profileId: rawProfileId, email } = await req.json()
 
-     if (!profileId || !email) {
+      if (!rawProfileId || !email) {
        return new Response(JSON.stringify({ success: false, message: 'Dados insuficientes' }), {
          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
          status: 400
@@ -45,9 +45,46 @@
        })
      }
 
-     // 2. Chamar API do Lauth para transferir o perfil
-     // Usando o padrão deduzido da documentação e ajuda do Lauth
-     const response = await fetch(`https://api.lauth.com.br/v1/profiles/transfer`, {
+      // 2. Buscar o ID real do perfil no Lauth (pois o rawProfileId pode ser o ID do Facebook usado como nome no Lauth)
+      console.log(`Searching for Lauth profile: ${rawProfileId}`)
+      
+      const listResponse = await fetch(`https://api.lauth.com.br/v1/profiles/list`, {
+        headers: {
+          'Authorization': `Bearer ${apiKeyData.token}`,
+          'Accept': 'application/json'
+        }
+      })
+
+      if (!listResponse.ok) {
+        throw new Error(`Erro ao listar perfis do Lauth: ${listResponse.statusText}`)
+      }
+
+      const listData = await listResponse.json()
+      const profiles = listData.data || []
+      
+      // Tentar encontrar por ID exato ou por Nome (ID do Facebook)
+      const targetProfile = profiles.find((p: any) => 
+        p.id === rawProfileId || 
+        (p.info && p.info.name === rawProfileId) ||
+        (p.info && p.info.name && p.info.name.includes(rawProfileId))
+      )
+
+      if (!targetProfile) {
+        console.error(`Profile not found in Lauth: ${rawProfileId}`)
+        return new Response(JSON.stringify({ 
+          success: false, 
+          message: `Perfil "${rawProfileId}" não encontrado no Lauth. Verifique se o nome do perfil no Lauth coincide com o ID cadastrado.` 
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200
+        })
+      }
+
+      const actualLauthId = targetProfile.id
+      console.log(`Found Lauth profile: ${targetProfile.info?.name} (ID: ${actualLauthId})`)
+
+      // 3. Chamar API do Lauth para transferir o perfil
+      const response = await fetch(`https://api.lauth.com.br/v1/profiles/transfer`, {
        method: 'POST',
        headers: {
          'Authorization': `Bearer ${apiKeyData.token}`,
@@ -55,7 +92,7 @@
          'Accept': 'application/json'
        },
        body: JSON.stringify({
-         profile_id: profileId,
+          profile_id: actualLauthId,
          email: email
        })
      })
