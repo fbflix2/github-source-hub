@@ -485,6 +485,29 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Action: sync_product_stock - recalculates product stock from available stock_items
+    if (body.action === "sync_product_stock") {
+      const { product_id } = body;
+      if (!product_id) throw new Error("product_id é obrigatório");
+      const { count, error: countErr } = await supabaseAdmin
+        .from("stock_items")
+        .select("id", { count: "exact", head: true })
+        .eq("product_id", product_id)
+        .eq("status", "revisado")
+        .is("order_item_id", null)
+        .is("deleted_at", null);
+      if (countErr) throw countErr;
+      const realStock = count || 0;
+      const { error } = await supabaseAdmin
+        .from("products")
+        .update({ stock: realStock, available: realStock > 0 })
+        .eq("id", product_id);
+      if (error) throw error;
+      return new Response(JSON.stringify({ success: true, stock: realStock }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Action: fulfill_webshare - manually allocate Webshare proxy for an order item
     if (body.action === "fulfill_webshare") {
       const { order_item_id, user_id, quantity } = body;
