@@ -583,7 +583,33 @@ export default function AdminNovaVenda() {
         <div className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-2xl p-6 md:p-10 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-white/5 to-transparent rounded-bl-full pointer-events-none opacity-50" />
 
-          <form className="flex flex-col gap-8 relative z-10" onSubmit={handleSubmit}>
+           <form className="flex flex-col gap-8 relative z-10" onSubmit={handleSubmit}>
+             {/* Tipo de Venda */}
+             <div className="flex p-1 bg-black/40 rounded-xl border border-white/5 self-start">
+               <button
+                 type="button"
+                 onClick={() => setSaleType("product")}
+                 className={`px-6 py-2 rounded-lg text-sm font-medium transition-all ${
+                   saleType === "product"
+                     ? "bg-primary text-white shadow-lg"
+                     : "text-gray-400 hover:text-white"
+                 }`}
+               >
+                 📦 Produtos / Proxies
+               </button>
+               <button
+                 type="button"
+                 onClick={() => setSaleType("subscription")}
+                 className={`px-6 py-2 rounded-lg text-sm font-medium transition-all ${
+                   saleType === "subscription"
+                     ? "bg-primary text-white shadow-lg"
+                     : "text-gray-400 hover:text-white"
+                 }`}
+               >
+                 🛡️ Contingência Total
+               </button>
+             </div>
+ 
             {/* Cliente */}
             <div className="space-y-6">
               <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider flex items-center gap-2">
@@ -650,14 +676,14 @@ export default function AdminNovaVenda() {
             {/* Divider */}
             <div className="h-px w-full bg-white/5" />
 
-            {/* Detalhes */}
+             {/* Detalhes */}
             <div className="space-y-6">
               <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider flex items-center gap-2">
                 <FileText className="size-5 text-primary" />
                 Detalhes da Venda
               </h2>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Data */}
                 <div className="space-y-2">
                   <label className="text-sm text-gray-400 font-medium ml-1">Data da Venda</label>
@@ -674,7 +700,7 @@ export default function AdminNovaVenda() {
                   </div>
                 </div>
 
-                {/* Payment Method */}
+                 {/* Payment Method */}
                 <div className="space-y-2">
                   <label className="text-sm text-gray-400 font-medium ml-1">Método de Pagamento</label>
                   <div className="relative">
@@ -695,7 +721,7 @@ export default function AdminNovaVenda() {
                     </div>
                   </div>
                 </div>
-                {/* Delivery Method */}
+                 {/* Delivery Method */}
                 <div className="space-y-2">
                   <label className="text-sm text-gray-400 font-medium ml-1">Forma de Entrega</label>
                   <div className="relative">
@@ -717,7 +743,24 @@ export default function AdminNovaVenda() {
                   </div>
                 </div>
 
-                <div className="md:col-span-2 space-y-2">
+                 {saleType === "subscription" && (
+                   <div className="space-y-2">
+                     <label className="text-sm text-gray-400 font-medium ml-1">Próxima Cobrança (Recorrência)</label>
+                     <div className="relative">
+                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                         <Clock className="size-5 text-gray-500" />
+                       </div>
+                       <input
+                         type="date"
+                         value={recurrenceDate}
+                         onChange={(e) => setRecurrenceDate(e.target.value)}
+                         className="w-full rounded-lg py-3 pl-10 pr-4 text-sm bg-black/20 border border-white/10 text-gray-300 focus:bg-black/40 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all [color-scheme:dark]"
+                       />
+                     </div>
+                   </div>
+                 )}
+ 
+                 <div className="md:col-span-2 space-y-2">
                   <label className="text-sm text-gray-400 font-medium ml-1">Observações</label>
                   <textarea
                     value={notes}
