@@ -122,6 +122,8 @@ Deno.serve(async (req) => {
       throw new Error(`Erro OpenPix [${openPixResponse.status}]: ${JSON.stringify(opData)}`);
     }
 
+    console.log("OpenPix response:", JSON.stringify(opData));
+
     const charge = opData.charge || opData;
     
     // OpenPix returns the charge identifier and brCode.
@@ -136,6 +138,7 @@ Deno.serve(async (req) => {
             });
             if (imgResponse.ok) {
                 const imgData = await imgResponse.json();
+                console.log("OpenPix QR base64 response:", JSON.stringify(imgData));
                 // The field can be imageBase64, qrcodeBase64 or base64
                 let rawBase64 = imgData.imageBase64 || imgData.qrcodeBase64 || imgData.base64;
                 
