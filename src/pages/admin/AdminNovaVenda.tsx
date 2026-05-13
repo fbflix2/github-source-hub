@@ -100,6 +100,7 @@ export default function AdminNovaVenda() {
   const [pixOrderId, setPixOrderId] = useState<string | null>(null);
   const [pixStatus, setPixStatus] = useState<string | null>(null);
   const [pollingPix, setPollingPix] = useState(false);
+  const [pixShareLink, setPixShareLink] = useState<string | null>(null);
 
   // Load products for selection
    useEffect(() => {
@@ -317,6 +318,46 @@ export default function AdminNovaVenda() {
       setPixOrderId(order.id);
       setPixStatus("pending");
       setPixGenerated(true);
+
+      // Create a public invoice link so admin can share payment URL with the client
+      try {
+        const productName = saleType === "subscription"
+          ? `Assinatura Contingência Total — ${ctPlans.find(p => p.id === selectedCtPlanId)?.name || ""}`
+          : (items[0]?.name || "Cobrança");
+        const invoiceCode = `INV-${Date.now().toString(36).toUpperCase()}`;
+        const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+        const { data: inv, error: invErr } = await supabase
+          .from("invoice_links" as any)
+          .insert({
+            code: invoiceCode,
+            client_user_id: selectedClient.user_id,
+            client_name: selectedClient.full_name || null,
+            client_email: selectedClient.email || null,
+            product_name: productName,
+            amount: subtotal,
+            reference_date: new Date().toISOString().split("T")[0],
+            description: notes || null,
+            status: "pending",
+            payment_id: data.payment_id,
+            mp_payment_id: data.openpix_charge_id || null,
+            qr_code: data.qr_code || null,
+            qr_code_base64: data.qr_code_base64 || null,
+            expires_at: expiresAt,
+          })
+          .select("code")
+          .single();
+        if (!invErr && inv) {
+          const origin = window.location.origin.includes("lovable") || window.location.origin.includes("supabase.co")
+            ? "https://fbflix.com.br"
+            : window.location.origin;
+          setPixShareLink(`${origin}/pagar/${(inv as any).code}`);
+        } else if (invErr) {
+          console.warn("Invoice link insert error:", invErr);
+        }
+      } catch (e) {
+        console.warn("Could not create share link:", e);
+      }
+
       toast.success("Código PIX gerado! Aguardando pagamento...");
     } catch (err: any) {
       console.error(err);
