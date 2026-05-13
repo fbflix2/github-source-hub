@@ -182,9 +182,15 @@ export default function PagarInvoice() {
                   <div className="flex justify-center">
                     <div className="bg-white p-3 rounded-xl">
                       <img
-                        src={`data:image/png;base64,${invoice.qr_code_base64}`}
+                        src={
+                          invoice.qr_code_base64.startsWith('http') 
+                            ? invoice.qr_code_base64 
+                            : invoice.qr_code_base64.startsWith('data:') 
+                              ? invoice.qr_code_base64 
+                              : `data:image/png;base64,${invoice.qr_code_base64}`
+                        }
                         alt="QR Code PIX"
-                        className="w-48 h-48"
+                        className="w-48 h-48 object-contain"
                       />
                     </div>
                   </div>
@@ -215,7 +221,7 @@ export default function PagarInvoice() {
             {/* Security */}
             <div className="flex items-center justify-center gap-1.5 text-gray-500 text-xs pt-2 border-t border-white/5">
               <ShieldCheck className="size-3.5" />
-              <span>Pagamento seguro via PIX — Mercado Pago</span>
+              <span>Pagamento seguro via PIX</span>
             </div>
           </CardContent>
         </Card>
