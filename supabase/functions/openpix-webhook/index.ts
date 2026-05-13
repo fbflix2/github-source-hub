@@ -15,35 +15,149 @@ const ok = (data: any = { received: true }) =>
 
 const SAFE_BM_PRODUCT_ID = "e5118c63-ed52-4f4e-8983-f44c1ba0d17b";
 
-async function fulfillMissingStockItems(supabase: any, orderId: string) {
+async function fulfillOrder(supabase: any, orderId: string, userId: string) {
   try {
     const { data: orderItems } = await supabase
       .from("order_items")
-      .select("id, product_id, delivery_data")
+      .select("id, product_id, delivery_data, quantity, price, name")
       .eq("order_id", orderId);
 
+    if (!orderItems) return 0;
+
     let fulfilledCount = 0;
-    for (const oi of orderItems || []) {
-      if (!oi.product_id || oi.product_id === SAFE_BM_PRODUCT_ID) continue;
-      const dd = oi.delivery_data && typeof oi.delivery_data === "object" ? oi.delivery_data : null;
-      if (dd?.type || dd?.bmLinks || dd?.linkPerfil || dd?.idPerfil) continue;
+    for (const oiRaw of orderItems) {
+      const oi: any = oiRaw;
+      const dd = typeof oi.delivery_data === 'object' && oi.delivery_data ? oi.delivery_data as Record<string, unknown> : null;
+      
+      // Check if already fulfilled
+      if (dd?.fulfilled || dd?.type || dd?.bmLinks || dd?.linkPerfil || dd?.idPerfil) continue;
 
-      const { data: product } = await supabase
-        .from("products").select("icon_type").eq("id", oi.product_id).maybeSingle();
-      if (product?.icon_type === "proxy") continue;
+      // ========== SAFE BM AUTO-ACTIVATION ==========
+      if (oi.product_id === SAFE_BM_PRODUCT_ID) {
+        console.log(`[openpix-webhook] SafeBM product detected for item ${oi.id}`);
+        try {
+          const { data: clientProfile } = await supabase
+            .from("profiles").select("full_name").eq("user_id", userId).single();
+          const clientName = clientProfile?.full_name || "Cliente";
+          const itemQty = oi.quantity || 1;
+          
+          for (let i = 0; i < itemQty; i++) {
+            const { count: existingCount } = await supabase
+              .from("safe_bm_vaults").select("id", { count: "exact", head: true })
+              .eq("user_id", userId).eq("status", "active");
+            
+            await supabase.from("safe_bm_vaults").insert({
+              user_id: userId, client_name: clientName,
+              bm_name: `BM ${(existingCount || 0) + 1}`,
+              bm_link: "https://business.facebook.com",
+              status: "active", subscription_price: oi.price || 9.99,
+              protection_start: new Date().toISOString(),
+            });
+          }
+          await supabase.from("order_items").update({
+            delivery_data: { type: "safe_bm", fulfilled: true, count: itemQty },
+          }).eq("id", oi.id);
+          fulfilledCount++;
+        } catch (e) {
+          console.error("[openpix-webhook] SafeBM error:", e);
+        }
+        continue;
+      }
 
-      const { count: linkedCount } = await supabase
-        .from("stock_items").select("id", { count: "exact", head: true }).eq("order_item_id", oi.id);
-      if ((linkedCount || 0) > 0) continue;
+      // ========== WEBSHARE PROXY FULFILLMENT ==========
+      let productInfo = null;
+      if (oi.product_id) {
+        const { data } = await supabase
+          .from("products").select("icon_type, external_id, name, tags")
+          .eq("id", oi.product_id).single();
+        productInfo = data;
+      }
 
+      const isProxyProduct = productInfo?.icon_type === 'proxy' || (dd && dd.type === "proxy_contract");
+      if (isProxyProduct) {
+        console.log(`[openpix-webhook] Proxy product detected for item ${oi.id}`);
+        const WEBSHARE_API_KEY = Deno.env.get("WEBSHARE_API_KEY");
+        if (!WEBSHARE_API_KEY) {
+          console.error("[openpix-webhook] WEBSHARE_API_KEY missing");
+          continue;
+        }
+
+        try {
+          // Country detection
+          let targetCountry = "BR";
+          const brIndicators = ["brasil", "brazil", "br", "sudeste", "nordeste", "sul", "centro-oeste"];
+          const usIndicators = ["usa", "estados unidos", "americano", "us premium"];
+          
+          const searchText = ((productInfo?.tags || []) as string[]).join(" ").toLowerCase() + " " + (productInfo?.name || "").toLowerCase();
+          for (const ind of brIndicators) { if (searchText.includes(ind)) { targetCountry = "BR"; break; } }
+          if (targetCountry === "BR" && !searchText.includes("brazil")) {
+             for (const ind of usIndicators) { if (searchText.includes(ind)) { targetCountry = "US"; break; } }
+          }
+
+          // Get assigned proxies
+          const { data: existingSubs } = await supabase
+            .from("subscriptions").select("raw_data")
+            .eq("type", "webshare").in("status", ["active", "expiring"]);
+          const assignedIds = new Set(existingSubs?.map((s: any) => String(s.raw_data?.webshare_proxy_id)).filter(Boolean));
+
+          const itemQty = oi.quantity || 1;
+          const selectedProxies = [];
+          let page = 1;
+          while (selectedProxies.length < itemQty && page <= 10) {
+            const resp = await fetch(`https://proxy.webshare.io/api/v2/proxy/list/?mode=direct&page=${page}&page_size=250&country_code__in=${targetCountry}`, {
+              headers: { Authorization: `Token ${WEBSHARE_API_KEY}` }
+            });
+            if (!resp.ok) break;
+            const data = await resp.json();
+            for (const p of (data.results || [])) {
+              if (p.valid && !assignedIds.has(String(p.id))) {
+                selectedProxies.push(p);
+                assignedIds.add(String(p.id));
+                if (selectedProxies.length >= itemQty) break;
+              }
+            }
+            if (!data.next) break;
+            page++;
+          }
+
+          for (let i = 0; i < selectedProxies.length; i++) {
+            const p = selectedProxies[i];
+            const start = new Date();
+            const end = new Date();
+            end.setDate(end.getDate() + 30);
+            
+            await supabase.from("subscriptions").insert({
+              user_id: userId, name: `WS-${Date.now().toString(36).toUpperCase()}${i > 0 ? `-${i}` : ''}`,
+              type: "webshare", status: "active",
+              start_date: start.toISOString(), end_date: end.toISOString(),
+              product_id: oi.product_id,
+              raw_data: {
+                webshare_proxy_id: p.id, proxy_address: p.proxy_address,
+                port: p.port, username: p.username, password: p.password,
+                country_code: p.country_code, provider: "webshare",
+                exchange_quota_free: 2, exchange_quota_pay: 0,
+              },
+            });
+          }
+
+          await supabase.from("order_items").update({
+            delivery_data: { type: "webshare_proxy", fulfilled: true, count: selectedProxies.length },
+          }).eq("id", oi.id);
+          fulfilledCount++;
+        } catch (e) {
+          console.error("[openpix-webhook] Proxy error:", e);
+        }
+        continue;
+      }
+
+      // ========== STANDARD STOCK FULFILLMENT ==========
+      if (!oi.product_id) continue;
       const { data: result } = await supabase.rpc("fulfill_order_item", {
         p_order_item_id: oi.id, p_product_id: oi.product_id,
       });
       if (result?.success && Number(result?.linked_count || 0) > 0) fulfilledCount += 1;
     }
-    if (fulfilledCount > 0) {
-      await supabase.from("orders").update({ status: "completed" }).eq("id", orderId);
-    }
+
     return fulfilledCount;
   } catch (e) {
     console.error("[openpix-webhook] fulfill error:", e);
@@ -118,7 +232,7 @@ Deno.serve(async (req) => {
     }
 
     if (existingPayment.status === "completed") {
-      if (existingPayment.order_id) await fulfillMissingStockItems(supabase, existingPayment.order_id);
+      if (existingPayment.order_id) await fulfillOrder(supabase, existingPayment.order_id, existingPayment.user_id);
       return ok({ received: true, already_processed: true });
     }
 
@@ -140,7 +254,7 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (!updatedPayment) {
-      if (existingPayment.order_id) await fulfillMissingStockItems(supabase, existingPayment.order_id);
+      if (existingPayment.order_id) await fulfillOrder(supabase, existingPayment.order_id, existingPayment.user_id);
       return ok({ received: true, race_resolved: true });
     }
 
@@ -181,7 +295,7 @@ Deno.serve(async (req) => {
         title: `Compra via PIX — ${orderData?.code || "pedido"}`,
         amount, reference_id: paymentId,
       });
-      await fulfillMissingStockItems(supabase, orderId);
+      await fulfillOrder(supabase, orderId, userId);
       await supabase.from("notifications").insert({
         title: "Pedido Pago",
         message: `Pedido #${orderData?.code} de R$ ${amount.toFixed(2)} pago via OpenPix.`,
