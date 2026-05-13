@@ -21,6 +21,7 @@ interface ProfileFormData {
   lauth_enabled: boolean;
   preferred_proxy_city: string;
   show_proxy_city_on_checkout: boolean;
+  automatic_invoice: boolean;
 }
 
 export default function Profile() {
@@ -41,6 +42,7 @@ export default function Profile() {
     lauth_enabled: false,
     preferred_proxy_city: "all",
     show_proxy_city_on_checkout: false,
+    automatic_invoice: false,
   });
   const PROXY_CITIES = [
     { value: "all", label: "🇧🇷 Aleatório (Brasil)" },
@@ -112,6 +114,7 @@ export default function Profile() {
           lauth_enabled: (profile as any).lauth_enabled || false,
           preferred_proxy_city: (profile as any).preferred_proxy_city || "all",
           show_proxy_city_on_checkout: (profile as any).show_proxy_city_on_checkout ?? false,
+          automatic_invoice: (profile as any).automatic_invoice ?? false,
         });
         setVerified((profile as any).verified || false);
         setDocumentUrl((profile as any).document_url || null);
@@ -174,6 +177,7 @@ export default function Profile() {
         lauth_enabled: formData.lauth_enabled,
         preferred_proxy_city: formData.preferred_proxy_city,
         show_proxy_city_on_checkout: formData.show_proxy_city_on_checkout,
+        automatic_invoice: formData.automatic_invoice,
       } as any)
       .eq("user_id", userId);
 

@@ -2509,6 +2509,7 @@ export type Database = {
       profiles: {
         Row: {
           address: string | null
+          automatic_invoice: boolean | null
           avatar_url: string | null
           bairro: string | null
           balance: number
@@ -2540,6 +2541,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          automatic_invoice?: boolean | null
           avatar_url?: string | null
           bairro?: string | null
           balance?: number
@@ -2571,6 +2573,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          automatic_invoice?: boolean | null
           avatar_url?: string | null
           bairro?: string | null
           balance?: number
