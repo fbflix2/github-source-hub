@@ -409,11 +409,11 @@ export default function Wallet() {
                   </div>
 
                   {pixData.qr_code_base64 && (
-                    <div className="bg-white rounded-2xl p-4">
+                    <div className="bg-white rounded-2xl p-4 shadow-sm border border-border/50">
                       <img
-                        src={`data:image/png;base64,${pixData.qr_code_base64}`}
+                        src={pixData.qr_code_base64.startsWith('data:') ? pixData.qr_code_base64 : `data:image/png;base64,${pixData.qr_code_base64}`}
                         alt="QR Code PIX"
-                        className="w-56 h-56"
+                        className="w-56 h-56 object-contain"
                       />
                     </div>
                   )}
