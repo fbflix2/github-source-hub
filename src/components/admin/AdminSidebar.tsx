@@ -202,15 +202,20 @@ export function AdminSidebar() {
       )}
     >
       <div className="flex flex-col h-full overflow-hidden">
-        {/* Logo */}
-        <div className="flex-none flex items-center gap-2 px-4 py-5">
-          <img src={logoFbflix} alt="FBFLIX" className="h-9 w-auto object-contain" />
-          {!collapsed && (
-             <h1 className="text-white text-sm font-bold tracking-tight">
-               ​
-             </h1>
-          )}
-        </div>
+         {/* Logo */}
+         <div className={cn(
+           "flex-none flex items-center px-4 py-6 transition-all duration-300",
+           collapsed ? "justify-center" : "justify-center px-6"
+         )}>
+           <img 
+             src={logoFbflix} 
+             alt="FBFLIX" 
+             className={cn(
+               "transition-all duration-300 object-contain",
+               collapsed ? "h-8" : "h-14"
+             )} 
+           />
+         </div>
 
         {/* Navigation */}
         <nav className="flex-1 px-2 space-y-0.5 overflow-y-auto">
