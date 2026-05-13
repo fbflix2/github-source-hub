@@ -17,6 +17,7 @@ interface Transaction {
   title: string;
   amount: number;
   created_at: string;
+  invoice_status?: 'none' | 'requested' | 'issued' | 'failed';
 }
 
 const quickAmounts = [20, 50, 100, 200];
@@ -87,7 +88,7 @@ export default function Wallet() {
             supabase.from("wallet_transactions").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(20),
           ]);
           if (profileRes.data) setBalance(profileRes.data.balance);
-          if (transactionsRes.data) setTransactions(transactionsRes.data);
+          if (transactionsRes.data) setTransactions(transactionsRes.data as Transaction[]);
         }
 
         // Auto-close after 5 seconds
@@ -115,7 +116,7 @@ export default function Wallet() {
       ]);
 
       if (profileRes.data) setBalance(profileRes.data.balance);
-      if (transactionsRes.data) setTransactions(transactionsRes.data);
+      if (transactionsRes.data) setTransactions(transactionsRes.data as Transaction[]);
       setLoading(false);
     }
     fetchData();
@@ -165,10 +166,20 @@ export default function Wallet() {
   const handleRequestInvoice = async (transactionId: string) => {
     setRequestingInvoice(transactionId);
     try {
-      // In a real scenario, this would call an edge function that interacts with OpenPix
-      // For now, we'll simulate the request
+      const { error } = await supabase
+        .from("wallet_transactions")
+        .update({ invoice_status: 'requested' })
+        .eq("id", transactionId);
+
+      if (error) throw error;
+
+      // Simulate API call to OpenPix
       await new Promise(resolve => setTimeout(resolve, 1500));
       
+      setTransactions(prev => prev.map(t => 
+        t.id === transactionId ? { ...t, invoice_status: 'requested' } : t
+      ));
+
       toast.success("Solicitação de nota fiscal enviada!");
       toast.info("Você receberá a nota por e-mail assim que for processada.");
     } catch (err) {
@@ -370,18 +381,34 @@ export default function Wallet() {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
+                              if (transaction.invoice_status === 'requested' || transaction.invoice_status === 'issued') return;
                               handleRequestInvoice(transaction.id);
                             }}
-                            disabled={requestingInvoice === transaction.id}
+                            disabled={requestingInvoice === transaction.id || transaction.invoice_status === 'requested' || transaction.invoice_status === 'issued'}
                             className="p-1.5 hover:bg-primary/10 rounded-md transition-colors group/invoice flex items-center gap-1.5"
-                            title="Solicitar Nota Fiscal"
+                            title={
+                              transaction.invoice_status === 'requested' ? "Solicitação enviada" : 
+                              transaction.invoice_status === 'issued' ? "Nota emitida" : 
+                              "Solicitar Nota Fiscal"
+                            }
                           >
                             {requestingInvoice === transaction.id ? (
                               <Loader2 className="size-3 animate-spin text-primary" />
+                            ) : transaction.invoice_status === 'requested' ? (
+                              <span className="material-symbols-outlined text-[16px] text-primary animate-pulse">history</span>
+                            ) : transaction.invoice_status === 'issued' ? (
+                              <span className="material-symbols-outlined text-[16px] text-green-500">task_alt</span>
                             ) : (
                               <span className="material-symbols-outlined text-[16px] text-muted-foreground group-hover/invoice:text-primary">receipt</span>
                             )}
-                            <span className="text-[10px] text-muted-foreground group-hover/invoice:text-primary font-medium hidden sm:inline">NF-e</span>
+                            <span className={`text-[10px] font-medium hidden sm:inline ${
+                              transaction.invoice_status === 'requested' ? "text-primary" : 
+                              transaction.invoice_status === 'issued' ? "text-green-500" : 
+                              "text-muted-foreground group-hover/invoice:text-primary"
+                            }`}>
+                              {transaction.invoice_status === 'requested' ? "Pendente" : 
+                               transaction.invoice_status === 'issued' ? "Emitida" : "NF-e"}
+                            </span>
                           </button>
                         )}
                         <span className={`text-xs font-bold ${isPositive ? "text-emerald-400" : "text-foreground"}`}>

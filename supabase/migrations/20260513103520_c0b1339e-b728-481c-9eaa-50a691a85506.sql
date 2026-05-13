@@ -1,0 +1,1 @@
+ALTER TABLE public.wallet_transactions ADD COLUMN IF NOT EXISTS invoice_status TEXT DEFAULT 'none';

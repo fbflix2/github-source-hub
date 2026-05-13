@@ -3955,6 +3955,7 @@ export type Database = {
           balance_after: number | null
           created_at: string
           id: string
+          invoice_status: string | null
           reference_id: string | null
           title: string
           type: string
@@ -3965,6 +3966,7 @@ export type Database = {
           balance_after?: number | null
           created_at?: string
           id?: string
+          invoice_status?: string | null
           reference_id?: string | null
           title: string
           type: string
@@ -3975,6 +3977,7 @@ export type Database = {
           balance_after?: number | null
           created_at?: string
           id?: string
+          invoice_status?: string | null
           reference_id?: string | null
           title?: string
           type?: string
