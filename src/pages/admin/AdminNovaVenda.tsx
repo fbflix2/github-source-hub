@@ -1116,7 +1116,7 @@ export default function AdminNovaVenda() {
                       )}
                       {pixCopyPaste && (
                         <div className="space-y-2">
-                          <label className="text-xs text-gray-400 font-medium">Código Copia e Cola</label>
+                          <label className="text-xs text-primary font-bold uppercase tracking-wider">Código Copia e Cola PIX</label>
                           <div className="flex gap-2">
                             <input
                               type="text"
@@ -1137,7 +1137,7 @@ export default function AdminNovaVenda() {
                       )}
                       {pixShareLink && (
                         <div className="space-y-2">
-                          <label className="text-xs text-gray-400 font-medium">Link de pagamento</label>
+                          <label className="text-xs text-primary font-bold uppercase tracking-wider">Link da Fatura (Página de Pagamento)</label>
                           <div className="flex gap-2">
                             <input
                               type="text"
