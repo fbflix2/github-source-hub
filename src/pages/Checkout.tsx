@@ -1898,9 +1898,18 @@ export default function Checkout() {
                   {pixData.qr_code_base64 && (
                     <div className="bg-white rounded-2xl p-4 shadow-sm border border-border/50">
                       <img 
-                        src={pixData.qr_code_base64.startsWith('data:') ? pixData.qr_code_base64 : `data:image/png;base64,${pixData.qr_code_base64}`} 
+                        src={
+                          pixData.qr_code_base64.startsWith('http') 
+                            ? pixData.qr_code_base64 
+                            : pixData.qr_code_base64.startsWith('data:') 
+                              ? pixData.qr_code_base64 
+                              : `data:image/png;base64,${pixData.qr_code_base64}`
+                        } 
                         alt="QR Code PIX" 
-                        className="w-56 h-56 object-contain" 
+                        className="w-56 h-56 object-contain"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
                       />
                     </div>
                   )}

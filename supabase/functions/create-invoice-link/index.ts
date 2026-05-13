@@ -12,8 +12,8 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const MERCADOPAGO_ACCESS_TOKEN = Deno.env.get("MERCADOPAGO_ACCESS_TOKEN");
-    if (!MERCADOPAGO_ACCESS_TOKEN) throw new Error("MERCADOPAGO_ACCESS_TOKEN não configurado");
+    const OPENPIX_APP_ID = Deno.env.get("OPENPIX_APP_ID");
+    if (!OPENPIX_APP_ID) throw new Error("OPENPIX_APP_ID não configurado");
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
         user_id: client_user_id,
         amount: Number(amount),
         code: paymentCode,
-        gateway: "mercadopago",
+        gateway: "openpix",
         status: "pending",
         metadata: { type: "invoice_link", invoice_code: invoiceCode },
       })
@@ -83,41 +83,61 @@ Deno.serve(async (req) => {
       throw new Error("Erro ao criar pagamento");
     }
 
-    // Generate PIX via Mercado Pago
-    const payerEmail = `cliente-${client_user_id.slice(0, 8)}@pagamento.com`;
-    const mpResponse = await fetch("https://api.mercadopago.com/v1/payments", {
+    // Create OpenPix Charge
+    const openPixResponse = await fetch("https://api.openpix.com.br/api/v1/charge", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${MERCADOPAGO_ACCESS_TOKEN}`,
+        Authorization: OPENPIX_APP_ID,
         "Content-Type": "application/json",
-        "X-Idempotency-Key": payment.id,
       },
       body: JSON.stringify({
-        transaction_amount: Number(amount),
-        description: `Cobrança - ${product_name} - ${invoiceCode}`,
-        payment_method_id: "pix",
-        payer: { email: payerEmail },
-        external_reference: payment.id,
-        notification_url: `${Deno.env.get("SUPABASE_URL")}/functions/v1/mercadopago-webhook`,
+        correlationID: payment.id,
+        value: Math.round(Number(amount) * 100), // Em centavos
+        comment: `Cobrança - ${product_name} - ${invoiceCode}`,
       }),
     });
 
-    const mpData = await mpResponse.json();
-    if (!mpResponse.ok) {
-      console.error("MP error:", JSON.stringify(mpData));
-      throw new Error(`Erro Mercado Pago: ${mpResponse.status}`);
+    const opData = await openPixResponse.json();
+    if (!openPixResponse.ok) {
+      console.error("OpenPix error:", JSON.stringify(opData));
+      throw new Error(`Erro OpenPix: ${openPixResponse.status}`);
     }
 
-    // Update payment with MP reference
+    const charge = opData.charge || opData;
+
+    // Fetch QR Code base64
+    let qr_code_base64 = null;
+    try {
+      const imgRes = await fetch(`https://api.openpix.com.br/api/v1/charge/${charge.identifier}/qrcode?format=base64`, {
+        headers: { Authorization: OPENPIX_APP_ID }
+      });
+      if (imgRes.ok) {
+        const imgData = await imgRes.json();
+        const rawBase64 = imgData.qrcodeBase64 || imgData.base64 || imgData.imageBase64;
+        if (rawBase64) {
+          qr_code_base64 = rawBase64.replace(/^data:image\/[a-z]+;base64,/, "");
+        }
+      }
+    } catch (e) {
+      console.error("Error fetching QR base64:", e);
+    }
+
+    if (!qr_code_base64 && charge.qrCodeImage) {
+      qr_code_base64 = charge.qrCodeImage;
+    }
+
+    // Update payment with OpenPix reference
     await supabaseAdmin
       .from("payments")
       .update({
-        gateway_reference: String(mpData.id),
-        metadata: { type: "invoice_link", invoice_code: invoiceCode, mp_payment_id: String(mpData.id) },
+        gateway_reference: charge.identifier,
+        metadata: { 
+          type: "invoice_link", 
+          invoice_code: invoiceCode, 
+          openpix_charge_id: charge.identifier 
+        },
       })
       .eq("id", payment.id);
-
-    const pixData = mpData.point_of_interaction?.transaction_data;
 
     // Create invoice link
     const { data: invoice, error: invErr } = await supabaseAdmin
@@ -134,9 +154,9 @@ Deno.serve(async (req) => {
         description: description || null,
         status: "pending",
         payment_id: payment.id,
-        mp_payment_id: String(mpData.id),
-        qr_code: pixData?.qr_code || null,
-        qr_code_base64: pixData?.qr_code_base64 || null,
+        mp_payment_id: charge.identifier, // Reusing field to store identifier
+        qr_code: charge.brCode || null,
+        qr_code_base64: qr_code_base64 || null,
         expires_at: expiresAt,
         created_by: staffId,
       })
