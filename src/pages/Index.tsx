@@ -49,10 +49,10 @@ const DEFAULTS = {
       { label: "Campanhas Bulk BM", key: "bm", price: 197, min: 0, max: 10, default: 1 },
     ],
   },
-  footer: {
-    cnpj: "40.122.096/0001-85",
-    description: "© 2026 FBFLIX. Todos os direitos reservados. Engenharia de precisão para contingência e escala profissional no mercado de tráfego pago.",
-  },
+   footer: {
+     cnpj: "40.122.096/0001-85",
+     description: "© 2026 ​. Todos os direitos reservados. Engenharia de precisão para contingência e escala profissional no mercado de tráfego pago.",
+   },
 };
 
 /* ---------- Scroll reveal hook ---------- */

@@ -308,7 +308,7 @@ const App = () => {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex items-center gap-2">
           <img src={logoFbflix} alt="FBFLIX" className="w-10 h-10 object-contain animate-pulse" />
-          <span className="text-xl font-bold text-foreground">FBFLIX</span>
+           <span className="text-xl font-bold text-foreground">​</span>
         </div>
       </div>
     );
