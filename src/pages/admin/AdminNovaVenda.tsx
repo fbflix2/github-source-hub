@@ -49,9 +49,10 @@ const paymentMethods = [
 ];
 
 const deliveryMethods = [
-  { value: "manual", label: "Entrega Manual" },
-  { value: "automatica", label: "Entrega Automática (Estoque)" },
-  { value: "proxy", label: "Proxy / Assinatura" },
+   { value: "manual", label: "Entrega Manual" },
+   { value: "automatica", label: "Entrega Automática (Estoque)" },
+   { value: "proxy", label: "Proxy" },
+   { value: "assinatura", label: "Assinatura" },
 ];
 
 interface SaleItem {
