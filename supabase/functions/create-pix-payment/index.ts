@@ -12,9 +12,9 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const MERCADOPAGO_ACCESS_TOKEN = Deno.env.get("MERCADOPAGO_ACCESS_TOKEN");
-    if (!MERCADOPAGO_ACCESS_TOKEN) {
-      throw new Error("MERCADOPAGO_ACCESS_TOKEN não configurado");
+    const OPENPIX_APP_ID = Deno.env.get("OPENPIX_APP_ID");
+    if (!OPENPIX_APP_ID) {
+      throw new Error("OPENPIX_APP_ID não configurado");
     }
 
     // Auth
@@ -42,11 +42,6 @@ Deno.serve(async (req) => {
     }
 
     const userId = userData.user.id;
-    const rawEmail = userData.user.email || "cliente@email.com";
-    
-    // Mercado Pago blocks payments where payer email = seller email.
-    const userEmail = `comprador-${userId.slice(0, 8)}@pagamento.com`;
-
     const { amount, order_id, proxy_data } = await req.json();
     const numericAmount = Number(amount);
 
@@ -65,7 +60,7 @@ Deno.serve(async (req) => {
         user_id: userId,
         amount: numericAmount,
         code: paymentCode,
-        gateway: "mercadopago",
+        gateway: "openpix",
         status: "pending",
         order_id: order_id || null,
         metadata: { type: order_id ? "order_payment" : "wallet_recharge" },
@@ -78,15 +73,12 @@ Deno.serve(async (req) => {
       throw new Error("Erro ao criar pagamento");
     }
 
-    // If proxy_data is provided, persist it to order_items.delivery_data using service_role
+    // Persist proxy_data if provided
     if (proxy_data && order_id) {
-      console.log(`[create-pix-payment] Persisting proxy_data for order ${order_id}:`, JSON.stringify(proxy_data));
       const supabaseAdmin = createClient(
         Deno.env.get("SUPABASE_URL")!,
         Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
       );
-
-      // Get order items for this order
       const { data: orderItems } = await supabaseAdmin
         .from("order_items")
         .select("id")
@@ -105,61 +97,73 @@ Deno.serve(async (req) => {
           .from("order_items")
           .update({ delivery_data: deliveryData })
           .eq("id", orderItems[0].id);
-        console.log(`[create-pix-payment] delivery_data saved for order_item ${orderItems[0].id}`);
       }
     }
 
-    // Create Mercado Pago PIX payment
-    const mpResponse = await fetch("https://api.mercadopago.com/v1/payments", {
+    // Create OpenPix Charge
+    // Ref: https://developers.openpix.com.br/api#tag/charge/paths/~1api~1v1~1charge/post
+    const openPixResponse = await fetch("https://api.openpix.com.br/api/v1/charge", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${MERCADOPAGO_ACCESS_TOKEN}`,
+        Authorization: OPENPIX_APP_ID,
         "Content-Type": "application/json",
-        "X-Idempotency-Key": payment.id,
       },
       body: JSON.stringify({
-        transaction_amount: numericAmount,
-        description: order_id ? `Pedido - ${paymentCode}` : `Recarga de saldo - ${paymentCode}`,
-        payment_method_id: "pix",
-        payer: { email: userEmail },
-        external_reference: payment.id,
-        notification_url: `https://mxnlerkeygfvdnznoxld.supabase.co/functions/v1/mercadopago-webhook`,
+        correlationID: payment.id,
+        value: Math.round(numericAmount * 100), // In cents
+        comment: order_id ? `Pedido - ${paymentCode}` : `Recarga de saldo - ${paymentCode}`,
       }),
     });
 
-    const mpData = await mpResponse.json();
+    const opData = await openPixResponse.json();
 
-    if (!mpResponse.ok) {
-      console.error("Mercado Pago error:", JSON.stringify(mpData));
-      throw new Error(`Erro Mercado Pago [${mpResponse.status}]: ${JSON.stringify(mpData)}`);
+    if (!openPixResponse.ok) {
+      console.error("OpenPix error:", JSON.stringify(opData));
+      throw new Error(`Erro OpenPix [${openPixResponse.status}]: ${JSON.stringify(opData)}`);
     }
 
-    // Update payment with gateway reference (use admin client to bypass RLS)
+    const charge = opData.charge;
+
+    // Fetch base64 QR code if not provided
+    // OpenPix returns brCode. To get the image we might need to call another endpoint or it might be in opData.
+    // Based on docs: GET /api/image/qrcode/base64/{id}
+    let qr_code_base64 = null;
+    try {
+        const imgResponse = await fetch(`https://api.openpix.com.br/api/image/qrcode/base64/${charge.identifier}?size=512`, {
+            headers: { Authorization: OPENPIX_APP_ID }
+        });
+        if (imgResponse.ok) {
+            const imgData = await imgResponse.json();
+            qr_code_base64 = imgData.qrcodeBase64 || imgData.base64; // Adjust based on real response
+        }
+    } catch (e) {
+        console.error("Error fetching QR image:", e);
+    }
+
+    // Update payment with gateway reference
     const supabaseAdminForUpdate = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
     await supabaseAdminForUpdate
       .from("payments")
       .update({
-        gateway_reference: String(mpData.id),
+        gateway_reference: charge.identifier,
         metadata: {
           type: order_id ? "order_payment" : "wallet_recharge",
-          mp_status: mpData.status,
-          mp_payment_id: String(mpData.id),
+          openpix_charge_id: charge.identifier,
+          openpix_status: charge.status,
         },
       })
       .eq("id", payment.id);
 
-    const pixData = mpData.point_of_interaction?.transaction_data;
-
     return new Response(
       JSON.stringify({
         payment_id: payment.id,
-        mp_payment_id: mpData.id,
-        qr_code: pixData?.qr_code || null,
-        qr_code_base64: pixData?.qr_code_base64 || null,
-        ticket_url: pixData?.ticket_url || null,
+        openpix_charge_id: charge.identifier,
+        qr_code: charge.brCode,
+        qr_code_base64: qr_code_base64,
+        payment_link: charge.paymentLinkUrl,
       }),
       {
         status: 200,

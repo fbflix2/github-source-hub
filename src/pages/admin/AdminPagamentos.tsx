@@ -73,6 +73,8 @@ const getGatewayDisplay = (gateway: string) => {
   switch (gateway) {
     case "mercadopago":
       return { icon: <CreditCard className="size-4 text-blue-300" />, label: "Mercado Pago" };
+    case "openpix":
+      return { icon: <QrCode className="size-4 text-emerald-400" />, label: "OpenPix" };
     case "saldo":
       return { icon: <Wallet className="size-4 text-purple-400" />, label: "Saldo" };
     default:
@@ -166,7 +168,7 @@ export default function AdminPagamentos() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
   const paginated = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
-  const formatCurrency = (v: number) => `R$ ${v.toFixed(2).replace(".", ",")}`;
+  const formatCurrency = (v: number) => \`R$ ${v.toFixed(2).replace(".", ",")}\`;
   const formatDate = (d: string) => {
     const date = new Date(d);
     return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" }) +
@@ -261,6 +263,7 @@ export default function AdminPagamentos() {
             <SelectContent>
               <SelectItem value="todos">Gateway: Todos</SelectItem>
               <SelectItem value="mercadopago">Mercado Pago</SelectItem>
+              <SelectItem value="openpix">OpenPix</SelectItem>
               <SelectItem value="saldo">Saldo</SelectItem>
             </SelectContent>
           </Select>
@@ -274,7 +277,7 @@ export default function AdminPagamentos() {
             <TableHeader>
               <TableRow className="border-b border-white/10 bg-white/5 hover:bg-white/5">
                 <TableHead className="whitespace-nowrap px-6 py-4 text-xs font-semibold uppercase tracking-wider text-gray-400">Código</TableHead>
-                <TableHead className="whitespace-nowrap px-6 py-4 text-xs font-semibold uppercase tracking-wider text-gray-400">Nº Mercado Pago</TableHead>
+                <TableHead className="whitespace-nowrap px-6 py-4 text-xs font-semibold uppercase tracking-wider text-gray-400">Referência Gateway</TableHead>
                 <TableHead className="whitespace-nowrap px-6 py-4 text-xs font-semibold uppercase tracking-wider text-gray-400">Status</TableHead>
                 <TableHead className="whitespace-nowrap px-6 py-4 text-xs font-semibold uppercase tracking-wider text-gray-400">Gateway</TableHead>
                 <TableHead className="whitespace-nowrap px-6 py-4 text-xs font-semibold uppercase tracking-wider text-gray-400">Cliente</TableHead>

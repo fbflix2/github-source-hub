@@ -293,7 +293,7 @@ export default function Checkout() {
   const fieldsInitializedRef = useRef(false);
   const [processing, setProcessing] = useState(false);
   const [pixModal, setPixModal] = useState(false);
-  const [pixData, setPixData] = useState<{ qr_code: string | null; qr_code_base64: string | null; amount: number } | null>(null);
+   const [pixData, setPixData] = useState<{ qr_code: string | null; qr_code_base64: string | null; amount: number; payment_link?: string } | null>(null);
   const [pixPaymentId, setPixPaymentId] = useState<string | null>(null);
   const [pixConfirmed, setPixConfirmed] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -1212,7 +1212,12 @@ export default function Checkout() {
         if (pixError) throw pixError;
         if (pixResult?.error) throw new Error(pixResult.error);
 
-        setPixData({ qr_code: pixResult.qr_code, qr_code_base64: pixResult.qr_code_base64, amount: total });
+         setPixData({ 
+           qr_code: pixResult.qr_code, 
+           qr_code_base64: pixResult.qr_code_base64, 
+           amount: total,
+           payment_link: pixResult.payment_link
+         });
         setPixPaymentId(pixResult.payment_id || null);
         setPixConfirmed(false);
         setCopied(false);
@@ -1895,12 +1900,25 @@ export default function Checkout() {
                       <img src={`data:image/png;base64,${pixData.qr_code_base64}`} alt="QR Code PIX" className="w-56 h-56" />
                     </div>
                   )}
-                  {pixData.qr_code && (
-                    <button onClick={handleCopyPix} className="w-full flex items-center justify-center gap-2 bg-muted border border-border rounded-xl px-4 py-3 hover:bg-accent transition-colors">
-                      {copied ? <Check className="size-4 text-primary" /> : <Copy className="size-4 text-muted-foreground" />}
-                      <span className="text-sm font-medium text-foreground">{copied ? "Copiado!" : "Copiar código Pix Copia e Cola"}</span>
-                    </button>
-                  )}
+                   <div className="flex flex-col gap-2 w-full">
+                     {pixData.qr_code && (
+                       <button onClick={handleCopyPix} className="w-full flex items-center justify-center gap-2 bg-muted border border-border rounded-xl px-4 py-3 hover:bg-accent transition-colors">
+                         {copied ? <Check className="size-4 text-primary" /> : <Copy className="size-4 text-muted-foreground" />}
+                         <span className="text-sm font-medium text-foreground">{copied ? "Copiado!" : "Copiar código Pix Copia e Cola"}</span>
+                       </button>
+                     )}
+                     {pixData.payment_link && (
+                       <a 
+                         href={pixData.payment_link} 
+                         target="_blank" 
+                         rel="noopener noreferrer"
+                         className="w-full flex items-center justify-center gap-2 bg-primary/20 border border-primary/30 rounded-xl px-4 py-3 hover:bg-primary/30 transition-colors text-primary"
+                       >
+                         <Share2 className="size-4" />
+                         <span className="text-sm font-bold">Abrir link de pagamento</span>
+                       </a>
+                     )}
+                   </div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Loader2 className="size-3 animate-spin" />
                     <span>Aguardando pagamento...</span>
