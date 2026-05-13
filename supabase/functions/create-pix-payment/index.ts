@@ -122,22 +122,34 @@ Deno.serve(async (req) => {
       throw new Error(`Erro OpenPix [${openPixResponse.status}]: ${JSON.stringify(opData)}`);
     }
 
-    const charge = opData.charge;
-
-    // Fetch base64 QR code if not provided
-    // OpenPix returns brCode. To get the image we might need to call another endpoint or it might be in opData.
-    // Based on docs: GET /api/image/qrcode/base64/{id}
-    let qr_code_base64 = null;
-    try {
-        const imgResponse = await fetch(`https://api.openpix.com.br/api/image/qrcode/base64/${charge.identifier}?size=512`, {
-            headers: { Authorization: OPENPIX_APP_ID }
-        });
-        if (imgResponse.ok) {
-            const imgData = await imgResponse.json();
-            qr_code_base64 = imgData.qrcodeBase64 || imgData.base64; // Adjust based on real response
+    const charge = opData.charge || opData;
+    
+    // OpenPix returns the charge identifier and brCode.
+    // To get the image, we can use the dedicated endpoint or the one returned in the charge.
+    let qr_code_base64 = charge.qrCodeImage || null;
+    
+    // If we want a real base64 to ensure it works in all environments:
+    if (!qr_code_base64 || !qr_code_base64.startsWith('data:')) {
+        try {
+            const imgResponse = await fetch(`https://api.openpix.com.br/api/image/qrcode/base64/${charge.identifier}?size=512`, {
+                headers: { Authorization: OPENPIX_APP_ID }
+            });
+            if (imgResponse.ok) {
+                const imgData = await imgResponse.json();
+                // The field can be imageBase64, qrcodeBase64 or base64
+                let rawBase64 = imgData.imageBase64 || imgData.qrcodeBase64 || imgData.base64;
+                
+                if (rawBase64) {
+                    // Remove prefix if it exists because frontend adds it or expects just the hash
+                    qr_code_base64 = rawBase64.replace(/^data:image\/[a-z]+;base64,/, "");
+                }
+            }
+        } catch (e) {
+            console.error("Error fetching QR image:", e);
         }
-    } catch (e) {
-        console.error("Error fetching QR image:", e);
+    } else if (qr_code_base64.startsWith('data:')) {
+        // If it's already a data URL, strip the prefix for consistency with frontend expectations
+        qr_code_base64 = qr_code_base64.replace(/^data:image\/[a-z]+;base64,/, "");
     }
 
     // Update payment with gateway reference
