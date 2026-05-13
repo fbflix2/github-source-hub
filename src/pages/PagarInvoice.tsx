@@ -117,11 +117,17 @@ export default function PagarInvoice() {
         {/* Header */}
         <div className="text-center space-y-2">
           <img src={logoFbflix} alt="FBFLIX" className="w-12 h-12 mx-auto" />
-           <h1 className="text-lg font-bold text-white">​ — Pagamento</h1>
+            <h1 className="text-xl font-black text-white tracking-tighter italic uppercase">
+              FBFLIX <span className="text-primary">— PAGAMENTO</span>
+            </h1>
         </div>
 
-        <Card className="bg-[#1a1a1a] border-white/10">
-          <CardContent className="pt-6 space-y-5">
+        <Card className="bg-[#111111] border-white/10 shadow-2xl overflow-hidden relative">
+          {/* Glow effect */}
+          <div className="absolute -top-24 -right-24 w-48 h-48 bg-primary/20 blur-[100px] pointer-events-none" />
+          <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-emerald-500/10 blur-[100px] pointer-events-none" />
+          
+          <CardContent className="pt-6 space-y-5 relative z-10">
             {/* Greeting */}
             {invoice.client_name && (
               <div className="text-center">
@@ -131,7 +137,7 @@ export default function PagarInvoice() {
             )}
 
             {/* Invoice details */}
-            <div className="space-y-3 bg-white/5 rounded-lg p-4">
+            <div className="space-y-3 bg-white/[0.03] border border-white/5 rounded-2xl p-5">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-400">Referente a:</span>
                 <span className="text-white font-medium">{invoice.product_name}</span>
@@ -150,9 +156,11 @@ export default function PagarInvoice() {
                 <span className="text-gray-400">Código:</span>
                 <span className="text-white font-mono text-xs">{invoice.code}</span>
               </div>
-              <div className="border-t border-white/10 pt-3 flex justify-between items-center">
-                <span className="text-gray-400 text-sm">Valor:</span>
-                <span className="text-2xl font-bold text-green-400">R$ {Number(invoice.amount).toFixed(2)}</span>
+              <div className="border-t border-white/5 pt-4 flex justify-between items-center">
+                <span className="text-gray-400 text-sm font-medium">Valor total:</span>
+                <span className="text-3xl font-black text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.3)]">
+                  R$ {Number(invoice.amount).toFixed(2).replace('.', ',')}
+                </span>
               </div>
             </div>
 
@@ -200,8 +208,19 @@ export default function PagarInvoice() {
                 {invoice.qr_code && (
                   <Button
                     onClick={copyPixCode}
-                    className="w-full gap-2 bg-green-600 hover:bg-green-700 text-white"
-                    size="lg"
+                    className="w-full gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-14 rounded-xl shadow-lg shadow-emerald-500/20 transition-all active:scale-95"
+                {/* Support Action */}
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    const msg = encodeURIComponent(`Olá! Estou com uma dúvida sobre a cobrança ${invoice.code} de R$ ${Number(invoice.amount).toFixed(2)}.`);
+                    window.open(`https://wa.me/5511999999999?text=${msg}`, "_blank");
+                  }}
+                  className="w-full border-white/10 hover:bg-white/5 text-gray-400 h-12 rounded-xl"
+                >
+                  Dúvidas? Falar com suporte
+                </Button>
+
                   >
                     {copied ? <CheckCircle className="size-4" /> : <Copy className="size-4" />}
                     {copied ? "Copiado!" : "Copiar Código PIX"}
