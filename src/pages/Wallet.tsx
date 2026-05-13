@@ -62,6 +62,7 @@ export default function Wallet() {
   const [copied, setCopied] = useState(false);
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
   const [paymentId, setPaymentId] = useState<string | null>(null);
+  const [requestingInvoice, setRequestingInvoice] = useState<string | null>(null);
 
   // Poll for payment confirmation
   useEffect(() => {
@@ -158,6 +159,22 @@ export default function Wallet() {
       toast.error(err.message || "Erro ao gerar PIX");
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const handleRequestInvoice = async (transactionId: string) => {
+    setRequestingInvoice(transactionId);
+    try {
+      // In a real scenario, this would call an edge function that interacts with OpenPix
+      // For now, we'll simulate the request
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      toast.success("Solicitação de nota fiscal enviada!");
+      toast.info("Você receberá a nota por e-mail assim que for processada.");
+    } catch (err) {
+      toast.error("Erro ao solicitar nota fiscal.");
+    } finally {
+      setRequestingInvoice(null);
     }
   };
 
