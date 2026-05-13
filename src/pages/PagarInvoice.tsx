@@ -117,16 +117,16 @@ export default function PagarInvoice() {
         {/* Header */}
         <div className="text-center space-y-2">
           <img src={logoFbflix} alt="FBFLIX" className="w-12 h-12 mx-auto" />
-            <h1 className="text-xl font-black text-white tracking-tighter italic uppercase">
-              FBFLIX <span className="text-primary">— PAGAMENTO</span>
-            </h1>
+          <h1 className="text-xl font-black text-white tracking-tighter italic uppercase">
+            FBFLIX <span className="text-primary">— PAGAMENTO</span>
+          </h1>
         </div>
 
         <Card className="bg-[#111111] border-white/10 shadow-2xl overflow-hidden relative">
           {/* Glow effect */}
           <div className="absolute -top-24 -right-24 w-48 h-48 bg-primary/20 blur-[100px] pointer-events-none" />
           <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-emerald-500/10 blur-[100px] pointer-events-none" />
-          
+
           <CardContent className="pt-6 space-y-5 relative z-10">
             {/* Greeting */}
             {invoice.client_name && (
@@ -191,10 +191,10 @@ export default function PagarInvoice() {
                     <div className="bg-white p-3 rounded-xl">
                       <img
                         src={
-                          invoice.qr_code_base64.startsWith('http') 
-                            ? invoice.qr_code_base64 
-                            : invoice.qr_code_base64.startsWith('data:') 
-                              ? invoice.qr_code_base64 
+                          invoice.qr_code_base64.startsWith('http')
+                            ? invoice.qr_code_base64
+                            : invoice.qr_code_base64.startsWith('data:')
+                              ? invoice.qr_code_base64
                               : `data:image/png;base64,${invoice.qr_code_base64}`
                         }
                         alt="QR Code PIX"
@@ -204,7 +204,6 @@ export default function PagarInvoice() {
                   </div>
                 )}
 
-                <div className="space-y-3">
                 <div className="space-y-3">
                   {/* PIX Copy & Paste Input */}
                   {invoice.qr_code && (
