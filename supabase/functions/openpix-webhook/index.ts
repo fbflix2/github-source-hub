@@ -158,32 +158,50 @@ async function fulfillOrder(supabase: any, orderId: string, userId: string) {
         p_order_item_id: oi.id, p_product_id: oi.product_id,
       });
       const result: any = resultRaw;
-      if (result?.success && Number(result?.linked_count || 0) > 0) {
-        fulfilledCount += 1;
-        const profileId = result.data?.idPerfil;
-        if (profileId && lauthEnabled && lauthEmail) {
-          try {
-            const lauthResp = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/lauth-transfer`, {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({ profileId, email: lauthEmail, itemId: oi.id })
-            });
-            const lauthResult = await lauthResp.json();
-            if (lauthResult.success) {
-              await supabase.from("order_items").update({
-                delivery_data: {
-                  ...(result.data || {}),
-                  lauthDeliveredAt: new Date().toISOString(),
-                  lauthRecipientEmail: lauthEmail
-                }
-              }).eq("id", oi.id);
-            }
-          } catch (e) { console.error("[openpix-webhook] Lauth error:", e); }
-        }
-      }
+       if (result?.success && Number(result?.linked_count || 0) > 0) {
+         fulfilledCount += 1;
+         
+         // Fetch the newly created delivery_data to see if we need Lauth transfer
+         const { data: updatedOi } = await supabase
+           .from("order_items")
+           .select("delivery_data")
+           .eq("id", oi.id)
+           .single();
+           
+         const profileId = updatedOi?.delivery_data?.idPerfil;
+         
+         if (profileId && lauthEnabled && lauthEmail) {
+           try {
+             const lauthResp = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/lauth-transfer`, {
+               method: 'POST',
+               headers: {
+                 'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+                 'Content-Type': 'application/json'
+               },
+               body: JSON.stringify({ profileId, email: lauthEmail, itemId: oi.id })
+             });
+             const lauthResult = await lauthResp.json();
+             if (lauthResult.success) {
+               await supabase.from("order_items").update({
+                 delivery_data: {
+                   ...(updatedOi.delivery_data || {}),
+                   lauthDeliveredAt: new Date().toISOString(),
+                   lauthRecipientEmail: lauthEmail
+                 }
+               }).eq("id", oi.id);
+             }
+           } catch (e) { console.error("[openpix-webhook] Lauth error:", e); }
+         }
+       } else {
+         console.error(`[openpix-webhook] Fulfillment failed for item ${oi.id}:`, result?.error || "Unknown error");
+         // Notify admin about stock failure
+         await supabase.from("notifications").insert({
+           title: "Falha na Entrega (Estoque)",
+           message: `Pedido #${orderId} - Item: ${oi.name} não foi entregue por falta de estoque.`,
+           type: "order",
+           global: true,
+         });
+       }
     }
 
     return fulfilledCount;

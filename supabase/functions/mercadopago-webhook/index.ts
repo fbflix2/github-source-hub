@@ -606,42 +606,53 @@ Deno.serve(async (req) => {
 
           if (rpcError) {
             console.error(`Fulfillment error for item ${oi.id}:`, rpcError);
-            } else if (result && (result as any).success) {
-              const profileId = (result as any).data?.idPerfil;
-              if (profileId && lauthEnabled && lauthEmail) {
-                console.log(`[webhook] Triggering automatic Lauth transfer for item ${oi.id} (profile: ${profileId}) to ${lauthEmail}`);
-                try {
-                  const lauthResp = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/lauth-transfer`, {
-                    method: 'POST',
-                    headers: {
-                      'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-                      'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ profileId, email: lauthEmail, itemId: oi.id })
-                  });
-                  const lauthResult = await lauthResp.json();
-                  console.log(`[webhook] Lauth transfer result for item ${oi.id}:`, lauthResult);
-                  
-                  if (lauthResult.success) {
-                    // Update delivery_data to record the transfer
-                    const currentDD = (result as any).data || {};
-                    await supabase.from("order_items").update({
-                      delivery_data: {
-                        ...currentDD,
-                        lauthDeliveredAt: new Date().toISOString(),
-                        lauthRecipientEmail: lauthEmail
-                      }
-                    }).eq("id", oi.id);
-                  }
-                } catch (lauthErr) {
-                  console.error(`[webhook] Critical error calling lauth-transfer for item ${oi.id}:`, lauthErr);
+          } else if (result && (result as any).success && Number((result as any).linked_count || 0) > 0) {
+            // Fetch newly updated delivery_data
+            const { data: updatedOi } = await supabase
+              .from("order_items")
+              .select("delivery_data")
+              .eq("id", oi.id)
+              .single();
+            
+            const profileId = updatedOi?.delivery_data?.idPerfil;
+            
+            if (profileId && lauthEnabled && lauthEmail) {
+              console.log(`[webhook] Triggering automatic Lauth transfer for item ${oi.id} (profile: ${profileId}) to ${lauthEmail}`);
+              try {
+                const lauthResp = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/lauth-transfer`, {
+                  method: 'POST',
+                  headers: {
+                    'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify({ profileId, email: lauthEmail, itemId: oi.id })
+                });
+                const lauthResult = await lauthResp.json();
+                console.log(`[webhook] Lauth transfer result for item ${oi.id}:`, lauthResult);
+                
+                if (lauthResult.success) {
+                  await supabase.from("order_items").update({
+                    delivery_data: {
+                      ...(updatedOi.delivery_data || {}),
+                      lauthDeliveredAt: new Date().toISOString(),
+                      lauthRecipientEmail: lauthEmail
+                    }
+                  }).eq("id", oi.id);
                 }
-              } else if (profileId) {
-                console.log(`[webhook] Skipping Lauth transfer for item ${oi.id}: user integration disabled or email missing.`);
+              } catch (lauthErr) {
+                console.error(`[webhook] Critical error calling lauth-transfer for item ${oi.id}:`, lauthErr);
               }
-            } else if (result) {
-             console.log(`Fulfillment result for item ${oi.id}:`, result);
-           }
+            }
+          } else {
+            console.error(`[webhook] Fulfillment failed for item ${oi.id}:`, (result as any)?.error || "No items linked");
+            // Notify admin
+            await supabase.from("notifications").insert({
+              title: "Falha na Entrega (Estoque)",
+              message: `Pedido #${orderData?.code || orderId} - Item: ${oi.name} não foi entregue por falta de estoque.`,
+              type: "order",
+              global: true,
+            });
+          }
         }
       }
 
