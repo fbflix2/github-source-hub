@@ -168,7 +168,7 @@ export default function AdminPagamentos() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
   const paginated = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
 
-  const formatCurrency = (v: number) => \`R$ ${v.toFixed(2).replace(".", ",")}\`;
+  const formatCurrency = (v: number) => `R$ ${v.toFixed(2).replace(".", ",")}`;
   const formatDate = (d: string) => {
     const date = new Date(d);
     return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" }) +

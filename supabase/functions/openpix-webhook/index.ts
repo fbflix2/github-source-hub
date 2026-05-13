@@ -3,138 +3,132 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+    "authorization, x-client-info, apikey, content-type, x-openpix-signature, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
 };
+
+const ok = (data: any = { received: true }) =>
+  new Response(JSON.stringify(data), {
+    status: 200,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
 
 const SAFE_BM_PRODUCT_ID = "e5118c63-ed52-4f4e-8983-f44c1ba0d17b";
 
 async function fulfillMissingStockItems(supabase: any, orderId: string) {
-  const { data: orderItems, error: itemsError } = await supabase
-    .from("order_items")
-    .select("id, product_id, delivery_data")
-    .eq("order_id", orderId);
+  try {
+    const { data: orderItems } = await supabase
+      .from("order_items")
+      .select("id, product_id, delivery_data")
+      .eq("order_id", orderId);
 
-  if (itemsError) throw itemsError;
-  let fulfilledCount = 0;
+    let fulfilledCount = 0;
+    for (const oi of orderItems || []) {
+      if (!oi.product_id || oi.product_id === SAFE_BM_PRODUCT_ID) continue;
+      const dd = oi.delivery_data && typeof oi.delivery_data === "object" ? oi.delivery_data : null;
+      if (dd?.type || dd?.bmLinks || dd?.linkPerfil || dd?.idPerfil) continue;
 
-  for (const oi of orderItems || []) {
-    if (!oi.product_id || oi.product_id === SAFE_BM_PRODUCT_ID) continue;
-    const deliveryData = oi.delivery_data && typeof oi.delivery_data === "object" ? oi.delivery_data : null;
-    if (deliveryData?.type || deliveryData?.bmLinks || deliveryData?.linkPerfil || deliveryData?.idPerfil) continue;
+      const { data: product } = await supabase
+        .from("products").select("icon_type").eq("id", oi.product_id).maybeSingle();
+      if (product?.icon_type === "proxy") continue;
 
-    const { data: product } = await supabase
-      .from("products")
-      .select("icon_type")
-      .eq("id", oi.product_id)
-      .maybeSingle();
+      const { count: linkedCount } = await supabase
+        .from("stock_items").select("id", { count: "exact", head: true }).eq("order_item_id", oi.id);
+      if ((linkedCount || 0) > 0) continue;
 
-    if (product?.icon_type === "proxy") continue;
-
-    const { count: linkedCount } = await supabase
-      .from("stock_items")
-      .select("id", { count: "exact", head: true })
-      .eq("order_item_id", oi.id);
-
-    if ((linkedCount || 0) > 0) continue;
-
-    const { data: result, error: rpcError } = await supabase.rpc("fulfill_order_item", {
-      p_order_item_id: oi.id,
-      p_product_id: oi.product_id,
-    });
-
-    if (rpcError) {
-      console.error(`[openpix-webhook] Catch-up fulfillment error for ${oi.id}:`, rpcError);
-      continue;
+      const { data: result } = await supabase.rpc("fulfill_order_item", {
+        p_order_item_id: oi.id, p_product_id: oi.product_id,
+      });
+      if (result?.success && Number(result?.linked_count || 0) > 0) fulfilledCount += 1;
     }
-
-    if (result?.success && Number(result?.linked_count || 0) > 0) fulfilledCount += 1;
-    else if (result && result.success === false) console.warn(`[openpix-webhook] Catch-up fulfillment warning for ${oi.id}:`, result.error);
+    if (fulfilledCount > 0) {
+      await supabase.from("orders").update({ status: "completed" }).eq("id", orderId);
+    }
+    return fulfilledCount;
+  } catch (e) {
+    console.error("[openpix-webhook] fulfill error:", e);
+    return 0;
   }
-
-  if (fulfilledCount > 0) {
-    await supabase.from("orders").update({ status: "completed" }).eq("id", orderId);
-  }
-
-  return fulfilledCount;
 }
 
 Deno.serve(async (req) => {
+  // Always handle CORS
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { status: 200, headers: corsHeaders });
+  }
+
+  // OpenPix may send a GET to verify the endpoint when registering
+  if (req.method === "GET") {
+    return ok({ ok: true, message: "OpenPix webhook endpoint ready" });
+  }
+
+  // Parse body safely — never throw
+  let body: any = {};
+  try {
+    const text = await req.text();
+    if (text) body = JSON.parse(text);
+  } catch (e) {
+    console.error("[openpix-webhook] Invalid JSON body:", e);
+    // Still return 200 so OpenPix accepts the registration
+    return ok({ received: true, warning: "invalid_json" });
+  }
+
+  console.log("[openpix-webhook] Event received:", JSON.stringify(body).substring(0, 500));
+
+  // OpenPix test event during webhook creation — must respond 200
+  const event = body?.event || body?.evento || "";
+  if (event === "OPENPIX:TEST" || event === "teste_webhook" || body?.evento === "teste_webhook") {
+    console.log("[openpix-webhook] Test event acknowledged");
+    return ok({ received: true, test: true });
+  }
+
+  // Only react to charge completed
+  const isCompleted =
+    event === "OPENPIX:CHARGE_COMPLETED" ||
+    event === "CHARGE_COMPLETED" ||
+    body?.charge?.status === "COMPLETED";
+
+  if (!isCompleted) {
+    console.log("[openpix-webhook] Ignoring event:", event);
+    return ok({ received: true, ignored: true });
   }
 
   try {
-    const OPENPIX_APP_ID = Deno.env.get("OPENPIX_APP_ID");
-    if (!OPENPIX_APP_ID) {
-      throw new Error("OPENPIX_APP_ID não configurado");
-    }
-
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    let body: any;
-    try {
-      body = await req.json();
-    } catch (e) {
-      console.error("Erro ao processar JSON:", e);
-      return new Response(JSON.stringify({ error: "Invalid JSON" }), { status: 400 });
-    }
-
-    console.log("OpenPix Webhook received:", JSON.stringify(body));
-
-    const event = body.event;
-    
-    // OpenPix sends a test event when creating a webhook
-    if (event === "OPENPIX:TEST") {
-       return new Response(JSON.stringify({ received: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-
-    // Check if it is a completed charge
-    if (event !== "OPENPIX:CHARGE_COMPLETED" && event !== "CHARGE_COMPLETED") {
-      console.log("Ignorando evento OpenPix:", event);
-      return new Response(JSON.stringify({ received: true }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-
-    const charge = body.charge || body.pix; // Adjust based on OpenPix payload
-    const paymentId = charge?.correlationID;
-    
+    const charge = body.charge || body.pix || {};
+    const paymentId = charge.correlationID;
     if (!paymentId) {
-      console.error("No correlationID found in OpenPix webhook");
-      return new Response(JSON.stringify({ error: "Missing correlationID" }), { status: 400 });
+      console.error("[openpix-webhook] No correlationID in payload");
+      return ok({ received: true, warning: "missing_correlationID" });
     }
 
-    console.log("Processing OpenPix payment ID (correlationID):", paymentId);
-
-    // Fetch existing payment
-    const { data: existingPayment, error: fetchError } = await supabase
+    const { data: existingPayment } = await supabase
       .from("payments")
       .select("id, status, user_id, amount, order_id, metadata")
       .eq("id", paymentId)
-      .single();
+      .maybeSingle();
 
-    if (fetchError || !existingPayment) {
-      console.error("Payment not found in database:", paymentId, fetchError);
-      return new Response(JSON.stringify({ error: "Payment not found" }), { status: 404 });
+    if (!existingPayment) {
+      console.error("[openpix-webhook] Payment not found:", paymentId);
+      return ok({ received: true, warning: "payment_not_found" });
     }
 
     if (existingPayment.status === "completed") {
-      console.log("Payment already marked as completed:", paymentId);
-      if (existingPayment.order_id) {
-        await fulfillMissingStockItems(supabase, existingPayment.order_id);
-      }
-      return new Response(JSON.stringify({ received: true, already_processed: true }), { status: 200 });
+      if (existingPayment.order_id) await fulfillMissingStockItems(supabase, existingPayment.order_id);
+      return ok({ received: true, already_processed: true });
     }
 
-    // Atomic update to mark as completed
-    const { data: updatedPayment, error: updateError } = await supabase
+    const { data: updatedPayment } = await supabase
       .from("payments")
       .update({
         status: "completed",
-        gateway_reference: charge?.identifier || charge?.txId || charge?.id,
+        gateway_reference: charge?.identifier || charge?.txId || charge?.endToEndId || null,
         metadata: {
-          ...(typeof existingPayment.metadata === 'object' ? existingPayment.metadata : {}),
+          ...(typeof existingPayment.metadata === "object" ? existingPayment.metadata : {}),
           openpix_event: event,
           openpix_charge_id: charge?.identifier,
           openpix_status: "COMPLETED",
@@ -146,51 +140,59 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (!updatedPayment) {
-      console.log("Race condition: Payment already completed.");
-      return new Response(JSON.stringify({ received: true, already_processed: true }), { status: 200 });
+      if (existingPayment.order_id) await fulfillMissingStockItems(supabase, existingPayment.order_id);
+      return ok({ received: true, race_resolved: true });
     }
 
     const amount = Number(existingPayment.amount);
     const userId = existingPayment.user_id;
     const orderId = existingPayment.order_id;
-    const metadataObj = typeof existingPayment.metadata === 'object' && existingPayment.metadata ? existingPayment.metadata : {};
-    const isInvoiceLink = (metadataObj as any).type === "invoice_link";
+    const metadataObj: any = (typeof existingPayment.metadata === "object" && existingPayment.metadata) || {};
+    const isInvoiceLink = metadataObj.type === "invoice_link";
     const isWalletRecharge = !orderId && !isInvoiceLink;
 
     if (isInvoiceLink) {
-      const invoiceCode = (metadataObj as any).invoice_code;
-      await supabase.from("invoice_links").update({ status: "paid", paid_at: new Date().toISOString() }).eq("payment_id", paymentId);
-      await supabase.from("notifications").insert({ title: "Cobrança Paga", message: `Cobrança ${invoiceCode} de R$ ${amount.toFixed(2)} paga via OpenPix.`, type: "payment", global: true });
+      await supabase.from("invoice_links")
+        .update({ status: "paid", paid_at: new Date().toISOString() })
+        .eq("payment_id", paymentId);
+      await supabase.from("notifications").insert({
+        title: "Cobrança Paga",
+        message: `Cobrança ${metadataObj.invoice_code || ""} de R$ ${amount.toFixed(2)} paga via OpenPix.`,
+        type: "payment", global: true,
+      });
     } else if (isWalletRecharge) {
       const { data: profile } = await supabase.from("profiles").select("balance").eq("user_id", userId).single();
-      const currentBalance = profile?.balance || 0;
-      const newBalance = currentBalance + amount;
+      const newBalance = (profile?.balance || 0) + amount;
       await supabase.from("profiles").update({ balance: newBalance }).eq("user_id", userId);
-      await supabase.from("wallet_transactions").insert({ user_id: userId, type: "deposit", title: "Recarga via PIX (OpenPix)", amount, balance_after: newBalance, reference_id: paymentId });
-      await supabase.from("notifications").insert({ title: "Recarga de Saldo", message: `Cliente recarregou R$ ${amount.toFixed(2)} via PIX. Novo saldo: R$ ${newBalance.toFixed(2)}`, type: "wallet", global: true });
+      await supabase.from("wallet_transactions").insert({
+        user_id: userId, type: "deposit", title: "Recarga via PIX (OpenPix)",
+        amount, balance_after: newBalance, reference_id: paymentId,
+      });
+      await supabase.from("notifications").insert({
+        title: "Recarga de Saldo",
+        message: `Cliente recarregou R$ ${amount.toFixed(2)} via PIX. Novo saldo: R$ ${newBalance.toFixed(2)}`,
+        type: "wallet", global: true,
+      });
     } else if (orderId) {
       const { data: orderData } = await supabase.from("orders").select("code").eq("id", orderId).single();
       await supabase.from("orders").update({ status: "completed" }).eq("id", orderId);
-      await supabase.from("wallet_transactions").insert({ user_id: userId, type: "debit", title: `Compra via PIX — ${orderData?.code || "pedido"}`, amount, reference_id: paymentId });
-      
-      // Auto-fulfillment logic (abbreviated here, should match your production webhook logic)
+      await supabase.from("wallet_transactions").insert({
+        user_id: userId, type: "debit",
+        title: `Compra via PIX — ${orderData?.code || "pedido"}`,
+        amount, reference_id: paymentId,
+      });
       await fulfillMissingStockItems(supabase, orderId);
-      
-      // Notify Admin
       await supabase.from("notifications").insert({
         title: "Pedido Pago",
         message: `Pedido #${orderData?.code} de R$ ${amount.toFixed(2)} pago via OpenPix.`,
-        type: "order",
-        global: true,
+        type: "order", global: true,
       });
     }
 
-    return new Response(JSON.stringify({ received: true }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return ok({ received: true, processed: true });
   } catch (error) {
-    console.error("Webhook Error:", error);
-    return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+    console.error("[openpix-webhook] Processing error:", error);
+    // Return 200 so OpenPix doesn't retry indefinitely / to register webhook
+    return ok({ received: true, error: String(error).substring(0, 200) });
   }
 });
