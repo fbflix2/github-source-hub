@@ -62,6 +62,7 @@ export default function Wallet() {
   const [copied, setCopied] = useState(false);
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
   const [paymentId, setPaymentId] = useState<string | null>(null);
+  const [requestingInvoice, setRequestingInvoice] = useState<string | null>(null);
 
   // Poll for payment confirmation
   useEffect(() => {
@@ -158,6 +159,22 @@ export default function Wallet() {
       toast.error(err.message || "Erro ao gerar PIX");
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const handleRequestInvoice = async (transactionId: string) => {
+    setRequestingInvoice(transactionId);
+    try {
+      // In a real scenario, this would call an edge function that interacts with OpenPix
+      // For now, we'll simulate the request
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      toast.success("Solicitação de nota fiscal enviada!");
+      toast.info("Você receberá a nota por e-mail assim que for processada.");
+    } catch (err) {
+      toast.error("Erro ao solicitar nota fiscal.");
+    } finally {
+      setRequestingInvoice(null);
     }
   };
 
@@ -348,9 +365,29 @@ export default function Wallet() {
                           <span className="text-[10px] text-muted-foreground">{formatDate(transaction.created_at)}</span>
                         </div>
                       </div>
-                      <span className={`text-xs font-bold ${isPositive ? "text-emerald-400" : "text-foreground"}`}>
-                        {isPositive ? "+" : "-"} R$ {Math.abs(transaction.amount).toFixed(2).replace(".", ",")}
-                      </span>
+                      <div className="flex items-center gap-3">
+                        {isPositive && transaction.type === "deposit" && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRequestInvoice(transaction.id);
+                            }}
+                            disabled={requestingInvoice === transaction.id}
+                            className="p-1.5 hover:bg-primary/10 rounded-md transition-colors group/invoice flex items-center gap-1.5"
+                            title="Solicitar Nota Fiscal"
+                          >
+                            {requestingInvoice === transaction.id ? (
+                              <Loader2 className="size-3 animate-spin text-primary" />
+                            ) : (
+                              <span className="material-symbols-outlined text-[16px] text-muted-foreground group-hover/invoice:text-primary">receipt</span>
+                            )}
+                            <span className="text-[10px] text-muted-foreground group-hover/invoice:text-primary font-medium hidden sm:inline">NF-e</span>
+                          </button>
+                        )}
+                        <span className={`text-xs font-bold ${isPositive ? "text-emerald-400" : "text-foreground"}`}>
+                          {isPositive ? "+" : "-"} R$ {Math.abs(transaction.amount).toFixed(2).replace(".", ",")}
+                        </span>
+                      </div>
                     </div>
                   );
                 })

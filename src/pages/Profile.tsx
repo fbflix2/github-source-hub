@@ -21,6 +21,7 @@ interface ProfileFormData {
   lauth_enabled: boolean;
   preferred_proxy_city: string;
   show_proxy_city_on_checkout: boolean;
+  automatic_invoice: boolean;
 }
 
 export default function Profile() {
@@ -41,6 +42,7 @@ export default function Profile() {
     lauth_enabled: false,
     preferred_proxy_city: "all",
     show_proxy_city_on_checkout: false,
+    automatic_invoice: false,
   });
   const PROXY_CITIES = [
     { value: "all", label: "🇧🇷 Aleatório (Brasil)" },
@@ -112,6 +114,7 @@ export default function Profile() {
           lauth_enabled: (profile as any).lauth_enabled || false,
           preferred_proxy_city: (profile as any).preferred_proxy_city || "all",
           show_proxy_city_on_checkout: (profile as any).show_proxy_city_on_checkout ?? false,
+          automatic_invoice: (profile as any).automatic_invoice ?? false,
         });
         setVerified((profile as any).verified || false);
         setDocumentUrl((profile as any).document_url || null);
@@ -174,6 +177,7 @@ export default function Profile() {
         lauth_enabled: formData.lauth_enabled,
         preferred_proxy_city: formData.preferred_proxy_city,
         show_proxy_city_on_checkout: formData.show_proxy_city_on_checkout,
+        automatic_invoice: formData.automatic_invoice,
       } as any)
       .eq("user_id", userId);
 
@@ -545,6 +549,30 @@ export default function Profile() {
                         <p className="text-[10px] text-muted-foreground ml-1">Certifique-se de que este é o email exato que você usa no navegador Lauth.</p>
                       </div>
                     )}
+                  </div>
+                </div>
+
+                {/* Notas Fiscais Integration */}
+                <div className="md:col-span-2 pt-4 border-t border-border/50">
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="material-symbols-outlined text-primary">receipt</span>
+                    <h4 className="font-bold text-foreground">Notas Fiscais</h4>
+                  </div>
+                  <div className="space-y-4 bg-secondary/30 p-4 rounded-xl border border-border/50">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <label className="text-sm font-medium text-foreground">Receber notas fiscais automaticamente</label>
+                        <p className="text-xs text-muted-foreground">Ative para que a OpenPix emita e envie suas notas fiscais após cada pagamento.</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, automatic_invoice: !formData.automatic_invoice })}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${formData.automatic_invoice ? 'bg-primary' : 'bg-muted'}`}
+                      >
+                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.automatic_invoice ? 'translate-x-6' : 'translate-x-1'}`} />
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground ml-1">Certifique-se de que seus dados (CPF e Endereço) estão corretos para a emissão.</p>
                   </div>
                 </div>
 
