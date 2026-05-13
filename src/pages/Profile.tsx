@@ -552,6 +552,30 @@ export default function Profile() {
                   </div>
                 </div>
 
+                {/* Notas Fiscais Integration */}
+                <div className="md:col-span-2 pt-4 border-t border-border/50">
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="material-symbols-outlined text-primary">receipt</span>
+                    <h4 className="font-bold text-foreground">Notas Fiscais</h4>
+                  </div>
+                  <div className="space-y-4 bg-secondary/30 p-4 rounded-xl border border-border/50">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <label className="text-sm font-medium text-foreground">Receber notas fiscais automaticamente</label>
+                        <p className="text-xs text-muted-foreground">Ative para que a OpenPix emita e envie suas notas fiscais após cada pagamento.</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, automatic_invoice: !formData.automatic_invoice })}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${formData.automatic_invoice ? 'bg-primary' : 'bg-muted'}`}
+                      >
+                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.automatic_invoice ? 'translate-x-6' : 'translate-x-1'}`} />
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground ml-1">Certifique-se de que seus dados (CPF e Endereço) estão corretos para a emissão.</p>
+                  </div>
+                </div>
+
                 {/* Document Upload */}
                 <div className="md:col-span-2 space-y-2">
                   <label className="text-sm font-medium text-muted-foreground ml-1">Documento de Identidade (RG ou CNH)</label>
