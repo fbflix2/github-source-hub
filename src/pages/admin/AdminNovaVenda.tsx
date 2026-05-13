@@ -776,22 +776,176 @@ export default function AdminNovaVenda() {
             {/* Divider */}
             <div className="h-px w-full bg-white/5" />
 
-            {/* Items */}
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider flex items-center gap-2">
-                  <Layers className="size-5 text-primary" />
-                  Itens da Venda
-                </h2>
-                <button
-                  type="button"
-                  onClick={addItem}
-                  className="flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
-                >
-                  <Plus className="size-4" />
-                  Adicionar Item
-                </button>
-              </div>
+             {/* Items or Subscription Plan */}
+             <div className="space-y-6">
+               {saleType === "product" ? (
+                 <>
+                   <div className="flex items-center justify-between">
+                     <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider flex items-center gap-2">
+                       <Layers className="size-5 text-primary" />
+                       Itens da Venda
+                     </h2>
+                     <button
+                       type="button"
+                       onClick={addItem}
+                       className="flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+                     >
+                       <Plus className="size-4" />
+                       Adicionar Item
+                     </button>
+                   </div>
+ 
+                   <div className="space-y-4">
+                     {items.map((item, idx) => (
+                       <div key={item.id} className="grid grid-cols-12 gap-3 items-end p-4 rounded-xl bg-white/[0.02] border border-white/5">
+                         {/* ... (existing item fields) ... */}
+                         <div className="col-span-12 md:col-span-5 space-y-1.5">
+                           <label className="text-xs text-gray-500 font-medium">Produto / Nome</label>
+                           <div className="flex flex-col gap-1.5">
+                             <select
+                               value={item.productId || ""}
+                               onChange={(e) => {
+                                 if (e.target.value === "custom") {
+                                   updateItem(item.id, "productId", null);
+                                   updateItem(item.id, "name", "");
+                                 } else {
+                                   selectProduct(item.id, e.target.value);
+                                 }
+                               }}
+                               className="w-full rounded-lg py-2.5 px-3 text-sm bg-black/20 border border-white/10 text-white focus:border-primary focus:outline-none transition-all appearance-none"
+                             >
+                               <option value="" className="bg-gray-900">Selecione um produto...</option>
+                               <option value="custom" className="bg-gray-900">✏️ Digitar manualmente</option>
+                               {products.map((p) => (
+                                 <option key={p.id} value={p.id} className="bg-gray-900">{p.name} — R$ {Number(p.price).toFixed(2)}</option>
+                               ))}
+                             </select>
+                             
+                             {item.productId && (
+                               <div className="flex items-center gap-2">
+                                 <button
+                                   type="button"
+                                   onClick={() => setStockItemModal({ itemId: item.id, productId: item.productId! })}
+                                   className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-white/5 border border-white/10 text-[11px] font-medium text-primary hover:bg-white/10 transition-all"
+                                 >
+                                   <Search className="size-3" />
+                                   {item.manualStockItemName ? `Perfil: ${item.manualStockItemName}` : "Escolher Perfil Específico"}
+                                 </button>
+                                 {item.manualStockItemId && (
+                                   <button
+                                     type="button"
+                                     onClick={() => {
+                                       updateItem(item.id, "manualStockItemId", null);
+                                       updateItem(item.id, "manualStockItemName", null);
+                                     }}
+                                     className="p-1.5 rounded hover:bg-red-500/10 text-gray-500 hover:text-red-400 transition-colors"
+                                   >
+                                     <X className="size-3" />
+                                   </button>
+                                 )}
+                               </div>
+                             )}
+ 
+                             {item.productId === null && (
+                               <input
+                                 type="text"
+                                 value={item.name}
+                                 onChange={(e) => updateItem(item.id, "name", e.target.value)}
+                                 placeholder="Nome do item..."
+                                 className="w-full rounded-lg py-2.5 px-3 text-sm bg-black/20 border border-white/10 text-white focus:border-primary focus:outline-none transition-all mt-1.5"
+                               />
+                             )}
+                           </div>
+                         </div>
+ 
+                         <div className="col-span-4 md:col-span-2 space-y-1.5">
+                           <label className="text-xs text-gray-500 font-medium">Qtd</label>
+                           <input
+                             type="number"
+                             min="1"
+                             value={item.quantity}
+                             onChange={(e) => updateItem(item.id, "quantity", parseInt(e.target.value) || 1)}
+                             className="w-full rounded-lg py-2.5 px-3 text-sm bg-black/20 border border-white/10 text-white focus:border-primary focus:outline-none transition-all"
+                           />
+                         </div>
+ 
+                         <div className="col-span-5 md:col-span-3 space-y-1.5">
+                           <label className="text-xs text-gray-500 font-medium">Preço Unit. (R$)</label>
+                           <input
+                             type="number"
+                             step="0.01"
+                             min="0"
+                             value={item.price}
+                             onChange={(e) => updateItem(item.id, "price", parseFloat(e.target.value) || 0)}
+                             className="w-full rounded-lg py-2.5 px-3 text-sm bg-black/20 border border-white/10 text-white focus:border-primary focus:outline-none transition-all"
+                           />
+                         </div>
+ 
+                         <div className="col-span-3 md:col-span-2 flex items-end gap-2">
+                           <div className="flex-1 text-right">
+                             <p className="text-xs text-gray-500 mb-1.5">Subtotal</p>
+                             <p className="text-sm font-bold text-white">
+                               {(item.quantity * item.price).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                             </p>
+                           </div>
+                           {items.length > 1 && (
+                             <button
+                               type="button"
+                               onClick={() => removeItem(item.id)}
+                               className="p-2 rounded-lg hover:bg-red-500/10 text-gray-500 hover:text-red-400 transition-colors mb-0.5"
+                             >
+                               <Trash2 className="size-4" />
+                             </button>
+                           )}
+                         </div>
+                       </div>
+                     ))}
+                   </div>
+                 </>
+               ) : (
+                 <div className="space-y-6">
+                   <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider flex items-center gap-2">
+                     <Shield className="size-5 text-primary" />
+                     Plano de Contingência
+                   </h2>
+                   
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end p-6 rounded-xl bg-white/[0.02] border border-white/5">
+                     <div className="space-y-1.5">
+                       <label className="text-xs text-gray-500 font-medium">Selecione o Plano</label>
+                       <select
+                         value={selectedCtPlanId}
+                         onChange={(e) => {
+                           setSelectedCtPlanId(e.target.value);
+                           const plan = ctPlans.find(p => p.id === e.target.value);
+                           if (plan) {
+                             setItems([{
+                               id: crypto.randomUUID(),
+                               name: `Contingência Total — ${plan.name}`,
+                               quantity: 1,
+                               price: plan.price,
+                               productId: null
+                             }]);
+                           }
+                         }}
+                         className="w-full rounded-lg py-3 px-3 text-sm bg-black/20 border border-white/10 text-white focus:border-primary focus:outline-none transition-all appearance-none"
+                       >
+                         <option value="" className="bg-gray-900">Selecione um plano...</option>
+                         {ctPlans.map((p) => (
+                           <option key={p.id} value={p.id} className="bg-gray-900">{p.tier?.toUpperCase()} - {p.name} — R$ {Number(p.price).toFixed(2)}</option>
+                         ))}
+                       </select>
+                     </div>
+ 
+                     <div className="text-right">
+                       <p className="text-xs text-gray-500 mb-1.5">Valor Total</p>
+                       <p className="text-2xl font-bold text-primary">
+                         {totalValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                       </p>
+                     </div>
+                   </div>
+                 </div>
+               )}
+             </div>
 
               <div className="space-y-4">
                 {items.map((item, idx) => (
