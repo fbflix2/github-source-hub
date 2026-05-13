@@ -109,9 +109,15 @@ export default function InvoiceDetailModal({ invoice, open, onOpenChange }: Prop
           <div className="flex flex-col items-center gap-3">
             <div className="bg-white p-3 rounded-xl">
               <img
-                src={`data:image/png;base64,${invoice.qr_code_base64}`}
+                src={
+                  invoice.qr_code_base64.startsWith('http') 
+                    ? invoice.qr_code_base64 
+                    : invoice.qr_code_base64.startsWith('data:') 
+                      ? invoice.qr_code_base64 
+                      : `data:image/png;base64,${invoice.qr_code_base64}`
+                }
                 alt="QR Code PIX"
-                className="w-40 h-40"
+                className="w-40 h-40 object-contain"
               />
             </div>
             <Button onClick={copyPixCode} variant="outline" className="gap-2 w-full">
