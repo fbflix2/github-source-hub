@@ -1,0 +1,675 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
+const SAFE_BM_PRODUCT_ID = "e5118c63-ed52-4f4e-8983-f44c1ba0d17b";
+
+async function fulfillMissingStockItems(supabase: any, orderId: string) {
+  const { data: orderItems, error: itemsError } = await supabase
+    .from("order_items")
+    .select("id, product_id, delivery_data")
+    .eq("order_id", orderId);
+
+  if (itemsError) throw itemsError;
+  let fulfilledCount = 0;
+
+  for (const oi of orderItems || []) {
+    if (!oi.product_id || oi.product_id === SAFE_BM_PRODUCT_ID) continue;
+    const deliveryData = oi.delivery_data && typeof oi.delivery_data === "object" ? oi.delivery_data : null;
+    if (deliveryData?.type || deliveryData?.bmLinks || deliveryData?.linkPerfil || deliveryData?.idPerfil) continue;
+
+    const { data: product } = await supabase
+      .from("products")
+      .select("icon_type")
+      .eq("id", oi.product_id)
+      .maybeSingle();
+
+    if (product?.icon_type === "proxy") continue;
+
+    const { count: linkedCount } = await supabase
+      .from("stock_items")
+      .select("id", { count: "exact", head: true })
+      .eq("order_item_id", oi.id);
+
+    if ((linkedCount || 0) > 0) continue;
+
+    const { data: result, error: rpcError } = await supabase.rpc("fulfill_order_item", {
+      p_order_item_id: oi.id,
+      p_product_id: oi.product_id,
+    });
+
+    if (rpcError) {
+      console.error(`[webhook] Catch-up fulfillment error for ${oi.id}:`, rpcError);
+      continue;
+    }
+
+    if (result?.success && Number(result?.linked_count || 0) > 0) fulfilledCount += 1;
+    else if (result && result.success === false) console.warn(`[webhook] Catch-up fulfillment warning for ${oi.id}:`, result.error);
+  }
+
+  if (fulfilledCount > 0) {
+    await supabase.from("orders").update({ status: "completed" }).eq("id", orderId);
+  }
+
+  return fulfilledCount;
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const MERCADOPAGO_ACCESS_TOKEN = Deno.env.get("MERCADOPAGO_ACCESS_TOKEN");
+    if (!MERCADOPAGO_ACCESS_TOKEN) {
+      throw new Error("MERCADOPAGO_ACCESS_TOKEN não configurado");
+    }
+
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    // MP can send webhooks as JSON body or as query params (IPN style)
+    let mpPaymentId: string | null = null;
+    
+    const url = new URL(req.url);
+    const topicParam = url.searchParams.get("topic") || url.searchParams.get("type");
+    const idParam = url.searchParams.get("id") || url.searchParams.get("data.id");
+
+    // Try JSON body first
+    let body: Record<string, unknown> = {};
+    try {
+      body = await req.json();
+    } catch {
+      // No JSON body — might be IPN query-param style
+    }
+    
+    console.log("Webhook received - body:", JSON.stringify(body), "query:", url.search);
+
+    // Extract payment ID from various MP webhook formats
+    if (body.data && typeof body.data === 'object' && (body.data as Record<string, unknown>).id) {
+      mpPaymentId = String((body.data as Record<string, unknown>).id);
+    } else if (body.id && (body.type === "payment" || topicParam === "payment")) {
+      mpPaymentId = String(body.id);
+    } else if (idParam && (topicParam === "payment" || topicParam === "merchant_order")) {
+      mpPaymentId = idParam;
+    }
+
+    // Skip non-payment events
+    const eventType = body.type || body.action || topicParam || "";
+    if (!String(eventType).includes("payment") && !mpPaymentId) {
+      console.log("Skipping non-payment event:", eventType);
+      return new Response(JSON.stringify({ received: true }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!mpPaymentId) {
+      console.log("No payment ID found in webhook");
+      return new Response(JSON.stringify({ received: true }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    
+    console.log("Processing payment ID:", mpPaymentId);
+
+    // Fetch payment details from Mercado Pago
+    const mpResponse = await fetch(
+      `https://api.mercadopago.com/v1/payments/${mpPaymentId}`,
+      {
+        headers: { Authorization: `Bearer ${MERCADOPAGO_ACCESS_TOKEN}` },
+      }
+    );
+
+    if (!mpResponse.ok) {
+      console.error("Failed to fetch MP payment:", mpResponse.status);
+      throw new Error(`Failed to verify payment with Mercado Pago`);
+    }
+
+    const mpPayment = await mpResponse.json();
+    console.log("MP Payment status:", mpPayment.status, "external_reference:", mpPayment.external_reference);
+
+    if (mpPayment.status !== "approved") {
+      if (mpPayment.external_reference) {
+        // Fetch existing payment to preserve metadata fields (e.g. type)
+        const { data: existingPmt } = await supabase
+          .from("payments")
+          .select("metadata")
+          .eq("id", mpPayment.external_reference)
+          .single();
+
+        const existingMeta = typeof existingPmt?.metadata === 'object' && existingPmt?.metadata ? existingPmt.metadata : {};
+
+        await supabase
+          .from("payments")
+          .update({
+            status: mpPayment.status === "rejected" ? "failed" : mpPayment.status,
+            metadata: {
+              ...(existingMeta as Record<string, unknown>),
+              mp_status: mpPayment.status,
+              mp_status_detail: mpPayment.status_detail,
+            },
+          })
+          .eq("id", mpPayment.external_reference);
+      }
+
+      return new Response(JSON.stringify({ received: true, status: mpPayment.status }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Payment approved
+    const paymentId = mpPayment.external_reference;
+    if (!paymentId) {
+      console.error("No external_reference in approved payment");
+      return new Response(JSON.stringify({ error: "Missing reference" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Check if already processed
+    const { data: existingPayment } = await supabase
+      .from("payments")
+      .select("id, status, user_id, amount, order_id, metadata")
+      .eq("id", paymentId)
+      .single();
+
+    if (!existingPayment) {
+      console.error("Payment not found:", paymentId);
+      return new Response(JSON.stringify({ error: "Payment not found" }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (existingPayment.status === "completed") {
+      console.log("Payment already processed:", paymentId);
+      if (existingPayment.order_id) {
+        const fulfilled = await fulfillMissingStockItems(supabase, existingPayment.order_id);
+        console.log(`[webhook] Catch-up fulfilled ${fulfilled} stock item(s) for already completed order ${existingPayment.order_id}`);
+      }
+      return new Response(JSON.stringify({ received: true, already_processed: true }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const amount = Number(existingPayment.amount);
+    const userId = existingPayment.user_id;
+    const orderId = existingPayment.order_id;
+
+    // Atomic update: only mark as completed if still pending (prevents race condition duplicates)
+    const { data: updatedPayment, error: updateError } = await supabase
+      .from("payments")
+      .update({
+        status: "completed",
+        metadata: {
+          ...(typeof existingPayment.metadata === 'object' && existingPayment.metadata ? existingPayment.metadata : {}),
+          mp_status: "approved",
+          mp_payment_id: String(mpPaymentId),
+        },
+      })
+      .eq("id", paymentId)
+      .neq("status", "completed")
+      .select("id")
+      .maybeSingle();
+
+    if (!updatedPayment) {
+      console.log("Payment was already completed by another request (race condition prevented):", paymentId);
+      if (orderId) {
+        const fulfilled = await fulfillMissingStockItems(supabase, orderId);
+        console.log(`[webhook] Catch-up fulfilled ${fulfilled} stock item(s) for race-completed order ${orderId}`);
+      }
+      return new Response(JSON.stringify({ received: true, already_processed: true }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Check if this is a wallet recharge or an order payment
+    const metadataObj = typeof existingPayment.metadata === 'object' && existingPayment.metadata ? existingPayment.metadata : {};
+    const isInvoiceLink = (metadataObj as Record<string, unknown>).type === "invoice_link";
+    // If there's no order_id, it's a wallet recharge (more robust than checking metadata.type)
+    const isWalletRecharge = !orderId && !isInvoiceLink;
+
+    // ========== INVOICE LINK FLOW ==========
+    if (isInvoiceLink) {
+      const invoiceCode = (metadataObj as Record<string, unknown>).invoice_code as string;
+      console.log(`Processing invoice link payment: ${invoiceCode}`);
+      
+      await supabase
+        .from("invoice_links")
+        .update({ status: "paid", paid_at: new Date().toISOString() })
+        .eq("payment_id", paymentId);
+
+      // Notify admin
+      await supabase.from("notifications").insert({
+        title: "Cobrança Paga",
+        message: `Cobrança ${invoiceCode} de R$ ${amount.toFixed(2)} foi paga via PIX.`,
+        type: "payment",
+        global: true,
+      });
+
+      console.log(`Invoice ${invoiceCode} marked as paid`);
+      return new Response(JSON.stringify({ received: true, type: "invoice_link" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (isWalletRecharge) {
+      // ========== WALLET RECHARGE FLOW ==========
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("balance")
+        .eq("user_id", userId)
+        .single();
+
+      const currentBalance = profile?.balance || 0;
+      const newBalance = currentBalance + amount;
+
+      await supabase
+        .from("profiles")
+        .update({ balance: newBalance })
+        .eq("user_id", userId);
+
+      await supabase.from("wallet_transactions").insert({
+        user_id: userId,
+        type: "deposit",
+        title: "Recarga via PIX",
+        amount: amount,
+        balance_after: newBalance,
+        reference_id: paymentId,
+      });
+
+      // Notify admin about wallet recharge
+      await supabase.from("notifications").insert({
+        title: "Recarga de Saldo",
+        message: `Cliente recarregou R$ ${amount.toFixed(2)} via PIX. Novo saldo: R$ ${newBalance.toFixed(2)}`,
+        type: "wallet",
+        global: true,
+      });
+
+      console.log(`Credited R$ ${amount} to user ${userId}. New balance: ${newBalance}`);
+    } else if (orderId) {
+      // ========== ORDER PAYMENT FLOW ==========
+       console.log(`Processing order payment for order ${orderId} (user: ${userId})`);
+ 
+       // Fetch user profile for Lauth integration
+       const { data: userProfile } = await supabase
+         .from("profiles")
+         .select("lauth_email, lauth_enabled")
+         .eq("user_id", userId)
+         .maybeSingle();
+       
+       const lauthEnabled = userProfile?.lauth_enabled || false;
+       const lauthEmail = userProfile?.lauth_email;
+
+      // Fetch order code for the transaction title
+      const { data: orderData } = await supabase
+        .from("orders")
+        .select("code")
+        .eq("id", orderId)
+        .single();
+
+      // Mark order as completed
+      await supabase
+        .from("orders")
+        .update({ status: "completed" })
+        .eq("id", orderId);
+
+      // Record in wallet_transactions so it appears in client history
+      await supabase.from("wallet_transactions").insert({
+        user_id: userId,
+        type: "debit",
+        title: `Compra via PIX — ${orderData?.code || "pedido"}`,
+        amount: amount,
+        reference_id: paymentId,
+      });
+
+      console.log(`Recorded PIX order payment of R$ ${amount} in wallet_transactions for user ${userId}`);
+
+      // Get order items for fulfillment
+      const { data: orderItems } = await supabase
+        .from("order_items")
+        .select("id, product_id, delivery_data, quantity, price, name")
+        .eq("order_id", orderId);
+
+      if (orderItems) {
+        for (const oiRaw of orderItems) {
+          const oi: any = oiRaw;
+          // Legacy proxy_contract delivery_data entries are now handled via Webshare below
+          // Skip ProxyBR contracting — all proxy fulfillment is centralized on Webshare
+          const dd = typeof oi.delivery_data === 'object' && oi.delivery_data ? oi.delivery_data as Record<string, unknown> : null;
+          if (dd && dd.type === "proxy_contract" && dd.product_variant_id) {
+            console.log(`[webhook] Legacy proxy_contract detected for item ${oi.id}, redirecting to Webshare fulfillment`);
+            // Fall through to Webshare fulfillment below
+          }
+
+          // Legacy fallback: detect proxy product by icon_type with external_id
+          // Previously contracted via ProxyBR, now redirected to Webshare
+          if (!dd && oi.product_id) {
+            const { data: productInfo } = await supabase
+              .from("products")
+              .select("icon_type, external_id")
+              .eq("id", oi.product_id)
+              .single();
+
+            if (productInfo?.icon_type === 'proxy' && productInfo.external_id) {
+              console.log(`[webhook] ProxyBR product detected by icon_type for item ${oi.id}, redirecting to Webshare fulfillment`);
+              // Fall through to Webshare fulfillment below
+            }
+          }
+
+          // ========== SAFE BM AUTO-ACTIVATION ==========
+          const SAFE_BM_PRODUCT_ID = "e5118c63-ed52-4f4e-8983-f44c1ba0d17b";
+          if (oi.product_id === SAFE_BM_PRODUCT_ID) {
+            console.log(`[webhook-safebm] SafeBM product detected for item ${oi.id}, qty=${oi.quantity || 1}`);
+            
+            try {
+              const { data: clientProfile } = await supabase
+                .from("profiles")
+                .select("full_name")
+                .eq("user_id", userId)
+                .single();
+              
+              const clientName = clientProfile?.full_name || "Cliente";
+              const itemQty = oi.quantity || 1;
+              
+              for (let i = 0; i < itemQty; i++) {
+                // Check if vault already exists for this user to avoid duplicates
+                const { count: existingCount } = await supabase
+                  .from("safe_bm_vaults")
+                  .select("id", { count: "exact", head: true })
+                  .eq("user_id", userId)
+                  .eq("status", "active");
+                
+                await supabase.from("safe_bm_vaults").insert({
+                  user_id: userId,
+                  client_name: clientName,
+                  bm_name: `BM ${(existingCount || 0) + 1}`,
+                  bm_link: "https://business.facebook.com",
+                  status: "active",
+                  subscription_price: oi.price || 9.99,
+                  protection_start: new Date().toISOString(),
+                });
+                console.log(`[webhook-safebm] Created safe_bm_vault #${i + 1} for user ${userId}`);
+              }
+              
+              // Notify admin
+              const { data: safeBmOrder } = await supabase.from("orders").select("code").eq("id", orderId).single();
+              await supabase.from("notifications").insert({
+                title: "Safe BM Ativado",
+                message: `${clientName} assinou Safe BM (${itemQty}x) • Pedido #${safeBmOrder?.code || ""}`,
+                type: "order",
+                global: true,
+              });
+              
+              // Mark delivery
+              await supabase.from("order_items").update({
+                delivery_data: { type: "safe_bm", fulfilled: true, count: itemQty },
+              }).eq("id", oi.id);
+              
+            } catch (safeBmErr) {
+              console.error(`[webhook-safebm] Error activating SafeBM for item ${oi.id}:`, safeBmErr);
+              await supabase.from("order_items").update({
+                delivery_data: { type: "safe_bm", fulfilled: false, error: String(safeBmErr).substring(0, 200) },
+              }).eq("id", oi.id);
+            }
+            continue; // Skip normal fulfillment
+          }
+
+          // ========== WEBSHARE PROXY FULFILLMENT ==========
+          // All proxy products (whether via product_id or delivery_data contract) are fulfilled via Webshare
+          const hasProxyContract = dd && dd.type === "proxy_contract";
+          if (oi.product_id || hasProxyContract) {
+            let wsProductInfo = null;
+            if (oi.product_id) {
+              const { data } = await supabase
+                .from("products")
+                .select("icon_type, external_id, name, tags")
+                .eq("id", oi.product_id)
+                .single();
+              wsProductInfo = data;
+            }
+
+            const isProxyProduct = wsProductInfo?.icon_type === 'proxy' || hasProxyContract;
+            if (isProxyProduct) {
+              console.log(`[webhook-webshare] Proxy product detected for item ${oi.id}, qty=${oi.quantity || 1} (was external_id=${wsProductInfo?.external_id || 'none'})`);
+              
+              const WEBSHARE_API_KEY = Deno.env.get("WEBSHARE_API_KEY");
+              if (!WEBSHARE_API_KEY) {
+                console.error("[webhook-webshare] WEBSHARE_API_KEY not configured");
+                continue;
+              }
+
+              const WEBSHARE_BASE = "https://proxy.webshare.io/api/v2";
+              const itemQty = oi.quantity || 1;
+              
+              try {
+                // Detect target country from product info OR delivery_data
+                let targetCountry: string | null = null;
+                const brIndicators = ["brasil", "brazil", "br", "sudeste", "central/sudeste", "nordeste", "sul", "centro-oeste"];
+                const usIndicators = ["usa", "estados unidos", "americano", "us premium"];
+
+                if (wsProductInfo) {
+                  const tags = (wsProductInfo.tags || []) as string[];
+                  const pName = (wsProductInfo.name || "").toLowerCase();
+                  const allText = tags.map((t: string) => t.toLowerCase().trim()).join(" ") + " " + pName;
+                  for (const ind of brIndicators) { if (allText.includes(ind)) { targetCountry = "BR"; break; } }
+                  if (!targetCountry) for (const ind of usIndicators) { if (allText.includes(ind)) { targetCountry = "US"; break; } }
+                }
+
+                if (!targetCountry && dd && dd.variant_location) {
+                  const loc = String(dd.variant_location).toLowerCase();
+                  for (const ind of brIndicators) { if (loc.includes(ind)) { targetCountry = "BR"; break; } }
+                  if (!targetCountry) for (const ind of usIndicators) { if (loc.includes(ind)) { targetCountry = "US"; break; } }
+                }
+
+                if (!targetCountry) targetCountry = "BR"; // Default to BR
+                console.log(`[webhook-webshare] Target country: ${targetCountry}`);
+
+                // Get already-assigned proxy IDs to exclude them
+                const { data: existingWsSubs } = await supabase
+                  .from("subscriptions")
+                  .select("raw_data")
+                  .eq("type", "webshare")
+                  .in("status", ["active", "expiring"]);
+
+                const assignedIds = new Set<string>();
+                for (const sub of (existingWsSubs || [])) {
+                  const raw = (sub.raw_data || {}) as Record<string, any>;
+                  if (raw.webshare_proxy_id) assignedIds.add(String(raw.webshare_proxy_id));
+                }
+
+                const itemQty = oi.quantity || 1;
+                const selectedProxies: any[] = [];
+                let wsPage = 1;
+                const maxPages = 15; // Safety cap
+
+                while (selectedProxies.length < itemQty && wsPage <= maxPages) {
+                  const url = `${WEBSHARE_BASE}/proxy/list/?mode=direct&page=${wsPage}&page_size=250&country_code__in=${targetCountry}`;
+                  console.log(`[webhook-webshare] Fetching page ${wsPage} for country ${targetCountry}...`);
+                  
+                  const resp = await fetch(url, { 
+                    headers: { Authorization: `Token ${WEBSHARE_API_KEY}`, Accept: "application/json" } 
+                  });
+
+                  if (!resp.ok) {
+                    const errText = await resp.text().catch(() => "Unknown error");
+                    throw new Error(`Webshare API error [${resp.status}]: ${errText.substring(0, 100)}`);
+                  }
+
+                  const data = await resp.json();
+                  const results = data.results || [];
+                  
+                  if (results.length === 0) break;
+
+                  for (const p of results) {
+                    if (p.valid && !assignedIds.has(String(p.id))) {
+                      selectedProxies.push(p);
+                      assignedIds.add(String(p.id)); // Mark as assigned for this loop
+                      if (selectedProxies.length >= itemQty) break;
+                    }
+                  }
+
+                  if (!data.next) break;
+                  wsPage++;
+                }
+
+                console.log(`[webhook-webshare] ${selectedProxies.length} proxies found, need ${itemQty}`);
+
+                if (selectedProxies.length < itemQty) {
+                  console.error(`[webhook-webshare] Not enough proxies: ${selectedProxies.length} available, ${itemQty} needed`);
+                }
+
+                const assignedCount = selectedProxies.length;
+                for (let i = 0; i < assignedCount; i++) {
+                  const assignedProxy = selectedProxies[i];
+                  const startDate = new Date();
+                  const endDate = new Date(startDate);
+                  endDate.setDate(endDate.getDate() + 30);
+
+                  const subName = `WS-${Date.now().toString(36).toUpperCase()}${i > 0 ? `-${i}` : ''}`;
+                  await supabase.from("subscriptions").insert({
+                    user_id: userId,
+                    name: subName,
+                    type: "webshare",
+                    status: "active",
+                    start_date: startDate.toISOString(),
+                    end_date: endDate.toISOString(),
+                    product_id: oi.product_id,
+                    auto_renew: false,
+                    raw_data: {
+                      webshare_proxy_id: assignedProxy.id,
+                      proxy_address: assignedProxy.proxy_address,
+                      port: assignedProxy.port,
+                      username: assignedProxy.username,
+                      password: assignedProxy.password,
+                      country_code: assignedProxy.country_code,
+                      city_name: assignedProxy.city_name,
+                      provider: "webshare",
+                      exchange_quota_free: 2,
+                      exchange_quota_pay: 0,
+                    },
+                  });
+                  console.log(`[webhook-webshare] Proxy ${assignedProxy.id} (${assignedProxy.proxy_address}:${assignedProxy.port}) assigned to user ${userId} as ${subName}`);
+                  
+                  // Add to assigned set to avoid double-assigning in same loop
+                  assignedIds.add(assignedProxy.id);
+                }
+
+                // Notify admin
+                const { data: wsOrderData } = await supabase.from("orders").select("code, total").eq("id", orderId).single();
+                const wsProductLabel = oi.name || "Proxy Webshare";
+                const { data: wsClientProfile } = await supabase.from("profiles").select("full_name").eq("user_id", userId).single();
+                const wsClientName = wsClientProfile?.full_name || "Cliente";
+
+                await supabase.from("notifications").insert({
+                  title: `${wsProductLabel} Vendido (PIX)`,
+                  message: `${wsClientName} • R$ ${Number(wsOrderData?.total || oi.price || 0).toFixed(2)} • ${assignedCount} proxy(s) • Pedido #${wsOrderData?.code || ""}`,
+                  type: "order",
+                  global: true,
+                });
+
+                // Mark delivery
+                await supabase.from("order_items").update({
+                  delivery_data: { type: "webshare_proxy", fulfilled: true, count: assignedCount },
+                }).eq("id", oi.id);
+
+              } catch (wsErr) {
+                console.error(`[webhook-webshare] Error assigning proxy for item ${oi.id}:`, wsErr);
+                await supabase.from("order_items").update({
+                  delivery_data: { type: "webshare_proxy", fulfilled: false, error: String(wsErr).substring(0, 200) },
+                }).eq("id", oi.id);
+              }
+              continue; // Skip normal fulfillment
+            }
+          }
+          
+          if (!oi.product_id) continue;
+
+          // Use the atomic fulfillment function
+          const { data: result, error: rpcError } = await supabase.rpc("fulfill_order_item", {
+            p_order_item_id: oi.id,
+            p_product_id: oi.product_id,
+          });
+
+          if (rpcError) {
+            console.error(`Fulfillment error for item ${oi.id}:`, rpcError);
+            } else if (result && (result as any).success) {
+              const profileId = (result as any).data?.idPerfil;
+              if (profileId && lauthEnabled && lauthEmail) {
+                console.log(`[webhook] Triggering automatic Lauth transfer for item ${oi.id} (profile: ${profileId}) to ${lauthEmail}`);
+                try {
+                  const lauthResp = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/lauth-transfer`, {
+                    method: 'POST',
+                    headers: {
+                      'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+                      'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ profileId, email: lauthEmail, itemId: oi.id })
+                  });
+                  const lauthResult = await lauthResp.json();
+                  console.log(`[webhook] Lauth transfer result for item ${oi.id}:`, lauthResult);
+                  
+                  if (lauthResult.success) {
+                    // Update delivery_data to record the transfer
+                    const currentDD = (result as any).data || {};
+                    await supabase.from("order_items").update({
+                      delivery_data: {
+                        ...currentDD,
+                        lauthDeliveredAt: new Date().toISOString(),
+                        lauthRecipientEmail: lauthEmail
+                      }
+                    }).eq("id", oi.id);
+                  }
+                } catch (lauthErr) {
+                  console.error(`[webhook] Critical error calling lauth-transfer for item ${oi.id}:`, lauthErr);
+                }
+              } else if (profileId) {
+                console.log(`[webhook] Skipping Lauth transfer for item ${oi.id}: user integration disabled or email missing.`);
+              }
+            } else if (result) {
+             console.log(`Fulfillment result for item ${oi.id}:`, result);
+           }
+        }
+      }
+
+      // Notify admin about completed order via PIX
+      const { data: orderNotifData } = await supabase.from("orders").select("code").eq("id", orderId).single();
+      await supabase.from("notifications").insert({
+        title: "Pedido Concluído",
+        message: `Pedido ${orderNotifData?.code || orderId} finalizado — R$ ${amount.toFixed(2)} (PIX)`,
+        type: "order",
+        global: true,
+      });
+
+      console.log(`Order ${orderId} fulfilled successfully`);
+    }
+
+    return new Response(
+      JSON.stringify({ received: true, credited: isWalletRecharge, order_fulfilled: !!orderId }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  } catch (error) {
+    console.error("Webhook error:", error);
+    const msg = error instanceof Error ? error.message : "Unknown error";
+    return new Response(JSON.stringify({ error: msg }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+});
