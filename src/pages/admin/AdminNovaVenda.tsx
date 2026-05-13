@@ -1138,35 +1138,38 @@ export default function AdminNovaVenda() {
                       {pixShareLink && (
                         <div className="space-y-2">
                           <label className="text-xs text-primary font-bold uppercase tracking-wider">Link da Fatura (Página de Pagamento)</label>
-                          <div className="flex gap-2">
+                          <div className="flex flex-col sm:flex-row gap-2">
                             <input
                               type="text"
                               readOnly
                               value={pixShareLink}
                               className="flex-1 rounded-lg py-2.5 px-3 text-xs bg-black/30 border border-white/10 text-gray-300 font-mono truncate"
                             />
-                            <button
-                              type="button"
-                              onClick={() => { navigator.clipboard.writeText(pixShareLink); toast.success("Link copiado!"); }}
-                              className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-white text-xs font-bold transition-all whitespace-nowrap"
-                            >
-                              <Copy className="size-3.5" />
-                              Copiar
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const phone = (selectedClient?.phone || "").replace(/\D/g, "");
-                                const msg = encodeURIComponent(
-                                  `Olá ${selectedClient?.full_name || ""}! 👋\n\nSegue o link para efetuar o pagamento via PIX:\n${pixShareLink}\n\nValor: ${totalValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n\nQualquer dúvida estamos à disposição! ✅`
-                                );
-                                const url = phone ? `https://wa.me/55${phone}?text=${msg}` : `https://wa.me/?text=${msg}`;
-                                window.open(url, "_blank");
-                              }}
-                              className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all whitespace-nowrap"
-                            >
-                              WhatsApp
-                            </button>
+                            <div className="flex gap-2 w-full sm:w-auto">
+                              <button
+                                type="button"
+                                onClick={() => { navigator.clipboard.writeText(pixShareLink); toast.success("Link copiado!"); }}
+                                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-white text-xs font-bold transition-all whitespace-nowrap"
+                              >
+                                <Copy className="size-3.5" />
+                                Copiar Link
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const phone = (selectedClient?.phone || "").replace(/\D/g, "");
+                                  const msg = encodeURIComponent(
+                                    `Olá ${selectedClient?.full_name || ""}! 👋\n\nSegue o link para efetuar o pagamento via PIX:\n${pixShareLink}\n\nValor: ${totalValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n\nQualquer dúvida estamos à disposição! ✅`
+                                  );
+                                  const url = phone ? `https://wa.me/55${phone}?text=${msg}` : `https://wa.me/?text=${msg}`;
+                                  window.open(url, "_blank");
+                                }}
+                                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all whitespace-nowrap"
+                              >
+                                <MessageCircle className="size-3.5" />
+                                WhatsApp
+                              </button>
+                            </div>
                           </div>
                         </div>
                       )}
