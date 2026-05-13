@@ -117,7 +117,7 @@ export default function PagarInvoice() {
         {/* Header */}
         <div className="text-center space-y-2">
           <img src={logoFbflix} alt="FBFLIX" className="w-12 h-12 mx-auto" />
-          <h1 className="text-lg font-bold text-white">FBFLIX — Pagamento</h1>
+           <h1 className="text-lg font-bold text-white">​ — Pagamento</h1>
         </div>
 
         <Card className="bg-[#1a1a1a] border-white/10">
