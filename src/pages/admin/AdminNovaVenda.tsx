@@ -668,7 +668,7 @@ export default function AdminNovaVenda() {
                  type="button"
                  onClick={() => {
                    setSaleType("subscription");
-                   setDeliveryMethod("proxy");
+                   setDeliveryMethod("assinatura");
                  }}
                  className={`px-6 py-2 rounded-lg text-sm font-medium transition-all ${
                    saleType === "subscription"
