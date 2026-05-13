@@ -3,9 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
   User,
-  Calendar,
-  Layers,
-  ShoppingCart,
+   Calendar,
+   Layers,
+   Shield,
+   ShoppingCart,
   DollarSign,
   Wallet,
   Trash2,
@@ -76,8 +77,12 @@ export default function AdminNovaVenda() {
   const [items, setItems] = useState<SaleItem[]>([
     { id: crypto.randomUUID(), name: "", quantity: 1, price: 0, productId: null, manualStockItemId: null, manualStockItemName: null },
   ]);
-  const [products, setProducts] = useState<any[]>([]);
-  const [submitting, setSubmitting] = useState(false);
+   const [products, setProducts] = useState<any[]>([]);
+   const [ctPlans, setCtPlans] = useState<any[]>([]);
+   const [saleType, setSaleType] = useState<"product" | "subscription">("product");
+   const [selectedCtPlanId, setSelectedCtPlanId] = useState("");
+   const [recurrenceDate, setRecurrenceDate] = useState(new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().slice(0, 10));
+   const [submitting, setSubmitting] = useState(false);
 
   // Stock item selection state
   const [stockItemModal, setStockItemModal] = useState<{ itemId: string; productId: string } | null>(null);
@@ -96,14 +101,25 @@ export default function AdminNovaVenda() {
   const [pollingPix, setPollingPix] = useState(false);
 
   // Load products for selection
-  useEffect(() => {
-    supabase
-      .from("products")
-      .select("id, name, price, external_id, icon_type")
-      .eq("status", "active")
-      .order("name")
-      .then(({ data }) => setProducts(data || []));
-  }, []);
+   useEffect(() => {
+     const loadData = async () => {
+       const [productsRes, ctPlansRes] = await Promise.all([
+         supabase
+           .from("products")
+           .select("id, name, price, external_id, icon_type")
+           .eq("status", "active")
+           .order("name"),
+         supabase
+           .from("ct_plans")
+           .select("*")
+           .eq("active", true)
+           .order("price")
+       ]);
+       setProducts(productsRes.data || []);
+       setCtPlans(ctPlansRes.data || []);
+     };
+     loadData();
+   }, []);
 
   // Search clients
   useEffect(() => {
