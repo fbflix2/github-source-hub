@@ -341,7 +341,7 @@ const Index = () => {
       <footer className="bg-[#030303] w-full py-16 px-8 border-t border-[#ff3131]/10">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12 max-w-7xl mx-auto">
           <div className="col-span-1 md:col-span-2">
-            <span className="text-2xl font-black text-[#ff3131] mb-6 block italic">FBFLIX</span>
+             <span className="text-2xl font-black text-[#ff3131] mb-6 block italic">​</span>
             <p className="text-sm text-white/50 max-w-sm mb-8 leading-relaxed">
               {cfg.footer.description}
             </p>
