@@ -277,9 +277,9 @@ export default function ExchangePaymentGate({ itemId, orderId, orderCode, pendin
           {pixData.qr_code_base64 && (
             <div className="flex justify-center">
               <img
-                src={`data:image/png;base64,${pixData.qr_code_base64}`}
+                src={pixData.qr_code_base64.startsWith('data:') ? pixData.qr_code_base64 : `data:image/png;base64,${pixData.qr_code_base64}`}
                 alt="QR Code PIX"
-                className="w-48 h-48 rounded-lg border border-border"
+                className="w-48 h-48 rounded-lg border border-border bg-white p-2 object-contain"
               />
             </div>
           )}
