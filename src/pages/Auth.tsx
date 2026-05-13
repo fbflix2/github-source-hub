@@ -221,12 +221,13 @@ export default function Auth() {
         {/* Main Card Container */}
         <div className="glass-card-static w-full max-w-[440px] rounded-3xl p-8 flex flex-col gap-6">
           {/* Header & Logo */}
-          <div className="flex flex-col items-center gap-2">
-            <div className="flex items-center justify-center mb-2">
-              <img src={logoFbflix} alt="FBFLIX" className="w-20 h-20 object-contain" />
-            </div>
-            <p className="text-muted-foreground text-sm font-medium">Bem-vindo de volta</p>
-          </div>
+           <div className="flex flex-col items-center gap-3">
+             <div className="flex flex-col items-center justify-center">
+               <img src={logoFbflix} alt="FBFLIX" className="w-20 h-20 object-contain" />
+               <span className="text-xs font-black tracking-[0.4em] text-foreground mt-2 -mr-[0.4em]">F B F L I X</span>
+             </div>
+             <p className="text-muted-foreground text-sm font-medium">Bem-vindo de volta</p>
+           </div>
 
           {/* Segmented Control (Toggle) */}
           <div className="bg-muted p-1 rounded-xl flex relative">
