@@ -100,6 +100,7 @@ export default function AdminNovaVenda() {
   const [pixOrderId, setPixOrderId] = useState<string | null>(null);
   const [pixStatus, setPixStatus] = useState<string | null>(null);
   const [pollingPix, setPollingPix] = useState(false);
+  const [pixShareLink, setPixShareLink] = useState<string | null>(null);
 
   // Load products for selection
    useEffect(() => {
@@ -317,6 +318,46 @@ export default function AdminNovaVenda() {
       setPixOrderId(order.id);
       setPixStatus("pending");
       setPixGenerated(true);
+
+      // Create a public invoice link so admin can share payment URL with the client
+      try {
+        const productName = saleType === "subscription"
+          ? `Assinatura Contingência Total — ${ctPlans.find(p => p.id === selectedCtPlanId)?.name || ""}`
+          : (items[0]?.name || "Cobrança");
+        const invoiceCode = `INV-${Date.now().toString(36).toUpperCase()}`;
+        const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+        const { data: inv, error: invErr } = await supabase
+          .from("invoice_links" as any)
+          .insert({
+            code: invoiceCode,
+            client_user_id: selectedClient.user_id,
+            client_name: selectedClient.full_name || null,
+            client_email: selectedClient.email || null,
+            product_name: productName,
+            amount: subtotal,
+            reference_date: new Date().toISOString().split("T")[0],
+            description: notes || null,
+            status: "pending",
+            payment_id: data.payment_id,
+            mp_payment_id: data.openpix_charge_id || null,
+            qr_code: data.qr_code || null,
+            qr_code_base64: data.qr_code_base64 || null,
+            expires_at: expiresAt,
+          })
+          .select("code")
+          .single();
+        if (!invErr && inv) {
+          const origin = window.location.origin.includes("lovable") || window.location.origin.includes("supabase.co")
+            ? "https://fbflix.com.br"
+            : window.location.origin;
+          setPixShareLink(`${origin}/pagar/${(inv as any).code}`);
+        } else if (invErr) {
+          console.warn("Invoice link insert error:", invErr);
+        }
+      } catch (e) {
+        console.warn("Could not create share link:", e);
+      }
+
       toast.success("Código PIX gerado! Aguardando pagamento...");
     } catch (err: any) {
       console.error(err);
@@ -1061,7 +1102,13 @@ export default function AdminNovaVenda() {
                       {pixQrCode && (
                         <div className="flex justify-center">
                           <img
-                            src={pixQrCode.startsWith('data:') ? pixQrCode : `data:image/png;base64,${pixQrCode}`}
+                            src={
+                              pixQrCode.startsWith('http')
+                                ? pixQrCode
+                                : pixQrCode.startsWith('data:')
+                                  ? pixQrCode
+                                  : `data:image/png;base64,${pixQrCode}`
+                            }
                             alt="QR Code PIX"
                             className="w-48 h-48 rounded-lg bg-white p-2 object-contain"
                           />
@@ -1084,6 +1131,41 @@ export default function AdminNovaVenda() {
                             >
                               <Copy className="size-3.5" />
                               Copiar
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      {pixShareLink && (
+                        <div className="space-y-2">
+                          <label className="text-xs text-gray-400 font-medium">Link de pagamento</label>
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              readOnly
+                              value={pixShareLink}
+                              className="flex-1 rounded-lg py-2.5 px-3 text-xs bg-black/30 border border-white/10 text-gray-300 font-mono truncate"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => { navigator.clipboard.writeText(pixShareLink); toast.success("Link copiado!"); }}
+                              className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-white text-xs font-bold transition-all whitespace-nowrap"
+                            >
+                              <Copy className="size-3.5" />
+                              Copiar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const phone = (selectedClient?.phone || "").replace(/\D/g, "");
+                                const msg = encodeURIComponent(
+                                  `Olá ${selectedClient?.full_name || ""}! 👋\n\nSegue o link para efetuar o pagamento via PIX:\n${pixShareLink}\n\nValor: ${totalValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n\nQualquer dúvida estamos à disposição! ✅`
+                                );
+                                const url = phone ? `https://wa.me/55${phone}?text=${msg}` : `https://wa.me/?text=${msg}`;
+                                window.open(url, "_blank");
+                              }}
+                              className="flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all whitespace-nowrap"
+                            >
+                              WhatsApp
                             </button>
                           </div>
                         </div>
