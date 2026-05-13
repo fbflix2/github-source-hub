@@ -17,10 +17,12 @@ const SAFE_BM_PRODUCT_ID = "e5118c63-ed52-4f4e-8983-f44c1ba0d17b";
 
 async function fulfillOrder(supabase: any, orderId: string, userId: string) {
   try {
-    const { data: orderItems } = await supabase
-      .from("order_items")
-      .select("id, product_id, delivery_data, quantity, price, name")
-      .eq("order_id", orderId);
+    const { data: orderItems } = await supabase.from("order_items").select("*").eq("order_id", orderId);
+
+    const { data: userProfile } = await supabase
+      .from("profiles").select("lauth_email, lauth_enabled").eq("user_id", userId).maybeSingle();
+    const lauthEnabled = userProfile?.lauth_enabled || false;
+    const lauthEmail = userProfile?.lauth_email;
 
     if (!orderItems) return 0;
 
@@ -152,10 +154,36 @@ async function fulfillOrder(supabase: any, orderId: string, userId: string) {
 
       // ========== STANDARD STOCK FULFILLMENT ==========
       if (!oi.product_id) continue;
-      const { data: result } = await supabase.rpc("fulfill_order_item", {
+      const { data: resultRaw } = await supabase.rpc("fulfill_order_item", {
         p_order_item_id: oi.id, p_product_id: oi.product_id,
       });
-      if (result?.success && Number(result?.linked_count || 0) > 0) fulfilledCount += 1;
+      const result: any = resultRaw;
+      if (result?.success && Number(result?.linked_count || 0) > 0) {
+        fulfilledCount += 1;
+        const profileId = result.data?.idPerfil;
+        if (profileId && lauthEnabled && lauthEmail) {
+          try {
+            const lauthResp = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/lauth-transfer`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ profileId, email: lauthEmail, itemId: oi.id })
+            });
+            const lauthResult = await lauthResp.json();
+            if (lauthResult.success) {
+              await supabase.from("order_items").update({
+                delivery_data: {
+                  ...(result.data || {}),
+                  lauthDeliveredAt: new Date().toISOString(),
+                  lauthRecipientEmail: lauthEmail
+                }
+              }).eq("id", oi.id);
+            }
+          } catch (e) { console.error("[openpix-webhook] Lauth error:", e); }
+        }
+      }
     }
 
     return fulfilledCount;
