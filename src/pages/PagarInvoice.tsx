@@ -204,28 +204,30 @@ export default function PagarInvoice() {
                   </div>
                 )}
 
-                {/* Copy PIX */}
-                {invoice.qr_code && (
-                  <Button
-                    onClick={copyPixCode}
-                    className="w-full gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-14 rounded-xl shadow-lg shadow-emerald-500/20 transition-all active:scale-95"
-                {/* Support Action */}
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    const msg = encodeURIComponent(`Olá! Estou com uma dúvida sobre a cobrança ${invoice.code} de R$ ${Number(invoice.amount).toFixed(2)}.`);
-                    window.open(`https://wa.me/5511999999999?text=${msg}`, "_blank");
-                  }}
-                  className="w-full border-white/10 hover:bg-white/5 text-gray-400 h-12 rounded-xl"
-                >
-                  Dúvidas? Falar com suporte
-                </Button>
+                <div className="space-y-3">
+                  {/* Copy PIX */}
+                  {invoice.qr_code && (
+                    <Button
+                      onClick={copyPixCode}
+                      className="w-full gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-14 rounded-xl shadow-lg shadow-emerald-500/20 transition-all active:scale-95"
+                    >
+                      {copied ? <CheckCircle className="size-5" /> : <Copy className="size-5" />}
+                      {copied ? "Copiado!" : "Copiar Código PIX"}
+                    </Button>
+                  )}
 
+                  {/* Support Action */}
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      const msg = encodeURIComponent(`Olá! Estou com uma dúvida sobre a cobrança ${invoice.code} de R$ ${Number(invoice.amount).toFixed(2)}.`);
+                      window.open(`https://wa.me/5511999999999?text=${msg}`, "_blank");
+                    }}
+                    className="w-full border-white/10 hover:bg-white/5 text-gray-400 h-12 rounded-xl"
                   >
-                    {copied ? <CheckCircle className="size-4" /> : <Copy className="size-4" />}
-                    {copied ? "Copiado!" : "Copiar Código PIX"}
+                    Dúvidas? Falar com suporte
                   </Button>
-                )}
+                </div>
 
                 {/* Timer */}
                 <div className="text-center">
