@@ -958,10 +958,9 @@ export default function AdminNovaVenda() {
                   )}
                   <span className={`text-2xl font-black ${paymentMethod === "cortesia" ? "text-gray-500 line-through" : "text-white"}`}>
                     {totalValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                  </span>
-                </div>
-              </div>
-            </div>
+                   </span>
+                 </div>
+               </div>
 
             {/* PIX Generation Section */}
             {paymentMethod === "pix" && totalValue >= 1 && (
