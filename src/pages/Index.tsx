@@ -35,7 +35,7 @@ const DEFAULTS = {
     { icon: "support_agent", title: "Suporte 24h", desc: "Especialistas prontos para te ajudar a escalar." },
     { icon: "verified_user", title: "Garantia Total", desc: "Reposição imediata em caso de falha técnica." },
   ],
-  benefitsTitle: "Por que milhares de usuários escolhem a", benefitsTitleHighlight: "FBFLIX",
+   benefitsTitle: "Por que milhares de usuários escolhem a", benefitsTitleHighlight: "​",
   testimonials: [
     { name: "Ricardo Mendes", role: "Afiliado Black", img: "https://lh3.googleusercontent.com/aida-public/AB6AXuCUsS26R4V-9ieauNjiLBM58xWx7-XK2lqjxaxaObILCHd1PajMPL_Cq7wPRVsIJJJ1qIXjqiOV0Vr7bluMSj_Pfk2W7gZCR2X0QqnAIzmvMk3WQuPw7oBw1NR8ypQZW153UeiAGmw7zlR2WZeiM8zEzPv2x1V7LvrTT0U8BYyTQpc3JilicYnzTuWuCafui8WXpJ4JEZoUDfSbYZI-FDJSD8GWv3M2U7xbiE3HXra8HIvyF-p9lo4NSthSn-5EJBDCZ3TEDH2gqQ7X", text: '"Depois que migrei para os proxies da FBFLIX, parei de tomar checkpoint em cascata. Escala garantida."' },
     { name: "Amanda Souza", role: "Gestora de Tráfego", img: "https://lh3.googleusercontent.com/aida-public/AB6AXuA5QWtGBu4iTXnpf_eDSnru2VV8RlEWYG7CAspTvbPqafRUit1JuHkR4yIVG7sOVenAa06Mj9etc-mh2uoamzDEOVdpHZlbaNn4u9e2aDbGGxcFedGYJXLyTIo-sf4Gp8HbkJmXf5pk1KxzTSpGLzcTkge1OC4e_bXE5D1zlJSXQc7f_OoQ-fbijzEUC4lagZ2rjkT48sRgyHC-F5NCrn145azBcrtMdjaga0c76Ps5w19LUA_VGL9TSr7H1kTKv9qZmARHwF3P-JBs", text: '"A entrega é surreal de rápida. Em 1 minuto já estava com os perfis logados e subindo campanha."' },

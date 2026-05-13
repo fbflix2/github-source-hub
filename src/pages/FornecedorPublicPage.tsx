@@ -308,7 +308,7 @@ export default function FornecedorPublicPage() {
       <div className="min-h-screen bg-[#050505] flex items-center justify-center p-4">
         <Card className="w-full max-w-md bg-[#0a0a0a] border-zinc-800 shadow-2xl p-6">
           <CardHeader className="text-center pb-8">
-            <div className="text-3xl font-black text-primary tracking-tighter mb-2">FBFLIX</div>
+             <div className="text-3xl font-black text-primary tracking-tighter mb-2">​</div>
             <CardTitle className="text-xl font-bold text-white">Portal do Fornecedor</CardTitle>
             <p className="text-zinc-500 text-sm">Autenticação obrigatória para acessar pedidos.</p>
           </CardHeader>
@@ -353,7 +353,7 @@ export default function FornecedorPublicPage() {
   return (
     <div className="min-h-screen bg-[#050505] text-white flex">
       <aside className="w-64 bg-[#0a0a0a] border-r border-zinc-800 p-6 flex flex-col gap-10">
-        <div className="text-2xl font-black text-primary tracking-tighter">FBFLIX <span className="text-white text-sm font-medium block mt-1">Fornecedor</span></div>
+         <div className="text-2xl font-black text-primary tracking-tighter">​ <span className="text-white text-sm font-medium block mt-1">Fornecedor</span></div>
         <nav className="flex flex-col gap-2 flex-1">
           <Button variant={activeTab === 'dashboard' ? 'default' : 'ghost'} className="justify-start gap-3 h-12" onClick={() => setActiveTab('dashboard')}><LayoutDashboard className="h-5 w-5"/> Início</Button>
           <Button variant={activeTab === 'compras' ? 'default' : 'ghost'} className="justify-start gap-3 h-12" onClick={() => setActiveTab('compras')}><ShoppingBag className="h-5 w-5"/> Demandas de Compra</Button>

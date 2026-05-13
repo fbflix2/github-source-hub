@@ -59,9 +59,9 @@ export default function MigrationLogin() {
           <div className="flex flex-col items-center gap-3">
             <img src={logoFbflix} alt="FBFLIX" className="w-14 h-14 object-contain" />
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">
-                FBFLIX
-              </h1>
+             <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                 ​
+               </h1>
             </div>
             <div className="flex items-center gap-2">
               <PartyPopper className="w-5 h-5 text-primary" />
