@@ -327,6 +327,7 @@ export default function AdminNovaVenda() {
           : (items[0]?.name || "Cobrança");
         const invoiceCode = `INV-${Date.now().toString(36).toUpperCase()}`;
         const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+        const { data: authData } = await supabase.auth.getUser();
         const { data: inv, error: invErr } = await supabase
           .from("invoice_links" as any)
           .insert({
@@ -344,6 +345,7 @@ export default function AdminNovaVenda() {
             qr_code: data.qr_code || null,
             qr_code_base64: data.qr_code_base64 || null,
             expires_at: expiresAt,
+            created_by: authData.user?.id,
           })
           .select("code")
           .single();
@@ -354,6 +356,7 @@ export default function AdminNovaVenda() {
           setPixShareLink(`${origin}/pagar/${(inv as any).code}`);
         } else if (invErr) {
           console.warn("Invoice link insert error:", invErr);
+          toast.error("Não foi possível gerar o link público: " + (invErr.message || ""));
         }
       } catch (e) {
         console.warn("Could not create share link:", e);
