@@ -205,14 +205,36 @@ export default function PagarInvoice() {
                 )}
 
                 <div className="space-y-3">
-                  {/* Copy PIX */}
+                <div className="space-y-3">
+                  {/* PIX Copy & Paste Input */}
+                  {invoice.qr_code && (
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] text-gray-500 font-bold uppercase tracking-widest ml-1">Código Copia e Cola</label>
+                      <div className="relative group">
+                        <input
+                          type="text"
+                          readOnly
+                          value={invoice.qr_code}
+                          className="w-full bg-white/[0.02] border border-white/10 rounded-xl py-3 px-4 pr-12 text-xs text-gray-400 font-mono truncate focus:outline-none focus:border-emerald-500/50 transition-colors"
+                        />
+                        <button
+                          onClick={copyPixCode}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-500 hover:text-emerald-400 transition-colors"
+                        >
+                          {copied ? <CheckCircle className="size-4 text-emerald-400" /> : <Copy className="size-4" />}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Copy PIX Button (Large) */}
                   {invoice.qr_code && (
                     <Button
                       onClick={copyPixCode}
                       className="w-full gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold h-14 rounded-xl shadow-lg shadow-emerald-500/20 transition-all active:scale-95"
                     >
                       {copied ? <CheckCircle className="size-5" /> : <Copy className="size-5" />}
-                      {copied ? "Copiado!" : "Copiar Código PIX"}
+                      {copied ? "Copiar PIX" : "Copiar Código PIX"}
                     </Button>
                   )}
 
