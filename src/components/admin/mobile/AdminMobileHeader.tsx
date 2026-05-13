@@ -45,7 +45,7 @@ export function AdminMobileHeader() {
 
         {/* Center Logo */}
         <div className="flex flex-col items-center">
-          <h1 className="text-xl font-black tracking-tighter text-white">FBFLIX</h1>
+           <h1 className="text-xl font-black tracking-tighter text-white">​</h1>
           <span className="text-[8px] tracking-[0.2em] font-bold -mt-1 uppercase" style={{ color: '#E50914' }}>Admin</span>
         </div>
 

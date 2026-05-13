@@ -78,7 +78,7 @@ const testimonials = [
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <NavLink to="/sobre" className="flex items-center gap-2.5">
             <img src={logoFbflix} alt="FBFLIX - Assinaturas Digitais" className="h-8 w-auto object-contain" />
-            <span className="text-lg font-bold tracking-tight">FBFLIX</span>
+             <span className="text-lg font-bold tracking-tight">​</span>
           </NavLink>
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
             <a href="#servicos" className="hover:text-foreground transition-colors">Serviços</a>
