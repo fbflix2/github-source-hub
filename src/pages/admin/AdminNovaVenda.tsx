@@ -49,9 +49,10 @@ const paymentMethods = [
 ];
 
 const deliveryMethods = [
-  { value: "manual", label: "Entrega Manual" },
-  { value: "automatica", label: "Entrega Automática (Estoque)" },
-  { value: "proxy", label: "Proxy / Assinatura" },
+   { value: "manual", label: "Entrega Manual" },
+   { value: "automatica", label: "Entrega Automática (Estoque)" },
+   { value: "proxy", label: "Proxy" },
+   { value: "assinatura", label: "Assinatura" },
 ];
 
 interface SaleItem {
@@ -667,7 +668,7 @@ export default function AdminNovaVenda() {
                  type="button"
                  onClick={() => {
                    setSaleType("subscription");
-                   setDeliveryMethod("proxy");
+                   setDeliveryMethod("assinatura");
                  }}
                  className={`px-6 py-2 rounded-lg text-sm font-medium transition-all ${
                    saleType === "subscription"
