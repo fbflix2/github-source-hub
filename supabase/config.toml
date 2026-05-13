@@ -99,3 +99,6 @@ verify_jwt = false
 
 [functions.supplier-portal]
 verify_jwt = false
+
+[functions.openpix-webhook]
+verify_jwt = false
