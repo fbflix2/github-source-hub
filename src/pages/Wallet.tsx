@@ -88,7 +88,7 @@ export default function Wallet() {
             supabase.from("wallet_transactions").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(20),
           ]);
           if (profileRes.data) setBalance(profileRes.data.balance);
-          if (transactionsRes.data) setTransactions(transactionsRes.data);
+          if (transactionsRes.data) setTransactions(transactionsRes.data as Transaction[]);
         }
 
         // Auto-close after 5 seconds
@@ -116,7 +116,7 @@ export default function Wallet() {
       ]);
 
       if (profileRes.data) setBalance(profileRes.data.balance);
-      if (transactionsRes.data) setTransactions(transactionsRes.data);
+      if (transactionsRes.data) setTransactions(transactionsRes.data as Transaction[]);
       setLoading(false);
     }
     fetchData();
