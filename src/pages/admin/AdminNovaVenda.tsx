@@ -3,9 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
   User,
-  Calendar,
-  Layers,
-  ShoppingCart,
+   Calendar,
+   Layers,
+   Shield,
+   ShoppingCart,
   DollarSign,
   Wallet,
   Trash2,
@@ -76,8 +77,12 @@ export default function AdminNovaVenda() {
   const [items, setItems] = useState<SaleItem[]>([
     { id: crypto.randomUUID(), name: "", quantity: 1, price: 0, productId: null, manualStockItemId: null, manualStockItemName: null },
   ]);
-  const [products, setProducts] = useState<any[]>([]);
-  const [submitting, setSubmitting] = useState(false);
+   const [products, setProducts] = useState<any[]>([]);
+   const [ctPlans, setCtPlans] = useState<any[]>([]);
+   const [saleType, setSaleType] = useState<"product" | "subscription">("product");
+   const [selectedCtPlanId, setSelectedCtPlanId] = useState("");
+   const [recurrenceDate, setRecurrenceDate] = useState(new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().slice(0, 10));
+   const [submitting, setSubmitting] = useState(false);
 
   // Stock item selection state
   const [stockItemModal, setStockItemModal] = useState<{ itemId: string; productId: string } | null>(null);
@@ -96,14 +101,25 @@ export default function AdminNovaVenda() {
   const [pollingPix, setPollingPix] = useState(false);
 
   // Load products for selection
-  useEffect(() => {
-    supabase
-      .from("products")
-      .select("id, name, price, external_id, icon_type")
-      .eq("status", "active")
-      .order("name")
-      .then(({ data }) => setProducts(data || []));
-  }, []);
+   useEffect(() => {
+     const loadData = async () => {
+       const [productsRes, ctPlansRes] = await Promise.all([
+         supabase
+           .from("products")
+           .select("id, name, price, external_id, icon_type")
+           .eq("status", "active")
+           .order("name"),
+         supabase
+           .from("ct_plans")
+           .select("*")
+           .eq("active", true)
+           .order("price")
+       ]);
+       setProducts(productsRes.data || []);
+       setCtPlans(ctPlansRes.data || []);
+     };
+     loadData();
+   }, []);
 
   // Search clients
   useEffect(() => {
@@ -226,10 +242,14 @@ export default function AdminNovaVenda() {
       toast.error("O valor mínimo para PIX é R$ 1,00");
       return;
     }
-    if (items.some((i) => !i.name || i.price <= 0)) {
-      toast.error("Preencha todos os itens corretamente");
-      return;
-    }
+     if (saleType === "product" && items.some((i) => !i.name || i.price <= 0)) {
+       toast.error("Preencha todos os itens corretamente");
+       return;
+     }
+     if (saleType === "subscription" && !selectedCtPlanId) {
+       toast.error("Selecione um plano de contingência");
+       return;
+     }
 
     setGeneratingPix(true);
     try {
@@ -253,15 +273,28 @@ export default function AdminNovaVenda() {
 
       if (orderError) throw orderError;
 
-      // 2. Create order items
-      const orderItemsData = items.map((item) => ({
-        order_id: order.id,
-        name: item.name,
-        price: item.price,
-        quantity: item.quantity,
-        product_id: item.productId || null,
-        description: `${notes ? notes + " | " : ""}Entrega: ${deliveryMethods.find(d => d.value === deliveryMethod)?.label || deliveryMethod}`,
-      }));
+       // 2. Create order items
+       let orderItemsData;
+       if (saleType === "product") {
+         orderItemsData = items.map((item) => ({
+           order_id: order.id,
+           name: item.name,
+           price: item.price,
+           quantity: item.quantity,
+           product_id: item.productId || null,
+           description: `${notes ? notes + " | " : ""}Entrega: ${deliveryMethods.find(d => d.value === deliveryMethod)?.label || deliveryMethod}`,
+         }));
+       } else {
+         const plan = ctPlans.find(p => p.id === selectedCtPlanId);
+         orderItemsData = [{
+           order_id: order.id,
+           name: `Assinatura Contingência Total — ${plan?.name}`,
+           price: plan?.price || 0,
+           quantity: 1,
+           product_id: null,
+           description: `${notes ? notes + " | " : ""}Plano: ${plan?.name} | Início Recorrência: ${recurrenceDate}`,
+         }];
+       }
 
       const { error: itemsError } = await supabase
         .from("order_items")
@@ -315,10 +348,14 @@ export default function AdminNovaVenda() {
       toast.error("Selecione o método de pagamento");
       return;
     }
-    if (items.some((i) => !i.name || i.price <= 0)) {
-      toast.error("Preencha todos os itens corretamente");
-      return;
-    }
+     if (saleType === "product" && items.some((i) => !i.name || i.price <= 0)) {
+       toast.error("Preencha todos os itens corretamente");
+       return;
+     }
+     if (saleType === "subscription" && !selectedCtPlanId) {
+       toast.error("Selecione um plano de contingência");
+       return;
+     }
 
     setSubmitting(true);
 
@@ -345,20 +382,62 @@ export default function AdminNovaVenda() {
 
       if (orderError) throw orderError;
 
-      // Create order items
-      const orderItems = items.map((item) => ({
-        order_id: order.id,
-        name: item.name,
-        price: item.price,
-        quantity: item.quantity,
-        product_id: item.productId || null,
-        description: `${isCourtesy ? "[Cortesia] " : ""}${notes ? notes + " | " : ""}Entrega: ${deliveryMethods.find(d => d.value === deliveryMethod)?.label || deliveryMethod}`,
-      }));
+       // Create order items
+       let orderItemsData;
+       if (saleType === "product") {
+         orderItemsData = items.map((item) => ({
+           order_id: order.id,
+           name: item.name,
+           price: item.price,
+           quantity: item.quantity,
+           product_id: item.productId || null,
+           description: `${isCourtesy ? "[Cortesia] " : ""}${notes ? notes + " | " : ""}Entrega: ${deliveryMethods.find(d => d.value === deliveryMethod)?.label || deliveryMethod}`,
+         }));
+       } else {
+         const plan = ctPlans.find(p => p.id === selectedCtPlanId);
+         orderItemsData = [{
+           order_id: order.id,
+           name: `Assinatura Contingência Total — ${plan?.name}`,
+           price: plan?.price || 0,
+           quantity: 1,
+           product_id: null,
+           description: `${isCourtesy ? "[Cortesia] " : ""}${notes ? notes + " | " : ""}Plano: ${plan?.name} | Início Recorrência: ${recurrenceDate}`,
+         }];
+       }
 
-      const { data: insertedItems, error: itemsError } = await supabase
-        .from("order_items")
-        .insert(orderItems)
-        .select("id, product_id, quantity");
+       const { data: insertedItems, error: itemsError } = await supabase
+         .from("order_items")
+         .insert(orderItemsData)
+         .select("id, product_id, quantity");
+       // Subscription specific logic
+       if (saleType === "subscription" && selectedCtPlanId) {
+         const plan = ctPlans.find(p => p.id === selectedCtPlanId);
+         if (plan) {
+           const { data: ctClient, error: ctError } = await supabase
+             .from("ct_clients")
+             .insert({
+               user_id: selectedClient.user_id,
+               plan_id: plan.id,
+               monthly_value: plan.price,
+               next_billing: recurrenceDate,
+               status: "ativo",
+               notes: notes || null,
+             } as any)
+             .select("id")
+             .single();
+ 
+           if (ctError) throw ctError;
+ 
+           // Auto-create items based on plan
+           const ctItems: any[] = [];
+           for (let i = 0; i < plan.profiles_qty; i++) ctItems.push({ ct_client_id: ctClient.id, type: "perfil" });
+           for (let i = 0; i < (plan.proxies_qty || 0); i++) ctItems.push({ ct_client_id: ctClient.id, type: "proxy" });
+           for (let i = 0; i < (plan.bms_qty || 0); i++) ctItems.push({ ct_client_id: ctClient.id, type: "bm" });
+           for (let i = 0; i < (plan.accounts_qty || 0); i++) ctItems.push({ ct_client_id: ctClient.id, type: "conta" });
+           if (ctItems.length) await supabase.from("ct_items").insert(ctItems);
+         }
+       }
+ 
 
       if (itemsError) throw itemsError;
 
@@ -529,7 +608,10 @@ export default function AdminNovaVenda() {
     setPaymentMethod("");
     setDeliveryMethod("manual");
     setNotes("");
-    setItems([{ id: crypto.randomUUID(), name: "", quantity: 1, price: 0, productId: null, manualStockItemId: null, manualStockItemName: null }]);
+     setItems([{ id: crypto.randomUUID(), name: "", quantity: 1, price: 0, productId: null, manualStockItemId: null, manualStockItemName: null }]);
+     setSaleType("product");
+     setSelectedCtPlanId("");
+     setRecurrenceDate(new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().slice(0, 10));
     setPixQrCode(null);
     setPixCopyPaste(null);
     setPixGenerated(false);
@@ -567,7 +649,33 @@ export default function AdminNovaVenda() {
         <div className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-2xl p-6 md:p-10 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-white/5 to-transparent rounded-bl-full pointer-events-none opacity-50" />
 
-          <form className="flex flex-col gap-8 relative z-10" onSubmit={handleSubmit}>
+           <form className="flex flex-col gap-8 relative z-10" onSubmit={handleSubmit}>
+             {/* Tipo de Venda */}
+             <div className="flex p-1 bg-black/40 rounded-xl border border-white/5 self-start">
+               <button
+                 type="button"
+                 onClick={() => setSaleType("product")}
+                 className={`px-6 py-2 rounded-lg text-sm font-medium transition-all ${
+                   saleType === "product"
+                     ? "bg-primary text-white shadow-lg"
+                     : "text-gray-400 hover:text-white"
+                 }`}
+               >
+                 📦 Produtos / Proxies
+               </button>
+               <button
+                 type="button"
+                 onClick={() => setSaleType("subscription")}
+                 className={`px-6 py-2 rounded-lg text-sm font-medium transition-all ${
+                   saleType === "subscription"
+                     ? "bg-primary text-white shadow-lg"
+                     : "text-gray-400 hover:text-white"
+                 }`}
+               >
+                 🛡️ Contingência Total
+               </button>
+             </div>
+ 
             {/* Cliente */}
             <div className="space-y-6">
               <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider flex items-center gap-2">
@@ -634,14 +742,14 @@ export default function AdminNovaVenda() {
             {/* Divider */}
             <div className="h-px w-full bg-white/5" />
 
-            {/* Detalhes */}
+             {/* Detalhes */}
             <div className="space-y-6">
               <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider flex items-center gap-2">
                 <FileText className="size-5 text-primary" />
                 Detalhes da Venda
               </h2>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Data */}
                 <div className="space-y-2">
                   <label className="text-sm text-gray-400 font-medium ml-1">Data da Venda</label>
@@ -658,7 +766,7 @@ export default function AdminNovaVenda() {
                   </div>
                 </div>
 
-                {/* Payment Method */}
+                 {/* Payment Method */}
                 <div className="space-y-2">
                   <label className="text-sm text-gray-400 font-medium ml-1">Método de Pagamento</label>
                   <div className="relative">
@@ -679,7 +787,7 @@ export default function AdminNovaVenda() {
                     </div>
                   </div>
                 </div>
-                {/* Delivery Method */}
+                 {/* Delivery Method */}
                 <div className="space-y-2">
                   <label className="text-sm text-gray-400 font-medium ml-1">Forma de Entrega</label>
                   <div className="relative">
@@ -701,7 +809,24 @@ export default function AdminNovaVenda() {
                   </div>
                 </div>
 
-                <div className="md:col-span-2 space-y-2">
+                 {saleType === "subscription" && (
+                   <div className="space-y-2">
+                     <label className="text-sm text-gray-400 font-medium ml-1">Próxima Cobrança (Recorrência)</label>
+                     <div className="relative">
+                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                         <Clock className="size-5 text-gray-500" />
+                       </div>
+                       <input
+                         type="date"
+                         value={recurrenceDate}
+                         onChange={(e) => setRecurrenceDate(e.target.value)}
+                         className="w-full rounded-lg py-3 pl-10 pr-4 text-sm bg-black/20 border border-white/10 text-gray-300 focus:bg-black/40 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-all [color-scheme:dark]"
+                       />
+                     </div>
+                   </div>
+                 )}
+ 
+                 <div className="md:col-span-2 space-y-2">
                   <label className="text-sm text-gray-400 font-medium ml-1">Observações</label>
                   <textarea
                     value={notes}
@@ -717,132 +842,176 @@ export default function AdminNovaVenda() {
             {/* Divider */}
             <div className="h-px w-full bg-white/5" />
 
-            {/* Items */}
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider flex items-center gap-2">
-                  <Layers className="size-5 text-primary" />
-                  Itens da Venda
-                </h2>
-                <button
-                  type="button"
-                  onClick={addItem}
-                  className="flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
-                >
-                  <Plus className="size-4" />
-                  Adicionar Item
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                {items.map((item, idx) => (
-                  <div key={item.id} className="grid grid-cols-12 gap-3 items-end p-4 rounded-xl bg-white/[0.02] border border-white/5">
-                    {/* Product / Name */}
-                    <div className="col-span-12 md:col-span-5 space-y-1.5">
-                      <label className="text-xs text-gray-500 font-medium">Produto / Nome</label>
-                      <div className="flex flex-col gap-1.5">
-                        <select
-                          value={item.productId || ""}
-                          onChange={(e) => {
-                            if (e.target.value === "custom") {
-                              updateItem(item.id, "productId", null);
-                              updateItem(item.id, "name", "");
-                            } else {
-                              selectProduct(item.id, e.target.value);
-                            }
-                          }}
-                          className="w-full rounded-lg py-2.5 px-3 text-sm bg-black/20 border border-white/10 text-white focus:border-primary focus:outline-none transition-all appearance-none"
-                        >
-                          <option value="" className="bg-gray-900">Selecione um produto...</option>
-                          <option value="custom" className="bg-gray-900">✏️ Digitar manualmente</option>
-                          {products.map((p) => (
-                            <option key={p.id} value={p.id} className="bg-gray-900">{p.name} — R$ {Number(p.price).toFixed(2)}</option>
-                          ))}
-                        </select>
-                        
-                        {item.productId && (
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => setStockItemModal({ itemId: item.id, productId: item.productId! })}
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-white/5 border border-white/10 text-[11px] font-medium text-primary hover:bg-white/10 transition-all"
-                            >
-                              <Search className="size-3" />
-                              {item.manualStockItemName ? `Perfil: ${item.manualStockItemName}` : "Escolher Perfil Específico"}
-                            </button>
-                            {item.manualStockItemId && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  updateItem(item.id, "manualStockItemId", null);
-                                  updateItem(item.id, "manualStockItemName", null);
-                                }}
-                                className="p-1.5 rounded hover:bg-red-500/10 text-gray-500 hover:text-red-400 transition-colors"
-                              >
-                                <X className="size-3" />
-                              </button>
-                            )}
-                          </div>
-                        )}
-
-                        {item.productId === null && (
-                          <input
-                            type="text"
-                            value={item.name}
-                            onChange={(e) => updateItem(item.id, "name", e.target.value)}
-                            placeholder="Nome do item..."
-                            className="w-full rounded-lg py-2.5 px-3 text-sm bg-black/20 border border-white/10 text-white focus:border-primary focus:outline-none transition-all mt-1.5"
-                          />
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Quantity */}
-                    <div className="col-span-4 md:col-span-2 space-y-1.5">
-                      <label className="text-xs text-gray-500 font-medium">Qtd</label>
-                      <input
-                        type="number"
-                        min="1"
-                        value={item.quantity}
-                        onChange={(e) => updateItem(item.id, "quantity", parseInt(e.target.value) || 1)}
-                        className="w-full rounded-lg py-2.5 px-3 text-sm bg-black/20 border border-white/10 text-white focus:border-primary focus:outline-none transition-all"
-                      />
-                    </div>
-
-                    {/* Price */}
-                    <div className="col-span-5 md:col-span-3 space-y-1.5">
-                      <label className="text-xs text-gray-500 font-medium">Preço Unit. (R$)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={item.price}
-                        onChange={(e) => updateItem(item.id, "price", parseFloat(e.target.value) || 0)}
-                        className="w-full rounded-lg py-2.5 px-3 text-sm bg-black/20 border border-white/10 text-white focus:border-primary focus:outline-none transition-all"
-                      />
-                    </div>
-
-                    {/* Subtotal + Remove */}
-                    <div className="col-span-3 md:col-span-2 flex items-end gap-2">
-                      <div className="flex-1 text-right">
-                        <p className="text-xs text-gray-500 mb-1.5">Subtotal</p>
-                        <p className="text-sm font-bold text-white">
-                          {(item.quantity * item.price).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                        </p>
-                      </div>
-                      {items.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeItem(item.id)}
-                          className="p-2 rounded-lg hover:bg-red-500/10 text-gray-500 hover:text-red-400 transition-colors"
-                        >
-                          <X className="size-4" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
+             {/* Items or Subscription Plan */}
+             <div className="space-y-6">
+               {saleType === "product" ? (
+                 <>
+                   <div className="flex items-center justify-between">
+                     <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider flex items-center gap-2">
+                       <Layers className="size-5 text-primary" />
+                       Itens da Venda
+                     </h2>
+                     <button
+                       type="button"
+                       onClick={addItem}
+                       className="flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+                     >
+                       <Plus className="size-4" />
+                       Adicionar Item
+                     </button>
+                   </div>
+ 
+                   <div className="space-y-4">
+                     {items.map((item, idx) => (
+                       <div key={item.id} className="grid grid-cols-12 gap-3 items-end p-4 rounded-xl bg-white/[0.02] border border-white/5">
+                         {/* ... (existing item fields) ... */}
+                         <div className="col-span-12 md:col-span-5 space-y-1.5">
+                           <label className="text-xs text-gray-500 font-medium">Produto / Nome</label>
+                           <div className="flex flex-col gap-1.5">
+                             <select
+                               value={item.productId || ""}
+                               onChange={(e) => {
+                                 if (e.target.value === "custom") {
+                                   updateItem(item.id, "productId", null);
+                                   updateItem(item.id, "name", "");
+                                 } else {
+                                   selectProduct(item.id, e.target.value);
+                                 }
+                               }}
+                               className="w-full rounded-lg py-2.5 px-3 text-sm bg-black/20 border border-white/10 text-white focus:border-primary focus:outline-none transition-all appearance-none"
+                             >
+                               <option value="" className="bg-gray-900">Selecione um produto...</option>
+                               <option value="custom" className="bg-gray-900">✏️ Digitar manualmente</option>
+                               {products.map((p) => (
+                                 <option key={p.id} value={p.id} className="bg-gray-900">{p.name} — R$ {Number(p.price).toFixed(2)}</option>
+                               ))}
+                             </select>
+                             
+                             {item.productId && (
+                               <div className="flex items-center gap-2">
+                                 <button
+                                   type="button"
+                                   onClick={() => setStockItemModal({ itemId: item.id, productId: item.productId! })}
+                                   className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-white/5 border border-white/10 text-[11px] font-medium text-primary hover:bg-white/10 transition-all"
+                                 >
+                                   <Search className="size-3" />
+                                   {item.manualStockItemName ? `Perfil: ${item.manualStockItemName}` : "Escolher Perfil Específico"}
+                                 </button>
+                                 {item.manualStockItemId && (
+                                   <button
+                                     type="button"
+                                     onClick={() => {
+                                       updateItem(item.id, "manualStockItemId", null);
+                                       updateItem(item.id, "manualStockItemName", null);
+                                     }}
+                                     className="p-1.5 rounded hover:bg-red-500/10 text-gray-500 hover:text-red-400 transition-colors"
+                                   >
+                                     <X className="size-3" />
+                                   </button>
+                                 )}
+                               </div>
+                             )}
+ 
+                             {item.productId === null && (
+                               <input
+                                 type="text"
+                                 value={item.name}
+                                 onChange={(e) => updateItem(item.id, "name", e.target.value)}
+                                 placeholder="Nome do item..."
+                                 className="w-full rounded-lg py-2.5 px-3 text-sm bg-black/20 border border-white/10 text-white focus:border-primary focus:outline-none transition-all mt-1.5"
+                               />
+                             )}
+                           </div>
+                         </div>
+ 
+                         <div className="col-span-4 md:col-span-2 space-y-1.5">
+                           <label className="text-xs text-gray-500 font-medium">Qtd</label>
+                           <input
+                             type="number"
+                             min="1"
+                             value={item.quantity}
+                             onChange={(e) => updateItem(item.id, "quantity", parseInt(e.target.value) || 1)}
+                             className="w-full rounded-lg py-2.5 px-3 text-sm bg-black/20 border border-white/10 text-white focus:border-primary focus:outline-none transition-all"
+                           />
+                         </div>
+ 
+                         <div className="col-span-5 md:col-span-3 space-y-1.5">
+                           <label className="text-xs text-gray-500 font-medium">Preço Unit. (R$)</label>
+                           <input
+                             type="number"
+                             step="0.01"
+                             min="0"
+                             value={item.price}
+                             onChange={(e) => updateItem(item.id, "price", parseFloat(e.target.value) || 0)}
+                             className="w-full rounded-lg py-2.5 px-3 text-sm bg-black/20 border border-white/10 text-white focus:border-primary focus:outline-none transition-all"
+                           />
+                         </div>
+ 
+                         <div className="col-span-3 md:col-span-2 flex items-end gap-2">
+                           <div className="flex-1 text-right">
+                             <p className="text-xs text-gray-500 mb-1.5">Subtotal</p>
+                             <p className="text-sm font-bold text-white">
+                               {(item.quantity * item.price).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                             </p>
+                           </div>
+                           {items.length > 1 && (
+                             <button
+                               type="button"
+                               onClick={() => removeItem(item.id)}
+                               className="p-2 rounded-lg hover:bg-red-500/10 text-gray-500 hover:text-red-400 transition-colors mb-0.5"
+                             >
+                               <Trash2 className="size-4" />
+                             </button>
+                           )}
+                         </div>
+                       </div>
+                     ))}
+                   </div>
+                 </>
+               ) : (
+                 <div className="space-y-6">
+                   <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider flex items-center gap-2">
+                     <Shield className="size-5 text-primary" />
+                     Plano de Contingência
+                   </h2>
+                   
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-end p-6 rounded-xl bg-white/[0.02] border border-white/5">
+                     <div className="space-y-1.5">
+                       <label className="text-xs text-gray-500 font-medium">Selecione o Plano</label>
+                       <select
+                         value={selectedCtPlanId}
+                         onChange={(e) => {
+                           setSelectedCtPlanId(e.target.value);
+                           const plan = ctPlans.find(p => p.id === e.target.value);
+                           if (plan) {
+                             setItems([{
+                               id: crypto.randomUUID(),
+                               name: `Contingência Total — ${plan.name}`,
+                               quantity: 1,
+                               price: plan.price,
+                               productId: null
+                             }]);
+                           }
+                         }}
+                         className="w-full rounded-lg py-3 px-3 text-sm bg-black/20 border border-white/10 text-white focus:border-primary focus:outline-none transition-all appearance-none"
+                       >
+                         <option value="" className="bg-gray-900">Selecione um plano...</option>
+                         {ctPlans.map((p) => (
+                           <option key={p.id} value={p.id} className="bg-gray-900">{p.tier?.toUpperCase()} - {p.name} — R$ {Number(p.price).toFixed(2)}</option>
+                         ))}
+                       </select>
+                     </div>
+ 
+                     <div className="text-right">
+                       <p className="text-xs text-gray-500 mb-1.5">Valor Total</p>
+                       <p className="text-2xl font-bold text-primary">
+                         {totalValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                       </p>
+                     </div>
+                   </div>
+                 </div>
+               )}
+             </div>
 
               {/* Total */}
               <div className="flex justify-end items-center gap-4 pt-2">
@@ -855,10 +1024,9 @@ export default function AdminNovaVenda() {
                   )}
                   <span className={`text-2xl font-black ${paymentMethod === "cortesia" ? "text-gray-500 line-through" : "text-white"}`}>
                     {totalValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
-                  </span>
-                </div>
-              </div>
-            </div>
+                   </span>
+                 </div>
+               </div>
 
             {/* PIX Generation Section */}
             {paymentMethod === "pix" && totalValue >= 1 && (
