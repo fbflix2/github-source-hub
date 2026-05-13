@@ -608,7 +608,10 @@ export default function AdminNovaVenda() {
     setPaymentMethod("");
     setDeliveryMethod("manual");
     setNotes("");
-    setItems([{ id: crypto.randomUUID(), name: "", quantity: 1, price: 0, productId: null, manualStockItemId: null, manualStockItemName: null }]);
+     setItems([{ id: crypto.randomUUID(), name: "", quantity: 1, price: 0, productId: null, manualStockItemId: null, manualStockItemName: null }]);
+     setSaleType("product");
+     setSelectedCtPlanId("");
+     setRecurrenceDate(new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().slice(0, 10));
     setPixQrCode(null);
     setPixCopyPaste(null);
     setPixGenerated(false);
