@@ -206,9 +206,9 @@ export function AdminSidebar() {
         <div className="flex-none flex items-center gap-2 px-4 py-5">
           <img src={logoFbflix} alt="FBFLIX" className="h-9 w-auto object-contain" />
           {!collapsed && (
-            <h1 className="text-white text-sm font-bold tracking-tight">
-              FBFLIX
-            </h1>
+             <h1 className="text-white text-sm font-bold tracking-tight">
+               ​
+             </h1>
           )}
         </div>
 
