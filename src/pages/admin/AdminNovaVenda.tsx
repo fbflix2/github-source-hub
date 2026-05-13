@@ -889,9 +889,9 @@ export default function AdminNovaVenda() {
                       {pixQrCode && (
                         <div className="flex justify-center">
                           <img
-                            src={`data:image/png;base64,${pixQrCode}`}
+                            src={pixQrCode.startsWith('data:') ? pixQrCode : `data:image/png;base64,${pixQrCode}`}
                             alt="QR Code PIX"
-                            className="w-48 h-48 rounded-lg bg-white p-2"
+                            className="w-48 h-48 rounded-lg bg-white p-2 object-contain"
                           />
                         </div>
                       )}
