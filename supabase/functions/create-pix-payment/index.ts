@@ -124,6 +124,22 @@ Deno.serve(async (req) => {
 
     const charge = opData.charge;
 
+    // Fetch base64 QR code if not provided
+    // OpenPix returns brCode. To get the image we might need to call another endpoint or it might be in opData.
+    // Based on docs: GET /api/image/qrcode/base64/{id}
+    let qr_code_base64 = null;
+    try {
+        const imgResponse = await fetch(`https://api.openpix.com.br/api/image/qrcode/base64/${charge.identifier}?size=512`, {
+            headers: { Authorization: OPENPIX_APP_ID }
+        });
+        if (imgResponse.ok) {
+            const imgData = await imgResponse.json();
+            qr_code_base64 = imgData.qrcodeBase64 || imgData.base64; // Adjust based on real response
+        }
+    } catch (e) {
+        console.error("Error fetching QR image:", e);
+    }
+
     // Update payment with gateway reference
     const supabaseAdminForUpdate = createClient(
         Deno.env.get("SUPABASE_URL")!,
@@ -146,7 +162,7 @@ Deno.serve(async (req) => {
         payment_id: payment.id,
         openpix_charge_id: charge.identifier,
         qr_code: charge.brCode,
-        qr_code_image: charge.qrCodeImage,
+        qr_code_base64: qr_code_base64,
         payment_link: charge.paymentLinkUrl,
       }),
       {
