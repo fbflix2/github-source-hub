@@ -1896,8 +1896,12 @@ export default function Checkout() {
                     <span className="text-2xl font-black text-primary">R$ {pixData.amount.toFixed(2).replace(".", ",")}</span>
                   </div>
                   {pixData.qr_code_base64 && (
-                    <div className="bg-white rounded-2xl p-4">
-                      <img src={`data:image/png;base64,${pixData.qr_code_base64}`} alt="QR Code PIX" className="w-56 h-56" />
+                    <div className="bg-white rounded-2xl p-4 shadow-sm border border-border/50">
+                      <img 
+                        src={pixData.qr_code_base64.startsWith('data:') ? pixData.qr_code_base64 : `data:image/png;base64,${pixData.qr_code_base64}`} 
+                        alt="QR Code PIX" 
+                        className="w-56 h-56 object-contain" 
+                      />
                     </div>
                   )}
                    <div className="flex flex-col gap-2 w-full">
