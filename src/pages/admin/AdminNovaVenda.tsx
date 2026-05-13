@@ -242,10 +242,14 @@ export default function AdminNovaVenda() {
       toast.error("O valor mínimo para PIX é R$ 1,00");
       return;
     }
-    if (items.some((i) => !i.name || i.price <= 0)) {
-      toast.error("Preencha todos os itens corretamente");
-      return;
-    }
+     if (saleType === "product" && items.some((i) => !i.name || i.price <= 0)) {
+       toast.error("Preencha todos os itens corretamente");
+       return;
+     }
+     if (saleType === "subscription" && !selectedCtPlanId) {
+       toast.error("Selecione um plano de contingência");
+       return;
+     }
 
     setGeneratingPix(true);
     try {
@@ -269,15 +273,28 @@ export default function AdminNovaVenda() {
 
       if (orderError) throw orderError;
 
-      // 2. Create order items
-      const orderItemsData = items.map((item) => ({
-        order_id: order.id,
-        name: item.name,
-        price: item.price,
-        quantity: item.quantity,
-        product_id: item.productId || null,
-        description: `${notes ? notes + " | " : ""}Entrega: ${deliveryMethods.find(d => d.value === deliveryMethod)?.label || deliveryMethod}`,
-      }));
+       // 2. Create order items
+       let orderItemsData;
+       if (saleType === "product") {
+         orderItemsData = items.map((item) => ({
+           order_id: order.id,
+           name: item.name,
+           price: item.price,
+           quantity: item.quantity,
+           product_id: item.productId || null,
+           description: `${notes ? notes + " | " : ""}Entrega: ${deliveryMethods.find(d => d.value === deliveryMethod)?.label || deliveryMethod}`,
+         }));
+       } else {
+         const plan = ctPlans.find(p => p.id === selectedCtPlanId);
+         orderItemsData = [{
+           order_id: order.id,
+           name: `Assinatura Contingência Total — ${plan?.name}`,
+           price: plan?.price || 0,
+           quantity: 1,
+           product_id: null,
+           description: `${notes ? notes + " | " : ""}Plano: ${plan?.name} | Início Recorrência: ${recurrenceDate}`,
+         }];
+       }
 
       const { error: itemsError } = await supabase
         .from("order_items")
@@ -331,10 +348,14 @@ export default function AdminNovaVenda() {
       toast.error("Selecione o método de pagamento");
       return;
     }
-    if (items.some((i) => !i.name || i.price <= 0)) {
-      toast.error("Preencha todos os itens corretamente");
-      return;
-    }
+     if (saleType === "product" && items.some((i) => !i.name || i.price <= 0)) {
+       toast.error("Preencha todos os itens corretamente");
+       return;
+     }
+     if (saleType === "subscription" && !selectedCtPlanId) {
+       toast.error("Selecione um plano de contingência");
+       return;
+     }
 
     setSubmitting(true);
 
@@ -361,20 +382,62 @@ export default function AdminNovaVenda() {
 
       if (orderError) throw orderError;
 
-      // Create order items
-      const orderItems = items.map((item) => ({
-        order_id: order.id,
-        name: item.name,
-        price: item.price,
-        quantity: item.quantity,
-        product_id: item.productId || null,
-        description: `${isCourtesy ? "[Cortesia] " : ""}${notes ? notes + " | " : ""}Entrega: ${deliveryMethods.find(d => d.value === deliveryMethod)?.label || deliveryMethod}`,
-      }));
+       // Create order items
+       let orderItemsData;
+       if (saleType === "product") {
+         orderItemsData = items.map((item) => ({
+           order_id: order.id,
+           name: item.name,
+           price: item.price,
+           quantity: item.quantity,
+           product_id: item.productId || null,
+           description: `${isCourtesy ? "[Cortesia] " : ""}${notes ? notes + " | " : ""}Entrega: ${deliveryMethods.find(d => d.value === deliveryMethod)?.label || deliveryMethod}`,
+         }));
+       } else {
+         const plan = ctPlans.find(p => p.id === selectedCtPlanId);
+         orderItemsData = [{
+           order_id: order.id,
+           name: `Assinatura Contingência Total — ${plan?.name}`,
+           price: plan?.price || 0,
+           quantity: 1,
+           product_id: null,
+           description: `${isCourtesy ? "[Cortesia] " : ""}${notes ? notes + " | " : ""}Plano: ${plan?.name} | Início Recorrência: ${recurrenceDate}`,
+         }];
+       }
 
-      const { data: insertedItems, error: itemsError } = await supabase
-        .from("order_items")
-        .insert(orderItems)
-        .select("id, product_id, quantity");
+       const { data: insertedItems, error: itemsError } = await supabase
+         .from("order_items")
+         .insert(orderItemsData)
+         .select("id, product_id, quantity");
+       // Subscription specific logic
+       if (saleType === "subscription" && selectedCtPlanId) {
+         const plan = ctPlans.find(p => p.id === selectedCtPlanId);
+         if (plan) {
+           const { data: ctClient, error: ctError } = await supabase
+             .from("ct_clients")
+             .insert({
+               user_id: selectedClient.user_id,
+               plan_id: plan.id,
+               monthly_value: plan.price,
+               next_billing: recurrenceDate,
+               status: "ativo",
+               notes: notes || null,
+             } as any)
+             .select("id")
+             .single();
+ 
+           if (ctError) throw ctError;
+ 
+           // Auto-create items based on plan
+           const ctItems: any[] = [];
+           for (let i = 0; i < plan.profiles_qty; i++) ctItems.push({ ct_client_id: ctClient.id, type: "perfil" });
+           for (let i = 0; i < (plan.proxies_qty || 0); i++) ctItems.push({ ct_client_id: ctClient.id, type: "proxy" });
+           for (let i = 0; i < (plan.bms_qty || 0); i++) ctItems.push({ ct_client_id: ctClient.id, type: "bm" });
+           for (let i = 0; i < (plan.accounts_qty || 0); i++) ctItems.push({ ct_client_id: ctClient.id, type: "conta" });
+           if (ctItems.length) await supabase.from("ct_items").insert(ctItems);
+         }
+       }
+ 
 
       if (itemsError) throw itemsError;
 
