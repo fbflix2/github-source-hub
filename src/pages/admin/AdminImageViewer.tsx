@@ -51,11 +51,11 @@ function gerarNomePai(sobrenome: string): string {
 function gerarNomeMae(sobrenome: string): string {
   return `${pickRandom(NOMES_FEMININOS)} ${sobrenome}`.toUpperCase();
 }
- const FIXED_DOC_IDENTIDADE_POSITION = { xPct: 45.3, yPct: 27.2 };
+  const FIXED_DOC_IDENTIDADE_POSITION = { xPct: 45.3, yPct: 27.0 };
 const DEFAULT_TEXT = {
-   nome: { xPct: 22.01, yPct: 16.4 },
+   nome: { xPct: 22.01, yPct: 16.2 },
   docIdentidade: FIXED_DOC_IDENTIDADE_POSITION,
-   nascimento: { xPct: 45.57, yPct: 20.0 },
+   nascimento: { xPct: 45.57, yPct: 19.8 },
   filiacao: { xPct: 49.71, yPct: 40.31 },
   assinatura: { xPct: 25.0, yPct: 43.61 },
 };
