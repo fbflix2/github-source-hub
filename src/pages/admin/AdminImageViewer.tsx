@@ -14,7 +14,9 @@ const POSITIONS_KEY = "imageviewer_positions";
 const DOC_IDENTIDADE_KEY = "imageviewer_doc_identidade";
 const DEFAULT_DOC_IDENTIDADE = "503234175 SSPSP";
 
-const DEFAULT_PHOTO = { xPct: 4.8, yPct: 16.2, wPct: 16.2, hPct: 26.2 };
+// Posições padrão fixas — calibradas para o template oficial.
+// Não alterar sem recalibrar visualmente sobre o mockup.
+const DEFAULT_PHOTO = { xPct: 19.94, yPct: 21.0, wPct: 22.59, hPct: 22.25 };
 
 const NOMES_MASCULINOS = [
   "José", "Carlos", "Antonio", "Francisco", "João", "Pedro", "Paulo", "Luiz",
@@ -49,15 +51,22 @@ function gerarNomePai(sobrenome: string): string {
 function gerarNomeMae(sobrenome: string): string {
   return `${pickRandom(NOMES_FEMININOS)} ${sobrenome}`.toUpperCase();
 }
-const FIXED_DOC_IDENTIDADE_POSITION = { xPct: 23.65, yPct: 45.63 };
+const FIXED_DOC_IDENTIDADE_POSITION = { xPct: 45.3, yPct: 25.92 };
 const DEFAULT_TEXT = {
-  nome: { xPct: 30, yPct: 14.5 },
+  nome: { xPct: 22.01, yPct: 15.15 },
   docIdentidade: FIXED_DOC_IDENTIDADE_POSITION,
-  nascimento: { xPct: 30, yPct: 22 },
-  filiacao: { xPct: 30, yPct: 47 },
-  assinatura: { xPct: 15, yPct: 56 },
+  nascimento: { xPct: 45.57, yPct: 18.72 },
+  filiacao: { xPct: 49.71, yPct: 40.31 },
+  assinatura: { xPct: 25.0, yPct: 43.61 },
 };
 const FIXED_DOC_IDENTIDADE_FONT_SIZE = 8.5;
+const DEFAULT_FONT_SIZES = {
+  nome: 8.5,
+  docIdentidade: FIXED_DOC_IDENTIDADE_FONT_SIZE,
+  nascimento: 8,
+  filiacao: 8,
+  assinatura: 10.5,
+};
 
 const SIGNATURE_FONTS = ["Dancing Script", "Caveat", "Satisfy"];
 
