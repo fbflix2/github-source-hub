@@ -313,8 +313,13 @@ export default function AdminNovaVenda() {
       if (error) throw new Error(error.message || "Erro ao gerar PIX");
       if (data?.error) throw new Error(data.error);
 
-      setPixCopyPaste(data.qr_code || null);
-      setPixQrCode(data.qr_code_base64 || null);
+      const pixCode = data.qr_code || null;
+      setPixCopyPaste(pixCode);
+      
+      // If we have a base64 or URL from the gateway, use it, otherwise use a fallback generator API
+      const qrImage = data.qr_code_base64 || (pixCode ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(pixCode)}` : null);
+      setPixQrCode(qrImage);
+      
       setPixPaymentId(data.payment_id || null);
       setPixOrderId(order.id);
       setPixStatus("pending");
@@ -349,14 +354,18 @@ export default function AdminNovaVenda() {
           })
           .select("code")
           .single();
+        // Determine origin for the link
+        const origin = window.location.origin.includes("lovable") || window.location.origin.includes("supabase.co")
+          ? "https://fbflix.com.br"
+          : window.location.origin;
+
         if (!invErr && inv) {
-          const origin = window.location.origin.includes("lovable") || window.location.origin.includes("supabase.co")
-            ? "https://fbflix.com.br"
-            : window.location.origin;
           setPixShareLink(`${origin}/pagar/${(inv as any).code}`);
-        } else if (invErr) {
-          console.warn("Invoice link insert error:", invErr);
-          toast.error("Não foi possível gerar o link público: " + (invErr.message || ""));
+        } else {
+          // Fallback to OpenPix payment link if custom invoice fails
+          console.warn("Invoice link insert error, using gateway link:", invErr);
+          setPixShareLink(data.payment_link || null);
+          if (invErr) toast.error("Usando link de contingência: " + (invErr.message || ""));
         }
       } catch (e) {
         console.warn("Could not create share link:", e);
@@ -1103,21 +1112,40 @@ export default function AdminNovaVenda() {
                     </button>
                   ) : (
                     <div className="space-y-4 p-4 rounded-xl bg-white/[0.03] border border-white/10">
-                      {pixQrCode && (
-                        <div className="flex justify-center">
-                          <img
-                            src={
-                              pixQrCode.startsWith('http')
-                                ? pixQrCode
-                                : pixQrCode.startsWith('data:')
+                      <div className="flex flex-col items-center justify-center gap-4 py-2">
+                        {pixQrCode ? (
+                          <div className="relative group p-3 bg-white rounded-2xl shadow-xl shadow-emerald-500/10">
+                            <img
+                              src={
+                                pixQrCode.startsWith('http')
                                   ? pixQrCode
-                                  : `data:image/png;base64,${pixQrCode}`
-                            }
-                            alt="QR Code PIX"
-                            className="w-48 h-48 rounded-lg bg-white p-2 object-contain"
-                          />
-                        </div>
-                      )}
+                                  : pixQrCode.startsWith('data:')
+                                    ? pixQrCode
+                                    : `data:image/png;base64,${pixQrCode}`
+                              }
+                              alt="QR Code PIX"
+                              className="w-48 h-48 rounded-lg object-contain"
+                              onError={(e) => {
+                                // Fallback if image fails to load (CORS or broken link)
+                                if (pixCopyPaste) {
+                                  (e.target as HTMLImageElement).src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(pixCopyPaste)}`;
+                                }
+                              }}
+                            />
+                          </div>
+                        ) : (
+                          pixCopyPaste && (
+                            <div className="p-3 bg-white rounded-2xl">
+                              <img 
+                                src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(pixCopyPaste)}`}
+                                alt="QR Code PIX"
+                                className="w-48 h-48 rounded-lg"
+                              />
+                            </div>
+                          )
+                        )}
+                        <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Escaneie o QR Code acima</p>
+                      </div>
                       {pixCopyPaste && (
                         <div className="space-y-2">
                           <label className="text-xs text-primary font-bold uppercase tracking-wider">Código Copia e Cola PIX</label>
