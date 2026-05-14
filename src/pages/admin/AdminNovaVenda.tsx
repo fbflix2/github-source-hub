@@ -1140,22 +1140,39 @@ export default function AdminNovaVenda() {
                         </div>
                       )}
                       {pixShareLink && (
-                        <div className="space-y-2">
-                          <label className="text-xs text-primary font-bold uppercase tracking-wider">Link da Fatura (Página de Pagamento)</label>
-                          <div className="flex flex-col sm:flex-row gap-2">
-                            <input
-                              type="text"
-                              readOnly
-                              value={pixShareLink}
-                              className="flex-1 rounded-lg py-2.5 px-3 text-xs bg-black/30 border border-white/10 text-gray-300 font-mono truncate"
-                            />
-                            <div className="flex gap-2 w-full sm:w-auto">
+                        <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <label className="text-xs text-primary font-bold uppercase tracking-wider flex items-center gap-2">
+                              <FileText className="size-3.5" />
+                              Link para o Cliente Pagar
+                            </label>
+                            <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20">Link Público</Badge>
+                          </div>
+                          
+                          <div className="flex flex-col gap-2">
+                            <div className="relative group">
+                              <input
+                                type="text"
+                                readOnly
+                                value={pixShareLink}
+                                className="w-full rounded-lg py-3 px-4 text-xs bg-black/40 border border-white/10 text-gray-300 font-mono pr-24 focus:outline-none"
+                              />
                               <button
                                 type="button"
                                 onClick={() => { navigator.clipboard.writeText(pixShareLink); toast.success("Link copiado!"); }}
-                                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-white text-xs font-bold transition-all whitespace-nowrap"
+                                className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-md bg-primary/20 hover:bg-primary/30 text-primary text-[10px] font-bold transition-all border border-primary/30"
                               >
-                                <Copy className="size-3.5" />
+                                COPIAR
+                              </button>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-2">
+                              <button
+                                type="button"
+                                onClick={() => { navigator.clipboard.writeText(pixShareLink); toast.success("Link copiado!"); }}
+                                className="flex items-center justify-center gap-2 py-3 rounded-lg bg-primary hover:bg-primary/90 text-white text-xs font-bold transition-all shadow-lg shadow-primary/20"
+                              >
+                                <Copy className="size-4" />
                                 Copiar Link
                               </button>
                               <button
@@ -1165,12 +1182,12 @@ export default function AdminNovaVenda() {
                                   const msg = encodeURIComponent(
                                     `Olá ${selectedClient?.full_name || ""}! 👋\n\nSegue o link para efetuar o pagamento via PIX:\n${pixShareLink}\n\nValor: ${totalValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n\nQualquer dúvida estamos à disposição! ✅`
                                   );
-                                  const url = phone ? `https://wa.me/55${phone}?text=${msg}` : `https://wa.me/?text=${msg}`;
+                                  const url = phone ? `https://wa.me/55${phone}?text=${msg}` : `https://wa.me/55${phone}?text=${msg}`;
                                   window.open(url, "_blank");
                                 }}
-                                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all whitespace-nowrap"
+                                className="flex items-center justify-center gap-2 py-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-lg shadow-emerald-600/20"
                               >
-                                <MessageCircle className="size-3.5" />
+                                <MessageCircle className="size-4" />
                                 WhatsApp
                               </button>
                             </div>
