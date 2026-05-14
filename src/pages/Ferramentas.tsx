@@ -1,3 +1,276 @@
+ function EmissorTool({ onBack }: { onBack: () => void }) {
+   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+   const [photoOverlay, setPhotoOverlay] = useState<string | null>(null);
+   const [loading, setLoading] = useState(true);
+   const [generating, setGenerating] = useState(false);
+   const [docIdentidade, setDocIdentidade] = useState(DEFAULT_DOC_IDENTIDADE);
+   const [formData, setFormData] = useState({
+     nomeCompleto: "",
+     dataNascimento: "",
+     naturalidade: "SÃO PAULO",
+     uf: "SP",
+     nomePai: "",
+     nomeMae: "",
+   });
+   
+   const photoInputRef = useRef<HTMLInputElement>(null);
+ 
+   useEffect(() => {
+     const loadSettings = async () => {
+       try {
+         const { data } = await supabase
+           .from("site_settings")
+           .select("key, value")
+           .in("key", [SETTINGS_KEY, DOC_IDENTIDADE_KEY]);
+ 
+         if (data) {
+           for (const row of data) {
+             if (row.key === SETTINGS_KEY && row.value) setSelectedImage(row.value);
+             if (row.key === DOC_IDENTIDADE_KEY) setDocIdentidade(row.value?.trim() || DEFAULT_DOC_IDENTIDADE);
+           }
+         }
+       } catch {
+         // ignore
+       } finally {
+         setLoading(false);
+       }
+     };
+     loadSettings();
+   }, []);
+ 
+   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+     const file = e.target.files?.[0];
+     if (!file || !file.type.startsWith("image/")) return;
+     if (photoOverlay) URL.revokeObjectURL(photoOverlay);
+     setPhotoOverlay(URL.createObjectURL(file));
+     if (photoInputRef.current) photoInputRef.current.value = "";
+   };
+ 
+   const downloadImage = async () => {
+     if (!selectedImage) {
+       toast.error("Template base não configurado pelo administrador.");
+       return;
+     }
+     
+     setGenerating(true);
+     try {
+       const baseImg = new Image();
+       baseImg.crossOrigin = "anonymous";
+       baseImg.src = selectedImage;
+       await new Promise<void>((res, rej) => { baseImg.onload = () => res(); baseImg.onerror = rej; });
+ 
+       const W = baseImg.naturalWidth;
+       const H = baseImg.naturalHeight;
+ 
+       const canvas = document.createElement("canvas");
+       canvas.width = W;
+       canvas.height = H;
+       const ctx = canvas.getContext("2d")!;
+       ctx.drawImage(baseImg, 0, 0, W, H);
+ 
+       if (photoOverlay) {
+         const pImg = new Image();
+         pImg.crossOrigin = "anonymous";
+         pImg.src = photoOverlay;
+         await new Promise<void>((res) => { pImg.onload = () => res(); pImg.onerror = () => res(); });
+         const dx = (DEFAULT_PHOTO.xPct / 100) * W;
+         const dy = (DEFAULT_PHOTO.yPct / 100) * H;
+         const dw = (DEFAULT_PHOTO.wPct / 100) * W;
+         const dh = (DEFAULT_PHOTO.hPct / 100) * H;
+         
+         const imgAspect = pImg.naturalWidth / pImg.naturalHeight;
+         const destAspect = dw / dh;
+         let sx: number, sy: number, sw: number, sh: number;
+         if (imgAspect > destAspect) {
+           sh = pImg.naturalHeight;
+           sw = sh * destAspect;
+           sx = (pImg.naturalWidth - sw) / 2;
+           sy = 0;
+         } else {
+           sw = pImg.naturalWidth;
+           sh = sw / destAspect;
+           sx = 0;
+           sy = (pImg.naturalHeight - sh) / 2;
+         }
+         ctx.drawImage(pImg, sx, sy, sw, sh, dx, dy, dw, dh);
+       }
+ 
+       const cssTopOffset = (fs: number) => fs * 0.15;
+       ctx.textBaseline = "top";
+       const imgScale = W / 400; // Assuming 400px was the baseline for font sizes
+ 
+       // Draw nome
+       if (formData.nomeCompleto) {
+         const fs = DEFAULT_FONT_SIZES.nome * imgScale * 2.5; // Adjusted scale factor
+         ctx.font = `bold ${fs}px "Arial Narrow", Arial, sans-serif`;
+         ctx.fillStyle = "rgba(0,0,0,0.9)";
+         ctx.letterSpacing = "0.05em";
+         const x = (DEFAULT_TEXT.nome.xPct / 100) * W;
+         const y = (DEFAULT_TEXT.nome.yPct / 100) * H + cssTopOffset(fs);
+         ctx.fillText(formData.nomeCompleto.toUpperCase(), x, y);
+         ctx.letterSpacing = "0px";
+       }
+ 
+       // Draw doc identidade
+       if (docIdentidade) {
+         const fs = FIXED_DOC_IDENTIDADE_FONT_SIZE * imgScale * 2.5;
+         ctx.font = `600 ${fs}px "Arial Narrow", Arial, sans-serif`;
+         ctx.fillStyle = "rgba(0,0,0,0.9)";
+         const x = (DEFAULT_TEXT.docIdentidade.xPct / 100) * W;
+         const y = (DEFAULT_TEXT.docIdentidade.yPct / 100) * H + cssTopOffset(fs);
+         ctx.fillText(docIdentidade.toUpperCase(), x, y);
+       }
+ 
+       // Draw nascimento
+       if (formData.dataNascimento) {
+         const fs = DEFAULT_FONT_SIZES.nascimento * imgScale * 2.5;
+         ctx.font = `600 ${fs}px "Arial Narrow", Arial, sans-serif`;
+         ctx.fillStyle = "rgba(0,0,0,0.9)";
+         const x = (DEFAULT_TEXT.nascimento.xPct / 100) * W;
+         const y = (DEFAULT_TEXT.nascimento.yPct / 100) * H + cssTopOffset(fs);
+         const date = parseLocalDate(formData.dataNascimento).toLocaleDateString("pt-BR");
+         const cityUf = `${formData.naturalidade} - ${formData.uf}`.toUpperCase();
+         ctx.fillText(`${date} - ${cityUf}`, x, y);
+       }
+ 
+       // Parents (filiacao)
+       const sobrenome = formData.nomeCompleto.split(" ").slice(1).join(" ");
+       const pai = formData.nomePai || (sobrenome ? `${pickRandom(NOMES_MASCULINOS)} ${sobrenome}`.toUpperCase() : "");
+       const mae = formData.nomeMae || (sobrenome ? `${pickRandom(NOMES_FEMININOS)} ${sobrenome}`.toUpperCase() : "");
+       
+       if (pai || mae) {
+         const fs = DEFAULT_FONT_SIZES.filiacao * imgScale * 2.5;
+         ctx.font = `600 ${fs}px "Arial Narrow", Arial, sans-serif`;
+         ctx.fillStyle = "rgba(0,0,0,0.9)";
+         const x = (DEFAULT_TEXT.filiacao.xPct / 100) * W;
+         let y = (DEFAULT_TEXT.filiacao.yPct / 100) * H + cssTopOffset(fs);
+         if (pai) { ctx.fillText(pai.toUpperCase(), x, y); y += fs * 1.15; }
+         if (mae) { ctx.fillText(mae.toUpperCase(), x, y); }
+       }
+ 
+       // Assinatura
+       if (formData.nomeCompleto) {
+         const fs = DEFAULT_FONT_SIZES.assinatura * imgScale * 2.5;
+         ctx.font = `${fs}px "${SIGNATURE_FONTS[0]}", cursive`;
+         ctx.fillStyle = "#1a1a8a";
+         const x = (DEFAULT_TEXT.assinatura.xPct / 100) * W;
+         const y = (DEFAULT_TEXT.assinatura.yPct / 100) * H + cssTopOffset(fs);
+         ctx.fillText(formData.nomeCompleto, x, y);
+       }
+ 
+       canvas.toBlob((blob) => {
+         if (!blob) return;
+         const url = URL.createObjectURL(blob);
+         const a = document.createElement("a");
+         a.href = url;
+         a.download = `documento_${formData.nomeCompleto?.replace(/\s+/g, "_") || "doc"}.png`;
+         a.click();
+         URL.revokeObjectURL(url);
+         toast.success("Documento gerado com sucesso!");
+       }, "image/png");
+     } catch (err: any) {
+       toast.error("Erro ao gerar documento: " + err.message);
+     } finally {
+       setGenerating(false);
+     }
+   };
+ 
+   return (
+     <div className="relative overflow-hidden pt-8 pb-24 px-4 sm:px-8 lg:px-20">
+       <div className="max-w-2xl mx-auto">
+         <button onClick={onBack} className="mb-8 text-sm text-slate-400 hover:text-white flex items-center gap-2 transition-colors">
+           <ArrowLeft className="size-4" /> Voltar às ferramentas
+         </button>
+ 
+         <div className="flex items-center gap-3 mb-8">
+           <div className="w-12 h-12 bg-primary/10 text-primary rounded-xl flex items-center justify-center">
+             <MaterialIcon name="article" className="text-3xl" />
+           </div>
+           <div>
+             <h2 className="text-2xl font-bold text-white">Emissor de Documentos</h2>
+             <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">Beta</Badge>
+           </div>
+         </div>
+ 
+         <div className="p-6 rounded-xl space-y-6" style={glassCardStyle}>
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+             <div className="space-y-2">
+               <Label className="text-slate-400">Nome Completo</Label>
+               <Input 
+                 placeholder="Ex: João Silva Sauro" 
+                 className="bg-white/5 border-white/10"
+                 value={formData.nomeCompleto}
+                 onChange={e => setFormData(prev => ({ ...prev, nomeCompleto: e.target.value }))}
+               />
+             </div>
+             <div className="space-y-2">
+               <Label className="text-slate-400">Data de Nascimento</Label>
+               <Input 
+                 type="date" 
+                 className="bg-white/5 border-white/10"
+                 value={formData.dataNascimento}
+                 onChange={e => setFormData(prev => ({ ...prev, dataNascimento: e.target.value }))}
+               />
+             </div>
+             <div className="space-y-2">
+               <Label className="text-slate-400">UF</Label>
+               <Input 
+                 placeholder="Ex: SP" 
+                 className="bg-white/5 border-white/10"
+                 value={formData.uf}
+                 onChange={e => setFormData(prev => ({ ...prev, uf: e.target.value.toUpperCase().slice(0, 2) }))}
+               />
+             </div>
+             <div className="space-y-2">
+               <Label className="text-slate-400">Cidade</Label>
+               <Input 
+                 placeholder="Ex: São Paulo" 
+                 className="bg-white/5 border-white/10"
+                 value={formData.naturalidade}
+                 onChange={e => setFormData(prev => ({ ...prev, naturalidade: e.target.value }))}
+               />
+             </div>
+           </div>
+ 
+           <div className="space-y-4">
+             <Label className="text-slate-400">Foto de Perfil</Label>
+             <div 
+               onClick={() => photoInputRef.current?.click()}
+               className="border-2 border-dashed border-white/10 rounded-xl p-8 flex flex-col items-center justify-center gap-3 hover:bg-white/5 transition-colors cursor-pointer"
+             >
+               {photoOverlay ? (
+                 <div className="relative w-24 h-24 rounded-lg overflow-hidden border border-white/20">
+                   <img src={photoOverlay} className="w-full h-full object-cover" alt="Perfil" />
+                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                     <RotateCw className="text-white size-6" />
+                   </div>
+                 </div>
+               ) : (
+                 <>
+                   <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center">
+                     <Upload className="text-slate-400 size-6" />
+                   </div>
+                   <p className="text-sm text-slate-400">Clique para enviar a foto</p>
+                 </>
+               )}
+             </div>
+             <input type="file" ref={photoInputRef} className="hidden" accept="image/*" onChange={handlePhotoUpload} />
+           </div>
+ 
+           <button
+             onClick={downloadImage}
+             disabled={generating || !formData.nomeCompleto || !photoOverlay}
+             className="w-full py-4 bg-primary hover:bg-red-700 text-white font-black rounded-xl transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary/20"
+           >
+             {generating ? <Loader2 className="size-5 animate-spin" /> : <Download className="size-5" />}
+             {generating ? "GERANDO DOCUMENTO..." : "GERAR E BAIXAR DOCUMENTO"}
+           </button>
+         </div>
+       </div>
+     </div>
+   );
+ }
+ 
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
  import { Copy, CheckCircle, Trash2, Plus, Loader2, Search, ArrowLeft, Construction, Upload, Download, UserCircle, RotateCw } from "lucide-react";
