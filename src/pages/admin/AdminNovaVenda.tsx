@@ -313,8 +313,13 @@ export default function AdminNovaVenda() {
       if (error) throw new Error(error.message || "Erro ao gerar PIX");
       if (data?.error) throw new Error(data.error);
 
-      setPixCopyPaste(data.qr_code || null);
-      setPixQrCode(data.qr_code_base64 || null);
+      const pixCode = data.qr_code || null;
+      setPixCopyPaste(pixCode);
+      
+      // If we have a base64 or URL from the gateway, use it, otherwise use a fallback generator API
+      const qrImage = data.qr_code_base64 || (pixCode ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(pixCode)}` : null);
+      setPixQrCode(qrImage);
+      
       setPixPaymentId(data.payment_id || null);
       setPixOrderId(order.id);
       setPixStatus("pending");
@@ -349,14 +354,18 @@ export default function AdminNovaVenda() {
           })
           .select("code")
           .single();
+        // Determine origin for the link
+        const origin = window.location.origin.includes("lovable") || window.location.origin.includes("supabase.co")
+          ? "https://fbflix.com.br"
+          : window.location.origin;
+
         if (!invErr && inv) {
-          const origin = window.location.origin.includes("lovable") || window.location.origin.includes("supabase.co")
-            ? "https://fbflix.com.br"
-            : window.location.origin;
           setPixShareLink(`${origin}/pagar/${(inv as any).code}`);
-        } else if (invErr) {
-          console.warn("Invoice link insert error:", invErr);
-          toast.error("Não foi possível gerar o link público: " + (invErr.message || ""));
+        } else {
+          // Fallback to OpenPix payment link if custom invoice fails
+          console.warn("Invoice link insert error, using gateway link:", invErr);
+          setPixShareLink(data.payment_link || null);
+          if (invErr) toast.error("Usando link de contingência: " + (invErr.message || ""));
         }
       } catch (e) {
         console.warn("Could not create share link:", e);
@@ -1103,21 +1112,40 @@ export default function AdminNovaVenda() {
                     </button>
                   ) : (
                     <div className="space-y-4 p-4 rounded-xl bg-white/[0.03] border border-white/10">
-                      {pixQrCode && (
-                        <div className="flex justify-center">
-                          <img
-                            src={
-                              pixQrCode.startsWith('http')
-                                ? pixQrCode
-                                : pixQrCode.startsWith('data:')
+                      <div className="flex flex-col items-center justify-center gap-4 py-2">
+                        {pixQrCode ? (
+                          <div className="relative group p-3 bg-white rounded-2xl shadow-xl shadow-emerald-500/10">
+                            <img
+                              src={
+                                pixQrCode.startsWith('http')
                                   ? pixQrCode
-                                  : `data:image/png;base64,${pixQrCode}`
-                            }
-                            alt="QR Code PIX"
-                            className="w-48 h-48 rounded-lg bg-white p-2 object-contain"
-                          />
-                        </div>
-                      )}
+                                  : pixQrCode.startsWith('data:')
+                                    ? pixQrCode
+                                    : `data:image/png;base64,${pixQrCode}`
+                              }
+                              alt="QR Code PIX"
+                              className="w-48 h-48 rounded-lg object-contain"
+                              onError={(e) => {
+                                // Fallback if image fails to load (CORS or broken link)
+                                if (pixCopyPaste) {
+                                  (e.target as HTMLImageElement).src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(pixCopyPaste)}`;
+                                }
+                              }}
+                            />
+                          </div>
+                        ) : (
+                          pixCopyPaste && (
+                            <div className="p-3 bg-white rounded-2xl">
+                              <img 
+                                src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(pixCopyPaste)}`}
+                                alt="QR Code PIX"
+                                className="w-48 h-48 rounded-lg"
+                              />
+                            </div>
+                          )
+                        )}
+                        <p className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Escaneie o QR Code acima</p>
+                      </div>
                       {pixCopyPaste && (
                         <div className="space-y-2">
                           <label className="text-xs text-primary font-bold uppercase tracking-wider">Código Copia e Cola PIX</label>
@@ -1140,22 +1168,39 @@ export default function AdminNovaVenda() {
                         </div>
                       )}
                       {pixShareLink && (
-                        <div className="space-y-2">
-                          <label className="text-xs text-primary font-bold uppercase tracking-wider">Link da Fatura (Página de Pagamento)</label>
-                          <div className="flex flex-col sm:flex-row gap-2">
-                            <input
-                              type="text"
-                              readOnly
-                              value={pixShareLink}
-                              className="flex-1 rounded-lg py-2.5 px-3 text-xs bg-black/30 border border-white/10 text-gray-300 font-mono truncate"
-                            />
-                            <div className="flex gap-2 w-full sm:w-auto">
+                        <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <label className="text-xs text-primary font-bold uppercase tracking-wider flex items-center gap-2">
+                              <FileText className="size-3.5" />
+                              Link para o Cliente Pagar
+                            </label>
+                            <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20">Link Público</Badge>
+                          </div>
+                          
+                          <div className="flex flex-col gap-2">
+                            <div className="relative group">
+                              <input
+                                type="text"
+                                readOnly
+                                value={pixShareLink}
+                                className="w-full rounded-lg py-3 px-4 text-xs bg-black/40 border border-white/10 text-gray-300 font-mono pr-24 focus:outline-none"
+                              />
                               <button
                                 type="button"
                                 onClick={() => { navigator.clipboard.writeText(pixShareLink); toast.success("Link copiado!"); }}
-                                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg bg-primary hover:bg-primary/90 text-white text-xs font-bold transition-all whitespace-nowrap"
+                                className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-md bg-primary/20 hover:bg-primary/30 text-primary text-[10px] font-bold transition-all border border-primary/30"
                               >
-                                <Copy className="size-3.5" />
+                                COPIAR
+                              </button>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-2">
+                              <button
+                                type="button"
+                                onClick={() => { navigator.clipboard.writeText(pixShareLink); toast.success("Link copiado!"); }}
+                                className="flex items-center justify-center gap-2 py-3 rounded-lg bg-primary hover:bg-primary/90 text-white text-xs font-bold transition-all shadow-lg shadow-primary/20"
+                              >
+                                <Copy className="size-4" />
                                 Copiar Link
                               </button>
                               <button
@@ -1168,9 +1213,9 @@ export default function AdminNovaVenda() {
                                   const url = phone ? `https://wa.me/55${phone}?text=${msg}` : `https://wa.me/?text=${msg}`;
                                   window.open(url, "_blank");
                                 }}
-                                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all whitespace-nowrap"
+                                className="flex items-center justify-center gap-2 py-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-lg shadow-emerald-600/20"
                               >
-                                <MessageCircle className="size-3.5" />
+                                <MessageCircle className="size-4" />
                                 WhatsApp
                               </button>
                             </div>
