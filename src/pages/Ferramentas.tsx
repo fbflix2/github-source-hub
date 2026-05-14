@@ -271,7 +271,7 @@
    );
  }
  
-import { useState, useEffect, useCallback } from "react";
+ import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
  import { Copy, CheckCircle, Trash2, Plus, Loader2, Search, ArrowLeft, Construction, Upload, Download, UserCircle, RotateCw } from "lucide-react";
  import { Label } from "@/components/ui/label";
