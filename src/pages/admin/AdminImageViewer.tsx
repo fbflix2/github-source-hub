@@ -162,18 +162,10 @@ export default function AdminImageViewer() {
               setTemplatePreview(row.value);
             }
             if (row.key === POSITIONS_KEY && row.value) {
+              // Posições/tamanhos de fonte/foto são FIXOS (DEFAULT_TEXT / DEFAULT_FONT_SIZES / DEFAULT_PHOTO).
+              // Apenas a fonte de assinatura e o contraste continuam configuráveis.
               try {
                 const saved = JSON.parse(row.value);
-                if (saved.textPos) {
-                  const { docIdentidade: savedDocIdPos, ...savedTextPos } = saved.textPos;
-                  setTextPos((prev) => ({ ...prev, ...savedTextPos }));
-                  if (savedDocIdPos) setDocIdentidadePos(sanitizeTextPoint(savedDocIdPos, FIXED_DOC_IDENTIDADE_POSITION));
-                }
-                if (saved.fontSizes) {
-                  const { docIdentidade: _ignoredDocIdentidadeFont, ...savedFontSizes } = saved.fontSizes;
-                  setFontSizes((prev) => ({ ...prev, ...savedFontSizes, docIdentidade: FIXED_DOC_IDENTIDADE_FONT_SIZE }));
-                }
-                if (saved.photoPos) setPhotoPos(saved.photoPos);
                 if (saved.signatureFont) setSignatureFont(saved.signatureFont);
                 if (saved.contrast != null) setContrast(saved.contrast);
               } catch { /* ignore parse errors */ }
