@@ -180,7 +180,7 @@ function ToolsInfoBanner({ hasSafeBm }: { hasSafeBm: boolean }) {
     </section>
   );
 }
-type ToolId = "2fa" | "verificador";
+ type ToolId = "2fa" | "verificador" | "emissor";
 
 // ============= GLASS CARD COMPONENT =============
 function GlassCard({
@@ -251,6 +251,7 @@ export default function Ferramentas() {
 
   if (activeTool === "2fa") return <TwoFATool onBack={() => setActiveTool(null)} />;
   if (activeTool === "verificador") return <VerificadorTool onBack={() => setActiveTool(null)} />;
+  if (activeTool === "emissor") return <EmissorTool onBack={() => setActiveTool(null)} />;
 
   return (
     <div className="relative overflow-hidden pt-4 pb-6 px-4 sm:px-6 lg:px-12">
@@ -288,27 +289,24 @@ export default function Ferramentas() {
             </button>
           </GlassCard>
 
-          {/* Tool 2: Emissor de Documentos (Em Desenvolvimento) */}
-          <GlassCard bgImage={BG_IMAGES.emissor} disabled>
+           {/* Tool 2: Emissor de Documentos (Beta) */}
+           <GlassCard bgImage={BG_IMAGES.emissor} onClick={() => setActiveTool("emissor")}>
             <div className="w-11 h-11 bg-primary/10 text-primary rounded-lg flex items-center justify-center mb-3">
               <MaterialIcon name="article" className="text-2xl" />
             </div>
             <h3 className="text-base font-bold mb-1.5 text-white">Emissor de Documentos</h3>
             <div className="mb-2">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 text-[10px] font-semibold border border-yellow-500/30">
-                <Construction className="size-2.5" />
-                Em Desenvolvimento
+               <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 text-[10px] font-semibold border border-blue-500/30">
+                 <CheckCircle className="size-2.5" />
+                 Beta
               </span>
             </div>
             <p className="text-slate-400 mb-4 flex-grow leading-relaxed text-xs">
               Crie documentos personalizados em segundos para verificação de perfis e contas business.
             </p>
-            <button
-              disabled
-              className="w-full py-2.5 px-4 bg-slate-700/50 text-slate-500 font-bold rounded-lg transition-all flex items-center justify-center gap-2 cursor-not-allowed text-sm"
-            >
-              <span>Em Breve</span>
-              <MaterialIcon name="arrow_forward" className="text-lg" />
+             <button className="w-full py-2.5 px-4 bg-primary hover:bg-red-700 text-white font-bold rounded-lg transition-all flex items-center justify-center gap-2 text-sm group/btn">
+               <span>Acessar Ferramenta</span>
+               <MaterialIcon name="arrow_forward" className="text-lg group-hover/btn:translate-x-1 transition-transform" />
             </button>
           </GlassCard>
 
