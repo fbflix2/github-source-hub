@@ -340,13 +340,17 @@ function EmissorTool({ onBack }: { onBack: () => void }) {
       }
 
       ctx.textBaseline = "top";
-      const scale = W / 320; // Escala calibrada para o template oficial (assumindo aprox 320px de referência)
+      // Calibração de escala para corresponder ao AdminImageViewer
+      // O AdminImageViewer renderiza o texto baseado no tamanho visual da imagem no navegador.
+      // Para manter a consistência com o download de lá, usamos a mesma lógica de proporção.
+      const scale = W / 400 * 2.5; 
+
       const offset = (fs: number) => fs * 0.15;
-      ctx.fillStyle = "rgba(0,0,0,0.9)";
+      ctx.fillStyle = "rgba(0,0,0,0.9)"; // Mesma cor de preenchimento do visualizador
 
       if (formData.nomeCompleto) {
         const fs = DEFAULT_FONT_SIZES.nome * scale;
-        ctx.font = `bold ${fs}px "Arial Narrow", Arial, sans-serif`;
+        ctx.font = `bold ${fs}px "Arial Narrow", Arial, sans-serif`; // Mesma fonte e peso
         ctx.letterSpacing = "0.05em";
         ctx.fillText(formData.nomeCompleto.toUpperCase(), (DEFAULT_TEXT.nome.xPct / 100) * W, (DEFAULT_TEXT.nome.yPct / 100) * H + offset(fs));
         ctx.letterSpacing = "0px";
@@ -354,14 +358,14 @@ function EmissorTool({ onBack }: { onBack: () => void }) {
 
       if (formData.dataNascimento) {
         const fs = DEFAULT_FONT_SIZES.nascimento * scale;
-        ctx.font = `600 ${fs}px "Arial Narrow", Arial, sans-serif`;
+        ctx.font = `600 ${fs}px "Arial Narrow", Arial, sans-serif`; // Mesma fonte e peso
         const dt = parseLocalDate(formData.dataNascimento).toLocaleDateString("pt-BR");
         ctx.fillText(`${dt} - ${formData.naturalidade} - ${formData.uf}`.toUpperCase(), (DEFAULT_TEXT.nascimento.xPct / 100) * W, (DEFAULT_TEXT.nascimento.yPct / 100) * H + offset(fs));
       }
 
       if (docIdentidade) {
         const fs = FIXED_DOC_IDENTIDADE_FONT_SIZE * scale;
-        ctx.font = `600 ${fs}px "Arial Narrow", Arial, sans-serif`;
+        ctx.font = `600 ${fs}px "Arial Narrow", Arial, sans-serif`; // Mesma fonte e peso
         ctx.fillText(docIdentidade.toUpperCase(), (DEFAULT_TEXT.docIdentidade.xPct / 100) * W, (DEFAULT_TEXT.docIdentidade.yPct / 100) * H + offset(fs));
       }
 
@@ -372,7 +376,7 @@ function EmissorTool({ onBack }: { onBack: () => void }) {
 
       if (pai || mae) {
         const fs = DEFAULT_FONT_SIZES.filiacao * scale;
-        ctx.font = `600 ${fs}px "Arial Narrow", Arial, sans-serif`;
+        ctx.font = `600 ${fs}px "Arial Narrow", Arial, sans-serif`; // Mesma fonte e peso
         const x = (DEFAULT_TEXT.filiacao.xPct / 100) * W;
         let currY = (DEFAULT_TEXT.filiacao.yPct / 100) * H + offset(fs);
         if (pai) { ctx.fillText(pai.toUpperCase(), x, currY); currY += fs * 1.15; }
