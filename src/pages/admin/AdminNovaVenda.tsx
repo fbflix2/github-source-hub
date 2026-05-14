@@ -1210,7 +1210,7 @@ export default function AdminNovaVenda() {
                                   const msg = encodeURIComponent(
                                     `Olá ${selectedClient?.full_name || ""}! 👋\n\nSegue o link para efetuar o pagamento via PIX:\n${pixShareLink}\n\nValor: ${totalValue.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}\n\nQualquer dúvida estamos à disposição! ✅`
                                   );
-                                  const url = phone ? `https://wa.me/55${phone}?text=${msg}` : `https://wa.me/55${phone}?text=${msg}`;
+                                  const url = phone ? `https://wa.me/55${phone}?text=${msg}` : `https://wa.me/?text=${msg}`;
                                   window.open(url, "_blank");
                                 }}
                                 className="flex items-center justify-center gap-2 py-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-lg shadow-emerald-600/20"
