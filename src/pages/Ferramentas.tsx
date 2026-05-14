@@ -40,8 +40,35 @@ const DEFAULT_FONT_SIZES = {
   assinatura: 10.5,
 };
 const SIGNATURE_FONTS = ["Dancing Script", "Caveat", "Satisfy"];
-const NOMES_MASCULINOS = ["José", "Carlos", "Antonio", "Francisco", "João", "Pedro", "Paulo", "Luiz", "Roberto", "Marcos"];
-const NOMES_FEMININOS = ["Maria", "Ana", "Francisca", "Antonia", "Adriana", "Aparecida", "Sandra", "Lúcia", "Marta", "Neusa"];
+const NOMES_MASCULINOS = [
+  "José", "Carlos", "Antonio", "Francisco", "João", "Pedro", "Paulo", "Luiz",
+  "Roberto", "Marcos", "Sebastião", "Manoel", "Geraldo", "Jorge", "Fernando",
+  "Edson", "Márcio", "Ricardo", "Cláudio", "Valdir", "Nelson", "Ademir",
+  "Arnaldo", "Benedito", "Nilton", "Reginaldo", "Sergio", "Wagner", "Adilson",
+  "Osvaldo", "Reinaldo", "Alcides", "Djalma", "Humberto", "Laércio",
+];
+
+const NOMES_FEMININOS = [
+  "Maria", "Ana", "Francisca", "Antonia", "Adriana", "Aparecida", "Sandra",
+  "Lúcia", "Marta", "Neusa", "Rosângela", "Cleusa", "Vera", "Sueli", "Marisa",
+  "Terezinha", "Iolanda", "Sônia", "Elza", "Dalva", "Ivone", "Iracema",
+  "Neuza", "Marlene", "Conceição", "Josefa", "Raimunda", "Helena", "Célia",
+  "Nilza", "Fátima", "Luzia", "Valdete", "Solange", "Edna",
+];
+
+function extractSobrenome(nomeCompleto: string): string {
+  const parts = nomeCompleto.trim().split(/\s+/);
+  if (parts.length <= 1) return "";
+  return parts.slice(1).join(" ");
+}
+
+function gerarNomePai(sobrenome: string): string {
+  return `${pickRandom(NOMES_MASCULINOS)} ${sobrenome}`.toUpperCase();
+}
+
+function gerarNomeMae(sobrenome: string): string {
+  return `${pickRandom(NOMES_FEMININOS)} ${sobrenome}`.toUpperCase();
+}
 
 function parseLocalDate(dateStr: string): Date {
   const [year, month, day] = dateStr.split("-").map(Number);
@@ -285,24 +312,79 @@ function EmissorTool({ onBack }: { onBack: () => void }) {
       await new Promise(res => baseImg.onload = res);
       const canvas = document.createElement("canvas"); canvas.width = baseImg.naturalWidth; canvas.height = baseImg.naturalHeight;
       const ctx = canvas.getContext("2d")!; const W = canvas.width; const H = canvas.height; ctx.drawImage(baseImg, 0, 0);
+      // Desenhar foto
       if (photoOverlay) {
-        const pImg = new Image(); pImg.src = photoOverlay; await new Promise(res => pImg.onload = res);
-        const dx = (DEFAULT_PHOTO.xPct/100)*W, dy = (DEFAULT_PHOTO.yPct/100)*H, dw = (DEFAULT_PHOTO.wPct/100)*W, dh = (DEFAULT_PHOTO.hPct/100)*H;
-        ctx.drawImage(pImg, dx, dy, dw, dh);
+        const pImg = new Image();
+        pImg.src = photoOverlay;
+        await new Promise(res => pImg.onload = res);
+        const dx = (DEFAULT_PHOTO.xPct / 100) * W;
+        const dy = (DEFAULT_PHOTO.yPct / 100) * H;
+        const dw = (DEFAULT_PHOTO.wPct / 100) * W;
+        const dh = (DEFAULT_PHOTO.hPct / 100) * H;
+
+        const imgAspect = pImg.naturalWidth / pImg.naturalHeight;
+        const destAspect = dw / dh;
+        let sx, sy, sw, sh;
+        if (imgAspect > destAspect) {
+          sh = pImg.naturalHeight;
+          sw = sh * destAspect;
+          sx = (pImg.naturalWidth - sw) / 2;
+          sy = 0;
+        } else {
+          sw = pImg.naturalWidth;
+          sh = sw / destAspect;
+          sx = 0;
+          sy = (pImg.naturalHeight - sh) / 2;
+        }
+        ctx.drawImage(pImg, sx, sy, sw, sh, dx, dy, dw, dh);
       }
-      ctx.textBaseline = "top"; const scale = W / 400 * 2.5; const offset = (fs: number) => fs * 0.15;
+
+      ctx.textBaseline = "top";
+      const scale = W / 320; // Escala calibrada para o template oficial (assumindo aprox 320px de referência)
+      const offset = (fs: number) => fs * 0.15;
+      ctx.fillStyle = "rgba(0,0,0,0.9)";
+
       if (formData.nomeCompleto) {
-        const fs = DEFAULT_FONT_SIZES.nome * scale; ctx.font = `bold ${fs}px sans-serif`; ctx.fillStyle = "black";
-        ctx.fillText(formData.nomeCompleto.toUpperCase(), (DEFAULT_TEXT.nome.xPct/100)*W, (DEFAULT_TEXT.nome.yPct/100)*H + offset(fs));
+        const fs = DEFAULT_FONT_SIZES.nome * scale;
+        ctx.font = `bold ${fs}px "Arial Narrow", Arial, sans-serif`;
+        ctx.letterSpacing = "0.05em";
+        ctx.fillText(formData.nomeCompleto.toUpperCase(), (DEFAULT_TEXT.nome.xPct / 100) * W, (DEFAULT_TEXT.nome.yPct / 100) * H + offset(fs));
+        ctx.letterSpacing = "0px";
       }
+
       if (formData.dataNascimento) {
-        const fs = DEFAULT_FONT_SIZES.nascimento * scale; ctx.font = `600 ${fs}px sans-serif`;
+        const fs = DEFAULT_FONT_SIZES.nascimento * scale;
+        ctx.font = `600 ${fs}px "Arial Narrow", Arial, sans-serif`;
         const dt = parseLocalDate(formData.dataNascimento).toLocaleDateString("pt-BR");
-        ctx.fillText(`${dt} - ${formData.naturalidade} - ${formData.uf}`.toUpperCase(), (DEFAULT_TEXT.nascimento.xPct/100)*W, (DEFAULT_TEXT.nascimento.yPct/100)*H + offset(fs));
+        ctx.fillText(`${dt} - ${formData.naturalidade} - ${formData.uf}`.toUpperCase(), (DEFAULT_TEXT.nascimento.xPct / 100) * W, (DEFAULT_TEXT.nascimento.yPct / 100) * H + offset(fs));
       }
+
       if (docIdentidade) {
-        const fs = FIXED_DOC_IDENTIDADE_FONT_SIZE * scale; ctx.font = `600 ${fs}px sans-serif`;
-        ctx.fillText(docIdentidade.toUpperCase(), (DEFAULT_TEXT.docIdentidade.xPct/100)*W, (DEFAULT_TEXT.docIdentidade.yPct/100)*H + offset(fs));
+        const fs = FIXED_DOC_IDENTIDADE_FONT_SIZE * scale;
+        ctx.font = `600 ${fs}px "Arial Narrow", Arial, sans-serif`;
+        ctx.fillText(docIdentidade.toUpperCase(), (DEFAULT_TEXT.docIdentidade.xPct / 100) * W, (DEFAULT_TEXT.docIdentidade.yPct / 100) * H + offset(fs));
+      }
+
+      // Filiação
+      const sobrenome = extractSobrenome(formData.nomeCompleto);
+      const pai = formData.nomePai || gerarNomePai(sobrenome);
+      const mae = formData.nomeMae || gerarNomeMae(sobrenome);
+
+      if (pai || mae) {
+        const fs = DEFAULT_FONT_SIZES.filiacao * scale;
+        ctx.font = `600 ${fs}px "Arial Narrow", Arial, sans-serif`;
+        const x = (DEFAULT_TEXT.filiacao.xPct / 100) * W;
+        let currY = (DEFAULT_TEXT.filiacao.yPct / 100) * H + offset(fs);
+        if (pai) { ctx.fillText(pai.toUpperCase(), x, currY); currY += fs * 1.15; }
+        if (mae) { ctx.fillText(mae.toUpperCase(), x, currY); }
+      }
+
+      // Assinatura
+      if (formData.nomeCompleto) {
+        const fs = DEFAULT_FONT_SIZES.assinatura * scale;
+        ctx.font = `${fs}px "${SIGNATURE_FONTS[0]}", cursive`;
+        ctx.fillStyle = "#1a1a8a";
+        ctx.fillText(formData.nomeCompleto, (DEFAULT_TEXT.assinatura.xPct / 100) * W, (DEFAULT_TEXT.assinatura.yPct / 100) * H + offset(fs));
       }
       canvas.toBlob(blob => {
         if (blob) { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "documento.png"; a.click(); toast.success("Sucesso!"); }
@@ -316,11 +398,13 @@ function EmissorTool({ onBack }: { onBack: () => void }) {
         <button onClick={onBack} className="mb-8 text-sm text-slate-400 hover:text-white flex items-center gap-2"><ArrowLeft className="size-4" />Voltar</button>
         <div className="flex items-center gap-3 mb-8"><div className="w-12 h-12 bg-primary/10 text-primary rounded-xl flex items-center justify-center"><MaterialIcon name="article" className="text-3xl" /></div><h2 className="text-2xl font-bold text-white">Emissor de Documentos <Badge className="bg-blue-500/20 text-blue-400 ml-2">Beta</Badge></h2></div>
         <div className="p-6 rounded-xl space-y-6" style={glassCardStyle}>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2"><Label className="text-slate-400">Nome</Label><Input value={formData.nomeCompleto} onChange={e => setFormData(p => ({ ...p, nomeCompleto: e.target.value }))} className="bg-white/5" /></div>
-            <div className="space-y-2"><Label className="text-slate-400">Nascimento</Label><Input type="date" value={formData.dataNascimento} onChange={e => setFormData(p => ({ ...p, dataNascimento: e.target.value }))} className="bg-white/5" /></div>
-            <div className="space-y-2"><Label className="text-slate-400">UF</Label><Input value={formData.uf} onChange={e => setFormData(p => ({ ...p, uf: e.target.value }))} className="bg-white/5" /></div>
-            <div className="space-y-2"><Label className="text-slate-400">Cidade</Label><Input value={formData.naturalidade} onChange={e => setFormData(p => ({ ...p, naturalidade: e.target.value }))} className="bg-white/5" /></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2"><Label className="text-slate-400 text-xs uppercase">Nome Completo</Label><Input value={formData.nomeCompleto} onChange={e => setFormData(p => ({ ...p, nomeCompleto: e.target.value }))} className="bg-white/5 border-white/10" placeholder="Ex: João da Silva" /></div>
+            <div className="space-y-2"><Label className="text-slate-400 text-xs uppercase">Data de Nascimento</Label><Input type="date" value={formData.dataNascimento} onChange={e => setFormData(p => ({ ...p, dataNascimento: e.target.value }))} className="bg-white/5 border-white/10" /></div>
+            <div className="space-y-2"><Label className="text-slate-400 text-xs uppercase">Cidade</Label><Input value={formData.naturalidade} onChange={e => setFormData(p => ({ ...p, naturalidade: e.target.value }))} className="bg-white/5 border-white/10" /></div>
+            <div className="space-y-2"><Label className="text-slate-400 text-xs uppercase">UF</Label><Input value={formData.uf} onChange={e => setFormData(p => ({ ...p, uf: e.target.value }))} className="bg-white/5 border-white/10" /></div>
+            <div className="space-y-2"><Label className="text-slate-400 text-xs uppercase">Nome do Pai (Opcional)</Label><Input value={formData.nomePai} onChange={e => setFormData(p => ({ ...p, nomePai: e.target.value }))} className="bg-white/5 border-white/10" /></div>
+            <div className="space-y-2"><Label className="text-slate-400 text-xs uppercase">Nome da Mãe (Opcional)</Label><Input value={formData.nomeMae} onChange={e => setFormData(p => ({ ...p, nomeMae: e.target.value }))} className="bg-white/5 border-white/10" /></div>
           </div>
           <div className="border-2 border-dashed border-white/10 p-8 text-center cursor-pointer" onClick={() => photoInputRef.current?.click()}>
             {photoOverlay ? <img src={photoOverlay} className="w-24 h-24 mx-auto object-cover" /> : <p className="text-slate-400">Enviar Foto de Perfil</p>}
