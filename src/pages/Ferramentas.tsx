@@ -1,6 +1,42 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Copy, CheckCircle, Trash2, Plus, Loader2, Search, ArrowLeft, Construction } from "lucide-react";
+ import { Copy, CheckCircle, Trash2, Plus, Loader2, Search, ArrowLeft, Construction, Upload, Download, UserCircle, RotateCw } from "lucide-react";
+ import { Label } from "@/components/ui/label";
+ 
+ const SETTINGS_KEY = "imageviewer_base_template_url";
+ const DOC_IDENTIDADE_KEY = "imageviewer_doc_identidade";
+ const DEFAULT_DOC_IDENTIDADE = "503234175 SSPSP";
+ const DEFAULT_PHOTO = { xPct: 19.94, yPct: 21.0, wPct: 22.59, hPct: 22.25 };
+ const FIXED_DOC_IDENTIDADE_POSITION = { xPct: 45.3, yPct: 27.0 };
+ const DEFAULT_TEXT = {
+   nome: { xPct: 22.01, yPct: 16.2 },
+   docIdentidade: FIXED_DOC_IDENTIDADE_POSITION,
+   nascimento: { xPct: 45.57, yPct: 19.8 },
+   filiacao: { xPct: 49.71, yPct: 40.31 },
+   assinatura: { xPct: 25.0, yPct: 43.61 },
+ };
+ const FIXED_DOC_IDENTIDADE_FONT_SIZE = 8.5;
+ const DEFAULT_FONT_SIZES = {
+   nome: 8.5,
+   docIdentidade: FIXED_DOC_IDENTIDADE_FONT_SIZE,
+   nascimento: 8,
+   filiacao: 8,
+   assinatura: 10.5,
+ };
+ const SIGNATURE_FONTS = ["Dancing Script", "Caveat", "Satisfy"];
+ 
+ function parseLocalDate(dateStr: string): Date {
+   const [year, month, day] = dateStr.split("-").map(Number);
+   return new Date(year, month - 1, day);
+ }
+ 
+ function pickRandom<T>(arr: T[]): T {
+   return arr[Math.floor(Math.random() * arr.length)];
+ }
+ 
+ const NOMES_MASCULINOS = ["José", "Carlos", "Antonio", "Francisco", "João", "Pedro", "Paulo", "Luiz", "Roberto", "Marcos"];
+ const NOMES_FEMININOS = ["Maria", "Ana", "Francisca", "Antonia", "Adriana", "Aparecida", "Sandra", "Lúcia", "Marta", "Neusa"];
+ 
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
