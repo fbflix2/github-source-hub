@@ -107,7 +107,7 @@ export default function AdminImageViewer() {
 
   const [textPos, setTextPos] = useState(DEFAULT_TEXT);
   const [docIdentidadePos, setDocIdentidadePos] = useState(FIXED_DOC_IDENTIDADE_POSITION);
-  const [fontSizes, setFontSizes] = useState({ nome: 11, docIdentidade: FIXED_DOC_IDENTIDADE_FONT_SIZE, nascimento: 10, filiacao: 9, assinatura: 14 });
+  const [fontSizes, setFontSizes] = useState({ ...DEFAULT_FONT_SIZES });
   const [docIdentidade, setDocIdentidade] = useState(DEFAULT_DOC_IDENTIDADE);
   const [signatureFont, setSignatureFont] = useState(SIGNATURE_FONTS[0]);
   const [contrast, setContrast] = useState(100);
@@ -123,10 +123,10 @@ export default function AdminImageViewer() {
   };
 
   const safeFontSizes = {
-    nome: 11,
-    nascimento: 10,
-    filiacao: 9,
-    assinatura: 14,
+    nome: DEFAULT_FONT_SIZES.nome,
+    nascimento: DEFAULT_FONT_SIZES.nascimento,
+    filiacao: DEFAULT_FONT_SIZES.filiacao,
+    assinatura: DEFAULT_FONT_SIZES.assinatura,
     ...(fontSizes ?? {}),
     docIdentidade: FIXED_DOC_IDENTIDADE_FONT_SIZE,
   };
@@ -245,7 +245,7 @@ export default function AdminImageViewer() {
       setSelectedImage(null);
       setTemplatePreview(null);
       setTextPos(DEFAULT_TEXT);
-      setFontSizes({ nome: 11, docIdentidade: FIXED_DOC_IDENTIDADE_FONT_SIZE, nascimento: 10, filiacao: 9, assinatura: 14 });
+      setFontSizes({ ...DEFAULT_FONT_SIZES });
       setPhotoPos(DEFAULT_PHOTO);
       setContrast(100);
       setSignatureFont(SIGNATURE_FONTS[0]);
