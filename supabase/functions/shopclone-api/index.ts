@@ -32,13 +32,13 @@ function getSupplierConfig(supplier: string): SupplierConfig {
   const username = Deno.env.get("ACCFACE_USERNAME");
   const password = Deno.env.get("ACCFACE_PASSWORD");
   if (!username || !password) throw new Error("ACCFACE credentials not configured");
-  return {
-    baseUrl: "https://accface.com/api",
-    username,
-    password,
-    label: "AccFace",
-    folderDefault: "AccFace",
-  };
+    return {
+      baseUrl: "https://accface.us/api",
+      username,
+      password,
+      label: "AccFace",
+      folderDefault: "AccFace",
+    };
 }
 
 function extractRawAccounts(parsed: any): string[] {
