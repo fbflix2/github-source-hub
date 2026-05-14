@@ -7,6 +7,9 @@ const corsHeaders = {
 };
 
 // Supplier configurations
+const ACCFACE_API_BASE = "https://accface.us/api";
+const VIA17_API_BASE = "https://via17.com/api";
+
 interface SupplierConfig {
   baseUrl: string;
   username: string;
@@ -16,12 +19,14 @@ interface SupplierConfig {
 }
 
 function getSupplierConfig(supplier: string): SupplierConfig {
-  if (supplier === "via17") {
+  const supplierKey = supplier?.toLowerCase().trim() === "via17" ? "via17" : "accface";
+
+  if (supplierKey === "via17") {
     const username = Deno.env.get("VIA17_USERNAME");
     const password = Deno.env.get("VIA17_PASSWORD");
     if (!username || !password) throw new Error("VIA17 credentials not configured");
     return {
-      baseUrl: "https://via17.com/api",
+      baseUrl: VIA17_API_BASE,
       username,
       password,
       label: "VIA17",
@@ -33,7 +38,7 @@ function getSupplierConfig(supplier: string): SupplierConfig {
   const password = Deno.env.get("ACCFACE_PASSWORD");
   if (!username || !password) throw new Error("ACCFACE credentials not configured");
     return {
-      baseUrl: "https://accface.us/api",
+      baseUrl: ACCFACE_API_BASE,
       username,
       password,
       label: "AccFace",
