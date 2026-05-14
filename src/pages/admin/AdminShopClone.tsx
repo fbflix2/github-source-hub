@@ -146,7 +146,7 @@ function useFavorites() {
 }
 
 const SUPPLIER_CONFIG: Record<SupplierKey, { label: string; site: string; folderDefault: string }> = {
-  accface: { label: "AccFace", site: "https://accface.com", folderDefault: "AccFace Import" },
+  accface: { label: "AccFace", site: "https://accface.us", folderDefault: "AccFace Import" },
   via17: { label: "VIA17", site: "https://via17.com", folderDefault: "VIA17 Import" },
 };
 
