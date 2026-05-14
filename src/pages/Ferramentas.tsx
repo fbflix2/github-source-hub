@@ -340,10 +340,10 @@ function EmissorTool({ onBack }: { onBack: () => void }) {
       }
 
       ctx.textBaseline = "top";
-      // Calibração de escala para corresponder ao AdminImageViewer
-      // O AdminImageViewer renderiza o texto baseado no tamanho visual da imagem no navegador.
-      // Para manter a consistência com o download de lá, usamos a mesma lógica de proporção.
-      const scale = W / 400 * 2.5; 
+      // Calibração de escala para corresponder EXATAMENTE ao AdminImageViewer.
+      // Lá o scale = W / imgRect.w (largura exibida no navegador, ~600px CSS).
+      // Os DEFAULT_FONT_SIZES (8.5, 8, etc.) são em CSS pixels naquela exibição.
+      const scale = W / 600;
 
       const offset = (fs: number) => fs * 0.15;
       ctx.fillStyle = "rgba(0,0,0,0.9)"; // Mesma cor de preenchimento do visualizador
