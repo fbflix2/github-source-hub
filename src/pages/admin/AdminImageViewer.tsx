@@ -14,7 +14,9 @@ const POSITIONS_KEY = "imageviewer_positions";
 const DOC_IDENTIDADE_KEY = "imageviewer_doc_identidade";
 const DEFAULT_DOC_IDENTIDADE = "503234175 SSPSP";
 
-const DEFAULT_PHOTO = { xPct: 4.8, yPct: 16.2, wPct: 16.2, hPct: 26.2 };
+// Posições padrão fixas — calibradas para o template oficial.
+// Não alterar sem recalibrar visualmente sobre o mockup.
+const DEFAULT_PHOTO = { xPct: 19.94, yPct: 21.0, wPct: 22.59, hPct: 22.25 };
 
 const NOMES_MASCULINOS = [
   "José", "Carlos", "Antonio", "Francisco", "João", "Pedro", "Paulo", "Luiz",
@@ -49,15 +51,22 @@ function gerarNomePai(sobrenome: string): string {
 function gerarNomeMae(sobrenome: string): string {
   return `${pickRandom(NOMES_FEMININOS)} ${sobrenome}`.toUpperCase();
 }
-const FIXED_DOC_IDENTIDADE_POSITION = { xPct: 23.65, yPct: 45.63 };
+const FIXED_DOC_IDENTIDADE_POSITION = { xPct: 45.3, yPct: 25.92 };
 const DEFAULT_TEXT = {
-  nome: { xPct: 30, yPct: 14.5 },
+  nome: { xPct: 22.01, yPct: 15.15 },
   docIdentidade: FIXED_DOC_IDENTIDADE_POSITION,
-  nascimento: { xPct: 30, yPct: 22 },
-  filiacao: { xPct: 30, yPct: 47 },
-  assinatura: { xPct: 15, yPct: 56 },
+  nascimento: { xPct: 45.57, yPct: 18.72 },
+  filiacao: { xPct: 49.71, yPct: 40.31 },
+  assinatura: { xPct: 25.0, yPct: 43.61 },
 };
 const FIXED_DOC_IDENTIDADE_FONT_SIZE = 8.5;
+const DEFAULT_FONT_SIZES = {
+  nome: 8.5,
+  docIdentidade: FIXED_DOC_IDENTIDADE_FONT_SIZE,
+  nascimento: 8,
+  filiacao: 8,
+  assinatura: 10.5,
+};
 
 const SIGNATURE_FONTS = ["Dancing Script", "Caveat", "Satisfy"];
 
@@ -98,7 +107,7 @@ export default function AdminImageViewer() {
 
   const [textPos, setTextPos] = useState(DEFAULT_TEXT);
   const [docIdentidadePos, setDocIdentidadePos] = useState(FIXED_DOC_IDENTIDADE_POSITION);
-  const [fontSizes, setFontSizes] = useState({ nome: 11, docIdentidade: FIXED_DOC_IDENTIDADE_FONT_SIZE, nascimento: 10, filiacao: 9, assinatura: 14 });
+  const [fontSizes, setFontSizes] = useState({ ...DEFAULT_FONT_SIZES });
   const [docIdentidade, setDocIdentidade] = useState(DEFAULT_DOC_IDENTIDADE);
   const [signatureFont, setSignatureFont] = useState(SIGNATURE_FONTS[0]);
   const [contrast, setContrast] = useState(100);
@@ -114,10 +123,10 @@ export default function AdminImageViewer() {
   };
 
   const safeFontSizes = {
-    nome: 11,
-    nascimento: 10,
-    filiacao: 9,
-    assinatura: 14,
+    nome: DEFAULT_FONT_SIZES.nome,
+    nascimento: DEFAULT_FONT_SIZES.nascimento,
+    filiacao: DEFAULT_FONT_SIZES.filiacao,
+    assinatura: DEFAULT_FONT_SIZES.assinatura,
     ...(fontSizes ?? {}),
     docIdentidade: FIXED_DOC_IDENTIDADE_FONT_SIZE,
   };
@@ -153,18 +162,10 @@ export default function AdminImageViewer() {
               setTemplatePreview(row.value);
             }
             if (row.key === POSITIONS_KEY && row.value) {
+              // Posições/tamanhos de fonte/foto são FIXOS (DEFAULT_TEXT / DEFAULT_FONT_SIZES / DEFAULT_PHOTO).
+              // Apenas a fonte de assinatura e o contraste continuam configuráveis.
               try {
                 const saved = JSON.parse(row.value);
-                if (saved.textPos) {
-                  const { docIdentidade: savedDocIdPos, ...savedTextPos } = saved.textPos;
-                  setTextPos((prev) => ({ ...prev, ...savedTextPos }));
-                  if (savedDocIdPos) setDocIdentidadePos(sanitizeTextPoint(savedDocIdPos, FIXED_DOC_IDENTIDADE_POSITION));
-                }
-                if (saved.fontSizes) {
-                  const { docIdentidade: _ignoredDocIdentidadeFont, ...savedFontSizes } = saved.fontSizes;
-                  setFontSizes((prev) => ({ ...prev, ...savedFontSizes, docIdentidade: FIXED_DOC_IDENTIDADE_FONT_SIZE }));
-                }
-                if (saved.photoPos) setPhotoPos(saved.photoPos);
                 if (saved.signatureFont) setSignatureFont(saved.signatureFont);
                 if (saved.contrast != null) setContrast(saved.contrast);
               } catch { /* ignore parse errors */ }
@@ -236,7 +237,7 @@ export default function AdminImageViewer() {
       setSelectedImage(null);
       setTemplatePreview(null);
       setTextPos(DEFAULT_TEXT);
-      setFontSizes({ nome: 11, docIdentidade: FIXED_DOC_IDENTIDADE_FONT_SIZE, nascimento: 10, filiacao: 9, assinatura: 14 });
+      setFontSizes({ ...DEFAULT_FONT_SIZES });
       setPhotoPos(DEFAULT_PHOTO);
       setContrast(100);
       setSignatureFont(SIGNATURE_FONTS[0]);
@@ -935,24 +936,18 @@ export default function AdminImageViewer() {
                         top: `${photoPos.yPct}%`,
                         width: `${photoPos.wPct}%`,
                         height: `${photoPos.hPct}%`,
-                        cursor: panMode ? "inherit" : "move",
+                        cursor: "default",
+                        pointerEvents: "none",
                       }}
-                      onMouseDown={(e) => onElementMouseDown("photo", e)}
                     >
                       <img src={photoOverlay} alt="Foto" className="w-full h-full object-cover" draggable={false} />
-                      {/* Resize handle */}
-                      <div
-                        className="absolute bottom-0 right-0 w-3 h-3 bg-blue-500 cursor-se-resize rounded-tl"
-                        onMouseDown={onResizeMouseDown}
-                      />
                     </div>
                   )}
 
                   {formData.nomeCompleto && (
                     <div
                       className="absolute select-none whitespace-nowrap"
-                      style={{ left: `${textPos.nome.xPct}%`, top: `${textPos.nome.yPct}%`, cursor: panMode ? "inherit" : "move", lineHeight: 1 }}
-                      onMouseDown={(e) => onElementMouseDown("nome", e)}
+                      style={{ left: `${textPos.nome.xPct}%`, top: `${textPos.nome.yPct}%`, cursor: "default", pointerEvents: "none", lineHeight: 1 }}
                     >
                       <span className="font-bold tracking-wide text-black/90 uppercase" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${fontSizes.nome}px` }}>
                         {formData.nomeCompleto}
@@ -962,8 +957,7 @@ export default function AdminImageViewer() {
                   {docIdentidade && (
                     <div
                       className="absolute select-none whitespace-nowrap"
-                      style={{ left: `${safeTextPos.docIdentidade.xPct}%`, top: `${safeTextPos.docIdentidade.yPct}%`, cursor: panMode ? "inherit" : "move", lineHeight: 1 }}
-                      onMouseDown={(e) => onElementMouseDown("docIdentidade", e)}
+                      style={{ left: `${safeTextPos.docIdentidade.xPct}%`, top: `${safeTextPos.docIdentidade.yPct}%`, cursor: "default", pointerEvents: "none", lineHeight: 1 }}
                     >
                       <span className="font-semibold text-black/90 uppercase" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${safeFontSizes.docIdentidade}px` }}>
                         {docIdentidade}
@@ -973,8 +967,7 @@ export default function AdminImageViewer() {
                   {(formData.dataNascimento || formData.naturalidade) && (
                     <div
                       className="absolute select-none whitespace-nowrap"
-                      style={{ left: `${textPos.nascimento.xPct}%`, top: `${textPos.nascimento.yPct}%`, cursor: panMode ? "inherit" : "move", lineHeight: 1 }}
-                      onMouseDown={(e) => onElementMouseDown("nascimento", e)}
+                      style={{ left: `${textPos.nascimento.xPct}%`, top: `${textPos.nascimento.yPct}%`, cursor: "default", pointerEvents: "none", lineHeight: 1 }}
                     >
                       <span className="font-semibold text-black/90" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${fontSizes.nascimento}px` }}>
                         {[
@@ -988,8 +981,7 @@ export default function AdminImageViewer() {
                   {(formData.nomePai || formData.nomeMae) && (
                     <div
                       className="absolute select-none flex flex-col"
-                      style={{ left: `${textPos.filiacao.xPct}%`, top: `${textPos.filiacao.yPct}%`, cursor: panMode ? "inherit" : "move", lineHeight: 1 }}
-                      onMouseDown={(e) => onElementMouseDown("filiacao", e)}
+                      style={{ left: `${textPos.filiacao.xPct}%`, top: `${textPos.filiacao.yPct}%`, cursor: "default", pointerEvents: "none", lineHeight: 1 }}
                     >
                       {formData.nomePai && (
                         <span className="font-semibold text-black/90 uppercase whitespace-nowrap" style={{ fontFamily: "Arial Narrow, Arial, sans-serif", fontSize: `${fontSizes.filiacao}px` }}>
@@ -1006,8 +998,7 @@ export default function AdminImageViewer() {
                   {formData.nomeCompleto && (
                     <div
                       className="absolute select-none whitespace-nowrap"
-                      style={{ left: `${textPos.assinatura.xPct}%`, top: `${textPos.assinatura.yPct}%`, cursor: panMode ? "inherit" : "move", lineHeight: 1 }}
-                      onMouseDown={(e) => onElementMouseDown("assinatura", e)}
+                      style={{ left: `${textPos.assinatura.xPct}%`, top: `${textPos.assinatura.yPct}%`, cursor: "default", pointerEvents: "none", lineHeight: 1 }}
                     >
                       <span style={{ fontFamily: `'${signatureFont}', cursive`, fontSize: `${fontSizes.assinatura}px`, color: "#1a1a8a" }}>
                         {formData.nomeCompleto}
