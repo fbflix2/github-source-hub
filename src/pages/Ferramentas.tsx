@@ -359,11 +359,28 @@ export default function Ferramentas() {
           <p className="text-sm text-slate-400">Otimize seu fluxo de trabalho.</p>
         </header>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-          <GlassCard bgImage={BG_IMAGES["2fa"]} onClick={() => setActiveTool("2fa")}><h3 className="text-base font-bold text-white">Gerador de 2FA</h3></GlassCard>
-          <GlassCard bgImage={BG_IMAGES.emissor} onClick={() => setActiveTool("emissor")}><h3 className="text-base font-bold text-white">Emissor de Documentos</h3><Badge className="bg-blue-500/20 text-blue-400 w-fit">Beta</Badge></GlassCard>
-          <GlassCard bgImage={BG_IMAGES.verificador} disabled><h3 className="text-base font-bold text-white">Verificador</h3><Badge className="bg-yellow-500/20 text-yellow-400 w-fit">Em breve</Badge></GlassCard>
-          <GlassCard bgImage={BG_IMAGES.safebm} onClick={() => navigate("/safe-bm")}><h3 className="text-base font-bold text-white">BM Safe</h3></GlassCard>
-          <GlassCard bgImage={BG_IMAGES["2fa"]} onClick={() => navigate("/esteira-aquecimento")}><h3 className="text-base font-bold text-white">Esteira</h3></GlassCard>
+           <GlassCard bgImage={BG_IMAGES["2fa"]} onClick={() => setActiveTool("2fa")}>
+             <h3 className="text-base font-bold text-white">Gerador de 2FA</h3>
+             <p className="text-slate-400 text-xs mt-2">Gere códigos de autenticação instantaneamente.</p>
+           </GlassCard>
+           <GlassCard bgImage={BG_IMAGES.emissor} onClick={() => setActiveTool("emissor")}>
+             <h3 className="text-base font-bold text-white">Emissor de Documentos</h3>
+             <Badge className="bg-blue-500/20 text-blue-400 w-fit mt-1">Beta</Badge>
+             <p className="text-slate-400 text-xs mt-2">Crie documentos para verificação de perfis.</p>
+           </GlassCard>
+           <GlassCard bgImage={BG_IMAGES.verificador} disabled>
+             <h3 className="text-base font-bold text-white">Verificador</h3>
+             <Badge className="bg-yellow-500/20 text-yellow-400 w-fit mt-1">Em breve</Badge>
+             <p className="text-slate-400 text-xs mt-2">Verifique o status de múltiplas contas.</p>
+           </GlassCard>
+           <GlassCard bgImage={BG_IMAGES.safebm} onClick={() => navigate("/safe-bm")}>
+             <h3 className="text-base font-bold text-white">BM Safe</h3>
+             <p className="text-slate-400 text-xs mt-2">Cofre digital para Business Managers.</p>
+           </GlassCard>
+           <GlassCard bgImage={BG_IMAGES["2fa"]} onClick={() => navigate("/esteira-aquecimento")}>
+             <h3 className="text-base font-bold text-white">Esteira Aquecimento</h3>
+             <p className="text-slate-400 text-xs mt-2">Aqueça seus perfis com tarefas guiadas.</p>
+           </GlassCard>
         </div>
         <ToolsInfoBanner hasSafeBm={hasSafeBm} />
       </main>
