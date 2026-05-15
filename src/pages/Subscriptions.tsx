@@ -706,7 +706,14 @@ function SafeBmPanel() {
                   <Shield className="size-4 text-primary" />
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-foreground">{v.bm_name || "BM Protegida"}</p>
+                  <p className="text-sm font-bold text-foreground">
+                    {v.bm_name || "BM Protegida"}
+                    {(() => {
+                      const digits = (v.bm_link || "").match(/\d{4,}/g) as string[] | null;
+                      const longest = digits?.sort((a, b) => b.length - a.length)[0];
+                      return longest ? <span className="text-muted-foreground font-mono"> ····{longest.slice(-4)}</span> : null;
+                    })()}
+                  </p>
                   <Badge variant="outline" className="text-[10px] bg-green-500/10 text-green-500 border-green-500/20">Protegido</Badge>
                 </div>
               </div>
