@@ -1,0 +1,1 @@
+UPDATE public.orders SET status='completed', updated_at=now() WHERE id='c152f146-a419-43e7-8f67-d07b4af03a9c';
