@@ -1,0 +1,8 @@
+UPDATE public.bm_tracking 
+SET bm_link = 'BM1-1475134564199327-fbflix|https://business.facebook.com/invitation/?token=AfkmFEnjMCatq80MozUsVFQYCgkdp2kSGRA-CrLc1jQpscu62L6r1EeaLeF58tzpAeQIBZkJoHo9JisZ2DiHJR6xD2Rrn8Wmo5GdDWDO4oEZZAt4Y72ifHgO9pFuoTMLHwkXsMVo9g8gZVbpm-VQ7FtyzdwlVJixSMraNi1GY2gMSvQGqx336vQ-uyWfNpVA95Ng8l_enpieb3QwYQeMDCXStU8y0EtSfyX2F4KNmF4IP-WdZOUXaYyXmQinwTozapdqmntk0eGtmHeFBVVVHaCeoNmWK03w5ecLU8plrQ'
+WHERE id = '2655d53c-41ac-4347-a942-d6a9dc321e05';
+
+UPDATE public.safe_bm_vaults
+SET bm_link = 'BM1-1475134564199327-fbflix|https://business.facebook.com/invitation/?token=AfkmFEnjMCatq80MozUsVFQYCgkdp2kSGRA-CrLc1jQpscu62L6r1EeaLeF58tzpAeQIBZkJoHo9JisZ2DiHJR6xD2Rrn8Wmo5GdDWDO4oEZZAt4Y72ifHgO9pFuoTMLHwkXsMVo9g8gZVbpm-VQ7FtyzdwlVJixSMraNi1GY2gMSvQGqx336vQ-uyWfNpVA95Ng8l_enpieb3QwYQeMDCXStU8y0EtSfyX2F4KNmF4IP-WdZOUXaYyXmQinwTozapdqmntk0eGtmHeFBVVVHaCeoNmWK03w5ecLU8plrQ'
+WHERE user_id = '4543a5ad-083f-4ab4-be93-317dca8bbda4' 
+AND bm_name = 'BM 3 (Nova)';
