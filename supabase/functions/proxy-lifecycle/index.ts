@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
     if (resetFirst) {
       await admin.from("subscriptions")
         .update({ grace_notifications: {} })
-        .in("type", ["webshare", "webshare_rotating", "proxybr"])
+       .in("type", ["webshare", "webshare_rotating", "proxybr", "proxyfbflix", "proxyfbflix_rotating"])
         .in("status", ["active", "expired", "expiring"]);
       console.log("[proxy-lifecycle] Reset grace_notifications for non-cancelled subs");
     }
@@ -86,7 +86,7 @@ Deno.serve(async (req) => {
     const { data: allSubs, error: subsErr } = await admin
       .from("subscriptions")
       .select("id, user_id, name, type, status, end_date, raw_data, product_id, grace_notifications, auto_renew, notifications_enabled")
-      .in("type", ["webshare", "webshare_rotating", "proxybr"])
+         .in("type", ["webshare", "webshare_rotating", "proxybr", "proxyfbflix", "proxyfbflix_rotating"])
       .in("status", ["active", "expired", "expiring"])
       .not("end_date", "is", null);
 
