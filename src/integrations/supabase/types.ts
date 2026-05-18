@@ -2842,17 +2842,22 @@ export type Database = {
       }
       safe_bm_vaults: {
         Row: {
+          auto_renew: boolean | null
           backup_link: string | null
           backup_link_set_at: string | null
+          billing_status: string | null
           bm_link: string
           bm_name: string
           bm_tracking_id: string | null
           client_name: string | null
           created_at: string
+          grace_notifications: Json | null
           id: string
+          last_billing_at: string | null
           link_health: string
           link_health_checked_at: string | null
           link_regenerations: number
+          next_billing_at: string | null
           notes: string | null
           perfil_backup: string | null
           protection_start: string
@@ -2863,17 +2868,22 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          auto_renew?: boolean | null
           backup_link?: string | null
           backup_link_set_at?: string | null
+          billing_status?: string | null
           bm_link: string
           bm_name: string
           bm_tracking_id?: string | null
           client_name?: string | null
           created_at?: string
+          grace_notifications?: Json | null
           id?: string
+          last_billing_at?: string | null
           link_health?: string
           link_health_checked_at?: string | null
           link_regenerations?: number
+          next_billing_at?: string | null
           notes?: string | null
           perfil_backup?: string | null
           protection_start?: string
@@ -2884,17 +2894,22 @@ export type Database = {
           user_id: string
         }
         Update: {
+          auto_renew?: boolean | null
           backup_link?: string | null
           backup_link_set_at?: string | null
+          billing_status?: string | null
           bm_link?: string
           bm_name?: string
           bm_tracking_id?: string | null
           client_name?: string | null
           created_at?: string
+          grace_notifications?: Json | null
           id?: string
+          last_billing_at?: string | null
           link_health?: string
           link_health_checked_at?: string | null
           link_regenerations?: number
+          next_billing_at?: string | null
           notes?: string | null
           perfil_backup?: string | null
           protection_start?: string
