@@ -44,13 +44,13 @@
      try { body = await req.json(); } catch {}
      const dryRun = body?.dry_run === true;
  
-     // 1. Fetch Safe BMs that are due for billing
-     const { data: vaults, error: vaultsErr } = await admin
-       .from("safe_bm_vaults")
-       .select("id, user_id, bm_name, subscription_price, next_billing_at, grace_notifications, auto_renew")
-       .eq("status", "active")
-       .eq("auto_renew", true)
-       .lte("next_billing_at", new Date().toISOString());
+      // 1. Fetch Safe BMs that are due for billing (active, suspended or pending that are due)
+      const { data: vaults, error: vaultsErr } = await admin
+        .from("safe_bm_vaults")
+        .select("id, user_id, bm_name, subscription_price, next_billing_at, grace_notifications, auto_renew, status")
+        .in("status", ["active", "suspended", "pending"])
+        .eq("auto_renew", true)
+        .lte("next_billing_at", new Date().toISOString());
  
      if (vaultsErr) throw vaultsErr;
      if (!vaults?.length) return ok({ success: true, message: "Nenhum Safe BM para cobrar", processed: 0 });
@@ -90,12 +90,13 @@
            const nextBilling = new Date(vault.next_billing_at);
            nextBilling.setMonth(nextBilling.getMonth() + 1);
            
-           await admin.from("safe_bm_vaults").update({
-             last_billing_at: new Date().toISOString(),
-             next_billing_at: nextBilling.toISOString(),
-             billing_status: 'paid',
-             grace_notifications: {} // Reset grace notifications
-           }).eq("id", vault.id);
+            await admin.from("safe_bm_vaults").update({
+              last_billing_at: new Date().toISOString(),
+              next_billing_at: nextBilling.toISOString(),
+              billing_status: 'paid',
+              status: 'active', // Ensure it becomes active if it was suspended
+              grace_notifications: {} // Reset grace notifications
+            }).eq("id", vault.id);
          }
  
          results.push({ id: vault.id, status: "paid", amount: price });
