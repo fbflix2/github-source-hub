@@ -23,9 +23,11 @@ interface SafeBmVault {
   status: string;
   subscription_price: number;
   notes: string | null;
-  created_at: string;
-  updated_at: string;
-  bm_tracking_id: string | null;
+   created_at: string;
+   updated_at: string;
+   bm_tracking_id: string | null;
+   next_billing_at?: string;
+   last_billing_at?: string;
   backup_link: string | null;
   link_health: string | null;
   bm_tracking?: {
@@ -104,11 +106,13 @@ export default function SafeBMClient() {
   }, [configuredVaults, search]);
 
   const activeVaults = configuredVaults.filter(v => v.status === "active");
-  const expiringVaults = vaults.filter(v => {
-    if (v.status !== "active") return false;
-    const daysSinceProtection = differenceInDays(new Date(), new Date(v.protection_start));
-    return daysSinceProtection > 25;
-  });
+   const expiringVaults = vaults.filter(v => {
+     if (v.status !== "active") return false;
+     // Use next_billing_at if available, otherwise fallback to protection_start + 30 days
+     const expiryDate = v.next_billing_at ? new Date(v.next_billing_at) : new Date(new Date(v.protection_start).getTime() + 30 * 24 * 60 * 60 * 1000);
+     const daysRemaining = differenceInDays(expiryDate, new Date());
+     return daysRemaining <= 5;
+   });
 
   if (loading) {
     return (
@@ -260,10 +264,23 @@ export default function SafeBMClient() {
 
         <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2.5">
           {filtered.map(v => {
-            const isActive = v.status === "active";
-            const daysSinceProtection = differenceInDays(new Date(), new Date(v.protection_start));
-            const isExpiringSoon = isActive && daysSinceProtection > 25;
-            const progressPercent = Math.min(100, (daysSinceProtection / 30) * 100);
+             const isActive = v.status === "active";
+             // Use next_billing_at if available
+             const expiryDate = v.next_billing_at ? new Date(v.next_billing_at) : new Date(new Date(v.protection_start).getTime() + 30 * 24 * 60 * 60 * 1000);
+             const daysRemaining = differenceInDays(expiryDate, new Date());
+             const isExpiringSoon = isActive && daysRemaining <= 5;
+             
+             // Calculate progress based on last_billing_at and next_billing_at if possible
+             let progressPercent = 0;
+             if (v.last_billing_at && v.next_billing_at) {
+               const start = new Date(v.last_billing_at).getTime();
+               const end = new Date(v.next_billing_at).getTime();
+               const now = new Date().getTime();
+               progressPercent = Math.min(100, Math.max(0, ((now - start) / (end - start)) * 100));
+             } else {
+               const daysSinceProtection = differenceInDays(new Date(), new Date(v.protection_start));
+               progressPercent = Math.min(100, (daysSinceProtection / 30) * 100);
+             }
             const effectiveBmLink =
               v.backup_link ||
               (v.bm_link !== GENERIC_BM_LINK ? v.bm_link : "") ||
@@ -332,15 +349,15 @@ export default function SafeBMClient() {
                     <p className="text-[9px] text-[#c6c6c7]/50 mb-2 font-mono">ID: {bmId}</p>
 
                     <div className="space-y-1 mb-2">
-                      <div className="flex justify-between text-[10px]">
-                        {isExpiringSoon ? (
-                          <span className="text-[#ffb4ab] font-bold">Expira em {Math.max(0, 30 - daysSinceProtection)}d</span>
-                        ) : (
-                          <span className="text-[#c6c6c7]/60">Data de Expiração</span>
-                        )}
-                        <span className="text-[#e0e2ea] font-medium">
-                          {format(new Date(new Date(v.protection_start).getTime() + 30 * 24 * 60 * 60 * 1000), "dd MMM yyyy", { locale: ptBR })}
-                        </span>
+                       <div className="flex justify-between text-[10px]">
+                         {isExpiringSoon ? (
+                           <span className="text-[#ffb4ab] font-bold">Expira em {Math.max(0, daysRemaining)}d</span>
+                         ) : (
+                           <span className="text-[#c6c6c7]/60">Data de Expiração</span>
+                         )}
+                         <span className="text-[#e0e2ea] font-medium">
+                           {format(expiryDate, "dd MMM yyyy", { locale: ptBR })}
+                         </span>
                       </div>
                       <div className="w-full bg-[#0a0e13] h-1 rounded-full overflow-hidden">
                         <div
