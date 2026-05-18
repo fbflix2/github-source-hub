@@ -2301,31 +2301,58 @@ Deno.serve(async (req) => {
 
       console.log(`[migrate-proxybr] Sub=${subscription_name} country=${targetCountry} multiProxy=${isMultiProxy} proxyIndex=${proxy_index}`);
 
-      // 3. Find Webshare product price
+      // 3. Determine renewal price (priority order):
+      //    a) Admin-locked override on the subscription (raw_data.renewal_price)
+      //    b) The product currently linked to the subscription
+      //    c) Product matched by raw_data.product_name (original product at sale time)
+      //    d) A safe per-country dedicated proxy default (NEVER the rotating R$50 SKU)
       const { data: wsProducts } = await supabaseAdmin
         .from("products")
         .select("id, name, price, tags")
         .eq("available", true)
         .ilike("name", "%proxy%");
 
+      const isRotatingSub = existingSub.type === "webshare_rotating" || existingSub.type === "proxyfbflix_rotating";
+      const isRotatingProduct = (p: any) => {
+        const n = (p?.name || "").toLowerCase();
+        const tags = ((p?.tags || []) as string[]).map((t) => t.toLowerCase());
+        return n.includes("rotativ") || n.includes("rotating") || tags.some((t) => t === "rotativo" || t === "rotating");
+      };
+
+      // (c) Try to recover the original product by stored name
+      const originalProductName: string = (raw.product_name || raw.original_product_name || raw.product?.name || "").toString();
       let matchedProduct: any = null;
-      for (const p of (wsProducts || [])) {
-        const pName = p.name.toLowerCase();
-        const pTags = (p.tags || []) as string[];
-        const isWebshare = pName.includes("residencial") || pName.includes("webshare") || pTags.some((t: string) => t.toLowerCase() === "webshare");
-        if (!isWebshare) continue;
-        const pCountry = detectCountryFromProduct(p);
-        if (pCountry === targetCountry) { matchedProduct = p; break; }
+      if (originalProductName) {
+        matchedProduct = (wsProducts || []).find((p: any) =>
+          p.name.toLowerCase().trim() === originalProductName.toLowerCase().trim() &&
+          (isRotatingSub ? isRotatingProduct(p) : !isRotatingProduct(p))
+        );
       }
+
+      // Only fall back to a dedicated/rotating residential product matching the country.
+      // Critically: for DEDICATED subs we must skip the rotating SKU (R$50) and vice-versa.
       if (!matchedProduct) {
-        matchedProduct = (wsProducts || []).find((p: any) => p.name.toLowerCase().includes("residencial") || p.name.toLowerCase().includes("webshare"));
+        for (const p of (wsProducts || [])) {
+          const pName = p.name.toLowerCase();
+          const pTags = (p.tags || []) as string[];
+          const isWebshare =
+            pName.includes("residencial") ||
+            pName.includes("webshare") ||
+            pTags.some((t: string) => t.toLowerCase() === "webshare");
+          if (!isWebshare) continue;
+          if (isRotatingSub !== isRotatingProduct(p)) continue;
+          const pCountry = detectCountryFromProduct(p);
+          if (pCountry === targetCountry) { matchedProduct = p; break; }
+        }
       }
 
-      // Always prioritize the price of the product actually linked to the subscription.
-      // Fallback to the matched product's price or a default if no product is linked.
-      const renewalPrice = Number(productInfo?.price || matchedProduct?.price || 25);
+      const lockedPrice = Number(raw.renewal_price ?? raw.original_full_price ?? NaN);
+      const safeDefault = 21; // dedicated proxy standard price (BR/US)
+      const renewalPrice = Number.isFinite(lockedPrice) && lockedPrice > 0
+        ? lockedPrice
+        : Number(productInfo?.price || matchedProduct?.price || safeDefault);
 
-      console.log(`[migrate-proxybr] Renewal price: R$${renewalPrice} product=${matchedProduct?.name || "fallback"}`);
+      console.log(`[migrate-proxybr] Renewal price: R$${renewalPrice} (locked=${Number.isFinite(lockedPrice) ? lockedPrice : "no"} product=${matchedProduct?.name || "fallback"} isRotatingSub=${isRotatingSub})`);
 
       // 4. Check wallet balance
        const { data: profile } = await supabaseAdmin
