@@ -349,12 +349,12 @@ export default function SafeBMClient() {
                     <p className="text-[9px] text-[#c6c6c7]/50 mb-2 font-mono">ID: {bmId}</p>
 
                     <div className="space-y-1 mb-2">
-                      <div className="flex justify-between text-[10px]">
-                        {isExpiringSoon ? (
-                          <span className="text-[#ffb4ab] font-bold">Expira em {Math.max(0, 30 - daysSinceProtection)}d</span>
-                        ) : (
-                          <span className="text-[#c6c6c7]/60">Data de Expiração</span>
-                        )}
+                       <div className="flex justify-between text-[10px]">
+                         {isExpiringSoon ? (
+                           <span className="text-[#ffb4ab] font-bold">Expira em {Math.max(0, daysRemaining)}d</span>
+                         ) : (
+                           <span className="text-[#c6c6c7]/60">Data de Expiração</span>
+                         )}
                          <span className="text-[#e0e2ea] font-medium">
                            {format(expiryDate, "dd MMM yyyy", { locale: ptBR })}
                          </span>
