@@ -9,6 +9,7 @@ import PricingModal from "@/components/safebm/PricingModal";
 import SafeBMOnboarding from "@/components/safebm/SafeBMOnboarding";
  import SafeBMVaultConfig from "@/components/safebm/SafeBMVaultConfig";
  import { BMReportModal } from "@/components/safebm/BMReportModal";
+import SafeBMRenewalModal from "@/components/safebm/SafeBMRenewalModal";
 
 interface SafeBmVault {
   id: string;
