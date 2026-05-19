@@ -2840,6 +2840,50 @@ export type Database = {
           },
         ]
       }
+      safe_bm_renewals: {
+        Row: {
+          admin_notes: string | null
+          amount: number
+          created_at: string
+          id: string
+          new_bm_link: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          vault_id: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount?: number
+          created_at?: string
+          id?: string
+          new_bm_link?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          vault_id?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          amount?: number
+          created_at?: string
+          id?: string
+          new_bm_link?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          vault_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "safe_bm_renewals_vault_id_fkey"
+            columns: ["vault_id"]
+            isOneToOne: false
+            referencedRelation: "safe_bm_vaults"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       safe_bm_vaults: {
         Row: {
           auto_renew: boolean | null
