@@ -6,6 +6,8 @@ const MaterialIcon = ({ name, className = "" }: { name: string; className?: stri
 
 interface SecurityMonitorProps {
   bmNames: string[];
+  expired?: boolean;
+  expiredCount?: number;
 }
 
 const GENERIC_ACTIONS = [
@@ -37,7 +39,7 @@ export interface SecurityMonitorHandle {
   pushLog: (log: LogEntry) => void;
 }
 
-const SecurityMonitor = forwardRef<SecurityMonitorHandle, SecurityMonitorProps>(({ bmNames }, ref) => {
+const SecurityMonitor = forwardRef<SecurityMonitorHandle, SecurityMonitorProps>(({ bmNames, expired = false, expiredCount = 0 }, ref) => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [counter, setCounter] = useState(0);
 
@@ -96,6 +98,7 @@ const SecurityMonitor = forwardRef<SecurityMonitorHandle, SecurityMonitorProps>(
         </div>
 
         <div className="space-y-1.5 max-h-[120px] overflow-hidden">
+          <div className={expired ? "space-y-1.5 blur-[5px] select-none pointer-events-none opacity-60" : "space-y-1.5"}>
           {logs.map((log) => (
             <div
               key={log.id}
@@ -118,8 +121,22 @@ const SecurityMonitor = forwardRef<SecurityMonitorHandle, SecurityMonitorProps>(
               </span>
             </div>
           ))}
+          </div>
         </div>
       </div>
+      {expired && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center p-4 bg-gradient-to-b from-[#0a0e13]/70 via-[#0a0e13]/85 to-[#0a0e13]/95 backdrop-blur-[2px]">
+          <div className="text-center space-y-2 max-w-[320px]">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#93000a] text-[#ffdad6] text-[9px] font-bold uppercase tracking-widest">
+              <span className="material-symbols-outlined !text-[12px]">lock</span>
+              Vigilância pausada
+            </div>
+            <p className="text-[12px] text-[#e0e2ea] font-semibold leading-snug" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+              Renove o Safe BM e saiba o que está acontecendo com {expiredCount > 1 ? "os seus BMs" : "o seu BM"} agora
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 });

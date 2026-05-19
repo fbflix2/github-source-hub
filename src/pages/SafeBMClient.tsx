@@ -114,6 +114,12 @@ export default function SafeBMClient() {
      return daysRemaining <= 5;
    });
 
+  const expiredVaults = activeVaults.filter(v => {
+    const expiryDate = v.next_billing_at ? new Date(v.next_billing_at) : new Date(new Date(v.protection_start).getTime() + 30 * 24 * 60 * 60 * 1000);
+    return differenceInDays(expiryDate, new Date()) <= 0;
+  });
+  const allExpired = activeVaults.length > 0 && expiredVaults.length === activeVaults.length;
+
   if (loading) {
     return (
       <div className="p-4 max-w-7xl mx-auto w-full space-y-4 animate-pulse">
@@ -242,7 +248,7 @@ export default function SafeBMClient() {
         </div>
 
         {activeVaults.length > 0 && (
-          <SecurityMonitor ref={monitorRef} bmNames={activeVaults.map(v => v.bm_name)} />
+          <SecurityMonitor ref={monitorRef} bmNames={activeVaults.map(v => v.bm_name)} expired={allExpired} expiredCount={expiredVaults.length} />
         )}
       </section>
 
