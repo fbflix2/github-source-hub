@@ -2847,6 +2847,7 @@ export type Database = {
           created_at: string
           id: string
           new_bm_link: string | null
+          order_id: string | null
           status: string
           updated_at: string
           user_id: string
@@ -2858,6 +2859,7 @@ export type Database = {
           created_at?: string
           id?: string
           new_bm_link?: string | null
+          order_id?: string | null
           status?: string
           updated_at?: string
           user_id: string
@@ -2869,12 +2871,20 @@ export type Database = {
           created_at?: string
           id?: string
           new_bm_link?: string | null
+          order_id?: string | null
           status?: string
           updated_at?: string
           user_id?: string
           vault_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "safe_bm_renewals_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "safe_bm_renewals_vault_id_fkey"
             columns: ["vault_id"]

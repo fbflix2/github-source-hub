@@ -564,6 +564,23 @@ export default function Checkout() {
           return;
         }
 
+        // Link pending Safe BM renewals to this order
+        const pendingRenewalsStr = sessionStorage.getItem("pending_safe_bm_renewals");
+        if (pendingRenewalsStr) {
+          try {
+            const renewalIds = JSON.parse(pendingRenewalsStr);
+            if (Array.isArray(renewalIds) && renewalIds.length > 0) {
+              await supabase
+                .from("safe_bm_renewals")
+                .update({ order_id: order.id })
+                .in("id", renewalIds);
+              console.log("Linked Safe BM renewals to order:", order.id);
+            }
+          } catch (e) {
+            console.error("Error linking Safe BM renewals:", e);
+          }
+        }
+
         // Insert order items - use null for product_id if not a valid UUID
         const isValidUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(product.id);
         
