@@ -440,6 +440,7 @@ export default function AdminSafeBM() {
     { key: "pendentes", label: "Configurar Proteção", count: pendingTotalCount, color: "text-amber-400" },
     { key: "monitoramento", label: "Monitoramento" },
     { key: "expirando", label: "Expirando", count: expiringVaults.length, color: "text-red-400" },
+    { key: "renovacoes", label: "Renovações", count: renewals.filter(r => r.status === 'paid' || r.status === 'pending').length, color: "text-emerald-400" },
   ];
 
   return (
