@@ -69,6 +69,8 @@ export default function SafeBMClient() {
   const [search, setSearch] = useState("");
    const [showPricing, setShowPricing] = useState(false);
    const [reportingVault, setReportingVault] = useState<SafeBmVault | null>(null);
+  const [showRenewalModal, setShowRenewalModal] = useState(false);
+  const [selectedRenewalVaultId, setSelectedRenewalVaultId] = useState<string | null>(null);
   const monitorRef = useRef<SecurityMonitorHandle>(null);
 
   const GENERIC_BM_LINK = "https://business.facebook.com";
