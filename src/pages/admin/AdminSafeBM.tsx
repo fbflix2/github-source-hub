@@ -44,7 +44,10 @@ interface SafeBmVault {
   created_at: string;
   updated_at: string;
   bm_tracking_id: string | null;
+  next_billing_at: string | null;
+  last_billing_at: string | null;
   bm_tracking?: {
+
     product_name: string;
     sale_price: number;
     sold_at: string;
