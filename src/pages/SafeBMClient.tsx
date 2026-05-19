@@ -400,6 +400,14 @@ export default function SafeBMClient() {
         </div>
       </section>
 
+      <SafeBMRenewalModal 
+        open={showRenewalModal} 
+        onClose={() => { setShowRenewalModal(false); setSelectedRenewalVaultId(null); }} 
+        vaults={vaults}
+        initialSelectedId={selectedRenewalVaultId}
+      />
+
+
     </div>
   );
 }
