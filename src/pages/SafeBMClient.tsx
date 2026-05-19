@@ -9,6 +9,7 @@ import PricingModal from "@/components/safebm/PricingModal";
 import SafeBMOnboarding from "@/components/safebm/SafeBMOnboarding";
  import SafeBMVaultConfig from "@/components/safebm/SafeBMVaultConfig";
  import { BMReportModal } from "@/components/safebm/BMReportModal";
+import SafeBMRenewalModal from "@/components/safebm/SafeBMRenewalModal";
 
 interface SafeBmVault {
   id: string;
@@ -68,6 +69,8 @@ export default function SafeBMClient() {
   const [search, setSearch] = useState("");
    const [showPricing, setShowPricing] = useState(false);
    const [reportingVault, setReportingVault] = useState<SafeBmVault | null>(null);
+  const [showRenewalModal, setShowRenewalModal] = useState(false);
+  const [selectedRenewalVaultId, setSelectedRenewalVaultId] = useState<string | null>(null);
   const monitorRef = useRef<SecurityMonitorHandle>(null);
 
   const GENERIC_BM_LINK = "https://business.facebook.com";
@@ -375,7 +378,10 @@ export default function SafeBMClient() {
                   </div>
 
                   {isExpiringSoon ? (
-                    <button className="w-full py-2 bg-[#93000a] text-[#ffdad6] hover:bg-[#ffb4ab] hover:text-[#690005] transition-all duration-300 rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-2">
+                    <button 
+                      onClick={() => { setSelectedRenewalVaultId(v.id); setShowRenewalModal(true); }}
+                      className="w-full py-2 bg-[#93000a] text-[#ffdad6] hover:bg-[#ffb4ab] hover:text-[#690005] transition-all duration-300 rounded-xl text-[10px] font-bold uppercase tracking-wider flex items-center justify-center gap-2"
+                    >
                       <MaterialIcon name="autorenew" className="!text-sm" />
                       Renovar Agora
                     </button>
@@ -393,6 +399,14 @@ export default function SafeBMClient() {
           })}
         </div>
       </section>
+
+      <SafeBMRenewalModal 
+        open={showRenewalModal} 
+        onClose={() => { setShowRenewalModal(false); setSelectedRenewalVaultId(null); }} 
+        vaults={vaults}
+        initialSelectedId={selectedRenewalVaultId}
+      />
+
 
     </div>
   );

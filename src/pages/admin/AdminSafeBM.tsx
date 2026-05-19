@@ -44,7 +44,10 @@ interface SafeBmVault {
   created_at: string;
   updated_at: string;
   bm_tracking_id: string | null;
+  next_billing_at: string | null;
+  last_billing_at: string | null;
   bm_tracking?: {
+
     product_name: string;
     sale_price: number;
     sold_at: string;
@@ -107,7 +110,7 @@ function getBackupLinkTimeLeft(setAt: string | null): { expired: boolean; text: 
   return { expired: false, text: `${mins}m`, percent };
 }
 
-type TabType = "pendentes" | "monitoramento" | "expirando";
+type TabType = "pendentes" | "monitoramento" | "expirando" | "renovacoes";
 
 export default function AdminSafeBM() {
   const [vaults, setVaults] = useState<SafeBmVault[]>([]);
@@ -122,6 +125,8 @@ export default function AdminSafeBM() {
   const [renameValue, setRenameValue] = useState("");
   const [activeTab, setActiveTab] = useState<TabType>("monitoramento");
   const [pendingSearch, setPendingSearch] = useState("");
+  const [renewals, setRenewals] = useState<any[]>([]);
+
 
   const [formClientEmail, setFormClientEmail] = useState("");
   const [formClientName, setFormClientName] = useState("");
@@ -160,6 +165,16 @@ export default function AdminSafeBM() {
       .order("created_at", { ascending: false });
     setPendingRequests((data as any[]) || []);
   };
+
+  const fetchRenewals = async () => {
+    const { data, error } = await supabase
+      .from("safe_bm_renewals")
+      .select("*, vault:vault_id(bm_name, bm_link, backup_link)")
+      .order("created_at", { ascending: false });
+    if (error) toast.error("Erro ao carregar renovações: " + error.message);
+    else setRenewals(data || []);
+  };
+
 
   const checkAllLinksHealth = async (vaultIds?: string[]) => {
     setCheckingHealth(true);
@@ -236,7 +251,7 @@ export default function AdminSafeBM() {
     }
   };
 
-  useEffect(() => { fetchVaults(); fetchPendingRequests(); }, []);
+  useEffect(() => { fetchVaults(); fetchPendingRequests(); fetchRenewals(); }, []);
 
   // ─── Derived data ───
   const activeVaults = vaults.filter(v => v.status === "active" && v.bm_link !== GENERIC_BM_LINK);
@@ -406,6 +421,38 @@ export default function AdminSafeBM() {
     else { toast.success("Removido do cofre"); fetchVaults(); }
   };
 
+  const verifyRenewal = async (renewal: any) => {
+    try {
+      const { error: renewalError } = await supabase
+        .from("safe_bm_renewals")
+        .update({ status: 'verified' })
+        .eq("id", renewal.id);
+      if (renewalError) throw renewalError;
+
+      const vault = vaults.find(v => v.id === renewal.vault_id);
+      const currentExpiry = vault?.next_billing_at ? new Date(vault.next_billing_at) : new Date(vault?.protection_start || Date.now());
+      const baseDate = isBefore(currentExpiry, new Date()) ? new Date() : currentExpiry;
+      const newExpiry = addDays(baseDate, 30);
+
+      const { error: vaultError } = await supabase
+        .from("safe_bm_vaults" as any)
+        .update({ 
+          next_billing_at: newExpiry.toISOString(),
+          last_billing_at: new Date().toISOString(),
+          status: 'active'
+        })
+        .eq("id", renewal.vault_id);
+      if (vaultError) throw vaultError;
+
+      toast.success("Renovação verificada e prazo estendido!");
+      fetchRenewals();
+      fetchVaults();
+    } catch (err: any) {
+      toast.error("Erro ao verificar renovação: " + err.message);
+    }
+  };
+
+
   const exportCSV = () => {
     const rows = [["Nome BM", "Dono/Cliente", "Status", "Data Proteção", "Regenerações"]];
     filtered.forEach(v => {
@@ -428,6 +475,7 @@ export default function AdminSafeBM() {
     { key: "pendentes", label: "Configurar Proteção", count: pendingTotalCount, color: "text-amber-400" },
     { key: "monitoramento", label: "Monitoramento" },
     { key: "expirando", label: "Expirando", count: expiringVaults.length, color: "text-red-400" },
+    { key: "renovacoes", label: "Renovações", count: renewals.filter(r => r.status === 'paid' || r.status === 'pending').length, color: "text-emerald-400" },
   ];
 
   return (
@@ -994,7 +1042,88 @@ export default function AdminSafeBM() {
         </div>
       )}
 
+      {/* ═══════ TAB: RENOVAÇÕES ═══════ */}
+      {activeTab === "renovacoes" && (
+        <div className="space-y-4">
+          <div className="mb-4">
+            <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+              <Timer className="size-5 text-emerald-400" />
+              Pedidos de Renovação
+            </h2>
+            <p className="text-xs text-muted-foreground">Clientes que solicitaram renovação de seus cofres</p>
+          </div>
+
+          {renewals.length === 0 ? (
+            <Card className="bg-[hsl(var(--card))] border-border">
+              <CardContent className="py-12 text-center">
+                <Clock className="size-10 mx-auto mb-3 text-muted-foreground/30" />
+                <p className="text-muted-foreground text-sm">Nenhum pedido de renovação encontrado.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="bg-[hsl(var(--card))] border-border">
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-border">
+                      <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">BM / Cofre</TableHead>
+                      <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Valor</TableHead>
+                      <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Data Pedido</TableHead>
+                      <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Status</TableHead>
+                      <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {renewals.map(r => (
+                      <TableRow key={r.id} className="border-border hover:bg-muted/5">
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className="font-medium text-sm text-foreground">{r.vault?.bm_name || 'BM Removida'}</span>
+                            <span className="text-[10px] text-muted-foreground">ID: {r.vault_id.slice(0, 8)}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm font-bold text-emerald-400">R$ {Number(r.amount).toFixed(2)}</span>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {format(new Date(r.created_at), "dd/MM/yyyy HH:mm")}
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={`text-[9px] px-2 py-0.5 ${
+                            r.status === 'verified' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
+                            r.status === 'paid' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' :
+                            r.status === 'rejected' ? 'bg-red-500/20 text-red-400 border-red-500/30' :
+                            'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                          }`}>
+                            {r.status === 'verified' ? 'Verificado' : 
+                             r.status === 'paid' ? 'Pago' : 
+                             r.status === 'rejected' ? 'Rejeitado' : 'Pendente'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {r.status !== 'verified' && (
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="gap-1.5 h-8 text-xs border-emerald-500/30 hover:bg-emerald-500/10 text-emerald-400"
+                              onClick={() => verifyRenewal(r)}
+                            >
+                              <Check className="size-3" /> Verificar e Ativar
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+
       {/* ───── ADD / EDIT MODAL ───── */}
+
       <Dialog open={modalOpen} onOpenChange={o => { if (!o) { setModalOpen(false); resetForm(); } }}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
