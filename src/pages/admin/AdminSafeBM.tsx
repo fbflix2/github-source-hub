@@ -248,7 +248,7 @@ export default function AdminSafeBM() {
     }
   };
 
-  useEffect(() => { fetchVaults(); fetchPendingRequests(); }, []);
+  useEffect(() => { fetchVaults(); fetchPendingRequests(); fetchRenewals(); }, []);
 
   // ─── Derived data ───
   const activeVaults = vaults.filter(v => v.status === "active" && v.bm_link !== GENERIC_BM_LINK);
