@@ -387,7 +387,7 @@ const App = () => {
                   <Route path="trocas" element={<AdminTrocas />} />
                   <Route path="gestao-bms" element={<AdminGestaoBMs />} />
                   <Route path="gestao-perfis" element={<AdminGestaoPerfis />} />
-                  <Route path="parceiros" element={<AdminParceiros />} />
+                  <Route path="parceiros" element={<AdminAfiliados />} />
                   <Route path="api" element={<AdminApi />} />
                   <Route path="anuncios" element={<AdminAnuncios />} />
                   <Route path="chat" element={<AdminTeamChat />} />
