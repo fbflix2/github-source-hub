@@ -192,11 +192,13 @@ export default function Auth() {
         variant: "destructive",
       });
     } else {
-      // Save CPF to profile
+      // Save CPF and Referrer to profile
       if (signUpData?.user) {
+        const partnerRefId = localStorage.getItem("partner_ref_id");
         await supabase.from("profiles").update({ 
           cpf: registerCpf.replace(/\D/g, ""),
           full_name: registerName.trim(),
+          referrer_id: partnerRefId || null,
         }).eq("user_id", signUpData.user.id);
       }
       toast({
