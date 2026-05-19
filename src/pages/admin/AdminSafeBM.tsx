@@ -163,6 +163,16 @@ export default function AdminSafeBM() {
     setPendingRequests((data as any[]) || []);
   };
 
+  const fetchRenewals = async () => {
+    const { data, error } = await supabase
+      .from("safe_bm_renewals")
+      .select("*, vault:vault_id(bm_name, bm_link, backup_link)")
+      .order("created_at", { ascending: false });
+    if (error) toast.error("Erro ao carregar renovações: " + error.message);
+    else setRenewals(data || []);
+  };
+
+
   const checkAllLinksHealth = async (vaultIds?: string[]) => {
     setCheckingHealth(true);
     if (vaultIds) setCheckingIds(new Set(vaultIds));
