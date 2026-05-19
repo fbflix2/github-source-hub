@@ -2543,6 +2543,7 @@ export type Database = {
           numero: string | null
           phone: string | null
           preferred_proxy_city: string | null
+          referrer_id: string | null
           rua: string | null
           show_proxy_city_on_checkout: boolean
           status: string
@@ -2575,6 +2576,7 @@ export type Database = {
           numero?: string | null
           phone?: string | null
           preferred_proxy_city?: string | null
+          referrer_id?: string | null
           rua?: string | null
           show_proxy_city_on_checkout?: boolean
           status?: string
@@ -2607,6 +2609,7 @@ export type Database = {
           numero?: string | null
           phone?: string | null
           preferred_proxy_city?: string | null
+          referrer_id?: string | null
           rua?: string | null
           show_proxy_city_on_checkout?: boolean
           status?: string
@@ -2614,7 +2617,15 @@ export type Database = {
           user_id?: string
           verified?: boolean
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_referrer_id_fkey"
+            columns: ["referrer_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       proxy_usage_alerts: {
         Row: {

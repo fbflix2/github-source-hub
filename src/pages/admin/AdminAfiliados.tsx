@@ -1,584 +1,617 @@
-import { useState } from "react";
-import { TrendingUp, Search, Download, CreditCard, Plus, MoreVertical, ChevronLeft, ChevronRight, BarChart3, Wallet, ShoppingCart, Users, Calendar, Info } from "lucide-react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { 
+  Users, Plus, Pencil, Trash2, Search, Link2, 
+  DollarSign, Check, X, Eye, EyeOff, TrendingUp, 
+  Wallet, ShoppingCart, Calendar, ArrowRight, Info
+} from "lucide-react";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 
-type AffiliateStatus = "active" | "pending" | "blocked";
-type FilterType = "all" | "active" | "pending" | "top" | "new";
-
-interface Affiliate {
+interface Partner {
   id: string;
-  name: string;
-  email: string;
-  avatar?: string;
-  commission: number;
-  totalSales: number;
-  pending: number;
-  status: AffiliateStatus;
-  lastLogin: string;
+  user_id: string;
+  slug: string;
+  commission_rate: number;
+  guarantee_days: number;
+  balance: number;
+  total_earned: number;
+  total_referrals: number;
+  status: string;
+  created_at: string;
+  profile_name?: string;
+  profile_email?: string;
 }
 
-interface TopPerformer {
-  name: string;
-  value: number;
-  height: number;
-  isHighlight: boolean;
+interface Referral {
+  id: string;
+  partner_id: string;
+  referred_user_id: string;
+  order_id: string | null;
+  order_total: number;
+  commission_amount: number;
+  status: string;
+  credited_at: string | null;
+  created_at: string;
+  referred_user_name?: string;
 }
-
-const mockAffiliates: Affiliate[] = [
-  {
-    id: "1",
-    name: "João Silva",
-    email: "joao.silva@fbflix.com",
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop",
-    commission: 15,
-    totalSales: 15420,
-    pending: 2313,
-    status: "active",
-    lastLogin: "2 horas atrás",
-  },
-  {
-    id: "2",
-    name: "Maria Oliveira",
-    email: "maria.oli@fbflix.com",
-    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop",
-    commission: 10,
-    totalSales: 8200,
-    pending: 0,
-    status: "pending",
-    lastLogin: "1 dia atrás",
-  },
-  {
-    id: "3",
-    name: "Carlos Souza",
-    email: "carlos.s@fbflix.com",
-    avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop",
-    commission: 20,
-    totalSales: 45100,
-    pending: 9020,
-    status: "active",
-    lastLogin: "5 min atrás",
-  },
-  {
-    id: "4",
-    name: "Ana Pereira",
-    email: "ana.p@fbflix.com",
-    avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop",
-    commission: 12,
-    totalSales: 3500,
-    pending: 420,
-    status: "blocked",
-    lastLogin: "1 mês atrás",
-  },
-  {
-    id: "5",
-    name: "Pedro Santos",
-    email: "pedro.s@fbflix.com",
-    avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop",
-    commission: 15,
-    totalSales: 12000,
-    pending: 1800,
-    status: "active",
-    lastLogin: "3 dias atrás",
-  },
-];
-
-const topPerformers: TopPerformer[] = [
-  { name: "Ana S.", value: 0, height: 96, isHighlight: false },
-  { name: "Carlos E.", value: 0, height: 128, isHighlight: false },
-  { name: "Marcos V.", value: 42000, height: 192, isHighlight: true },
-  { name: "Julia R.", value: 0, height: 80, isHighlight: false },
-  { name: "Pedro H.", value: 0, height: 112, isHighlight: false },
-];
 
 export default function AdminAfiliados() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [activeFilter, setActiveFilter] = useState<FilterType>("all");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [selectedAffiliates, setSelectedAffiliates] = useState<string[]>([]);
+  const [partners, setPartners] = useState<Partner[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [editingPartner, setEditingPartner] = useState<Partner | null>(null);
+  const [showReferrals, setShowReferrals] = useState<string | null>(null);
+  const [referrals, setReferrals] = useState<Referral[]>([]);
+  const [loadingReferrals, setLoadingReferrals] = useState(false);
 
-  const formatCurrency = (value: number) => {
-    return value.toLocaleString("pt-BR", { minimumFractionDigits: 2 });
+  // Form state
+  const [formEmail, setFormEmail] = useState("");
+  const [formSlug, setFormSlug] = useState("");
+  const [formRate, setFormRate] = useState("10");
+  const [formDays, setFormDays] = useState("7");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { loadPartners(); }, []);
+
+  const loadPartners = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("partners")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) { toast.error("Erro ao carregar parceiros"); setLoading(false); return; }
+
+    // Load profiles for names
+    const userIds = (data || []).map((p: any) => p.user_id);
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("user_id, full_name")
+      .in("user_id", userIds);
+
+    // Load emails via edge function
+    let emailMap: Record<string, string> = {};
+    try {
+      const { data: emailData } = await supabase.functions.invoke("list-user-emails", {
+        body: { user_ids: userIds },
+      });
+      if (emailData?.emails) {
+        emailData.emails.forEach((e: any) => { emailMap[e.id] = e.email; });
+      }
+    } catch (e) {
+      console.error("Error loading emails:", e);
+    }
+
+    const profileMap = new Map((profiles || []).map((p: any) => [p.user_id, p.full_name]));
+
+    const enriched = (data || []).map((p: any) => ({
+      ...p,
+      profile_name: profileMap.get(p.user_id) || "—",
+      profile_email: emailMap[p.user_id] || "—",
+    }));
+
+    setPartners(enriched);
+    setLoading(false);
   };
 
-  const getStatusBadge = (status: AffiliateStatus) => {
-    switch (status) {
-      case "active":
-        return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-            Ativo
-          </span>
-        );
-      case "pending":
-        return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">
-            Pendente
-          </span>
-        );
-      case "blocked":
-        return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-500/10 text-red-400 border border-red-500/20">
-            Bloqueado
-          </span>
-        );
-    }
+  const openCreate = () => {
+    setEditingPartner(null);
+    setFormEmail("");
+    setFormSlug("");
+    setFormRate("10");
+    setFormDays("7");
+    setShowModal(true);
   };
 
-  const filteredAffiliates = mockAffiliates.filter((aff) => {
-    const matchesSearch =
-      aff.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      aff.email.toLowerCase().includes(searchTerm.toLowerCase());
+  const openEdit = (p: Partner) => {
+    setEditingPartner(p);
+    setFormEmail(p.profile_email || "");
+    setFormSlug(p.slug);
+    setFormRate(String(p.commission_rate));
+    setFormDays(String(p.guarantee_days));
+    setShowModal(true);
+  };
 
-    switch (activeFilter) {
-      case "active":
-        return matchesSearch && aff.status === "active";
-      case "pending":
-        return matchesSearch && aff.status === "pending";
-      case "top":
-        return matchesSearch && aff.totalSales > 10000;
-      case "new":
-        return matchesSearch;
-      default:
-        return matchesSearch;
-    }
-  });
+  const handleSave = async () => {
+    if (!formSlug.trim()) { toast.error("Slug é obrigatório"); return; }
+    const slug = formSlug.trim().toLowerCase().replace(/[^a-z0-9-]/g, "");
+    if (!slug) { toast.error("Slug inválido"); return; }
 
-  const toggleSelectAll = () => {
-    if (selectedAffiliates.length === filteredAffiliates.length) {
-      setSelectedAffiliates([]);
+    setSaving(true);
+
+    if (editingPartner) {
+      const { error } = await supabase.from("partners").update({
+        slug,
+        commission_rate: parseFloat(formRate) || 10,
+        guarantee_days: parseInt(formDays) || 7,
+      }).eq("id", editingPartner.id);
+
+      if (error) {
+        toast.error(error.message.includes("unique") ? "Slug já está em uso" : "Erro ao atualizar");
+      } else {
+        toast.success("Parceiro atualizado!");
+        setShowModal(false);
+        loadPartners();
+      }
     } else {
-      setSelectedAffiliates(filteredAffiliates.map((a) => a.id));
+      // Find user by email
+      if (!formEmail.trim()) { toast.error("E-mail é obrigatório"); setSaving(false); return; }
+
+      let userId: string | null = null;
+      try {
+        const { data: emailData } = await supabase.functions.invoke("list-user-emails", {
+          body: {},
+        });
+        if (emailData?.emails) {
+          const searchEmail = formEmail.trim().toLowerCase();
+          const entries = Object.entries(emailData.emails as Record<string, string>);
+          const found = entries.find(([, email]) => email.toLowerCase() === searchEmail);
+          if (found) {
+            userId = found[0];
+          }
+        }
+      } catch (e) {
+        console.error("Error finding user:", e);
+      }
+
+      if (!userId) {
+        toast.error("Usuário não encontrado com este e-mail");
+        setSaving(false);
+        return;
+      }
+
+      // Check if already a partner
+      const { data: existing } = await supabase.from("partners").select("id").eq("user_id", userId).maybeSingle();
+      if (existing) {
+        toast.error("Este usuário já é um parceiro");
+        setSaving(false);
+        return;
+      }
+
+      const { error } = await supabase.from("partners").insert({
+        user_id: userId,
+        slug,
+        commission_rate: parseFloat(formRate) || 10,
+        guarantee_days: parseInt(formDays) || 7,
+      });
+
+      if (error) {
+        toast.error(error.message.includes("unique") ? "Slug já está em uso" : "Erro ao criar parceiro");
+      } else {
+        toast.success("Parceiro criado!");
+        setShowModal(false);
+        loadPartners();
+      }
+    }
+    setSaving(false);
+  };
+
+  const toggleStatus = async (p: Partner) => {
+    const newStatus = p.status === "active" ? "inactive" : "active";
+    await supabase.from("partners").update({ status: newStatus }).eq("id", p.id);
+    toast.success(newStatus === "active" ? "Parceiro ativado" : "Parceiro desativado");
+    loadPartners();
+  };
+
+  const deletePartner = async (p: Partner) => {
+    if (!confirm("Tem certeza que deseja excluir este parceiro?")) return;
+    await supabase.from("partners").delete().eq("id", p.id);
+    toast.success("Parceiro excluído");
+    loadPartners();
+  };
+
+  const openReferrals = async (partnerId: string) => {
+    setShowReferrals(partnerId);
+    setLoadingReferrals(true);
+    const { data } = await supabase
+      .from("partner_referrals")
+      .select("*")
+      .eq("partner_id", partnerId)
+      .order("created_at", { ascending: false });
+    
+    // Enrich with referred user names
+    if (data && data.length > 0) {
+      const userIds = data.map(r => r.referred_user_id);
+      const { data: profiles } = await supabase.from("profiles").select("user_id, full_name").in("user_id", userIds);
+      const profileMap = new Map(profiles?.map(p => [p.user_id, p.full_name]));
+      const enriched = data.map(r => ({
+        ...r,
+        referred_user_name: profileMap.get(r.referred_user_id) || "Desconhecido"
+      }));
+      setReferrals(enriched as Referral[]);
+    } else {
+      setReferrals([]);
+    }
+    setLoadingReferrals(false);
+  };
+
+  const creditReferral = async (ref: Referral) => {
+    try {
+      // Credit the commission to partner balance
+      const partner = partners.find(p => p.id === ref.partner_id);
+      if (!partner) return;
+
+      const newBalance = partner.balance + ref.commission_amount;
+      const newTotalEarned = partner.total_earned + ref.commission_amount;
+
+      await supabase.from("partners").update({
+        balance: newBalance,
+        total_earned: newTotalEarned,
+      }).eq("id", partner.id);
+
+      // Also credit to user's wallet balance
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("balance")
+        .eq("user_id", partner.user_id)
+        .single();
+
+      if (profile) {
+        const walletBalance = profile.balance + ref.commission_amount;
+        await supabase.from("profiles").update({ balance: walletBalance }).eq("user_id", partner.user_id);
+        await supabase.from("wallet_transactions").insert({
+          user_id: partner.user_id,
+          type: "credit",
+          title: `Comissão de parceiro`,
+          amount: ref.commission_amount,
+          balance_after: walletBalance,
+          reference_id: ref.id,
+        });
+      }
+
+      await supabase.from("partner_referrals").update({
+        status: "credited",
+        credited_at: new Date().toISOString(),
+      }).eq("id", ref.id);
+
+      toast.success("Comissão creditada!");
+      openReferrals(ref.partner_id);
+      loadPartners();
+    } catch (e) {
+      console.error("Error crediting referral:", e);
+      toast.error("Erro ao creditar comissão");
     }
   };
 
-  const toggleSelect = (id: string) => {
-    setSelectedAffiliates((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
-    );
-  };
+  const filtered = partners.filter(p =>
+    (p.profile_name || "").toLowerCase().includes(search.toLowerCase()) ||
+    (p.profile_email || "").toLowerCase().includes(search.toLowerCase()) ||
+    p.slug.toLowerCase().includes(search.toLowerCase())
+  );
 
-  const totalAffiliates = 1248;
-  const totalPages = 24;
+  const stats = {
+    totalPartners: partners.length,
+    activePartners: partners.filter(p => p.status === 'active').length,
+    totalEarned: partners.reduce((sum, p) => sum + p.total_earned, 0),
+    totalBalance: partners.reduce((sum, p) => sum + p.balance, 0),
+  };
 
   return (
-    <div className="flex flex-col gap-6 py-6">
-      {/* Header */}
-      <h1 className="text-3xl font-black tracking-tight text-white mb-2">
-        Controle de Afiliados
-      </h1>
+    <div className="flex flex-col gap-6 py-6 animate-fade-in">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-black tracking-tight text-white mb-1">
+            Controle de Afiliados
+          </h1>
+          <p className="text-neutral-400 text-sm italic">Gerencie parceiros, comissões e links de indicação</p>
+        </div>
+        <Button onClick={openCreate} className="h-10 px-5 bg-primary hover:bg-primary/80 text-white shadow-[0_0_15px_rgba(249,6,6,0.4)] hover:shadow-[0_0_25px_rgba(249,6,6,0.6)] transition-all text-sm font-bold gap-2">
+          <Plus className="size-4" /> Cadastrar Novo
+        </Button>
+      </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Comissões a Pagar */}
-        <div className="bg-[rgba(20,20,20,0.6)] backdrop-blur-xl border border-white/[0.08] rounded-xl p-5 relative overflow-hidden group">
-          <div className="absolute bottom-0 left-0 w-2/3 h-[2px] bg-gradient-to-r from-primary to-transparent opacity-80" />
-          <div className="absolute top-1/2 -translate-y-1/2 right-2 opacity-15 text-neutral-500">
-            <Wallet className="w-16 h-16" />
-          </div>
-          <div className="flex justify-between items-start mb-4">
-            <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">
-              Comissões a Pagar
-            </span>
-            <span className="bg-[#3d1818] text-red-200 text-[10px] font-bold px-2 py-0.5 rounded-full border border-red-900/30">
-              Pendente
-            </span>
-          </div>
-          <div className="flex flex-col gap-1">
-            <span className="text-3xl font-bold text-white">R$ 12.450,00</span>
-            <div className="flex items-center gap-1 text-xs text-emerald-400 font-medium">
-              <TrendingUp className="w-4 h-4" />
-              <span>+5.2% vs mês anterior</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Vendas no Mês */}
-        <div className="bg-[rgba(20,20,20,0.6)] backdrop-blur-xl border border-white/[0.08] rounded-xl p-5 relative overflow-hidden group">
-          <div className="absolute top-1/2 -translate-y-1/2 right-2 opacity-15 text-neutral-500">
-            <ShoppingCart className="w-16 h-16" />
-          </div>
-          <div className="flex justify-between items-start mb-4">
-            <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">
-              Vendas no Mês
-            </span>
-          </div>
-          <div className="flex flex-col gap-1">
-            <span className="text-3xl font-bold text-white">R$ 145.200,00</span>
-            <div className="flex items-center gap-1 text-xs text-emerald-400 font-medium">
-              <TrendingUp className="w-4 h-4" />
-              <span>+12.0% meta batida</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Afiliados Ativos */}
-        <div className="bg-[rgba(20,20,20,0.6)] backdrop-blur-xl border border-white/[0.08] rounded-xl p-5 relative overflow-hidden group">
+        <div className="bg-[rgba(20,20,20,0.6)] backdrop-blur-xl border border-white/[0.08] rounded-xl p-5 relative overflow-hidden">
           <div className="absolute top-1/2 -translate-y-1/2 right-2 opacity-15 text-neutral-500">
             <Users className="w-16 h-16" />
           </div>
-          <div className="flex justify-between items-start mb-4">
-            <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">
-              Afiliados Ativos
-            </span>
-          </div>
-          <div className="flex flex-col gap-1">
-            <span className="text-3xl font-bold text-white">42</span>
-            <div className="flex items-center gap-1 text-xs text-neutral-500 font-medium">
-              <span>Total de 156 cadastrados</span>
-            </div>
-          </div>
+          <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-4">Total Afiliados</p>
+          <p className="text-3xl font-bold text-white">{stats.totalPartners}</p>
+          <p className="text-xs text-emerald-400 mt-1">{stats.activePartners} ativos agora</p>
         </div>
 
-        {/* Próximo Pagamento */}
-        <div className="bg-[rgba(20,20,20,0.6)] backdrop-blur-xl border border-white/[0.08] rounded-xl p-5 relative overflow-hidden group border-r-4 border-r-primary/20">
+        <div className="bg-[rgba(20,20,20,0.6)] backdrop-blur-xl border border-white/[0.08] rounded-xl p-5 relative overflow-hidden">
           <div className="absolute top-1/2 -translate-y-1/2 right-2 opacity-15 text-neutral-500">
-            <Calendar className="w-16 h-16" />
+            <TrendingUp className="w-16 h-16" />
           </div>
-          <div className="absolute top-3 right-3">
-            <Info className="w-4 h-4 text-neutral-600 cursor-help" />
+          <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-4">Total em Comissões</p>
+          <p className="text-3xl font-bold text-white">R$ {stats.totalEarned.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+          <p className="text-xs text-neutral-500 mt-1">Acumulado lifetime</p>
+        </div>
+
+        <div className="bg-[rgba(20,20,20,0.6)] backdrop-blur-xl border border-white/[0.08] rounded-xl p-5 relative overflow-hidden">
+          <div className="absolute top-1/2 -translate-y-1/2 right-2 opacity-15 text-neutral-500">
+            <Wallet className="w-16 h-16" />
           </div>
-          <div className="flex justify-between items-start mb-4">
-            <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">
-              Próximo Pagamento
-            </span>
+          <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-4">Saldo a Pagar</p>
+          <p className="text-3xl font-bold text-primary">R$ {stats.totalBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+          <p className="text-xs text-amber-500 mt-1">Aguardando solicitação</p>
+        </div>
+
+        <div className="bg-[rgba(20,20,20,0.6)] backdrop-blur-xl border border-white/[0.08] rounded-xl p-5 relative overflow-hidden">
+          <div className="absolute top-1/2 -translate-y-1/2 right-2 opacity-15 text-neutral-500">
+            <ShoppingCart className="w-16 h-16" />
           </div>
-          <div className="flex flex-col gap-1">
-            <span className="text-3xl font-bold text-white">15 Nov</span>
-            <div className="flex items-center gap-1 text-xs text-neutral-500 font-medium">
-              <span>Restam 5 dias</span>
-            </div>
-          </div>
+          <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-4">Indicações</p>
+          <p className="text-3xl font-bold text-white">{partners.reduce((s, p) => s + p.total_referrals, 0)}</p>
+          <p className="text-xs text-neutral-500 mt-1">Vendas geradas por parceiros</p>
         </div>
       </div>
 
-      {/* Charts and Filters Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Top Performance Chart */}
-        <div className="lg:col-span-2 bg-[rgba(20,20,20,0.6)] backdrop-blur-xl border border-white/[0.08] rounded-xl p-6 flex flex-col min-h-[300px]">
-          <div className="flex justify-between items-center mb-8">
-            <div className="flex items-center gap-2">
-              <BarChart3 className="w-5 h-5 text-primary" />
-              <h3 className="text-lg font-bold text-white">Top Performance (Top 5)</h3>
-            </div>
-            <div className="bg-neutral-900/50 border border-neutral-800 rounded-lg px-3 py-1.5 flex items-center gap-2 cursor-pointer hover:border-neutral-600 transition-colors">
-              <span className="text-xs text-neutral-300">Este Mês</span>
-              <ChevronRight className="w-4 h-4 text-neutral-500 rotate-90" />
-            </div>
-          </div>
-          <div className="flex items-end justify-between h-full gap-4 px-4 pb-2">
-            {topPerformers.map((performer, index) => (
-              <div key={index} className="flex flex-col items-center gap-2 w-full group cursor-pointer">
-                {performer.isHighlight && (
-                  <span className="text-xs font-bold text-white mb-1">R$ 42k</span>
-                )}
-                <div
-                  className={`w-full max-w-[40px] rounded-t-sm transition-all ${
-                    performer.isHighlight
-                      ? "bg-gradient-to-b from-primary to-[#8a0000] shadow-[0_0_15px_rgba(249,6,6,0.3)]"
-                      : "bg-gradient-to-b from-[#333] to-[#1a1a1a] group-hover:from-neutral-600"
-                  }`}
-                  style={{ height: `${performer.height}px` }}
-                />
-                <span
-                  className={`text-[10px] font-medium ${
-                    performer.isHighlight ? "text-white font-bold" : "text-neutral-500"
-                  }`}
-                >
-                  {performer.name}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Quick Filters */}
-        <div className="bg-[rgba(20,20,20,0.6)] backdrop-blur-xl border border-white/[0.08] rounded-xl p-6 flex flex-col">
-          <h3 className="text-lg font-bold text-white mb-6">Filtros Rápidos</h3>
-          <div className="flex flex-wrap gap-3 mb-auto">
-            <Button
-              onClick={() => setActiveFilter("all")}
-              className={`px-4 py-2 rounded-full text-sm transition-all ${
-                activeFilter === "all"
-                  ? "bg-primary hover:bg-primary/80 text-white font-semibold shadow-[0_0_15px_rgba(249,6,6,0.3)]"
-                  : "bg-neutral-900/50 hover:bg-neutral-800 border border-neutral-800 hover:border-neutral-600 text-neutral-400 hover:text-white font-medium"
-              }`}
-            >
-              Todos
-            </Button>
-            <Button
-              onClick={() => setActiveFilter("active")}
-              className={`px-4 py-2 rounded-full text-sm transition-all ${
-                activeFilter === "active"
-                  ? "bg-primary hover:bg-primary/80 text-white font-semibold shadow-[0_0_15px_rgba(249,6,6,0.3)]"
-                  : "bg-neutral-900/50 hover:bg-neutral-800 border border-neutral-800 hover:border-neutral-600 text-neutral-400 hover:text-white font-medium"
-              }`}
-            >
-              Ativos
-            </Button>
-            <Button
-              onClick={() => setActiveFilter("pending")}
-              className={`px-4 py-2 rounded-full text-sm transition-all ${
-                activeFilter === "pending"
-                  ? "bg-primary hover:bg-primary/80 text-white font-semibold shadow-[0_0_15px_rgba(249,6,6,0.3)]"
-                  : "bg-neutral-900/50 hover:bg-neutral-800 border border-neutral-800 hover:border-neutral-600 text-neutral-400 hover:text-white font-medium"
-              }`}
-            >
-              Pendentes
-            </Button>
-            <Button
-              onClick={() => setActiveFilter("top")}
-              className={`px-4 py-2 rounded-full text-sm transition-all ${
-                activeFilter === "top"
-                  ? "bg-primary hover:bg-primary/80 text-white font-semibold shadow-[0_0_15px_rgba(249,6,6,0.3)]"
-                  : "bg-neutral-900/50 hover:bg-neutral-800 border border-neutral-800 hover:border-neutral-600 text-neutral-400 hover:text-white font-medium"
-              }`}
-            >
-              Top Performance
-            </Button>
-            <Button
-              onClick={() => setActiveFilter("new")}
-              className={`px-4 py-2 rounded-full text-sm transition-all ${
-                activeFilter === "new"
-                  ? "bg-primary hover:bg-primary/80 text-white font-semibold shadow-[0_0_15px_rgba(249,6,6,0.3)]"
-                  : "bg-neutral-900/50 hover:bg-neutral-800 border border-neutral-800 hover:border-neutral-600 text-neutral-400 hover:text-white font-medium"
-              }`}
-            >
-              Novos
-            </Button>
-          </div>
-
-          {/* Monthly Goal Progress */}
-          <div className="mt-8 pt-6 border-t border-neutral-800">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-xs font-semibold text-neutral-500 uppercase">
-                Progresso da Meta Mensal
-              </span>
-            </div>
-            <div className="w-full bg-neutral-900 rounded-full h-2 mb-2 overflow-hidden">
-              <div className="bg-primary h-2 rounded-full" style={{ width: "78%" }} />
-            </div>
-            <div className="flex justify-between items-center text-xs">
-              <span className="font-bold text-white">78%</span>
-              <span className="text-neutral-500">Meta: R$ 180k</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Search and Actions Bar */}
+      {/* Search Bar */}
       <div className="bg-[rgba(20,20,20,0.6)] backdrop-blur-xl border border-white/[0.08] rounded-xl p-4 flex flex-col md:flex-row justify-between items-center gap-4 sticky top-4 z-20 shadow-2xl shadow-black/50">
         <div className="relative w-full md:w-96 group">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-500 group-focus-within:text-white transition-colors" />
           <Input
             className="w-full rounded-lg border border-neutral-800 bg-neutral-900/50 py-2.5 pl-10 pr-4 text-sm text-white placeholder-neutral-500 focus:border-primary focus:ring-1 focus:ring-primary transition-all h-11"
-            placeholder="Buscar por nome, email ou ID..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Buscar por nome, email ou slug..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
-          <Button
-            variant="outline"
-            className="h-10 px-4 bg-transparent border border-neutral-700 hover:border-white text-neutral-300 hover:text-white transition-all text-sm font-semibold gap-2"
-          >
-            <Download className="w-5 h-5" />
-            <span className="hidden sm:inline">Exportar</span>
-          </Button>
-          <Button className="h-10 px-4 bg-[#2a1212] border border-[#4a2121] hover:bg-[#3d1818] text-red-200 transition-all text-sm font-semibold gap-2">
-            <CreditCard className="w-5 h-5" />
-            <span>Pagar Comissões</span>
-          </Button>
-          <Button className="h-10 px-5 bg-primary hover:bg-primary/80 text-white shadow-[0_0_15px_rgba(249,6,6,0.4)] hover:shadow-[0_0_25px_rgba(249,6,6,0.6)] transition-all text-sm font-bold gap-2">
-            <Plus className="w-5 h-5" />
-            <span>Cadastrar Novo</span>
-          </Button>
+        <div className="flex gap-2">
+           <p className="text-xs text-neutral-500 italic max-w-xs text-right">
+             Dica: Ative o status para que o usuário veja o botão "Painel Parceiro" no menu.
+           </p>
         </div>
       </div>
 
-      {/* Affiliates Table */}
-      <div className="bg-[rgba(20,20,20,0.6)] backdrop-blur-xl border border-white/[0.08] rounded-xl overflow-hidden flex flex-col flex-1 min-h-[500px]">
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow className="border-b border-neutral-800 bg-neutral-900/40 hover:bg-neutral-900/40">
-                <TableHead className="w-12 text-center">
-                  <Checkbox
-                    checked={selectedAffiliates.length === filteredAffiliates.length && filteredAffiliates.length > 0}
-                    onCheckedChange={toggleSelectAll}
-                    className="border-neutral-700 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-                  />
-                </TableHead>
-                <TableHead className="text-xs font-semibold tracking-wide text-neutral-400 uppercase w-16">
-                  Perfil
-                </TableHead>
-                <TableHead className="text-xs font-semibold tracking-wide text-neutral-400 uppercase">
-                  Nome
-                </TableHead>
-                <TableHead className="text-xs font-semibold tracking-wide text-neutral-400 uppercase hidden md:table-cell">
-                  Email
-                </TableHead>
-                <TableHead className="text-xs font-semibold tracking-wide text-neutral-400 uppercase text-right">
-                  Comissão
-                </TableHead>
-                <TableHead className="text-xs font-semibold tracking-wide text-neutral-400 uppercase text-right">
-                  Vendas Totais
-                </TableHead>
-                <TableHead className="text-xs font-semibold tracking-wide text-neutral-400 uppercase text-right">
-                  Pendente
-                </TableHead>
-                <TableHead className="text-xs font-semibold tracking-wide text-neutral-400 uppercase text-center">
-                  Status
-                </TableHead>
-                <TableHead className="text-xs font-semibold tracking-wide text-neutral-400 uppercase hidden lg:table-cell">
-                  Último Login
-                </TableHead>
-                <TableHead className="text-xs font-semibold tracking-wide text-neutral-400 uppercase w-16 text-center">
-                  Ações
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody className="divide-y divide-neutral-800/50 text-sm">
-              {filteredAffiliates.map((affiliate, index) => (
-                <TableRow
-                  key={affiliate.id}
-                  className={`group hover:bg-white/[0.02] transition-colors ${
-                    index % 2 === 1 ? "bg-white/[0.005]" : ""
-                  }`}
-                >
-                  <TableCell className="text-center">
-                    <Checkbox
-                      checked={selectedAffiliates.includes(affiliate.id)}
-                      onCheckedChange={() => toggleSelect(affiliate.id)}
-                      className="border-neutral-700 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <div
-                      className="h-10 w-10 rounded-full bg-neutral-800 bg-cover bg-center ring-2 ring-transparent group-hover:ring-neutral-700 transition-all"
-                      style={{ backgroundImage: `url(${affiliate.avatar})` }}
-                    />
-                  </TableCell>
-                  <TableCell
-                    className={`font-medium ${
-                      affiliate.status === "blocked" ? "text-neutral-400 line-through" : "text-white"
-                    }`}
-                  >
-                    {affiliate.name}
-                  </TableCell>
-                  <TableCell
-                    className={`hidden md:table-cell ${
-                      affiliate.status === "blocked" ? "text-neutral-500" : "text-neutral-400"
-                    }`}
-                  >
-                    {affiliate.email}
-                  </TableCell>
-                  <TableCell
-                    className={`text-right tabular-nums ${
-                      affiliate.status === "blocked" ? "text-neutral-500" : "text-neutral-300"
-                    }`}
-                  >
-                    {affiliate.commission}%
-                  </TableCell>
-                  <TableCell
-                    className={`text-right font-medium tabular-nums ${
-                      affiliate.status === "blocked" ? "text-neutral-500" : "text-white"
-                    }`}
-                  >
-                    R$ {formatCurrency(affiliate.totalSales)}
-                  </TableCell>
-                  <TableCell
-                    className={`text-right tabular-nums ${
-                      affiliate.status === "blocked"
-                        ? "text-neutral-500"
-                        : affiliate.pending > 0
-                        ? "text-primary font-bold"
-                        : "text-neutral-400"
-                    }`}
-                  >
-                    R$ {formatCurrency(affiliate.pending)}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    {getStatusBadge(affiliate.status)}
-                  </TableCell>
-                  <TableCell
-                    className={`hidden lg:table-cell text-xs ${
-                      affiliate.status === "blocked" ? "text-neutral-600" : "text-neutral-500"
-                    }`}
-                  >
-                    {affiliate.lastLogin}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <button className="text-neutral-500 hover:text-white transition-colors p-1 rounded hover:bg-neutral-800">
-                      <MoreVertical className="w-5 h-5" />
+      {/* Table */}
+      <div className="bg-[rgba(20,20,20,0.6)] backdrop-blur-xl border border-white/[0.08] rounded-xl overflow-hidden shadow-2xl">
+        <Table>
+          <TableHeader>
+            <TableRow className="border-b border-neutral-800 bg-neutral-900/40">
+              <TableHead className="text-neutral-400 font-bold uppercase text-[10px] tracking-wider">Parceiro</TableHead>
+              <TableHead className="text-neutral-400 font-bold uppercase text-[10px] tracking-wider">Link / Slug</TableHead>
+              <TableHead className="text-neutral-400 font-bold uppercase text-[10px] tracking-wider">Comissão</TableHead>
+              <TableHead className="text-neutral-400 font-bold uppercase text-[10px] tracking-wider">Saldo Atual</TableHead>
+              <TableHead className="text-neutral-400 font-bold uppercase text-[10px] tracking-wider text-center">Indicações</TableHead>
+              <TableHead className="text-neutral-400 font-bold uppercase text-[10px] tracking-wider text-center">Status</TableHead>
+              <TableHead className="text-neutral-400 font-bold uppercase text-[10px] tracking-wider text-right">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <TableRow><TableCell colSpan={7} className="text-center py-12 text-neutral-500 italic">Carregando dados dos parceiros...</TableCell></TableRow>
+            ) : filtered.length === 0 ? (
+              <TableRow><TableCell colSpan={7} className="text-center py-12 text-neutral-500 italic">Nenhum parceiro encontrado com os filtros atuais.</TableCell></TableRow>
+            ) : filtered.map(p => (
+              <TableRow key={p.id} className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors group">
+                <TableCell>
+                  <div className="flex flex-col">
+                    <p className="font-bold text-white group-hover:text-primary transition-colors">{p.profile_name}</p>
+                    <p className="text-xs text-neutral-500">{p.profile_email}</p>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono text-[11px] bg-neutral-900 text-primary px-2 py-0.5 rounded border border-white/[0.05]">
+                      /{p.slug}
+                    </span>
+                    <button 
+                      onClick={() => {
+                        const url = `${window.location.origin}/parceiro/${p.slug}`;
+                        navigator.clipboard.writeText(url);
+                        toast.success("Link copiado!");
+                      }}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:text-primary"
+                      title="Copiar link completo"
+                    >
+                      <Link2 className="size-3.5" />
                     </button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-
-        {/* Pagination */}
-        <div className="border-t border-neutral-800 bg-neutral-900/30 p-4 flex items-center justify-between mt-auto">
-          <div className="text-xs text-neutral-500 hidden sm:block">
-            Mostrando <span className="font-medium text-white">1-{filteredAffiliates.length}</span> de{" "}
-            <span className="font-medium text-white">{totalAffiliates}</span> afiliados
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-              className="flex items-center justify-center h-8 w-8 rounded-lg border border-neutral-800 bg-transparent text-neutral-400 hover:text-white hover:border-neutral-600 disabled:opacity-50 transition-colors"
-              disabled={currentPage === 1}
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            {[1, 2, 3].map((page) => (
-              <button
-                key={page}
-                onClick={() => setCurrentPage(page)}
-                className={`flex items-center justify-center h-8 w-8 rounded-lg text-xs transition-colors ${
-                  currentPage === page
-                    ? "bg-primary text-white font-bold shadow-lg shadow-red-900/50"
-                    : "border border-transparent hover:bg-neutral-800 text-neutral-400"
-                }`}
-              >
-                {page}
-              </button>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-col leading-tight">
+                    <span className="text-white font-semibold">{p.commission_rate}%</span>
+                    <span className="text-[10px] text-neutral-500">{p.guarantee_days}d garantia</span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <span className="font-black text-white">R$ {p.balance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                </TableCell>
+                <TableCell className="text-center">
+                  <button 
+                    onClick={() => openReferrals(p.id)} 
+                    className="inline-flex items-center gap-1.5 text-primary hover:underline font-bold text-sm bg-primary/5 px-3 py-1 rounded-full border border-primary/10 transition-all hover:bg-primary/10"
+                  >
+                    {p.total_referrals} <ArrowRight className="size-3" />
+                  </button>
+                </TableCell>
+                <TableCell className="text-center">
+                  <button 
+                    onClick={() => toggleStatus(p)} 
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black tracking-widest uppercase border transition-all ${
+                      p.status === "active"
+                        ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20"
+                        : "bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20"
+                    }`}
+                  >
+                    <span className={`size-1.5 rounded-full ${p.status === "active" ? "bg-emerald-400 animate-pulse" : "bg-red-400"}`} />
+                    {p.status === "active" ? "Ativo" : "Inativo"}
+                  </button>
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-1">
+                    <button
+                      onClick={() => toggleStatus(p)}
+                      title={p.status === "active" ? "Ocultar painel do parceiro" : "Mostrar painel do parceiro"}
+                      className={`p-2 rounded-lg hover:bg-white/5 transition-all ${
+                        p.status === "active" ? "text-primary" : "text-neutral-500"
+                      }`}
+                    >
+                      {p.status === "active" ? <Eye className="size-4" /> : <EyeOff className="size-4" />}
+                    </button>
+                    <button 
+                      onClick={() => openEdit(p)} 
+                      className="p-2 rounded-lg hover:bg-white/5 text-neutral-400 hover:text-white transition-all"
+                      title="Editar configurações"
+                    >
+                      <Pencil className="size-4" />
+                    </button>
+                    <button 
+                      onClick={() => deletePartner(p)} 
+                      className="p-2 rounded-lg hover:bg-red-500/10 text-neutral-500 hover:text-red-400 transition-all"
+                      title="Excluir parceiro"
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
+                  </div>
+                </TableCell>
+              </TableRow>
             ))}
-            <span className="text-neutral-600 text-xs px-1">...</span>
-            <button
-              onClick={() => setCurrentPage(totalPages)}
-              className={`flex items-center justify-center h-8 w-8 rounded-lg text-xs transition-colors ${
-                currentPage === totalPages
-                  ? "bg-primary text-white font-bold shadow-lg shadow-red-900/50"
-                  : "border border-transparent hover:bg-neutral-800 text-neutral-400"
-              }`}
-            >
-              {totalPages}
-            </button>
-            <button
-              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-              className="flex items-center justify-center h-8 w-8 rounded-lg border border-neutral-800 bg-transparent text-neutral-400 hover:text-white hover:border-neutral-600 transition-colors"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
+          </TableBody>
+        </Table>
       </div>
 
-      {/* Footer */}
-      <footer className="mt-8 text-center text-xs text-neutral-600 pb-4">
-        <p>FBFLIX Admin Dashboard • Versão 3.1.2 build 892</p>
-      </footer>
+      {/* Create/Edit Modal */}
+      <Dialog open={showModal} onOpenChange={setShowModal}>
+        <DialogContent className="bg-[#0f0f0f] border-white/[0.08] text-white">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-black italic">{editingPartner ? "EDITAR PARCEIRO" : "NOVO PARCEIRO"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6 pt-4">
+            {!editingPartner && (
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 pl-1">E-mail do usuário</label>
+                <Input 
+                  value={formEmail} 
+                  onChange={e => setFormEmail(e.target.value)} 
+                  placeholder="usuario@fbflix.com.br" 
+                  className="bg-neutral-900/50 border-white/[0.08] focus:border-primary"
+                />
+              </div>
+            )}
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 pl-1">Slug (link personalizado)</label>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-neutral-600 font-mono whitespace-nowrap">fbflix.com.br/parceiro/</span>
+                <Input 
+                  value={formSlug} 
+                  onChange={e => setFormSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))} 
+                  placeholder="nome-exclusivo" 
+                  className="bg-neutral-900/50 border-white/[0.08] focus:border-primary font-mono text-sm"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 pl-1">Comissão (%)</label>
+                <div className="relative">
+                   <Input 
+                    type="number" 
+                    value={formRate} 
+                    onChange={e => setFormRate(e.target.value)} 
+                    min="0" max="100" 
+                    className="bg-neutral-900/50 border-white/[0.08] focus:border-primary pr-8"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 font-bold text-sm">%</span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-neutral-500 pl-1">Dias de garantia</label>
+                <Input 
+                  type="number" 
+                  value={formDays} 
+                  onChange={e => setFormDays(e.target.value)} 
+                  min="0" 
+                  className="bg-neutral-900/50 border-white/[0.08] focus:border-primary"
+                />
+              </div>
+            </div>
+            <Button 
+              onClick={handleSave} 
+              disabled={saving} 
+              className="w-full h-12 bg-primary hover:bg-primary/90 text-white font-black italic tracking-widest shadow-[0_0_20px_rgba(249,6,6,0.3)] transition-all"
+            >
+              {saving ? "PROCESSANDO..." : editingPartner ? "SALVAR ALTERAÇÕES" : "CRIAR PARCEIRO"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Referrals Modal */}
+      <Dialog open={!!showReferrals} onOpenChange={() => setShowReferrals(null)}>
+        <DialogContent className="max-w-3xl bg-[#0f0f0f] border-white/[0.08] text-white">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-black italic">HISTÓRICO DE INDICAÇÕES</DialogTitle>
+          </DialogHeader>
+          <div className="pt-4">
+            {loadingReferrals ? (
+              <div className="py-12 text-center text-neutral-500 italic">Buscando histórico...</div>
+            ) : referrals.length === 0 ? (
+              <div className="py-12 text-center text-neutral-500 italic bg-white/[0.02] rounded-xl border border-dashed border-white/[0.05]">
+                <Users className="size-10 mx-auto mb-3 opacity-20" />
+                Nenhuma indicação registrada para este parceiro.
+              </div>
+            ) : (
+              <div className="overflow-x-auto max-h-[500px] rounded-lg border border-white/[0.05]">
+                <table className="w-full text-sm border-collapse">
+                  <thead className="sticky top-0 bg-[#161616] z-10">
+                    <tr className="border-b border-white/[0.08]">
+                      <th className="text-left py-3 px-4 text-neutral-400 font-bold uppercase text-[9px] tracking-widest">Data</th>
+                      <th className="text-left py-3 px-4 text-neutral-400 font-bold uppercase text-[9px] tracking-widest">Cliente</th>
+                      <th className="text-left py-3 px-4 text-neutral-400 font-bold uppercase text-[9px] tracking-widest">Valor Pedido</th>
+                      <th className="text-left py-3 px-4 text-neutral-400 font-bold uppercase text-[9px] tracking-widest">Comissão</th>
+                      <th className="text-center py-3 px-4 text-neutral-400 font-bold uppercase text-[9px] tracking-widest">Status</th>
+                      <th className="text-right py-3 px-4 text-neutral-400 font-bold uppercase text-[9px] tracking-widest">Ação</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/[0.03]">
+                    {referrals.map(ref => (
+                      <tr key={ref.id} className="hover:bg-white/[0.02] transition-colors">
+                        <td className="py-3 px-4 text-neutral-400">{new Date(ref.created_at).toLocaleDateString("pt-BR")}</td>
+                        <td className="py-3 px-4 font-medium">{ref.referred_user_name}</td>
+                        <td className="py-3 px-4 text-neutral-300">R$ {ref.order_total.toFixed(2)}</td>
+                        <td className="py-3 px-4 text-primary font-black">R$ {ref.commission_amount.toFixed(2)}</td>
+                        <td className="py-3 px-4 text-center">
+                          <span className={`inline-flex px-2 py-0.5 rounded text-[9px] font-black tracking-widest ${
+                            ref.status === "credited" ? "bg-emerald-500/10 text-emerald-500" :
+                            ref.status === "pending" ? "bg-amber-500/10 text-amber-500" :
+                            "bg-red-500/10 text-red-500"
+                          }`}>
+                            {ref.status === "credited" ? "CREDITADO" : ref.status === "pending" ? "PENDENTE" : "CANCELADO"}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          {ref.status === "pending" && (
+                            <button
+                              onClick={() => creditReferral(ref)}
+                              className="bg-emerald-500 hover:bg-emerald-600 text-white text-[10px] font-black tracking-widest uppercase px-3 py-1.5 rounded shadow-lg transition-all transform active:scale-95"
+                            >
+                              CREDITAR
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <div className="mt-6 p-4 bg-primary/5 rounded-xl border border-primary/10">
+              <div className="flex gap-3">
+                <Info className="size-5 text-primary shrink-0" />
+                <div className="text-xs text-neutral-400 leading-relaxed">
+                  <p className="font-bold text-primary mb-1 uppercase tracking-wider">Como funciona o crédito?</p>
+                  Ao clicar em <span className="text-white font-bold">CREDITAR</span>, a comissão será transferida do status Pendente para o Saldo do Parceiro. 
+                  O valor também será adicionado automaticamente à carteira do usuário para uso na loja ou saque.
+                </div>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

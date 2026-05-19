@@ -73,8 +73,11 @@ export default function Checkout() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       setCurrentUserId(user.id);
-      const { data: profile } = await supabase.from("profiles").select("phone").eq("user_id", user.id).maybeSingle();
+      const { data: profile } = await supabase.from("profiles").select("phone, referrer_id").eq("user_id", user.id).maybeSingle();
       setUserPhone(profile?.phone || null);
+      if (profile?.referrer_id && !localStorage.getItem("partner_ref_id")) {
+        localStorage.setItem("partner_ref_id", profile.referrer_id);
+      }
     }
     fetchUserPhone();
   }, []);
