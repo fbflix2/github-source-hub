@@ -211,8 +211,7 @@ export default function Checkout() {
       }
       setLoading(false);
     }
-    }
-    
+
     if (searchParams.get("type") === "safe_bm_renewal") {
       const amount = parseFloat(searchParams.get("amount") || "0");
       setProduct({
@@ -233,6 +232,7 @@ export default function Checkout() {
     }
 
     fetchData();
+
 
   }, [productId, existingOrderId, cartItems]);
 
