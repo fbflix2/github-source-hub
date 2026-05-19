@@ -547,6 +547,7 @@ export default function Checkout() {
         if (!user) return;
 
         const orderCode = `ORD-${Date.now().toString(36).toUpperCase()}`;
+        const partnerRefId = localStorage.getItem("partner_ref_id");
 
         const { data: order, error } = await supabase.from("orders").insert({
           code: orderCode,
@@ -557,6 +558,7 @@ export default function Checkout() {
           payment_method: null,
           status: "processing",
           coupon_code: null,
+          partner_id: partnerRefId || null,
         }).select("id").single();
 
         if (error) {
