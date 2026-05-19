@@ -1042,7 +1042,88 @@ export default function AdminSafeBM() {
         </div>
       )}
 
+      {/* ═══════ TAB: RENOVAÇÕES ═══════ */}
+      {activeTab === "renovacoes" && (
+        <div className="space-y-4">
+          <div className="mb-4">
+            <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+              <Timer className="size-5 text-emerald-400" />
+              Pedidos de Renovação
+            </h2>
+            <p className="text-xs text-muted-foreground">Clientes que solicitaram renovação de seus cofres</p>
+          </div>
+
+          {renewals.length === 0 ? (
+            <Card className="bg-[hsl(var(--card))] border-border">
+              <CardContent className="py-12 text-center">
+                <Clock className="size-10 mx-auto mb-3 text-muted-foreground/30" />
+                <p className="text-muted-foreground text-sm">Nenhum pedido de renovação encontrado.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="bg-[hsl(var(--card))] border-border">
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-border">
+                      <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">BM / Cofre</TableHead>
+                      <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Valor</TableHead>
+                      <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Data Pedido</TableHead>
+                      <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Status</TableHead>
+                      <TableHead className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {renewals.map(r => (
+                      <TableRow key={r.id} className="border-border hover:bg-muted/5">
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className="font-medium text-sm text-foreground">{r.vault?.bm_name || 'BM Removida'}</span>
+                            <span className="text-[10px] text-muted-foreground">ID: {r.vault_id.slice(0, 8)}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm font-bold text-emerald-400">R$ {Number(r.amount).toFixed(2)}</span>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {format(new Date(r.created_at), "dd/MM/yyyy HH:mm")}
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={`text-[9px] px-2 py-0.5 ${
+                            r.status === 'verified' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
+                            r.status === 'paid' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' :
+                            r.status === 'rejected' ? 'bg-red-500/20 text-red-400 border-red-500/30' :
+                            'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                          }`}>
+                            {r.status === 'verified' ? 'Verificado' : 
+                             r.status === 'paid' ? 'Pago' : 
+                             r.status === 'rejected' ? 'Rejeitado' : 'Pendente'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {r.status !== 'verified' && (
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="gap-1.5 h-8 text-xs border-emerald-500/30 hover:bg-emerald-500/10 text-emerald-400"
+                              onClick={() => verifyRenewal(r)}
+                            >
+                              <Check className="size-3" /> Verificar e Ativar
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+
       {/* ───── ADD / EDIT MODAL ───── */}
+
       <Dialog open={modalOpen} onOpenChange={o => { if (!o) { setModalOpen(false); resetForm(); } }}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
