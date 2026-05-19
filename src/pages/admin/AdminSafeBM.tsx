@@ -418,6 +418,38 @@ export default function AdminSafeBM() {
     else { toast.success("Removido do cofre"); fetchVaults(); }
   };
 
+  const verifyRenewal = async (renewal: any) => {
+    try {
+      const { error: renewalError } = await supabase
+        .from("safe_bm_renewals")
+        .update({ status: 'verified' })
+        .eq("id", renewal.id);
+      if (renewalError) throw renewalError;
+
+      const vault = vaults.find(v => v.id === renewal.vault_id);
+      const currentExpiry = vault?.next_billing_at ? new Date(vault.next_billing_at) : new Date(vault?.protection_start || Date.now());
+      const baseDate = isBefore(currentExpiry, new Date()) ? new Date() : currentExpiry;
+      const newExpiry = addDays(baseDate, 30);
+
+      const { error: vaultError } = await supabase
+        .from("safe_bm_vaults" as any)
+        .update({ 
+          next_billing_at: newExpiry.toISOString(),
+          last_billing_at: new Date().toISOString(),
+          status: 'active'
+        })
+        .eq("id", renewal.vault_id);
+      if (vaultError) throw vaultError;
+
+      toast.success("Renovação verificada e prazo estendido!");
+      fetchRenewals();
+      fetchVaults();
+    } catch (err: any) {
+      toast.error("Erro ao verificar renovação: " + err.message);
+    }
+  };
+
+
   const exportCSV = () => {
     const rows = [["Nome BM", "Dono/Cliente", "Status", "Data Proteção", "Regenerações"]];
     filtered.forEach(v => {
