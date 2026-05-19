@@ -107,7 +107,7 @@ function getBackupLinkTimeLeft(setAt: string | null): { expired: boolean; text: 
   return { expired: false, text: `${mins}m`, percent };
 }
 
-type TabType = "pendentes" | "monitoramento" | "expirando";
+type TabType = "pendentes" | "monitoramento" | "expirando" | "renovacoes";
 
 export default function AdminSafeBM() {
   const [vaults, setVaults] = useState<SafeBmVault[]>([]);
