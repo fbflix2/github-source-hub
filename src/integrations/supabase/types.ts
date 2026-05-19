@@ -1875,6 +1875,7 @@ export type Database = {
           created_at: string
           discount: number
           id: string
+          partner_id: string | null
           payment_expiry: string | null
           payment_last4: string | null
           payment_method: string | null
@@ -1890,6 +1891,7 @@ export type Database = {
           created_at?: string
           discount?: number
           id?: string
+          partner_id?: string | null
           payment_expiry?: string | null
           payment_last4?: string | null
           payment_method?: string | null
@@ -1905,6 +1907,7 @@ export type Database = {
           created_at?: string
           discount?: number
           id?: string
+          partner_id?: string | null
           payment_expiry?: string | null
           payment_last4?: string | null
           payment_method?: string | null
@@ -1914,7 +1917,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "orders_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       page_requests: {
         Row: {
