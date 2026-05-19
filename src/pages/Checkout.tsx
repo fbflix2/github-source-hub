@@ -211,7 +211,29 @@ export default function Checkout() {
       }
       setLoading(false);
     }
+    }
+    
+    if (searchParams.get("type") === "safe_bm_renewal") {
+      const amount = parseFloat(searchParams.get("amount") || "0");
+      setProduct({
+        id: "safe-bm-renewal",
+        name: "Renovação Safe BM",
+        description: "Renovação mensal de proteção de Business Managers",
+        price: amount,
+        image_url: null,
+        stock: 999,
+        available: true,
+        category_id: null,
+        icon_type: "shield",
+        external_id: null,
+        tags: ["renewal", "safebm"],
+      });
+      setLoading(false);
+      return;
+    }
+
     fetchData();
+
   }, [productId, existingOrderId, cartItems]);
 
   const [paymentMethod, setPaymentMethod] = useState<"saldo" | "pix" | "cartao">("saldo");
