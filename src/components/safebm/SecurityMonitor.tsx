@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useImperativeHandle, forwardRef } from "react";
 
-const MaterialIcon = ({ name, className = "" }: { name: string; className?: string }) => (
+export const MaterialIcon = ({ name, className = "" }: { name: string; className?: string }) => (
   <span className={`material-symbols-outlined ${className}`}>{name}</span>
 );
 
