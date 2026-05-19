@@ -180,7 +180,7 @@ export default function SafeBMClient() {
             <div className="grid grid-cols-3 gap-4 mt-3">
               <div>
                 <p className="text-[10px] text-[#c6c6c7]/60 uppercase font-medium">Ativos Protegidos</p>
-                <p className="text-lg font-bold text-[#e0e2ea]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{activeVaults.length}</p>
+                <p className="text-lg font-bold text-[#e0e2ea]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{allExpired ? 0 : activeVaults.length}</p>
               </div>
               <div>
                 <p className="text-[10px] text-[#c6c6c7]/60 uppercase font-medium">Alertas Hoje</p>
