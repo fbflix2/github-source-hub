@@ -162,9 +162,29 @@ Deno.serve(async (req) => {
       const country = (target_country || "BR").toUpperCase();
       console.log(`[admin-exchange] Pool fallback: scanning for unassigned ${country} proxy`);
 
-      const { data: allSubs } = await supabaseAdmin.from("subscriptions").select("raw_data").eq("type", "webshare").in("status", ["active", "expiring"]).neq("id", subscription_id);
+      // Get all currently assigned proxy IDs and IPs
+      const { data: allActiveSubs } = await supabaseAdmin
+        .from("subscriptions")
+        .select("user_id, raw_data")
+        .in("status", ["active", "expiring", "processing", "past_due", "expired"]);
+
       const assignedIds = new Set<string>();
-      for (const s of (allSubs || [])) { const r = (s.raw_data || {}) as Record<string, any>; if (r.webshare_proxy_id) assignedIds.add(r.webshare_proxy_id); }
+      const assignedIPs = new Set<string>();
+      const userUsedIPs = new Set<string>();
+
+      for (const s of (allActiveSubs || [])) {
+        const r = (s.raw_data || {}) as Record<string, any>;
+        const fid = r.webshare_proxy_id || r.fbflix_proxy_id;
+        if (fid) assignedIds.add(String(fid));
+        const fip = r.proxy_address || r.ip;
+        if (fip) {
+          assignedIPs.add(String(fip));
+          if (s.user_id === sub.user_id) userUsedIPs.add(String(fip));
+        }
+        if (s.user_id === sub.user_id && Array.isArray(r.used_ips)) {
+          r.used_ips.forEach((uip: any) => userUsedIPs.add(String(uip)));
+        }
+      }
 
       // Scan pages for candidates
       const candidates: any[] = [];
@@ -181,7 +201,10 @@ Deno.serve(async (req) => {
         if (results.length === 0) break;
         
         for (const p of results) {
-          if (p.valid && !assignedIds.has(p.id) && p.id !== raw.webshare_proxy_id) {
+          const isAssigned = assignedIds.has(String(p.id)) || assignedIPs.has(String(p.proxy_address));
+          const isPreviouslyUsed = userUsedIPs.has(String(p.proxy_address)) || (raw.used_ips && raw.used_ips.includes(p.proxy_address));
+
+          if (p.valid && !isAssigned && !isPreviouslyUsed && String(p.id) !== String(raw.webshare_proxy_id)) {
             candidates.push(p);
             if (candidates.length >= 5) break;
           }
@@ -195,7 +218,22 @@ Deno.serve(async (req) => {
       const np = candidates[0];
       console.log(`[admin-exchange] New proxy: ${np.proxy_address}:${np.port} (${np.city_name}, ${np.country_code})`);
 
-      const updatedRaw = { ...raw, webshare_proxy_id: np.id, proxy_address: np.proxy_address, port: np.port, username: np.username, password: np.password, country_code: np.country_code, city_name: np.city_name, provider: "webshare", exchange_quota_free: Math.max(0, (raw.exchange_quota_free ?? 2) - 1), exchange_count: (raw.exchange_count ?? 0) + 1, last_exchange: new Date().toISOString(), last_exchange_method: "admin_api" };
+      const updatedRaw = { 
+        ...raw, 
+        webshare_proxy_id: np.id, 
+        proxy_address: np.proxy_address, 
+        port: np.port, 
+        username: np.username, 
+        password: np.password, 
+        country_code: np.country_code, 
+        city_name: np.city_name, 
+        provider: "webshare", 
+        used_ips: [...(raw.used_ips || []), String(raw.proxy_address || "")].filter(Boolean),
+        exchange_quota_free: Math.max(0, (raw.exchange_quota_free ?? 2) - 1), 
+        exchange_count: (raw.exchange_count ?? 0) + 1, 
+        last_exchange: new Date().toISOString(), 
+        last_exchange_method: "admin_api" 
+      };
       await supabaseAdmin.from("subscriptions").update({ raw_data: updatedRaw, product_id: new_product_id || sub.product_id, updated_at: new Date().toISOString() }).eq("id", subscription_id);
 
       if (order_item_id) {
