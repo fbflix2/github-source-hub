@@ -54,12 +54,34 @@ export function ProductDetailModal({ product, open, onOpenChange, quantity, onQu
 
   if (!product) return null;
 
-  const productUrl = product.slug ? `${window.location.origin}/p/${product.slug}` : null;
+  const productUrl = product.slug ? `https://mxnlerkeygfvdnznoxld.functions.supabase.co/product-metadata/${product.slug}` : null;
 
   const handleShare = async () => {
     if (!productUrl) return;
 
-    // Se estiver em um ambiente seguro e houver suporte para o Web Share API
+    // Tenta copiar primeiro
+    try {
+      await navigator.clipboard.writeText(productUrl);
+      setShareCopied(true);
+      toast.success("Link do produto copiado!");
+      setTimeout(() => setShareCopied(false), 2000);
+    } catch (err) {
+      const textArea = document.createElement("textarea");
+      textArea.value = productUrl;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        setShareCopied(true);
+        toast.success("Link do produto copiado!");
+        setTimeout(() => setShareCopied(false), 2000);
+      } catch (e) {
+        toast.error("Erro ao copiar link");
+      }
+      document.body.removeChild(textArea);
+    }
+
+    // Tenta compartilhar nativamente
     if (navigator.share) {
       try {
         await navigator.share({
@@ -67,21 +89,9 @@ export function ProductDetailModal({ product, open, onOpenChange, quantity, onQu
           text: `Confira ${product.name} na FBFLIX!`,
           url: productUrl,
         });
-        return;
       } catch (err) {
-        // Se o usuário cancelar ou houver erro, tentamos o fallback de cópia
         console.log("Share error or cancelled", err);
       }
-    }
-
-    // Fallback: Copiar para a área de transferência
-    try {
-      await navigator.clipboard.writeText(productUrl);
-      setShareCopied(true);
-      toast.success("Link do produto copiado!");
-      setTimeout(() => setShareCopied(false), 2000);
-    } catch (err) {
-      toast.error("Erro ao copiar link");
     }
   };
 

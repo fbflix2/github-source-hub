@@ -45,12 +45,35 @@ export function ProductListItem({ product, quantity, onQuantityChange, onReadMor
   const stockInfo = getStockInfo(product);
   const [linkCopied, setLinkCopied] = useState(false);
 
-  const productUrl = product.slug ? `${window.location.origin}/p/${product.slug}` : null;
+  const productUrl = product.slug ? `https://mxnlerkeygfvdnznoxld.functions.supabase.co/product-metadata/${product.slug}` : null;
 
   const handleShare = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!productUrl) return;
 
+    // Tenta copiar primeiro
+    try {
+      await navigator.clipboard.writeText(productUrl);
+      setLinkCopied(true);
+      toast.success("Link do produto copiado!");
+      setTimeout(() => setLinkCopied(false), 2000);
+    } catch (err) {
+      const textArea = document.createElement("textarea");
+      textArea.value = productUrl;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        setLinkCopied(true);
+        toast.success("Link do produto copiado!");
+        setTimeout(() => setLinkCopied(false), 2000);
+      } catch (e) {
+        toast.error("Erro ao copiar link");
+      }
+      document.body.removeChild(textArea);
+    }
+
+    // Tenta compartilhar nativamente se disponível
     if (navigator.share) {
       try {
         await navigator.share({
@@ -58,19 +81,9 @@ export function ProductListItem({ product, quantity, onQuantityChange, onReadMor
           text: `Confira ${product.name} na FBFLIX!`,
           url: productUrl,
         });
-        return;
       } catch (err) {
         console.log("Share cancelled or failed", err);
       }
-    }
-
-    try {
-      await navigator.clipboard.writeText(productUrl);
-      setLinkCopied(true);
-      toast.success("Link do produto copiado!");
-      setTimeout(() => setLinkCopied(false), 2000);
-    } catch (err) {
-      toast.error("Erro ao copiar link");
     }
   };
   const isPromo = product.tags?.some(t => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes("promoc") || t.toLowerCase().includes("promoção") || t.toLowerCase().includes("promocao")) ?? false;

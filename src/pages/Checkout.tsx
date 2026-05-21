@@ -1447,11 +1447,11 @@ export default function Checkout() {
               {product.slug && (
                 <button
                   onClick={async () => {
-                    const url = `${window.location.origin}/produto/${product.slug}`;
+                    const url = `https://mxnlerkeygfvdnznoxld.functions.supabase.co/product-metadata/${product.slug}`;
                     try {
                       await navigator.clipboard.writeText(url);
                       setShareCopied(true);
-                      toast.success("Link copiado: " + url);
+                      toast.success("Link do produto copiado!");
                       setTimeout(() => setShareCopied(false), 2000);
                     } catch {
                       // Fallback for insecure contexts
@@ -1461,11 +1461,15 @@ export default function Checkout() {
                       ta.style.opacity = "0";
                       document.body.appendChild(ta);
                       ta.select();
-                      document.execCommand("copy");
+                      try {
+                        document.execCommand("copy");
+                        setShareCopied(true);
+                        toast.success("Link do produto copiado!");
+                        setTimeout(() => setShareCopied(false), 2000);
+                      } catch (e) {
+                        toast.error("Erro ao copiar link");
+                      }
                       document.body.removeChild(ta);
-                      setShareCopied(true);
-                      toast.success("Link copiado: " + url);
-                      setTimeout(() => setShareCopied(false), 2000);
                     }
                   }}
                   className="shrink-0 p-2 rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary/50 transition-all"
