@@ -131,7 +131,7 @@ const Index = () => {
           {/* Background Video */}
           <div className="absolute inset-0 w-full h-full">
             <iframe
-              className="absolute top-1/2 left-1/2 w-[150%] h-[150%] md:w-[115%] md:h-[115%] -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-50 grayscale contrast-125 transition-all duration-700"
+              className="absolute top-1/2 left-1/2 w-[160%] h-[160%] md:w-[115%] md:h-[115%] -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-50 grayscale contrast-125 transition-all duration-700"
               src="https://www.youtube.com/embed/FRyGMVofG8Q?autoplay=1&mute=1&loop=1&playlist=FRyGMVofG8Q&controls=0&showinfo=0&modestbranding=1&rel=0&enablejsapi=1"
               allow="autoplay; encrypted-media"
               style={{ border: 'none' }}
@@ -139,7 +139,8 @@ const Index = () => {
           </div>
 
           {/* Smoky bottom transition */}
-          <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-[#030303] via-[#030303]/80 to-transparent z-15 pointer-events-none" />
+          <div className="absolute bottom-0 left-0 right-0 h-64 bg-gradient-to-t from-[#030303] via-[#030303]/80 to-transparent z-[11] pointer-events-none" />
+
 
 
           <img
