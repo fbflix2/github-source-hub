@@ -336,6 +336,14 @@ const App = () => {
                 <Route path="/termos" element={<TermsOfService />} />
                 <Route path="/sobre" element={<Sobre />} />
                 <Route path="/produto/:slug" element={<ProductPage />} />
+                <Route 
+                  path="/p/:slug" 
+                  element={
+                    <div dangerouslySetInnerHTML={{ 
+                      __html: `<script>window.location.href = "https://rmetppilvfrxosvxzhgj.functions.supabase.co/product-metadata/" + window.location.pathname.split("/").pop();</script>` 
+                    }} />
+                  } 
+                />
                 <Route path="/saiba-mais-fbx" element={<SaibaMaisFBX />} />
                 <Route path="/saiba-mais-safebm" element={<SafeBMLanding />} />
                 <Route path="/pagar/:code" element={<PagarInvoice />} />

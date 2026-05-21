@@ -45,7 +45,7 @@ export function ProductListItem({ product, quantity, onQuantityChange, onReadMor
   const stockInfo = getStockInfo(product);
   const [linkCopied, setLinkCopied] = useState(false);
 
-  const productUrl = product.id ? `${window.location.origin}/produto/${product.slug || product.id}` : null;
+  const productUrl = product.slug ? `${window.location.origin}/p/${product.slug}` : null;
 
   const handleShare = async (e: React.MouseEvent) => {
     e.stopPropagation();

@@ -54,7 +54,7 @@ export function ProductDetailModal({ product, open, onOpenChange, quantity, onQu
 
   if (!product) return null;
 
-  const productUrl = product.id ? `${window.location.origin}/produto/${product.slug || product.id}` : null;
+  const productUrl = product.slug ? `${window.location.origin}/p/${product.slug}` : null;
 
   const handleShare = async () => {
     if (!productUrl) return;
