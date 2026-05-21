@@ -1361,12 +1361,7 @@ Deno.serve(async (req) => {
             });
           }
 
-          const poolCandidates = poolCandidatesFilter(allCurrentProxies, {
-            assignedIds, assignedIPs, userIPs, myOtherIPs, targetProxyId, targetProxyAddress, targetCountry, raw
-          });
-
-          // Wait, I haven't defined poolCandidatesFilter. I'll just do it inline for now to avoid complexity.
-          const finalPoolCandidates = allCurrentProxies.filter(
+          const poolCandidates = allCurrentProxies.filter(
             (p: any) => {
               const isAssigned = assignedIds.has(String(p.id)) || assignedIPs.has(String(p.proxy_address));
               const isPreviouslyUsed = userIPs.has(String(p.proxy_address)) || (raw.used_ips && raw.used_ips.includes(p.proxy_address));
