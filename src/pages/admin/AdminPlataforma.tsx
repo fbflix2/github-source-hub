@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Plus, Search, Trash2, SquarePen, Tag, FolderTree, Palette, X, Save, User, Briefcase, Server, Globe, Flag, CircleUser, Building2, PackageOpen, Shield, Wifi, Key, Monitor, Smartphone, CreditCard, Mail, Lock, Loader2, ImageIcon, Upload, Menu, Volume2, type LucideIcon } from "lucide-react";
+import { Plus, Search, Trash2, SquarePen, Tag, FolderTree, Palette, X, Save, User, Briefcase, Server, Globe, Flag, CircleUser, Building2, PackageOpen, Shield, Wifi, Key, Monitor, Smartphone, CreditCard, Mail, Lock, Loader2, ImageIcon, Upload, Menu, Volume2, ArrowRight, type LucideIcon } from "lucide-react";
 import ProductDefaultsTab from "@/components/admin/ProductDefaultsTab";
 import NavMenuVisibilityManager from "@/components/admin/NavMenuVisibilityManager";
 import NotificationSoundsTab from "@/components/admin/NotificationSoundsTab";
@@ -68,7 +68,7 @@ const platformIcons: PlatformIcon[] = [
 ];
 
 export default function AdminPlataforma() {
-  const [activeTab, setActiveTab] = useState<"tags" | "categorias" | "icones" | "imagens" | "padroes" | "menu" | "sons">("tags");
+  const [activeTab, setActiveTab] = useState<"tags" | "categorias" | "icones" | "imagens" | "padroes" | "menu" | "sons" | "logo">("tags");
   const [statusTags, setStatusTags] = useState<TagItem[]>(defaultStatusTags);
   const [productTags, setProductTags] = useState<TagItem[]>(defaultProductTags);
   const [searchTerm, setSearchTerm] = useState("");
@@ -213,6 +213,7 @@ export default function AdminPlataforma() {
     { key: "tags" as const, label: "Tags de Status", icon: Tag },
     { key: "categorias" as const, label: "Categorias", icon: FolderTree },
     { key: "imagens" as const, label: "Imagens de Produtos", icon: ImageIcon },
+    { key: "logo" as const, label: "Logo & Identidade", icon: ImageIcon },
     { key: "icones" as const, label: "Banco de Ícones", icon: Palette },
     { key: "padroes" as const, label: "Padrão Produtos", icon: PackageOpen },
     { key: "menu" as const, label: "Menu do Cliente", icon: Menu },
@@ -328,6 +329,87 @@ export default function AdminPlataforma() {
           className="w-full pl-12 pr-4 py-3 rounded-xl bg-black/30 border-white/10 text-sm placeholder:text-gray-500 focus:border-primary focus:ring-primary"
         />
       </div>
+
+      {/* Logo Tab */}
+      {activeTab === "logo" && (
+        <section className="bg-[rgba(20,20,20,0.6)] backdrop-blur-xl border border-white/[0.08] rounded-2xl p-6 md:p-8">
+          <div className="mb-6">
+            <h2 className="text-xl font-bold flex items-center gap-2 text-white">
+              <ImageIcon className="w-5 h-5 text-primary" />
+              Logo & Identidade Visual
+            </h2>
+            <p className="text-gray-400 text-sm mt-1">
+              Gerencie os tamanhos e o logo principal em todas as posições do site.
+            </p>
+          </div>
+          
+          <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3 text-amber-400 text-sm mb-6 flex items-center gap-2">
+            <span className="material-symbols-outlined text-base">info</span>
+            Para alterar esses valores, utilize o <strong>Editor do Site</strong> na aba <strong>Hero</strong>.
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-3">
+              <div className="flex items-center gap-2 text-primary">
+                <Globe className="size-4" />
+                <span className="text-sm font-bold uppercase">Página Inicial</span>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-gray-400">Logo Navbar (Superior)</p>
+                <p className="text-sm text-white font-mono">Tamanho configurável via Editor</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-gray-400">Logo Central (Hero)</p>
+                <p className="text-sm text-white font-mono">Tamanho configurável via Editor</p>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-3">
+              <div className="flex items-center gap-2 text-emerald-400">
+                <User className="size-4" />
+                <span className="text-sm font-bold uppercase">Painel Cliente</span>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-gray-400">Logo Navbar Superior</p>
+                <p className="text-sm text-white font-mono">Padrão: 32px a 40px (Responsivo)</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-gray-400">Espaçamento</p>
+                <p className="text-sm text-white font-mono">Margem automática</p>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-xl bg-white/5 border border-white/10 space-y-3">
+              <div className="flex items-center gap-2 text-purple-400">
+                <Shield className="size-4" />
+                <span className="text-sm font-bold uppercase">Painel Admin</span>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-gray-400">Logo Menu Lateral</p>
+                <p className="text-sm text-white font-mono">Padrão: 56px (Expandido) / 32px (Recolhido)</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-gray-400">Distância Topo</p>
+                <p className="text-sm text-white font-mono">24px</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-8 flex justify-end">
+            <Button 
+              onClick={() => {
+                const link = document.querySelector('a[href="/admin/configuracoes/site"]') as HTMLElement;
+                if (link) link.click();
+                else window.location.href = "/admin/configuracoes/site";
+              }}
+              className="bg-primary hover:bg-red-700 text-white font-bold px-6"
+            >
+              Ir para o Editor do Site
+              <ArrowRight className="size-4 ml-2" />
+            </Button>
+          </div>
+        </section>
+      )}
 
       {/* Tags Tab */}
       {activeTab === "tags" && (

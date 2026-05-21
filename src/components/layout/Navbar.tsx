@@ -1,5 +1,7 @@
+import { useState, useEffect } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import logoFbflix from "@/assets/logo-fbflix.webp";
+import { supabase } from "@/integrations/supabase/client";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,6 +38,21 @@ const allNavLinks = [
 export function Navbar({ userName, balance, avatarUrl, isPartner, onLogout, unreadTickets = 0 }: NavbarProps) {
   const location = useLocation();
   const { hiddenLinks } = useNavVisibility();
+  const [logoHeight, setLogoHeight] = useState(32);
+
+  useEffect(() => {
+    supabase.from("site_settings").select("value").eq("key", "landing_page_config").maybeSingle().then(({ data }) => {
+      if (data?.value) {
+        try {
+          const cfg = JSON.parse(data.value);
+          if (cfg.hero?.logoHeightClient) {
+            setLogoHeight(Number(cfg.hero.logoHeightClient));
+          }
+        } catch {}
+      }
+    });
+  }, []);
+
   const navLinks = allNavLinks.filter(link => !hiddenLinks.includes(link.key));
 
   return (
@@ -43,7 +60,7 @@ export function Navbar({ userName, balance, avatarUrl, isPartner, onLogout, unre
       <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
         {/* Logo */}
         <NavLink to="/loja" className="flex items-center select-none cursor-pointer mr-4 ml-4 shrink-0">
-          <img src={logoFbflix} alt="FBFLIX" className="h-10 w-auto object-contain mr-2" />
+          <img src={logoFbflix} alt="FBFLIX" style={{ height: `${logoHeight}px` }} className="w-auto object-contain mr-2" />
           <span className="sr-only">FBFLIX</span>
         </NavLink>
 
