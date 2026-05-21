@@ -1350,8 +1350,8 @@ Deno.serve(async (req) => {
             .eq("id", stockItem.id);
 
           newProxyData = {
-            fbflix_proxy_id: raw.fbflix_proxy_id,
-            proxy_address: itemData.proxy_address || itemData.ip || raw.proxy_address,
+            fbflix_proxy_id: itemData.fbflix_proxy_id || raw.fbflix_proxy_id,
+            proxy_address: itemData.proxy_address || itemData.ip,
             port: itemData.port || raw.port,
             username: itemData.username || raw.username,
             password: itemData.password || raw.password,
@@ -1359,8 +1359,14 @@ Deno.serve(async (req) => {
             city_name: itemData.city_name || raw.city_name,
             stock_item_id: stockItem.id,
           };
-          method = "stock";
-          console.log(`[webshare-exchange] Stock fallback succeeded: item ${stockItem.id}`);
+          
+          if (!newProxyData.proxy_address || newProxyData.proxy_address === raw.proxy_address) {
+            console.warn(`[webshare-exchange] Stock item ${stockItem.id} has no IP or same IP as current. Skipping.`);
+            newProxyData = null;
+          } else {
+            method = "stock";
+            console.log(`[webshare-exchange] Stock fallback succeeded: item ${stockItem.id}`);
+          }
         }
       }
 
@@ -1386,9 +1392,10 @@ Deno.serve(async (req) => {
           if (currentProxyId) assignedIds.delete(String(currentProxyId));
           if (raw.proxy_address) assignedIPs.delete(String(raw.proxy_address));
 
-          // Find an unassigned proxy matching the country
+          // Find an unassigned proxy matching the country, ensuring it's not the same ID OR the same IP
           const poolCandidates = allCurrentProxies.filter(
-            (p: any) => p.valid && !assignedIds.has(p.id) && !assignedIPs.has(p.proxy_address) && p.id !== currentProxyId
+            (p: any) => p.valid && !assignedIds.has(String(p.id)) && !assignedIPs.has(String(p.proxy_address)) 
+              && String(p.id) !== String(currentProxyId) && String(p.proxy_address) !== String(raw.proxy_address)
               && (!targetCountry || String(p.country_code).toUpperCase() === targetCountry),
           );
 
