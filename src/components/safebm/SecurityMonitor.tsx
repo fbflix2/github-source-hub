@@ -125,17 +125,18 @@ const SecurityMonitor = forwardRef<SecurityMonitorHandle, SecurityMonitorProps>(
                 className={`!text-[14px] mt-0.5 ${log.status === "done" ? "text-emerald-400" : "text-[#ffb4aa] animate-pulse"}`}
               />
               <p className="text-[10px] text-[#c6c6c7]/80 leading-snug flex-1">
-                {log.text.split(log.bmName).map((part, i, arr) => (
+                {log.text.split(new RegExp(`(${log.bmName})`, 'g')).map((part, i) => (
                   <span key={i}>
-                    {part}
-                    {i < arr.length - 1 && (
+                    {part === log.bmName ? (
                       <span 
                         className="text-emerald-400 font-bold cursor-pointer hover:underline decoration-emerald-400/30 underline-offset-2 transition-all active:scale-95 inline-block"
                         onClick={() => handleCopy(log.bmName)}
                         title="Clique para copiar"
                       >
-                        {log.bmName}
+                        {part}
                       </span>
+                    ) : (
+                      part
                     )}
                   </span>
                 ))}
