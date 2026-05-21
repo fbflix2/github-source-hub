@@ -55,7 +55,33 @@ export default function ProductPage() {
   }, [slug]);
 
   const handleShare = async () => {
-    const url = window.location.href;
+    const url = `${window.location.origin}/p/${slug}`;
+    
+    // Tenta copiar primeiro para garantir que o link está na área de transferência
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      toast.success("Link do produto copiado!");
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Erro ao copiar link:", err);
+      // Fallback simples
+      const textArea = document.createElement("textarea");
+      textArea.value = url;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        setCopied(true);
+        toast.success("Link do produto copiado!");
+        setTimeout(() => setCopied(false), 2000);
+      } catch (e) {
+        toast.error("Erro ao copiar link");
+      }
+      document.body.removeChild(textArea);
+    }
+
+    // Depois tenta abrir o menu de compartilhamento se disponível
     if (navigator.share) {
       try {
         await navigator.share({
@@ -63,19 +89,9 @@ export default function ProductPage() {
           text: `Confira ${product?.name} na FBFLIX!`,
           url,
         });
-        return;
       } catch (err) {
         console.log("Share cancelled or failed", err);
       }
-    }
-
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      toast.success("Link do produto copiado!");
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      toast.error("Erro ao copiar link");
     }
   };
 
