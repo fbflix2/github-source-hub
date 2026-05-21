@@ -42,8 +42,8 @@ export function Navbar({ userName, balance, avatarUrl, isPartner, onLogout, unre
     <header className="fixed top-0 left-0 right-0 z-50 glass-panel border-b border-white/5">
       <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
         {/* Logo */}
-        <NavLink to="/loja" className="flex items-center select-none cursor-pointer mr-4 shrink-0">
-          <img src={logoFbflix} alt="FBFLIX" className="h-10 w-auto object-contain mr-2" />
+        <NavLink to="/loja" className="flex items-center select-none cursor-pointer mr-4 ml-4 shrink-0">
+          <img src={logoFbflix} alt="FBFLIX" className="h-14 w-auto object-contain mr-2" />
           <span className="sr-only">FBFLIX</span>
         </NavLink>
 
