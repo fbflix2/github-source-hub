@@ -1416,6 +1416,7 @@ Deno.serve(async (req) => {
         ...raw,
         ...newProxyData,
         proxies: { ...raw.proxies, data: updatedProxiesData, total: updatedProxiesData.length },
+        used_ips: [...(raw.used_ips || []), oldProxyStr],
         exchange_quota_free: nextFree,
         exchange_quota_pay: nextPay,
         exchange_count: prevExchangeCount + 1,
