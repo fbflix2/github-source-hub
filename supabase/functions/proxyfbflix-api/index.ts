@@ -168,19 +168,31 @@ function buildStaticWebshareRawData(proxy: any, currentRaw: Record<string, any> 
 }
 
 async function getAssignedProxyIds(supabase: any) {
+  // We want to be VERY aggressive in finding assigned proxies to avoid duplicates.
+  // We include ALL types that might use Webshare proxies and all "live" statuses.
   const { data: existSubs } = await supabase
     .from("subscriptions")
     .select("raw_data")
-    .in("type", ["proxyfbflix", "webshare", "proxyfbflix_rotating", "webshare_rotating"])
-    .in("status", ["active", "expiring"]);
+    .in("status", ["active", "expiring", "processing", "past_due"]);
 
   const assignedIds = new Set<string>();
+  const assignedIPs = new Set<string>();
+  
   for (const s of (existSubs || [])) {
     const raw = (s.raw_data || {}) as Record<string, any>;
-    const pid = raw.fbflix_proxy_id || raw.webshare_proxy_id;
-    if (pid) assignedIds.add(String(pid));
+    
+    // Check various ID fields used across different versions/providers
+    const fid = raw.fbflix_proxy_id || raw.webshare_proxy_id;
+    if (fid) assignedIds.add(String(fid));
+    
+    // Check IP addresses
+    const ip = raw.proxy_address || raw.ip;
+    if (ip) {
+      assignedIPs.add(String(ip));
+    }
   }
-  return assignedIds;
+  
+  return { assignedIds, assignedIPs };
 }
 
 Deno.serve(async (req) => {
@@ -207,8 +219,8 @@ Deno.serve(async (req) => {
       const qty = iqty || 1;
       const targetCountry = iCountry?.toUpperCase() || "US";
 
-      // Get assigned proxy IDs
-      const assignedIds = await getAssignedProxyIds(supabaseInternal);
+      // Get assigned proxy IDs and IPs
+      const { assignedIds, assignedIPs } = await getAssignedProxyIds(supabaseInternal);
 
       // Efficient search: stop as soon as we find enough proxies
       const available: any[] = [];
@@ -225,7 +237,7 @@ Deno.serve(async (req) => {
         if (results.length === 0) break;
 
         for (const p of results) {
-          if (p.valid && !assignedIds.has(String(p.id))) {
+          if (p.valid && !assignedIds.has(String(p.id)) && !assignedIPs.has(String(p.proxy_address))) {
             available.push(p);
             if (available.length >= qty) break;
           }
@@ -1277,22 +1289,17 @@ Deno.serve(async (req) => {
               }
 
               // Find proxy that wasn't the old one by checking all proxies assigned to active subs
-              const { data: allActiveSubs } = await supabaseAdmin
-                .from("subscriptions")
-                .select("raw_data")
-                .in("type", ["proxyfbflix", "webshare"])
-                .in("status", ["active", "expiring"])
-                .neq("id", subRow.id);
-
-              const otherAssignedIds = new Set<string>();
-              for (const s of (allActiveSubs || [])) {
-                const r = (s.raw_data || {}) as Record<string, any>;
-                if (r.fbflix_proxy_id) otherAssignedIds.add(r.fbflix_proxy_id);
-              }
+              const { assignedIds: otherAssignedIds, assignedIPs: otherAssignedIPs } = await getAssignedProxyIds(supabaseAdmin);
+              
+              // Remove current sub from the "assigned" sets so we don't block our own current ID/IP
+              // (though we filter them out specifically in the candidates filter anyway)
+              if (currentProxyId) otherAssignedIds.delete(String(currentProxyId));
+              if (raw.proxy_address) otherAssignedIPs.delete(String(raw.proxy_address));
 
               // Find a valid proxy not assigned to others, matching the same country
               const candidates = allCurrentProxies.filter(
-                (p: any) => p.valid && !otherAssignedIds.has(p.id) && p.id !== currentProxyId && p.proxy_address !== raw.proxy_address
+                (p: any) => p.valid && !otherAssignedIds.has(String(p.id)) && !otherAssignedIPs.has(String(p.proxy_address))
+                  && p.id !== currentProxyId && p.proxy_address !== raw.proxy_address
                   && (!targetCountry || String(p.country_code).toUpperCase() === targetCountry),
               );
 
@@ -1343,8 +1350,8 @@ Deno.serve(async (req) => {
             .eq("id", stockItem.id);
 
           newProxyData = {
-            fbflix_proxy_id: raw.fbflix_proxy_id,
-            proxy_address: itemData.proxy_address || itemData.ip || raw.proxy_address,
+            fbflix_proxy_id: itemData.fbflix_proxy_id || raw.fbflix_proxy_id,
+            proxy_address: itemData.proxy_address || itemData.ip,
             port: itemData.port || raw.port,
             username: itemData.username || raw.username,
             password: itemData.password || raw.password,
@@ -1352,8 +1359,14 @@ Deno.serve(async (req) => {
             city_name: itemData.city_name || raw.city_name,
             stock_item_id: stockItem.id,
           };
-          method = "stock";
-          console.log(`[webshare-exchange] Stock fallback succeeded: item ${stockItem.id}`);
+          
+          if (!newProxyData.proxy_address || newProxyData.proxy_address === raw.proxy_address) {
+            console.warn(`[webshare-exchange] Stock item ${stockItem.id} has no IP or same IP as current. Skipping.`);
+            newProxyData = null;
+          } else {
+            method = "stock";
+            console.log(`[webshare-exchange] Stock fallback succeeded: item ${stockItem.id}`);
+          }
         }
       }
 
@@ -1373,24 +1386,16 @@ Deno.serve(async (req) => {
           }
 
           // Get all assigned proxy IDs from active subscriptions
-          const { data: allActiveSubs } = await supabaseAdmin
-            .from("subscriptions")
-            .select("raw_data")
-            .in("type", ["proxyfbflix", "webshare"])
-            .in("status", ["active", "expiring"])
-            .neq("id", subRow.id);
+          const { assignedIds, assignedIPs } = await getAssignedProxyIds(supabaseAdmin);
+          
+          // Remove current sub from the "assigned" sets
+          if (currentProxyId) assignedIds.delete(String(currentProxyId));
+          if (raw.proxy_address) assignedIPs.delete(String(raw.proxy_address));
 
-          const assignedIds = new Set<string>();
-          const assignedIPs = new Set<string>();
-          for (const s of (allActiveSubs || [])) {
-            const r = (s.raw_data || {}) as Record<string, any>;
-            if (r.fbflix_proxy_id) assignedIds.add(r.fbflix_proxy_id);
-            if (r.proxy_address) assignedIPs.add(r.proxy_address);
-          }
-
-          // Find an unassigned proxy matching the country
+          // Find an unassigned proxy matching the country, ensuring it's not the same ID OR the same IP
           const poolCandidates = allCurrentProxies.filter(
-            (p: any) => p.valid && !assignedIds.has(p.id) && !assignedIPs.has(p.proxy_address) && p.id !== currentProxyId
+            (p: any) => p.valid && !assignedIds.has(String(p.id)) && !assignedIPs.has(String(p.proxy_address)) 
+              && String(p.id) !== String(currentProxyId) && String(p.proxy_address) !== String(raw.proxy_address)
               && (!targetCountry || String(p.country_code).toUpperCase() === targetCountry),
           );
 
