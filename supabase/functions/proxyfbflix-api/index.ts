@@ -1300,7 +1300,7 @@ Deno.serve(async (req) => {
                 pg++;
               }
 
-              const { assignedIds, assignedIPs } = await getAssignedProxyIds(supabaseAdmin);
+              const { assignedIds, assignedIPs, userIPs } = await getAssignedProxyIds(supabaseAdmin, subRow.user_id);
               
               // In this specific sub, we MUST exclude all other IPs we have
               const myOtherIPs = new Set<string>();
@@ -1313,10 +1313,15 @@ Deno.serve(async (req) => {
               }
 
               const candidates = allCurrentProxies.filter(
-                (p: any) => p.valid && !assignedIds.has(String(p.id)) && !assignedIPs.has(String(p.proxy_address))
-                  && !myOtherIPs.has(String(p.proxy_address))
-                  && String(p.id) !== String(targetProxyId) && p.proxy_address !== targetProxyAddress
-                  && (!targetCountry || String(p.country_code).toUpperCase() === targetCountry),
+                (p: any) => {
+                  const isAssigned = assignedIds.has(String(p.id)) || assignedIPs.has(String(p.proxy_address));
+                  const isPreviouslyUsed = userIPs.has(String(p.proxy_address)) || (raw.used_ips && raw.used_ips.includes(p.proxy_address));
+                  
+                  return p.valid && !isAssigned && !isPreviouslyUsed
+                    && !myOtherIPs.has(String(p.proxy_address))
+                    && String(p.id) !== String(targetProxyId) && p.proxy_address !== targetProxyAddress
+                    && (!targetCountry || String(p.country_code).toUpperCase() === targetCountry);
+                }
               );
 
               if (candidates.length > 0) {
