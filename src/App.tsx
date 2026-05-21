@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -130,6 +131,33 @@ import { CartProvider } from "./contexts/CartContext";
 import { FloatingCart } from "./components/FloatingCart";
 
 const queryClient = new QueryClient();
+
+function ProductRedirect({ logo }: { logo: string }) {
+  const { slug } = useParams();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!slug) return;
+
+    const ua = navigator.userAgent;
+    const isBot = /facebookexternalhit|Facebot|Twitterbot|WhatsApp|Telegram|Slackbot/i.test(ua);
+
+    if (isBot) {
+      window.location.href = `https://mxnlerkeygfvdnznoxld.functions.supabase.co/product-metadata/${slug}`;
+    } else {
+      navigate(`/produto/${slug}`, { replace: true });
+    }
+  }, [slug, navigate]);
+
+  return (
+    <div className="min-h-screen bg-[#030303] flex items-center justify-center">
+      <div className="flex flex-col items-center gap-4">
+        <img src={logo} alt="FBFLIX" className="w-16 h-16 object-contain animate-pulse" />
+        <p className="text-white/60 text-sm animate-pulse">Carregando informações do produto...</p>
+      </div>
+    </div>
+  );
+}
 
 function AuthenticatedApp({ user, onLogout }: { user: User; onLogout: () => void }) {
   const { totalUnread } = useTickets();
@@ -338,27 +366,7 @@ const App = () => {
                 <Route path="/produto/:slug" element={<ProductPage />} />
                 <Route 
                   path="/p/:slug" 
-                  element={
-                    <div className="min-h-screen bg-[#030303] flex items-center justify-center">
-                      <div className="flex flex-col items-center gap-4">
-                        <img src={logoFbflix} alt="FBFLIX" className="w-16 h-16 object-contain animate-pulse" />
-                        <p className="text-white/60 text-sm animate-pulse">Carregando informações do produto...</p>
-                      </div>
-                      <script dangerouslySetInnerHTML={{ 
-                        __html: `
-                          const slug = window.location.pathname.split("/").pop();
-                          if (navigator.userAgent.includes('facebookexternalhit') || 
-                              navigator.userAgent.includes('Facebot') || 
-                              navigator.userAgent.includes('Twitterbot') || 
-                              navigator.userAgent.includes('WhatsApp')) {
-                            window.location.replace("https://mxnlerkeygfvdnznoxld.functions.supabase.co/product-metadata/" + slug);
-                          } else {
-                            window.location.replace("/produto/" + slug);
-                          }
-                        ` 
-                      }} />
-                    </div>
-                  } 
+                  element={<ProductRedirect logo={logoFbflix} />} 
                 />
                 <Route path="/saiba-mais-fbx" element={<SaibaMaisFBX />} />
                 <Route path="/saiba-mais-safebm" element={<SafeBMLanding />} />
