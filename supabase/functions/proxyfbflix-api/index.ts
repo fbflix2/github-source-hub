@@ -181,14 +181,30 @@ async function getAssignedProxyIds(supabase: any) {
   for (const s of (existSubs || [])) {
     const raw = (s.raw_data || {}) as Record<string, any>;
     
-    // Check various ID fields used across different versions/providers
+    // Check various ID fields used across different versions/providers at top level
     const fid = raw.fbflix_proxy_id || raw.webshare_proxy_id;
     if (fid) assignedIds.add(String(fid));
     
-    // Check IP addresses
+    // Check IP addresses at top level
     const ip = raw.proxy_address || raw.ip;
-    if (ip) {
-      assignedIPs.add(String(ip));
+    if (ip) assignedIPs.add(String(ip));
+
+    // CRITICAL: Also check proxies inside the data array for multi-proxy packs
+    const proxiesData = raw.proxies?.data || [];
+    if (Array.isArray(proxiesData)) {
+      for (const p of proxiesData) {
+        if (p.id) assignedIds.add(String(p.id));
+        if (p.ip) assignedIPs.add(String(p.ip));
+        if (p.proxy_address) assignedIPs.add(String(p.proxy_address));
+        
+        // Also check if code contains IP:Port
+        if (p.code && typeof p.code === 'string') {
+          const parts = p.code.split(':');
+          if (parts.length >= 1 && /^\d+\.\d+\.\d+\.\d+$/.test(parts[0])) {
+            assignedIPs.add(parts[0]);
+          }
+        }
+      }
     }
   }
   
@@ -239,6 +255,10 @@ Deno.serve(async (req) => {
         for (const p of results) {
           if (p.valid && !assignedIds.has(String(p.id)) && !assignedIPs.has(String(p.proxy_address))) {
             available.push(p);
+            // Track what we just picked to avoid duplicates within this same batch
+            assignedIds.add(String(p.id));
+            assignedIPs.add(String(p.proxy_address));
+            
             if (available.length >= qty) break;
           }
         }
@@ -1171,16 +1191,17 @@ Deno.serve(async (req) => {
 
     // ========== EXCHANGE WEBSHARE PROXY ==========
     if (action === "exchange-webshare-proxy" || action === "exchange-proxyfbflix-proxy" || action === "fix-repeated-proxy") {
-      const { subscription_id, target_country: overrideCountry, is_fix = false } = params as { 
+      const { subscription_id, target_country: overrideCountry, is_fix = false, proxy_id } = params as { 
         subscription_id: string; 
         target_country?: string;
         is_fix?: boolean;
+        proxy_id?: string | number;
       };
       
       const isFixAction = action === "fix-repeated-proxy" || is_fix;
       if (!subscription_id) throw new Error("subscription_id é obrigatório");
 
-      // 1. Get subscription. The UI can pass either the UUID id or the public code (WS-...).
+      // 1. Get subscription.
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(subscription_id);
       let subQuery = supabaseAdmin
         .from("subscriptions")
@@ -1192,11 +1213,10 @@ Deno.serve(async (req) => {
       const subRow = subRows?.[0];
 
       if (subErr || !subRow) {
-        console.error(`[webshare-exchange] Subscription not found for ${subscription_id} (uuid=${isUuid})`);
+        console.error(`[webshare-exchange] Subscription not found for ${subscription_id}`);
         throw new Error("Assinatura não encontrada");
       }
       if (!isServiceRole && subRow.user_id !== user?.id) {
-        // Check if staff
         const { data: isStaff } = await supabaseAdmin.rpc("is_staff", { _user_id: user?.id });
         if (!isStaff) throw new Error("Sem permissão");
       }
@@ -1205,292 +1225,197 @@ Deno.serve(async (req) => {
       const freeLeft = Number(raw.exchange_quota_free ?? 0);
       const payLeft = Number(raw.exchange_quota_pay ?? 0);
       
-      // Fix repeated action doesn't consume quota but has its own abuse check
       if (isFixAction) {
         if (raw.fix_repeated_done) throw new Error("Troca de correção já foi utilizada para este proxy.");
       } else {
         if (freeLeft + payLeft <= 0) throw new Error("Sem cotas de troca disponíveis");
       }
 
-      // Determine country: override param first, then raw_data, then product tags/name
-      let targetCountry = overrideCountry ? overrideCountry.toUpperCase() : (raw.country_code ? String(raw.country_code).toUpperCase() : null);
-      if (!targetCountry && subRow.product_id) {
-        const { data: prodData } = await supabaseAdmin
-          .from("products")
-          .select("name, tags")
-          .eq("id", subRow.product_id)
-          .maybeSingle();
-        if (prodData) {
-          targetCountry = detectCountryFromProduct(prodData);
+      // Identify which proxy to replace
+      let targetProxyId = proxy_id || raw.fbflix_proxy_id || raw.webshare_proxy_id;
+      let targetProxyAddress = raw.proxy_address;
+      
+      const proxiesData = raw.proxies?.data || [];
+      if (proxy_id && Array.isArray(proxiesData)) {
+        const found = proxiesData.find((p: any) => String(p.id) === String(proxy_id));
+        if (found) {
+          targetProxyAddress = found.proxy_address || found.ip || found.code?.split(':')[0];
+          targetProxyId = found.id;
         }
       }
-      console.log(`[webshare-exchange] Target country for exchange: ${targetCountry || 'ANY'}`);
 
-      const currentProxyId = raw.fbflix_proxy_id || raw.webshare_proxy_id;
-      const oldProxyStr = `${raw.proxy_address || ""}:${raw.port || ""}`;
+      let targetCountry = overrideCountry ? overrideCountry.toUpperCase() : (raw.country_code ? String(raw.country_code).toUpperCase() : null);
+      if (!targetCountry && subRow.product_id) {
+        const { data: prodData } = await supabaseAdmin.from("products").select("name, tags").eq("id", subRow.product_id).maybeSingle();
+        if (prodData) targetCountry = detectCountryFromProduct(prodData);
+      }
+      
+      const oldProxyStr = `${targetProxyAddress || "???"}`;
       let newProxyData: Record<string, any> | null = null;
-      let method = "api"; // track which method succeeded
+      let method = "api";
 
-      // Try 1: Webshare API replace (v3 replacement flow)
-      if (currentProxyId && raw.proxy_address) {
+      // Try 1: Webshare API replace
+      if (targetProxyId && targetProxyAddress) {
         try {
-          console.log(`[webshare-exchange] Trying API replace for proxy ${currentProxyId}`);
-
           const replacePayload = {
-            to_replace: {
-              type: "ip_address",
-              ip_addresses: [raw.proxy_address],
-              count: 1,
-            },
-            replace_with: [
-              targetCountry
-                ? { type: "country", country_code: targetCountry, count: 1 }
-                : { type: "any", count: 1 },
-            ],
+            to_replace: { type: "ip_address", ip_addresses: [targetProxyAddress], count: 1 },
+            replace_with: [targetCountry ? { type: "country", country_code: targetCountry, count: 1 } : { type: "any", count: 1 }],
             dry_run: false,
           };
 
-          const replaceResp = await webFetch(
-            "https://proxy.webshare.io/api/v3/proxy/replace/",
-            WEBSHARE_API_KEY,
-            "POST",
-            JSON.stringify(replacePayload),
-          );
+          const replaceResp = await webFetch("https://proxy.webshare.io/api/v3/proxy/replace/", WEBSHARE_API_KEY, "POST", JSON.stringify(replacePayload));
           const replaceData = await replaceResp.json().catch(() => ({}));
 
-          if (!replaceResp.ok) {
-            console.warn(`[webshare-exchange] API replace failed [${replaceResp.status}]: ${JSON.stringify(replaceData)}`);
-          } else {
-            const replacementId = replaceData?.id;
+          if (replaceResp.ok) {
             let replacementState = replaceData?.state;
-
-            if (replacementId) {
+            if (replaceData?.id) {
               for (let attempt = 0; attempt < 10; attempt++) {
                 if (replacementState === "completed" || replacementState === "failed") break;
-                await new Promise((r) => setTimeout(r, 1200));
-
-                const statusResp = await webFetch(
-                  `https://proxy.webshare.io/api/v3/proxy/replace/${replacementId}/`,
-                  WEBSHARE_API_KEY,
-                );
+                await new Promise((r) => setTimeout(r, 1500));
+                const statusResp = await webFetch(`https://proxy.webshare.io/api/v3/proxy/replace/${replaceData.id}/`, WEBSHARE_API_KEY);
                 const statusData = await statusResp.json().catch(() => ({}));
-                if (!statusResp.ok) {
-                  console.warn(`[webshare-exchange] Replace status failed [${statusResp.status}]: ${JSON.stringify(statusData)}`);
-                  break;
-                }
-
+                if (!statusResp.ok) break;
                 replacementState = statusData?.state;
-                if (replacementState === "failed") {
-                  console.warn(`[webshare-exchange] Replace request failed: ${statusData?.error || "unknown error"}`);
-                }
               }
             }
 
             if (replacementState === "completed") {
               const allCurrentProxies: any[] = [];
-              let page = 1;
-
+              let pg = 1;
               while (true) {
-                const listResp = await webFetch(`/proxy/list/?mode=direct&page=${page}&page_size=250`, WEBSHARE_API_KEY);
+                const listResp = await webFetch(`/proxy/list/?mode=direct&page=${pg}&page_size=250`, WEBSHARE_API_KEY);
                 const listData = await listResp.json().catch(() => ({}));
-                if (!listResp.ok) break;
-
-                if (listData.results?.length) allCurrentProxies.push(...listData.results);
+                if (!listResp.ok || !listData.results?.length) break;
+                allCurrentProxies.push(...listData.results);
                 if (!listData.next) break;
-                page++;
+                pg++;
               }
 
-              // Find proxy that wasn't the old one by checking all proxies assigned to active subs
-              const { assignedIds: otherAssignedIds, assignedIPs: otherAssignedIPs } = await getAssignedProxyIds(supabaseAdmin);
+              const { assignedIds, assignedIPs } = await getAssignedProxyIds(supabaseAdmin);
               
-              // Remove current sub from the "assigned" sets so we don't block our own current ID/IP
-              // (though we filter them out specifically in the candidates filter anyway)
-              if (currentProxyId) otherAssignedIds.delete(String(currentProxyId));
-              if (raw.proxy_address) otherAssignedIPs.delete(String(raw.proxy_address));
+              // In this specific sub, we MUST exclude all other IPs we have
+              const myOtherIPs = new Set<string>();
+              if (Array.isArray(proxiesData)) {
+                proxiesData.forEach((p: any) => {
+                  if (String(p.id) !== String(targetProxyId)) {
+                    myOtherIPs.add(String(p.proxy_address || p.ip || ""));
+                  }
+                });
+              }
 
-              // Find a valid proxy not assigned to others, matching the same country
               const candidates = allCurrentProxies.filter(
-                (p: any) => p.valid && !otherAssignedIds.has(String(p.id)) && !otherAssignedIPs.has(String(p.proxy_address))
-                  && p.id !== currentProxyId && p.proxy_address !== raw.proxy_address
+                (p: any) => p.valid && !assignedIds.has(String(p.id)) && !assignedIPs.has(String(p.proxy_address))
+                  && !myOtherIPs.has(String(p.proxy_address))
+                  && String(p.id) !== String(targetProxyId) && p.proxy_address !== targetProxyAddress
                   && (!targetCountry || String(p.country_code).toUpperCase() === targetCountry),
               );
 
               if (candidates.length > 0) {
                 const np = candidates[0];
                 newProxyData = {
-                  fbflix_proxy_id: np.id,
-                  webshare_proxy_id: np.id,
-                  proxy_address: np.proxy_address,
-                  port: np.port,
-                  username: np.username,
-                  password: np.password,
-                  country_code: np.country_code,
-                  city_name: np.city_name,
+                  fbflix_proxy_id: np.id, webshare_proxy_id: np.id, proxy_address: np.proxy_address,
+                  port: np.port, username: np.username, password: np.password,
+                  country_code: np.country_code, city_name: np.city_name,
                 };
-                console.log(`[webshare-exchange] API replace succeeded: ${np.proxy_address}:${np.port}`);
-              } else {
-                console.warn("[webshare-exchange] API completed but no replacement candidate was found");
               }
-            } else {
-              console.warn(`[webshare-exchange] API replacement did not complete (state=${replacementState || "unknown"})`);
             }
           }
-        } catch (e: any) {
-          console.warn(`[webshare-exchange] API replace error: ${e.message}`);
-        }
+        } catch (e: any) { console.warn(`[webshare-exchange] API replace error: ${e.message}`); }
       }
 
-      // Try 2: Stock fallback - find available stock_item with same product_id
-      if (!newProxyData && subRow.product_id) {
-        console.log(`[webshare-exchange] Trying stock fallback for product ${subRow.product_id}`);
-        const { data: stockItem } = await supabaseAdmin
-          .from("stock_items")
-          .select("*")
-          .eq("product_id", subRow.product_id)
-          .eq("status", "revisado")
-          .is("order_item_id", null)
-          .is("deleted_at", null)
-          .order("created_at", { ascending: true })
-          .limit(1)
-          .maybeSingle();
-
-        if (stockItem) {
-          const itemData = (stockItem.data || {}) as Record<string, any>;
-          await supabaseAdmin
-            .from("stock_items")
-            .update({ status: "vendido", updated_at: new Date().toISOString() })
-            .eq("id", stockItem.id);
-
-          newProxyData = {
-            fbflix_proxy_id: itemData.fbflix_proxy_id || raw.fbflix_proxy_id,
-            proxy_address: itemData.proxy_address || itemData.ip,
-            port: itemData.port || raw.port,
-            username: itemData.username || raw.username,
-            password: itemData.password || raw.password,
-            country_code: itemData.country_code || raw.country_code,
-            city_name: itemData.city_name || raw.city_name,
-            stock_item_id: stockItem.id,
-          };
-          
-          if (!newProxyData.proxy_address || newProxyData.proxy_address === raw.proxy_address) {
-            console.warn(`[webshare-exchange] Stock item ${stockItem.id} has no IP or same IP as current. Skipping.`);
-            newProxyData = null;
-          } else {
-            method = "stock";
-            console.log(`[webshare-exchange] Stock fallback succeeded: item ${stockItem.id}`);
-          }
-        }
-      }
-
-      // Try 3: Pool fallback - find an unassigned proxy directly from the Webshare pool
+      // Pool fallback
       if (!newProxyData) {
-        console.log(`[webshare-exchange] Trying pool fallback - scanning Webshare proxy list`);
         try {
           const allCurrentProxies: any[] = [];
-          let page = 1;
+          let pg = 1;
           while (true) {
-            const listResp = await webFetch(`/proxy/list/?mode=direct&page=${page}&page_size=250`, WEBSHARE_API_KEY);
+            const listResp = await webFetch(`/proxy/list/?mode=direct&page=${pg}&page_size=250`, WEBSHARE_API_KEY);
             const listData = await listResp.json().catch(() => ({}));
-            if (!listResp.ok) break;
-            if (listData.results?.length) allCurrentProxies.push(...listData.results);
+            if (!listResp.ok || !listData.results?.length) break;
+            allCurrentProxies.push(...listData.results);
             if (!listData.next) break;
-            page++;
+            pg++;
           }
 
-          // Get all assigned proxy IDs from active subscriptions
           const { assignedIds, assignedIPs } = await getAssignedProxyIds(supabaseAdmin);
-          
-          // Remove current sub from the "assigned" sets
-          if (currentProxyId) assignedIds.delete(String(currentProxyId));
-          if (raw.proxy_address) assignedIPs.delete(String(raw.proxy_address));
+          const myOtherIPs = new Set<string>();
+          if (Array.isArray(proxiesData)) {
+            proxiesData.forEach((p: any) => {
+              if (String(p.id) !== String(targetProxyId)) {
+                myOtherIPs.add(String(p.proxy_address || p.ip || ""));
+              }
+            });
+          }
 
-          // Find an unassigned proxy matching the country, ensuring it's not the same ID OR the same IP
           const poolCandidates = allCurrentProxies.filter(
             (p: any) => p.valid && !assignedIds.has(String(p.id)) && !assignedIPs.has(String(p.proxy_address)) 
-              && String(p.id) !== String(currentProxyId) && String(p.proxy_address) !== String(raw.proxy_address)
+              && !myOtherIPs.has(String(p.proxy_address))
+              && String(p.id) !== String(targetProxyId) && String(p.proxy_address) !== String(targetProxyAddress)
               && (!targetCountry || String(p.country_code).toUpperCase() === targetCountry),
           );
 
           if (poolCandidates.length > 0) {
             const np = poolCandidates[0];
             newProxyData = {
-              fbflix_proxy_id: np.id,
-              webshare_proxy_id: np.id,
-              proxy_address: np.proxy_address,
-              port: np.port,
-              username: np.username,
-              password: np.password,
-              country_code: np.country_code,
-              city_name: np.city_name,
+              fbflix_proxy_id: np.id, webshare_proxy_id: np.id, proxy_address: np.proxy_address,
+              port: np.port, username: np.username, password: np.password,
+              country_code: np.country_code, city_name: np.city_name,
             };
             method = "pool";
-            console.log(`[webshare-exchange] Pool fallback succeeded: ${np.proxy_address}:${np.port} (${np.id})`);
-          } else {
-            console.warn(`[webshare-exchange] Pool fallback: no unassigned ${targetCountry || 'ANY'} proxies found`);
           }
-        } catch (e: any) {
-          console.warn(`[webshare-exchange] Pool fallback error: ${e.message}`);
-        }
+        } catch (e: any) { console.warn(`[webshare-exchange] Pool fallback error: ${e.message}`); }
       }
 
-      if (!newProxyData) {
-        throw new Error("Não foi possível trocar o proxy. Sem disponibilidade via API ou estoque.");
-      }
+      if (!newProxyData) throw new Error("Não foi possível trocar o proxy. Sem disponibilidade.");
 
       // 3. Update subscription raw_data
       const prevExchangeCount = raw.exchange_count ? Number(raw.exchange_count) : 0;
       let nextFree = freeLeft;
       let nextPay = payLeft;
-      
-      if (isFixAction) {
-        // Don't deduct quota
-        console.log(`[webshare-exchange] Fix action: not deducting quota`);
-      } else {
-        if (freeLeft > 0) {
-          nextFree = freeLeft - 1;
-        } else {
-          nextPay = payLeft - 1;
-        }
+      if (!isFixAction) {
+        if (freeLeft > 0) nextFree = freeLeft - 1; else nextPay = payLeft - 1;
+      }
+
+      // Update proxies.data array if it exists
+      let updatedProxiesData = proxiesData;
+      if (Array.isArray(proxiesData) && proxiesData.length > 0) {
+        const newProxyCode = `${newProxyData.proxy_address}:${newProxyData.port}:${newProxyData.username}:${newProxyData.password}`;
+        updatedProxiesData = proxiesData.map((p: any) => {
+          if (String(p.id) === String(targetProxyId)) {
+            return {
+              ...p, id: newProxyData.fbflix_proxy_id, code: newProxyCode,
+              proxy_address: newProxyData.proxy_address, ip: newProxyData.proxy_address,
+              port: newProxyData.port, username: newProxyData.username, password: newProxyData.password,
+              parsed: { ip: newProxyData.proxy_address, port: String(newProxyData.port), username: newProxyData.username, password: newProxyData.password }
+            };
+          }
+          return p;
+        });
       }
 
       const updatedRaw = {
         ...raw,
         ...newProxyData,
-        provider: "proxyfbflix",
+        proxies: { ...raw.proxies, data: updatedProxiesData, total: updatedProxiesData.length },
         exchange_quota_free: nextFree,
         exchange_quota_pay: nextPay,
         exchange_count: prevExchangeCount + 1,
-        initial_exchange_quota_free: raw.initial_exchange_quota_free ?? (freeLeft),
         last_exchange: new Date().toISOString(),
         last_exchange_method: method,
         fix_repeated_done: isFixAction ? true : (raw.fix_repeated_done || false),
       };
 
       const { error: updateErr } = await supabaseAdmin
-        .from("subscriptions")
-        .update({ raw_data: updatedRaw, updated_at: new Date().toISOString() })
-        .eq("id", subRow.id);
+        .from("subscriptions").update({ raw_data: updatedRaw, updated_at: new Date().toISOString() }).eq("id", subRow.id);
 
-      if (updateErr) throw new Error(`Erro ao atualizar assinatura: ${updateErr.message}`);
-
-      console.log(`[webshare-exchange] Exchange complete. Method=${method}, quota=${freeLeft - 1}`);
+      if (updateErr) throw new Error(`Erro ao atualizar: ${updateErr.message}`);
 
       return new Response(JSON.stringify({
-        success: true,
-        method,
-        old_proxy: oldProxyStr,
+        success: true, method, old_proxy: oldProxyStr,
         new_proxy: `${newProxyData.proxy_address}:${newProxyData.port}`,
-        exchange_quota_free: nextFree,
-        exchange_quota_pay: nextPay,
-        proxy: {
-          ip: newProxyData.proxy_address,
-          port: newProxyData.port,
-          username: newProxyData.username,
-          password: newProxyData.password,
-        },
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+        exchange_quota_free: nextFree, exchange_quota_pay: nextPay,
+        proxy: { ip: newProxyData.proxy_address, port: newProxyData.port, username: newProxyData.username, password: newProxyData.password },
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // ========== ADMIN: MAINTENANCE EXCHANGE (no quota deduction) ==========

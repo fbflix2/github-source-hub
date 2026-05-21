@@ -96,11 +96,27 @@ async function fulfillOrder(supabase: any, orderId: string, userId: string) {
              for (const ind of usIndicators) { if (searchText.includes(ind)) { targetCountry = "US"; break; } }
           }
 
-          // Get assigned proxies
+          // Get assigned proxies - VERY aggressive to avoid duplicates
           const { data: existingSubs } = await supabase
             .from("subscriptions").select("raw_data")
-            .eq("type", "webshare").in("status", ["active", "expiring"]);
-          const assignedIds = new Set(existingSubs?.map((s: any) => String(s.raw_data?.webshare_proxy_id)).filter(Boolean));
+            .eq("type", "webshare").in("status", ["active", "expiring", "processing", "past_due"]);
+          
+          const assignedIds = new Set<string>();
+          const assignedIPs = new Set<string>();
+          for (const s of (existingSubs || [])) {
+            const raw = (s.raw_data || {}) as Record<string, any>;
+            if (raw.webshare_proxy_id) assignedIds.add(String(raw.webshare_proxy_id));
+            if (raw.proxy_address) assignedIPs.add(String(raw.proxy_address));
+            
+            // Check pack data
+            const packData = raw.proxies?.data || [];
+            if (Array.isArray(packData)) {
+              for (const p of packData) {
+                if (p.id) assignedIds.add(String(p.id));
+                if (p.proxy_address || p.ip) assignedIPs.add(String(p.proxy_address || p.ip));
+              }
+            }
+          }
 
           const itemQty = oi.quantity || 1;
           const selectedProxies = [];
@@ -112,9 +128,10 @@ async function fulfillOrder(supabase: any, orderId: string, userId: string) {
             if (!resp.ok) break;
             const data = await resp.json();
             for (const p of (data.results || [])) {
-              if (p.valid && !assignedIds.has(String(p.id))) {
+              if (p.valid && !assignedIds.has(String(p.id)) && !assignedIPs.has(String(p.proxy_address))) {
                 selectedProxies.push(p);
                 assignedIds.add(String(p.id));
+                assignedIPs.add(String(p.proxy_address));
                 if (selectedProxies.length >= itemQty) break;
               }
             }

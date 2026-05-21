@@ -147,13 +147,15 @@ export function useProxyFbflixSubscriptions() {
 
       if (error) throw new Error(error.message);
 
-      return (data || []).map((sub) => {
+      const results: any[] = [];
+      for (const sub of (data || [])) {
         const raw = (sub.raw_data || {}) as Record<string, any>;
         const productInfo = sub.products as any;
         const isRotating = sub.type === "proxyfbflix_rotating";
         const productName = productInfo?.name || raw.product_name || (isRotating ? "Proxy Rotativo BR" : "Proxy Residencial");
         const customerPrice = productInfo?.price || null;
-        return {
+
+        const baseEntry = {
           id: sub.id,
           code: sub.name,
           name: sub.name,
@@ -169,27 +171,67 @@ export function useProxyFbflixSubscriptions() {
           provider: "proxyfbflix",
           is_rotating: isRotating,
           gb_purchased: isRotating ? (raw.gb_purchased || 0) : undefined,
-          proxy: isRotating
-            ? {
-                ip: raw.proxy_host || "p.proxyfbflix.io",
-                port: raw.http_port || 80,
-                username: raw.username,
-                password: raw.password,
-                protocol: "HTTP/SOCKS5",
-                socks5_port: raw.socks5_port || 1080,
-                converted_host: raw.converted_host || null,
-                alt_http_port: raw.alt_http_port || 3128,
-              }
-            : raw.proxy_address ? {
-                id: raw.fbflix_proxy_id || raw.webshare_proxy_id,
-                ip: raw.proxy_address,
-                port: raw.port,
-                username: raw.username,
-                password: raw.password,
-                protocol: "HTTP/SOCKS5",
-              } : undefined,
         };
-      });
+
+        const proxiesData = raw.proxies?.data || [];
+        if (!isRotating && Array.isArray(proxiesData) && proxiesData.length > 1) {
+          // Explode multi-proxy subscriptions into individual entries
+          proxiesData.forEach((proxy: any, index: number) => {
+            const proxyTagKey = `profile_tag_${proxy.id}`;
+            const proxyDisplayName = `${sub.name}#${index + 1}`;
+            
+            // Reconstruct parsed info if missing
+            const parsed = proxy.parsed || (() => {
+              const parts = String(proxy.code || "").split(":");
+              if (parts?.length >= 4) return { ip: parts[0], port: parts[1], username: parts[2], password: parts[3] };
+              return null;
+            })();
+
+            results.push({
+              ...baseEntry,
+              code: `${sub.name}__proxy_${proxy.id}`,
+              name: proxyDisplayName,
+              proxyIndex: index + 1,
+              totalProxies: proxiesData.length,
+              proxyLabel: `Proxy ${index + 1}/${proxiesData.length}`,
+              profile_tag: raw[proxyTagKey] || raw.profile_tag || null,
+              proxy: {
+                id: proxy.id,
+                ip: parsed?.ip || proxy.proxy_address || proxy.ip,
+                port: parsed?.port || proxy.port,
+                username: parsed?.username || proxy.username,
+                password: parsed?.password || proxy.password,
+                protocol: "HTTP/SOCKS5",
+              }
+            });
+          });
+        } else {
+          // Single proxy or rotating
+          results.push({
+            ...baseEntry,
+            proxy: isRotating
+              ? {
+                  ip: raw.proxy_host || "p.proxyfbflix.io",
+                  port: raw.http_port || 80,
+                  username: raw.username,
+                  password: raw.password,
+                  protocol: "HTTP/SOCKS5",
+                  socks5_port: raw.socks5_port || 1080,
+                  converted_host: raw.converted_host || null,
+                  alt_http_port: raw.alt_http_port || 3128,
+                }
+              : raw.proxy_address ? {
+                  id: raw.fbflix_proxy_id || raw.webshare_proxy_id,
+                  ip: raw.proxy_address,
+                  port: raw.port,
+                  username: raw.username,
+                  password: raw.password,
+                  protocol: "HTTP/SOCKS5",
+                } : undefined,
+          });
+        }
+      }
+      return results;
     },
     staleTime: 30_000,
   });
@@ -231,8 +273,11 @@ function saveProxyFbflixExchangeRecord(subscriptionId: string, oldProxy: string,
 export function useExchangeProxyFbflixProxy() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ subscriptionId, oldProxyString }: { subscriptionId: string; oldProxyString?: string }) => {
-      const result = await callProxyFbflix("exchange-proxyfbflix-proxy", { subscription_id: subscriptionId });
+    mutationFn: async ({ subscriptionId, oldProxyString, proxyId }: { subscriptionId: string; oldProxyString?: string; proxyId?: string | number }) => {
+      const result = await callProxyFbflix("exchange-proxyfbflix-proxy", { 
+        subscription_id: subscriptionId,
+        proxy_id: proxyId 
+      });
       return { result, oldProxyString, subscriptionId };
     },
     onSuccess: ({ result, oldProxyString, subscriptionId }) => {
@@ -362,9 +407,10 @@ export function useUpsertUsageAlert() {
 export function useFixRepeatedProxy() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ subscriptionId }: { subscriptionId: string }) => {
+    mutationFn: async ({ subscriptionId, proxyId }: { subscriptionId: string; proxyId?: string | number }) => {
       const result = await callProxyFbflix("fix-repeated-proxy", { 
         subscription_id: subscriptionId,
+        proxy_id: proxyId,
         is_fix: true
       });
       return result;
