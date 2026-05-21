@@ -255,6 +255,10 @@ Deno.serve(async (req) => {
         for (const p of results) {
           if (p.valid && !assignedIds.has(String(p.id)) && !assignedIPs.has(String(p.proxy_address))) {
             available.push(p);
+            // Track what we just picked to avoid duplicates within this same batch
+            assignedIds.add(String(p.id));
+            assignedIPs.add(String(p.proxy_address));
+            
             if (available.length >= qty) break;
           }
         }
