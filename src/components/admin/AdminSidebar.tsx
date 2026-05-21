@@ -138,6 +138,21 @@ export function AdminSidebar() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>(allMenuItems);
   const location = useLocation();
   const { hasUnread, unreadCount } = useTeamChatNotifications();
+  const [logoStyles, setLogoStyles] = useState({ height: 56, paddingTop: 24 });
+
+  useEffect(() => {
+    supabase.from("site_settings").select("value").eq("key", "landing_page_config").maybeSingle().then(({ data }) => {
+      if (data?.value) {
+        try {
+          const cfg = JSON.parse(data.value);
+          setLogoStyles({
+            height: Number(cfg.hero?.logoHeightAdmin) || 56,
+            paddingTop: Number(cfg.hero?.logoMarginTopAdmin) || 24
+          });
+        } catch {}
+      }
+    });
+  }, []);
 
   useEffect(() => {
     checkPermissions();
@@ -204,15 +219,15 @@ export function AdminSidebar() {
       <div className="flex flex-col h-full overflow-hidden">
          {/* Logo */}
          <div className={cn(
-           "flex-none flex items-center px-4 py-6 transition-all duration-300",
-           collapsed ? "justify-center" : "justify-center px-6"
-         )}>
+           "flex-none flex items-center px-4 transition-all duration-300",
+           collapsed ? "justify-center pt-6" : "justify-center px-6"
+         )} style={{ paddingTop: collapsed ? undefined : `${logoStyles.paddingTop}px` }}>
            <img 
              src={logoFbflix} 
              alt="FBFLIX" 
+             style={{ height: collapsed ? '32px' : `${logoStyles.height}px` }}
              className={cn(
-               "transition-all duration-300 object-contain",
-               collapsed ? "h-8" : "h-14"
+               "transition-all duration-300 object-contain"
              )} 
            />
          </div>

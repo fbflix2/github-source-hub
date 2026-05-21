@@ -25,6 +25,10 @@ const DEFAULT_CONFIG = {
     logoUrl: "",
     logoHeight: "32",
     logoHeightHero: "80",
+    logoHeightAdmin: "56",
+    logoHeightClient: "40",
+    logoMarginTopAdmin: "24",
+    logoMarginLeftNavbar: "16",
   },
   partners: ["Natália Torres", "Conta Simples", "Utmify", "Lauth", "Alan Benites"],
   steps: [
@@ -262,6 +266,46 @@ export default function AdminSiteEditor() {
                 value={draft.hero.logoHeightHero || "80"} 
                 onChange={(v) => update("hero.logoHeightHero", v)} 
               />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+              <div className="p-4 rounded-xl border border-white/5 bg-white/[0.02] space-y-4">
+                <h4 className="text-xs font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+                  <Globe className="size-3" /> Página Inicial
+                </h4>
+                <Field 
+                  label="Margem Esquerda Logo (Navbar)" 
+                  value={draft.hero.logoMarginLeftNavbar || "16"} 
+                  onChange={(v) => update("hero.logoMarginLeftNavbar", v)} 
+                />
+              </div>
+
+              <div className="p-4 rounded-xl border border-white/5 bg-white/[0.02] space-y-4">
+                <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2">
+                  <User className="size-3" /> Painel Cliente
+                </h4>
+                <Field 
+                  label="Altura do Logo (Superior)" 
+                  value={draft.hero.logoHeightClient || "40"} 
+                  onChange={(v) => update("hero.logoHeightClient", v)} 
+                />
+              </div>
+
+              <div className="p-4 rounded-xl border border-white/5 bg-white/[0.02] space-y-4">
+                <h4 className="text-xs font-bold text-purple-400 uppercase tracking-wider flex items-center gap-2">
+                  <Shield className="size-3" /> Painel Admin
+                </h4>
+                <Field 
+                  label="Altura do Logo (Menu Lateral)" 
+                  value={draft.hero.logoHeightAdmin || "56"} 
+                  onChange={(v) => update("hero.logoHeightAdmin", v)} 
+                />
+                <Field 
+                  label="Distância do Topo (Padding)" 
+                  value={draft.hero.logoMarginTopAdmin || "24"} 
+                  onChange={(v) => update("hero.logoMarginTopAdmin", v)} 
+                />
+              </div>
             </div>
             <Field label="Título Principal" value={draft.hero.title} onChange={(v) => update("hero.title", v)} />
             <Field label="Palavra Destaque (italic vermelha)" value={draft.hero.titleHighlight} onChange={(v) => update("hero.titleHighlight", v)} />
