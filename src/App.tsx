@@ -345,7 +345,17 @@ const App = () => {
                         <p className="text-white/60 text-sm animate-pulse">Carregando informações do produto...</p>
                       </div>
                       <script dangerouslySetInnerHTML={{ 
-                        __html: `window.location.replace("https://mxnlerkeygfvdnznoxld.functions.supabase.co/product-metadata/" + window.location.pathname.split("/").pop());` 
+                        __html: `
+                          const slug = window.location.pathname.split("/").pop();
+                          if (navigator.userAgent.includes('facebookexternalhit') || 
+                              navigator.userAgent.includes('Facebot') || 
+                              navigator.userAgent.includes('Twitterbot') || 
+                              navigator.userAgent.includes('WhatsApp')) {
+                            window.location.replace("https://mxnlerkeygfvdnznoxld.functions.supabase.co/product-metadata/" + slug);
+                          } else {
+                            window.location.replace("/produto/" + slug);
+                          }
+                        ` 
                       }} />
                     </div>
                   } 
