@@ -54,7 +54,7 @@ export function ProductDetailModal({ product, open, onOpenChange, quantity, onQu
 
   if (!product) return null;
 
-  const productUrl = product.slug ? `${window.location.origin}/p/${product.slug}` : null;
+  const productUrl = product.slug ? `https://mxnlerkeygfvdnznoxld.functions.supabase.co/product-metadata/${product.slug}` : null;
 
   const handleShare = async () => {
     if (!productUrl) return;

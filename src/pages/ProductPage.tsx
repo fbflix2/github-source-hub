@@ -55,7 +55,7 @@ export default function ProductPage() {
   }, [slug]);
 
   const handleShare = async () => {
-    const url = `${window.location.origin}/p/${slug}`;
+    const url = `https://mxnlerkeygfvdnznoxld.functions.supabase.co/product-metadata/${slug}`;
     
     // Tenta copiar primeiro para garantir que o link está na área de transferência
     try {

@@ -1447,7 +1447,7 @@ export default function Checkout() {
               {product.slug && (
                 <button
                   onClick={async () => {
-                    const url = `${window.location.origin}/p/${product.slug}`;
+                    const url = `https://mxnlerkeygfvdnznoxld.functions.supabase.co/product-metadata/${product.slug}`;
                     try {
                       await navigator.clipboard.writeText(url);
                       setShareCopied(true);
