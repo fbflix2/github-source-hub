@@ -73,14 +73,30 @@ export default function GanheAqui() {
     setLoading(false);
   };
 
-  const copyLink = () => {
+  const copyLink = async () => {
     if (!partner) return;
-    const url = `https://fbflix.com.br/parceiro/${partner.slug}`;
-    navigator.clipboard.writeText(url).then(() => {
+    const url = `${window.location.origin}/parceiro/${partner.slug}`;
+    
+    try {
+      await navigator.clipboard.writeText(url);
       setCopied(true);
       toast.success("Link copiado!");
       setTimeout(() => setCopied(false), 2000);
-    });
+    } catch (err) {
+      const textArea = document.createElement("textarea");
+      textArea.value = url;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        setCopied(true);
+        toast.success("Link copiado!");
+        setTimeout(() => setCopied(false), 2000);
+      } catch (e) {
+        toast.error("Erro ao copiar link");
+      }
+      document.body.removeChild(textArea);
+    }
   };
 
   const filteredReferrals = useMemo(() => {
