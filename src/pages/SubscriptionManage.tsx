@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useProxyBRSubscriptions, useExchangeProxy, useRenewSubscription, useToggleAutoRenew, getExchangeHistory } from "@/hooks/useProxyBR";
-import { useProxyFbflixSubscriptions, useExchangeProxyFbflixProxy, getProxyFbflixExchangeHistory, useToggleProxyFbflixAutoRenew, useSyncProxyFbflixProxyCredentials } from "@/hooks/useProxyFbflix";
+import { useProxyFbflixSubscriptions, useExchangeProxyFbflixProxy, getProxyFbflixExchangeHistory, useToggleProxyFbflixAutoRenew, useSyncProxyFbflixProxyCredentials, useFixRepeatedProxy } from "@/hooks/useProxyFbflix";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
