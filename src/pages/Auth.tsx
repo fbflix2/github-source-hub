@@ -225,7 +225,7 @@ export default function Auth() {
           {/* Header & Logo */}
            <div className="flex flex-col items-center gap-3">
              <div className="flex flex-col items-center justify-center">
-               <img src={logoFbflix} alt="FBFLIX" className="w-28 h-28 object-contain" />
+               <img src={logoFbflix} alt="FBFLIX" className="w-20 h-20 object-contain" />
                <span className="text-xs font-black tracking-[0.4em] text-foreground mt-2 -mr-[0.4em]">F B F L I X</span>
              </div>
              <p className="text-muted-foreground text-sm font-medium">Bem-vindo de volta</p>
