@@ -45,21 +45,22 @@ export function ProductListItem({ product, quantity, onQuantityChange, onReadMor
   const stockInfo = getStockInfo(product);
   const [linkCopied, setLinkCopied] = useState(false);
 
-  const productUrl = product.slug ? `https://mxnlerkeygfvdnznoxld.functions.supabase.co/product-metadata/${product.slug}` : null;
+  const shareUrl = product.slug ? `${window.location.origin}/p/${product.slug}` : null;
+  const copyUrl = product.slug ? `${window.location.origin}/produto/${product.slug}` : null;
 
   const handleShare = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!productUrl) return;
+    if (!shareUrl || !copyUrl) return;
 
     // Tenta copiar primeiro
     try {
-      await navigator.clipboard.writeText(productUrl);
+      await navigator.clipboard.writeText(copyUrl);
       setLinkCopied(true);
       toast.success("Link do produto copiado!");
       setTimeout(() => setLinkCopied(false), 2000);
     } catch (err) {
       const textArea = document.createElement("textarea");
-      textArea.value = productUrl;
+      textArea.value = copyUrl;
       document.body.appendChild(textArea);
       textArea.select();
       try {
@@ -79,7 +80,7 @@ export function ProductListItem({ product, quantity, onQuantityChange, onReadMor
         await navigator.share({
           title: product.name,
           text: `Confira ${product.name} na FBFLIX!`,
-          url: productUrl,
+          url: shareUrl,
         });
       } catch (err) {
         console.log("Share cancelled or failed", err);
@@ -222,7 +223,7 @@ export function ProductListItem({ product, quantity, onQuantityChange, onReadMor
             </div>
 
             {/* Share */}
-            {productUrl && (
+            {shareUrl && (
               <button
                 onClick={handleShare}
                 className="h-8 w-8 rounded-lg border border-border text-muted-foreground hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all flex items-center justify-center"
