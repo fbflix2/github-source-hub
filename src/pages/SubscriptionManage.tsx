@@ -594,7 +594,11 @@ export default function SubscriptionManage() {
                         const oldProxyString = sub.proxy ? `${sub.proxy.ip}:${sub.proxy.port}:${sub.proxy.username || ""}:${sub.proxy.password || ""}` : undefined;
                         if (isProxyFbflix) {
                           const subId = (sub as any).id || sub.code;
-                          wsExchangeMutation.mutate({ subscriptionId: subId, oldProxyString });
+                          wsExchangeMutation.mutate({ 
+                            subscriptionId: subId, 
+                            oldProxyString,
+                            proxyId: sub.proxy?.id
+                          });
                         } else {
                           exchangeMutation.mutate({
                             subscriptionCode: sub.name,
@@ -621,7 +625,10 @@ export default function SubscriptionManage() {
                         variant="outline"
                         onClick={() => {
                           const subId = (sub as any).id || sub.code;
-                          fixRepeatedMutation.mutate({ subscriptionId: subId });
+                          fixRepeatedMutation.mutate({ 
+                            subscriptionId: subId,
+                            proxyId: sub.proxy?.id
+                          });
                         }}
                         disabled={fixRepeatedMutation.isPending}
                         className="w-full h-7 text-[10px] font-bold border-dashed border-primary/40 hover:bg-primary/5 hover:text-primary transition-all"
