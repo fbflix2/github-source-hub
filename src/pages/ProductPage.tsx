@@ -38,13 +38,24 @@ export default function ProductPage() {
     const url = window.location.href;
     if (navigator.share) {
       try {
-        await navigator.share({ title: product?.name, text: `Confira ${product?.name} na FBFLIX!`, url });
-      } catch {}
-    } else {
+        await navigator.share({
+          title: product?.name,
+          text: `Confira ${product?.name} na FBFLIX!`,
+          url,
+        });
+        return;
+      } catch (err) {
+        console.log("Share cancelled or failed", err);
+      }
+    }
+
+    try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
-      toast.success("Link copiado!");
+      toast.success("Link do produto copiado!");
       setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      toast.error("Erro ao copiar link");
     }
   };
 

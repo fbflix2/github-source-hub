@@ -45,18 +45,32 @@ export function ProductListItem({ product, quantity, onQuantityChange, onReadMor
   const stockInfo = getStockInfo(product);
   const [linkCopied, setLinkCopied] = useState(false);
 
-  const productUrl = product.slug ? `${window.location.origin}/produto/${product.slug}` : null;
+  const productUrl = product.id ? `${window.location.origin}/produto/${product.slug || product.id}` : null;
 
   const handleShare = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!productUrl) return;
+
     if (navigator.share) {
-      try { await navigator.share({ title: product.name, text: `Confira ${product.name} na FBFLIX!`, url: productUrl }); } catch {}
-    } else {
+      try {
+        await navigator.share({
+          title: product.name,
+          text: `Confira ${product.name} na FBFLIX!`,
+          url: productUrl,
+        });
+        return;
+      } catch (err) {
+        console.log("Share cancelled or failed", err);
+      }
+    }
+
+    try {
       await navigator.clipboard.writeText(productUrl);
       setLinkCopied(true);
-      toast.success("Link copiado!");
+      toast.success("Link do produto copiado!");
       setTimeout(() => setLinkCopied(false), 2000);
+    } catch (err) {
+      toast.error("Erro ao copiar link");
     }
   };
   const isPromo = product.tags?.some(t => t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").includes("promoc") || t.toLowerCase().includes("promoção") || t.toLowerCase().includes("promocao")) ?? false;
