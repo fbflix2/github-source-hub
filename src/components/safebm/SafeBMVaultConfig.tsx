@@ -304,7 +304,24 @@ function VaultPendingCard({ bmName }: { bmName: string }) {
                   <div className="px-3 pb-3 flex flex-col flex-1 justify-between">
                     <div>
                       <div className="flex justify-between items-start mb-1.5">
-                        <h4 className="text-xs font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>{v.bm_name}</h4>
+                        <h4 
+                          className="text-xs font-bold text-emerald-400 cursor-pointer hover:underline underline-offset-2 transition-all active:scale-95" 
+                          style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+                          onClick={() => {
+                            navigator.clipboard.writeText(v.bm_name);
+                            toast.success("Nome da BM copiado!", {
+                              style: {
+                                background: '#1c2025',
+                                border: '1px solid rgba(16, 185, 129, 0.2)',
+                                color: '#fff',
+                                fontSize: '12px'
+                              }
+                            });
+                          }}
+                          title="Clique para copiar"
+                        >
+                          {v.bm_name}
+                        </h4>
                         <div className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 text-[9px] font-bold uppercase tracking-wider">
                           Pendente
                         </div>
