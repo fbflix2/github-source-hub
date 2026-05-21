@@ -242,7 +242,7 @@ Deno.serve(async (req) => {
       const targetCountry = iCountry?.toUpperCase() || "US";
 
       // Get assigned proxy IDs and IPs
-      const { assignedIds, assignedIPs } = await getAssignedProxyIds(supabaseInternal);
+      const { assignedIds, assignedIPs, userIPs } = await getAssignedProxyIds(supabaseInternal, target_user_id);
 
       // Efficient search: stop as soon as we find enough proxies
       const available: any[] = [];
@@ -259,7 +259,10 @@ Deno.serve(async (req) => {
         if (results.length === 0) break;
 
         for (const p of results) {
-          if (p.valid && !assignedIds.has(String(p.id)) && !assignedIPs.has(String(p.proxy_address))) {
+          const isAssigned = assignedIds.has(String(p.id)) || assignedIPs.has(String(p.proxy_address));
+          const isPreviouslyUsed = userIPs.has(String(p.proxy_address));
+
+          if (p.valid && !isAssigned && !isPreviouslyUsed) {
             available.push(p);
             // Track what we just picked to avoid duplicates within this same batch
             assignedIds.add(String(p.id));
